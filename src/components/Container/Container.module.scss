@@ -1,0 +1,22 @@
+.container {
+  width: 100%;
+  margin: 0 auto;
+
+  @media (max-width: 720px) {
+    padding: 0 1em;
+  }
+
+  h2,
+  h3,
+  h4,
+  p,
+  ul {
+    &:first-child {
+      margin-top: 0;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
