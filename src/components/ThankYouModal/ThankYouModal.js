@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from "react";
+import { FaGithub } from "react-icons/fa";
 
-export default function ThankYouModal({ isModalOpen, setModalIsOpen }) {
+export default function ThankYouModal({isModalOpen, setModalIsOpen}) {
   if (!isModalOpen) return null;
 
   const escFunction = useCallback((event) => {
@@ -20,18 +21,16 @@ export default function ThankYouModal({ isModalOpen, setModalIsOpen }) {
   return (
     <div className="fixed inset-0 z-999 flex items-center justify-center backdrop-blur-xs bg-opacity-40">
       <div className="bg-white max-w-md w-full p-6 rounded-2xl shadow-lg relative">
-        <button
-          onClick={() => setModalIsOpen(false)}
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl font-bold cursor-pointer"
-          aria-label="Close modal"
-        >
-          ×
-        </button>
-
         <br/><br/>
         <div className="text-gray-700 space-y-3">
           <p>
-            This website uses data provided by{" "}
+            <a href="https://github.com/TheMrBooblik/sleeper-train-map" rel="noreferrer" target="_blank" className="flex items-center justify-center gap-2">
+              <span><FaGithub/></span>
+              <span>Github link</span>
+            </a>
+          </p><br/>
+          <p className="text-center">
+            Huge thanks to&nbsp;
             <a
               href="https://back-on-track.eu"
               target="_blank"
@@ -39,8 +38,9 @@ export default function ThankYouModal({ isModalOpen, setModalIsOpen }) {
               className="!text-blue-900 underline hover:text-blue-700"
             >
               Back-on-Track.eu
-            </a><br/><br/> Huge thanks to them!
+            </a> for providing data!
           </p>
+          <br/>
         </div>
 
         <div className="mt-6 text-right">

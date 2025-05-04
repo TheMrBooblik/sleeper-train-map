@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { HEADER_HEIGHT } from "../constants/header";
 
 export function useWindowSize() {
     // Initialize state with undefined width/height so server and client renders match
@@ -15,7 +16,7 @@ export function useWindowSize() {
             // Set window width/height to state
             setWindowSize({
                 width: window.innerWidth,
-                height: window.innerHeight - 60,
+                height: window.innerHeight - HEADER_HEIGHT,
             });
         }
 
