@@ -23,7 +23,7 @@ const Header = ({setModalIsOpen, setLayerType, layerType}) => {
           </Link>
         </p>
         <div className="flex items-center list-none gap-4">
-          <div className="flex items-center">
+          {/*<div className="flex items-center">
             <button
               onClick={toggleLayer}
               className={`${styles.layerButton} ${isRailwayLayer ? styles.activeLayer : ""}`}
@@ -32,7 +32,7 @@ const Header = ({setModalIsOpen, setLayerType, layerType}) => {
               <FaTrain className={styles.layerIcon}/>
               <span className={styles.layerText}>Railway Layer</span>
             </button>
-          </div>
+          </div>*/}
           <button onClick={() => setModalIsOpen(true)} className="cursor-pointer outline-none">
             <FaInfo/>
           </button>

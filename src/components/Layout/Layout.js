@@ -29,8 +29,8 @@ const Layout = ({ children }) => {
               {({ TileLayer }) => (
                 <>
                   <TileLayer
-                    url={`/api/tiles?provider=${layerType}&z={z}&x={x}&y={y}`}
-                    attribution="&copy; OpenStreetMap contributors"
+                    url={`https://tile.openstreetmap.org/{z}/{x}/{y}.png`}
+                    attribution="&copy; <a href=&quot;http://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
                   />
                 </>
               )}

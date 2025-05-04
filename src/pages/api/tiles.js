@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  const { z, x, y, provider = 'osm' } = req.query;
+  const { z, x, y, provider = 'thunderforest' } = req.query;
 
   let tileUrl;
   switch (provider) {
