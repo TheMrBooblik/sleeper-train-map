@@ -2,13 +2,11 @@
 
 ![Sleeper Train Map Preview](preview.png)
 
+Experience the application live: [https://sleeper-train-map.vercel.app](https://sleeper-train-map.vercel.app)
+
 ## Overview
 
 The **Sleeper Train Map** is a web application that visualizes direct night sleeper train routes across Europe. By selecting a station, users can easily see all reachable destinations via sleeper trains.
-
-## Live Demo
-
-Experience the application live: [https://sleeper-train-map.vercel.app](https://sleeper-train-map.vercel.app)
 
 ## Features
 
