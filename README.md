@@ -1,33 +1,89 @@
-# 🍃 Next.js Leaflet Starter
+# Sleeper Train Map
 
-Jumpstart your new Next.js mapping project with Leaflet!
+![Sleeper Train Map Preview](preview.png)
 
-## ⚡ Quick Deploy
-[![Deploy with Vercel Now](https://zeit.co/button)](https://vercel.com/import/project?template=https://github.com/colbyfayock/next-leaflet-starter) [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/colbyfayock/next-leaflet-starter)
+## Overview
 
+The **Sleeper Train Map** is a web application that visualizes direct night sleeper train routes across Europe. By selecting a station, users can easily see all reachable destinations via sleeper trains.
 
-## 🧰 What This Includes
-* [Next.js](https://nextjs.org/)
-* [Leaflet](https://leafletjs.com/)
-* [React Leaflet](https://react-leaflet.js.org)
+## Live Demo
 
-## 🚀 Getting Started
+Experience the application live: [https://sleeper-train-map.vercel.app](https://sleeper-train-map.vercel.app)
 
-### Requirements
+## Features
 
-### Quick Start
+- **Interactive Map**: Displays a map with all available sleeper train routes.
+- **Station Filtering**: Users can filter routes starting from a specific station to see direct connections.
+- **User-Friendly Interface**: Simple and clean design for seamless navigation.
 
-```
-npx create-next-app -e https://github.com/colbyfayock/next-leaflet-starter
-```
+## Technologies Used
 
-### Running the Project
-First, run the development server:
+- **JavaScript**: Core programming logic.
+- **SCSS/CSS**: For styling and visual appeal.
+- **OpenStreetMap**: Provides the base map for station visualization.
+- **Vercel**: Deploys the live application.
 
-```bash
-npm run dev
-```
+## Getting Started
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Prerequisites
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+Ensure you have the following installed:
+
+- [Node.js](https://nodejs.org/)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/TheMrBooblik/sleeper-train-map.git
+   cd sleeper-train-map
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. Start the development server:
+   ```bash
+   npm start
+   # or
+   yarn start
+   ```
+
+4. Open your browser and navigate to `http://localhost:3000`.
+
+## Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository.
+2. Create a new feature branch:
+   ```bash
+   git checkout -b feature-name
+   ```
+3. Commit your changes:
+   ```bash
+   git commit -m "Description of changes"
+   ```
+4. Push to your forked repository:
+   ```bash
+   git push origin feature-name
+   ```
+5. Open a pull request.
+
+## License
+
+This project does not currently specify a license. If you are the owner, consider adding a license.
+
+## Acknowledgements
+
+- Special thanks to the [Back-on-Track.eu](https://github.com/Back-on-Track-eu) project for inspiration and resources.
+- Thanks to: [OpenStreetMap](https://www.openstreetmap.org/) for the map data.
+- Deployment powered by [Vercel](https://vercel.com/).
+
+---
+Feel free to explore and enhance the project!
