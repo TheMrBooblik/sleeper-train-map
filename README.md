@@ -54,29 +54,6 @@ Ensure you have the following installed:
 
 4. Open your browser and navigate to `http://localhost:3000`.
 
-## Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository.
-2. Create a new feature branch:
-   ```bash
-   git checkout -b feature-name
-   ```
-3. Commit your changes:
-   ```bash
-   git commit -m "Description of changes"
-   ```
-4. Push to your forked repository:
-   ```bash
-   git push origin feature-name
-   ```
-5. Open a pull request.
-
-## License
-
-This project does not currently specify a license. If you are the owner, consider adding a license.
-
 ## Acknowledgements
 
 - Special thanks to the [Back-on-Track.eu](https://github.com/Back-on-Track-eu) project for inspiration and resources.
