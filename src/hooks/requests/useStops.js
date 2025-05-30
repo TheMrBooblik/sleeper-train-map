@@ -56,6 +56,8 @@ export function useStops() {
         fetchStops();
     }, []);
 
+    return { stops, filteredStops, setFilteredStops, isLoading };
+
     // Function to force refresh data
     const refreshStops = async () => {
         setIsLoading(true);

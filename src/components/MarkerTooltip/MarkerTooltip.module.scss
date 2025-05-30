@@ -1,0 +1,29 @@
+.stationTooltip {
+  background-color: rgba(255, 255, 255, 0.8);
+  border: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  padding: 0;
+  font-family: Roboto, Arial, sans-serif;
+
+  &::before {
+    border-top-color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+.tooltipContent {
+  padding: 6px 10px;
+}
+
+.stationName {
+  font-weight: 500;
+  color: #333;
+  font-size: 0.9rem;
+  display: block;
+  text-align: center;
+
+  &:hover {
+    color: #007aff;
+    cursor: help;
+  }
+}

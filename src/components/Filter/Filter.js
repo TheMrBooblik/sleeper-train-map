@@ -1,10 +1,14 @@
-import React from 'react';
+import React from "react";
 
-const Filter = ({selected, filterName, onClose}) => {
+const Filter = ({ selected, filterName, onClose }) => {
   return (
-    <div className={`flex items-center text-sm absolute !z-999 left-15 top-3 p-2 bg-white rounded ${selected ? "flex" : "hidden"}`}>
-      <button onClick={onClose} className="p-0.5 cursor-pointer">✖</button>&nbsp;
-      Filter applied:&nbsp;<strong>{filterName}</strong>
+    <div
+      className={`flex items-center text-sm absolute !z-999 left-15 top-3 p-2 bg-white rounded ${selected ? "flex" : "hidden"} leaflet-bar`}
+    >
+      <button onClick={onClose} className="p-0.5 cursor-pointer">
+        ✖
+      </button>
+      &nbsp; Filter applied:&nbsp;<strong>{filterName}</strong>
     </div>
   );
 };

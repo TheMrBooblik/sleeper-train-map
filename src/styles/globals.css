@@ -31,3 +31,18 @@ img {
   filter: hue-rotate(45deg);
   z-index: 1000 !important;
 }
+
+.leaflet-control-zoom a {
+  transition: all 0.2s ease;
+}
+
+.leaflet-control-zoom a.zoom-control-active {
+  color: #007aff !important;
+}
+
+/* Tooltip abbr styling */
+abbr {
+  text-decoration: none;
+  border-bottom: 1px dotted #999;
+  cursor: help;
+}
