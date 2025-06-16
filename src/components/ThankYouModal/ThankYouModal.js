@@ -73,9 +73,9 @@ export default function ThankYouModal({isModalOpen, setModalIsOpen}) {
         <div className="mt-8 text-center">
           <button
             onClick={() => setModalIsOpen(false)}
-            className="px-6 py-2.5 bg-black text-white rounded-lg hover:bg-grey-700 transition shadow-md font-medium cursor-pointer"
+            className="w-full px-6 py-2.5 bg-black text-white rounded-lg hover:bg-grey-700 transition shadow-md font-medium cursor-pointer"
           >
-            Start Exploring
+            LET'S GO TO THE MAP!
           </button>
         </div>
       </div>
