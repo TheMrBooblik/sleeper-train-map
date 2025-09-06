@@ -5,7 +5,7 @@ import React, {
   useState,
   useMemo,
   useCallback,
-  useRef
+  useRef,
 } from "react";
 import Leaflet from "leaflet";
 import * as ReactLeaflet from "react-leaflet";
@@ -108,7 +108,7 @@ const Map = ({ children, className, ...rest }) => {
       setStopId(stop_id);
       const cityInfo = cities[stop_id];
 
-      if (!cityInfo) return;
+      if (!cityInfo || !cityInfo.stop_route_ids) return;
 
       const { stop_route_ids } = cityInfo;
 
@@ -116,6 +116,7 @@ const Map = ({ children, className, ...rest }) => {
       setStopRouteIds(routeIdsArray);
 
       const routeCities = Object.values(cities).filter((viewCity) => {
+        if (!viewCity || !viewCity.stop_route_ids) return false;
         const arr = viewCity.stop_route_ids.split(",");
         return arr.some((item) => routeIdsArray.includes(item));
       });
@@ -136,56 +137,57 @@ const Map = ({ children, className, ...rest }) => {
     // Show all markers without filtering, but limit tooltip rendering
     const markersToRender = filteredStops;
 
-    return markersToRender.map((filteredStop, index) => {
-      const isSelected = stopId === filteredStop?.stop_id;
-      const stopLat = filteredStop?.stop_lat;
-      const stopLon = filteredStop?.stop_lon;
+    return markersToRender
+      .map((filteredStop, index) => {
+        const isSelected = stopId === filteredStop?.stop_id;
+        const stopLat = filteredStop?.stop_lat;
+        const stopLon = filteredStop?.stop_lon;
 
-      const { stop_id } = filteredStop;
-      const cityInfo = cities[stop_id];
-      const { stop_route_ids } = cityInfo || {};
+        const { stop_id } = filteredStop;
+        const cityInfo = cities[stop_id];
+        const { stop_route_ids } = cityInfo || {};
 
-      if (!stopLat || !stopLon || !stop_route_ids) return null;
+        if (!stopLat || !stopLon || !stop_route_ids || !cityInfo) return null;
 
-      // Optimize marker rendering based on importance/selection
-      // Only render tooltips for selected markers to improve performance
-      return (
-        <Marker
-          key={`${filteredStop?.stop_id || index}`}
-          position={[stopLat, stopLon]}
-          icon={isSelected ? selectedIcon : defaultIcon}
-          eventHandlers={{
-            click: (e) => {
-              handleMarkerClick(filteredStop);
-            }
-          }}
-          title={stop_id}
-        >
-          {isSelected && (
-            <MarkerTooltip 
-              stationName={stop_id}
-              stationId={stop_id} 
-            />
-          )}
-        </Marker>
-      );
-    }).filter(Boolean);
+        // Optimize marker rendering based on importance/selection
+        // Only render tooltips for selected markers to improve performance
+        return (
+          <Marker
+            key={`${filteredStop?.stop_id || index}`}
+            position={[stopLat, stopLon]}
+            icon={isSelected ? selectedIcon : defaultIcon}
+            eventHandlers={{
+              click: (e) => {
+                handleMarkerClick(filteredStop);
+              },
+            }}
+            title={stop_id}
+          >
+            {isSelected && (
+              <MarkerTooltip stationName={stop_id} stationId={stop_id} />
+            )}
+          </Marker>
+        );
+      })
+      .filter(Boolean);
   }, [filteredStops, handleMarkerClick]);
 
   return (
     <>
       {isLoading && (
-        <div style={{
-          position: 'absolute',
-          zIndex: 1001,
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          backgroundColor: 'rgba(255,255,255,0.8)',
-          padding: '10px 20px',
-          borderRadius: '4px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
-        }}>
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 1001,
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            backgroundColor: "rgba(255,255,255,0.8)",
+            padding: "10px 20px",
+            borderRadius: "4px",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+          }}
+        >
           Loading stations...
         </div>
       )}
