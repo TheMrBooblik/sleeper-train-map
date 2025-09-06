@@ -2,3 +2,98 @@
   width: 100%;
   height: 100%;
 }
+
+// Marker styles - using global selectors with local class context
+.map :global(.station-dot) {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer;
+  z-index: 1000 !important;
+}
+
+.map :global(.station-dot:hover) {
+  transform: scale(1.3);
+}
+
+.map :global(.station-dot div) {
+  transition: all 0.3s ease;
+}
+
+.map :global(.station-dot:hover div) {
+  background: linear-gradient(135deg, #1976d2, #1565c0) !important;
+  box-shadow:
+    0 4px 12px rgba(33, 150, 243, 0.6),
+    0 0 0 2px rgba(33, 150, 243, 0.4) !important;
+}
+
+.map :global(.selected-station-dot) {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer;
+  z-index: 2000 !important;
+}
+
+.map :global(.selected-station-dot:hover) {
+  transform: scale(1.2);
+}
+
+.map :global(.selected-station-dot div) {
+  transition: all 0.3s ease;
+}
+
+.map :global(.selected-station-dot:hover div) {
+  background: linear-gradient(135deg, #e64a19, #d84315) !important;
+  box-shadow:
+    0 5px 15px rgba(255, 87, 34, 0.7),
+    0 0 0 3px rgba(94, 94, 94, 0.5) !important;
+}
+
+.map :global(.via-dot) {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer;
+  z-index: 100 !important;
+}
+
+.map :global(.via-dot:hover) {
+  transform: scale(1.3);
+}
+
+.map :global(.via-dot div) {
+  transition: all 0.3s ease;
+}
+
+.map :global(.via-dot:hover div) {
+  background: linear-gradient(135deg, #388e3c, #2e7d32) !important;
+  box-shadow:
+    0 3px 10px rgba(76, 175, 80, 0.6),
+    0 0 0 2px rgba(76, 175, 80, 0.4) !important;
+}
+
+// Loading animations
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position:
+      -200% 0,
+      0 0,
+      0 0;
+  }
+  100% {
+    background-position:
+      200% 0,
+      0 0,
+      0 0;
+  }
+}
