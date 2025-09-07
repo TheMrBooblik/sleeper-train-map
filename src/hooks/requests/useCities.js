@@ -4,6 +4,23 @@ import { VIEW_CITIES, VIEW_MAP } from "../../constants/backOnTrack";
 // Cache duration in milliseconds (1 hour)
 const CACHE_DURATION = 60 * 60 * 1000;
 
+// Function to normalize station names to handle inconsistencies between stops and routes data
+const normalizeStationName = (stationName) => {
+  if (!stationName) return stationName;
+
+  // Handle Brussels station name inconsistencies
+  // Routes data uses "Bruxelles-Midi" while stops data uses "Bruxelles Midi"
+  return stationName
+    .replace(/Bruxelles-Midi/g, "Bruxelles Midi")
+    .replace(/Bruxelles-Nord/g, "Bruxelles Nord")
+    .replace(/Bruxelles-Ouest/g, "Bruxelles Ouest")
+    .replace(/Bruxelles-Central/g, "Bruxelles Central")
+    .replace(/Bruxelles-Chapelle/g, "Bruxelles Chapelle")
+    .replace(/Bruxelles-Congrès/g, "Bruxelles Congrès")
+    .replace(/Bruxelles-Luxembourg/g, "Bruxelles Luxembourg")
+    .replace(/Bruxelles-Schuman/g, "Bruxelles Schuman");
+};
+
 // Cache structure
 const citiesCache = {
   data: null,
@@ -46,6 +63,9 @@ export function useCities() {
           // Generate city-to-route mapping
           const cityRouteMap = {};
 
+          // Debug: Count Brussels stations in route data
+          let brusselsInRoutes = 0;
+
           if (mapData) {
             // First pass: Process ALL routes to identify main stations
             Object.values(mapData).forEach((route) => {
@@ -61,17 +81,29 @@ export function useCities() {
                 ].filter(Boolean);
 
                 mainStations.forEach((station) => {
-                  if (!cityRouteMap[station]) {
-                    cityRouteMap[station] = {
-                      stop_id: station,
+                  // Normalize station name to match stops data format
+                  const normalizedStation = normalizeStationName(station);
+
+                  // Debug: Count Brussels stations
+                  if (
+                    station.includes("Bruxelles") ||
+                    station.includes("Brussels")
+                  ) {
+                    brusselsInRoutes++;
+                  }
+
+                  if (!cityRouteMap[normalizedStation]) {
+                    cityRouteMap[normalizedStation] = {
+                      stop_id: normalizedStation,
                       stop_route_ids: routeId,
                       isMainStation: true,
                       isViaStation: false, // Explicitly set to false
                     };
                   } else {
-                    cityRouteMap[station].stop_route_ids += `,${routeId}`;
-                    cityRouteMap[station].isMainStation = true;
-                    cityRouteMap[station].isViaStation = false; // Override any via station flag
+                    cityRouteMap[normalizedStation].stop_route_ids +=
+                      `,${routeId}`;
+                    cityRouteMap[normalizedStation].isMainStation = true;
+                    cityRouteMap[normalizedStation].isViaStation = false; // Override any via station flag
                   }
                 });
               }
@@ -88,20 +120,24 @@ export function useCities() {
                     .split(" - ")
                     .filter((station) => station.trim());
                   viaStations.forEach((viaStation) => {
-                    if (!cityRouteMap[viaStation]) {
+                    // Normalize station name to match stops data format
+                    const normalizedViaStation =
+                      normalizeStationName(viaStation);
+                    if (!cityRouteMap[normalizedViaStation]) {
                       // Only create new via station if it doesn't exist
-                      cityRouteMap[viaStation] = {
-                        stop_id: viaStation,
+                      cityRouteMap[normalizedViaStation] = {
+                        stop_id: normalizedViaStation,
                         stop_route_ids: routeId,
                         isViaStation: true,
                         isMainStation: false,
                       };
                     } else {
                       // Add route to existing station
-                      cityRouteMap[viaStation].stop_route_ids += `,${routeId}`;
+                      cityRouteMap[normalizedViaStation].stop_route_ids +=
+                        `,${routeId}`;
                       // Only set as via station if it's not already a main station
-                      if (!cityRouteMap[viaStation].isMainStation) {
-                        cityRouteMap[viaStation].isViaStation = true;
+                      if (!cityRouteMap[normalizedViaStation].isMainStation) {
+                        cityRouteMap[normalizedViaStation].isViaStation = true;
                       }
                     }
                   });
@@ -113,20 +149,24 @@ export function useCities() {
                     .split(" - ")
                     .filter((station) => station.trim());
                   viaStations.forEach((viaStation) => {
-                    if (!cityRouteMap[viaStation]) {
+                    // Normalize station name to match stops data format
+                    const normalizedViaStation =
+                      normalizeStationName(viaStation);
+                    if (!cityRouteMap[normalizedViaStation]) {
                       // Only create new via station if it doesn't exist
-                      cityRouteMap[viaStation] = {
-                        stop_id: viaStation,
+                      cityRouteMap[normalizedViaStation] = {
+                        stop_id: normalizedViaStation,
                         stop_route_ids: routeId,
                         isViaStation: true,
                         isMainStation: false,
                       };
                     } else {
                       // Add route to existing station
-                      cityRouteMap[viaStation].stop_route_ids += `,${routeId}`;
+                      cityRouteMap[normalizedViaStation].stop_route_ids +=
+                        `,${routeId}`;
                       // Only set as via station if it's not already a main station
-                      if (!cityRouteMap[viaStation].isMainStation) {
-                        cityRouteMap[viaStation].isViaStation = true;
+                      if (!cityRouteMap[normalizedViaStation].isMainStation) {
+                        cityRouteMap[normalizedViaStation].isViaStation = true;
                       }
                     }
                   });
@@ -138,6 +178,15 @@ export function useCities() {
           // Update the cache
           citiesCache.data = cityRouteMap;
           citiesCache.timestamp = currentTime;
+
+          // Debug: Log Brussels stations found
+          console.log(
+            `Found ${brusselsInRoutes} Brussels stations in route data`,
+          );
+          const brusselsInCityMap = Object.keys(cityRouteMap).filter(
+            (key) => key.includes("Bruxelles") || key.includes("Brussels"),
+          );
+          console.log(`Brussels stations in city map:`, brusselsInCityMap);
 
           // Update the state
           setCities(cityRouteMap);

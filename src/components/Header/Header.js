@@ -1,16 +1,17 @@
-import Link from 'next/link';
-import { FaInfo, FaTrain } from 'react-icons/fa';
+import Link from "next/link";
+import { FaInfo, FaTrain } from "react-icons/fa";
 
-import Container from '@components/Container';
+import Container from "@components/Container";
+import Legend from "@components/Legend";
 
-import styles from './Header.module.scss';
+import styles from "./Header.module.scss";
 import { HEADER_HEIGHT } from "../../constants/header";
 
-const Header = ({setModalIsOpen, setLayerType, layerType}) => {
+const Header = ({ setModalIsOpen, setLayerType, layerType }) => {
   const isRailwayLayer = layerType === "thunderforest";
   const toggleLayer = () => {
-    setLayerType(prevType =>
-      prevType === "thunderforest" ? "osm" : "thunderforest"
+    setLayerType((prevType) =>
+      prevType === "thunderforest" ? "osm" : "thunderforest",
     );
   };
 
@@ -33,8 +34,12 @@ const Header = ({setModalIsOpen, setLayerType, layerType}) => {
               <span className={styles.layerText}>Railway Layer</span>
             </button>
           </div>*/}
-          <button onClick={() => setModalIsOpen(true)} className="cursor-pointer outline-none">
-            <FaInfo/>
+          <Legend />
+          <button
+            onClick={() => setModalIsOpen(true)}
+            className="cursor-pointer outline-none"
+          >
+            <FaInfo />
           </button>
         </div>
       </Container>

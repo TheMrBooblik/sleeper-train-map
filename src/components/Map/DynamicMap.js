@@ -141,6 +141,13 @@ const Map = ({ children, className, ...rest }) => {
   const handleMarkerClick = useCallback(
     (filteredStop) => {
       const { stop_id } = filteredStop;
+
+      // If clicking on the already selected marker, unselect it
+      if (stopId === stop_id && selected) {
+        removeFilter();
+        return;
+      }
+
       setStopId(stop_id);
       const cityInfo = cities[stop_id];
 
@@ -164,7 +171,7 @@ const Map = ({ children, className, ...rest }) => {
       setFilteredStops(routeStops);
       setSelected(true);
     },
-    [cities, stops, setFilteredStops],
+    [cities, stops, setFilteredStops, stopId, selected, removeFilter],
   );
 
   const markers = useMemo(() => {
