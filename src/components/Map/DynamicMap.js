@@ -40,6 +40,7 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
   const [stopRouteIds, setStopRouteIds] = useState();
   const [currentZoom, setCurrentZoom] = useState(5);
   const [selectedStationName, setSelectedStationName] = useState("");
+  const [selectedNormalizedName, setSelectedNormalizedName] = useState(""); // For filtering via stations
   const mapRef = useRef();
   const sidebarRef = useRef(null);
 
@@ -158,6 +159,8 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       return "Minsk";
     } else if (stationName.includes("Ankara")) {
       return "Ankara";
+    } else if (stationName.includes("London")) {
+      return "London";
     } else if (
       stationName.includes("İstanbul") ||
       stationName.includes("Istanbul")
@@ -174,6 +177,7 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
     setStopId(null);
     setSelected(false);
     setSelectedStationName("");
+    setSelectedNormalizedName("");
     setFilteredStops(stops);
   };
 
@@ -284,6 +288,9 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       // Set station name based on grouping state
       const filterName = isGrouped ? normalizeStationName(stop_id) : stop_id;
       setSelectedStationName(filterName);
+
+      // Set normalized name for filtering via stations
+      setSelectedNormalizedName(normalizeStationName(stop_id));
 
       const { stop_route_ids } = cityInfo;
 
@@ -663,6 +670,7 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
           setSidebarDisabled={setSidebarDisabled}
           stopId={stopId}
           stopRouteIds={stopRouteIds}
+          selectedNormalizedName={selectedNormalizedName}
         />
       </div>
     </>
