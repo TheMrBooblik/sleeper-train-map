@@ -7,7 +7,13 @@ import Legend from "@components/Legend";
 import styles from "./Header.module.scss";
 import { HEADER_HEIGHT } from "../../constants/header";
 
-const Header = ({ setModalIsOpen, setLayerType, layerType }) => {
+const Header = ({
+  setModalIsOpen,
+  setLayerType,
+  layerType,
+  isGrouped,
+  setIsGrouped,
+}) => {
   const isRailwayLayer = layerType === "thunderforest";
   const toggleLayer = () => {
     setLayerType((prevType) =>
@@ -24,16 +30,19 @@ const Header = ({ setModalIsOpen, setLayerType, layerType }) => {
           </Link>
         </p>
         <div className="flex items-center list-none gap-4">
-          {/*<div className="flex items-center">
-            <button
-              onClick={toggleLayer}
-              className={`${styles.layerButton} ${isRailwayLayer ? styles.activeLayer : ""}`}
-              title={isRailwayLayer ? "Switch to standard layer" : "Switch to railway layer"}
-            >
-              <FaTrain className={styles.layerIcon}/>
-              <span className={styles.layerText}>Railway Layer</span>
-            </button>
-          </div>*/}
+          {/* Grouping Toggle */}
+          <div className="flex items-center">
+            <label className="flex items-center cursor-pointer text-sm">
+              <input
+                type="checkbox"
+                checked={isGrouped}
+                onChange={(e) => setIsGrouped(e.target.checked)}
+                className="mr-2 cursor-pointer"
+              />
+              Group Stations
+            </label>
+          </div>
+
           <Legend />
           <button
             onClick={() => setModalIsOpen(true)}

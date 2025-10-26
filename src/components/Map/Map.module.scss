@@ -70,6 +70,42 @@
     0 0 0 2px rgba(76, 175, 80, 0.4) !important;
 }
 
+.map :global(.grouped-station-dot) {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer;
+  z-index: 2000 !important;
+}
+
+.map :global(.grouped-station-dot:hover) {
+  transform: scale(1.2);
+}
+
+.map :global(.grouped-station-dot div) {
+  transition: all 0.3s ease;
+}
+
+.map :global(.grouped-station-dot:hover div) {
+  background: linear-gradient(135deg, #1976d2, #1565c0) !important;
+  box-shadow:
+    0 4px 12px rgba(33, 150, 243, 0.6),
+    0 0 0 2px rgba(33, 150, 243, 0.4) !important;
+}
+
+/* Keep selected grouped markers orange on hover */
+.map :global(.grouped-station-dot.selected:hover div) {
+  background: linear-gradient(135deg, #f57c00, #e65100) !important;
+  box-shadow:
+    0 5px 15px rgba(255, 152, 0, 0.7),
+    0 0 0 3px rgba(94, 94, 94, 0.5) !important;
+}
+
+/* Orange badge hover effect */
+.map :global(.grouped-station-dot:hover div div) {
+  background: linear-gradient(135deg, #f57c00, #e65100) !important;
+  box-shadow: 0 3px 8px rgba(255, 152, 0, 0.7) !important;
+}
+
 // Loading animations
 @keyframes pulse {
   0% {

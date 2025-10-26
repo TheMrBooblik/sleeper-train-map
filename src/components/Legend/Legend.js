@@ -14,13 +14,6 @@ const Legend = () => {
           <div className={`${styles.legendDot} ${styles.viaStation}`}></div>
           <span>Via</span>
         </div>
-
-        <div className={styles.legendItem}>
-          <div
-            className={`${styles.legendDot} ${styles.selectedStation}`}
-          ></div>
-          <span>Selected</span>
-        </div>
       </div>
     </div>
   );
