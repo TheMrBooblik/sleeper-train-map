@@ -287,7 +287,24 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
 
       const { stop_route_ids } = cityInfo;
 
-      const routeIdsArray = stop_route_ids.split(",").filter((el) => el);
+      // If this is a grouped marker, collect all route IDs from all stations in the group
+      let routeIdsArray;
+      if (filteredStop.isGrouped && filteredStop.groupedStations) {
+        // Collect all route IDs from all stations in the group
+        const allRouteIds = new Set();
+        filteredStop.groupedStations.forEach((station) => {
+          const stationInfo = cities[station.stop_id];
+          if (stationInfo?.stop_route_ids) {
+            stationInfo.stop_route_ids.split(",").forEach((id) => {
+              allRouteIds.add(id);
+            });
+          }
+        });
+        routeIdsArray = Array.from(allRouteIds);
+      } else {
+        routeIdsArray = stop_route_ids.split(",").filter((el) => el);
+      }
+
       setStopRouteIds(routeIdsArray);
 
       const routeCities = Object.values(cities).filter((viewCity) => {
@@ -311,6 +328,7 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       selected,
       removeFilter,
       normalizeStationName,
+      isGrouped,
     ],
   );
 
