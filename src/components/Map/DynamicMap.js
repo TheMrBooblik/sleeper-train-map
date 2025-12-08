@@ -462,7 +462,11 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
           // When a filter is active, check if this station is origin/destination
           // for ANY of the filtered routes
           const isOriginOrDestination = stopRouteIds.some((routeId) => {
-            const route = viewMapData[routeId];
+            // viewMapData is an object where values contain route info, not keyed by route_id
+            // We need to find the route by searching through all values
+            const route = Object.values(viewMapData).find(
+              (r) => r?.route_id?.toString() === routeId,
+            );
             if (!route) return false;
 
             // Check if this station is origin or destination for this route
