@@ -9,11 +9,12 @@ const CACHE_DURATION = 60 * 60 * 1000;
 export const normalizeStationNameForLookup = (stationName) => {
   if (!stationName) return stationName;
 
-  // Step 1: Remove French bilingual parts (e.g., " / Anvers-Central", " / Bruxelles-Midi")
+  // Step 1: Remove French bilingual parts (e.g., " / Anvers-Central", " / Bruxelles-Midi", " / Luik-*")
   let normalized = stationName
-    .replace(/\s*\/\s*Anvers-[^/]+$/g, "")  // Remove French Antwerp names
-    .replace(/\s*\/\s*Bruxelles-[^/]+$/g, ""); // Remove French Brussels names
-  
+    .replace(/\s*\/\s*Anvers-[^/]+$/g, "") // Remove French Antwerp names
+    .replace(/\s*\/\s*Bruxelles-[^/]+$/g, "") // Remove French Brussels names
+    .replace(/\s*\/\s*Luik-[^/]+$/g, ""); // Remove Dutch Liège names (Luik = Liège in Dutch)
+
   // Step 2: Replace hyphens with spaces for Belgian stations
   normalized = normalized
     .replace(/Bruxelles-Midi/g, "Bruxelles Midi")
@@ -35,8 +36,14 @@ export const normalizeStationNameForLookup = (stationName) => {
     .replace(/Antwerpen-Oost/g, "Antwerpen Oost")
     .replace(/Antwerpen-Schijnpoort/g, "Antwerpen Schijnpoort")
     .replace(/Antwerpen-Waaslandhaven/g, "Antwerpen Waaslandhaven")
-    .replace(/Antwerpen-Zuid/g, "Antwerpen Zuid");
-  
+    .replace(/Antwerpen-Zuid/g, "Antwerpen Zuid")
+    .replace(/Liège-Guillemins/g, "Liège Guillemins")
+    .replace(/Liège-Carré/g, "Liège Carré")
+    .replace(/Liège-Palais/g, "Liège Palais")
+    .replace(/Liège-Jonfosse/g, "Liège Jonfosse")
+    .replace(/Liège-Longdoz/g, "Liège Longdoz")
+    .replace(/Liège-Saint-Lambert/g, "Liège Saint Lambert");
+
   return normalized;
 };
 
@@ -101,7 +108,8 @@ export function useCities() {
 
                 mainStations.forEach((station) => {
                   // Normalize station name to match stops data format
-                  const normalizedStation = normalizeStationNameForLookup(station);
+                  const normalizedStation =
+                    normalizeStationNameForLookup(station);
 
                   // Debug: Count Brussels stations
                   if (

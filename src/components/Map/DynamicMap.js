@@ -70,6 +70,12 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       stationName.includes("Antwerp")
     ) {
       return "Antwerpen";
+    } else if (
+      stationName.includes("Liège") ||
+      stationName.includes("Liege") ||
+      stationName.includes("Luik")
+    ) {
+      return "Liège";
     } else if (stationName.includes("Wien") || stationName.includes("Vienna")) {
       return "Vienna";
     } else if (
