@@ -461,6 +461,14 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
         ) {
           // When a filter is active, check if this station is origin/destination
           // for ANY of the filtered routes
+
+          // Normalize the stop_id for comparison
+          // For grouped stations, we need to check all stations in the group
+          const stationsToCheck =
+            filteredStop.isGrouped && filteredStop.groupedStations
+              ? filteredStop.groupedStations.map((s) => s.stop_id)
+              : [stop_id];
+
           const isOriginOrDestination = stopRouteIds.some((routeId) => {
             // viewMapData is an object where values contain route info, not keyed by route_id
             // We need to find the route by searching through all values
@@ -469,13 +477,29 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
             );
             if (!route) return false;
 
-            // Check if this station is origin or destination for this route
-            return (
-              route.origin_trip_0 === stop_id ||
-              route.destination_trip_0 === stop_id ||
-              route.origin_trip_1 === stop_id ||
-              route.destination_trip_1 === stop_id
-            );
+            // Get all origin/destination names from the route
+            const routeStations = [
+              route.origin_trip_0,
+              route.destination_trip_0,
+              route.origin_trip_1,
+              route.destination_trip_1,
+            ].filter(Boolean);
+
+            // Check if any of our stations (normalized) match any route station (normalized)
+            return stationsToCheck.some((stationId) => {
+              const normalizedStationId = normalizeStationName(stationId);
+              return routeStations.some((routeStation) => {
+                const normalizedRouteStation =
+                  normalizeStationName(routeStation);
+                // Also check direct match for non-normalized names
+                return (
+                  routeStation === stationId ||
+                  normalizedRouteStation === normalizedStationId ||
+                  normalizedRouteStation === stationId ||
+                  routeStation === normalizedStationId
+                );
+              });
+            });
           });
 
           // If this station is NOT origin/destination for any filtered route,
