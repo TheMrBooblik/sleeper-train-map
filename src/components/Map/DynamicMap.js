@@ -431,6 +431,29 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
     // Group overlapping city markers based on current zoom
     const groupedStops = groupCityMarkers(filteredStops);
 
+    // PERFORMANCE OPTIMIZATION: Create Maps for fast lookups
+    // This avoids repeated expensive operations
+    // Note: Use window.Map to avoid conflict with component name
+    const routeIdMap = new window.Map();
+    const normalizedNameCache = new window.Map();
+
+    // Cache route lookups
+    if (selected && stopRouteIds && stopRouteIds.length > 0) {
+      Object.values(viewMapData).forEach((route) => {
+        if (route?.route_id) {
+          routeIdMap.set(route.route_id.toString(), route);
+        }
+      });
+    }
+
+    // Helper to get cached normalized name
+    const getCachedNormalizedName = (name) => {
+      if (!normalizedNameCache.has(name)) {
+        normalizedNameCache.set(name, normalizeStationName(name));
+      }
+      return normalizedNameCache.get(name);
+    };
+
     return groupedStops
       .map((filteredStop, index) => {
         // For grouped stations, check if ANY station in the group is selected
@@ -470,11 +493,8 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
               : [stop_id];
 
           const isOriginOrDestination = stopRouteIds.some((routeId) => {
-            // viewMapData is an object where values contain route info, not keyed by route_id
-            // We need to find the route by searching through all values
-            const route = Object.values(viewMapData).find(
-              (r) => r?.route_id?.toString() === routeId,
-            );
+            // PERFORMANCE: Use Map for O(1) lookup instead of O(n) find
+            const route = routeIdMap.get(routeId);
             if (!route) return false;
 
             // Get all origin/destination names from the route
@@ -486,11 +506,12 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
             ].filter(Boolean);
 
             // Check if any of our stations (normalized) match any route station (normalized)
+            // Use cached normalized names for better performance
             return stationsToCheck.some((stationId) => {
-              const normalizedStationId = normalizeStationName(stationId);
+              const normalizedStationId = getCachedNormalizedName(stationId);
               return routeStations.some((routeStation) => {
                 const normalizedRouteStation =
-                  normalizeStationName(routeStation);
+                  getCachedNormalizedName(routeStation);
                 // Also check direct match for non-normalized names
                 return (
                   routeStation === stationId ||
@@ -538,9 +559,10 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
         }
 
         // Performance optimization: Only render tooltips for selected markers
+        // Use stable key without currentZoom to avoid recreating DOM on every zoom
         return (
           <Marker
-            key={`${filteredStop?.stop_id || index}-${currentZoom}`}
+            key={filteredStop?.stop_id || `marker-${index}`}
             position={[stopLat, stopLon]}
             icon={iconToUse}
             eventHandlers={{
@@ -565,7 +587,6 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
     filteredStops,
     handleMarkerClick,
     groupCityMarkers,
-    currentZoom,
     stopId,
     cities,
     defaultIcon,
@@ -574,6 +595,7 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
     selected,
     stopRouteIds,
     viewMapData,
+    normalizeStationName,
   ]);
 
   return (
