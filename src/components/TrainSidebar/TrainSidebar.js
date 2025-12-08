@@ -47,6 +47,7 @@ const TrainSidebar = ({
             selectedNormalizedName === "Cologne" ? "köln" : null,
             selectedNormalizedName === "Zurich" ? "zürich" : null,
             selectedNormalizedName === "Brussels" ? "bruxelles" : null,
+            selectedNormalizedName === "Antwerpen" ? "antwerpen" : null,
           ].filter(Boolean),
         );
 

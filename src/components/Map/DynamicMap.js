@@ -18,6 +18,8 @@ import Filter from "src/components/Filter";
 import MarkerTooltip from "@components/MarkerTooltip";
 import { useStops } from "../../hooks/requests/useStops";
 import { useCities } from "../../hooks/requests/useCities";
+import { normalizeStationNameForLookup } from "../../hooks/requests/useCities";
+import { useViewMap } from "../../hooks/requests/useViewMap";
 import TrainSidebar from "@components/TrainSidebar";
 import ZoomControl from "@components/ZoomControl";
 import LocationControl from "@components/LocationControl";
@@ -31,6 +33,7 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
     isLoading: stopsLoading,
   } = useStops();
   const { cities, isLoading: citiesLoading, refreshCities } = useCities();
+  const { viewMapData } = useViewMap(); // Add viewMapData to check station types
   const [selected, setSelected] = useState(false);
   const [stopId, setStopId] = useState();
   const [isMapInitialized, setIsMapInitialized] = useState(false);
@@ -62,7 +65,18 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       return "Brussels";
     }
     // Group other major cities with multiple stations
-    else if (stationName.includes("Wien") || stationName.includes("Vienna")) {
+    else if (
+      stationName.includes("Antwerpen") ||
+      stationName.includes("Antwerp")
+    ) {
+      return "Antwerpen";
+    } else if (
+      stationName.includes("Liège") ||
+      stationName.includes("Liege") ||
+      stationName.includes("Luik")
+    ) {
+      return "Liège";
+    } else if (stationName.includes("Wien") || stationName.includes("Vienna")) {
       return "Vienna";
     } else if (
       stationName.includes("Milano") ||
@@ -281,7 +295,10 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       }
 
       setStopId(stop_id);
-      const cityInfo = cities[stop_id];
+      // IMPORTANT: Normalize stop_id before looking it up in cities
+      // Use normalizeStationNameForLookup for matching city keys
+      const normalizedStopId = normalizeStationNameForLookup(stop_id);
+      const cityInfo = cities[normalizedStopId] || cities[stop_id];
 
       if (!cityInfo || !cityInfo.stop_route_ids) return;
 
@@ -300,7 +317,10 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
         // Collect all route IDs from all stations in the group
         const allRouteIds = new Set();
         filteredStop.groupedStations.forEach((station) => {
-          const stationInfo = cities[station.stop_id];
+          // IMPORTANT: Normalize station.stop_id before looking it up in cities
+          // Use normalizeStationNameForLookup for matching city keys
+          const normalizedId = normalizeStationNameForLookup(station.stop_id);
+          const stationInfo = cities[normalizedId] || cities[station.stop_id];
           if (stationInfo?.stop_route_ids) {
             stationInfo.stop_route_ids.split(",").forEach((id) => {
               allRouteIds.add(id);
@@ -321,7 +341,18 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       });
 
       const routeStops = routeCities
-        .map((el) => stops.find((stop) => stop.stop_id === el.stop_id))
+        .map((el) => {
+          // IMPORTANT: el.stop_id is normalized, but stop.stop_id may not be
+          // Use normalizeStationNameForLookup for matching city keys
+          return stops.find((stop) => {
+            const normalizedStopId = normalizeStationNameForLookup(
+              stop.stop_id,
+            );
+            return (
+              normalizedStopId === el.stop_id || stop.stop_id === el.stop_id
+            );
+          });
+        })
         .filter(Boolean);
 
       setFilteredStops(routeStops);
@@ -361,10 +392,13 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       stops.forEach((stop) => {
         if (!stop?.stop_id || !stop?.stop_lat || !stop?.stop_lon) return;
 
-        const cityInfo = cities[stop.stop_id];
+        // IMPORTANT: Normalize stop_id before looking it up in cities
+        // Use normalizeStationNameForLookup for matching city keys
+        const normalizedStopId = normalizeStationNameForLookup(stop.stop_id);
+        const cityInfo = cities[normalizedStopId] || cities[stop.stop_id];
         if (!cityInfo?.stop_route_ids) return;
 
-        // Use the normalizeStationName function
+        // Use normalizeStationName for grouping (returns city name like "Antwerpen")
         const normalizedCityName = normalizeStationName(stop.stop_id);
 
         if (!cityGroups[normalizedCityName]) {
@@ -402,7 +436,11 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
           // Find the most important station (main station, not via station)
           const mainStation =
             stations.find((station) => {
-              const cityInfo = cities[station.stop_id];
+              // Use normalizeStationNameForLookup for matching city keys
+              const normalizedId = normalizeStationNameForLookup(
+                station.stop_id,
+              );
+              const cityInfo = cities[normalizedId] || cities[station.stop_id];
               return cityInfo && !cityInfo.isViaStation;
             }) || stations[0];
 
@@ -429,6 +467,30 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
     // Group overlapping city markers based on current zoom
     const groupedStops = groupCityMarkers(filteredStops);
 
+    // PERFORMANCE OPTIMIZATION: Create Maps for fast lookups
+    // This avoids repeated expensive operations
+    // Note: Use window.Map to avoid conflict with component name
+    const routeIdMap = new window.Map();
+    const normalizedNameCache = new window.Map();
+
+    // Cache route lookups
+    if (selected && stopRouteIds && stopRouteIds.length > 0) {
+      Object.values(viewMapData).forEach((route) => {
+        if (route?.route_id) {
+          routeIdMap.set(route.route_id.toString(), route);
+        }
+      });
+    }
+
+    // Helper to get cached normalized name for lookup in cities
+    // This uses normalizeStationNameForLookup (not grouping function)
+    const getCachedNormalizedName = (name) => {
+      if (!normalizedNameCache.has(name)) {
+        normalizedNameCache.set(name, normalizeStationNameForLookup(name));
+      }
+      return normalizedNameCache.get(name);
+    };
+
     return groupedStops
       .map((filteredStop, index) => {
         // For grouped stations, check if ANY station in the group is selected
@@ -441,16 +503,77 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
         const stopLon = filteredStop?.stop_lon;
 
         const { stop_id } = filteredStop;
-        const cityInfo = cities[stop_id];
-        const { stop_route_ids, isViaStation } = cityInfo || {};
+        // IMPORTANT: Normalize stop_id before looking it up in cities
+        // because cities keys are normalized (e.g., "Antwerpen Centraal")
+        // but stops may have original names (e.g., "Antwerpen-Centraal / Anvers-Central")
+        const normalizedStopId = getCachedNormalizedName(stop_id);
+        const cityInfo = cities[normalizedStopId] || cities[stop_id];
+        const { stop_route_ids } = cityInfo || {};
 
         if (!stopLat || !stopLon || !stop_route_ids || !cityInfo) return null;
+
+        // Dynamically determine if this station is a via station for the FILTERED routes
+        // This fixes the bug where stations that are origins for OTHER routes
+        // incorrectly show as origins instead of via stations
+        let isViaStationForFilteredRoutes = cityInfo.isViaStation; // Default to global flag
+
+        if (
+          selected &&
+          stopRouteIds &&
+          stopRouteIds.length > 0 &&
+          !isSelected
+        ) {
+          // When a filter is active, check if this station is origin/destination
+          // for ANY of the filtered routes
+
+          // Normalize the stop_id for comparison
+          // For grouped stations, we need to check all stations in the group
+          const stationsToCheck =
+            filteredStop.isGrouped && filteredStop.groupedStations
+              ? filteredStop.groupedStations.map((s) => s.stop_id)
+              : [stop_id];
+
+          const isOriginOrDestination = stopRouteIds.some((routeId) => {
+            // PERFORMANCE: Use Map for O(1) lookup instead of O(n) find
+            const route = routeIdMap.get(routeId);
+            if (!route) return false;
+
+            // Get all origin/destination names from the route
+            const routeStations = [
+              route.origin_trip_0,
+              route.destination_trip_0,
+              route.origin_trip_1,
+              route.destination_trip_1,
+            ].filter(Boolean);
+
+            // Check if any of our stations (normalized) match any route station (normalized)
+            // Use cached normalized names for better performance
+            return stationsToCheck.some((stationId) => {
+              const normalizedStationId = getCachedNormalizedName(stationId);
+              return routeStations.some((routeStation) => {
+                const normalizedRouteStation =
+                  getCachedNormalizedName(routeStation);
+                // Also check direct match for non-normalized names
+                return (
+                  routeStation === stationId ||
+                  normalizedRouteStation === normalizedStationId ||
+                  normalizedRouteStation === stationId ||
+                  routeStation === normalizedStationId
+                );
+              });
+            });
+          });
+
+          // If this station is NOT origin/destination for any filtered route,
+          // then it must be a via station (even if globally it's a main station)
+          isViaStationForFilteredRoutes = !isOriginOrDestination;
+        }
 
         // Choose the appropriate icon based on station type and selection
         let iconToUse = defaultIcon;
         if (isSelected) {
           iconToUse = selectedIcon;
-        } else if (isViaStation) {
+        } else if (isViaStationForFilteredRoutes) {
           iconToUse = viaIcon;
         }
 
@@ -466,7 +589,7 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
               ? "grouped-station-dot selected"
               : "grouped-station-dot",
             html: `<div style="width: 20px; height: 20px; background: ${bgGradient}; border-radius: 50%; border: 3px solid white; box-shadow: ${isSelected ? "0 3px 8px rgba(255, 152, 0, 0.6)" : "0 3px 8px rgba(33, 150, 243, 0.4)"}, 0 0 0 1px rgba(33, 150, 243, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 1000; position: relative;">
-              <div style="position: absolute; top: -8px; right: -8px; background: linear-gradient(135deg, #FF9800, #F57C00); color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(255, 152, 0, 0.5); z-index: 2000;">
+              <div style="position: absolute; top: -8px; left: -8px; background: linear-gradient(135deg, #FF9800, #F57C00); color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(255, 152, 0, 0.5); z-index: 2000;">
                 ${filteredStop.groupSize}
               </div>
             </div>`,
@@ -477,9 +600,10 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
         }
 
         // Performance optimization: Only render tooltips for selected markers
+        // Use stable key without currentZoom to avoid recreating DOM on every zoom
         return (
           <Marker
-            key={`${filteredStop?.stop_id || index}-${currentZoom}`}
+            key={filteredStop?.stop_id || `marker-${index}`}
             position={[stopLat, stopLon]}
             icon={iconToUse}
             eventHandlers={{
@@ -504,12 +628,16 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
     filteredStops,
     handleMarkerClick,
     groupCityMarkers,
-    currentZoom,
     stopId,
     cities,
     defaultIcon,
     selectedIcon,
     viaIcon,
+    selected,
+    stopRouteIds,
+    viewMapData,
+    normalizeStationName,
+    normalizeStationNameForLookup,
   ]);
 
   return (
