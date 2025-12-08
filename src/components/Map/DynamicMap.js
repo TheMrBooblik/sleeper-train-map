@@ -18,6 +18,7 @@ import Filter from "src/components/Filter";
 import MarkerTooltip from "@components/MarkerTooltip";
 import { useStops } from "../../hooks/requests/useStops";
 import { useCities } from "../../hooks/requests/useCities";
+import { useViewMap } from "../../hooks/requests/useViewMap";
 import TrainSidebar from "@components/TrainSidebar";
 import ZoomControl from "@components/ZoomControl";
 import LocationControl from "@components/LocationControl";
@@ -31,6 +32,7 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
     isLoading: stopsLoading,
   } = useStops();
   const { cities, isLoading: citiesLoading, refreshCities } = useCities();
+  const { viewMapData } = useViewMap(); // Add viewMapData to check station types
   const [selected, setSelected] = useState(false);
   const [stopId, setStopId] = useState();
   const [isMapInitialized, setIsMapInitialized] = useState(false);
@@ -442,15 +444,46 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
 
         const { stop_id } = filteredStop;
         const cityInfo = cities[stop_id];
-        const { stop_route_ids, isViaStation } = cityInfo || {};
+        const { stop_route_ids } = cityInfo || {};
 
         if (!stopLat || !stopLon || !stop_route_ids || !cityInfo) return null;
+
+        // Dynamically determine if this station is a via station for the FILTERED routes
+        // This fixes the bug where stations that are origins for OTHER routes
+        // incorrectly show as origins instead of via stations
+        let isViaStationForFilteredRoutes = cityInfo.isViaStation; // Default to global flag
+
+        if (
+          selected &&
+          stopRouteIds &&
+          stopRouteIds.length > 0 &&
+          !isSelected
+        ) {
+          // When a filter is active, check if this station is origin/destination
+          // for ANY of the filtered routes
+          const isOriginOrDestination = stopRouteIds.some((routeId) => {
+            const route = viewMapData[routeId];
+            if (!route) return false;
+
+            // Check if this station is origin or destination for this route
+            return (
+              route.origin_trip_0 === stop_id ||
+              route.destination_trip_0 === stop_id ||
+              route.origin_trip_1 === stop_id ||
+              route.destination_trip_1 === stop_id
+            );
+          });
+
+          // If this station is NOT origin/destination for any filtered route,
+          // then it must be a via station (even if globally it's a main station)
+          isViaStationForFilteredRoutes = !isOriginOrDestination;
+        }
 
         // Choose the appropriate icon based on station type and selection
         let iconToUse = defaultIcon;
         if (isSelected) {
           iconToUse = selectedIcon;
-        } else if (isViaStation) {
+        } else if (isViaStationForFilteredRoutes) {
           iconToUse = viaIcon;
         }
 
@@ -510,6 +543,9 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
     defaultIcon,
     selectedIcon,
     viaIcon,
+    selected,
+    stopRouteIds,
+    viewMapData,
   ]);
 
   return (
