@@ -14,6 +14,7 @@ const Layout = ({ children }) => {
   const [isModalOpen, setModalIsOpen] = useState(false);
   const [layerType, setLayerType] = useState("thunderforest");
   const [isGrouped, setIsGrouped] = useState(true);
+  const [showRoutes, setShowRoutes] = useState(true); // Toggle for showing route paths
   const { width, height } = useWindowSize();
 
   return (
@@ -30,6 +31,8 @@ const Layout = ({ children }) => {
         layerType={layerType}
         isGrouped={isGrouped}
         setIsGrouped={setIsGrouped}
+        showRoutes={showRoutes}
+        setShowRoutes={setShowRoutes}
       />
       <main className={styles.main}>
         {children}
@@ -41,6 +44,7 @@ const Layout = ({ children }) => {
             zoom={5}
             isGrouped={isGrouped}
             setIsGrouped={setIsGrouped}
+            showRoutes={showRoutes}
           >
             {({ TileLayer }) => (
               <>

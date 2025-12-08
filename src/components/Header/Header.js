@@ -13,6 +13,8 @@ const Header = ({
   layerType,
   isGrouped,
   setIsGrouped,
+  showRoutes,
+  setShowRoutes,
 }) => {
   const isRailwayLayer = layerType === "thunderforest";
   const toggleLayer = () => {
@@ -40,6 +42,19 @@ const Header = ({
                 className="mr-2 cursor-pointer"
               />
               Group Stations
+            </label>
+          </div>
+
+          {/* Show Routes Toggle */}
+          <div className="flex items-center">
+            <label className="flex items-center cursor-pointer text-sm">
+              <input
+                type="checkbox"
+                checked={showRoutes}
+                onChange={(e) => setShowRoutes(e.target.checked)}
+                className="mr-2 cursor-pointer"
+              />
+              Show Routes
             </label>
           </div>
 
