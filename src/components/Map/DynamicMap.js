@@ -18,6 +18,7 @@ import Filter from "src/components/Filter";
 import MarkerTooltip from "@components/MarkerTooltip";
 import { useStops } from "../../hooks/requests/useStops";
 import { useCities } from "../../hooks/requests/useCities";
+import { normalizeStationNameForLookup } from "../../hooks/requests/useCities";
 import { useViewMap } from "../../hooks/requests/useViewMap";
 import TrainSidebar from "@components/TrainSidebar";
 import ZoomControl from "@components/ZoomControl";
@@ -64,7 +65,12 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       return "Brussels";
     }
     // Group other major cities with multiple stations
-    else if (stationName.includes("Wien") || stationName.includes("Vienna")) {
+    else if (
+      stationName.includes("Antwerpen") ||
+      stationName.includes("Antwerp")
+    ) {
+      return "Antwerpen";
+    } else if (stationName.includes("Wien") || stationName.includes("Vienna")) {
       return "Vienna";
     } else if (
       stationName.includes("Milano") ||
@@ -283,7 +289,10 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       }
 
       setStopId(stop_id);
-      const cityInfo = cities[stop_id];
+      // IMPORTANT: Normalize stop_id before looking it up in cities
+      // Use normalizeStationNameForLookup for matching city keys
+      const normalizedStopId = normalizeStationNameForLookup(stop_id);
+      const cityInfo = cities[normalizedStopId] || cities[stop_id];
 
       if (!cityInfo || !cityInfo.stop_route_ids) return;
 
@@ -302,7 +311,10 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
         // Collect all route IDs from all stations in the group
         const allRouteIds = new Set();
         filteredStop.groupedStations.forEach((station) => {
-          const stationInfo = cities[station.stop_id];
+          // IMPORTANT: Normalize station.stop_id before looking it up in cities
+          // Use normalizeStationNameForLookup for matching city keys
+          const normalizedId = normalizeStationNameForLookup(station.stop_id);
+          const stationInfo = cities[normalizedId] || cities[station.stop_id];
           if (stationInfo?.stop_route_ids) {
             stationInfo.stop_route_ids.split(",").forEach((id) => {
               allRouteIds.add(id);
@@ -323,7 +335,18 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       });
 
       const routeStops = routeCities
-        .map((el) => stops.find((stop) => stop.stop_id === el.stop_id))
+        .map((el) => {
+          // IMPORTANT: el.stop_id is normalized, but stop.stop_id may not be
+          // Use normalizeStationNameForLookup for matching city keys
+          return stops.find((stop) => {
+            const normalizedStopId = normalizeStationNameForLookup(
+              stop.stop_id,
+            );
+            return (
+              normalizedStopId === el.stop_id || stop.stop_id === el.stop_id
+            );
+          });
+        })
         .filter(Boolean);
 
       setFilteredStops(routeStops);
@@ -363,10 +386,13 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       stops.forEach((stop) => {
         if (!stop?.stop_id || !stop?.stop_lat || !stop?.stop_lon) return;
 
-        const cityInfo = cities[stop.stop_id];
+        // IMPORTANT: Normalize stop_id before looking it up in cities
+        // Use normalizeStationNameForLookup for matching city keys
+        const normalizedStopId = normalizeStationNameForLookup(stop.stop_id);
+        const cityInfo = cities[normalizedStopId] || cities[stop.stop_id];
         if (!cityInfo?.stop_route_ids) return;
 
-        // Use the normalizeStationName function
+        // Use normalizeStationName for grouping (returns city name like "Antwerpen")
         const normalizedCityName = normalizeStationName(stop.stop_id);
 
         if (!cityGroups[normalizedCityName]) {
@@ -404,7 +430,11 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
           // Find the most important station (main station, not via station)
           const mainStation =
             stations.find((station) => {
-              const cityInfo = cities[station.stop_id];
+              // Use normalizeStationNameForLookup for matching city keys
+              const normalizedId = normalizeStationNameForLookup(
+                station.stop_id,
+              );
+              const cityInfo = cities[normalizedId] || cities[station.stop_id];
               return cityInfo && !cityInfo.isViaStation;
             }) || stations[0];
 
@@ -446,10 +476,11 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       });
     }
 
-    // Helper to get cached normalized name
+    // Helper to get cached normalized name for lookup in cities
+    // This uses normalizeStationNameForLookup (not grouping function)
     const getCachedNormalizedName = (name) => {
       if (!normalizedNameCache.has(name)) {
-        normalizedNameCache.set(name, normalizeStationName(name));
+        normalizedNameCache.set(name, normalizeStationNameForLookup(name));
       }
       return normalizedNameCache.get(name);
     };
@@ -466,7 +497,11 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
         const stopLon = filteredStop?.stop_lon;
 
         const { stop_id } = filteredStop;
-        const cityInfo = cities[stop_id];
+        // IMPORTANT: Normalize stop_id before looking it up in cities
+        // because cities keys are normalized (e.g., "Antwerpen Centraal")
+        // but stops may have original names (e.g., "Antwerpen-Centraal / Anvers-Central")
+        const normalizedStopId = getCachedNormalizedName(stop_id);
+        const cityInfo = cities[normalizedStopId] || cities[stop_id];
         const { stop_route_ids } = cityInfo || {};
 
         if (!stopLat || !stopLon || !stop_route_ids || !cityInfo) return null;
@@ -596,6 +631,7 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
     stopRouteIds,
     viewMapData,
     normalizeStationName,
+    normalizeStationNameForLookup,
   ]);
 
   return (

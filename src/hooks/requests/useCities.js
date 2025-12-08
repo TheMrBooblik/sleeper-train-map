@@ -5,12 +5,17 @@ import { VIEW_CITIES, VIEW_MAP } from "../../constants/backOnTrack";
 const CACHE_DURATION = 60 * 60 * 1000;
 
 // Function to normalize station names to handle inconsistencies between stops and routes data
-const normalizeStationName = (stationName) => {
+// Export this function so it can be used in other components
+export const normalizeStationNameForLookup = (stationName) => {
   if (!stationName) return stationName;
 
-  // Handle Brussels station name inconsistencies
-  // Routes data uses "Bruxelles-Midi" while stops data uses "Bruxelles Midi"
-  return stationName
+  // Step 1: Remove French bilingual parts (e.g., " / Anvers-Central", " / Bruxelles-Midi")
+  let normalized = stationName
+    .replace(/\s*\/\s*Anvers-[^/]+$/g, "")  // Remove French Antwerp names
+    .replace(/\s*\/\s*Bruxelles-[^/]+$/g, ""); // Remove French Brussels names
+  
+  // Step 2: Replace hyphens with spaces for Belgian stations
+  normalized = normalized
     .replace(/Bruxelles-Midi/g, "Bruxelles Midi")
     .replace(/Bruxelles-Nord/g, "Bruxelles Nord")
     .replace(/Bruxelles-Ouest/g, "Bruxelles Ouest")
@@ -18,7 +23,21 @@ const normalizeStationName = (stationName) => {
     .replace(/Bruxelles-Chapelle/g, "Bruxelles Chapelle")
     .replace(/Bruxelles-Congrès/g, "Bruxelles Congrès")
     .replace(/Bruxelles-Luxembourg/g, "Bruxelles Luxembourg")
-    .replace(/Bruxelles-Schuman/g, "Bruxelles Schuman");
+    .replace(/Bruxelles-Schuman/g, "Bruxelles Schuman")
+    .replace(/Antwerpen-Berchem/g, "Antwerpen Berchem")
+    .replace(/Antwerpen-Centraal/g, "Antwerpen Centraal")
+    .replace(/Antwerpen-D.S./g, "Antwerpen D.S.")
+    .replace(/Antwerpen-Damiaan/g, "Antwerpen Damiaan")
+    .replace(/Antwerpen-Kiel/g, "Antwerpen Kiel")
+    .replace(/Antwerpen-Luchtbal/g, "Antwerpen Luchtbal")
+    .replace(/Antwerpen-Noord/g, "Antwerpen Noord")
+    .replace(/Antwerpen-Noorderdokken/g, "Antwerpen Noorderdokken")
+    .replace(/Antwerpen-Oost/g, "Antwerpen Oost")
+    .replace(/Antwerpen-Schijnpoort/g, "Antwerpen Schijnpoort")
+    .replace(/Antwerpen-Waaslandhaven/g, "Antwerpen Waaslandhaven")
+    .replace(/Antwerpen-Zuid/g, "Antwerpen Zuid");
+  
+  return normalized;
 };
 
 // Cache structure
@@ -82,7 +101,7 @@ export function useCities() {
 
                 mainStations.forEach((station) => {
                   // Normalize station name to match stops data format
-                  const normalizedStation = normalizeStationName(station);
+                  const normalizedStation = normalizeStationNameForLookup(station);
 
                   // Debug: Count Brussels stations
                   if (
@@ -122,7 +141,7 @@ export function useCities() {
                   viaStations.forEach((viaStation) => {
                     // Normalize station name to match stops data format
                     const normalizedViaStation =
-                      normalizeStationName(viaStation);
+                      normalizeStationNameForLookup(viaStation);
                     if (!cityRouteMap[normalizedViaStation]) {
                       // Only create new via station if it doesn't exist
                       cityRouteMap[normalizedViaStation] = {
@@ -151,7 +170,7 @@ export function useCities() {
                   viaStations.forEach((viaStation) => {
                     // Normalize station name to match stops data format
                     const normalizedViaStation =
-                      normalizeStationName(viaStation);
+                      normalizeStationNameForLookup(viaStation);
                     if (!cityRouteMap[normalizedViaStation]) {
                       // Only create new via station if it doesn't exist
                       cityRouteMap[normalizedViaStation] = {
@@ -178,15 +197,6 @@ export function useCities() {
           // Update the cache
           citiesCache.data = cityRouteMap;
           citiesCache.timestamp = currentTime;
-
-          // Debug: Log Brussels stations found
-          console.log(
-            `Found ${brusselsInRoutes} Brussels stations in route data`,
-          );
-          const brusselsInCityMap = Object.keys(cityRouteMap).filter(
-            (key) => key.includes("Bruxelles") || key.includes("Brussels"),
-          );
-          console.log(`Brussels stations in city map:`, brusselsInCityMap);
 
           // Update the state
           setCities(cityRouteMap);
