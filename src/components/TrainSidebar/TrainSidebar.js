@@ -54,6 +54,7 @@ const TrainSidebar = ({
           [
             selectedNormalizedName.toLowerCase(),
             selectedNormalizedName === "Milan" ? "milano" : null,
+            selectedNormalizedName === "Torino" ? "turin" : null,
             selectedNormalizedName === "Vienna" ? "wien" : null,
             selectedNormalizedName === "Rome" ? "roma" : null,
             selectedNormalizedName === "Munich" ? "münchen" : null,

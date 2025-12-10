@@ -90,6 +90,11 @@ const Map = ({
       stationName.includes("Milan")
     ) {
       return "Milan";
+    } else if (
+      stationName.includes("Torino") ||
+      stationName.includes("Turin")
+    ) {
+      return "Torino";
     } else if (stationName.includes("Roma") || stationName.includes("Rome")) {
       return "Rome";
     } else if (stationName.includes("Berlin")) {
