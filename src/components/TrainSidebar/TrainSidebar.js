@@ -4,6 +4,18 @@ import React from "react";
 import styles from "./TrainSidebar.module.scss";
 import { useViewMap } from "../../hooks/requests/useViewMap";
 
+// Route colors matching DynamicMap.js
+const ROUTE_COLORS = [
+  "#FF6B35", // Orange-red
+  "#4A90E2", // Blue
+  "#50C878", // Green
+  "#9B59B6", // Purple
+  "#F39C12", // Orange
+  "#E74C3C", // Red
+  "#3498DB", // Light blue
+  "#2ECC71", // Light green
+];
+
 const TrainSidebar = ({
   isOpen,
   sidebarDisabled,
@@ -19,6 +31,7 @@ const TrainSidebar = ({
   if (!stopRouteIds?.length || sidebarDisabled) return null;
 
   // Group routes by origin-destination to avoid duplicates
+  // Store route_id to determine color
   const routeMap = new Map();
 
   filteredViewMapData?.forEach((el) => {
@@ -41,6 +54,7 @@ const TrainSidebar = ({
           [
             selectedNormalizedName.toLowerCase(),
             selectedNormalizedName === "Milan" ? "milano" : null,
+            selectedNormalizedName === "Torino" ? "turin" : null,
             selectedNormalizedName === "Vienna" ? "wien" : null,
             selectedNormalizedName === "Rome" ? "roma" : null,
             selectedNormalizedName === "Munich" ? "münchen" : null,
@@ -67,6 +81,7 @@ const TrainSidebar = ({
         origin: stationArr[0],
         destination: stationArr[1],
         viaText: viaText,
+        routeId: el?.route_id?.toString(), // Store route_id for color determination
       });
     }
   });
@@ -74,18 +89,31 @@ const TrainSidebar = ({
   return (
     <div className={`${styles.trainSidebar} ${isOpen ? styles.open : ""}`}>
       <div className="flex p-1">
-        {Array.from(routeMap.values()).map((route, index) => (
-          <div
-            className="whitespace-nowrap text-sm [&:not(:last-child)]:border-r px-2"
-            key={`route-info-${index}`}
-          >
-            <strong>{route.origin}</strong>
-            &nbsp;-&nbsp;
-            {route.viaText ? <span>({route.viaText})</span> : null}
-            {route.viaText && <>&nbsp;-&nbsp;</>}
-            <strong>{route.destination}</strong>
-          </div>
-        ))}
+        {Array.from(routeMap.values()).map((route, index) => {
+          // Get color for this route (same logic as DynamicMap.js)
+          const routeColor =
+            ROUTE_COLORS[parseInt(route.routeId) % ROUTE_COLORS.length];
+
+          return (
+            <div
+              className={`${styles.routeItem} whitespace-nowrap text-sm`}
+              key={`route-info-${index}`}
+            >
+              {/* Color indicator line */}
+              <div
+                className={styles.routeColorLine}
+                style={{ backgroundColor: routeColor }}
+              />
+              <div className="flex items-center">
+                <strong>{route.origin}</strong>
+                &nbsp;-&nbsp;
+                {route.viaText ? <span>({route.viaText})</span> : null}
+                {route.viaText && <>&nbsp;-&nbsp;</>}
+                <strong>{route.destination}</strong>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

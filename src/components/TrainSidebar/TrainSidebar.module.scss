@@ -25,6 +25,24 @@
   }
 }
 
+.routeItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding-left: 8px; // Space for color line
+  padding-right: 12px;
+}
+
+.routeColorLine {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
 .closeButton {
   background: none;
   border: none;

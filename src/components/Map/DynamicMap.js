@@ -10,7 +10,7 @@ import React, {
 import Leaflet from "leaflet";
 import * as ReactLeaflet from "react-leaflet";
 
-const { MapContainer, Marker, TileLayer, Tooltip } = ReactLeaflet;
+const { MapContainer, Marker, TileLayer, Tooltip, Polyline } = ReactLeaflet;
 import "leaflet/dist/leaflet.css";
 
 import styles from "./Map.module.scss";
@@ -24,7 +24,14 @@ import TrainSidebar from "@components/TrainSidebar";
 import ZoomControl from "@components/ZoomControl";
 import LocationControl from "@components/LocationControl";
 
-const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
+const Map = ({
+  children,
+  className,
+  isGrouped,
+  setIsGrouped,
+  showRoutes = true,
+  ...rest
+}) => {
   const [sidebarDisabled, setSidebarDisabled] = useState(false);
   const {
     stops,
@@ -83,6 +90,11 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       stationName.includes("Milan")
     ) {
       return "Milan";
+    } else if (
+      stationName.includes("Torino") ||
+      stationName.includes("Turin")
+    ) {
+      return "Torino";
     } else if (stationName.includes("Roma") || stationName.includes("Rome")) {
       return "Rome";
     } else if (stationName.includes("Berlin")) {
@@ -192,6 +204,7 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
     setSelected(false);
     setSelectedStationName("");
     setSelectedNormalizedName("");
+    setStopRouteIds([]); // Clear route IDs to hide route paths
     setFilteredStops(stops);
   };
 
@@ -334,27 +347,39 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
 
       setStopRouteIds(routeIdsArray);
 
+      // Find all cities (stations) that are part of the selected routes
       const routeCities = Object.values(cities).filter((viewCity) => {
         if (!viewCity || !viewCity.stop_route_ids) return false;
         const arr = viewCity.stop_route_ids.split(",");
         return arr.some((item) => routeIdsArray.includes(item));
       });
 
+      // PERFORMANCE: Create Map for fast station lookup
+      // Key: normalized station name, Value: stop object
+      const stopsMap = new window.Map();
+      stops.forEach((stop) => {
+        if (!stop.stop_id) return;
+        const normalizedId = normalizeStationNameForLookup(stop.stop_id);
+        // Store by normalized name (primary key)
+        if (!stopsMap.has(normalizedId)) {
+          stopsMap.set(normalizedId, stop);
+        }
+        // Also store by original name for fallback
+        if (!stopsMap.has(stop.stop_id)) {
+          stopsMap.set(stop.stop_id, stop);
+        }
+      });
+
+      // Find stops that match route cities
       const routeStops = routeCities
-        .map((el) => {
-          // IMPORTANT: el.stop_id is normalized, but stop.stop_id may not be
-          // Use normalizeStationNameForLookup for matching city keys
-          return stops.find((stop) => {
-            const normalizedStopId = normalizeStationNameForLookup(
-              stop.stop_id,
-            );
-            return (
-              normalizedStopId === el.stop_id || stop.stop_id === el.stop_id
-            );
-          });
+        .map((city) => {
+          // city.stop_id is normalized, so use it directly for lookup
+          return stopsMap.get(city.stop_id);
         })
         .filter(Boolean);
 
+      // IMPORTANT: Set filtered stops to only show stations from selected routes
+      // This hides all other stations when a filter is applied
       setFilteredStops(routeStops);
       setSelected(true);
     },
@@ -366,6 +391,7 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
       selected,
       removeFilter,
       normalizeStationName,
+      normalizeStationNameForLookup,
       isGrouped,
     ],
   );
@@ -512,6 +538,20 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
 
         if (!stopLat || !stopLon || !stop_route_ids || !cityInfo) return null;
 
+        // When filter is applied, ensure this station is part of selected routes
+        // This provides an extra safety check to hide unrelated stations
+        if (selected && stopRouteIds && stopRouteIds.length > 0) {
+          const stationRouteIds = stop_route_ids
+            .split(",")
+            .filter((id) => id.trim());
+          const isPartOfSelectedRoutes = stationRouteIds.some((id) =>
+            stopRouteIds.includes(id),
+          );
+          if (!isPartOfSelectedRoutes) {
+            return null; // Hide station if it's not part of selected routes
+          }
+        }
+
         // Dynamically determine if this station is a via station for the FILTERED routes
         // This fixes the bug where stations that are origins for OTHER routes
         // incorrectly show as origins instead of via stations
@@ -637,6 +677,187 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
     stopRouteIds,
     viewMapData,
     normalizeStationName,
+    normalizeStationNameForLookup,
+  ]);
+
+  // Route colors for visualization (defined outside useMemo to avoid recreation)
+  const ROUTE_COLORS = [
+    "#FF6B35", // Orange-red
+    "#4A90E2", // Blue
+    "#50C878", // Green
+    "#9B59B6", // Purple
+    "#F39C12", // Orange
+    "#E74C3C", // Red
+    "#3498DB", // Light blue
+    "#2ECC71", // Light green
+  ];
+
+  // Build route paths (polylines) for selected station
+  // This visualizes train routes as lines connecting stations
+  // PERFORMANCE OPTIMIZATIONS:
+  // - Uses Map for O(1) route lookup instead of O(n) find
+  // - Uses Map for O(1) station coordinate lookup instead of O(n) find
+  // - Caches normalized station names to avoid repeated calculations
+  // - Pre-computes pathOptions to avoid recalculation on each render
+  const routePaths = useMemo(() => {
+    if (
+      !selected ||
+      !stopRouteIds ||
+      !stopRouteIds.length ||
+      !viewMapData ||
+      !stops ||
+      !stops.length
+    ) {
+      return [];
+    }
+
+    // PERFORMANCE OPTIMIZATION: Create Maps for O(1) lookups
+    // Map for fast route lookup by route_id
+    const routeMap = new window.Map();
+    Object.values(viewMapData).forEach((route) => {
+      if (route?.route_id) {
+        routeMap.set(route.route_id.toString(), route);
+      }
+    });
+
+    // Map for fast station coordinate lookup
+    // Key: normalized station name, Value: [lat, lon]
+    const stationCoordsMap = new window.Map();
+    const normalizedNameCache = new window.Map();
+
+    // Helper to get cached normalized name
+    const getCachedNormalizedName = (name) => {
+      if (!normalizedNameCache.has(name)) {
+        normalizedNameCache.set(name, normalizeStationNameForLookup(name));
+      }
+      return normalizedNameCache.get(name);
+    };
+
+    // Build station coordinates map once
+    stops.forEach((stop) => {
+      if (!stop.stop_id || !stop.stop_lat || !stop.stop_lon) return;
+
+      const normalizedId = getCachedNormalizedName(stop.stop_id);
+      // Store by normalized name
+      if (!stationCoordsMap.has(normalizedId)) {
+        stationCoordsMap.set(normalizedId, [stop.stop_lat, stop.stop_lon]);
+      }
+      // Also store by original name for fallback
+      if (!stationCoordsMap.has(stop.stop_id)) {
+        stationCoordsMap.set(stop.stop_id, [stop.stop_lat, stop.stop_lon]);
+      }
+    });
+
+    // Helper function to find station coordinates by name (O(1) lookup)
+    const findStationCoords = (stationName) => {
+      if (!stationName) return null;
+
+      // Try normalized name first
+      const normalizedName = getCachedNormalizedName(stationName);
+      return (
+        stationCoordsMap.get(normalizedName) ||
+        stationCoordsMap.get(stationName) ||
+        null
+      );
+    };
+
+    const paths = [];
+    // Use stopId in keys to ensure unique keys per station selection
+    // This ensures React properly unmounts old polylines when station changes
+    const stationKey = stopId || "none";
+
+    // Process each route
+    stopRouteIds.forEach((routeId) => {
+      // O(1) lookup instead of O(n) find
+      const route = routeMap.get(routeId);
+
+      if (!route) return;
+
+      // Helper function to build path for one direction
+      const buildPathForDirection = (origin, destination, viaStations) => {
+        const stationSequence = [];
+
+        // Add origin
+        if (origin) {
+          const originCoords = findStationCoords(origin);
+          if (originCoords) {
+            stationSequence.push(originCoords);
+          }
+        }
+
+        // Add via stations (if they exist)
+        if (viaStations) {
+          const viaList = viaStations.split(" - ").filter((s) => s.trim());
+          viaList.forEach((viaStation) => {
+            const viaCoords = findStationCoords(viaStation.trim());
+            if (viaCoords) {
+              stationSequence.push(viaCoords);
+            }
+          });
+        }
+
+        // Add destination
+        if (destination) {
+          const destCoords = findStationCoords(destination);
+          if (destCoords) {
+            stationSequence.push(destCoords);
+          }
+        }
+
+        return stationSequence.length >= 2 ? stationSequence : null;
+      };
+
+      // Get color for this route (consistent across both directions)
+      const routeColor = ROUTE_COLORS[parseInt(routeId) % ROUTE_COLORS.length];
+      const pathOptions = {
+        color: routeColor,
+        weight: 4,
+        opacity: 0.8,
+        dashArray: "15, 10",
+        lineCap: "round",
+        lineJoin: "round",
+      };
+
+      // Build path for direction 0 (origin_trip_0 -> via_0 -> destination_trip_0)
+      const path0 = buildPathForDirection(
+        route.origin_trip_0,
+        route.destination_trip_0,
+        route.via_0,
+      );
+      if (path0) {
+        paths.push({
+          positions: path0,
+          routeId: routeId,
+          key: `route-${stationKey}-${routeId}-0`, // Include stationKey to ensure unique keys per station
+          pathOptions: pathOptions,
+        });
+      }
+
+      // Build path for direction 1 (origin_trip_1 -> via_1 -> destination_trip_1) if exists
+      if (route.origin_trip_1 && route.destination_trip_1) {
+        const path1 = buildPathForDirection(
+          route.origin_trip_1,
+          route.destination_trip_1,
+          route.via_1,
+        );
+        if (path1) {
+          paths.push({
+            positions: path1,
+            routeId: routeId,
+            key: `route-${stationKey}-${routeId}-1`, // Include stationKey to ensure unique keys per station
+            pathOptions: pathOptions, // Same color for reverse direction
+          });
+        }
+      }
+    });
+
+    return paths;
+  }, [
+    selected,
+    stopId, // Add stopId to dependencies to ensure recalculation when station changes
+    stopRouteIds,
+    viewMapData,
+    stops,
     normalizeStationNameForLookup,
   ]);
 
@@ -787,6 +1008,17 @@ const Map = ({ children, className, isGrouped, setIsGrouped, ...rest }) => {
         />
         <ZoomControl className="outline-none" />
         <LocationControl />
+        {/* Render route paths as polylines (only if showRoutes is enabled and station is selected) */}
+        {showRoutes &&
+          selected &&
+          routePaths.length > 0 &&
+          routePaths.map((path) => (
+            <Polyline
+              key={path.key}
+              positions={path.positions}
+              pathOptions={path.pathOptions}
+            />
+          ))}
         {markers}
         {children && children({ MapContainer, Marker, TileLayer }, Leaflet)}
       </MapContainer>
