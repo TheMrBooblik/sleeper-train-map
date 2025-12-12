@@ -344,7 +344,9 @@ const Map = ({
       } else {
         // Deduplicate route IDs to prevent duplicate paths with same keys
         // This ensures React properly unmounts old polylines when switching stations
-        const routeIdsSet = new Set(stop_route_ids.split(",").filter((el) => el));
+        const routeIdsSet = new Set(
+          stop_route_ids.split(",").filter((el) => el),
+        );
         routeIdsArray = Array.from(routeIdsSet);
       }
 
@@ -503,7 +505,8 @@ const Map = ({
     const normalizedNameCache = new window.Map();
 
     // Cache route lookups
-    if (selected && stopRouteIds && stopRouteIds.length > 0) {
+    // Guard against undefined viewMapData to prevent runtime errors
+    if (selected && stopRouteIds && stopRouteIds.length > 0 && viewMapData) {
       Object.values(viewMapData).forEach((route) => {
         if (route?.route_id) {
           routeIdMap.set(route.route_id.toString(), route);
