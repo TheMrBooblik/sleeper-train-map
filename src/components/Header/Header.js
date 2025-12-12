@@ -24,7 +24,10 @@ const Header = ({
   };
 
   return (
-    <header className={`h-[${HEADER_HEIGHT}px] bg-black px-4 py-2 text-white`}>
+    <header 
+      className={`h-[${HEADER_HEIGHT}px] bg-black px-4 py-2 text-white`}
+      style={{ position: 'relative', zIndex: 1002 }}
+    >
       <Container className="flex justify-between items-center">
         <p>
           <Link href="/">
