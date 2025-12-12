@@ -24,9 +24,12 @@ const TrainSidebar = ({
   selectedNormalizedName,
 }) => {
   const { viewMapData } = useViewMap();
-  const filteredViewMapData = Object.values(viewMapData).filter((el) =>
-    stopRouteIds?.includes(el?.route_id.toString()),
-  );
+  // Guard against undefined viewMapData and use optional chaining for route_id
+  const filteredViewMapData = viewMapData
+    ? Object.values(viewMapData).filter((el) =>
+        stopRouteIds?.includes(el?.route_id?.toString()),
+      )
+    : [];
 
   if (!stopRouteIds?.length || sidebarDisabled) return null;
 
