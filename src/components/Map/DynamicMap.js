@@ -342,7 +342,10 @@ const Map = ({
         });
         routeIdsArray = Array.from(allRouteIds);
       } else {
-        routeIdsArray = stop_route_ids.split(",").filter((el) => el);
+        // Deduplicate route IDs to prevent duplicate paths with same keys
+        // This ensures React properly unmounts old polylines when switching stations
+        const routeIdsSet = new Set(stop_route_ids.split(",").filter((el) => el));
+        routeIdsArray = Array.from(routeIdsSet);
       }
 
       setStopRouteIds(routeIdsArray);
