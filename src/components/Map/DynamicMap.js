@@ -95,7 +95,16 @@ const Map = ({
       stationName.includes("Turin")
     ) {
       return "Torino";
-    } else if (stationName.includes("Roma") || stationName.includes("Rome")) {
+    } else if (
+      // Check for "Roma" or "Rome" but exclude "Roman" (Romanian station)
+      // Match if starts with "Roma" or "Rome", or contains " Roma " or " Rome " (with spaces)
+      // But exclude if starts with "Roman"
+      (stationName.startsWith("Roma") ||
+        stationName.startsWith("Rome") ||
+        stationName.includes(" Roma ") ||
+        stationName.includes(" Rome ")) &&
+      !stationName.startsWith("Roman")
+    ) {
       return "Rome";
     } else if (stationName.includes("Berlin")) {
       return "Berlin";
@@ -456,14 +465,6 @@ const Map = ({
           });
         } else {
           // Multiple stations - create grouped marker
-          // Calculate average position for grouped stations
-          const avgLat =
-            stations.reduce((sum, station) => sum + station.stop_lat, 0) /
-            stations.length;
-          const avgLon =
-            stations.reduce((sum, station) => sum + station.stop_lon, 0) /
-            stations.length;
-
           // Find the most important station (main station, not via station)
           const mainStation =
             stations.find((station) => {
@@ -475,10 +476,48 @@ const Map = ({
               return cityInfo && !cityInfo.isViaStation;
             }) || stations[0];
 
+          // For grouped stations, prefer using coordinates from stations with custom coordinates
+          // If main station has custom coordinates (coordinatesSource === "custom"), use it
+          // Otherwise, calculate average but prioritize stations with custom coordinates
+          let finalLat, finalLon;
+
+          if (mainStation.coordinatesSource === "custom") {
+            // Use main station's custom coordinates
+            finalLat = mainStation.stop_lat;
+            finalLon = mainStation.stop_lon;
+          } else {
+            // Check if any station in the group has custom coordinates
+            const stationsWithCustomCoords = stations.filter(
+              (s) => s.coordinatesSource === "custom",
+            );
+
+            if (stationsWithCustomCoords.length > 0) {
+              // Use average of stations with custom coordinates only
+              finalLat =
+                stationsWithCustomCoords.reduce(
+                  (sum, station) => sum + station.stop_lat,
+                  0,
+                ) / stationsWithCustomCoords.length;
+              finalLon =
+                stationsWithCustomCoords.reduce(
+                  (sum, station) => sum + station.stop_lon,
+                  0,
+                ) / stationsWithCustomCoords.length;
+            } else {
+              // Fallback to average of all stations
+              finalLat =
+                stations.reduce((sum, station) => sum + station.stop_lat, 0) /
+                stations.length;
+              finalLon =
+                stations.reduce((sum, station) => sum + station.stop_lon, 0) /
+                stations.length;
+            }
+          }
+
           groupedMarkers.push({
             ...mainStation,
-            stop_lat: avgLat,
-            stop_lon: avgLon,
+            stop_lat: finalLat,
+            stop_lon: finalLon,
             groupedStations: stations,
             isGrouped: true,
             groupSize: stations.length,

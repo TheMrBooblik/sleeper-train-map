@@ -66,14 +66,16 @@ export function useStops() {
         // If cache is in old format (object), convert to array
         if (!Array.isArray(stopsArray)) {
           stopsArray = Object.values(stopsArray) || [];
-          // Re-enrich with coordinates in case cache format changed
-          stopsArray = enrichStationsWithCoordinates(
-            stopsArray,
-            stationCoordinates,
-          );
-          // Update cache with new format
-          stopsCache.data = stopsArray;
         }
+
+        // Always re-enrich with coordinates from cache to ensure latest coordinates are used
+        // This is important because stationCoordinates might have been updated
+        stopsArray = enrichStationsWithCoordinates(
+          stopsArray,
+          stationCoordinates,
+        );
+        // Update cache with enriched data
+        stopsCache.data = stopsArray;
 
         setStops(stopsArray);
         setFilteredStops(stopsArray);
