@@ -1,5 +1,7 @@
 import { STOPS } from "../../constants/backOnTrack";
 import { useEffect, useState } from "react";
+import { enrichStationsWithCoordinates } from "../../helpers/enrichStationsWithCoordinates";
+import { stationCoordinates } from "../../data/stationCoordinates";
 
 // Cache duration in milliseconds (1 hour)
 const CACHE_DURATION = 60 * 60 * 1000;
@@ -32,14 +34,23 @@ export function useStops() {
           const response = await fetch(`/api/trains?type=${STOPS}`);
           const data = await response.json();
 
-          // Update the cache
-          stopsCache.data = data;
+          // Convert data object to array
+          const stopsArray = Object.values(data) || [];
+
+          // Enrich stations with coordinates
+          // Priority: our custom coordinates first, then Open Night Train Database
+          const enrichedStops = enrichStationsWithCoordinates(
+            stopsArray,
+            stationCoordinates,
+          );
+
+          // Update the cache with enriched data
+          stopsCache.data = enrichedStops;
           stopsCache.timestamp = currentTime;
 
           // Update the state
-          const stopsArray = Object.values(data) || [];
-          setStops(stopsArray);
-          setFilteredStops(stopsArray);
+          setStops(enrichedStops);
+          setFilteredStops(enrichedStops);
         } catch (error) {
           console.error("Error fetching stations:", error);
           setStops([]);
@@ -49,7 +60,23 @@ export function useStops() {
         }
       } else {
         // Use cached data
-        const stopsArray = Object.values(stopsCache.data) || [];
+        // Handle backward compatibility: cache might be old format (object) or new format (array)
+        let stopsArray = stopsCache.data || [];
+
+        // If cache is in old format (object), convert to array
+        if (!Array.isArray(stopsArray)) {
+          stopsArray = Object.values(stopsArray) || [];
+        }
+
+        // Always re-enrich with coordinates from cache to ensure latest coordinates are used
+        // This is important because stationCoordinates might have been updated
+        stopsArray = enrichStationsWithCoordinates(
+          stopsArray,
+          stationCoordinates,
+        );
+        // Update cache with enriched data
+        stopsCache.data = stopsArray;
+
         setStops(stopsArray);
         setFilteredStops(stopsArray);
       }
@@ -58,8 +85,6 @@ export function useStops() {
     fetchStops();
   }, []);
 
-  return { stops, filteredStops, setFilteredStops, isLoading, loadingProgress };
-
   // Function to force refresh data
   const refreshStops = async () => {
     setIsLoading(true);
@@ -67,14 +92,23 @@ export function useStops() {
       const response = await fetch(`/api/trains?type=${STOPS}`);
       const data = await response.json();
 
-      // Update the cache
-      stopsCache.data = data;
+      // Convert data object to array
+      const stopsArray = Object.values(data) || [];
+
+      // Enrich stations with coordinates
+      // Priority: our custom coordinates first, then Open Night Train Database
+      const enrichedStops = enrichStationsWithCoordinates(
+        stopsArray,
+        stationCoordinates,
+      );
+
+      // Update the cache with enriched data
+      stopsCache.data = enrichedStops;
       stopsCache.timestamp = new Date().getTime();
 
       // Update the state
-      const stopsArray = Object.values(data) || [];
-      setStops(stopsArray);
-      setFilteredStops(stopsArray);
+      setStops(enrichedStops);
+      setFilteredStops(enrichedStops);
     } catch (error) {
       console.error("Error refreshing stations:", error);
     } finally {
@@ -89,6 +123,7 @@ export function useStops() {
     filteredStops,
     setFilteredStops,
     isLoading,
+    loadingProgress,
     refreshStops,
     lastUpdated: stopsCache.timestamp ? new Date(stopsCache.timestamp) : null,
   };
