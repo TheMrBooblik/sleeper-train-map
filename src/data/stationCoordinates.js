@@ -12,6 +12,7 @@ export const stationCoordinates = {
   // Stations with corrected coordinates (Open Night Train Database has incorrect coordinates for these)
 
   // Austria
+  Rankweil: { lat: 47.271967, lon: 9.637455 },
   "Stainach-Irdning": { lat: 47.52946, lon: 14.106571 },
   "Schwarzach-St.Veit": { lat: 47.31875, lon: 13.154265 },
   "St. Valentin": { lat: 48.17866, lon: 14.522561 },
