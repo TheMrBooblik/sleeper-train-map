@@ -14,7 +14,9 @@ const Layout = ({ children }) => {
   const [isModalOpen, setModalIsOpen] = useState(false);
   const [layerType, setLayerType] = useState("thunderforest");
   const [isGrouped, setIsGrouped] = useState(true);
-  const [showRoutes, setShowRoutes] = useState(true); // Toggle for showing route paths
+  const [showRoutes, setShowRoutes] = useState(false); // Toggle for showing route paths
+  const [hideIntermediateStations, setHideIntermediateStations] =
+    useState(false); // Filter to hide intermediate stations
   const { width, height } = useWindowSize();
 
   return (
@@ -33,6 +35,8 @@ const Layout = ({ children }) => {
         setIsGrouped={setIsGrouped}
         showRoutes={showRoutes}
         setShowRoutes={setShowRoutes}
+        hideIntermediateStations={hideIntermediateStations}
+        setHideIntermediateStations={setHideIntermediateStations}
       />
       <main className={styles.main}>
         {children}
@@ -45,6 +49,7 @@ const Layout = ({ children }) => {
             isGrouped={isGrouped}
             setIsGrouped={setIsGrouped}
             showRoutes={showRoutes}
+            hideIntermediateStations={hideIntermediateStations}
           >
             {({ TileLayer }) => (
               <>

@@ -1,3 +1,5 @@
+import { stopNameReplacements } from "../data/stationNameReplacements";
+
 /**
  * Enriches station data with coordinates
  *
@@ -14,9 +16,15 @@ export function enrichStationsWithCoordinates(stops, customCoordinates) {
     return [];
   }
 
-  return stops.map((stop) => {
+  // First pass: apply name replacements
+  const stopsWithReplacements = stops.map((stop) => {
     // Check if we have custom coordinates for this station
-    const stationName = stop.stop_id;
+    let stationName = stop.stop_id;
+
+    // Apply station name replacements for stops data
+    if (stationName && stopNameReplacements[stationName]) {
+      stationName = stopNameReplacements[stationName];
+    }
 
     // Try exact match first
     let customCoords = customCoordinates[stationName];
@@ -71,6 +79,7 @@ export function enrichStationsWithCoordinates(stops, customCoordinates) {
     if (customCoords && customCoords.lat && customCoords.lon) {
       return {
         ...stop,
+        stop_id: stationName, // Use replaced station name
         stop_lat: customCoords.lat,
         stop_lon: customCoords.lon,
         // Mark that we used custom coordinates
@@ -82,9 +91,58 @@ export function enrichStationsWithCoordinates(stops, customCoordinates) {
     // The stop object should already have stop_lat and stop_lon from the database
     return {
       ...stop,
+      stop_id: stationName, // Use replaced station name
       // Keep original coordinates from database, or mark as missing
       coordinatesSource:
         stop.stop_lat && stop.stop_lon ? "database" : "missing",
     };
   });
+
+  // Second pass: deduplicate stations with the same name after replacements
+  // If multiple stations have the same stop_id after replacement, keep only one
+  const deduplicatedStops = [];
+  const seenStations = new Map();
+
+  stopsWithReplacements.forEach((stop) => {
+    const stationName = stop.stop_id;
+
+    if (!seenStations.has(stationName)) {
+      // First occurrence - add it
+      seenStations.set(stationName, stop);
+      deduplicatedStops.push(stop);
+    } else {
+      // Duplicate found - prefer station with coordinates or custom coordinates
+      const existingStop = seenStations.get(stationName);
+
+      // Prefer station with custom coordinates
+      if (
+        stop.coordinatesSource === "custom" &&
+        existingStop.coordinatesSource !== "custom"
+      ) {
+        // Replace existing with this one (has custom coordinates)
+        const index = deduplicatedStops.indexOf(existingStop);
+        if (index !== -1) {
+          deduplicatedStops[index] = stop;
+          seenStations.set(stationName, stop);
+        }
+      }
+      // If both have same coordinate source, keep the first one
+      // (or prefer one with coordinates over one without)
+      else if (
+        stop.stop_lat &&
+        stop.stop_lon &&
+        !existingStop.stop_lat &&
+        !existingStop.stop_lon
+      ) {
+        // Replace existing with this one (has coordinates)
+        const index = deduplicatedStops.indexOf(existingStop);
+        if (index !== -1) {
+          deduplicatedStops[index] = stop;
+          seenStations.set(stationName, stop);
+        }
+      }
+    }
+  });
+
+  return deduplicatedStops;
 }
