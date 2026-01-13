@@ -24,7 +24,7 @@ export const stationCoordinates = {
   // Roman stations exist in both Bulgaria and Romania
   // Both are added to ensure both appear in stops even if API returns only one
   "Roman (Bulgaria)": { lat: 43.154514, lon: 23.921453 },
-  "Roman (Romania)": { lat: 46.9346624, lon: 26.9199022 },
+  Roman: { lat: 46.9346624, lon: 26.9199022 },
   Byala: { lat: 43.4688687, lon: 25.6693882 },
   Cerovo: { lat: 43.0038202, lon: 23.3494061 },
   Dobrich: { lat: 43.5661751, lon: 27.8156075 },
@@ -47,4 +47,9 @@ export const stationCoordinates = {
   "Rome Ostiense": { lat: 41.8704, lon: 12.4842 },
   "Roma Trastevere": { lat: 41.8703, lon: 12.4597 },
   "Rome Trastevere": { lat: 41.8703, lon: 12.4597 },
+
+  // Germany
+  "Siegen Hbf": { lat: 50.8711, lon: 8.0264 },
+  "Siegburg/Bonn": { lat: 50.794, lon: 7.2026 },
+  "Verden (Aller)": { lat: 52.9208, lon: 9.2379 },
 };
