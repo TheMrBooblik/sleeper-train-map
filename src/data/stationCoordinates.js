@@ -31,6 +31,7 @@ export const stationCoordinates = {
   Donchevo: { lat: 43.5183981, lon: 27.7680854 },
   "General Kiselovo": { lat: 43.4431373, lon: 27.5967086 },
   Oborishte: { lat: 43.4561214, lon: 27.6479988 },
+  Sadov: { lat: 42.1309, lon: 24.9395 },
   Yastrebovo: { lat: 43.7478405, lon: 26.1253795 },
   Zlatica: { lat: 42.71598295, lon: 24.1264484 },
 
