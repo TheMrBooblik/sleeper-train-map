@@ -24,6 +24,7 @@ const TrainSidebar = ({
   selectedNormalizedName,
 }) => {
   const { viewMapData } = useViewMap();
+
   // Guard against undefined viewMapData and use optional chaining for route_id
   const filteredViewMapData = viewMapData
     ? Object.values(viewMapData).filter((el) =>
@@ -31,7 +32,8 @@ const TrainSidebar = ({
       )
     : [];
 
-  if (!stopRouteIds?.length || sidebarDisabled) return null;
+  if (sidebarDisabled) return null;
+  if (!stopRouteIds?.length) return null;
 
   // Group routes by origin-destination to avoid duplicates
   // Store route_id to determine color

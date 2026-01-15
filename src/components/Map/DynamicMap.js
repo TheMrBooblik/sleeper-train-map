@@ -23,13 +23,15 @@ import { useViewMap } from "../../hooks/requests/useViewMap";
 import TrainSidebar from "@components/TrainSidebar";
 import ZoomControl from "@components/ZoomControl";
 import LocationControl from "@components/LocationControl";
+import { stationsToSkip } from "../../data/stationsToSkip";
 
-const Map = ({
+const TrainMap = ({
   children,
   className,
   isGrouped,
   setIsGrouped,
   showRoutes = true,
+  hideIntermediateStations = false,
   ...rest
 }) => {
   const [sidebarDisabled, setSidebarDisabled] = useState(false);
@@ -41,6 +43,10 @@ const Map = ({
   } = useStops();
   const { cities, isLoading: citiesLoading, refreshCities } = useCities();
   const { viewMapData } = useViewMap(); // Add viewMapData to check station types
+  // Note: useAllStations disabled for now due to CORS/API issues
+  // const { allStations, isLoading: allStationsLoading } = useAllStations(!hideIntermediateStations);
+
+  // State declarations - must be before hooks that use them
   const [selected, setSelected] = useState(false);
   const [stopId, setStopId] = useState();
   const [isMapInitialized, setIsMapInitialized] = useState(false);
@@ -51,6 +57,9 @@ const Map = ({
   const [currentZoom, setCurrentZoom] = useState(5);
   const [selectedStationName, setSelectedStationName] = useState("");
   const [selectedNormalizedName, setSelectedNormalizedName] = useState(""); // For filtering via stations
+  const [selectedStationLat, setSelectedStationLat] = useState(null);
+  const [selectedStationLon, setSelectedStationLon] = useState(null);
+
   const mapRef = useRef();
   const sidebarRef = useRef(null);
 
@@ -213,6 +222,8 @@ const Map = ({
     setSelected(false);
     setSelectedStationName("");
     setSelectedNormalizedName("");
+    setSelectedStationLat(null);
+    setSelectedStationLon(null);
     setStopRouteIds([]); // Clear route IDs to hide route paths
     setFilteredStops(stops);
   };
@@ -317,6 +328,9 @@ const Map = ({
       }
 
       setStopId(stop_id);
+      // Store station coordinates for HAFAS API
+      setSelectedStationLat(filteredStop.stop_lat);
+      setSelectedStationLon(filteredStop.stop_lon);
       // IMPORTANT: Normalize stop_id before looking it up in cities
       // Use normalizeStationNameForLookup for matching city keys
       const normalizedStopId = normalizeStationNameForLookup(stop_id);
@@ -370,7 +384,7 @@ const Map = ({
 
       // PERFORMANCE: Create Map for fast station lookup
       // Key: normalized station name, Value: stop object
-      const stopsMap = new window.Map();
+      const stopsMap = new Map();
       stops.forEach((stop) => {
         if (!stop.stop_id) return;
         const normalizedId = normalizeStationNameForLookup(stop.stop_id);
@@ -532,16 +546,80 @@ const Map = ({
   );
 
   const markers = useMemo(() => {
-    if (!filteredStops || !filteredStops.length) return [];
+    // Combine night train stops with all stations based on filter
+    let stopsToShow = [];
+
+    if (hideIntermediateStations && viewMapData) {
+      // Only show stations that are part of night train routes
+      if (!filteredStops || !filteredStops.length) return [];
+
+      const nightTrainStationIds = new Set();
+      Object.values(viewMapData).forEach((route) => {
+        if (route) {
+          [
+            route.origin_trip_0,
+            route.destination_trip_0,
+            route.origin_trip_1,
+            route.destination_trip_1,
+            route.via_0,
+            route.via_1,
+          ]
+            .filter(Boolean)
+            .forEach((stationName) => {
+              // Add normalized and original names
+              const normalized = normalizeStationNameForLookup(stationName);
+              nightTrainStationIds.add(stationName);
+              nightTrainStationIds.add(normalized);
+            });
+        }
+      });
+
+      stopsToShow = filteredStops.filter((stop) => {
+        if (!stop?.stop_id) return false;
+        const normalizedId = normalizeStationNameForLookup(stop.stop_id);
+        return (
+          nightTrainStationIds.has(stop.stop_id) ||
+          nightTrainStationIds.has(normalizedId)
+        );
+      });
+    } else {
+      // Show all stations from filteredStops (night train database)
+      // Note: Additional stations from DB REST API are disabled for now
+      if (!filteredStops || !filteredStops.length) return [];
+      stopsToShow = filteredStops;
+    }
+
+    // Filter out stations that should be skipped
+    // Create a Set of normalized skip station names for fast lookup
+    // Check both original and normalized names to catch all variations
+    const skipStationNames = new Set();
+    stationsToSkip.forEach((stationName) => {
+      skipStationNames.add(stationName);
+      skipStationNames.add(normalizeStationNameForLookup(stationName));
+    });
+
+    stopsToShow = stopsToShow.filter((stop) => {
+      if (!stop?.stop_id) return false;
+      const normalizedId = normalizeStationNameForLookup(stop.stop_id);
+      // Skip if station name (original or normalized) matches any skip list entry
+      return (
+        !skipStationNames.has(stop.stop_id) &&
+        !skipStationNames.has(normalizedId)
+      );
+    });
+
+    if (!stopsToShow || !stopsToShow.length) {
+      console.log("No stations to show");
+      return [];
+    }
 
     // Group overlapping city markers based on current zoom
-    const groupedStops = groupCityMarkers(filteredStops);
+    const groupedStops = groupCityMarkers(stopsToShow);
 
     // PERFORMANCE OPTIMIZATION: Create Maps for fast lookups
     // This avoids repeated expensive operations
-    // Note: Use window.Map to avoid conflict with component name
-    const routeIdMap = new window.Map();
-    const normalizedNameCache = new window.Map();
+    const routeIdMap = new Map();
+    const normalizedNameCache = new Map();
 
     // Cache route lookups
     // Guard against undefined viewMapData to prevent runtime errors
@@ -723,6 +801,7 @@ const Map = ({
     viewMapData,
     normalizeStationName,
     normalizeStationNameForLookup,
+    hideIntermediateStations,
   ]);
 
   // Route colors for visualization (defined outside useMemo to avoid recreation)
@@ -737,7 +816,86 @@ const Map = ({
     "#2ECC71", // Light green
   ];
 
-  // Build route paths (polylines) for selected station
+  // State for destination stations with coordinates
+  const [destinationStations, setDestinationStations] = useState([]);
+  // Track if effect is cancelled to prevent state updates after unmount
+  const isCancelledRef = useRef(false);
+
+  // Destination station names - empty since train departures are removed
+  const destinationStationNames = useMemo(() => {
+    return [];
+  }, []);
+
+  // Load coordinates for destination stations
+  useEffect(() => {
+    if (!destinationStationNames.length) {
+      setDestinationStations([]);
+      return;
+    }
+
+    // Reset cancelled flag for new effect run
+    isCancelledRef.current = false;
+
+    const loadStationCoordinates = async () => {
+      // Check if effect was cancelled (dependency changed)
+      if (isCancelledRef.current) return;
+      const stationsWithCoords = [];
+
+      // First pass: try to find coordinates from known sources
+      // Also check if station is already in destinationStations to avoid duplicate work
+      const existingStationNames = new Set(
+        destinationStations.map((s) => s.name),
+      );
+
+      for (const stationName of destinationStationNames) {
+        // Skip if already processed
+        if (existingStationNames.has(stationName)) {
+          continue;
+        }
+
+        // Try night train database
+        const normalizedName = normalizeStationNameForLookup(stationName);
+        const stop = stops?.find(
+          (s) =>
+            normalizeStationNameForLookup(s.stop_id) === normalizedName ||
+            normalizeStationNameForLookup(s.stop_name) === normalizedName,
+        );
+
+        if (stop && stop.stop_lat && stop.stop_lon) {
+          stationsWithCoords.push({
+            name: stationName,
+            lat: stop.stop_lat,
+            lon: stop.stop_lon,
+            id: stop.stop_id,
+            source: "night-train-db",
+          });
+          continue;
+        }
+
+        // If not found in night train database, skip (no geocoding)
+      }
+
+      // Update stations found immediately
+      setDestinationStations(stationsWithCoords);
+    };
+
+    loadStationCoordinates();
+
+    // Cleanup function to cancel in-flight requests if dependencies change
+    return () => {
+      isCancelledRef.current = true;
+    };
+    // Note: normalizeStationNameForLookup is a stable function from useCities hook,
+    // so it doesn't need to be in dependencies.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destinationStationNames, stops]);
+
+  // Train departure paths removed - train departures functionality removed
+  const trainDeparturePaths = useMemo(() => {
+    return [];
+  }, []);
+
+  // Build route paths (polylines) for selected station or all stations when showRoutes is enabled
   // This visualizes train routes as lines connecting stations
   // PERFORMANCE OPTIMIZATIONS:
   // - Uses Map for O(1) route lookup instead of O(n) find
@@ -745,20 +903,73 @@ const Map = ({
   // - Caches normalized station names to avoid repeated calculations
   // - Pre-computes pathOptions to avoid recalculation on each render
   const routePaths = useMemo(() => {
-    if (
-      !selected ||
-      !stopRouteIds ||
-      !stopRouteIds.length ||
-      !viewMapData ||
-      !stops ||
-      !stops.length
-    ) {
+    // Always show routes when a station is selected (even if showRoutes is off)
+    // If showRoutes is enabled and no station is selected, show all routes
+    let routesToShow = [];
+
+    if (!viewMapData || !stops || !stops.length) {
+      return [];
+    }
+
+    // Create a Set of normalized skip station names for fast lookup
+    // This is used to filter out skipped stations from route paths
+    const skipStationNames = new Set();
+    stationsToSkip.forEach((stationName) => {
+      skipStationNames.add(stationName);
+      skipStationNames.add(normalizeStationNameForLookup(stationName));
+    });
+
+    // Helper function to check if a station should be skipped
+    const isStationSkipped = (stationName) => {
+      if (!stationName) return false;
+      const normalizedName = normalizeStationNameForLookup(stationName);
+      return (
+        skipStationNames.has(stationName) ||
+        skipStationNames.has(normalizedName)
+      );
+    };
+
+    // If a station is selected, show routes for that station (regardless of showRoutes setting)
+    if (selected && stopRouteIds && stopRouteIds.length > 0) {
+      routesToShow = stopRouteIds;
+    }
+    // If showRoutes is enabled but no station is selected, show all routes
+    else if (showRoutes && !selected) {
+      // Show all routes from all stations
+      const allRouteIds = new Set();
+
+      // Get route IDs from cities (stations) data
+      Object.values(cities).forEach((city) => {
+        if (city?.stop_route_ids) {
+          city.stop_route_ids.split(",").forEach((id) => {
+            const routeId = id.trim();
+            if (routeId) allRouteIds.add(routeId);
+          });
+        }
+      });
+
+      // Also get all routes from viewMapData
+      if (viewMapData) {
+        Object.values(viewMapData).forEach((route) => {
+          if (route?.route_id) {
+            allRouteIds.add(route.route_id.toString());
+          }
+        });
+      }
+
+      routesToShow = Array.from(allRouteIds);
+    } else {
+      // No station selected and showRoutes is off - don't show routes
+      return [];
+    }
+
+    if (routesToShow.length === 0) {
       return [];
     }
 
     // PERFORMANCE OPTIMIZATION: Create Maps for O(1) lookups
     // Map for fast route lookup by route_id
-    const routeMap = new window.Map();
+    const routeMap = new Map();
     Object.values(viewMapData).forEach((route) => {
       if (route?.route_id) {
         routeMap.set(route.route_id.toString(), route);
@@ -767,8 +978,8 @@ const Map = ({
 
     // Map for fast station coordinate lookup
     // Key: normalized station name, Value: [lat, lon]
-    const stationCoordsMap = new window.Map();
-    const normalizedNameCache = new window.Map();
+    const stationCoordsMap = new Map();
+    const normalizedNameCache = new Map();
 
     // Helper to get cached normalized name
     const getCachedNormalizedName = (name) => {
@@ -807,48 +1018,58 @@ const Map = ({
     };
 
     const paths = [];
-    // Use stopId in keys to ensure unique keys per station selection
-    // This ensures React properly unmounts old polylines when station changes
-    const stationKey = stopId || "none";
+    // Use a key that includes all routes when showing all routes
+    const stationKey = selected ? stopId || "none" : "all-routes";
 
     // Process each route
-    stopRouteIds.forEach((routeId) => {
+    routesToShow.forEach((routeId) => {
       // O(1) lookup instead of O(n) find
       const route = routeMap.get(routeId);
 
       if (!route) return;
 
       // Helper function to build path for one direction
+      // Filters out skipped stations from the route path
       const buildPathForDirection = (origin, destination, viaStations) => {
+        // Skip entire route if origin or destination is in skip list
+        if (isStationSkipped(origin) || isStationSkipped(destination)) {
+          return null;
+        }
+
         const stationSequence = [];
 
-        // Add origin
-        if (origin) {
+        // Add origin (only if not skipped)
+        if (origin && !isStationSkipped(origin)) {
           const originCoords = findStationCoords(origin);
           if (originCoords) {
             stationSequence.push(originCoords);
           }
         }
 
-        // Add via stations (if they exist)
+        // Add via stations (if they exist), filtering out skipped stations
         if (viaStations) {
           const viaList = viaStations.split(" - ").filter((s) => s.trim());
           viaList.forEach((viaStation) => {
-            const viaCoords = findStationCoords(viaStation.trim());
-            if (viaCoords) {
-              stationSequence.push(viaCoords);
+            const trimmedVia = viaStation.trim();
+            // Only add via station if it's not in the skip list
+            if (!isStationSkipped(trimmedVia)) {
+              const viaCoords = findStationCoords(trimmedVia);
+              if (viaCoords) {
+                stationSequence.push(viaCoords);
+              }
             }
           });
         }
 
-        // Add destination
-        if (destination) {
+        // Add destination (only if not skipped)
+        if (destination && !isStationSkipped(destination)) {
           const destCoords = findStationCoords(destination);
           if (destCoords) {
             stationSequence.push(destCoords);
           }
         }
 
+        // Return path only if we have at least 2 valid stations (origin and destination)
         return stationSequence.length >= 2 ? stationSequence : null;
       };
 
@@ -903,8 +1124,22 @@ const Map = ({
     stopRouteIds,
     viewMapData,
     stops,
-    normalizeStationNameForLookup,
+    stationsToSkip, // Recalculate when skip list changes
+    normalizeStationNameForLookup, // Recalculate when normalization function changes
+    showRoutes,
+    cities,
   ]);
+
+  // Trains per destination removed - train departures functionality removed
+  const trainsPerDestination = useMemo(() => {
+    return new Map();
+  }, []);
+
+  // Destination station markers are disabled - only showing route lines
+  const destinationMarkers = useMemo(() => {
+    // Return empty array - destination stations are not displayed
+    return [];
+  }, []);
 
   return (
     <>
@@ -930,12 +1165,12 @@ const Map = ({
             <h3
               style={{ margin: "0 0 10px 0", color: "#333", fontSize: "18px" }}
             >
-              Loading European Night Trains
+              Loading European Trains
             </h3>
             <p
               style={{ margin: "0 0 20px 0", color: "#666", fontSize: "14px" }}
             >
-              Discovering 28,000+ stations and 200+ routes across Europe...
+              Discovering stations and routes across Europe...
             </p>
           </div>
 
@@ -1053,10 +1288,10 @@ const Map = ({
         />
         <ZoomControl className="outline-none" />
         <LocationControl />
-        {/* Render route paths as polylines (only if showRoutes is enabled and station is selected) */}
-        {showRoutes &&
-          selected &&
-          routePaths.length > 0 &&
+        {/* Render route paths as polylines 
+            - Show all routes when showRoutes is enabled and no station is selected
+            - Show routes for selected station when station is clicked (even if showRoutes is off) */}
+        {routePaths.length > 0 &&
           routePaths.map((path) => (
             <Polyline
               key={path.key}
@@ -1065,6 +1300,8 @@ const Map = ({
             />
           ))}
         {markers}
+        {/* Destination station markers - stations we can reach */}
+        {destinationMarkers}
         {children && children({ MapContainer, Marker, TileLayer }, Leaflet)}
       </MapContainer>
 
@@ -1082,4 +1319,4 @@ const Map = ({
   );
 };
 
-export default Map;
+export default TrainMap;

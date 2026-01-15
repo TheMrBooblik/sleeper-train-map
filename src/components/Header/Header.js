@@ -15,14 +15,9 @@ const Header = ({
   setIsGrouped,
   showRoutes,
   setShowRoutes,
+  hideIntermediateStations,
+  setHideIntermediateStations,
 }) => {
-  const isRailwayLayer = layerType === "thunderforest";
-  const toggleLayer = () => {
-    setLayerType((prevType) =>
-      prevType === "thunderforest" ? "osm" : "thunderforest",
-    );
-  };
-
   return (
     <header
       className={`h-[${HEADER_HEIGHT}px] bg-black px-4 py-2 text-white`}
@@ -31,7 +26,7 @@ const Header = ({
       <Container className="flex justify-between items-center">
         <p>
           <Link href="/">
-            Pingwi <i>sleeper train</i> map
+            Pingwi <i>night trains</i> map
           </Link>
         </p>
         <div className="flex items-center list-none gap-4">
@@ -57,7 +52,20 @@ const Header = ({
                 onChange={(e) => setShowRoutes(e.target.checked)}
                 className="mr-2 cursor-pointer"
               />
-              Show Routes
+              Show All Routes
+            </label>
+          </div>
+
+          {/* Hide Intermediate Stations Filter */}
+          <div className="flex items-center">
+            <label className="flex items-center cursor-pointer text-sm">
+              <input
+                type="checkbox"
+                checked={hideIntermediateStations}
+                onChange={(e) => setHideIntermediateStations(e.target.checked)}
+                className="mr-2 cursor-pointer"
+              />
+              Hide intermediate stations
             </label>
           </div>
 
