@@ -53,4 +53,7 @@ export const stationCoordinates = {
   "Siegen Hbf": { lat: 50.8711, lon: 8.0264 },
   "Siegburg/Bonn": { lat: 50.794, lon: 7.2026 },
   "Verden (Aller)": { lat: 52.9208, lon: 9.2379 },
+
+  // Turkey
+  Konya: { lat: 37.8666, lon: 32.4764 },
 };
