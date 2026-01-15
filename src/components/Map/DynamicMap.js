@@ -23,6 +23,7 @@ import { useViewMap } from "../../hooks/requests/useViewMap";
 import TrainSidebar from "@components/TrainSidebar";
 import ZoomControl from "@components/ZoomControl";
 import LocationControl from "@components/LocationControl";
+import { stationsToSkip } from "../../data/stationsToSkip";
 
 const TrainMap = ({
   children,
@@ -588,6 +589,25 @@ const TrainMap = ({
       stopsToShow = filteredStops;
     }
 
+    // Filter out stations that should be skipped
+    // Create a Set of normalized skip station names for fast lookup
+    // Check both original and normalized names to catch all variations
+    const skipStationNames = new Set();
+    stationsToSkip.forEach((stationName) => {
+      skipStationNames.add(stationName);
+      skipStationNames.add(normalizeStationNameForLookup(stationName));
+    });
+
+    stopsToShow = stopsToShow.filter((stop) => {
+      if (!stop?.stop_id) return false;
+      const normalizedId = normalizeStationNameForLookup(stop.stop_id);
+      // Skip if station name (original or normalized) matches any skip list entry
+      return (
+        !skipStationNames.has(stop.stop_id) &&
+        !skipStationNames.has(normalizedId)
+      );
+    });
+
     if (!stopsToShow || !stopsToShow.length) {
       console.log("No stations to show");
       return [];
@@ -891,6 +911,23 @@ const TrainMap = ({
       return [];
     }
 
+    // Create a Set of normalized skip station names for fast lookup
+    // This is used to filter out skipped stations from route paths
+    const skipStationNames = new Set();
+    stationsToSkip.forEach((stationName) => {
+      skipStationNames.add(stationName);
+      skipStationNames.add(normalizeStationNameForLookup(stationName));
+    });
+
+    // Helper function to check if a station should be skipped
+    const isStationSkipped = (stationName) => {
+      if (!stationName) return false;
+      const normalizedName = normalizeStationNameForLookup(stationName);
+      return (
+        skipStationNames.has(stationName) || skipStationNames.has(normalizedName)
+      );
+    };
+
     // If a station is selected, show routes for that station (regardless of showRoutes setting)
     if (selected && stopRouteIds && stopRouteIds.length > 0) {
       routesToShow = stopRouteIds;
@@ -991,36 +1028,47 @@ const TrainMap = ({
       if (!route) return;
 
       // Helper function to build path for one direction
+      // Filters out skipped stations from the route path
       const buildPathForDirection = (origin, destination, viaStations) => {
+        // Skip entire route if origin or destination is in skip list
+        if (isStationSkipped(origin) || isStationSkipped(destination)) {
+          return null;
+        }
+
         const stationSequence = [];
 
-        // Add origin
-        if (origin) {
+        // Add origin (only if not skipped)
+        if (origin && !isStationSkipped(origin)) {
           const originCoords = findStationCoords(origin);
           if (originCoords) {
             stationSequence.push(originCoords);
           }
         }
 
-        // Add via stations (if they exist)
+        // Add via stations (if they exist), filtering out skipped stations
         if (viaStations) {
           const viaList = viaStations.split(" - ").filter((s) => s.trim());
           viaList.forEach((viaStation) => {
-            const viaCoords = findStationCoords(viaStation.trim());
-            if (viaCoords) {
-              stationSequence.push(viaCoords);
+            const trimmedVia = viaStation.trim();
+            // Only add via station if it's not in the skip list
+            if (!isStationSkipped(trimmedVia)) {
+              const viaCoords = findStationCoords(trimmedVia);
+              if (viaCoords) {
+                stationSequence.push(viaCoords);
+              }
             }
           });
         }
 
-        // Add destination
-        if (destination) {
+        // Add destination (only if not skipped)
+        if (destination && !isStationSkipped(destination)) {
           const destCoords = findStationCoords(destination);
           if (destCoords) {
             stationSequence.push(destCoords);
           }
         }
 
+        // Return path only if we have at least 2 valid stations (origin and destination)
         return stationSequence.length >= 2 ? stationSequence : null;
       };
 
@@ -1075,7 +1123,8 @@ const TrainMap = ({
     stopRouteIds,
     viewMapData,
     stops,
-    normalizeStationNameForLookup,
+    stationsToSkip, // Recalculate when skip list changes
+    normalizeStationNameForLookup, // Recalculate when normalization function changes
     showRoutes,
     cities,
   ]);
