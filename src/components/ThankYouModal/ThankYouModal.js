@@ -21,9 +21,26 @@ export default function ThankYouModal({ isModalOpen, setModalIsOpen }) {
     };
   }, [escFunction]);
 
+  // Handle click outside modal to close it
+  const handleBackdropClick = useCallback(
+    (event) => {
+      // Only close if clicking directly on the backdrop, not on modal content
+      if (event.target === event.currentTarget) {
+        setModalIsOpen(false);
+      }
+    },
+    [setModalIsOpen],
+  );
+
   return (
-    <div className="fixed inset-0 z-999 flex items-center justify-center backdrop-blur-sm">
-      <div className="bg-white max-w-lg w-full p-8 rounded-2xl shadow-xl relative">
+    <div
+      className="fixed inset-0 z-999 flex items-center justify-center backdrop-blur-sm cursor-pointer"
+      onClick={handleBackdropClick}
+    >
+      <div
+        className="bg-white max-w-lg w-full p-8 rounded-2xl shadow-xl relative cursor-default"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 className="text-2xl font-bold text-center text-gray-700 mt-4 mb-6">
           🚂 European Sleeper Train Map
         </h2>

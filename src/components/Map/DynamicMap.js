@@ -924,7 +924,8 @@ const TrainMap = ({
       if (!stationName) return false;
       const normalizedName = normalizeStationNameForLookup(stationName);
       return (
-        skipStationNames.has(stationName) || skipStationNames.has(normalizedName)
+        skipStationNames.has(stationName) ||
+        skipStationNames.has(normalizedName)
       );
     };
 
