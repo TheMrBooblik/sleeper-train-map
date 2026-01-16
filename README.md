@@ -2,7 +2,7 @@
 
 ![Sleeper Train Map Preview](preview.png)
 
-Experience the application live: [https://sleeper-train-map.vercel.app](https://sleeper-train-map.pingwi.com)
+Experience the application live: [https://sleeper-train-map.pingwi.app](https://sleeper-train-map.pingwi.com)
 
 ## Overview
 
