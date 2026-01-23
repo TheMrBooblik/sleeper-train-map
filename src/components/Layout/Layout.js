@@ -1,6 +1,5 @@
 import Head from "next/head";
 import Header from "@components/Header";
-import styles from "./Layout.module.scss";
 import ThankYouModal from "@components/ThankYouModal";
 import { useState } from "react";
 import Container from "@components/Container";
@@ -20,7 +19,7 @@ const Layout = ({ children }) => {
   const { width, height } = useWindowSize();
 
   return (
-    <div className={styles.layout}>
+    <div className="grid grid-rows-[auto_1fr_auto] overflow-hidden min-h-screen">
       <Head>
         <link
           rel="icon"
@@ -38,7 +37,7 @@ const Layout = ({ children }) => {
         hideIntermediateStations={hideIntermediateStations}
         setHideIntermediateStations={setHideIntermediateStations}
       />
-      <main className={styles.main}>
+      <main>
         {children}
         <Container>
           <Map

@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import styles from "./TrainSidebar.module.scss";
 import { useViewMap } from "../../hooks/requests/useViewMap";
 
 // Route colors matching DynamicMap.js
@@ -92,7 +91,7 @@ const TrainSidebar = ({
   });
 
   return (
-    <div className={`${styles.trainSidebar} ${isOpen ? styles.open : ""}`}>
+    <div className={`absolute ${isOpen ? 'bottom-0' : '-bottom-[100px]'} w-full max-h-7 bg-white shadow-[-2px_0_8px_rgba(0,0,0,0.1)] z-[1000] overflow-y-none overflow-x-scroll transition-[right] duration-300 p-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}>
       <div className="flex p-1">
         {Array.from(routeMap.values()).map((route, index) => {
           // Get color for this route (same logic as DynamicMap.js)
@@ -101,12 +100,12 @@ const TrainSidebar = ({
 
           return (
             <div
-              className={`${styles.routeItem} whitespace-nowrap text-sm`}
+              className="relative flex items-center pl-2 pr-3 whitespace-nowrap text-sm"
               key={`route-info-${index}`}
             >
               {/* Color indicator line */}
               <div
-                className={styles.routeColorLine}
+                className="absolute left-0 top-0.5 bottom-0.5 w-1 rounded shrink-0"
                 style={{ backgroundColor: routeColor }}
               />
               <div className="flex items-center">

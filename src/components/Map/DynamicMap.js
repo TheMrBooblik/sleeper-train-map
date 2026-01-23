@@ -13,7 +13,6 @@ import * as ReactLeaflet from "react-leaflet";
 const { MapContainer, Marker, TileLayer, Tooltip, Polyline } = ReactLeaflet;
 import "leaflet/dist/leaflet.css";
 
-import styles from "./Map.module.scss";
 import Filter from "src/components/Filter";
 import MarkerTooltip from "@components/MarkerTooltip";
 import { useStops } from "../../hooks/requests/useStops";
@@ -63,7 +62,7 @@ const TrainMap = ({
   const mapRef = useRef();
   const sidebarRef = useRef(null);
 
-  const mapClassName = className ? `${styles.map} ${className}` : styles.map;
+  const mapClassName = `w-full h-full ${className || ''}`;
 
   // Function to normalize station name for display
   const normalizeStationName = useCallback((stationName) => {

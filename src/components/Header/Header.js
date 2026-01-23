@@ -4,7 +4,6 @@ import { FaInfo, FaTrain } from "react-icons/fa";
 import Container from "@components/Container";
 import Legend from "@components/Legend";
 
-import styles from "./Header.module.scss";
 import { HEADER_HEIGHT } from "../../constants/header";
 
 const Header = ({
