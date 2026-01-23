@@ -10,6 +10,7 @@
     "export": "next export",
     "start": "next start"
   },
+  "packageManager": "npm@10",
   "repository": {
     "type": "git",
     "url": "https://github.com/colbyfayock/next-leaflet-starter"
