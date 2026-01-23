@@ -10,7 +10,7 @@ import React, {
 import Leaflet from "leaflet";
 import * as ReactLeaflet from "react-leaflet";
 
-const { MapContainer, Marker, TileLayer, Tooltip, Polyline } = ReactLeaflet;
+const { MapContainer, Marker, TileLayer, Tooltip, Polyline, useMapEvents } = ReactLeaflet;
 import "leaflet/dist/leaflet.css";
 
 import Filter from "src/components/Filter";
@@ -20,6 +20,7 @@ import { useCities } from "../../hooks/requests/useCities";
 import { normalizeStationNameForLookup } from "../../hooks/requests/useCities";
 import { useViewMap } from "../../hooks/requests/useViewMap";
 import TrainSidebar from "@components/TrainSidebar";
+import TrainDetailPanel from "@components/TrainDetailPanel";
 import ZoomControl from "@components/ZoomControl";
 import LocationControl from "@components/LocationControl";
 import { stationsToSkip } from "../../data/stationsToSkip";
@@ -58,6 +59,8 @@ const TrainMap = ({
   const [selectedNormalizedName, setSelectedNormalizedName] = useState(""); // For filtering via stations
   const [selectedStationLat, setSelectedStationLat] = useState(null);
   const [selectedStationLon, setSelectedStationLon] = useState(null);
+  const [selectedTrainRouteIds, setSelectedTrainRouteIds] = useState([]);
+  const [isTrainDetailPanelOpen, setIsTrainDetailPanelOpen] = useState(false);
 
   const mapRef = useRef();
   const sidebarRef = useRef(null);
@@ -225,6 +228,40 @@ const TrainMap = ({
     setSelectedStationLon(null);
     setStopRouteIds([]); // Clear route IDs to hide route paths
     setFilteredStops(stops);
+  };
+
+  // Handle polyline (route line) click to show train details
+  const handlePolylineClick = useCallback(
+    (routeIds) => {
+      console.log("Polyline clicked! Route ID:", routeIds);
+      // routeIds can be a single ID or an array (for overlapping routes)
+      const idsArray = Array.isArray(routeIds) ? routeIds : [routeIds];
+      console.log("Opening panel with route IDs:", idsArray);
+      setSelectedTrainRouteIds(idsArray);
+      setIsTrainDetailPanelOpen(true);
+    },
+    [],
+  );
+
+  const closeTrainDetailPanel = useCallback(() => {
+    setIsTrainDetailPanelOpen(false);
+    setSelectedTrainRouteIds([]);
+  }, []);
+
+  // Component to handle map click events
+  const MapClickHandler = () => {
+    useMapEvents({
+      click: (e) => {
+        // Only clear filter if clicking on empty map (not on markers or polylines)
+        // Check if the click was on a map layer (marker, polyline, etc.)
+        const isClickOnFeature = e.originalEvent.target.classList.contains('leaflet-interactive');
+        
+        if (selected && !isClickOnFeature) {
+          removeFilter();
+        }
+      },
+    });
+    return null;
   };
 
   const escFunction = useCallback(
@@ -1280,6 +1317,7 @@ const TrainMap = ({
         {...rest}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <MapClickHandler />
         <Filter
           selected={selected}
           filterName={selectedStationName || stopId}
@@ -1295,7 +1333,16 @@ const TrainMap = ({
             <Polyline
               key={path.key}
               positions={path.positions}
-              pathOptions={path.pathOptions}
+              pathOptions={{
+                ...path.pathOptions,
+                cursor: "pointer",
+              }}
+              eventHandlers={{
+                click: (e) => {
+                  e.originalEvent.stopPropagation();
+                  handlePolylineClick(path.routeId);
+                },
+              }}
             />
           ))}
         {markers}
@@ -1314,6 +1361,13 @@ const TrainMap = ({
           selectedNormalizedName={selectedNormalizedName}
         />
       </div>
+
+      {/* Train Detail Panel - shows when clicking on route lines */}
+      <TrainDetailPanel
+        isOpen={isTrainDetailPanelOpen}
+        onClose={closeTrainDetailPanel}
+        selectedRouteIds={selectedTrainRouteIds}
+      />
     </>
   );
 };
