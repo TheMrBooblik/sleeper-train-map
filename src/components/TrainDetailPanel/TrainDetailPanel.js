@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { useAgencies } from "../../hooks/requests/useAgencies";
 import { useRoutes } from "../../hooks/requests/useRoutes";
 import { useTrips } from "../../hooks/requests/useTrips";
@@ -9,6 +9,20 @@ const TrainDetailPanel = ({ isOpen, onClose, selectedRouteIds }) => {
   const { agencies } = useAgencies();
   const { routes } = useRoutes();
   const { trips } = useTrips();
+
+  // Handle ESC key press
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape" && isOpen) {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   // Get all trips for the selected routes
   const relevantTrips = useMemo(() => {
@@ -40,32 +54,21 @@ const TrainDetailPanel = ({ isOpen, onClose, selectedRouteIds }) => {
 
   return (
     <div
-      className={`fixed top-0 right-0 h-full bg-white shadow-lg transition-transform duration-300 z-[1001] overflow-y-auto ${
+      className={`fixed top-10 right-0 h-full bg-white shadow-lg transition-transform duration-300 z-[1000] overflow-y-auto ${
         isOpen ? "translate-x-0" : "translate-x-full"
       }`}
       style={{ width: "300px" }}
     >
       {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">Train Details</h2>
+      <div className="sticky top-0 bg-white border-b border-gray-200 pl-5 py-1 flex items-center justify-between z-10">
+        <h2 className="text-base font-semibold text-gray-900">Train Details</h2>
         <button
           onClick={onClose}
-          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+          className="text-xl leading-none text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded w-5 h-5 p-5 cursor-pointer flex items-center justify-center transition-colors"
           aria-label="Close panel"
+          title="Close (ESC)"
         >
-          <svg
-            className="w-6 h-6 text-gray-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
+          ✖
         </button>
       </div>
 
@@ -131,9 +134,6 @@ const TrainDetailPanel = ({ isOpen, onClose, selectedRouteIds }) => {
 
                 {/* Schedule */}
                 <div className="space-y-1">
-                  <div className="text-xs text-gray-500 uppercase">
-                    Schedule
-                  </div>
                   <div className="text-sm space-y-1">
                     <div>
                       <span className="font-medium">Departure:</span>{" "}
@@ -189,7 +189,7 @@ const TrainDetailPanel = ({ isOpen, onClose, selectedRouteIds }) => {
                     href={agency.agency_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-full text-center bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors text-sm font-medium"
+                    className="block w-full text-center bg-blue-600 !text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors text-sm font-medium"
                   >
                     Visit Operator Website
                   </a>
