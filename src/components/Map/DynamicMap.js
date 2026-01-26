@@ -14,7 +14,6 @@ const { MapContainer, Marker, TileLayer, Tooltip, Polyline, useMapEvents } = Rea
 import "leaflet/dist/leaflet.css";
 
 import Filter from "src/components/Filter";
-import MarkerTooltip from "@components/MarkerTooltip";
 import { useStops } from "../../hooks/requests/useStops";
 import { useCities } from "../../hooks/requests/useCities";
 import { normalizeStationNameForLookup } from "../../hooks/requests/useCities";
@@ -812,13 +811,6 @@ const TrainMap = ({
             }}
             title={filteredStop.displayName || stop_id}
           >
-            {isSelected && (
-              <MarkerTooltip
-                stationName={filteredStop.displayName || stop_id}
-                stationId={stop_id}
-                groupedStations={filteredStop.groupedStations}
-              />
-            )}
           </Marker>
         );
       })
