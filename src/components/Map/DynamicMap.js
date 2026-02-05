@@ -362,24 +362,36 @@ const TrainMap = ({
   // Load a single Nightjet route (prototype) for a clicked station
   const loadNightjetForStation = useCallback(async (stationName) => {
     try {
-      // Try NJ 403 first, then NJ 402 (two directions of this route)
+      // Build today's date YYYY-MM-DD
+      const today = new Date()
+      const date = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
+
       const tryFetch = async (train) => {
-        const res = await fetch(`/api/nj-route?stationName=${encodeURIComponent(stationName)}&train=${encodeURIComponent(train)}`)
+        const res = await fetch(`/api/nj-train?train=${encodeURIComponent(train)}&date=${date}`)
         if (!res.ok) return null
         return res.json()
       }
 
+      // Try NJ 403 first (Eindhoven->Basel/Zürich), then reverse NJ 402
       let data = await tryFetch('NJ 403')
-      if (!data) data = await tryFetch('NJ 402')
-      if (!data) throw new Error('No NJ402/403 found for this station')
+      if (!data || !Array.isArray(data.stations) || data.stations.length === 0) {
+        data = await tryFetch('NJ 402')
+      }
+      if (!data || !Array.isArray(data.stations) || data.stations.length === 0) {
+        throw new Error('Nightjet data not available for today')
+      }
 
-      const coords = (data.stations || [])
+      // If a specific station was clicked, cut the route so it starts from that station
+      const idx = data.stations.findIndex((s) => (s.name || '').toLowerCase().includes((stationName || '').toLowerCase()))
+      const segment = idx >= 0 ? data.stations.slice(idx) : data.stations
+
+      const coords = segment
         .map((s) => [s.location?.latitude, s.location?.longitude])
         .filter((a) => Array.isArray(a) && Number.isFinite(a[0]) && Number.isFinite(a[1]))
 
       setNjRouteCoords(coords)
-      setNjRouteStations(data.stations || [])
-      setNjRouteMeta({ lineName: data.lineName, tripId: data.tripId })
+      setNjRouteStations(segment)
+      setNjRouteMeta({ lineName: data.lineName, tripId: `${data.lineName}-${date}` })
     } catch (e) {
       console.error('Nightjet fetch error', e)
       setNjRouteCoords([])
