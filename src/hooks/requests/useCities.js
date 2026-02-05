@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { VIEW_CITIES, VIEW_MAP } from "../../constants/backOnTrack";
 
-// Cache duration in milliseconds (1 hour)
-const CACHE_DURATION = 60 * 60 * 1000;
+// Cache duration in milliseconds (disabled during development for manual data testing)
+const CACHE_DURATION = 0; // Set to 60 * 60 * 1000 for production
 
 // Function to normalize station names to handle inconsistencies between stops and routes data
 // Export this function so it can be used in other components

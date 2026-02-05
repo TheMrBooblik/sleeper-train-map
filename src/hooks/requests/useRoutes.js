@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ROUTES } from "../../constants/backOnTrack";
 
 // Cache duration in milliseconds (1 hour)
-const CACHE_DURATION = 60 * 60 * 1000;
+const CACHE_DURATION = 60 * 60 * 1000; // Set to 60 * 60 * 1000 for production
 
 // Cache structure
 const routesCache = {

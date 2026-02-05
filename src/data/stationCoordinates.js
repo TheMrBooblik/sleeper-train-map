@@ -56,4 +56,26 @@ export const stationCoordinates = {
 
   // Turkey
   Konya: { lat: 37.8666, lon: 32.4764 },
+    
+  // Ukraine
+  "Kyiv Pasazhyrskyi": { lat: 50.4402, lon: 30.4888 },
+  "Kropyvnyts'kyi": { lat: 48.5236, lon: 32.2607 },  
+  "Voznesens'k": { lat: 47.5606, lon: 31.3162 },  
+  Kodyma: { lat: 48.0897, lon: 29.1202 },  
+  Zhmerynka: { lat: 49.0354, lon: 28.1124 },
+  // Popilnia: { lat: 49.8907, lon: 29.3374 },
+  "Koziatyn I": { lat: 49.7086, lon: 28.8292 },
+  // Uladivka: { lat: 49.5081, lon: 28.1966 },
+  Khmilnyk: { lat: 49.5592, lon: 27.9845 },
+  "Starokostiantyniv II": { lat: 49.7436, lon: 27.2143 },
+  // Adampil: { lat: 49.6695, lon: 27.6702 },
+  // Krasyliv: { lat: 49.6698, lon: 27.0131 },
+  Hrechany: { lat: 49.4417, lon: 26.9305 },
+  // Yarmolyntsi: { lat: 49.1789, lon: 26.8042 },
+  // Dunaivtsi: { lat: 49.0223, lon: 26.8399 },
+  Balyn: { lat: 48.9066, lon: 26.6346 },
+  "Kamianets-Podilskyi": { lat: 48.6833, lon: 26.5833 },
+  // Shepetivka: { lat: 50.2000, lon: 27.0577 },
+  Berdychiv: { lat: 49.8947, lon: 28.5862 },
+  // Zdolbuniv: { lat: 50.5137, lon: 26.2475 }    
 };
