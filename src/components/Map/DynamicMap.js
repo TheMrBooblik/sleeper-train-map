@@ -60,6 +60,10 @@ const TrainMap = ({
   const [selectedStationLon, setSelectedStationLon] = useState(null);
   const [selectedTrainRouteIds, setSelectedTrainRouteIds] = useState([]);
   const [isTrainDetailPanelOpen, setIsTrainDetailPanelOpen] = useState(false);
+  // Nightjet prototype overlay: one route only (e.g., NJ 403)
+  const [njRouteCoords, setNjRouteCoords] = useState([]);
+  const [njRouteMeta, setNjRouteMeta] = useState(null);
+  const [njRouteStations, setNjRouteStations] = useState([]);
 
   const mapRef = useRef();
   const sidebarRef = useRef(null);
@@ -219,6 +223,9 @@ const TrainMap = ({
   }, []);
 
   const removeFilter = () => {
+    setNjRouteCoords([]);
+    setNjRouteMeta(null);
+    setNjRouteStations([]);
     setStopId(null);
     setSelected(false);
     setSelectedStationName("");
@@ -352,6 +359,35 @@ const TrainMap = ({
     return dotIcon;
   }, []);
 
+  // Load a single Nightjet route (prototype) for a clicked station
+  const loadNightjetForStation = useCallback(async (stationName) => {
+    try {
+      // Try NJ 403 first, then NJ 402 (two directions of this route)
+      const tryFetch = async (train) => {
+        const res = await fetch(`/api/nj-route?stationName=${encodeURIComponent(stationName)}&train=${encodeURIComponent(train)}`)
+        if (!res.ok) return null
+        return res.json()
+      }
+
+      let data = await tryFetch('NJ 403')
+      if (!data) data = await tryFetch('NJ 402')
+      if (!data) throw new Error('No NJ402/403 found for this station')
+
+      const coords = (data.stations || [])
+        .map((s) => [s.location?.latitude, s.location?.longitude])
+        .filter((a) => Array.isArray(a) && Number.isFinite(a[0]) && Number.isFinite(a[1]))
+
+      setNjRouteCoords(coords)
+      setNjRouteStations(data.stations || [])
+      setNjRouteMeta({ lineName: data.lineName, tripId: data.tripId })
+    } catch (e) {
+      console.error('Nightjet fetch error', e)
+      setNjRouteCoords([])
+      setNjRouteStations([])
+      setNjRouteMeta(null)
+    }
+  }, [])
+
   const handleMarkerClick = useCallback(
     (filteredStop) => {
       const { stop_id } = filteredStop;
@@ -445,6 +481,11 @@ const TrainMap = ({
       // This hides all other stations when a filter is applied
       setFilteredStops(routeStops);
       setSelected(true);
+
+      // Prototype: fetch and overlay the single Nightjet route (NJ 403)
+      if (filterName) {
+        loadNightjetForStation(filterName)
+      }
     },
     [
       cities,
@@ -1320,6 +1361,44 @@ const TrainMap = ({
         {/* Render route paths as polylines 
             - Show all routes when showRoutes is enabled and no station is selected
             - Show routes for selected station when station is clicked (even if showRoutes is off) */}
+        {/* Prototype overlay: single Nightjet route (one line) */}
+        {njRouteCoords.length >= 2 && (
+          <Polyline
+            key={`nj-route-${njRouteMeta?.tripId || 'single'}`}
+            positions={njRouteCoords}
+            pathOptions={{ color: '#0ea5e9', weight: 6, opacity: 0.9 }}
+          >
+            <Tooltip sticky>{njRouteMeta?.lineName || 'Nightjet'}</Tooltip>
+          </Polyline>
+        )}
+
+        {/* HAFAS stations for NJ402/NJ403 as small cyan dots */}
+        {njRouteStations.map((s, idx) => {
+          const lat = s?.location?.latitude
+          const lon = s?.location?.longitude
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+
+          const isEnd = idx === 0 || idx === njRouteStations.length - 1
+          const icon = new Leaflet.DivIcon({
+            className: 'hafas-station-dot',
+            html: `<div style="width:${isEnd ? 16 : 10}px;height:${isEnd ? 16 : 10}px;background:${isEnd ? '#0ea5e9' : '#06b6d4'};border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.25);"></div>`,
+            iconSize: [isEnd ? 16 : 10, isEnd ? 16 : 10],
+            iconAnchor: [isEnd ? 8 : 5, isEnd ? 8 : 5],
+          })
+
+          return (
+            <Marker key={`hafas-stop-${idx}-${s.id || s.name}`} position={[lat, lon]} icon={icon}>
+              <Tooltip direction="top" offset={[0, -10]} opacity={1} sticky>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{s.name}</div>
+                  {s.departure && <div>Dep: {new Date(s.departure).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
+                  {s.arrival && <div>Arr: {new Date(s.arrival).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
+                </div>
+              </Tooltip>
+            </Marker>
+          )
+        })}
+
         {routePaths.length > 0 &&
           routePaths.map((path) => (
             <Polyline

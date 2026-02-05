@@ -14,3 +14,5 @@ Data model and source
 Notes on rendering
 - The Leaflet map is embedded via `react-leaflet` with SSR disabled using `next/dynamic` (see `src/components/Map/Map.js` and `src/components/Map/DynamicMap.js`).
 - Global styles live in `src/styles/globals.css` and include Tailwind utilities.
+
+INSTALL MODULES WITH YARN !!!
