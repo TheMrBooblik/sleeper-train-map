@@ -64,6 +64,11 @@ const TrainMap = ({
   // Nightjet overlays: one per train (NJ 403 and NJ 402) when the clicked station is on the route
   // Each overlay: { key, lineName, coords, stations, color }
   const [njOverlays, setNjOverlays] = useState([]);
+  // All Nightjet stations for display on map (not filtered by clicked station)
+  const [allNjStations, setAllNjStations] = useState([]);
+  // EuroNight overlays and stations
+  const [enOverlays, setEnOverlays] = useState([]);
+  const [allEnStations, setAllEnStations] = useState([]);
 
   const mapRef = useRef();
   const sidebarRef = useRef(null);
@@ -224,6 +229,7 @@ const TrainMap = ({
 
   const removeFilter = () => {
     setNjOverlays([]);
+    setEnOverlays([]);
     setStopId(null);
     setSelected(false);
     setSelectedStationName("");
@@ -321,6 +327,56 @@ const TrainMap = ({
 
       // Ensure filtered stops is set to all stops initially
       setFilteredStops(stops);
+
+      // Fire-and-forget: prewarm Nightjet & EuroNight caches for today
+      ;(async () => {
+        try { 
+          const today = new Date()
+          const date = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
+          
+          // Prewarm both Nightjet and EuroNight in parallel
+          await Promise.all([
+            fetch('/api/nj-prewarm?max=30', { method: 'GET' }),
+            fetch('/api/en-prewarm', { method: 'GET' })
+          ])
+          
+          // Load all Nightjet stations for display
+          const njRes = await fetch(`/api/nj-list?date=${date}`)
+          if (njRes.ok) {
+            const data = await njRes.json()
+            if (data?.items?.length) {
+              const stationMap = new Map()
+              data.items.forEach(route => {
+                route.stations?.forEach(station => {
+                  const key = `${station.location?.latitude}-${station.location?.longitude}`
+                  if (!stationMap.has(key)) {
+                    stationMap.set(key, station)
+                  }
+                })
+              })
+              setAllNjStations(Array.from(stationMap.values()))
+            }
+          }
+          
+          // Load all EuroNight stations for display
+          const enRes = await fetch(`/api/en-list?date=${date}`)
+          if (enRes.ok) {
+            const data = await enRes.json()
+            if (data?.items?.length) {
+              const stationMap = new Map()
+              data.items.forEach(route => {
+                route.stations?.forEach(station => {
+                  const key = `${station.location?.latitude}-${station.location?.longitude}`
+                  if (!stationMap.has(key)) {
+                    stationMap.set(key, station)
+                  }
+                })
+              })
+              setAllEnStations(Array.from(stationMap.values()))
+            }
+          }
+        } catch {}
+      })()
     }
   }, [stops, cities, setFilteredStops, overallLoading]);
 
@@ -377,35 +433,61 @@ const TrainMap = ({
     return A.includes(B) || B.includes(A);
   }, [normalizeStationNameForLookup]);
 
-  // Load both Nightjet directions for a clicked station if that station is on the route
-  const loadNightjetForStation = useCallback(async (stationName) => {
+  // Load ALL Nightjet and EuroNight routes passing through the clicked station
+  const loadNightTrainsForStation = useCallback(async (stationName) => {
     try {
       const today = new Date()
       const date = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
 
-      const fetchTrain = async (train) => {
-        const res = await fetch(`/api/nj-train?train=${encodeURIComponent(train)}&date=${date}`)
-        if (!res.ok) return null
-        const data = await res.json()
-        if (!data || !Array.isArray(data.stations) || data.stations.length === 0) return null
-        const idx = data.stations.findIndex((s) => matchStationNames(stationName, s.name))
-        if (idx < 0) return null // clicked station not on this route
-        const segment = data.stations.slice(idx)
-        const coords = segment
-          .map((s) => [s.location?.latitude, s.location?.longitude])
-          .filter((a) => Array.isArray(a) && Number.isFinite(a[0]) && Number.isFinite(a[1]))
-        return { key: `${data.lineName}-${date}`, lineName: data.lineName, coords, stations: segment }
+      // Fetch both Nightjet and EuroNight in parallel
+      const [njRes, enRes] = await Promise.all([
+        fetch(`/api/nj-list?date=${date}&stationName=${encodeURIComponent(stationName)}`),
+        fetch(`/api/en-list?date=${date}&stationName=${encodeURIComponent(stationName)}`)
+      ])
+
+      // Nightjet colors (cyan/teal shades)
+      const njColors = ['#0ea5e9', '#14b8a6', '#06b6d4', '#22d3ee', '#0891b2', '#0e7490', '#0284c7', '#0369a1']
+      // EuroNight colors (purple/magenta shades)
+      const enColors = ['#a855f7', '#c026d3', '#d946ef', '#e879f9', '#9333ea', '#a21caf', '#86198f', '#701a75']
+
+      // Process Nightjet
+      let njOverlays = []
+      if (njRes.ok) {
+        const data = await njRes.json()
+        if (data?.items?.length) {
+          njOverlays = data.items.map((item, idx) => ({
+            key: item.key,
+            lineName: item.lineName,
+            coords: item.coords,
+            stations: item.stations,
+            color: njColors[idx % njColors.length],
+            type: 'nightjet'
+          }))
+        }
       }
 
-      const [d403, d402] = await Promise.all([fetchTrain('NJ 403'), fetchTrain('NJ 402')])
-      const overlays = []
-      if (d403) overlays.push({ ...d403, color: '#0ea5e9' }) // cyan-blue
-      if (d402) overlays.push({ ...d402, color: '#14b8a6' }) // teal
+      // Process EuroNight
+      let enOverlays = []
+      if (enRes.ok) {
+        const data = await enRes.json()
+        if (data?.items?.length) {
+          enOverlays = data.items.map((item, idx) => ({
+            key: item.key,
+            lineName: item.lineName,
+            coords: item.coords,
+            stations: item.stations,
+            color: enColors[idx % enColors.length],
+            type: 'euronight'
+          }))
+        }
+      }
 
-      setNjOverlays(overlays)
+      setNjOverlays(njOverlays)
+      setEnOverlays(enOverlays)
     } catch (e) {
-      console.error('Nightjet fetch error', e)
+      console.error('Night trains fetch error', e)
       setNjOverlays([])
+      setEnOverlays([])
     }
   }, [])
 
@@ -503,9 +585,9 @@ const TrainMap = ({
       setFilteredStops(routeStops);
       setSelected(true);
 
-      // Prototype: fetch and overlay both Nightjet directions (NJ 403 & NJ 402)
+      // Fetch and overlay both Nightjet and EuroNight routes for this station
       if (filterName) {
-        loadNightjetForStation(filterName)
+        loadNightTrainsForStation(filterName)
       }
     },
     [
@@ -1381,6 +1463,59 @@ const TrainMap = ({
         <ZoomControl className="outline-none" />
         <LocationControl />
 
+        {/* All Nightjet stations - always visible */}
+        {allNjStations.map((s, idx) => {
+          const lat = s?.location?.latitude
+          const lon = s?.location?.longitude
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+          
+          // Use cyan/teal gradient for Nightjet stations
+          const icon = new Leaflet.DivIcon({
+            className: 'nj-station-marker',
+            html: '<div style="width: 16px; height: 16px; background: linear-gradient(135deg, #0ea5e9, #14b8a6); border-radius: 50%; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(14, 165, 233, 0.5), 0 0 0 1px rgba(14, 165, 233, 0.3); transition: all 0.3s ease; cursor: pointer; z-index: 500;"></div>',
+            iconSize: [16, 16],
+            iconAnchor: [8, 8],
+          })
+          
+          return (
+            <Marker
+              key={`nj-all-station-${idx}-${s.id || s.name}`}
+              position={[lat, lon]}
+              icon={icon}
+              eventHandlers={{
+                click: (e) => {
+                  e.originalEvent?.stopPropagation();
+                  // Find matching station in stops to trigger selection
+                  const matchingStop = stops?.find(stop => 
+                    matchStationNames(s.name, stop.stop_id) || 
+                    matchStationNames(s.name, stop.stop_name)
+                  )
+                  if (matchingStop) {
+                    // Create a filteredStop object with the necessary properties
+                    const filteredStop = {
+                      ...matchingStop,
+                      stop_lat: lat,
+                      stop_lon: lon,
+                      isGrouped: false
+                    }
+                    handleMarkerClick(filteredStop)
+                  } else {
+                    console.log('No matching stop found for Nightjet station:', s.name)
+                  }
+                }
+              }}
+            >
+              <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{s.name}</div>
+                  {s.departure && <div>Dep: {new Date(s.departure).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
+                  {s.arrival && <div>Arr: {new Date(s.arrival).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
+                </div>
+              </Tooltip>
+            </Marker>
+          )
+        })}
+
         {/* Nightjet overlays: draw polylines and station markers for each included direction */}
         {njOverlays.map((ov) => (
           <Polyline
@@ -1398,15 +1533,143 @@ const TrainMap = ({
             const lon = s?.location?.longitude
             if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
             const isEnd = idx === 0 || idx === (ov.stations.length - 1)
+            
+            // Use regular station marker styles (gradient dots)
             const icon = new Leaflet.DivIcon({
-              className: 'hafas-station-dot',
-              html: `<div style=\"width:${isEnd ? 16 : 10}px;height:${isEnd ? 16 : 10}px;background:${isEnd ? ov.color : '#06b6d4'};border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.25);\"></div>`,
-              iconSize: [isEnd ? 16 : 10, isEnd ? 16 : 10],
-              iconAnchor: [isEnd ? 8 : 5, isEnd ? 8 : 5],
+              className: 'nightjet-station-dot',
+              html: isEnd 
+                ? '<div style="width: 20px; height: 20px; background: linear-gradient(135deg, #2196F3, #1976D2); border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4), 0 0 0 1px rgba(33, 150, 243, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 1000;"></div>'
+                : '<div style="width: 14px; height: 14px; background: linear-gradient(135deg, #4CAF50, #388E3C); border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4), 0 0 0 1px rgba(76, 175, 80, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 100;"></div>',
+              iconSize: isEnd ? [20, 20] : [14, 14],
+              iconAnchor: isEnd ? [10, 10] : [7, 7],
             })
+            
             return (
-              <Marker key={`hafas-stop-${idxOv}-${idx}-${s.id || s.name}`} position={[lat, lon]} icon={icon}>
-                <Tooltip direction="top" offset={[0, -10]} opacity={1} sticky>
+              <Marker 
+                key={`nj-station-${idxOv}-${idx}-${s.id || s.name}`} 
+                position={[lat, lon]} 
+                icon={icon}
+                eventHandlers={{
+                  click: (e) => {
+                    // Find matching station in stops to trigger selection
+                    const matchingStop = stops?.find(stop => 
+                      matchStationNames(s.name, stop.stop_id) || 
+                      matchStationNames(s.name, stop.stop_name)
+                    )
+                    if (matchingStop) {
+                      handleMarkerClick(matchingStop)
+                    }
+                  }
+                }}
+              >
+                <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{s.name}</div>
+                    {s.departure && <div>Dep: {new Date(s.departure).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
+                    {s.arrival && <div>Arr: {new Date(s.arrival).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
+                  </div>
+                </Tooltip>
+              </Marker>
+            )
+          })
+        ))}
+
+        {/* All EuroNight stations - always visible */}
+        {allEnStations.map((s, idx) => {
+          const lat = s?.location?.latitude
+          const lon = s?.location?.longitude
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+          
+          // Use purple/magenta gradient for EuroNight stations
+          const icon = new Leaflet.DivIcon({
+            className: 'en-station-marker',
+            html: '<div style="width: 16px; height: 16px; background: linear-gradient(135deg, #a855f7, #c026d3); border-radius: 50%; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(168, 85, 247, 0.5), 0 0 0 1px rgba(168, 85, 247, 0.3); transition: all 0.3s ease; cursor: pointer; z-index: 500;"></div>',
+            iconSize: [16, 16],
+            iconAnchor: [8, 8],
+          })
+          
+          return (
+            <Marker
+              key={`en-all-station-${idx}-${s.id || s.name}`}
+              position={[lat, lon]}
+              icon={icon}
+              eventHandlers={{
+                click: (e) => {
+                  e.originalEvent?.stopPropagation();
+                  const matchingStop = stops?.find(stop => 
+                    matchStationNames(s.name, stop.stop_id) || 
+                    matchStationNames(s.name, stop.stop_name)
+                  )
+                  if (matchingStop) {
+                    const filteredStop = {
+                      ...matchingStop,
+                      stop_lat: lat,
+                      stop_lon: lon,
+                      isGrouped: false
+                    }
+                    handleMarkerClick(filteredStop)
+                  } else {
+                    console.log('No matching stop found for EuroNight station:', s.name)
+                  }
+                }
+              }}
+            >
+              <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{s.name}</div>
+                  {s.departure && <div>Dep: {new Date(s.departure).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
+                  {s.arrival && <div>Arr: {new Date(s.arrival).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
+                </div>
+              </Tooltip>
+            </Marker>
+          )
+        })}
+
+        {/* EuroNight overlays: draw polylines and station markers */}
+        {enOverlays.map((ov) => (
+          <Polyline
+            key={`en-route-${ov.key}`}
+            positions={ov.coords}
+            pathOptions={{ color: ov.color, weight: 6, opacity: 0.9 }}
+          >
+            <Tooltip sticky>{ov.lineName}</Tooltip>
+          </Polyline>
+        ))}
+
+        {enOverlays.flatMap((ov, idxOv) => (
+          (ov.stations || []).map((s, idx) => {
+            const lat = s?.location?.latitude
+            const lon = s?.location?.longitude
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+            const isEnd = idx === 0 || idx === (ov.stations.length - 1)
+            
+            const icon = new Leaflet.DivIcon({
+              className: 'euronight-station-dot',
+              html: isEnd 
+                ? '<div style="width: 20px; height: 20px; background: linear-gradient(135deg, #2196F3, #1976D2); border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4), 0 0 0 1px rgba(33, 150, 243, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 1000;"></div>'
+                : '<div style="width: 14px; height: 14px; background: linear-gradient(135deg, #4CAF50, #388E3C); border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4), 0 0 0 1px rgba(76, 175, 80, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 100;"></div>',
+              iconSize: isEnd ? [20, 20] : [14, 14],
+              iconAnchor: isEnd ? [10, 10] : [7, 7],
+            })
+            
+            return (
+              <Marker 
+                key={`en-station-${idxOv}-${idx}-${s.id || s.name}`} 
+                position={[lat, lon]} 
+                icon={icon}
+                eventHandlers={{
+                  click: (e) => {
+                    const matchingStop = stops?.find(stop => 
+                      matchStationNames(s.name, stop.stop_id) || 
+                      matchStationNames(s.name, stop.stop_name)
+                    )
+                    if (matchingStop) {
+                      handleMarkerClick(matchingStop)
+                    }
+                  }
+                }}
+              >
+                <Tooltip direction="top" offset={[0, -10]} opacity={1}>
                   <div>
                     <div style={{ fontWeight: 600 }}>{s.name}</div>
                     {s.departure && <div>Dep: {new Date(s.departure).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}

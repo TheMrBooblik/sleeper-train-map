@@ -36,6 +36,34 @@ export default async function handler(req, res) {
 
     let jsonData = await response.json();
 
+    // Filter out Nightjet routes from Back-on-Track data (we use official Nightjet API instead)
+    if (type === "trips") {
+      console.log('[API] Filtering out Nightjet routes from trips data');
+      const filtered = {};
+      Object.entries(jsonData || {}).forEach(([key, trip]) => {
+        const tripName = trip?.trip_short_name || trip?.route_short_name || '';
+        // Exclude if trip name starts with "NJ " (Nightjet trains)
+        if (!/^\s*NJ\s+\d+/.test(tripName)) {
+          filtered[key] = trip;
+        }
+      });
+      jsonData = filtered;
+      console.log('[API] Filtered trips, Nightjet excluded, remaining:', Object.keys(filtered).length);
+    } else if (type === "view_ontd_map") {
+      console.log('[API] Filtering out Nightjet routes from view_ontd_map');
+      const filtered = {};
+      Object.entries(jsonData || {}).forEach(([key, route]) => {
+        const trip0 = route?.trip_short_name_0 || '';
+        const trip1 = route?.trip_short_name_1 || '';
+        // Exclude if either direction is a Nightjet train
+        if (!/^\s*NJ\s+\d+/.test(trip0) && !/^\s*NJ\s+\d+/.test(trip1)) {
+          filtered[key] = route;
+        }
+      });
+      jsonData = filtered;
+      console.log('[API] Filtered view_ontd_map, Nightjet excluded, remaining:', Object.keys(filtered).length);
+    }
+
     // Enrich with manual UZ data if available
     try {
       console.log('[API] Request type:', type);
