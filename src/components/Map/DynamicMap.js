@@ -1418,7 +1418,7 @@ const TrainMap = ({
           })
         ))}
 
-        {njOverlays.length === 0 && routePaths.length > 0 &&
+        {routePaths.length > 0 &&
           routePaths.map((path) => (
             <Polyline
               key={path.key}
