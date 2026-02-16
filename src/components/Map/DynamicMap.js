@@ -69,6 +69,9 @@ const TrainMap = ({
   // EuroNight overlays and stations
   const [enOverlays, setEnOverlays] = useState([]);
   const [allEnStations, setAllEnStations] = useState([]);
+  // All routes for "Show All Routes" mode
+  const [allNjRoutes, setAllNjRoutes] = useState([]);
+  const [allEnRoutes, setAllEnRoutes] = useState([]);
 
   const mapRef = useRef();
   const sidebarRef = useRef(null);
@@ -340,11 +343,24 @@ const TrainMap = ({
             fetch('/api/en-prewarm', { method: 'GET' })
           ])
           
-          // Load all Nightjet stations for display
+          // Load all Nightjet stations and routes for display
           const njRes = await fetch(`/api/nj-list?date=${date}`)
           if (njRes.ok) {
             const data = await njRes.json()
             if (data?.items?.length) {
+              // Store all routes for Show All Routes mode
+              const njColors = ['#0ea5e9', '#14b8a6', '#06b6d4', '#22d3ee', '#0891b2', '#0e7490', '#0284c7', '#0369a1']
+              const routes = data.items.map((item, idx) => ({
+                key: item.key,
+                lineName: item.lineName,
+                coords: item.coords,
+                stations: item.stations,
+                color: njColors[idx % njColors.length],
+                type: 'nightjet'
+              }))
+              setAllNjRoutes(routes)
+              
+              // Extract unique stations
               const stationMap = new Map()
               data.items.forEach(route => {
                 route.stations?.forEach(station => {
@@ -358,11 +374,24 @@ const TrainMap = ({
             }
           }
           
-          // Load all EuroNight stations for display
+          // Load all EuroNight stations and routes for display
           const enRes = await fetch(`/api/en-list?date=${date}`)
           if (enRes.ok) {
             const data = await enRes.json()
             if (data?.items?.length) {
+              // Store all routes for Show All Routes mode  
+              const enColors = ['#a855f7', '#c026d3', '#d946ef', '#e879f9', '#9333ea', '#a21caf', '#86198f', '#701a75']
+              const routes = data.items.map((item, idx) => ({
+                key: item.key,
+                lineName: item.lineName,
+                coords: item.coords,
+                stations: item.stations,
+                color: enColors[idx % enColors.length],
+                type: 'euronight'
+              }))
+              setAllEnRoutes(routes)
+              
+              // Extract unique stations
               const stationMap = new Map()
               data.items.forEach(route => {
                 route.stations?.forEach(station => {

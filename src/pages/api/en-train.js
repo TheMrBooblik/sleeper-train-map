@@ -38,8 +38,9 @@ function normalize(en, date) {
     operator: en?.operator || 'EuroNight',
     date,
     stations,
+    polyline: en?.route?.polyline || null,
     fetchedAt: new Date().toISOString(),
-    source: 'nightjet-com-partner'
+    source: 'nightjet-com-train'
   }
 }
 

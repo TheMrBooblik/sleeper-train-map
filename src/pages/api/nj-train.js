@@ -78,6 +78,7 @@ export default async function handler(req, res) {
       operator: nj?.operator || 'Nightjet',
       date,
       stations,
+      polyline: nj?.route?.polyline || null,
       fetchedAt: new Date().toISOString(),
       source: 'nightjet-com'
     }
