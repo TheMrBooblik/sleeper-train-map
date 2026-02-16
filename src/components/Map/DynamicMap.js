@@ -564,8 +564,9 @@ const TrainMap = ({
       const normalizedStopId = normalizeStationNameForLookup(stop_id);
       const cityInfo = cities[normalizedStopId] || cities[stop_id];
 
-      // Set station name based on grouping state
-      const filterName = isGrouped ? normalizeStationName(stop_id) : stop_id;
+      // Set station name for display: always normalize for cleaner display
+      // Use normalized name (e.g., "Amsterdam" instead of "Amsterdam Centraal")
+      const filterName = normalizeStationName(stop_id);
       setSelectedStationName(filterName);
 
       // Set normalized name for filtering via stations
@@ -1547,23 +1548,25 @@ const TrainMap = ({
               eventHandlers={{
                 click: (e) => {
                   e.originalEvent?.stopPropagation();
+                  console.log('[DEBUG NJ marker] Clicked station:', s.name, 'at', lat, lon)
                   // Find matching station in stops to trigger selection
                   const matchingStop = stops?.find(stop => 
                     matchStationNames(s.name, stop.stop_id) || 
                     matchStationNames(s.name, stop.stop_name)
                   )
-                  if (matchingStop) {
-                    // Create a filteredStop object with the necessary properties
-                    const filteredStop = {
-                      ...matchingStop,
-                      stop_lat: lat,
-                      stop_lon: lon,
-                      isGrouped: false
-                    }
-                    handleMarkerClick(filteredStop)
-                  } else {
-                    console.log('No matching stop found for Nightjet station:', s.name)
+                  console.log('[DEBUG NJ marker] Matched stop:', matchingStop?.stop_id, matchingStop?.stop_name)
+                  
+                  // Create a filteredStop object with Nightjet station name
+                  // Use the original Nightjet station name for display, not the matched stop_id
+                  const filteredStop = {
+                    ...(matchingStop || {}),
+                    stop_id: s.name, // Use Nightjet station name instead of matched stop_id
+                    stop_name: s.name,
+                    stop_lat: lat,
+                    stop_lon: lon,
+                    isGrouped: false
                   }
+                  handleMarkerClick(filteredStop)
                 }
               }}
             >
@@ -1662,17 +1665,18 @@ const TrainMap = ({
                     matchStationNames(s.name, stop.stop_id) || 
                     matchStationNames(s.name, stop.stop_name)
                   )
-                  if (matchingStop) {
-                    const filteredStop = {
-                      ...matchingStop,
-                      stop_lat: lat,
-                      stop_lon: lon,
-                      isGrouped: false
-                    }
-                    handleMarkerClick(filteredStop)
-                  } else {
-                    console.log('No matching stop found for EuroNight station:', s.name)
+                  
+                  // Create a filteredStop object with EuroNight station name
+                  // Use the original EuroNight station name for display, not the matched stop_id
+                  const filteredStop = {
+                    ...(matchingStop || {}),
+                    stop_id: s.name, // Use EuroNight station name instead of matched stop_id
+                    stop_name: s.name,
+                    stop_lat: lat,
+                    stop_lon: lon,
+                    isGrouped: false
                   }
+                  handleMarkerClick(filteredStop)
                 }
               }}
             >
