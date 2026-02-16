@@ -56,6 +56,7 @@ export default async function handler(req, res) {
           date,
           stations,
           coords,
+          polyline: obj.polyline || null,
         })
       } catch {}
     }
@@ -82,6 +83,7 @@ export default async function handler(req, res) {
               date,
               stations: obj.stations,
               coords,
+              polyline: obj.polyline || null,
             })
           } catch {}
         }

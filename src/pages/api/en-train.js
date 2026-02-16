@@ -30,12 +30,13 @@ function normalize(en, date) {
       location: { latitude: lat, longitude: lon },
       arrival: s?.arr ? new Date(s.arr).toISOString() : null,
       departure: s?.dep ? new Date(s.dep).toISOString() : null,
-      pickup: !!s?.pickup, dropoff: !!s?.dropoff,
+      pickup: !!s?.pickup,
+      dropoff: !!s?.dropoff,
     }
   }).filter(Boolean)
   return {
     lineName: en?.trainNumber,
-    operator: en?.operator || 'EuroNight',
+    operator: 'EuroNight',
     date,
     stations,
     polyline: en?.route?.polyline || null,

@@ -24,6 +24,7 @@
     "url": "https://github.com/colbyfayock/next-leaflet-starter/issues"
   },
   "dependencies": {
+    "@mapbox/polyline": "^1.2.1",
     "@tailwindcss/postcss": "^4.0.8",
     "copy-webpack-plugin": "^11.0.0",
     "hafas-client": "^6.3.6",

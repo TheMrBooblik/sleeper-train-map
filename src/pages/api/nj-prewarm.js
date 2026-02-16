@@ -43,6 +43,7 @@ function normalize(nj, date) {
     operator: nj?.operator || 'Nightjet',
     date,
     stations,
+    polyline: nj?.route?.polyline || null,
     fetchedAt: new Date().toISOString(),
     source: 'nightjet-com'
   }

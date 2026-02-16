@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import Leaflet from "leaflet";
 import * as ReactLeaflet from "react-leaflet";
+import polyline from "@mapbox/polyline";
 
 const { MapContainer, Marker, TileLayer, Tooltip, Polyline, useMapEvents } = ReactLeaflet;
 import "leaflet/dist/leaflet.css";
@@ -464,6 +465,7 @@ const TrainMap = ({
 
   // Load ALL Nightjet and EuroNight routes passing through the clicked station
   const loadNightTrainsForStation = useCallback(async (stationName) => {
+    console.log('[DEBUG loadNightTrainsForStation] Called with stationName:', stationName)
     try {
       const today = new Date()
       const date = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
@@ -473,6 +475,7 @@ const TrainMap = ({
         fetch(`/api/nj-list?date=${date}&stationName=${encodeURIComponent(stationName)}`),
         fetch(`/api/en-list?date=${date}&stationName=${encodeURIComponent(stationName)}`)
       ])
+      console.log('[DEBUG loadNightTrainsForStation] NJ response status:', njRes.status, 'EN response status:', enRes.status)
 
       // Nightjet colors (cyan/teal shades)
       const njColors = ['#0ea5e9', '#14b8a6', '#06b6d4', '#22d3ee', '#0891b2', '#0e7490', '#0284c7', '#0369a1']
@@ -484,14 +487,25 @@ const TrainMap = ({
       if (njRes.ok) {
         const data = await njRes.json()
         if (data?.items?.length) {
-          njOverlays = data.items.map((item, idx) => ({
-            key: item.key,
-            lineName: item.lineName,
-            coords: item.coords,
-            stations: item.stations,
-            color: njColors[idx % njColors.length],
-            type: 'nightjet'
-          }))
+          njOverlays = data.items.map((item, idx) => {
+            // Decode polyline if available, otherwise use station coords
+            let coords = item.coords
+            if (item.polyline) {
+              try {
+                coords = polyline.decode(item.polyline)
+              } catch (e) {
+                console.error('Failed to decode Nightjet polyline:', e)
+              }
+            }
+            return {
+              key: item.key,
+              lineName: item.lineName,
+              coords,
+              stations: item.stations,
+              color: njColors[idx % njColors.length],
+              type: 'nightjet'
+            }
+          })
         }
       }
 
@@ -500,14 +514,25 @@ const TrainMap = ({
       if (enRes.ok) {
         const data = await enRes.json()
         if (data?.items?.length) {
-          enOverlays = data.items.map((item, idx) => ({
-            key: item.key,
-            lineName: item.lineName,
-            coords: item.coords,
-            stations: item.stations,
-            color: enColors[idx % enColors.length],
-            type: 'euronight'
-          }))
+          enOverlays = data.items.map((item, idx) => {
+            // Decode polyline if available, otherwise use station coords
+            let coords = item.coords
+            if (item.polyline) {
+              try {
+                coords = polyline.decode(item.polyline)
+              } catch (e) {
+                console.error('Failed to decode EuroNight polyline:', e)
+              }
+            }
+            return {
+              key: item.key,
+              lineName: item.lineName,
+              coords,
+              stations: item.stations,
+              color: enColors[idx % enColors.length],
+              type: 'euronight'
+            }
+          })
         }
       }
 
@@ -539,8 +564,6 @@ const TrainMap = ({
       const normalizedStopId = normalizeStationNameForLookup(stop_id);
       const cityInfo = cities[normalizedStopId] || cities[stop_id];
 
-      if (!cityInfo || !cityInfo.stop_route_ids) return;
-
       // Set station name based on grouping state
       const filterName = isGrouped ? normalizeStationName(stop_id) : stop_id;
       setSelectedStationName(filterName);
@@ -548,73 +571,82 @@ const TrainMap = ({
       // Set normalized name for filtering via stations
       setSelectedNormalizedName(normalizeStationName(stop_id));
 
-      const { stop_route_ids } = cityInfo;
+      // Handle stations that might only have night train routes (no Back-on-Track data)
+      if (cityInfo && cityInfo.stop_route_ids) {
+        const { stop_route_ids } = cityInfo;
 
-      // If this is a grouped marker, collect all route IDs from all stations in the group
-      let routeIdsArray;
-      if (filteredStop.isGrouped && filteredStop.groupedStations) {
-        // Collect all route IDs from all stations in the group
-        const allRouteIds = new Set();
-        filteredStop.groupedStations.forEach((station) => {
-          // IMPORTANT: Normalize station.stop_id before looking it up in cities
-          // Use normalizeStationNameForLookup for matching city keys
-          const normalizedId = normalizeStationNameForLookup(station.stop_id);
-          const stationInfo = cities[normalizedId] || cities[station.stop_id];
-          if (stationInfo?.stop_route_ids) {
-            stationInfo.stop_route_ids.split(",").forEach((id) => {
-              allRouteIds.add(id);
-            });
+        // If this is a grouped marker, collect all route IDs from all stations in the group
+        let routeIdsArray;
+        if (filteredStop.isGrouped && filteredStop.groupedStations) {
+          // Collect all route IDs from all stations in the group
+          const allRouteIds = new Set();
+          filteredStop.groupedStations.forEach((station) => {
+            // IMPORTANT: Normalize station.stop_id before looking it up in cities
+            // Use normalizeStationNameForLookup for matching city keys
+            const normalizedId = normalizeStationNameForLookup(station.stop_id);
+            const stationInfo = cities[normalizedId] || cities[station.stop_id];
+            if (stationInfo?.stop_route_ids) {
+              stationInfo.stop_route_ids.split(",").forEach((id) => {
+                allRouteIds.add(id);
+              });
+            }
+          });
+          routeIdsArray = Array.from(allRouteIds);
+        } else {
+          // Deduplicate route IDs to prevent duplicate paths with same keys
+          // This ensures React properly unmounts old polylines when switching stations
+          const routeIdsSet = new Set(
+            stop_route_ids.split(",").filter((el) => el),
+          );
+          routeIdsArray = Array.from(routeIdsSet);
+        }
+
+        setStopRouteIds(routeIdsArray);
+
+        // Find all cities (stations) that are part of the selected routes
+        const routeCities = Object.values(cities).filter((viewCity) => {
+          if (!viewCity || !viewCity.stop_route_ids) return false;
+          const arr = viewCity.stop_route_ids.split(",");
+          return arr.some((item) => routeIdsArray.includes(item));
+        });
+
+        // PERFORMANCE: Create Map for fast station lookup
+        // Key: normalized station name, Value: stop object
+        const stopsMap = new Map();
+        stops.forEach((stop) => {
+          if (!stop.stop_id) return;
+          const normalizedId = normalizeStationNameForLookup(stop.stop_id);
+          // Store by normalized name (primary key)
+          if (!stopsMap.has(normalizedId)) {
+            stopsMap.set(normalizedId, stop);
+          }
+          // Also store by original name for fallback
+          if (!stopsMap.has(stop.stop_id)) {
+            stopsMap.set(stop.stop_id, stop);
           }
         });
-        routeIdsArray = Array.from(allRouteIds);
+
+        // Find stops that match route cities
+        const routeStops = routeCities
+          .map((city) => {
+            // city.stop_id is normalized, so use it directly for lookup
+            return stopsMap.get(city.stop_id);
+          })
+          .filter(Boolean);
+
+        // IMPORTANT: Set filtered stops to only show stations from selected routes
+        // This hides all other stations when a filter is applied
+        setFilteredStops(routeStops);
       } else {
-        // Deduplicate route IDs to prevent duplicate paths with same keys
-        // This ensures React properly unmounts old polylines when switching stations
-        const routeIdsSet = new Set(
-          stop_route_ids.split(",").filter((el) => el),
-        );
-        routeIdsArray = Array.from(routeIdsSet);
+        // Station has no Back-on-Track routes, but might have night trains
+        // Keep all stops visible
+        setFilteredStops(stops);
       }
-
-      setStopRouteIds(routeIdsArray);
-
-      // Find all cities (stations) that are part of the selected routes
-      const routeCities = Object.values(cities).filter((viewCity) => {
-        if (!viewCity || !viewCity.stop_route_ids) return false;
-        const arr = viewCity.stop_route_ids.split(",");
-        return arr.some((item) => routeIdsArray.includes(item));
-      });
-
-      // PERFORMANCE: Create Map for fast station lookup
-      // Key: normalized station name, Value: stop object
-      const stopsMap = new Map();
-      stops.forEach((stop) => {
-        if (!stop.stop_id) return;
-        const normalizedId = normalizeStationNameForLookup(stop.stop_id);
-        // Store by normalized name (primary key)
-        if (!stopsMap.has(normalizedId)) {
-          stopsMap.set(normalizedId, stop);
-        }
-        // Also store by original name for fallback
-        if (!stopsMap.has(stop.stop_id)) {
-          stopsMap.set(stop.stop_id, stop);
-        }
-      });
-
-      // Find stops that match route cities
-      const routeStops = routeCities
-        .map((city) => {
-          // city.stop_id is normalized, so use it directly for lookup
-          return stopsMap.get(city.stop_id);
-        })
-        .filter(Boolean);
-
-      // IMPORTANT: Set filtered stops to only show stations from selected routes
-      // This hides all other stations when a filter is applied
-      setFilteredStops(routeStops);
+      
       setSelected(true);
 
       // Fetch and overlay both Nightjet and EuroNight routes for this station
+      console.log('[DEBUG handleMarkerClick] filterName:', filterName, 'stop_id:', stop_id)
       if (filterName) {
         loadNightTrainsForStation(filterName)
       }
@@ -629,6 +661,7 @@ const TrainMap = ({
       normalizeStationName,
       normalizeStationNameForLookup,
       isGrouped,
+      loadNightTrainsForStation,
     ],
   );
 
