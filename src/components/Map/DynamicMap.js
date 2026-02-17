@@ -54,6 +54,7 @@ const TrainMap = ({
   const [showTooltips, setShowTooltips] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState("Starting...");
   const [stopRouteIds, setStopRouteIds] = useState();
   const [currentZoom, setCurrentZoom] = useState(5);
   const [selectedStationName, setSelectedStationName] = useState("");
@@ -84,6 +85,8 @@ const TrainMap = ({
     message: "",
     step: "",
   });
+  // True only after NightJet + EuroNight stations and routes have finished loading (or failed)
+  const [nightTrainsReady, setNightTrainsReady] = useState(false);
 
   const mapRef = useRef();
   const sidebarRef = useRef(null);
@@ -310,29 +313,31 @@ const TrainMap = ({
   // Calculate overall loading state
   const overallLoading = stopsLoading || citiesLoading;
 
-  // Progress animation effect
+  // Reflect real loading: Back-on-Track phase (stops + cities)
   useEffect(() => {
     if (overallLoading) {
-      setLoadingProgress(0);
-      const interval = setInterval(() => {
-        setLoadingProgress((prev) => {
-          if (prev >= 99) {
-            clearInterval(interval);
-            return 99; // Stop at 99% until actually loaded
-          }
-          return prev + Math.random() * 3; // Random increment for smooth progress
-        });
-      }, 100);
-
-      return () => clearInterval(interval);
+      setLoadingProgress(stopsLoading ? 5 : 25);
+      setLoadingMessage(
+        stopsLoading
+          ? "Loading stations..."
+          : "Processing routes...",
+      );
     } else {
-      // Complete the progress when loading is done
+      setLoadingProgress(30);
+      setLoadingMessage("Preparing night trains...");
+    }
+  }, [overallLoading, stopsLoading, citiesLoading]);
+
+  // Hide loading modal only when both Back-on-Track and NightJet+EuroNight are ready
+  useEffect(() => {
+    if (!overallLoading && nightTrainsReady) {
       setLoadingProgress(100);
-      setTimeout(() => {
+      const t = setTimeout(() => {
         setIsLoading(false);
       }, 500); // Small delay to show 100% completion
+      return () => clearTimeout(t);
     }
-  }, [overallLoading]);
+  }, [overallLoading, nightTrainsReady]);
 
   // Immediate loading of map elements without delay
   useEffect(() => {
@@ -347,6 +352,8 @@ const TrainMap = ({
           const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
           console.log("[DEBUG] Starting to load night train data...");
+          setLoadingProgress(35);
+          setLoadingMessage("Prewarming NightJet & EuroNight...");
 
           // Prewarm both Nightjet and EuroNight in parallel
           await Promise.all([
@@ -355,6 +362,8 @@ const TrainMap = ({
           ]);
 
           console.log("[DEBUG] Prewarming complete, loading stations...");
+          setLoadingProgress(45);
+          setLoadingMessage("Loading NightJet stations...");
 
           // Load all Nightjet stations from comprehensive API with progress tracking
           console.log(
@@ -362,7 +371,7 @@ const TrainMap = ({
           );
           let njStationsFromApi = [];
 
-          // Start progress polling
+          // Poll real progress and map to 45–75% for main bar
           const progressInterval = setInterval(async () => {
             try {
               const progressRes = await fetch(
@@ -371,6 +380,11 @@ const TrainMap = ({
               if (progressRes.ok) {
                 const progress = await progressRes.json();
                 setNjLoadingProgress(progress);
+                const p = progress?.progress;
+                if (typeof p === "number") {
+                  setLoadingProgress(45 + (p / 100) * 30);
+                  if (progress?.message) setLoadingMessage(progress.message);
+                }
               }
             } catch (err) {
               console.error("[DEBUG] Failed to fetch progress:", err);
@@ -398,6 +412,8 @@ const TrainMap = ({
                 );
                 njStationsFromApi = stationsData.stations;
                 setAllNjStations(stationsData.stations);
+                setLoadingProgress(75);
+                setLoadingMessage(`NightJet: ${stationsData.count} stations`);
                 setNjLoadingProgress({
                   progress: 100,
                   message: `Found ${stationsData.count} stations`,
@@ -433,6 +449,8 @@ const TrainMap = ({
             });
           }
 
+          setLoadingProgress(80);
+          setLoadingMessage("Loading NightJet routes...");
           // Load all Nightjet routes for display
           const njRes = await fetch(`/api/nj-list?date=${date}`);
           if (njRes.ok) {
@@ -501,6 +519,8 @@ const TrainMap = ({
             }
           }
 
+          setLoadingProgress(90);
+          setLoadingMessage("Loading EuroNight routes...");
           // Load all EuroNight stations and routes for display
           const enRes = await fetch(`/api/en-list?date=${date}`);
           if (enRes.ok) {
@@ -542,12 +562,16 @@ const TrainMap = ({
           }
 
           console.log("[DEBUG] All night train data loaded, showing map");
-          // Show map after all night train data is loaded
+          setLoadingProgress(100);
+          setLoadingMessage("Ready!");
+          // Mark night trains ready so loading modal can hide
+          setNightTrainsReady(true);
           setIsMapInitialized(true);
           setShowTooltips(true);
         } catch (err) {
           console.error("[DEBUG] Error loading night train data:", err);
-          // Show map even if night train loading fails
+          // Mark ready even on error so modal doesn't block forever
+          setNightTrainsReady(true);
           setIsMapInitialized(true);
           setShowTooltips(true);
         }
@@ -1825,7 +1849,7 @@ const TrainMap = ({
 
   return (
     <>
-      {(isLoading || overallLoading) && (
+      {(isLoading || overallLoading || !nightTrainsReady) && (
         <div
           style={{
             position: "absolute",
@@ -1976,14 +2000,7 @@ const TrainMap = ({
           </div>
 
           <div style={{ fontSize: "12px", color: "#999" }}>
-            {loadingProgress < 50 && "Initializing database connection..."}
-            {loadingProgress >= 50 &&
-              loadingProgress < 80 &&
-              "Loading comprehensive station data..."}
-            {loadingProgress >= 80 &&
-              loadingProgress < 99 &&
-              "Processing route connections..."}
-            {loadingProgress >= 99 && "Finalizing map data..."}
+            {loadingMessage}
           </div>
         </div>
       )}

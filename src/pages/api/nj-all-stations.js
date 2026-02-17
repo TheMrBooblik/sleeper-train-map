@@ -229,8 +229,23 @@ export default async function handler(req, res) {
     ).toString();
 
     const forceRefresh = req.query.refresh === "true";
+    const progressOnly = req.query.progress === "true";
 
     ensureDir();
+
+    // Progress poll: return last written progress (e.g. "Checking routes: 120/132 country pairs")
+    if (progressOnly) {
+      const p = getProgress();
+      return res
+        .status(200)
+        .json(
+          p || {
+            progress: 0,
+            message: "Starting…",
+            step: "",
+          },
+        );
+    }
 
     // Return cached if fresh and not forcing refresh
     if (!forceRefresh && isFresh(CACHE_FILE)) {
@@ -241,8 +256,8 @@ export default async function handler(req, res) {
       } catch {}
     }
 
-    // Fetch fresh data
-    const data = await fetchAllStations(date);
+    // Fetch fresh data; write progress to file so progress poll can show e.g. "Checking routes: 120/132 country pairs"
+    const data = await fetchAllStations(date, (p) => updateProgress(p));
 
     // Cache it
     fs.writeFileSync(CACHE_FILE, JSON.stringify(data, null, 2), "utf8");
