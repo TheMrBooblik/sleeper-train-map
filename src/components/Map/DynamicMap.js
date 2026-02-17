@@ -77,6 +77,8 @@ const TrainMap = ({
   // All routes for "Show All Routes" mode
   const [allNjRoutes, setAllNjRoutes] = useState([]);
   const [allEnRoutes, setAllEnRoutes] = useState([]);
+  // NightJet loading progress
+  const [njLoadingProgress, setNjLoadingProgress] = useState({ progress: 0, message: '', step: '' });
 
   const mapRef = useRef();
   const sidebarRef = useRef(null);
@@ -350,25 +352,51 @@ const TrainMap = ({
           
           console.log('[DEBUG] Prewarming complete, loading stations...');
           
-          // Load all Nightjet stations from comprehensive API
+          // Load all Nightjet stations from comprehensive API with progress tracking
           console.log('[DEBUG] Fetching Nightjet stations from /api/nj-all-stations');
           let njStationsFromApi = []
-          const njStationsRes = await fetch(`/api/nj-all-stations?date=${date}&_t=${Date.now()}`, {
-            cache: 'no-store'
-          })
           
-          if (njStationsRes.ok) {
-            const stationsData = await njStationsRes.json();
-            console.log('[DEBUG] nj-all-stations data:', stationsData);
-            if (stationsData?.stations?.length) {
-              console.log('[DEBUG] Sample stations:', stationsData.stations.slice(0, 3));
-              njStationsFromApi = stationsData.stations
-              setAllNjStations(stationsData.stations);
-            } else {
-              console.log('[DEBUG] No stations in response');
+          // Start progress polling
+          const progressInterval = setInterval(async () => {
+            try {
+              const progressRes = await fetch(`/api/nj-all-stations?progress=true&date=${date}`)
+              if (progressRes.ok) {
+                const progress = await progressRes.json()
+                setNjLoadingProgress(progress)
+              }
+            } catch (err) {
+              console.error('[DEBUG] Failed to fetch progress:', err)
             }
-          } else {
-            console.error('[DEBUG] Failed to fetch nj-all-stations:', njStationsRes.status, njStationsRes.statusText);
+          }, 500) // Poll every 500ms
+          
+          try {
+            const njStationsRes = await fetch(`/api/nj-all-stations?date=${date}&_t=${Date.now()}`, {
+              cache: 'no-store'
+            })
+            
+            // Clear progress polling
+            clearInterval(progressInterval)
+            
+            if (njStationsRes.ok) {
+              const stationsData = await njStationsRes.json();
+              console.log('[DEBUG] nj-all-stations data:', stationsData);
+              if (stationsData?.stations?.length) {
+                console.log('[DEBUG] Sample stations:', stationsData.stations.slice(0, 3));
+                njStationsFromApi = stationsData.stations
+                setAllNjStations(stationsData.stations);
+                setNjLoadingProgress({ progress: 100, message: `Found ${stationsData.count} stations`, step: 'complete' })
+              } else {
+                console.log('[DEBUG] No stations in response');
+                setNjLoadingProgress({ progress: 0, message: 'No stations found', step: 'complete' })
+              }
+            } else {
+              console.error('[DEBUG] Failed to fetch nj-all-stations:', njStationsRes.status, njStationsRes.statusText);
+              setNjLoadingProgress({ progress: 0, message: 'Failed to load stations', step: 'error' })
+            }
+          } catch (err) {
+            clearInterval(progressInterval)
+            console.error('[DEBUG] Error fetching nj-all-stations:', err)
+            setNjLoadingProgress({ progress: 0, message: `Error: ${err.message}`, step: 'error' })
           }
           
           // Load all Nightjet routes for display
@@ -1583,15 +1611,45 @@ const TrainMap = ({
                 fontSize: "12px",
                 color: "#888",
                 display: "flex",
-                justifyContent: "space-between",
+                flexDirection: "column",
+                gap: "4px",
               }}
             >
-              <span>
-                {stopsLoading ? "Loading stations..." : "✓ Stations loaded"}
-              </span>
-              <span>
-                {citiesLoading ? "Processing routes..." : "✓ Routes processed"}
-              </span>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>
+                  {stopsLoading ? "Loading stations..." : "✓ Stations loaded"}
+                </span>
+                <span>
+                  {citiesLoading ? "Processing routes..." : "✓ Routes processed"}
+                </span>
+              </div>
+              {/* NightJet loading progress */}
+              {njLoadingProgress.progress > 0 && (
+                <div style={{ 
+                  marginTop: "8px", 
+                  padding: "8px", 
+                  backgroundColor: "#f0f9ff", 
+                  borderRadius: "4px",
+                  border: "1px solid #bae6fd"
+                }}>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#0369a1", marginBottom: "4px" }}>
+                    NightJet Stations
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#075985" }}>
+                    {njLoadingProgress.message || `Progress: ${njLoadingProgress.progress}%`}
+                  </div>
+                  {njLoadingProgress.step === 'discovering' && njLoadingProgress.trainsFound !== undefined && (
+                    <div style={{ fontSize: "10px", color: "#64748b", marginTop: "2px" }}>
+                      Found {njLoadingProgress.trainsFound} trains
+                    </div>
+                  )}
+                  {njLoadingProgress.step === 'fetching' && njLoadingProgress.stationsFound !== undefined && (
+                    <div style={{ fontSize: "10px", color: "#64748b", marginTop: "2px" }}>
+                      {njLoadingProgress.stationsFound} stations discovered
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
