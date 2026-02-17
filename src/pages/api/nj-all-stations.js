@@ -23,74 +23,134 @@ function isFresh(p) {
 async function fetchAllStations(date) {
   console.log('[nj-all-stations] Starting to fetch all stations for date:', date)
   
-  // Step 1: Fetch all countries - using Vienna as reference station
-  const countriesUrl = 'https://www.nightjet.com/nj-booking-ocp/countries/to/station/1190100'
-  console.log('[nj-all-stations] Fetching countries from:', countriesUrl)
+  // All known Nightjet country IDs
+  const countries = [
+    { eva: '88', name: 'Belgium' },
+    { eva: '55', name: 'Hungary' },
+    { eva: '78', name: 'Croatia' },
+    { eva: '79', name: 'Slovenia' },
+    { eva: '80', name: 'Germany' },
+    { eva: '81', name: 'Austria' },
+    { eva: '83', name: 'Italy' },
+    { eva: '84', name: 'Netherlands' },
+    { eva: '51', name: 'Poland' },
+    { eva: '85', name: 'Switzerland' },
+    { eva: '87', name: 'France' },
+    { eva: '54', name: 'Czech Republic' },
+  ]
   
-  const countriesResponse = await fetch(countriesUrl, {
-    headers: { accept: 'application/json' }
-  })
+  const allStations = new Map() // Use Map to deduplicate by EVA number
+  const trainNumbers = new Set() // Track unique train numbers to fetch full routes
   
-  if (!countriesResponse.ok) {
-    throw new Error(`Failed to fetch countries: ${countriesResponse.status}`)
+  // Step 1: Discover all train numbers from destinations endpoint
+  console.log('[nj-all-stations] Step 1: Discovering train numbers from destinations...')
+  for (const fromCountry of countries) {
+    console.log(`[nj-all-stations] Processing from country: ${fromCountry.name} (${fromCountry.eva})`)
+    
+    for (const toCountry of countries) {
+      try {
+        // Use the destinations endpoint pattern: /destinations/country/{from}/country/{to}/{date}
+        const destinationsUrl = `https://www.nightjet.com/nj-booking-ocp/destinations/country/${fromCountry.eva}/country/${toCountry.eva}/${date}`
+        
+        const destResponse = await fetch(destinationsUrl, {
+          headers: { accept: 'application/json' }
+        })
+        
+        if (!destResponse.ok) {
+          if (destResponse.status === 404) {
+            // No routes between these countries, skip silently
+            continue
+          }
+          console.warn(`[nj-all-stations] Failed to fetch destinations from ${fromCountry.name} to ${toCountry.name}: ${destResponse.status}`)
+          continue
+        }
+        
+        const destinations = await destResponse.json()
+        
+        // Extract train numbers from destinations
+        if (Array.isArray(destinations) && destinations.length > 0) {
+          destinations.forEach(dest => {
+            if (dest.trainNumber) {
+              trainNumbers.add(dest.trainNumber)
+            }
+          })
+        }
+      } catch (err) {
+        console.error(`[nj-all-stations] Error fetching destinations from ${fromCountry.name} to ${toCountry.name}:`, err.message)
+        // Continue with next country pair
+      }
+      
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
   }
   
-  const countries = await countriesResponse.json()
-  console.log('[nj-all-stations] Found countries:', countries.length)
+  console.log(`[nj-all-stations] Found ${trainNumbers.size} unique train numbers:`, Array.from(trainNumbers).slice(0, 10))
   
-  // Step 2: Fetch destinations for each country
-  const allStations = new Map() // Use Map to deduplicate by EVA number
-  
-  for (const country of countries) {
-    const countryId = country.eva || country.countryId || country.id
-    if (!countryId) continue
-    
+  // Step 2: Fetch full route data for each train (includes all intermediate stops)
+  console.log('[nj-all-stations] Step 2: Fetching full routes for each train...')
+  const trainArray = Array.from(trainNumbers)
+  for (let i = 0; i < trainArray.length; i++) {
+    const trainNumber = trainArray[i]
     try {
-      const destinationsUrl = `https://www.nightjet.com/nj-booking-ocp/destinations/country/${countryId}/station/1190100/${date}`
-      console.log(`[nj-all-stations] Fetching stations for country ${country.name || countryId}`)
+      const trainUrl = `https://www.nightjet.com/nj-booking-ocp/destinations/train/${encodeURIComponent(trainNumber)}/${date}`
+      console.log(`[nj-all-stations] Fetching route for ${trainNumber} (${i + 1}/${trainArray.length})`)
       
-      const destResponse = await fetch(destinationsUrl, {
+      const trainResponse = await fetch(trainUrl, {
         headers: { accept: 'application/json' }
       })
       
-      if (!destResponse.ok) {
-        console.warn(`[nj-all-stations] Failed to fetch destinations for country ${countryId}: ${destResponse.status}`)
+      if (!trainResponse.ok) {
+        if (trainResponse.status === 404) {
+          console.warn(`[nj-all-stations] Train ${trainNumber} not found for date ${date}`)
+          continue
+        }
+        console.warn(`[nj-all-stations] Failed to fetch train ${trainNumber}: ${trainResponse.status}`)
         continue
       }
       
-      const destinations = await destResponse.json()
+      const trainData = await trainResponse.json()
       
-      // Extract stations from destinations
-      // Each destination is a train connection with stationFrom and stationTo
-      if (Array.isArray(destinations)) {
-        destinations.forEach(dest => {
-          // Process both stationFrom and stationTo
-          const stations = [dest.stationFrom, dest.stationTo].filter(Boolean)
-          
-          stations.forEach(station => {
-            const eva = station.eva || station.evaMeta
+      // Extract all stops from the route (includes intermediate stops)
+      const stops = Array.isArray(trainData?.route?.stops) ? trainData.route.stops : []
+      
+      stops.forEach(stop => {
+        const station = stop?.station
+        if (!station) return
+        
+        const eva = station.eva || station.evaMeta
+        const coords = station.coords || []
+        
+        if (eva && coords.length === 2) {
+          const [lat, lon] = coords
+          if (Number.isFinite(lat) && Number.isFinite(lon)) {
+            const stationName = station.name?.en || station.name?.int || station.name?.de || station.name
             
-            if (eva && station.coords && station.coords.length === 2) {
-              const [lat, lon] = station.coords
-              if (Number.isFinite(lat) && Number.isFinite(lon)) {
-                allStations.set(eva, {
-                  id: eva,
-                  name: station.name?.en || station.name?.int || station.name?.de || station.name,
-                  location: {
-                    latitude: lat,
-                    longitude: lon
-                  },
-                  country: country.name?.int || country.name?.en || country.name?.de,
-                  countryCode: country.iso
-                })
-              }
+            // Use existing station if found, or create new one
+            if (!allStations.has(eva)) {
+              allStations.set(eva, {
+                id: eva,
+                name: stationName,
+                location: {
+                  latitude: lat,
+                  longitude: lon
+                },
+                country: station.country || null,
+                countryCode: station.country || null
+              })
             }
-          })
-        })
-      }
+          }
+        }
+      })
+      
+      console.log(`[nj-all-stations] Train ${trainNumber}: ${stops.length} stops, ${allStations.size} unique stations so far`)
     } catch (err) {
-      console.error(`[nj-all-stations] Error fetching country ${countryId}:`, err.message)
+      console.error(`[nj-all-stations] Error fetching train ${trainNumber}:`, err.message)
+      // Continue with next train
     }
+    
+    // Small delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 100))
   }
   
   const stationsArray = Array.from(allStations.values())

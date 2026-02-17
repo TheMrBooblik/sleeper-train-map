@@ -331,18 +331,16 @@ const TrainMap = ({
   // Immediate loading of map elements without delay
   useEffect(() => {
     if (stops && stops.length > 0 && cities && !overallLoading) {
-      // Set everything immediately to show stations on first load
-      setIsMapInitialized(true);
-      setShowTooltips(true);
-
       // Ensure filtered stops is set to all stops initially
       setFilteredStops(stops);
 
-      // Fire-and-forget: prewarm Nightjet & EuroNight caches for today
+      // Load night train stations BEFORE showing map
       ;(async () => {
         try { 
           const today = new Date()
           const date = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
+          
+          console.log('[DEBUG] Starting to load night train data...');
           
           // Prewarm both Nightjet and EuroNight in parallel
           await Promise.all([
@@ -350,18 +348,31 @@ const TrainMap = ({
             fetch('/api/en-prewarm', { method: 'GET' })
           ])
           
+          console.log('[DEBUG] Prewarming complete, loading stations...');
+          
           // Load all Nightjet stations from comprehensive API
-          const njStationsRes = await fetch(`/api/nj-all-stations?date=${date}`)
+          console.log('[DEBUG] Fetching Nightjet stations from /api/nj-all-stations');
+          let njStationsFromApi = []
+          const njStationsRes = await fetch(`/api/nj-all-stations?date=${date}&_t=${Date.now()}`, {
+            cache: 'no-store'
+          })
+          
           if (njStationsRes.ok) {
-            const stationsData = await njStationsRes.json()
+            const stationsData = await njStationsRes.json();
+            console.log('[DEBUG] nj-all-stations data:', stationsData);
             if (stationsData?.stations?.length) {
-              console.log('[DEBUG] Loaded all Nightjet stations:', stationsData.count)
-              setAllNjStations(stationsData.stations)
+              console.log('[DEBUG] Sample stations:', stationsData.stations.slice(0, 3));
+              njStationsFromApi = stationsData.stations
+              setAllNjStations(stationsData.stations);
+            } else {
+              console.log('[DEBUG] No stations in response');
             }
+          } else {
+            console.error('[DEBUG] Failed to fetch nj-all-stations:', njStationsRes.status, njStationsRes.statusText);
           }
           
           // Load all Nightjet routes for display
-          const njRes = await fetch(`/api/nj-list?date=${date}`)
+          const njRes = await fetch(`/api/nj-list?date=${date}`);
           if (njRes.ok) {
             const data = await njRes.json()
             if (data?.items?.length) {
@@ -376,6 +387,32 @@ const TrainMap = ({
                 type: 'nightjet'
               }))
               setAllNjRoutes(routes)
+              
+              // Extract unique stations from routes and merge with stations from API
+              // This ensures we have stations even if nj-all-stations API is slow or fails
+              const stationMap = new Map()
+              // Add stations from API first
+              njStationsFromApi.forEach(station => {
+                const key = station.id || `${station.location?.latitude}-${station.location?.longitude}`
+                if (key) stationMap.set(key, station)
+              })
+              // Add stations from routes
+              data.items.forEach(route => {
+                route.stations?.forEach(station => {
+                  const key = station.id || `${station.location?.latitude}-${station.location?.longitude}`
+                  if (key && station.location?.latitude && station.location?.longitude) {
+                    if (!stationMap.has(key)) {
+                      stationMap.set(key, station)
+                    }
+                  }
+                })
+              })
+              // Update stations with merged set
+              const mergedStations = Array.from(stationMap.values())
+              if (mergedStations.length > njStationsFromApi.length) {
+                console.log('[DEBUG] Merged stations from nj-list:', mergedStations.length, 'total stations (was', njStationsFromApi.length, ')')
+                setAllNjStations(mergedStations)
+              }
             }
           }
           
@@ -409,7 +446,17 @@ const TrainMap = ({
               setAllEnStations(Array.from(stationMap.values()))
             }
           }
-        } catch {}
+          
+          console.log('[DEBUG] All night train data loaded, showing map')
+          // Show map after all night train data is loaded
+          setIsMapInitialized(true);
+          setShowTooltips(true);
+        } catch (err) {
+          console.error('[DEBUG] Error loading night train data:', err)
+          // Show map even if night train loading fails
+          setIsMapInitialized(true);
+          setShowTooltips(true);
+        }
       })()
     }
   }, [stops, cities, setFilteredStops, overallLoading]);
@@ -1602,10 +1649,17 @@ const TrainMap = ({
         <LocationControl />
 
         {/* All Nightjet stations - show filtered ones when filter is active, or all when no filter */}
-        {(selected ? filteredNjStations : allNjStations).map((s, idx) => {
+        {(() => {
+          const stationsToRender = selected ? filteredNjStations : allNjStations
+          console.log('[DEBUG RENDER] Nightjet stations to render:', stationsToRender.length, 'selected:', selected)
+          return stationsToRender.map((s, idx) => {
           const lat = s?.location?.latitude
           const lon = s?.location?.longitude
-          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+            console.log('[DEBUG] Invalid coords for station:', s.name, lat, lon)
+            return null
+          }
+          console.log('[DEBUG] Rendering station marker:', s.name, 'at', lat, lon)
           
           // Use cyan/teal gradient for Nightjet stations
           const icon = new Leaflet.DivIcon({
@@ -1654,7 +1708,8 @@ const TrainMap = ({
               </Tooltip>
             </Marker>
           )
-        })}
+          })
+        })()}
 
         {/* Nightjet overlays: draw polylines and station markers for each included direction */}
         {njOverlays.map((ov) => (
