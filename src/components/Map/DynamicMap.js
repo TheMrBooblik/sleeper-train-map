@@ -11,7 +11,8 @@ import Leaflet from "leaflet";
 import * as ReactLeaflet from "react-leaflet";
 import polyline from "@mapbox/polyline";
 
-const { MapContainer, Marker, TileLayer, Tooltip, Polyline, useMapEvents } = ReactLeaflet;
+const { MapContainer, Marker, TileLayer, Tooltip, Polyline, useMapEvents } =
+  ReactLeaflet;
 import "leaflet/dist/leaflet.css";
 
 import Filter from "src/components/Filter";
@@ -62,7 +63,7 @@ const TrainMap = ({
   const [selectedTrainRouteIds, setSelectedTrainRouteIds] = useState([]);
   const [isTrainDetailPanelOpen, setIsTrainDetailPanelOpen] = useState(false);
   // Nightjet prototype overlay: one route only (e.g., NJ 403)
-  // Nightjet overlays: one per train (NJ 403 and NJ 402) when the clicked station is on the route
+  // Nightjet overlays
   // Each overlay: { key, lineName, coords, stations, color }
   const [njOverlays, setNjOverlays] = useState([]);
   // All Nightjet stations for display on map (not filtered by clicked station)
@@ -78,12 +79,16 @@ const TrainMap = ({
   const [allNjRoutes, setAllNjRoutes] = useState([]);
   const [allEnRoutes, setAllEnRoutes] = useState([]);
   // NightJet loading progress
-  const [njLoadingProgress, setNjLoadingProgress] = useState({ progress: 0, message: '', step: '' });
+  const [njLoadingProgress, setNjLoadingProgress] = useState({
+    progress: 0,
+    message: "",
+    step: "",
+  });
 
   const mapRef = useRef();
   const sidebarRef = useRef(null);
 
-  const mapClassName = `w-full h-full ${className || ''}`;
+  const mapClassName = `w-full h-full ${className || ""}`;
 
   // Function to normalize station name for display
   const normalizeStationName = useCallback((stationName) => {
@@ -253,17 +258,14 @@ const TrainMap = ({
   };
 
   // Handle polyline (route line) click to show train details
-  const handlePolylineClick = useCallback(
-    (routeIds) => {
-      console.log("Polyline clicked! Route ID:", routeIds);
-      // routeIds can be a single ID or an array (for overlapping routes)
-      const idsArray = Array.isArray(routeIds) ? routeIds : [routeIds];
-      console.log("Opening panel with route IDs:", idsArray);
-      setSelectedTrainRouteIds(idsArray);
-      setIsTrainDetailPanelOpen(true);
-    },
-    [],
-  );
+  const handlePolylineClick = useCallback((routeIds) => {
+    console.log("Polyline clicked! Route ID:", routeIds);
+    // routeIds can be a single ID or an array (for overlapping routes)
+    const idsArray = Array.isArray(routeIds) ? routeIds : [routeIds];
+    console.log("Opening panel with route IDs:", idsArray);
+    setSelectedTrainRouteIds(idsArray);
+    setIsTrainDetailPanelOpen(true);
+  }, []);
 
   const closeTrainDetailPanel = useCallback(() => {
     setIsTrainDetailPanelOpen(false);
@@ -276,8 +278,10 @@ const TrainMap = ({
       click: (e) => {
         // Only clear filter if clicking on empty map (not on markers or polylines)
         // Check if the click was on a map layer (marker, polyline, etc.)
-        const isClickOnFeature = e.originalEvent.target.classList.contains('leaflet-interactive');
-        
+        const isClickOnFeature = e.originalEvent.target.classList.contains(
+          "leaflet-interactive",
+        );
+
         if (selected && !isClickOnFeature) {
           removeFilter();
         }
@@ -337,155 +341,217 @@ const TrainMap = ({
       setFilteredStops(stops);
 
       // Load night train stations BEFORE showing map
-      ;(async () => {
-        try { 
-          const today = new Date()
-          const date = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
-          
-          console.log('[DEBUG] Starting to load night train data...');
-          
+      (async () => {
+        try {
+          const today = new Date();
+          const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+          console.log("[DEBUG] Starting to load night train data...");
+
           // Prewarm both Nightjet and EuroNight in parallel
           await Promise.all([
-            fetch('/api/nj-prewarm?max=30', { method: 'GET' }),
-            fetch('/api/en-prewarm', { method: 'GET' })
-          ])
-          
-          console.log('[DEBUG] Prewarming complete, loading stations...');
-          
+            fetch("/api/nj-prewarm?max=30", { method: "GET" }),
+            fetch("/api/en-prewarm", { method: "GET" }),
+          ]);
+
+          console.log("[DEBUG] Prewarming complete, loading stations...");
+
           // Load all Nightjet stations from comprehensive API with progress tracking
-          console.log('[DEBUG] Fetching Nightjet stations from /api/nj-all-stations');
-          let njStationsFromApi = []
-          
+          console.log(
+            "[DEBUG] Fetching Nightjet stations from /api/nj-all-stations",
+          );
+          let njStationsFromApi = [];
+
           // Start progress polling
           const progressInterval = setInterval(async () => {
             try {
-              const progressRes = await fetch(`/api/nj-all-stations?progress=true&date=${date}`)
+              const progressRes = await fetch(
+                `/api/nj-all-stations?progress=true&date=${date}`,
+              );
               if (progressRes.ok) {
-                const progress = await progressRes.json()
-                setNjLoadingProgress(progress)
+                const progress = await progressRes.json();
+                setNjLoadingProgress(progress);
               }
             } catch (err) {
-              console.error('[DEBUG] Failed to fetch progress:', err)
+              console.error("[DEBUG] Failed to fetch progress:", err);
             }
-          }, 500) // Poll every 500ms
-          
+          }, 500); // Poll every 500ms
+
           try {
-            const njStationsRes = await fetch(`/api/nj-all-stations?date=${date}&_t=${Date.now()}`, {
-              cache: 'no-store'
-            })
-            
+            const njStationsRes = await fetch(
+              `/api/nj-all-stations?date=${date}&_t=${Date.now()}`,
+              {
+                cache: "no-store",
+              },
+            );
+
             // Clear progress polling
-            clearInterval(progressInterval)
-            
+            clearInterval(progressInterval);
+
             if (njStationsRes.ok) {
               const stationsData = await njStationsRes.json();
-              console.log('[DEBUG] nj-all-stations data:', stationsData);
+              console.log("[DEBUG] nj-all-stations data:", stationsData);
               if (stationsData?.stations?.length) {
-                console.log('[DEBUG] Sample stations:', stationsData.stations.slice(0, 3));
-                njStationsFromApi = stationsData.stations
+                console.log(
+                  "[DEBUG] Sample stations:",
+                  stationsData.stations.slice(0, 3),
+                );
+                njStationsFromApi = stationsData.stations;
                 setAllNjStations(stationsData.stations);
-                setNjLoadingProgress({ progress: 100, message: `Found ${stationsData.count} stations`, step: 'complete' })
+                setNjLoadingProgress({
+                  progress: 100,
+                  message: `Found ${stationsData.count} stations`,
+                  step: "complete",
+                });
               } else {
-                console.log('[DEBUG] No stations in response');
-                setNjLoadingProgress({ progress: 0, message: 'No stations found', step: 'complete' })
+                console.log("[DEBUG] No stations in response");
+                setNjLoadingProgress({
+                  progress: 0,
+                  message: "No stations found",
+                  step: "complete",
+                });
               }
             } else {
-              console.error('[DEBUG] Failed to fetch nj-all-stations:', njStationsRes.status, njStationsRes.statusText);
-              setNjLoadingProgress({ progress: 0, message: 'Failed to load stations', step: 'error' })
+              console.error(
+                "[DEBUG] Failed to fetch nj-all-stations:",
+                njStationsRes.status,
+                njStationsRes.statusText,
+              );
+              setNjLoadingProgress({
+                progress: 0,
+                message: "Failed to load stations",
+                step: "error",
+              });
             }
           } catch (err) {
-            clearInterval(progressInterval)
-            console.error('[DEBUG] Error fetching nj-all-stations:', err)
-            setNjLoadingProgress({ progress: 0, message: `Error: ${err.message}`, step: 'error' })
+            clearInterval(progressInterval);
+            console.error("[DEBUG] Error fetching nj-all-stations:", err);
+            setNjLoadingProgress({
+              progress: 0,
+              message: `Error: ${err.message}`,
+              step: "error",
+            });
           }
-          
+
           // Load all Nightjet routes for display
           const njRes = await fetch(`/api/nj-list?date=${date}`);
           if (njRes.ok) {
-            const data = await njRes.json()
+            const data = await njRes.json();
             if (data?.items?.length) {
               // Store all routes for Show All Routes mode
-              const njColors = ['#0ea5e9', '#14b8a6', '#06b6d4', '#22d3ee', '#0891b2', '#0e7490', '#0284c7', '#0369a1']
+              const njColors = [
+                "#0ea5e9",
+                "#14b8a6",
+                "#06b6d4",
+                "#22d3ee",
+                "#0891b2",
+                "#0e7490",
+                "#0284c7",
+                "#0369a1",
+              ];
               const routes = data.items.map((item, idx) => ({
                 key: item.key,
                 lineName: item.lineName,
                 coords: item.coords,
                 stations: item.stations,
                 color: njColors[idx % njColors.length],
-                type: 'nightjet'
-              }))
-              setAllNjRoutes(routes)
-              
+                type: "nightjet",
+              }));
+              setAllNjRoutes(routes);
+
               // Extract unique stations from routes and merge with stations from API
               // This ensures we have stations even if nj-all-stations API is slow or fails
-              const stationMap = new Map()
+              const stationMap = new Map();
               // Add stations from API first
-              njStationsFromApi.forEach(station => {
-                const key = station.id || `${station.location?.latitude}-${station.location?.longitude}`
-                if (key) stationMap.set(key, station)
-              })
+              njStationsFromApi.forEach((station) => {
+                const key =
+                  station.id ||
+                  `${station.location?.latitude}-${station.location?.longitude}`;
+                if (key) stationMap.set(key, station);
+              });
               // Add stations from routes
-              data.items.forEach(route => {
-                route.stations?.forEach(station => {
-                  const key = station.id || `${station.location?.latitude}-${station.location?.longitude}`
-                  if (key && station.location?.latitude && station.location?.longitude) {
+              data.items.forEach((route) => {
+                route.stations?.forEach((station) => {
+                  const key =
+                    station.id ||
+                    `${station.location?.latitude}-${station.location?.longitude}`;
+                  if (
+                    key &&
+                    station.location?.latitude &&
+                    station.location?.longitude
+                  ) {
                     if (!stationMap.has(key)) {
-                      stationMap.set(key, station)
+                      stationMap.set(key, station);
                     }
                   }
-                })
-              })
+                });
+              });
               // Update stations with merged set
-              const mergedStations = Array.from(stationMap.values())
+              const mergedStations = Array.from(stationMap.values());
               if (mergedStations.length > njStationsFromApi.length) {
-                console.log('[DEBUG] Merged stations from nj-list:', mergedStations.length, 'total stations (was', njStationsFromApi.length, ')')
-                setAllNjStations(mergedStations)
+                console.log(
+                  "[DEBUG] Merged stations from nj-list:",
+                  mergedStations.length,
+                  "total stations (was",
+                  njStationsFromApi.length,
+                  ")",
+                );
+                setAllNjStations(mergedStations);
               }
             }
           }
-          
+
           // Load all EuroNight stations and routes for display
-          const enRes = await fetch(`/api/en-list?date=${date}`)
+          const enRes = await fetch(`/api/en-list?date=${date}`);
           if (enRes.ok) {
-            const data = await enRes.json()
+            const data = await enRes.json();
             if (data?.items?.length) {
-              // Store all routes for Show All Routes mode  
-              const enColors = ['#a855f7', '#c026d3', '#d946ef', '#e879f9', '#9333ea', '#a21caf', '#86198f', '#701a75']
+              // Store all routes for Show All Routes mode
+              const enColors = [
+                "#a855f7",
+                "#c026d3",
+                "#d946ef",
+                "#e879f9",
+                "#9333ea",
+                "#a21caf",
+                "#86198f",
+                "#701a75",
+              ];
               const routes = data.items.map((item, idx) => ({
                 key: item.key,
                 lineName: item.lineName,
                 coords: item.coords,
                 stations: item.stations,
                 color: enColors[idx % enColors.length],
-                type: 'euronight'
-              }))
-              setAllEnRoutes(routes)
-              
+                type: "euronight",
+              }));
+              setAllEnRoutes(routes);
+
               // Extract unique stations
-              const stationMap = new Map()
-              data.items.forEach(route => {
-                route.stations?.forEach(station => {
-                  const key = `${station.location?.latitude}-${station.location?.longitude}`
+              const stationMap = new Map();
+              data.items.forEach((route) => {
+                route.stations?.forEach((station) => {
+                  const key = `${station.location?.latitude}-${station.location?.longitude}`;
                   if (!stationMap.has(key)) {
-                    stationMap.set(key, station)
+                    stationMap.set(key, station);
                   }
-                })
-              })
-              setAllEnStations(Array.from(stationMap.values()))
+                });
+              });
+              setAllEnStations(Array.from(stationMap.values()));
             }
           }
-          
-          console.log('[DEBUG] All night train data loaded, showing map')
+
+          console.log("[DEBUG] All night train data loaded, showing map");
           // Show map after all night train data is loaded
           setIsMapInitialized(true);
           setShowTooltips(true);
         } catch (err) {
-          console.error('[DEBUG] Error loading night train data:', err)
+          console.error("[DEBUG] Error loading night train data:", err);
           // Show map even if night train loading fails
           setIsMapInitialized(true);
           setShowTooltips(true);
         }
-      })()
+      })();
     }
   }, [stops, cities, setFilteredStops, overallLoading]);
 
@@ -523,169 +589,387 @@ const TrainMap = ({
   }, []);
 
   // Heuristic matcher for station names (handles 'Centraal', 'Hbf', 'HB', brackets, diacritics via city normalizer)
-  const matchStationNames = useCallback((a, b) => {
-    if (!a || !b) return false;
-    const simplify = (s) => {
-      const n = normalizeStationNameForLookup(String(s) || '')
-        .toLowerCase()
-        .replace(/\(.*?\)/g, '') // remove parentheses
-        .replace(/\b(centraal|central|bahnhof|station|hbf|hb)\b/gi, '')
-        .replace(/[^a-zà-ÿ\s-]/gi, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      return n;
-    };
-    const A = simplify(a);
-    const B = simplify(b);
-    if (!A || !B) return false;
-    if (A === B) return true;
-    return A.includes(B) || B.includes(A);
-  }, [normalizeStationNameForLookup]);
+  const matchStationNames = useCallback(
+    (a, b) => {
+      if (!a || !b) return false;
+      const simplify = (s) => {
+        const n = normalizeStationNameForLookup(String(s) || "")
+          .toLowerCase()
+          .replace(/\(.*?\)/g, "") // remove parentheses
+          .replace(/\b(centraal|central|bahnhof|station|hbf|hb)\b/gi, "")
+          .replace(/[^a-zà-ÿ\s-]/gi, "")
+          .replace(/\s+/g, " ")
+          .trim();
+        return n;
+      };
+      const A = simplify(a);
+      const B = simplify(b);
+      if (!A || !B) return false;
+      if (A === B) return true;
+      return A.includes(B) || B.includes(A);
+    },
+    [normalizeStationNameForLookup],
+  );
 
   // Load ALL Nightjet and EuroNight routes passing through the clicked station
-  const loadNightTrainsForStation = useCallback(async (stationName) => {
-    console.log('[DEBUG loadNightTrainsForStation] Called with stationName:', stationName)
-    try {
-      const today = new Date()
-      const date = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
+  // Accepts both originalStationName (for exact matching) and normalizedStationName (for grouped cities)
+  const loadNightTrainsForStation = useCallback(
+    async (normalizedStationName, originalStationName = null) => {
+      console.log(
+        "[DEBUG loadNightTrainsForStation] Called with normalizedStationName:",
+        normalizedStationName,
+        "originalStationName:",
+        originalStationName,
+      );
+      try {
+        const today = new Date();
+        const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-      // Fetch both Nightjet and EuroNight in parallel
-      const [njRes, enRes] = await Promise.all([
-        fetch(`/api/nj-list?date=${date}&stationName=${encodeURIComponent(stationName)}`),
-        fetch(`/api/en-list?date=${date}&stationName=${encodeURIComponent(stationName)}`)
-      ])
-      console.log('[DEBUG loadNightTrainsForStation] NJ response status:', njRes.status, 'EN response status:', enRes.status)
+        // Try fetching with both the normalized name and original name (if different)
+        // This ensures we catch all routes that pass through the station
+        // Use separate Sets to deduplicate routes by their key for each type
+        const njRouteKeys = new Set();
+        const enRouteKeys = new Set();
+        const njRoutes = [];
+        const enRoutes = [];
 
-      // Nightjet colors (cyan/teal shades)
-      const njColors = ['#0ea5e9', '#14b8a6', '#06b6d4', '#22d3ee', '#0891b2', '#0e7490', '#0284c7', '#0369a1']
-      // EuroNight colors (purple/magenta shades)
-      const enColors = ['#a855f7', '#c026d3', '#d946ef', '#e879f9', '#9333ea', '#a21caf', '#86198f', '#701a75']
+        // Try with normalized name first
+        const [njRes1, enRes1] = await Promise.all([
+          fetch(
+            `/api/nj-list?date=${date}&stationName=${encodeURIComponent(normalizedStationName)}`,
+          ),
+          fetch(
+            `/api/en-list?date=${date}&stationName=${encodeURIComponent(normalizedStationName)}`,
+          ),
+        ]);
 
-      // Process Nightjet
-      let njOverlays = []
-      if (njRes.ok) {
-        const data = await njRes.json()
-        if (data?.items?.length) {
-          njOverlays = data.items.map((item, idx) => {
-            // Decode polyline if available, otherwise use station coords
-            let coords = item.coords
-            if (item.polyline) {
-              try {
-                coords = polyline.decode(item.polyline)
-              } catch (e) {
-                console.error('Failed to decode Nightjet polyline:', e)
+        // Process normalized name results
+        if (njRes1.ok) {
+          const data = await njRes1.json();
+          if (data?.items?.length) {
+            data.items.forEach((item) => {
+              if (!njRouteKeys.has(item.key)) {
+                njRouteKeys.add(item.key);
+                njRoutes.push(item);
               }
-            }
-            return {
-              key: item.key,
-              lineName: item.lineName,
-              coords,
-              stations: item.stations,
-              color: njColors[idx % njColors.length],
-              type: 'nightjet'
-            }
-          })
-        }
-      }
-
-      // Process EuroNight
-      let enOverlays = []
-      if (enRes.ok) {
-        const data = await enRes.json()
-        if (data?.items?.length) {
-          enOverlays = data.items.map((item, idx) => {
-            // Decode polyline if available, otherwise use station coords
-            let coords = item.coords
-            if (item.polyline) {
-              try {
-                coords = polyline.decode(item.polyline)
-              } catch (e) {
-                console.error('Failed to decode EuroNight polyline:', e)
-              }
-            }
-            return {
-              key: item.key,
-              lineName: item.lineName,
-              coords,
-              stations: item.stations,
-              color: enColors[idx % enColors.length],
-              type: 'euronight'
-            }
-          })
-        }
-      }
-
-      setNjOverlays(njOverlays)
-      setEnOverlays(enOverlays)
-      
-      console.log('[DEBUG] Night train routes for', stationName, ':', {
-        nightjetRoutes: njOverlays.length,
-        euronightRoutes: enOverlays.length,
-        njRouteNames: njOverlays.map(o => o.lineName),
-        enRouteNames: enOverlays.map(o => o.lineName)
-      })
-
-      // Extract unique stations from Nightjet overlays
-      // IMPORTANT: For each route, only show stations that are directly reachable
-      // (on the same train/route) from the clicked station
-      if (njOverlays.length > 0) {
-        const njStationMap = new Map()
-        njOverlays.forEach(overlay => {
-          // Find the clicked station in this route
-          const clickedStationIndex = overlay.stations?.findIndex(s => 
-            matchStationNames(s.name, stationName)
-          )
-          
-          if (clickedStationIndex !== -1 && overlay.stations) {
-            // Only include stations on the same route (same train)
-            // All stations on this route are directly reachable without transfer
-            overlay.stations.forEach(station => {
-              const key = `${station.location?.latitude}-${station.location?.longitude}`
-              if (!njStationMap.has(key)) {
-                njStationMap.set(key, station)
-              }
-            })
+            });
           }
-        })
-        setFilteredNjStations(Array.from(njStationMap.values()))
-      } else {
-        // No Nightjet routes found - clear filtered stations
-        setFilteredNjStations([])
-      }
+        }
 
-      // Extract unique stations from EuroNight overlays
-      // IMPORTANT: For each route, only show stations that are directly reachable
-      // (on the same train/route) from the clicked station
-      if (enOverlays.length > 0) {
-        const enStationMap = new Map()
-        enOverlays.forEach(overlay => {
-          // Find the clicked station in this route
-          const clickedStationIndex = overlay.stations?.findIndex(s => 
-            matchStationNames(s.name, stationName)
-          )
-          
-          if (clickedStationIndex !== -1 && overlay.stations) {
-            // Only include stations on the same route (same train)
-            // All stations on this route are directly reachable without transfer
-            overlay.stations.forEach(station => {
-              const key = `${station.location?.latitude}-${station.location?.longitude}`
-              if (!enStationMap.has(key)) {
-                enStationMap.set(key, station)
+        if (enRes1.ok) {
+          const data = await enRes1.json();
+          if (data?.items?.length) {
+            data.items.forEach((item) => {
+              if (!enRouteKeys.has(item.key)) {
+                enRouteKeys.add(item.key);
+                enRoutes.push(item);
               }
-            })
+            });
           }
-        })
-        setFilteredEnStations(Array.from(enStationMap.values()))
-      } else {
-        // No EuroNight routes found - clear filtered stations
-        setFilteredEnStations([])
+        }
+
+        // If original name is different, also try with original name
+        if (
+          originalStationName &&
+          originalStationName !== normalizedStationName
+        ) {
+          const [njRes2, enRes2] = await Promise.all([
+            fetch(
+              `/api/nj-list?date=${date}&stationName=${encodeURIComponent(originalStationName)}`,
+            ),
+            fetch(
+              `/api/en-list?date=${date}&stationName=${encodeURIComponent(originalStationName)}`,
+            ),
+          ]);
+
+          // Process original name results
+          if (njRes2.ok) {
+            const data = await njRes2.json();
+            if (data?.items?.length) {
+              data.items.forEach((item) => {
+                if (!njRouteKeys.has(item.key)) {
+                  njRouteKeys.add(item.key);
+                  njRoutes.push(item);
+                }
+              });
+            }
+          }
+
+          if (enRes2.ok) {
+            const data = await enRes2.json();
+            if (data?.items?.length) {
+              data.items.forEach((item) => {
+                if (!enRouteKeys.has(item.key)) {
+                  enRouteKeys.add(item.key);
+                  enRoutes.push(item);
+                }
+              });
+            }
+          }
+        }
+
+        // Fallback: If no routes found with station name filter, try fetching all routes
+        // and filter client-side. This helps when API matching isn't working correctly.
+        if (njRoutes.length === 0 && enRoutes.length === 0) {
+          console.log(
+            "[DEBUG loadNightTrainsForStation] No routes found with name filter, trying all routes...",
+          );
+          const [njResAll, enResAll] = await Promise.all([
+            fetch(`/api/nj-list?date=${date}`),
+            fetch(`/api/en-list?date=${date}`),
+          ]);
+
+          // Helper function to check if a route passes through the station
+          const routePassesThroughStation = (route, stationNameToMatch) => {
+            if (!route?.stations?.length) return false;
+            return route.stations.some((station) => {
+              const stationName = station?.name || "";
+              // Try matching with both normalized and original names
+              if (matchStationNames(stationName, normalizedStationName))
+                return true;
+              if (
+                originalStationName &&
+                matchStationNames(stationName, originalStationName)
+              )
+                return true;
+              // Also try direct substring matching as fallback
+              const simplifiedStationName = stationName
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, "");
+              const simplifiedMatch = normalizedStationName
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, "");
+              if (
+                simplifiedStationName.includes(simplifiedMatch) ||
+                simplifiedMatch.includes(simplifiedStationName)
+              ) {
+                return true;
+              }
+              if (originalStationName) {
+                const simplifiedOriginal = originalStationName
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]/g, "");
+                if (
+                  simplifiedStationName.includes(simplifiedOriginal) ||
+                  simplifiedOriginal.includes(simplifiedStationName)
+                ) {
+                  return true;
+                }
+              }
+              return false;
+            });
+          };
+
+          // Process all NightJet routes and filter client-side
+          if (njResAll.ok) {
+            const data = await njResAll.json();
+            if (data?.items?.length) {
+              data.items.forEach((item) => {
+                if (routePassesThroughStation(item, normalizedStationName)) {
+                  if (!njRouteKeys.has(item.key)) {
+                    njRouteKeys.add(item.key);
+                    njRoutes.push(item);
+                  }
+                }
+              });
+            }
+          }
+
+          // Process all EuroNight routes and filter client-side
+          if (enResAll.ok) {
+            const data = await enResAll.json();
+            if (data?.items?.length) {
+              data.items.forEach((item) => {
+                if (routePassesThroughStation(item, normalizedStationName)) {
+                  if (!enRouteKeys.has(item.key)) {
+                    enRouteKeys.add(item.key);
+                    enRoutes.push(item);
+                  }
+                }
+              });
+            }
+          }
+
+          if (njRoutes.length > 0 || enRoutes.length > 0) {
+            console.log(
+              "[DEBUG loadNightTrainsForStation] Found routes via client-side filtering:",
+              njRoutes.length,
+              "NightJet,",
+              enRoutes.length,
+              "EuroNight",
+            );
+          }
+        }
+
+        console.log(
+          "[DEBUG loadNightTrainsForStation] Found",
+          njRoutes.length,
+          "NightJet routes and",
+          enRoutes.length,
+          "EuroNight routes",
+        );
+
+        // Nightjet colors (cyan/teal shades)
+        const njColors = [
+          "#0ea5e9",
+          "#14b8a6",
+          "#06b6d4",
+          "#22d3ee",
+          "#0891b2",
+          "#0e7490",
+          "#0284c7",
+          "#0369a1",
+        ];
+        // EuroNight colors (purple/magenta shades)
+        const enColors = [
+          "#a855f7",
+          "#c026d3",
+          "#d946ef",
+          "#e879f9",
+          "#9333ea",
+          "#a21caf",
+          "#86198f",
+          "#701a75",
+        ];
+
+        // Process Nightjet routes
+        const njOverlays = njRoutes.map((item, idx) => {
+          // Decode polyline if available, otherwise use station coords
+          let coords = item.coords;
+          if (item.polyline) {
+            try {
+              coords = polyline.decode(item.polyline);
+            } catch (e) {
+              console.error("Failed to decode Nightjet polyline:", e);
+            }
+          }
+          return {
+            key: item.key,
+            lineName: item.lineName,
+            coords,
+            stations: item.stations,
+            color: njColors[idx % njColors.length],
+            type: "nightjet",
+          };
+        });
+
+        // Process EuroNight routes
+        const enOverlays = enRoutes.map((item, idx) => {
+          // Decode polyline if available, otherwise use station coords
+          let coords = item.coords;
+          if (item.polyline) {
+            try {
+              coords = polyline.decode(item.polyline);
+            } catch (e) {
+              console.error("Failed to decode EuroNight polyline:", e);
+            }
+          }
+          return {
+            key: item.key,
+            lineName: item.lineName,
+            coords,
+            stations: item.stations,
+            color: enColors[idx % enColors.length],
+            type: "euronight",
+          };
+        });
+
+        setNjOverlays(njOverlays);
+        setEnOverlays(enOverlays);
+
+        console.log(
+          "[DEBUG] Night train routes for",
+          normalizedStationName,
+          ":",
+          {
+            nightjetRoutes: njOverlays.length,
+            euronightRoutes: enOverlays.length,
+            njRouteNames: njOverlays.map((o) => o.lineName),
+            enRouteNames: enOverlays.map((o) => o.lineName),
+          },
+        );
+
+        // Helper function to check if a station name matches the clicked station
+        // Try matching with both normalized and original names
+        const matchesStation = (stationNameToCheck) => {
+          if (!stationNameToCheck) return false;
+          // Try matching with normalized name
+          if (matchStationNames(stationNameToCheck, normalizedStationName)) {
+            return true;
+          }
+          // Try matching with original name if available
+          if (
+            originalStationName &&
+            matchStationNames(stationNameToCheck, originalStationName)
+          ) {
+            return true;
+          }
+          return false;
+        };
+
+        // Extract unique stations from Nightjet overlays
+        // IMPORTANT: For each route, only show stations that are directly reachable
+        // (on the same train/route) from the clicked station
+        if (njOverlays.length > 0) {
+          const njStationMap = new Map();
+          njOverlays.forEach((overlay) => {
+            // Find the clicked station in this route - try matching with both names
+            const clickedStationIndex = overlay.stations?.findIndex((s) =>
+              matchesStation(s.name),
+            );
+
+            if (clickedStationIndex !== -1 && overlay.stations) {
+              // Only include stations on the same route (same train)
+              // All stations on this route are directly reachable without transfer
+              overlay.stations.forEach((station) => {
+                const key = `${station.location?.latitude}-${station.location?.longitude}`;
+                if (!njStationMap.has(key)) {
+                  njStationMap.set(key, station);
+                }
+              });
+            }
+          });
+          setFilteredNjStations(Array.from(njStationMap.values()));
+        } else {
+          // No Nightjet routes found - clear filtered stations
+          setFilteredNjStations([]);
+        }
+
+        // Extract unique stations from EuroNight overlays
+        // IMPORTANT: For each route, only show stations that are directly reachable
+        // (on the same train/route) from the clicked station
+        if (enOverlays.length > 0) {
+          const enStationMap = new Map();
+          enOverlays.forEach((overlay) => {
+            // Find the clicked station in this route - try matching with both names
+            const clickedStationIndex = overlay.stations?.findIndex((s) =>
+              matchesStation(s.name),
+            );
+
+            if (clickedStationIndex !== -1 && overlay.stations) {
+              // Only include stations on the same route (same train)
+              // All stations on this route are directly reachable without transfer
+              overlay.stations.forEach((station) => {
+                const key = `${station.location?.latitude}-${station.location?.longitude}`;
+                if (!enStationMap.has(key)) {
+                  enStationMap.set(key, station);
+                }
+              });
+            }
+          });
+          setFilteredEnStations(Array.from(enStationMap.values()));
+        } else {
+          // No EuroNight routes found - clear filtered stations
+          setFilteredEnStations([]);
+        }
+      } catch (e) {
+        console.error("Night trains fetch error", e);
+        setNjOverlays([]);
+        setEnOverlays([]);
       }
-    } catch (e) {
-      console.error('Night trains fetch error', e)
-      setNjOverlays([])
-      setEnOverlays([])
-    }
-  }, [stops, matchStationNames, setFilteredStops])
+    },
+    [stops, matchStationNames, setFilteredStops],
+  );
 
   const handleMarkerClick = useCallback(
     (filteredStop) => {
@@ -779,12 +1063,17 @@ const TrainMap = ({
 
         // IMPORTANT: Set filtered stops to only show stations from selected routes
         // This hides all other stations when a filter is applied
-        console.log('[DEBUG handleMarkerClick] Filtered stops for', stop_id, ':', {
-          selectedRouteIds: routeIdsArray,
-          routeCitiesCount: routeCities.length,
-          routeStopsCount: routeStops.length,
-          routeStopNames: routeStops.map(s => s.stop_id).slice(0, 10)
-        })
+        console.log(
+          "[DEBUG handleMarkerClick] Filtered stops for",
+          stop_id,
+          ":",
+          {
+            selectedRouteIds: routeIdsArray,
+            routeCitiesCount: routeCities.length,
+            routeStopsCount: routeStops.length,
+            routeStopNames: routeStops.map((s) => s.stop_id).slice(0, 10),
+          },
+        );
         setFilteredStops(routeStops);
       } else {
         // Station has no Back-on-Track routes
@@ -793,13 +1082,22 @@ const TrainMap = ({
         setStopRouteIds([]);
         setFilteredStops([]);
       }
-      
+
       setSelected(true);
 
       // Fetch and overlay both Nightjet and EuroNight routes for this station
-      console.log('[DEBUG handleMarkerClick] filterName:', filterName, 'stop_id:', stop_id)
+      // Pass both normalized name (for grouped cities) and original name (for exact matching)
+      console.log(
+        "[DEBUG handleMarkerClick] filterName:",
+        filterName,
+        "stop_id:",
+        stop_id,
+      );
       if (filterName) {
-        loadNightTrainsForStation(filterName)
+        // Always pass the original stop_id as the second parameter
+        // This ensures we search with both normalized and original names
+        // Even if they're the same, having both helps with API matching
+        loadNightTrainsForStation(filterName, stop_id);
       }
     },
     [
@@ -1167,12 +1465,10 @@ const TrainMap = ({
               },
             }}
             title={filteredStop.displayName || stop_id}
-          >
-          </Marker>
+          ></Marker>
         );
       })
       .filter(Boolean);
-
   }, [
     filteredStops,
     handleMarkerClick,
@@ -1620,34 +1916,60 @@ const TrainMap = ({
                   {stopsLoading ? "Loading stations..." : "✓ Stations loaded"}
                 </span>
                 <span>
-                  {citiesLoading ? "Processing routes..." : "✓ Routes processed"}
+                  {citiesLoading
+                    ? "Processing routes..."
+                    : "✓ Routes processed"}
                 </span>
               </div>
               {/* NightJet loading progress */}
               {njLoadingProgress.progress > 0 && (
-                <div style={{ 
-                  marginTop: "8px", 
-                  padding: "8px", 
-                  backgroundColor: "#f0f9ff", 
-                  borderRadius: "4px",
-                  border: "1px solid #bae6fd"
-                }}>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#0369a1", marginBottom: "4px" }}>
+                <div
+                  style={{
+                    marginTop: "8px",
+                    padding: "8px",
+                    backgroundColor: "#f0f9ff",
+                    borderRadius: "4px",
+                    border: "1px solid #bae6fd",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: "600",
+                      color: "#0369a1",
+                      marginBottom: "4px",
+                    }}
+                  >
                     NightJet Stations
                   </div>
                   <div style={{ fontSize: "11px", color: "#075985" }}>
-                    {njLoadingProgress.message || `Progress: ${njLoadingProgress.progress}%`}
+                    {njLoadingProgress.message ||
+                      `Progress: ${njLoadingProgress.progress}%`}
                   </div>
-                  {njLoadingProgress.step === 'discovering' && njLoadingProgress.trainsFound !== undefined && (
-                    <div style={{ fontSize: "10px", color: "#64748b", marginTop: "2px" }}>
-                      Found {njLoadingProgress.trainsFound} trains
-                    </div>
-                  )}
-                  {njLoadingProgress.step === 'fetching' && njLoadingProgress.stationsFound !== undefined && (
-                    <div style={{ fontSize: "10px", color: "#64748b", marginTop: "2px" }}>
-                      {njLoadingProgress.stationsFound} stations discovered
-                    </div>
-                  )}
+                  {njLoadingProgress.step === "discovering" &&
+                    njLoadingProgress.trainsFound !== undefined && (
+                      <div
+                        style={{
+                          fontSize: "10px",
+                          color: "#64748b",
+                          marginTop: "2px",
+                        }}
+                      >
+                        Found {njLoadingProgress.trainsFound} trains
+                      </div>
+                    )}
+                  {njLoadingProgress.step === "fetching" &&
+                    njLoadingProgress.stationsFound !== undefined && (
+                      <div
+                        style={{
+                          fontSize: "10px",
+                          color: "#64748b",
+                          marginTop: "2px",
+                        }}
+                      >
+                        {njLoadingProgress.stationsFound} stations discovered
+                      </div>
+                    )}
                 </div>
               )}
             </div>
@@ -1708,65 +2030,115 @@ const TrainMap = ({
 
         {/* All Nightjet stations - show filtered ones when filter is active, or all when no filter */}
         {(() => {
-          const stationsToRender = selected ? filteredNjStations : allNjStations
-          console.log('[DEBUG RENDER] Nightjet stations to render:', stationsToRender.length, 'selected:', selected)
+          const stationsToRender = selected
+            ? filteredNjStations
+            : allNjStations;
+          console.log(
+            "[DEBUG RENDER] Nightjet stations to render:",
+            stationsToRender.length,
+            "selected:",
+            selected,
+          );
           return stationsToRender.map((s, idx) => {
-          const lat = s?.location?.latitude
-          const lon = s?.location?.longitude
-          if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-            console.log('[DEBUG] Invalid coords for station:', s.name, lat, lon)
-            return null
-          }
-          console.log('[DEBUG] Rendering station marker:', s.name, 'at', lat, lon)
-          
-          // Use cyan/teal gradient for Nightjet stations
-          const icon = new Leaflet.DivIcon({
-            className: 'nj-station-marker',
-            html: '<div style="width: 16px; height: 16px; background: linear-gradient(135deg, #0ea5e9, #14b8a6); border-radius: 50%; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(14, 165, 233, 0.5), 0 0 0 1px rgba(14, 165, 233, 0.3); transition: all 0.3s ease; cursor: pointer; z-index: 500;"></div>',
-            iconSize: [16, 16],
-            iconAnchor: [8, 8],
-          })
-          
-          return (
-            <Marker
-              key={`nj-all-station-${idx}-${s.id || s.name}`}
-              position={[lat, lon]}
-              icon={icon}
-              eventHandlers={{
-                click: (e) => {
-                  e.originalEvent?.stopPropagation();
-                  console.log('[DEBUG NJ marker] Clicked station:', s.name, 'at', lat, lon)
-                  // Find matching station in stops to trigger selection
-                  const matchingStop = stops?.find(stop => 
-                    matchStationNames(s.name, stop.stop_id) || 
-                    matchStationNames(s.name, stop.stop_name)
-                  )
-                  console.log('[DEBUG NJ marker] Matched stop:', matchingStop?.stop_id, matchingStop?.stop_name)
-                  
-                  // Create a filteredStop object with Nightjet station name
-                  // Use the original Nightjet station name for display, not the matched stop_id
-                  const filteredStop = {
-                    ...(matchingStop || {}),
-                    stop_id: s.name, // Use Nightjet station name instead of matched stop_id
-                    stop_name: s.name,
-                    stop_lat: lat,
-                    stop_lon: lon,
-                    isGrouped: false
-                  }
-                  handleMarkerClick(filteredStop)
-                }
-              }}
-            >
-              <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false}>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{s.name}</div>
-                  {s.departure && <div>Dep: {new Date(s.departure).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
-                  {s.arrival && <div>Arr: {new Date(s.arrival).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
-                </div>
-              </Tooltip>
-            </Marker>
-          )
-          })
+            const lat = s?.location?.latitude;
+            const lon = s?.location?.longitude;
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+              console.log(
+                "[DEBUG] Invalid coords for station:",
+                s.name,
+                lat,
+                lon,
+              );
+              return null;
+            }
+            console.log(
+              "[DEBUG] Rendering station marker:",
+              s.name,
+              "at",
+              lat,
+              lon,
+            );
+
+            // Use cyan/teal gradient for Nightjet stations
+            const icon = new Leaflet.DivIcon({
+              className: "nj-station-marker",
+              html: '<div style="width: 16px; height: 16px; background: linear-gradient(135deg, #0ea5e9, #14b8a6); border-radius: 50%; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(14, 165, 233, 0.5), 0 0 0 1px rgba(14, 165, 233, 0.3); transition: all 0.3s ease; cursor: pointer; z-index: 500;"></div>',
+              iconSize: [16, 16],
+              iconAnchor: [8, 8],
+            });
+
+            return (
+              <Marker
+                key={`nj-all-station-${idx}-${s.id || s.name}`}
+                position={[lat, lon]}
+                icon={icon}
+                eventHandlers={{
+                  click: (e) => {
+                    e.originalEvent?.stopPropagation();
+                    console.log(
+                      "[DEBUG NJ marker] Clicked station:",
+                      s.name,
+                      "at",
+                      lat,
+                      lon,
+                    );
+                    // Find matching station in stops to trigger selection
+                    const matchingStop = stops?.find(
+                      (stop) =>
+                        matchStationNames(s.name, stop.stop_id) ||
+                        matchStationNames(s.name, stop.stop_name),
+                    );
+                    console.log(
+                      "[DEBUG NJ marker] Matched stop:",
+                      matchingStop?.stop_id,
+                      matchingStop?.stop_name,
+                    );
+
+                    // Create a filteredStop object with Nightjet station name
+                    // Use the original Nightjet station name for display, not the matched stop_id
+                    const filteredStop = {
+                      ...(matchingStop || {}),
+                      stop_id: s.name, // Use Nightjet station name instead of matched stop_id
+                      stop_name: s.name,
+                      stop_lat: lat,
+                      stop_lon: lon,
+                      isGrouped: false,
+                    };
+                    handleMarkerClick(filteredStop);
+                  },
+                }}
+              >
+                <Tooltip
+                  direction="top"
+                  offset={[0, -10]}
+                  opacity={1}
+                  permanent={false}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{s.name}</div>
+                    {s.departure && (
+                      <div>
+                        Dep:{" "}
+                        {new Date(s.departure).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    )}
+                    {s.arrival && (
+                      <div>
+                        Arr:{" "}
+                        {new Date(s.arrival).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </Tooltip>
+              </Marker>
+            );
+          });
         })()}
 
         {/* Nightjet overlays: draw polylines and station markers for each included direction */}
@@ -1780,67 +2152,84 @@ const TrainMap = ({
           </Polyline>
         ))}
 
-        {njOverlays.flatMap((ov, idxOv) => (
+        {njOverlays.flatMap((ov, idxOv) =>
           (ov.stations || []).map((s, idx) => {
-            const lat = s?.location?.latitude
-            const lon = s?.location?.longitude
-            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
-            const isEnd = idx === 0 || idx === (ov.stations.length - 1)
-            
+            const lat = s?.location?.latitude;
+            const lon = s?.location?.longitude;
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+            const isEnd = idx === 0 || idx === ov.stations.length - 1;
+
             // Use regular station marker styles (gradient dots)
             const icon = new Leaflet.DivIcon({
-              className: 'nightjet-station-dot',
-              html: isEnd 
+              className: "nightjet-station-dot",
+              html: isEnd
                 ? '<div style="width: 20px; height: 20px; background: linear-gradient(135deg, #2196F3, #1976D2); border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4), 0 0 0 1px rgba(33, 150, 243, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 1000;"></div>'
                 : '<div style="width: 14px; height: 14px; background: linear-gradient(135deg, #4CAF50, #388E3C); border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4), 0 0 0 1px rgba(76, 175, 80, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 100;"></div>',
               iconSize: isEnd ? [20, 20] : [14, 14],
               iconAnchor: isEnd ? [10, 10] : [7, 7],
-            })
-            
+            });
+
             return (
-              <Marker 
-                key={`nj-station-${idxOv}-${idx}-${s.id || s.name}`} 
-                position={[lat, lon]} 
+              <Marker
+                key={`nj-station-${idxOv}-${idx}-${s.id || s.name}`}
+                position={[lat, lon]}
                 icon={icon}
                 eventHandlers={{
                   click: (e) => {
                     // Find matching station in stops to trigger selection
-                    const matchingStop = stops?.find(stop => 
-                      matchStationNames(s.name, stop.stop_id) || 
-                      matchStationNames(s.name, stop.stop_name)
-                    )
+                    const matchingStop = stops?.find(
+                      (stop) =>
+                        matchStationNames(s.name, stop.stop_id) ||
+                        matchStationNames(s.name, stop.stop_name),
+                    );
                     if (matchingStop) {
-                      handleMarkerClick(matchingStop)
+                      handleMarkerClick(matchingStop);
                     }
-                  }
+                  },
                 }}
               >
                 <Tooltip direction="top" offset={[0, -10]} opacity={1}>
                   <div>
                     <div style={{ fontWeight: 600 }}>{s.name}</div>
-                    {s.departure && <div>Dep: {new Date(s.departure).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
-                    {s.arrival && <div>Arr: {new Date(s.arrival).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
+                    {s.departure && (
+                      <div>
+                        Dep:{" "}
+                        {new Date(s.departure).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    )}
+                    {s.arrival && (
+                      <div>
+                        Arr:{" "}
+                        {new Date(s.arrival).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    )}
                   </div>
                 </Tooltip>
               </Marker>
-            )
-          })
-        ))}
+            );
+          }),
+        )}
 
         {/* All EuroNight stations - show filtered ones when filter is active, or all when no filter */}
         {(selected ? filteredEnStations : allEnStations).map((s, idx) => {
-          const lat = s?.location?.latitude
-          const lon = s?.location?.longitude
-          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
-          
+          const lat = s?.location?.latitude;
+          const lon = s?.location?.longitude;
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
           // Use purple/magenta gradient for EuroNight stations
           const icon = new Leaflet.DivIcon({
-            className: 'en-station-marker',
+            className: "en-station-marker",
             html: '<div style="width: 16px; height: 16px; background: linear-gradient(135deg, #a855f7, #c026d3); border-radius: 50%; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(168, 85, 247, 0.5), 0 0 0 1px rgba(168, 85, 247, 0.3); transition: all 0.3s ease; cursor: pointer; z-index: 500;"></div>',
             iconSize: [16, 16],
             iconAnchor: [8, 8],
-          })
-          
+          });
+
           return (
             <Marker
               key={`en-all-station-${idx}-${s.id || s.name}`}
@@ -1849,11 +2238,12 @@ const TrainMap = ({
               eventHandlers={{
                 click: (e) => {
                   e.originalEvent?.stopPropagation();
-                  const matchingStop = stops?.find(stop => 
-                    matchStationNames(s.name, stop.stop_id) || 
-                    matchStationNames(s.name, stop.stop_name)
-                  )
-                  
+                  const matchingStop = stops?.find(
+                    (stop) =>
+                      matchStationNames(s.name, stop.stop_id) ||
+                      matchStationNames(s.name, stop.stop_name),
+                  );
+
                   // Create a filteredStop object with EuroNight station name
                   // Use the original EuroNight station name for display, not the matched stop_id
                   const filteredStop = {
@@ -1862,21 +2252,42 @@ const TrainMap = ({
                     stop_name: s.name,
                     stop_lat: lat,
                     stop_lon: lon,
-                    isGrouped: false
-                  }
-                  handleMarkerClick(filteredStop)
-                }
+                    isGrouped: false,
+                  };
+                  handleMarkerClick(filteredStop);
+                },
               }}
             >
-              <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false}>
+              <Tooltip
+                direction="top"
+                offset={[0, -10]}
+                opacity={1}
+                permanent={false}
+              >
                 <div>
                   <div style={{ fontWeight: 600 }}>{s.name}</div>
-                  {s.departure && <div>Dep: {new Date(s.departure).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
-                  {s.arrival && <div>Arr: {new Date(s.arrival).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
+                  {s.departure && (
+                    <div>
+                      Dep:{" "}
+                      {new Date(s.departure).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  )}
+                  {s.arrival && (
+                    <div>
+                      Arr:{" "}
+                      {new Date(s.arrival).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  )}
                 </div>
               </Tooltip>
             </Marker>
-          )
+          );
         })}
 
         {/* EuroNight overlays: draw polylines and station markers */}
@@ -1890,50 +2301,67 @@ const TrainMap = ({
           </Polyline>
         ))}
 
-        {enOverlays.flatMap((ov, idxOv) => (
+        {enOverlays.flatMap((ov, idxOv) =>
           (ov.stations || []).map((s, idx) => {
-            const lat = s?.location?.latitude
-            const lon = s?.location?.longitude
-            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
-            const isEnd = idx === 0 || idx === (ov.stations.length - 1)
-            
+            const lat = s?.location?.latitude;
+            const lon = s?.location?.longitude;
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+            const isEnd = idx === 0 || idx === ov.stations.length - 1;
+
             const icon = new Leaflet.DivIcon({
-              className: 'euronight-station-dot',
-              html: isEnd 
+              className: "euronight-station-dot",
+              html: isEnd
                 ? '<div style="width: 20px; height: 20px; background: linear-gradient(135deg, #2196F3, #1976D2); border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4), 0 0 0 1px rgba(33, 150, 243, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 1000;"></div>'
                 : '<div style="width: 14px; height: 14px; background: linear-gradient(135deg, #4CAF50, #388E3C); border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4), 0 0 0 1px rgba(76, 175, 80, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 100;"></div>',
               iconSize: isEnd ? [20, 20] : [14, 14],
               iconAnchor: isEnd ? [10, 10] : [7, 7],
-            })
-            
+            });
+
             return (
-              <Marker 
-                key={`en-station-${idxOv}-${idx}-${s.id || s.name}`} 
-                position={[lat, lon]} 
+              <Marker
+                key={`en-station-${idxOv}-${idx}-${s.id || s.name}`}
+                position={[lat, lon]}
                 icon={icon}
                 eventHandlers={{
                   click: (e) => {
-                    const matchingStop = stops?.find(stop => 
-                      matchStationNames(s.name, stop.stop_id) || 
-                      matchStationNames(s.name, stop.stop_name)
-                    )
+                    const matchingStop = stops?.find(
+                      (stop) =>
+                        matchStationNames(s.name, stop.stop_id) ||
+                        matchStationNames(s.name, stop.stop_name),
+                    );
                     if (matchingStop) {
-                      handleMarkerClick(matchingStop)
+                      handleMarkerClick(matchingStop);
                     }
-                  }
+                  },
                 }}
               >
                 <Tooltip direction="top" offset={[0, -10]} opacity={1}>
                   <div>
                     <div style={{ fontWeight: 600 }}>{s.name}</div>
-                    {s.departure && <div>Dep: {new Date(s.departure).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
-                    {s.arrival && <div>Arr: {new Date(s.arrival).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</div>}
+                    {s.departure && (
+                      <div>
+                        Dep:{" "}
+                        {new Date(s.departure).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    )}
+                    {s.arrival && (
+                      <div>
+                        Arr:{" "}
+                        {new Date(s.arrival).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    )}
                   </div>
                 </Tooltip>
               </Marker>
-            )
-          })
-        ))}
+            );
+          }),
+        )}
 
         {routePaths.length > 0 &&
           routePaths.map((path) => (

@@ -57,12 +57,9 @@ async function testOebb() {
               }
             }
             
-            // Save full data for NJ402 or NJ403
-            if (leg.line.name === "NJ 402" || leg.line.name === "NJ 403" || 
-                leg.line.name === "NJ402" || leg.line.name === "NJ403") {
-              console.log("\n  📝 Full NJ402/403 data:");
-              console.log(JSON.stringify(leg, null, 2));
-            }
+            // Save full data for all NightJet trains
+            console.log("\n  📝 Full NightJet data:");
+            console.log(JSON.stringify(leg, null, 2));
           }
         }
       });
