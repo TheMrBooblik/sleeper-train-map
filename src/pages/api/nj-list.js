@@ -45,7 +45,8 @@ export default async function handler(req, res) {
         if (stationName) {
           const idx = stations.findIndex(s => matchName(stationName, s.name))
           if (idx < 0) continue
-          stations = stations.slice(idx)
+          // Keep all stations on this route since you can travel in both directions
+          // Don't slice - show the entire route
         }
         const coords = stations
           .map((s) => [s?.location?.latitude, s?.location?.longitude])

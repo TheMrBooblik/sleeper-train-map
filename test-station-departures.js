@@ -85,21 +85,6 @@ async function testStationDepartures() {
             const location = stop.stop.location;
             console.log(`  - ${stop.stop.name} [${location.latitude}, ${location.longitude}] at ${time}`);
           });
-          
-          // Show NJ402/403 in detail
-          if (dep.line.name.includes("402") || dep.line.name.includes("403")) {
-            console.log("\n📝 Detailed station data:");
-            trip.stopovers.forEach(stop => {
-              console.log(JSON.stringify({
-                name: stop.stop.name,
-                id: stop.stop.id,
-                lat: stop.stop.location.latitude,
-                lon: stop.stop.location.longitude,
-                arrival: stop.arrival,
-                departure: stop.departure
-              }, null, 2));
-            });
-          }
         }
       } catch (tripError) {
         console.error(`  Error fetching trip details: ${tripError.message}`);

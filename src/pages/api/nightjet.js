@@ -1,150 +1,87 @@
 // pages/api/nightjet.js
-import { createClient } from "hafas-client";
-import { profile as oebbProfile } from "hafas-client/p/oebb";
-import fs from "fs";
-import path from "path";
+// Fetch Nightjet train data from official endpoint with caching
 
-// Cache directory in .next/cache
-const CACHE_DIR = path.join(process.cwd(), ".next", "cache", "nightjet");
-const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+import fs from 'fs'
+import path from 'path'
 
-// Ensure cache directory exists
-function ensureCacheDir() {
-  if (!fs.existsSync(CACHE_DIR)) {
-    fs.mkdirSync(CACHE_DIR, { recursive: true });
-  }
+const CACHE_DIR = path.join(process.cwd(), '.next', 'cache', 'nightjet')
+const TTL_MS = 24 * 60 * 60 * 1000
+
+function ensureDir() { if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true }) }
+
+function cachePath(train, date) {
+  const key = `${String(train).replace(/\s+/g,'').toUpperCase()}-${date}`
+  return path.join(CACHE_DIR, `${key}.json`)
 }
 
-// Get cache file path for a train
-function getCacheFilePath(trainNumber) {
-  return path.join(CACHE_DIR, `${trainNumber}.json`);
+function isFresh(p) {
+  try { return fs.existsSync(p) && (Date.now() - fs.statSync(p).mtimeMs) < TTL_MS } catch { return false }
 }
 
-// Check if cache is valid
-function isCacheValid(cacheFilePath) {
-  try {
-    if (!fs.existsSync(cacheFilePath)) {
-      return false;
+function normalize(nj, date) {
+  const stops = Array.isArray(nj?.route?.stops) ? nj.route.stops : []
+  const stations = stops.map(s => {
+    const [lat, lon] = s?.station?.coords || []
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+    const name = s?.station?.name?.en || s?.station?.name?.int || s?.station?.name?.de
+    return {
+      id: s?.station?.eva || s?.station?.evaMeta || null,
+      name,
+      location: { latitude: lat, longitude: lon },
+      arrival: s?.arr ? new Date(s.arr).toISOString() : null,
+      departure: s?.dep ? new Date(s.dep).toISOString() : null,
+      pickup: !!s?.pickup,
+      dropoff: !!s?.dropoff,
     }
-    
-    const stats = fs.statSync(cacheFilePath);
-    const now = Date.now();
-    const cacheAge = now - stats.mtime.getTime();
-    
-    return cacheAge < CACHE_DURATION_MS;
-  } catch (error) {
-    console.error("Error checking cache:", error);
-    return false;
-  }
-}
-
-// Read cached data
-function readCache(cacheFilePath) {
-  try {
-    const data = fs.readFileSync(cacheFilePath, "utf8");
-    return JSON.parse(data);
-  } catch (error) {
-    console.error("Error reading cache:", error);
-    return null;
-  }
-}
-
-// Write data to cache
-function writeCache(cacheFilePath, data) {
-  try {
-    ensureCacheDir();
-    fs.writeFileSync(cacheFilePath, JSON.stringify(data, null, 2), "utf8");
-    console.log(`Cache written to ${cacheFilePath}`);
-  } catch (error) {
-    console.error("Error writing cache:", error);
-  }
-}
-
-// Fetch journey data from ÖBB API
-async function fetchNightjetData(trainNumber) {
-  try {
-    console.log(`Fetching data for train ${trainNumber} from ÖBB API...`);
-    
-    // The oebb API doesn't have a direct "get train by number" method,
-    // so we'll need to search for journeys on a typical route.
-    // For NJ402/NJ403, this is typically Vienna to various destinations.
-    // We'll search for journeys and filter by train number.
-    
-    // Common origin/destination for Nightjet routes
-    // NJ402/403 runs between various cities - we'll use Vienna as a reference
-    const viennaStationId = "1190100"; // Wien Hauptbahnhof
-    
-    // Search for stations first to get journey info
-    // Note: The oebb package has limitations - we might need to adjust this approach
-    // based on actual API responses
-    
-    // For now, we'll return a structured placeholder that matches expected format
-    const journeyData = {
-      trainNumber,
-      fetched: new Date().toISOString(),
-      note: "This is a placeholder. The oebb package primarily supports journey search, not direct train lookup.",
-      stations: [],
-      // In a full implementation, we'd fetch and parse journey data here
-    };
-    
-    return journeyData;
-  } catch (error) {
-    console.error(`Error fetching Nightjet data for ${trainNumber}:`, error);
-    throw error;
+  }).filter(Boolean)
+  return {
+    lineName: nj?.trainNumber,
+    operator: 'Nightjet',
+    date,
+    stations,
+    polyline: nj?.route?.polyline || null,
+    fetchedAt: new Date().toISOString(),
+    source: 'nightjet-com-train'
   }
 }
 
 export default async function handler(req, res) {
-  const { train } = req.query;
-  
-  // Validate train parameter
-  if (!train) {
-    return res.status(400).json({ error: "Missing 'train' parameter" });
-  }
-  
-  // Normalize train number (remove spaces)
-  const trainNumber = train.replace(/\s+/g, "").toUpperCase();
-  
-  // Currently only supporting NJ402 and NJ403
-  const supportedTrains = ["NJ402", "NJ403"];
-  if (!supportedTrains.includes(trainNumber)) {
-    return res.status(400).json({ 
-      error: `Unsupported train number. Currently supported: ${supportedTrains.join(", ")}` 
-    });
-  }
-  
   try {
-    const cacheFilePath = getCacheFilePath(trainNumber);
+    const train = (req.query.train || '').toString()
+    const date = (req.query.date || (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()).toString()
+
+    if (!train) return res.status(400).json({ error: 'train parameter required' })
+
+    ensureDir()
+    const p = cachePath(train, date)
     
-    // Check if we have valid cached data
-    if (isCacheValid(cacheFilePath)) {
-      console.log(`Serving cached data for ${trainNumber}`);
-      const cachedData = readCache(cacheFilePath);
-      
-      if (cachedData) {
-        res.setHeader("X-Cache", "HIT");
-        res.setHeader("Cache-Control", "public, max-age=3600"); // Cache on client for 1 hour
-        return res.status(200).json(cachedData);
-      }
+    // Return cached if fresh
+    if (isFresh(p)) {
+      try {
+        const cached = JSON.parse(fs.readFileSync(p, 'utf8'))
+        res.setHeader('X-Cache', 'HIT')
+        return res.status(200).json(cached)
+      } catch {}
     }
+
+    // Fetch from upstream (train endpoint works for both Nightjet and EuroNight)
+    const url = `https://www.nightjet.com/nj-booking-ocp/destinations/train/${encodeURIComponent(train)}/${date}`
+    const response = await fetch(url, { headers: { accept: 'application/json' } })
+    if (!response.ok) {
+      return res.status(response.status).json({ error: `upstream ${response.status}` })
+    }
+
+    const data = await response.json()
+    const payload = normalize(data, date)
     
-    // Fetch fresh data from ÖBB API
-    console.log(`Cache miss or invalid for ${trainNumber}, fetching from API...`);
-    const data = await fetchNightjetData(trainNumber);
+    // Cache it
+    fs.writeFileSync(p, JSON.stringify(payload, null, 2), 'utf8')
     
-    // Write to cache
-    writeCache(cacheFilePath, data);
-    
-    // Return response
-    res.setHeader("X-Cache", "MISS");
-    res.setHeader("Cache-Control", "public, max-age=3600");
-    res.status(200).json(data);
-    
-  } catch (error) {
-    console.error("Error in nightjet API handler:", error);
-    res.status(500).json({ 
-      error: "Error fetching Nightjet data",
-      message: error.message 
-    });
+    res.setHeader('X-Cache', 'MISS')
+    res.setHeader('Cache-Control', 'public, max-age=86400')
+    return res.status(200).json(payload)
+  } catch (e) {
+    console.error('[api/nightjet] error', e)
+    return res.status(500).json({ error: 'internal_error' })
   }
 }

@@ -67,9 +67,13 @@ const TrainMap = ({
   const [njOverlays, setNjOverlays] = useState([]);
   // All Nightjet stations for display on map (not filtered by clicked station)
   const [allNjStations, setAllNjStations] = useState([]);
+  // Filtered NJ stations (shown when a station is selected)
+  const [filteredNjStations, setFilteredNjStations] = useState([]);
   // EuroNight overlays and stations
   const [enOverlays, setEnOverlays] = useState([]);
   const [allEnStations, setAllEnStations] = useState([]);
+  // Filtered EN stations (shown when a station is selected)
+  const [filteredEnStations, setFilteredEnStations] = useState([]);
   // All routes for "Show All Routes" mode
   const [allNjRoutes, setAllNjRoutes] = useState([]);
   const [allEnRoutes, setAllEnRoutes] = useState([]);
@@ -234,6 +238,8 @@ const TrainMap = ({
   const removeFilter = () => {
     setNjOverlays([]);
     setEnOverlays([]);
+    setFilteredNjStations([]);
+    setFilteredEnStations([]);
     setStopId(null);
     setSelected(false);
     setSelectedStationName("");
@@ -344,7 +350,17 @@ const TrainMap = ({
             fetch('/api/en-prewarm', { method: 'GET' })
           ])
           
-          // Load all Nightjet stations and routes for display
+          // Load all Nightjet stations from comprehensive API
+          const njStationsRes = await fetch(`/api/nj-all-stations?date=${date}`)
+          if (njStationsRes.ok) {
+            const stationsData = await njStationsRes.json()
+            if (stationsData?.stations?.length) {
+              console.log('[DEBUG] Loaded all Nightjet stations:', stationsData.count)
+              setAllNjStations(stationsData.stations)
+            }
+          }
+          
+          // Load all Nightjet routes for display
           const njRes = await fetch(`/api/nj-list?date=${date}`)
           if (njRes.ok) {
             const data = await njRes.json()
@@ -360,18 +376,6 @@ const TrainMap = ({
                 type: 'nightjet'
               }))
               setAllNjRoutes(routes)
-              
-              // Extract unique stations
-              const stationMap = new Map()
-              data.items.forEach(route => {
-                route.stations?.forEach(station => {
-                  const key = `${station.location?.latitude}-${station.location?.longitude}`
-                  if (!stationMap.has(key)) {
-                    stationMap.set(key, station)
-                  }
-                })
-              })
-              setAllNjStations(Array.from(stationMap.values()))
             }
           }
           
@@ -538,12 +542,75 @@ const TrainMap = ({
 
       setNjOverlays(njOverlays)
       setEnOverlays(enOverlays)
+      
+      console.log('[DEBUG] Night train routes for', stationName, ':', {
+        nightjetRoutes: njOverlays.length,
+        euronightRoutes: enOverlays.length,
+        njRouteNames: njOverlays.map(o => o.lineName),
+        enRouteNames: enOverlays.map(o => o.lineName)
+      })
+
+      // Extract unique stations from Nightjet overlays
+      // IMPORTANT: For each route, only show stations that are directly reachable
+      // (on the same train/route) from the clicked station
+      if (njOverlays.length > 0) {
+        const njStationMap = new Map()
+        njOverlays.forEach(overlay => {
+          // Find the clicked station in this route
+          const clickedStationIndex = overlay.stations?.findIndex(s => 
+            matchStationNames(s.name, stationName)
+          )
+          
+          if (clickedStationIndex !== -1 && overlay.stations) {
+            // Only include stations on the same route (same train)
+            // All stations on this route are directly reachable without transfer
+            overlay.stations.forEach(station => {
+              const key = `${station.location?.latitude}-${station.location?.longitude}`
+              if (!njStationMap.has(key)) {
+                njStationMap.set(key, station)
+              }
+            })
+          }
+        })
+        setFilteredNjStations(Array.from(njStationMap.values()))
+      } else {
+        // No Nightjet routes found - clear filtered stations
+        setFilteredNjStations([])
+      }
+
+      // Extract unique stations from EuroNight overlays
+      // IMPORTANT: For each route, only show stations that are directly reachable
+      // (on the same train/route) from the clicked station
+      if (enOverlays.length > 0) {
+        const enStationMap = new Map()
+        enOverlays.forEach(overlay => {
+          // Find the clicked station in this route
+          const clickedStationIndex = overlay.stations?.findIndex(s => 
+            matchStationNames(s.name, stationName)
+          )
+          
+          if (clickedStationIndex !== -1 && overlay.stations) {
+            // Only include stations on the same route (same train)
+            // All stations on this route are directly reachable without transfer
+            overlay.stations.forEach(station => {
+              const key = `${station.location?.latitude}-${station.location?.longitude}`
+              if (!enStationMap.has(key)) {
+                enStationMap.set(key, station)
+              }
+            })
+          }
+        })
+        setFilteredEnStations(Array.from(enStationMap.values()))
+      } else {
+        // No EuroNight routes found - clear filtered stations
+        setFilteredEnStations([])
+      }
     } catch (e) {
       console.error('Night trains fetch error', e)
       setNjOverlays([])
       setEnOverlays([])
     }
-  }, [])
+  }, [stops, matchStationNames, setFilteredStops])
 
   const handleMarkerClick = useCallback(
     (filteredStop) => {
@@ -637,11 +704,19 @@ const TrainMap = ({
 
         // IMPORTANT: Set filtered stops to only show stations from selected routes
         // This hides all other stations when a filter is applied
+        console.log('[DEBUG handleMarkerClick] Filtered stops for', stop_id, ':', {
+          selectedRouteIds: routeIdsArray,
+          routeCitiesCount: routeCities.length,
+          routeStopsCount: routeStops.length,
+          routeStopNames: routeStops.map(s => s.stop_id).slice(0, 10)
+        })
         setFilteredStops(routeStops);
       } else {
-        // Station has no Back-on-Track routes, but might have night trains
-        // Keep all stops visible
-        setFilteredStops(stops);
+        // Station has no Back-on-Track routes
+        // We'll filter based on night train routes after they're loaded
+        // For now, set empty to hide all Back-on-Track stations
+        setStopRouteIds([]);
+        setFilteredStops([]);
       }
       
       setSelected(true);
@@ -1526,8 +1601,8 @@ const TrainMap = ({
         <ZoomControl className="outline-none" />
         <LocationControl />
 
-        {/* All Nightjet stations - always visible */}
-        {allNjStations.map((s, idx) => {
+        {/* All Nightjet stations - show filtered ones when filter is active, or all when no filter */}
+        {(selected ? filteredNjStations : allNjStations).map((s, idx) => {
           const lat = s?.location?.latitude
           const lon = s?.location?.longitude
           if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
@@ -1639,8 +1714,8 @@ const TrainMap = ({
           })
         ))}
 
-        {/* All EuroNight stations - always visible */}
-        {allEnStations.map((s, idx) => {
+        {/* All EuroNight stations - show filtered ones when filter is active, or all when no filter */}
+        {(selected ? filteredEnStations : allEnStations).map((s, idx) => {
           const lat = s?.location?.latitude
           const lon = s?.location?.longitude
           if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
