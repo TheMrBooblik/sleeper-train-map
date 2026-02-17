@@ -1,5 +1,6 @@
 // pages/api/trains.js
 import { enrichStopsData, enrichRoutesData } from "../../lib/uzDataEnricher";
+import { isTrain4you } from "../../lib/trainOperatorsFilter";
 
 export default async function handler(req, res) {
   const { type } = req.query;
@@ -36,50 +37,64 @@ export default async function handler(req, res) {
 
     let jsonData = await response.json();
 
-    // Filter out Nightjet routes from Back-on-Track data (we use official Nightjet API instead)
+    // Filter out Nightjet and Train4you from Back-on-Track data
+    // Nightjet: we use official Nightjet API instead
+    // Train4you: don't show stations only with Train4you or its routes
     if (type === "trips") {
-      console.log('[API] Filtering out Nightjet routes from trips data');
+      console.log("[API] Filtering out Nightjet and Train4you from trips data");
       const filtered = {};
       Object.entries(jsonData || {}).forEach(([key, trip]) => {
-        const tripName = trip?.trip_short_name || trip?.route_short_name || '';
-        // Exclude if trip name starts with "NJ " (Nightjet trains)
-        if (!/^\s*NJ\s+\d+/.test(tripName)) {
+        const tripName = (
+          trip?.trip_short_name ||
+          trip?.route_short_name ||
+          ""
+        ).toString();
+        const isNj = /^\s*NJ\s+\d+/.test(tripName);
+        const isEn = /^\s*EN\s+\d+/.test(tripName);
+        const isT4y = isTrain4you(trip, tripName);
+        if (!isNj && !isEn && !isT4y) {
           filtered[key] = trip;
         }
       });
       jsonData = filtered;
-      console.log('[API] Filtered trips, Nightjet excluded, remaining:', Object.keys(filtered).length);
+      console.log(
+        "[API] Filtered trips (Nightjet + Train4you excluded), remaining:",
+        Object.keys(filtered).length,
+      );
     } else if (type === "view_ontd_map") {
-      console.log('[API] Filtering out Nightjet routes from view_ontd_map');
+      console.log(
+        "[API] Filtering out Nightjet and Train4you routes from view_ontd_map",
+      );
       const filtered = {};
       Object.entries(jsonData || {}).forEach(([key, route]) => {
-        const trip0 = route?.trip_short_name_0 || '';
-        const trip1 = route?.trip_short_name_1 || '';
-        // Exclude if either direction is a Nightjet train
-        if (!/^\s*NJ\s+\d+/.test(trip0) && !/^\s*NJ\s+\d+/.test(trip1)) {
+        const trip0 = (route?.trip_short_name_0 || "").toString();
+        const trip1 = (route?.trip_short_name_1 || "").toString();
+        const isNj = /^\s*NJ\s+\d+/.test(trip0) || /^\s*NJ\s+\d+/.test(trip1);
+        const isEn = /^\s*EN\s+\d+/.test(trip0) || /^\s*EN\s+\d+/.test(trip1);
+        const isT4y = isTrain4you(route, trip0) || isTrain4you(route, trip1);
+        if (!isNj && !isEn && !isT4y) {
           filtered[key] = route;
         }
       });
       jsonData = filtered;
-      console.log('[API] Filtered view_ontd_map, Nightjet excluded, remaining:', Object.keys(filtered).length);
+      console.log(
+        "[API] Filtered view_ontd_map (Nightjet + Train4you excluded), remaining:",
+        Object.keys(filtered).length,
+      );
     }
 
     // Enrich with manual UZ data if available
     try {
-      console.log('[API] Request type:', type);
+      console.log("[API] Request type:", type);
       if (type === "stops") {
-        console.log('[API] Enriching stops data');
+        console.log("[API] Enriching stops data");
         jsonData = await enrichStopsData(jsonData);
       } else if (type === "view_ontd_map") {
-        console.log('[API] Enriching view_ontd_map data');
-        const before = jsonData['180']?.via_0;
+        console.log("[API] Enriching view_ontd_map data");
         jsonData = await enrichRoutesData(jsonData);
-        const after = jsonData['180']?.via_0;
-        console.log('[API] Route 180 via_0 BEFORE enrichment:', before);
-        console.log('[API] Route 180 via_0 AFTER enrichment:', after);
       }
     } catch (enrichError) {
-      console.error('[API] Error enriching data:', enrichError);
+      console.error("[API] Error enriching data:", enrichError);
       // Continue with non-enriched data
     }
 
