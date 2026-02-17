@@ -3,6 +3,7 @@
 
 import fs from "fs";
 import path from "path";
+import { discoverAllTrainNumbers } from "./lib/nj-discovery";
 
 const CACHE_DIR = path.join(process.cwd(), ".next", "cache", "nightjet");
 const CACHE_FILE = path.join(CACHE_DIR, "all-stations.json");
@@ -55,112 +56,21 @@ async function fetchAllStations(date, onProgress) {
 
   log("Starting to fetch all stations for date:", date);
 
-  // All known Nightjet country IDs
-  const countries = [
-    { eva: "88", name: "Belgium" },
-    { eva: "55", name: "Hungary" },
-    { eva: "78", name: "Croatia" },
-    { eva: "79", name: "Slovenia" },
-    { eva: "80", name: "Germany" },
-    { eva: "81", name: "Austria" },
-    { eva: "83", name: "Italy" },
-    { eva: "84", name: "Netherlands" },
-    { eva: "51", name: "Poland" },
-    { eva: "85", name: "Switzerland" },
-    { eva: "87", name: "France" },
-    { eva: "54", name: "Czech Republic" },
-  ];
-
   const allStations = new Map(); // Use Map to deduplicate by EVA number
-  const trainNumbers = new Set(); // Track unique train numbers to fetch full routes
-
-  // Step 1: Check cached train files first to avoid unnecessary API calls
-  log("Step 1: Checking cached train data...");
-  const cachedTrainFiles = fs.existsSync(CACHE_DIR)
-    ? fs
-        .readdirSync(CACHE_DIR)
-        .filter((f) => f.endsWith(`${date}.json`) && f.startsWith("NJ"))
-    : [];
-
-  if (cachedTrainFiles.length > 0) {
-    log(
-      `Found ${cachedTrainFiles.length} cached train files, extracting train numbers...`,
-    );
-    cachedTrainFiles.forEach((file) => {
-      try {
-        const filePath = path.join(CACHE_DIR, file);
-        const cached = JSON.parse(fs.readFileSync(filePath, "utf8"));
-        if (cached?.lineName) {
-          trainNumbers.add(cached.lineName);
-        }
-      } catch {}
-    });
-    log(`Extracted ${trainNumbers.size} train numbers from cache`);
-  }
-
-  // Step 2: Discover additional train numbers from destinations endpoint (parallelized)
-  log("Step 2: Discovering train numbers from destinations API...");
-  const countryPairs = [];
-  for (const fromCountry of countries) {
-    for (const toCountry of countries) {
-      // Skip same-country pairs to reduce requests
-      if (fromCountry.eva !== toCountry.eva) {
-        countryPairs.push({ from: fromCountry, to: toCountry });
+  
+  // Use shared discovery utility to find all train numbers
+  // This combines cache, Back-on-Track, and comprehensive API discovery
+  log("Step 1: Discovering train numbers...");
+  const trainNumbers = await discoverAllTrainNumbers(
+    date,
+    "", // Base URL not needed for nj-all-stations (Back-on-Track discovery will be skipped)
+    (progress) => {
+      log(progress.message);
+      if (onProgress) {
+        onProgress(progress);
       }
     }
-  }
-
-  log(`Fetching destinations from ${countryPairs.length} country pairs...`);
-  const batchSize = 5; // Process 5 requests in parallel
-  let processed = 0;
-
-  for (let i = 0; i < countryPairs.length; i += batchSize) {
-    const batch = countryPairs.slice(i, i + batchSize);
-    const promises = batch.map(async ({ from, to }) => {
-      try {
-        const destinationsUrl = `https://www.nightjet.com/nj-booking-ocp/destinations/country/${from.eva}/country/${to.eva}/${date}`;
-        const destResponse = await fetch(destinationsUrl, {
-          headers: { accept: "application/json" },
-        });
-
-        if (!destResponse.ok) {
-          if (destResponse.status === 404) return [];
-          return [];
-        }
-
-        const destinations = await destResponse.json();
-        return Array.isArray(destinations) ? destinations : [];
-      } catch (err) {
-        return [];
-      }
-    });
-
-    const results = await Promise.all(promises);
-    results.forEach((destinations) => {
-      destinations.forEach((dest) => {
-        if (dest.trainNumber) {
-          trainNumbers.add(dest.trainNumber);
-        }
-      });
-    });
-
-    processed += batch.length;
-    const progress = Math.round((processed / countryPairs.length) * 30); // 30% for discovery
-    log(
-      `Discovered ${trainNumbers.size} trains so far (${processed}/${countryPairs.length} pairs checked)`,
-    );
-    if (onProgress) {
-      onProgress({
-        step: "discovering",
-        progress,
-        message: `Checking routes: ${processed}/${countryPairs.length} country pairs`,
-        trainsFound: trainNumbers.size,
-      });
-    }
-
-    // Small delay between batches
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
+  );
 
   log(`Found ${trainNumbers.size} unique train numbers total`);
 

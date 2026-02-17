@@ -4,6 +4,7 @@
 
 import fs from 'fs'
 import path from 'path'
+import { discoverAllTrainNumbers } from './lib/nj-discovery'
 
 const CACHE_DIR = path.join(process.cwd(), '.next', 'cache', 'nightjet')
 const TTL_MS = 24 * 60 * 60 * 1000
@@ -54,107 +55,21 @@ export default async function handler(req, res) {
     const max = Math.max(1, Math.min(50, parseInt(req.query.max ?? '12', 10)))
     const date = (req.query.date || (() => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()).toString()
 
-    // 1) Discover NJ trains from existing Back-on-Track data via our proxy
+    // Discover all NightJet trains using shared discovery utility
+    // This combines cache, Back-on-Track, and comprehensive API discovery
+    const baseUrl = `${req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'] : 'http'}://${req.headers.host}`
     let trains = []
+    
     try {
-      const tripsRes = await fetch(`${req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'] : 'http'}://${req.headers.host}/api/trains?type=trips`)
-      if (tripsRes.ok) {
-        const trips = await tripsRes.json()
-        const nums = new Set()
-        Object.values(trips || {}).forEach(t => {
-          const n = (t?.trip_short_name || t?.route_short_name || '').toString()
-          if (/^\s*NJ\s*\d+/.test(n)) nums.add(n.replace(/\s+/g,' ').trim())
-        })
-        trains = Array.from(nums)
-      }
-    } catch {}
-
-    // 2) Comprehensive fallback: Discover all NightJet trains from country-to-country destinations API
-    // This ensures we get ALL possible NightJet trains, not just a hardcoded subset
-    if (trains.length === 0) {
-      try {
-        console.log('[nj-prewarm] Back-on-Track discovery failed, using comprehensive discovery...')
-        const trainNumbers = new Set()
-        
-        // Check cached train files first
-        if (fs.existsSync(CACHE_DIR)) {
-          const cachedFiles = fs.readdirSync(CACHE_DIR).filter(f => f.endsWith(`${date}.json`) && f.startsWith('NJ'))
-          cachedFiles.forEach(file => {
-            try {
-              const filePath = path.join(CACHE_DIR, file)
-              const cached = JSON.parse(fs.readFileSync(filePath, 'utf8'))
-              if (cached?.lineName) {
-                trainNumbers.add(cached.lineName)
-              }
-            } catch {}
-          })
-        }
-        
-        // Discover trains from NightJet country-to-country destinations API
-        const countries = [
-          { eva: "88", name: "Belgium" },
-          { eva: "55", name: "Hungary" },
-          { eva: "78", name: "Croatia" },
-          { eva: "79", name: "Slovenia" },
-          { eva: "80", name: "Germany" },
-          { eva: "81", name: "Austria" },
-          { eva: "83", name: "Italy" },
-          { eva: "84", name: "Netherlands" },
-          { eva: "51", name: "Poland" },
-          { eva: "85", name: "Switzerland" },
-          { eva: "87", name: "France" },
-          { eva: "54", name: "Czech Republic" },
-        ]
-        
-        const countryPairs = []
-        for (const fromCountry of countries) {
-          for (const toCountry of countries) {
-            if (fromCountry.eva !== toCountry.eva) {
-              countryPairs.push({ from: fromCountry, to: toCountry })
-            }
-          }
-        }
-        
-        // Fetch destinations in batches to discover train numbers
-        const batchSize = 5
-        for (let i = 0; i < countryPairs.length; i += batchSize) {
-          const batch = countryPairs.slice(i, i + batchSize)
-          const promises = batch.map(async ({ from, to }) => {
-            try {
-              const destinationsUrl = `https://www.nightjet.com/nj-booking-ocp/destinations/country/${from.eva}/country/${to.eva}/${date}`
-              const destResponse = await fetch(destinationsUrl, {
-                headers: { accept: "application/json" },
-              })
-              if (!destResponse.ok) return []
-              const destinations = await destResponse.json()
-              return Array.isArray(destinations) ? destinations : []
-            } catch {
-              return []
-            }
-          })
-          
-          const results = await Promise.all(promises)
-          results.forEach(destinations => {
-            destinations.forEach(dest => {
-              if (dest.trainNumber) {
-                trainNumbers.add(dest.trainNumber)
-              }
-            })
-          })
-          
-          // Small delay between batches
-          if (i + batchSize < countryPairs.length) {
-            await new Promise(resolve => setTimeout(resolve, 100))
-          }
-        }
-        
-        trains = Array.from(trainNumbers)
-        console.log(`[nj-prewarm] Comprehensive discovery found ${trains.length} NightJet trains`)
-      } catch (err) {
-        console.error('[nj-prewarm] Comprehensive discovery failed:', err)
-        // Last resort fallback - use common NightJet trains
-        trains = ['NJ 402', 'NJ 403', 'NJ 404', 'NJ 406', 'NJ 407', 'NJ 420', 'NJ 421', 'NJ 424', 'NJ 425', 'NJ 468', 'NJ 469', 'NJ 470', 'NJ 471', 'NJ 490', 'NJ 491']
-      }
+      const trainNumbers = await discoverAllTrainNumbers(date, baseUrl, (progress) => {
+        console.log(`[nj-prewarm] ${progress.message}`)
+      })
+      trains = Array.from(trainNumbers)
+      console.log(`[nj-prewarm] Discovered ${trains.length} NightJet trains`)
+    } catch (err) {
+      console.error('[nj-prewarm] Discovery failed:', err)
+      // Last resort fallback - use common NightJet trains
+      trains = ['NJ 402', 'NJ 403', 'NJ 404', 'NJ 406', 'NJ 407', 'NJ 420', 'NJ 421', 'NJ 424', 'NJ 425', 'NJ 468', 'NJ 469', 'NJ 470', 'NJ 471', 'NJ 490', 'NJ 491']
     }
 
     // 2) Limit and prewarm with low concurrency (3)

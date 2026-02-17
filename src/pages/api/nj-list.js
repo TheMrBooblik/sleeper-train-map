@@ -4,6 +4,7 @@
 
 import fs from 'fs'
 import path from 'path'
+import { discoverAllTrainNumbers } from './lib/nj-discovery'
 
 const CACHE_DIR = path.join(process.cwd(), '.next', 'cache', 'nightjet')
 
@@ -74,171 +75,31 @@ export default async function handler(req, res) {
       try {
         console.log('[nj-list] Starting comprehensive train discovery...')
         
-        // Step 1: Check cached train files to extract known train numbers
-        const trainNumbers = new Set()
-        const cachedFiles = fs.readdirSync(CACHE_DIR).filter(f => f.endsWith(`${date}.json`) && f.startsWith('NJ'))
-        cachedFiles.forEach(file => {
-          try {
-            const filePath = path.join(CACHE_DIR, file)
-            const cached = JSON.parse(fs.readFileSync(filePath, 'utf8'))
-            if (cached?.lineName) {
-              trainNumbers.add(cached.lineName)
-            }
-          } catch {}
+        // Use shared discovery utility to find all train numbers
+        const baseUrl = `${req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'] : 'http'}://${req.headers.host}`
+        const trainNumbers = await discoverAllTrainNumbers(date, baseUrl, (progress) => {
+          console.log(`[nj-list] ${progress.message}`)
         })
-        
-        // Step 2: Discover trains from Back-on-Track data
-        try {
-          const tripsRes = await fetch(`${req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'] : 'http'}://${req.headers.host}/api/trains?type=trips`)
-          if (tripsRes.ok) {
-            const trips = await tripsRes.json()
-            Object.values(trips || {}).forEach(t => {
-              const n = (t?.trip_short_name || t?.route_short_name || '').toString()
-              if (/^\s*NJ\s*\d+/.test(n)) {
-                trainNumbers.add(n.replace(/\s+/g,' ').trim())
-              }
-            })
-          }
-        } catch {}
-        
-        // Step 3: Discover trains from NightJet country-to-country destinations API
-        // This is the comprehensive discovery method used in nj-all-stations
-        const countries = [
-          { eva: "88", name: "Belgium" },
-          { eva: "55", name: "Hungary" },
-          { eva: "78", name: "Croatia" },
-          { eva: "79", name: "Slovenia" },
-          { eva: "80", name: "Germany" },
-          { eva: "81", name: "Austria" },
-          { eva: "83", name: "Italy" },
-          { eva: "84", name: "Netherlands" },
-          { eva: "51", name: "Poland" },
-          { eva: "85", name: "Switzerland" },
-          { eva: "87", name: "France" },
-          { eva: "54", name: "Czech Republic" },
-        ]
-        
-        const countryPairs = []
-        for (const fromCountry of countries) {
-          for (const toCountry of countries) {
-            if (fromCountry.eva !== toCountry.eva) {
-              countryPairs.push({ from: fromCountry, to: toCountry })
-            }
-          }
-        }
-        
-        // Fetch destinations in batches to discover train numbers
-        const batchSize = 5
-        for (let i = 0; i < countryPairs.length; i += batchSize) {
-          const batch = countryPairs.slice(i, i + batchSize)
-          const promises = batch.map(async ({ from, to }) => {
-            try {
-              const destinationsUrl = `https://www.nightjet.com/nj-booking-ocp/destinations/country/${from.eva}/country/${to.eva}/${date}`
-              const destResponse = await fetch(destinationsUrl, {
-                headers: { accept: "application/json" },
-              })
-              if (!destResponse.ok) return []
-              const destinations = await destResponse.json()
-              return Array.isArray(destinations) ? destinations : []
-            } catch {
-              return []
-            }
-          })
-          
-          const results = await Promise.all(promises)
-          results.forEach(destinations => {
-            destinations.forEach(dest => {
-              if (dest.trainNumber) {
-                trainNumbers.add(dest.trainNumber)
-              }
-            })
-          })
-          
-          // Small delay between batches
-          if (i + batchSize < countryPairs.length) {
-            await new Promise(resolve => setTimeout(resolve, 100))
-          }
-        }
         
         console.log(`[nj-list] Discovered ${trainNumbers.size} unique train numbers`)
         
         // Step 4: Fetch and cache routes for discovered trains (if not already cached)
+        // Use nj-prewarm to fetch and cache trains efficiently
         const trainArray = Array.from(trainNumbers)
-        const trainBatchSize = 3
         const uncachedTrains = trainArray.filter(trainNumber => {
           const cacheKey = `${trainNumber.replace(/\s+/g, '')}-${date}.json`
           const cachePath = path.join(CACHE_DIR, cacheKey)
           return !fs.existsSync(cachePath)
         })
         
-        console.log(`[nj-list] Fetching ${uncachedTrains.length} uncached trains...`)
-        
-        for (let i = 0; i < uncachedTrains.length; i += trainBatchSize) {
-          const batch = uncachedTrains.slice(i, i + trainBatchSize)
-          const promises = batch.map(async (trainNumber) => {
-            try {
-              const trainUrl = `https://www.nightjet.com/nj-booking-ocp/destinations/train/${encodeURIComponent(trainNumber)}/${date}`
-              const trainResponse = await fetch(trainUrl, {
-                headers: { accept: "application/json" },
-              })
-              
-              if (!trainResponse.ok) return null
-              
-              const trainData = await trainResponse.json()
-              const stops = Array.isArray(trainData?.route?.stops) ? trainData.route.stops : []
-              
-              const stations = stops.map(s => {
-                const station = s?.station
-                if (!station) return null
-                
-                const eva = station.eva || station.evaMeta
-                const coords = station.coords || []
-                const [lat, lon] = coords
-                
-                if (eva && coords.length === 2 && Number.isFinite(lat) && Number.isFinite(lon)) {
-                  const stationName = station.name?.en || station.name?.int || station.name?.de || station.name
-                  return {
-                    id: eva,
-                    name: stationName,
-                    location: { latitude: lat, longitude: lon },
-                    country: station.country || null,
-                    countryCode: station.country || null,
-                    arrival: s?.arr ? new Date(s.arr).toISOString() : null,
-                    departure: s?.dep ? new Date(s.dep).toISOString() : null,
-                    pickup: !!s?.pickup,
-                    dropoff: !!s?.dropoff,
-                  }
-                }
-                return null
-              }).filter(Boolean)
-              
-              if (stations.length > 0) {
-                const cacheKey = `${trainNumber.replace(/\s+/g, '')}-${date}.json`
-                const cachePath = path.join(CACHE_DIR, cacheKey)
-                const payload = {
-                  lineName: trainData?.trainNumber || trainNumber,
-                  operator: trainData?.operator || 'Nightjet',
-                  date,
-                  stations,
-                  polyline: trainData?.route?.polyline || null,
-                  fetchedAt: new Date().toISOString(),
-                  source: 'nightjet-com-discovery'
-                }
-                fs.writeFileSync(cachePath, JSON.stringify(payload, null, 2), 'utf8')
-                return payload
-              }
-              return null
-            } catch (err) {
-              console.error(`[nj-list] Error fetching train ${trainNumber}:`, err.message)
-              return null
-            }
-          })
-          
-          await Promise.all(promises)
-          
-          // Small delay between batches
-          if (i + trainBatchSize < uncachedTrains.length) {
-            await new Promise(resolve => setTimeout(resolve, 150))
+        if (uncachedTrains.length > 0) {
+          console.log(`[nj-list] Fetching ${uncachedTrains.length} uncached trains via nj-prewarm...`)
+          // Use nj-prewarm API to fetch trains (it handles caching and concurrency)
+          const baseUrl = `${req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'] : 'http'}://${req.headers.host}`
+          try {
+            await fetch(`${baseUrl}/api/nj-prewarm?max=${uncachedTrains.length}&date=${encodeURIComponent(date)}`)
+          } catch (err) {
+            console.error('[nj-list] Error calling nj-prewarm:', err)
           }
         }
         
