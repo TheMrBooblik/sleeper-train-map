@@ -81,6 +81,8 @@ const TrainMap = ({
   // All routes for "Show All Routes" mode
   const [allNjRoutes, setAllNjRoutes] = useState([]);
   const [allEnRoutes, setAllEnRoutes] = useState([]);
+  // OSM relation polylines cache: Map<relationId, coordinates[]>
+  const [osmPolylines, setOsmPolylines] = useState(new Map());
   // NightJet loading progress
   const [njLoadingProgress, setNjLoadingProgress] = useState({
     progress: 0,
@@ -1722,6 +1724,28 @@ const TrainMap = ({
     return [];
   }, []);
 
+  // Helper function to check if route matches European Sleeper 453 pattern
+  // Must be defined before routePaths useMemo that uses it
+  const checkEuropeanSleeper453 = useCallback((route) => {
+    if (!route) return false;
+    const origin0 = (route.origin_trip_0 || "").toLowerCase();
+    const dest0 = (route.destination_trip_0 || "").toLowerCase();
+    const origin1 = (route.origin_trip_1 || "").toLowerCase();
+    const dest1 = (route.destination_trip_1 || "").toLowerCase();
+    
+    // Check if route goes between Bruxelles Midi and Praha/Prague
+    const hasBruxelles = origin0.includes("bruxelles midi") || origin0.includes("brussel zuid") || 
+                        dest0.includes("bruxelles midi") || dest0.includes("brussel zuid") ||
+                        origin1.includes("bruxelles midi") || origin1.includes("brussel zuid") ||
+                        dest1.includes("bruxelles midi") || dest1.includes("brussel zuid");
+    const hasPraha = dest0.includes("praha") || dest0.includes("prague") ||
+                     origin0.includes("praha") || origin0.includes("prague") ||
+                     dest1.includes("praha") || dest1.includes("prague") ||
+                     origin1.includes("praha") || origin1.includes("prague");
+    
+    return hasBruxelles && hasPraha;
+  }, []);
+
   // Build route paths (polylines) for selected station or all stations when showRoutes is enabled
   // This visualizes train routes as lines connecting stations
   // PERFORMANCE OPTIMIZATIONS:
@@ -1854,6 +1878,7 @@ const TrainMap = ({
     // Use a key that includes all routes when showing all routes
     const stationKey = selected ? stopId || "none" : "all-routes";
 
+
     // Process each route
     routesToShow.forEach((routeId) => {
       // O(1) lookup instead of O(n) find
@@ -1917,6 +1942,15 @@ const TrainMap = ({
         lineJoin: "round",
       };
 
+      // Check if this route should use OSM relation polyline (European Sleeper 453)
+      // Use the callback function defined outside useMemo
+      const useOsmPolyline = checkEuropeanSleeper453(route);
+      const osmRelationId = useOsmPolyline ? "18616102" : null;
+
+      // If using OSM polyline, fetch it (async, will be handled separately)
+      // For now, we'll build paths normally but mark them for OSM enhancement
+      // In a production app, you'd want to fetch OSM polylines upfront and cache them
+
       // Build path for direction 0 (origin_trip_0 -> via_0 -> destination_trip_0)
       const path0 = buildPathForDirection(
         route.origin_trip_0,
@@ -1929,6 +1963,7 @@ const TrainMap = ({
           routeId: routeId,
           key: `route-${stationKey}-${routeId}-0`, // Include stationKey to ensure unique keys per station
           pathOptions: pathOptions,
+          osmRelationId: osmRelationId, // Mark for OSM polyline enhancement
         });
       }
 
@@ -1945,12 +1980,27 @@ const TrainMap = ({
             routeId: routeId,
             key: `route-${stationKey}-${routeId}-1`, // Include stationKey to ensure unique keys per station
             pathOptions: pathOptions, // Same color for reverse direction
+            osmRelationId: osmRelationId, // Mark for OSM polyline enhancement
           });
         }
       }
     });
 
-    return paths;
+    // Enhance paths with OSM polylines if available
+    return paths.map((path) => {
+      if (path.osmRelationId && osmPolylines.has(path.osmRelationId)) {
+        const osmCoords = osmPolylines.get(path.osmRelationId);
+        if (osmCoords && osmCoords.length > 0) {
+          // Use OSM polyline instead of station-based path
+          return {
+            ...path,
+            positions: osmCoords,
+            source: "osm",
+          };
+        }
+      }
+      return path;
+    });
   }, [
     selected,
     stopId, // Add stopId to dependencies to ensure recalculation when station changes
@@ -1963,7 +2013,45 @@ const TrainMap = ({
     cities,
     shouldHideRouteDueToFutureDate, // Recalculate when filtering function changes
     trips, // Recalculate when trips data changes (for "From <Date>" filtering)
+    osmPolylines, // Recalculate when OSM polylines are loaded
+    checkEuropeanSleeper453, // Recalculate when route matching function changes
   ]);
+
+  // Fetch OSM relation polylines for routes that need them
+  useEffect(() => {
+    if (!viewMapData) return;
+
+    const relationIdsToFetch = new Set();
+    
+    // Find all routes that need OSM polylines
+    Object.values(viewMapData).forEach((route) => {
+      if (checkEuropeanSleeper453(route)) {
+        relationIdsToFetch.add("18616102");
+      }
+    });
+
+    // Fetch each relation polyline
+    relationIdsToFetch.forEach(async (relationId) => {
+      // Skip if already cached
+      if (osmPolylines.has(relationId)) return;
+
+      try {
+        const res = await fetch(`/api/osm-relation?relationId=${relationId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.coordinates && data.coordinates.length > 0) {
+            setOsmPolylines((prev) => {
+              const next = new Map(prev);
+              next.set(relationId, data.coordinates);
+              return next;
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`[DynamicMap] Failed to fetch OSM relation ${relationId}:`, error);
+      }
+    });
+  }, [viewMapData, osmPolylines, checkEuropeanSleeper453]);
 
   // Trains per destination removed - train departures functionality removed
   const trainsPerDestination = useMemo(() => {
