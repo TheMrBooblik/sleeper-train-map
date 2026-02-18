@@ -339,6 +339,21 @@ const TrainMap = ({
     }
   }, [overallLoading, nightTrainsReady]);
 
+  // When "Show All Routes" is on and no station is selected, show all NightJet and EuroNight routes
+  useEffect(() => {
+    if (selected) {
+      // Overlays are set by loadNightTrainsForStation when a station is clicked; don't override
+      return;
+    }
+    if (showRoutes) {
+      setNjOverlays(allNjRoutes);
+      setEnOverlays(allEnRoutes);
+    } else {
+      setNjOverlays([]);
+      setEnOverlays([]);
+    }
+  }, [showRoutes, selected, allNjRoutes, allEnRoutes]);
+
   // Immediate loading of map elements without delay
   useEffect(() => {
     if (stops && stops.length > 0 && cities && !overallLoading) {
@@ -467,14 +482,26 @@ const TrainMap = ({
                 "#0284c7",
                 "#0369a1",
               ];
-              const routes = data.items.map((item, idx) => ({
-                key: item.key,
-                lineName: item.lineName,
-                coords: item.coords,
-                stations: item.stations,
-                color: njColors[idx % njColors.length],
-                type: "nightjet",
-              }));
+              // Process routes: decode polyline if available for smoother curves, otherwise use station coords
+              const routes = data.items.map((item, idx) => {
+                // Decode polyline if available, otherwise use station coords
+                let coords = item.coords;
+                if (item.polyline) {
+                  try {
+                    coords = polyline.decode(item.polyline);
+                  } catch (e) {
+                    console.error("Failed to decode Nightjet polyline:", e);
+                  }
+                }
+                return {
+                  key: item.key,
+                  lineName: item.lineName,
+                  coords,
+                  stations: item.stations,
+                  color: njColors[idx % njColors.length],
+                  type: "nightjet",
+                };
+              });
               setAllNjRoutes(routes);
 
               // Extract unique stations from routes and merge with stations from API
@@ -537,14 +564,26 @@ const TrainMap = ({
                 "#86198f",
                 "#701a75",
               ];
-              const routes = data.items.map((item, idx) => ({
-                key: item.key,
-                lineName: item.lineName,
-                coords: item.coords,
-                stations: item.stations,
-                color: enColors[idx % enColors.length],
-                type: "euronight",
-              }));
+              // Process routes: decode polyline if available for smoother curves, otherwise use station coords
+              const routes = data.items.map((item, idx) => {
+                // Decode polyline if available, otherwise use station coords
+                let coords = item.coords;
+                if (item.polyline) {
+                  try {
+                    coords = polyline.decode(item.polyline);
+                  } catch (e) {
+                    console.error("Failed to decode EuroNight polyline:", e);
+                  }
+                }
+                return {
+                  key: item.key,
+                  lineName: item.lineName,
+                  coords,
+                  stations: item.stations,
+                  color: enColors[idx % enColors.length],
+                  type: "euronight",
+                };
+              });
               setAllEnRoutes(routes);
 
               // Extract unique stations
