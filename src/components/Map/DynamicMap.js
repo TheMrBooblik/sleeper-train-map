@@ -20,6 +20,7 @@ import { useStops } from "../../hooks/requests/useStops";
 import { useCities } from "../../hooks/requests/useCities";
 import { normalizeStationNameForLookup } from "../../hooks/requests/useCities";
 import { useViewMap } from "../../hooks/requests/useViewMap";
+import { useTrips } from "../../hooks/requests/useTrips";
 import TrainSidebar from "@components/TrainSidebar";
 import TrainDetailPanel from "@components/TrainDetailPanel";
 import ZoomControl from "@components/ZoomControl";
@@ -44,6 +45,7 @@ const TrainMap = ({
   } = useStops();
   const { cities, isLoading: citiesLoading, refreshCities } = useCities();
   const { viewMapData } = useViewMap(); // Add viewMapData to check station types
+  const { trips } = useTrips(); // Access trips to check for "From <Date>" notes
   // Note: useAllStations disabled for now due to CORS/API issues
   // const { allStations, isLoading: allStationsLoading } = useAllStations(!hideIntermediateStations);
 
@@ -1356,6 +1358,10 @@ const TrainMap = ({
 
       const nightTrainStationIds = new Set();
       Object.values(viewMapData).forEach((route) => {
+        // Skip routes with future "From <Date>" notes
+        if (route?.route_id && shouldHideRouteDueToFutureDate(route.route_id.toString())) {
+          return;
+        }
         if (route) {
           [
             route.origin_trip_0,
@@ -1689,6 +1695,43 @@ const TrainMap = ({
   }, []);
 
   // Build route paths (polylines) for selected station or all stations when showRoutes is enabled
+  // Helper function to check if a route should be filtered out due to future "From <Date>" note
+  // Returns true if route should be hidden (has future "From" date), false otherwise
+  const shouldHideRouteDueToFutureDate = useCallback((routeId) => {
+    if (!trips || !routeId) return false;
+    
+    // Find all trips for this route
+    const routeTrips = Object.values(trips).filter(
+      (trip) => trip.route_id?.toString() === routeId.toString()
+    );
+    
+    if (routeTrips.length === 0) return false;
+    
+    // Check if any trip has a "From <Date>" note with a future date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset to start of day for comparison
+    
+    for (const trip of routeTrips) {
+      const irregularities = trip.irregularities;
+      if (!irregularities || typeof irregularities !== 'string') continue;
+      
+      // Match "From YYYY-MM-DD" pattern (case-insensitive, flexible spacing)
+      const fromDateMatch = irregularities.match(/From\s+(\d{4}-\d{2}-\d{2})/i);
+      if (fromDateMatch) {
+        const fromDateStr = fromDateMatch[1];
+        const fromDate = new Date(fromDateStr);
+        fromDate.setHours(0, 0, 0, 0);
+        
+        // If the "From" date is in the future, hide this route
+        if (fromDate > today) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }, [trips]);
+
   // This visualizes train routes as lines connecting stations
   // PERFORMANCE OPTIMIZATIONS:
   // - Uses Map for O(1) route lookup instead of O(n) find
@@ -1724,7 +1767,10 @@ const TrainMap = ({
 
     // If a station is selected, show routes for that station (regardless of showRoutes setting)
     if (selected && stopRouteIds && stopRouteIds.length > 0) {
-      routesToShow = stopRouteIds;
+      // Filter out routes with future "From <Date>" notes
+      routesToShow = stopRouteIds.filter(
+        (routeId) => !shouldHideRouteDueToFutureDate(routeId)
+      );
     }
     // If showRoutes is enabled but no station is selected, show all routes
     else if (showRoutes && !selected) {
@@ -1750,7 +1796,10 @@ const TrainMap = ({
         });
       }
 
-      routesToShow = Array.from(allRouteIds);
+      // Filter out routes with future "From <Date>" notes (from both cities and viewMapData)
+      routesToShow = Array.from(allRouteIds).filter(
+        (routeId) => !shouldHideRouteDueToFutureDate(routeId)
+      );
     } else {
       // No station selected and showRoutes is off - don't show routes
       return [];
@@ -1921,6 +1970,8 @@ const TrainMap = ({
     normalizeStationNameForLookup, // Recalculate when normalization function changes
     showRoutes,
     cities,
+    shouldHideRouteDueToFutureDate, // Recalculate when filtering function changes
+    trips, // Recalculate when trips data changes (for "From <Date>" filtering)
   ]);
 
   // Trains per destination removed - train departures functionality removed
@@ -2550,7 +2601,11 @@ const TrainMap = ({
       <TrainDetailPanel
         isOpen={isTrainDetailPanelOpen}
         onClose={closeTrainDetailPanel}
-        selectedRouteIds={selectedTrainRouteIds}
+        selectedRouteIds={
+          selectedTrainRouteIds?.filter(
+            (id) => !shouldHideRouteDueToFutureDate(id)
+          ) ?? []
+        }
       />
     </>
   );
