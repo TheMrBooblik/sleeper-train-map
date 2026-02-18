@@ -72,12 +72,13 @@ export default async function handler(req, res) {
       trains = ['NJ 402', 'NJ 403', 'NJ 404', 'NJ 406', 'NJ 407', 'NJ 420', 'NJ 421', 'NJ 424', 'NJ 425', 'NJ 468', 'NJ 469', 'NJ 470', 'NJ 471', 'NJ 490', 'NJ 491']
     }
 
-    // 2) Limit and prewarm with low concurrency (3)
+    // Limit and prewarm with higher concurrency (6 workers) for faster loading
     trains = trains.slice(0, max)
     ensureDir()
 
     const queue = [...trains]
     const results = { date, requested: trains.length, skippedFresh: 0, fetched: 0, errors: [] }
+    const CONCURRENCY = 6
 
     async function worker() {
       while (queue.length) {
@@ -97,7 +98,8 @@ export default async function handler(req, res) {
       }
     }
 
-    await Promise.all([worker(), worker(), worker()])
+    const workers = Array.from({ length: CONCURRENCY }, () => worker())
+    await Promise.all(workers)
 
     return res.status(200).json({ ok: true, ...results, trains })
   } catch (e) {

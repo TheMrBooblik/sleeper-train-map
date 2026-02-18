@@ -79,6 +79,25 @@ export async function getTrainNumbersFromBackOnTrack(baseUrl) {
   return trainNumbers
 }
 
+// In-memory cache for discovery result to avoid re-running 132 requests on every prewarm/list call
+// TTL 5 minutes
+const discoveryCache = new Map()
+const DISCOVERY_CACHE_TTL_MS = 5 * 60 * 1000
+
+function getCachedDiscovery(date) {
+  const entry = discoveryCache.get(date)
+  if (!entry) return null
+  if (Date.now() - entry.at > DISCOVERY_CACHE_TTL_MS) {
+    discoveryCache.delete(date)
+    return null
+  }
+  return entry.trains
+}
+
+function setCachedDiscovery(date, trains) {
+  discoveryCache.set(date, { trains: new Set(trains), at: Date.now() })
+}
+
 /**
  * Discover train numbers from NightJet country-to-country destinations API
  * @param {string} date - Date in YYYY-MM-DD format
@@ -98,7 +117,7 @@ export async function discoverTrainNumbersFromDestinations(date, onProgress = nu
     }
   }
   
-  const batchSize = 5
+  const batchSize = 12
   let processed = 0
   
   for (let i = 0; i < countryPairs.length; i += batchSize) {
@@ -141,14 +160,16 @@ export async function discoverTrainNumbersFromDestinations(date, onProgress = nu
       })
     }
     
-    // Small delay between batches to avoid rate limiting
     if (i + batchSize < countryPairs.length) {
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise(resolve => setTimeout(resolve, 30))
     }
   }
   
   return trainNumbers
 }
+
+// Skip slow country-pair discovery when we already have at least this many trains (cache + Back-on-Track)
+const MIN_TRAINS_TO_SKIP_DESTINATION_DISCOVERY = 10
 
 /**
  * Comprehensive train discovery: combines all discovery methods
@@ -188,13 +209,38 @@ export async function discoverAllTrainNumbers(date, baseUrl = null, onProgress =
     }
   }
   
-  // Step 3: Discover from NightJet destinations API
+  // Step 3: Discover from NightJet destinations API (skip if we have enough trains or cached discovery)
+  const cachedDiscovery = getCachedDiscovery(date)
+  if (cachedDiscovery) {
+    cachedDiscovery.forEach(t => trainNumbers.add(t))
+    if (onProgress) {
+      onProgress({
+        step: "discovering",
+        progress: 100,
+        message: `Using cached discovery: ${trainNumbers.size} trains`,
+        trainsFound: trainNumbers.size,
+      })
+    }
+    return trainNumbers
+  }
+  
+  if (trainNumbers.size >= MIN_TRAINS_TO_SKIP_DESTINATION_DISCOVERY) {
+    if (onProgress) {
+      onProgress({
+        step: "discovering",
+        progress: 100,
+        message: `Skipping discovery (${trainNumbers.size} trains from cache/Back-on-Track)`,
+        trainsFound: trainNumbers.size,
+      })
+    }
+    return trainNumbers
+  }
+  
   const startProgress = baseUrl ? 10 : 0
   const progressRange = baseUrl ? 90 : 100
   
   const discovered = await discoverTrainNumbersFromDestinations(date, (progress) => {
     if (onProgress) {
-      // Scale progress appropriately based on whether Back-on-Track was used
       onProgress({
         ...progress,
         progress: startProgress + Math.round(progress.progress * (progressRange / 100)),
@@ -203,6 +249,7 @@ export async function discoverAllTrainNumbers(date, baseUrl = null, onProgress =
   })
   
   discovered.forEach(t => trainNumbers.add(t))
+  setCachedDiscovery(date, trainNumbers)
   
   return trainNumbers
 }
