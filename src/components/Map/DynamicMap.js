@@ -1298,6 +1298,54 @@ const TrainMap = ({
     [cities, normalizeStationName, isGrouped],
   );
 
+  // Build a Set of endpoint station names/IDs for NightJet and EuroNight routes
+  // Endpoints are first or last station in any route
+  const nightTrainEndpointStations = useMemo(() => {
+    const endpointSet = new Set();
+    
+    // Check NightJet routes
+    allNjRoutes.forEach((route) => {
+      if (route.stations && route.stations.length > 0) {
+        // First station is an endpoint
+        const firstStation = route.stations[0];
+        if (firstStation?.name) {
+          endpointSet.add(firstStation.name);
+          if (firstStation.id) endpointSet.add(firstStation.id);
+        }
+        // Last station is an endpoint
+        if (route.stations.length > 1) {
+          const lastStation = route.stations[route.stations.length - 1];
+          if (lastStation?.name) {
+            endpointSet.add(lastStation.name);
+            if (lastStation.id) endpointSet.add(lastStation.id);
+          }
+        }
+      }
+    });
+    
+    // Check EuroNight routes
+    allEnRoutes.forEach((route) => {
+      if (route.stations && route.stations.length > 0) {
+        // First station is an endpoint
+        const firstStation = route.stations[0];
+        if (firstStation?.name) {
+          endpointSet.add(firstStation.name);
+          if (firstStation.id) endpointSet.add(firstStation.id);
+        }
+        // Last station is an endpoint
+        if (route.stations.length > 1) {
+          const lastStation = route.stations[route.stations.length - 1];
+          if (lastStation?.name) {
+            endpointSet.add(lastStation.name);
+            if (lastStation.id) endpointSet.add(lastStation.id);
+          }
+        }
+      }
+    });
+    
+    return endpointSet;
+  }, [allNjRoutes, allEnRoutes]);
+
   const markers = useMemo(() => {
     // Combine night train stops with all stations based on filter
     let stopsToShow = [];
@@ -2086,14 +2134,29 @@ const TrainMap = ({
 
         {/* All Nightjet stations - show filtered ones when filter is active, or all when no filter */}
         {(() => {
-          const stationsToRender = selected
+          let stationsToRender = selected
             ? filteredNjStations
             : allNjStations;
+          
+          // Filter out intermediate stations if hideIntermediateStations is enabled
+          if (hideIntermediateStations) {
+            stationsToRender = stationsToRender.filter((s) => {
+              if (!s?.name && !s?.id) return false;
+              // Check if station is an endpoint (first or last in any route)
+              return (
+                nightTrainEndpointStations.has(s.name) ||
+                (s.id && nightTrainEndpointStations.has(s.id))
+              );
+            });
+          }
+          
           console.log(
             "[DEBUG RENDER] Nightjet stations to render:",
             stationsToRender.length,
             "selected:",
             selected,
+            "hideIntermediate:",
+            hideIntermediateStations,
           );
           return stationsToRender.map((s, idx) => {
             const lat = s?.location?.latitude;
@@ -2209,11 +2272,18 @@ const TrainMap = ({
         ))}
 
         {njOverlays.flatMap((ov, idxOv) =>
-          (ov.stations || []).map((s, idx) => {
-            const lat = s?.location?.latitude;
-            const lon = s?.location?.longitude;
-            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-            const isEnd = idx === 0 || idx === ov.stations.length - 1;
+          (ov.stations || [])
+            .map((s, idx) => {
+              // If hideIntermediateStations is enabled, skip intermediate stations
+              if (hideIntermediateStations) {
+                const isEnd = idx === 0 || idx === ov.stations.length - 1;
+                if (!isEnd) return null;
+              }
+              
+              const lat = s?.location?.latitude;
+              const lon = s?.location?.longitude;
+              if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+              const isEnd = idx === 0 || idx === ov.stations.length - 1;
 
             // Use regular station marker styles (gradient dots)
             const icon = new Leaflet.DivIcon({
@@ -2273,7 +2343,23 @@ const TrainMap = ({
         )}
 
         {/* All EuroNight stations - show filtered ones when filter is active, or all when no filter */}
-        {(selected ? filteredEnStations : allEnStations).map((s, idx) => {
+        {(() => {
+          let stationsToRender = selected ? filteredEnStations : allEnStations;
+          
+          // Filter out intermediate stations if hideIntermediateStations is enabled
+          if (hideIntermediateStations) {
+            stationsToRender = stationsToRender.filter((s) => {
+              if (!s?.name && !s?.id) return false;
+              // Check if station is an endpoint (first or last in any route)
+              return (
+                nightTrainEndpointStations.has(s.name) ||
+                (s.id && nightTrainEndpointStations.has(s.id))
+              );
+            });
+          }
+          
+          return stationsToRender;
+        })().map((s, idx) => {
           const lat = s?.location?.latitude;
           const lon = s?.location?.longitude;
           if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
@@ -2358,11 +2444,18 @@ const TrainMap = ({
         ))}
 
         {enOverlays.flatMap((ov, idxOv) =>
-          (ov.stations || []).map((s, idx) => {
-            const lat = s?.location?.latitude;
-            const lon = s?.location?.longitude;
-            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-            const isEnd = idx === 0 || idx === ov.stations.length - 1;
+          (ov.stations || [])
+            .map((s, idx) => {
+              // If hideIntermediateStations is enabled, skip intermediate stations
+              if (hideIntermediateStations) {
+                const isEnd = idx === 0 || idx === ov.stations.length - 1;
+                if (!isEnd) return null;
+              }
+              
+              const lat = s?.location?.latitude;
+              const lon = s?.location?.longitude;
+              if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+              const isEnd = idx === 0 || idx === ov.stations.length - 1;
 
             const icon = new Leaflet.DivIcon({
               className: "euronight-station-dot",
