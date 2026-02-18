@@ -1348,6 +1348,33 @@ const TrainMap = ({
     return endpointSet;
   }, [allNjRoutes, allEnRoutes]);
 
+  // Helper: check if a route should be filtered out due to future "From <Date>" note
+  // Must be defined before markers and routePaths useMemos that use it
+  const shouldHideRouteDueToFutureDate = useCallback((routeId) => {
+    if (!trips || !routeId) return false;
+
+    const routeTrips = Object.values(trips).filter(
+      (trip) => trip.route_id?.toString() === routeId.toString()
+    );
+    if (routeTrips.length === 0) return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (const trip of routeTrips) {
+      const irregularities = trip.irregularities;
+      if (!irregularities || typeof irregularities !== "string") continue;
+
+      const fromDateMatch = irregularities.match(/From\s+(\d{4}-\d{2}-\d{2})/i);
+      if (fromDateMatch) {
+        const fromDate = new Date(fromDateMatch[1]);
+        fromDate.setHours(0, 0, 0, 0);
+        if (fromDate > today) return true;
+      }
+    }
+    return false;
+  }, [trips]);
+
   const markers = useMemo(() => {
     // Combine night train stops with all stations based on filter
     let stopsToShow = [];
@@ -1601,6 +1628,7 @@ const TrainMap = ({
     normalizeStationName,
     normalizeStationNameForLookup,
     hideIntermediateStations,
+    shouldHideRouteDueToFutureDate,
   ]);
 
   // Route colors for visualization (defined outside useMemo to avoid recreation)
@@ -1695,43 +1723,6 @@ const TrainMap = ({
   }, []);
 
   // Build route paths (polylines) for selected station or all stations when showRoutes is enabled
-  // Helper function to check if a route should be filtered out due to future "From <Date>" note
-  // Returns true if route should be hidden (has future "From" date), false otherwise
-  const shouldHideRouteDueToFutureDate = useCallback((routeId) => {
-    if (!trips || !routeId) return false;
-    
-    // Find all trips for this route
-    const routeTrips = Object.values(trips).filter(
-      (trip) => trip.route_id?.toString() === routeId.toString()
-    );
-    
-    if (routeTrips.length === 0) return false;
-    
-    // Check if any trip has a "From <Date>" note with a future date
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset to start of day for comparison
-    
-    for (const trip of routeTrips) {
-      const irregularities = trip.irregularities;
-      if (!irregularities || typeof irregularities !== 'string') continue;
-      
-      // Match "From YYYY-MM-DD" pattern (case-insensitive, flexible spacing)
-      const fromDateMatch = irregularities.match(/From\s+(\d{4}-\d{2}-\d{2})/i);
-      if (fromDateMatch) {
-        const fromDateStr = fromDateMatch[1];
-        const fromDate = new Date(fromDateStr);
-        fromDate.setHours(0, 0, 0, 0);
-        
-        // If the "From" date is in the future, hide this route
-        if (fromDate > today) {
-          return true;
-        }
-      }
-    }
-    
-    return false;
-  }, [trips]);
-
   // This visualizes train routes as lines connecting stations
   // PERFORMANCE OPTIMIZATIONS:
   // - Uses Map for O(1) route lookup instead of O(n) find
