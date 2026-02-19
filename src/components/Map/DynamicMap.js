@@ -322,9 +322,7 @@ const TrainMap = ({
     if (overallLoading) {
       setLoadingProgress(stopsLoading ? 5 : 25);
       setLoadingMessage(
-        stopsLoading
-          ? "Loading stations..."
-          : "Processing routes...",
+        stopsLoading ? "Loading stations..." : "Processing routes...",
       );
     } else {
       setLoadingProgress(30);
@@ -1306,7 +1304,7 @@ const TrainMap = ({
   // Endpoints are first or last station in any route
   const nightTrainEndpointStations = useMemo(() => {
     const endpointSet = new Set();
-    
+
     // Check NightJet routes
     allNjRoutes.forEach((route) => {
       if (route.stations && route.stations.length > 0) {
@@ -1326,7 +1324,7 @@ const TrainMap = ({
         }
       }
     });
-    
+
     // Check EuroNight routes
     allEnRoutes.forEach((route) => {
       if (route.stations && route.stations.length > 0) {
@@ -1346,36 +1344,41 @@ const TrainMap = ({
         }
       }
     });
-    
+
     return endpointSet;
   }, [allNjRoutes, allEnRoutes]);
 
   // Helper: check if a route should be filtered out due to future "From <Date>" note
   // Must be defined before markers and routePaths useMemos that use it
-  const shouldHideRouteDueToFutureDate = useCallback((routeId) => {
-    if (!trips || !routeId) return false;
+  const shouldHideRouteDueToFutureDate = useCallback(
+    (routeId) => {
+      if (!trips || !routeId) return false;
 
-    const routeTrips = Object.values(trips).filter(
-      (trip) => trip.route_id?.toString() === routeId.toString()
-    );
-    if (routeTrips.length === 0) return false;
+      const routeTrips = Object.values(trips).filter(
+        (trip) => trip.route_id?.toString() === routeId.toString(),
+      );
+      if (routeTrips.length === 0) return false;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-    for (const trip of routeTrips) {
-      const irregularities = trip.irregularities;
-      if (!irregularities || typeof irregularities !== "string") continue;
+      for (const trip of routeTrips) {
+        const irregularities = trip.irregularities;
+        if (!irregularities || typeof irregularities !== "string") continue;
 
-      const fromDateMatch = irregularities.match(/From\s+(\d{4}-\d{2}-\d{2})/i);
-      if (fromDateMatch) {
-        const fromDate = new Date(fromDateMatch[1]);
-        fromDate.setHours(0, 0, 0, 0);
-        if (fromDate > today) return true;
+        const fromDateMatch = irregularities.match(
+          /From\s+(\d{4}-\d{2}-\d{2})/i,
+        );
+        if (fromDateMatch) {
+          const fromDate = new Date(fromDateMatch[1]);
+          fromDate.setHours(0, 0, 0, 0);
+          if (fromDate > today) return true;
+        }
       }
-    }
-    return false;
-  }, [trips]);
+      return false;
+    },
+    [trips],
+  );
 
   const markers = useMemo(() => {
     // Combine night train stops with all stations based on filter
@@ -1388,7 +1391,10 @@ const TrainMap = ({
       const nightTrainStationIds = new Set();
       Object.values(viewMapData).forEach((route) => {
         // Skip routes with future "From <Date>" notes
-        if (route?.route_id && shouldHideRouteDueToFutureDate(route.route_id.toString())) {
+        if (
+          route?.route_id &&
+          shouldHideRouteDueToFutureDate(route.route_id.toString())
+        ) {
           return;
         }
         if (route) {
@@ -1732,17 +1738,27 @@ const TrainMap = ({
     const dest0 = (route.destination_trip_0 || "").toLowerCase();
     const origin1 = (route.origin_trip_1 || "").toLowerCase();
     const dest1 = (route.destination_trip_1 || "").toLowerCase();
-    
+
     // Check if route goes between Bruxelles Midi and Praha/Prague
-    const hasBruxelles = origin0.includes("bruxelles midi") || origin0.includes("brussel zuid") || 
-                        dest0.includes("bruxelles midi") || dest0.includes("brussel zuid") ||
-                        origin1.includes("bruxelles midi") || origin1.includes("brussel zuid") ||
-                        dest1.includes("bruxelles midi") || dest1.includes("brussel zuid");
-    const hasPraha = dest0.includes("praha") || dest0.includes("prague") ||
-                     origin0.includes("praha") || origin0.includes("prague") ||
-                     dest1.includes("praha") || dest1.includes("prague") ||
-                     origin1.includes("praha") || origin1.includes("prague");
-    
+    const hasBruxelles =
+      origin0.includes("bruxelles midi") ||
+      origin0.includes("brussel zuid") ||
+      dest0.includes("bruxelles midi") ||
+      dest0.includes("brussel zuid") ||
+      origin1.includes("bruxelles midi") ||
+      origin1.includes("brussel zuid") ||
+      dest1.includes("bruxelles midi") ||
+      dest1.includes("brussel zuid");
+    const hasPraha =
+      dest0.includes("praha") ||
+      dest0.includes("prague") ||
+      origin0.includes("praha") ||
+      origin0.includes("prague") ||
+      dest1.includes("praha") ||
+      dest1.includes("prague") ||
+      origin1.includes("praha") ||
+      origin1.includes("prague");
+
     return hasBruxelles && hasPraha;
   }, []);
 
@@ -1784,7 +1800,7 @@ const TrainMap = ({
     if (selected && stopRouteIds && stopRouteIds.length > 0) {
       // Filter out routes with future "From <Date>" notes
       routesToShow = stopRouteIds.filter(
-        (routeId) => !shouldHideRouteDueToFutureDate(routeId)
+        (routeId) => !shouldHideRouteDueToFutureDate(routeId),
       );
     }
     // If showRoutes is enabled but no station is selected, show all routes
@@ -1813,7 +1829,7 @@ const TrainMap = ({
 
       // Filter out routes with future "From <Date>" notes (from both cities and viewMapData)
       routesToShow = Array.from(allRouteIds).filter(
-        (routeId) => !shouldHideRouteDueToFutureDate(routeId)
+        (routeId) => !shouldHideRouteDueToFutureDate(routeId),
       );
     } else {
       // No station selected and showRoutes is off - don't show routes
@@ -1877,7 +1893,6 @@ const TrainMap = ({
     const paths = [];
     // Use a key that includes all routes when showing all routes
     const stationKey = selected ? stopId || "none" : "all-routes";
-
 
     // Process each route
     routesToShow.forEach((routeId) => {
@@ -2022,7 +2037,7 @@ const TrainMap = ({
     if (!viewMapData) return;
 
     const relationIdsToFetch = new Set();
-    
+
     // Find all routes that need OSM polylines
     Object.values(viewMapData).forEach((route) => {
       if (checkEuropeanSleeper453(route)) {
@@ -2048,7 +2063,10 @@ const TrainMap = ({
           }
         }
       } catch (error) {
-        console.error(`[DynamicMap] Failed to fetch OSM relation ${relationId}:`, error);
+        console.error(
+          `[DynamicMap] Failed to fetch OSM relation ${relationId}:`,
+          error,
+        );
       }
     });
   }, [viewMapData, osmPolylines, checkEuropeanSleeper453]);
@@ -2264,10 +2282,8 @@ const TrainMap = ({
 
         {/* All Nightjet stations - show filtered ones when filter is active, or all when no filter */}
         {(() => {
-          let stationsToRender = selected
-            ? filteredNjStations
-            : allNjStations;
-          
+          let stationsToRender = selected ? filteredNjStations : allNjStations;
+
           // Filter out intermediate stations if hideIntermediateStations is enabled
           if (hideIntermediateStations) {
             stationsToRender = stationsToRender.filter((s) => {
@@ -2279,7 +2295,7 @@ const TrainMap = ({
               );
             });
           }
-          
+
           console.log(
             "[DEBUG RENDER] Nightjet stations to render:",
             stationsToRender.length,
@@ -2395,25 +2411,24 @@ const TrainMap = ({
           <Polyline
             key={`nj-route-${ov.key}`}
             positions={ov.coords}
-            pathOptions={{ color: ov.color, weight: 6, opacity: 0.9 }}
+            pathOptions={{ color: ov.color, weight: 4, opacity: 0.8 }}
           >
             <Tooltip sticky>{ov.lineName}</Tooltip>
           </Polyline>
         ))}
 
         {njOverlays.flatMap((ov, idxOv) =>
-          (ov.stations || [])
-            .map((s, idx) => {
-              // If hideIntermediateStations is enabled, skip intermediate stations
-              if (hideIntermediateStations) {
-                const isEnd = idx === 0 || idx === ov.stations.length - 1;
-                if (!isEnd) return null;
-              }
-              
-              const lat = s?.location?.latitude;
-              const lon = s?.location?.longitude;
-              if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+          (ov.stations || []).map((s, idx) => {
+            // If hideIntermediateStations is enabled, skip intermediate stations
+            if (hideIntermediateStations) {
               const isEnd = idx === 0 || idx === ov.stations.length - 1;
+              if (!isEnd) return null;
+            }
+
+            const lat = s?.location?.latitude;
+            const lon = s?.location?.longitude;
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+            const isEnd = idx === 0 || idx === ov.stations.length - 1;
 
             // Use regular station marker styles (gradient dots)
             const icon = new Leaflet.DivIcon({
@@ -2475,7 +2490,7 @@ const TrainMap = ({
         {/* All EuroNight stations - show filtered ones when filter is active, or all when no filter */}
         {(() => {
           let stationsToRender = selected ? filteredEnStations : allEnStations;
-          
+
           // Filter out intermediate stations if hideIntermediateStations is enabled
           if (hideIntermediateStations) {
             stationsToRender = stationsToRender.filter((s) => {
@@ -2487,7 +2502,7 @@ const TrainMap = ({
               );
             });
           }
-          
+
           return stationsToRender;
         })().map((s, idx) => {
           const lat = s?.location?.latitude;
@@ -2567,25 +2582,24 @@ const TrainMap = ({
           <Polyline
             key={`en-route-${ov.key}`}
             positions={ov.coords}
-            pathOptions={{ color: ov.color, weight: 6, opacity: 0.9 }}
+            pathOptions={{ color: ov.color, weight: 4, opacity: 0.8 }}
           >
             <Tooltip sticky>{ov.lineName}</Tooltip>
           </Polyline>
         ))}
 
         {enOverlays.flatMap((ov, idxOv) =>
-          (ov.stations || [])
-            .map((s, idx) => {
-              // If hideIntermediateStations is enabled, skip intermediate stations
-              if (hideIntermediateStations) {
-                const isEnd = idx === 0 || idx === ov.stations.length - 1;
-                if (!isEnd) return null;
-              }
-              
-              const lat = s?.location?.latitude;
-              const lon = s?.location?.longitude;
-              if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+          (ov.stations || []).map((s, idx) => {
+            // If hideIntermediateStations is enabled, skip intermediate stations
+            if (hideIntermediateStations) {
               const isEnd = idx === 0 || idx === ov.stations.length - 1;
+              if (!isEnd) return null;
+            }
+
+            const lat = s?.location?.latitude;
+            const lon = s?.location?.longitude;
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+            const isEnd = idx === 0 || idx === ov.stations.length - 1;
 
             const icon = new Leaflet.DivIcon({
               className: "euronight-station-dot",
@@ -2682,7 +2696,7 @@ const TrainMap = ({
         onClose={closeTrainDetailPanel}
         selectedRouteIds={
           selectedTrainRouteIds?.filter(
-            (id) => !shouldHideRouteDueToFutureDate(id)
+            (id) => !shouldHideRouteDueToFutureDate(id),
           ) ?? []
         }
       />
