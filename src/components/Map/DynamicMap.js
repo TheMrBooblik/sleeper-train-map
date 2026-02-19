@@ -1730,6 +1730,102 @@ const TrainMap = ({
     return [];
   }, []);
 
+  // Determine route frequency/style from trips data based on legend
+  // Returns: { weight, dashArray } matching legend styles (scaled up for visibility)
+  // Must be defined before routePaths useMemo that uses it
+  const getRouteStyleFromFrequency = useCallback(
+    (routeId) => {
+      if (!trips || !routeId) {
+        // Default: 6-7 days a week (most common) - scaled up from legend 1.3 to 4.5
+        return { weight: 4.5, dashArray: null };
+      }
+
+      const routeTrips = Object.values(trips).filter(
+        (trip) => trip.route_id?.toString() === routeId.toString(),
+      );
+
+      if (routeTrips.length === 0) {
+        return { weight: 4.5, dashArray: null }; // Default
+      }
+
+      // Check for seasonal indicators
+      let isSeasonal = false;
+      let hasNonDailyNote = false;
+      let isDaily = false;
+      let isWeekly = false;
+
+      for (const trip of routeTrips) {
+        const irr = (trip.irregularities || "").toLowerCase();
+        const serviceId = (trip.service_id || "").toLowerCase();
+
+        // Check service_id for explicit frequency indicators first
+        // This is more reliable than trip count heuristic
+        if (
+          serviceId.includes("daily") ||
+          serviceId.includes("6-7") ||
+          serviceId.includes("every day")
+        ) {
+          isDaily = true;
+        } else if (
+          serviceId.includes("3-5") ||
+          serviceId.includes("weekdays") ||
+          serviceId.includes("mon-fri")
+        ) {
+          isWeekly = true;
+        }
+
+        // Check for seasonal indicators
+        if (
+          irr.includes("seasonal") ||
+          irr.includes("summer") ||
+          irr.includes("winter") ||
+          irr.includes("only") ||
+          serviceId.includes("seasonal")
+        ) {
+          isSeasonal = true;
+        }
+
+        // Check for non-daily indicators
+        if (
+          irr.includes("non-daily") ||
+          irr.includes("non daily") ||
+          irr.includes("few times") ||
+          irr.includes("limited")
+        ) {
+          hasNonDailyNote = true;
+        }
+      }
+
+      // If service_id explicitly indicates daily frequency, use solid line
+      if (isDaily && !hasNonDailyNote) {
+        return { weight: 4.5, dashArray: null };
+      }
+
+      // If service_id indicates 3-5 days/week, use medium dash
+      if (isWeekly) {
+        return { weight: 4.5, dashArray: "6,9" };
+      }
+
+      // Estimate frequency from trip count (heuristic fallback)
+      // More trips = more frequent service
+      const uniqueTrips = new Set(
+        routeTrips.map((t) => `${t.trip_origin}-${t.trip_headsign}`),
+      ).size;
+
+      if (uniqueTrips >= 6) {
+        // 6-7 days a week: weight 4.5, solid (scaled from legend 1.3)
+        return { weight: 4.5, dashArray: null };
+      } else if (uniqueTrips >= 3) {
+        // 3-5 days a week: weight 4.5, dashArray "6,9" (scaled from legend "2,3" ~3.5x)
+        return { weight: 4.5, dashArray: "6,9" };
+      } else {
+        // 1-2 days a week: weight 4.5, dashArray "6,6" (scaled from legend "2,2" ~3x)
+        return { weight: 4.5, dashArray: "6,6" };
+      }
+    },
+    [trips],
+  );
+
   // Helper function to check if route matches European Sleeper 453 pattern
   // Must be defined before routePaths useMemo that uses it
   const checkEuropeanSleeper453 = useCallback((route) => {
@@ -1948,11 +2044,15 @@ const TrainMap = ({
 
       // Get color for this route (consistent across both directions)
       const routeColor = ROUTE_COLORS[parseInt(routeId) % ROUTE_COLORS.length];
+
+      // Get route style from frequency (based on legend)
+      const routeStyle = getRouteStyleFromFrequency(routeId);
+
       const pathOptions = {
         color: routeColor,
-        weight: 4,
+        weight: routeStyle.weight,
         opacity: 0.8,
-        dashArray: "15, 10",
+        dashArray: routeStyle.dashArray || undefined, // undefined = solid line
         lineCap: "round",
         lineJoin: "round",
       };
@@ -2007,10 +2107,12 @@ const TrainMap = ({
         const osmCoords = osmPolylines.get(path.osmRelationId);
         if (osmCoords && osmCoords.length > 0) {
           // Use OSM polyline instead of station-based path
+          // Use the same styling as other routes (based on frequency) for consistency
           return {
             ...path,
             positions: osmCoords,
             source: "osm",
+            // Keep original pathOptions (weight, opacity, dashArray) from frequency-based styling
           };
         }
       }
@@ -2030,6 +2132,7 @@ const TrainMap = ({
     trips, // Recalculate when trips data changes (for "From <Date>" filtering)
     osmPolylines, // Recalculate when OSM polylines are loaded
     checkEuropeanSleeper453, // Recalculate when route matching function changes
+    getRouteStyleFromFrequency, // Recalculate when frequency detection function changes
   ]);
 
   // Fetch OSM relation polylines for routes that need them
@@ -2407,11 +2510,18 @@ const TrainMap = ({
         })()}
 
         {/* Nightjet overlays: draw polylines and station markers for each included direction */}
+        {/* NightJet routes default to "6-7 days a week" style per legend (scaled up) */}
         {njOverlays.map((ov) => (
           <Polyline
             key={`nj-route-${ov.key}`}
             positions={ov.coords}
-            pathOptions={{ color: ov.color, weight: 4, opacity: 0.8 }}
+            pathOptions={{
+              color: ov.color,
+              weight: 4.5,
+              opacity: 0.8,
+              lineCap: "round",
+              lineJoin: "round",
+            }}
           >
             <Tooltip sticky>{ov.lineName}</Tooltip>
           </Polyline>
@@ -2578,11 +2688,18 @@ const TrainMap = ({
         })}
 
         {/* EuroNight overlays: draw polylines and station markers */}
+        {/* EuroNight routes default to "6-7 days a week" style per legend (scaled up) */}
         {enOverlays.map((ov) => (
           <Polyline
             key={`en-route-${ov.key}`}
             positions={ov.coords}
-            pathOptions={{ color: ov.color, weight: 4, opacity: 0.8 }}
+            pathOptions={{
+              color: ov.color,
+              weight: 4.5,
+              opacity: 0.8,
+              lineCap: "round",
+              lineJoin: "round",
+            }}
           >
             <Tooltip sticky>{ov.lineName}</Tooltip>
           </Polyline>
