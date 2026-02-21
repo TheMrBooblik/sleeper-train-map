@@ -8,6 +8,12 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing relationId parameter" });
   }
 
+  // Multiple Overpass API instances to try in order (the primary one can time out)
+  const OVERPASS_ENDPOINTS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+  ];
+
   try {
     // Use Overpass API to fetch relation geometry
     // This query gets the full relation with all its members and their coordinates
@@ -19,25 +25,40 @@ export default async function handler(req, res) {
       out geom;
     `;
 
-    const overpassUrl = "https://overpass-api.de/api/interpreter";
-    const response = await fetch(overpassUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain",
-        "User-Agent": "train-map/1.0",
-      },
-      body: overpassQuery,
-    });
+    // Try each Overpass endpoint in order until one succeeds
+    let response = null;
+    let lastError = null;
+    for (const overpassUrl of OVERPASS_ENDPOINTS) {
+      try {
+        response = await fetch(overpassUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain",
+            "User-Agent": "train-map/1.0",
+          },
+          body: overpassQuery,
+        });
+        if (response.ok) break; // success — stop trying
+        console.warn(
+          `[osm-relation] Endpoint ${overpassUrl} returned ${response.status}, trying next...`,
+        );
+      } catch (err) {
+        lastError = err;
+        console.warn(
+          `[osm-relation] Endpoint ${overpassUrl} failed: ${err.message}`,
+        );
+      }
+    }
 
-    if (!response.ok) {
+    if (!response || !response.ok) {
+      const status = response?.status || 503;
       console.error(
-        `[osm-relation] Overpass API error:`,
-        response.status,
-        response.statusText,
+        `[osm-relation] All Overpass endpoints failed. Last status: ${status}`,
+        lastError,
       );
       return res
-        .status(response.status)
-        .json({ error: "Failed to fetch relation from Overpass API" });
+        .status(status)
+        .json({ error: "All Overpass API endpoints failed" });
     }
 
     const data = await response.json();

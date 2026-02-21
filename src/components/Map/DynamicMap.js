@@ -383,9 +383,6 @@ const TrainMap = ({
           setLoadingMessage("Loading NightJet stations...");
 
           // Load all Nightjet stations from comprehensive API with progress tracking
-          console.log(
-            "[DEBUG] Fetching Nightjet stations from /api/nj-all-stations",
-          );
           let njStationsFromApi = [];
 
           // Poll real progress and map to 45–75% for main bar
@@ -421,12 +418,7 @@ const TrainMap = ({
 
             if (njStationsRes.ok) {
               const stationsData = await njStationsRes.json();
-              console.log("[DEBUG] nj-all-stations data:", stationsData);
               if (stationsData?.stations?.length) {
-                console.log(
-                  "[DEBUG] Sample stations:",
-                  stationsData.stations.slice(0, 3),
-                );
                 njStationsFromApi = stationsData.stations;
                 setAllNjStations(stationsData.stations);
                 setLoadingProgress(75);
@@ -602,7 +594,6 @@ const TrainMap = ({
             }
           }
 
-          console.log("[DEBUG] All night train data loaded, showing map");
           setLoadingProgress(100);
           setLoadingMessage("Ready!");
           // Mark night trains ready so loading modal can hide
@@ -854,25 +845,7 @@ const TrainMap = ({
               });
             }
           }
-
-          if (njRoutes.length > 0 || enRoutes.length > 0) {
-            console.log(
-              "[DEBUG loadNightTrainsForStation] Found routes via client-side filtering:",
-              njRoutes.length,
-              "NightJet,",
-              enRoutes.length,
-              "EuroNight",
-            );
-          }
         }
-
-        console.log(
-          "[DEBUG loadNightTrainsForStation] Found",
-          njRoutes.length,
-          "NightJet routes and",
-          enRoutes.length,
-          "EuroNight routes",
-        );
 
         // Nightjet colors (cyan/teal shades)
         const njColors = [
@@ -941,18 +914,6 @@ const TrainMap = ({
 
         setNjOverlays(njOverlays);
         setEnOverlays(enOverlays);
-
-        console.log(
-          "[DEBUG] Night train routes for",
-          normalizedStationName,
-          ":",
-          {
-            nightjetRoutes: njOverlays.length,
-            euronightRoutes: enOverlays.length,
-            njRouteNames: njOverlays.map((o) => o.lineName),
-            enRouteNames: enOverlays.map((o) => o.lineName),
-          },
-        );
 
         // Helper function to check if a station name matches the clicked station
         // Try matching with both normalized and original names
@@ -1128,17 +1089,6 @@ const TrainMap = ({
 
         // IMPORTANT: Set filtered stops to only show stations from selected routes
         // This hides all other stations when a filter is applied
-        console.log(
-          "[DEBUG handleMarkerClick] Filtered stops for",
-          stop_id,
-          ":",
-          {
-            selectedRouteIds: routeIdsArray,
-            routeCitiesCount: routeCities.length,
-            routeStopsCount: routeStops.length,
-            routeStopNames: routeStops.map((s) => s.stop_id).slice(0, 10),
-          },
-        );
         setFilteredStops(routeStops);
       } else {
         // Station has no Back-on-Track routes
@@ -1913,7 +1863,6 @@ const TrainMap = ({
           });
         }
       });
-
       // Also get all routes from viewMapData
       if (viewMapData) {
         Object.values(viewMapData).forEach((route) => {
@@ -2102,9 +2051,11 @@ const TrainMap = ({
     });
 
     // Enhance paths with OSM polylines if available
+    console.log("paths.length", paths.length);
     return paths.map((path) => {
       if (path.osmRelationId && osmPolylines.has(path.osmRelationId)) {
-        const osmCoords = osmPolylines.get(path.osmRelationId);
+        let osmCoords = osmPolylines.get(path.osmRelationId);
+        osmCoords = osmCoords.slice(328, osmCoords.length);
         if (osmCoords && osmCoords.length > 0) {
           // Use OSM polyline instead of station-based path
           // Use the same styling as other routes (based on frequency) for consistency
@@ -2399,33 +2350,12 @@ const TrainMap = ({
             });
           }
 
-          console.log(
-            "[DEBUG RENDER] Nightjet stations to render:",
-            stationsToRender.length,
-            "selected:",
-            selected,
-            "hideIntermediate:",
-            hideIntermediateStations,
-          );
           return stationsToRender.map((s, idx) => {
             const lat = s?.location?.latitude;
             const lon = s?.location?.longitude;
             if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-              console.log(
-                "[DEBUG] Invalid coords for station:",
-                s.name,
-                lat,
-                lon,
-              );
               return null;
             }
-            console.log(
-              "[DEBUG] Rendering station marker:",
-              s.name,
-              "at",
-              lat,
-              lon,
-            );
 
             // Use cyan/teal gradient for Nightjet stations
             const icon = new Leaflet.DivIcon({
