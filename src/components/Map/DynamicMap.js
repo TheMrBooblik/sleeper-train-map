@@ -1762,10 +1762,14 @@ const TrainMap = ({
         return { weight: 4.5, dashArray: "6,9" };
       }
 
-      // Seasonal/limited operation (e.g. Snälltåget Malmö–Austria): dashed line
+      // Seasonal/limited operation (e.g. Snälltåget Malmö–Austria): dashed, less visible
       // Source: https://www.snalltaget.se/en/austria
       if (isSeasonal) {
-        return { weight: 4.5, dashArray: "6,6" };
+        return {
+          weight: 2.5,
+          dashArray: "6,6",
+          opacity: 0.45,
+        };
       }
 
       // Estimate frequency from trip count (heuristic fallback)
@@ -2012,7 +2016,7 @@ const TrainMap = ({
       const pathOptions = {
         color: routeColor,
         weight: routeStyle.weight,
-        opacity: 0.8,
+        opacity: routeStyle.opacity ?? 0.8,
         dashArray: routeStyle.dashArray || undefined, // undefined = solid line
         lineCap: "round",
         lineJoin: "round",
