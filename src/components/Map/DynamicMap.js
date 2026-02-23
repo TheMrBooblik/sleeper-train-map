@@ -399,234 +399,237 @@ const TrainMap = ({
 
     // Load night train stations BEFORE showing map
     (async () => {
-        try {
-          const today = new Date();
-          const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      try {
+        const today = new Date();
+        const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-          setLoadingProgressImmediate(35, "Prewarming NightJet & EuroNight...");
+        setLoadingProgressImmediate(35, "Prewarming NightJet & EuroNight...");
 
-          // Prewarm both Nightjet and EuroNight in parallel
-          await Promise.all([
-            fetch("/api/nj-prewarm?max=30", { method: "GET" }),
-            fetch("/api/en-prewarm", { method: "GET" }),
-          ]);
+        // Prewarm both Nightjet and EuroNight in parallel
+        await Promise.all([
+          fetch("/api/nj-prewarm?max=30", { method: "GET" }),
+          fetch("/api/en-prewarm", { method: "GET" }),
+        ]);
 
-          setLoadingProgressImmediate(45, "Loading NightJet stations...");
+        setLoadingProgressImmediate(45, "Loading NightJet stations...");
 
-          // Load all Nightjet stations from comprehensive API with progress tracking
-          let njStationsFromApi = [];
+        // Load all Nightjet stations from comprehensive API with progress tracking
+        let njStationsFromApi = [];
 
-          // Poll progress and map to 45–75% for main bar (throttled updates)
-          const progressInterval = setInterval(async () => {
-            try {
-              const progressRes = await fetch(
-                `/api/nj-all-stations?progress=true&date=${date}`,
-              );
-              if (progressRes.ok) {
-                const progress = await progressRes.json();
-                setNjLoadingProgress(progress);
-                const p = progress?.progress;
-                if (typeof p === "number") {
+        // Poll progress and map to 45–75% for main bar (throttled updates)
+        const progressInterval = setInterval(async () => {
+          try {
+            const progressRes = await fetch(
+              `/api/nj-all-stations?progress=true&date=${date}`,
+            );
+            if (progressRes.ok) {
+              const progress = await progressRes.json();
+              setNjLoadingProgress(progress);
+              const p = progress?.progress;
+              if (typeof p === "number") {
                 setLoadingProgress(45 + (p / 100) * 30);
                 if (progress?.message) setLoadingMessage(progress.message);
-                }
               }
-            } catch (err) {
-              console.error("[DEBUG] Failed to fetch progress:", err);
-            }
-          }, 800); // Poll every 800ms to reduce load
-
-          try {
-            const njStationsRes = await fetch(
-              `/api/nj-all-stations?date=${date}&_t=${Date.now()}`,
-              {
-                cache: "no-store",
-              },
-            );
-
-            // Clear progress polling
-            clearInterval(progressInterval);
-
-            if (njStationsRes.ok) {
-              const stationsData = await njStationsRes.json();
-              if (stationsData?.stations?.length) {
-                njStationsFromApi = stationsData.stations;
-                setAllNjStations(stationsData.stations);
-                setLoadingProgressImmediate(75, `NightJet: ${stationsData.count} stations`);
-                setNjLoadingProgress({
-                  progress: 100,
-                  message: `Found ${stationsData.count} stations`,
-                  step: "complete",
-                });
-              } else {
-                setNjLoadingProgress({
-                  progress: 0,
-                  message: "No stations found",
-                  step: "complete",
-                });
-              }
-            } else {
-              console.error(
-                "[DEBUG] Failed to fetch nj-all-stations:",
-                njStationsRes.status,
-                njStationsRes.statusText,
-              );
-              setNjLoadingProgress({
-                progress: 0,
-                message: "Failed to load stations",
-                step: "error",
-              });
             }
           } catch (err) {
-            clearInterval(progressInterval);
-            console.error("[DEBUG] Error fetching nj-all-stations:", err);
+            console.error("[DEBUG] Failed to fetch progress:", err);
+          }
+        }, 800); // Poll every 800ms to reduce load
+
+        try {
+          const njStationsRes = await fetch(
+            `/api/nj-all-stations?date=${date}&_t=${Date.now()}`,
+            {
+              cache: "no-store",
+            },
+          );
+
+          // Clear progress polling
+          clearInterval(progressInterval);
+
+          if (njStationsRes.ok) {
+            const stationsData = await njStationsRes.json();
+            if (stationsData?.stations?.length) {
+              njStationsFromApi = stationsData.stations;
+              setAllNjStations(stationsData.stations);
+              setLoadingProgressImmediate(
+                75,
+                `NightJet: ${stationsData.count} stations`,
+              );
+              setNjLoadingProgress({
+                progress: 100,
+                message: `Found ${stationsData.count} stations`,
+                step: "complete",
+              });
+            } else {
+              setNjLoadingProgress({
+                progress: 0,
+                message: "No stations found",
+                step: "complete",
+              });
+            }
+          } else {
+            console.error(
+              "[DEBUG] Failed to fetch nj-all-stations:",
+              njStationsRes.status,
+              njStationsRes.statusText,
+            );
             setNjLoadingProgress({
               progress: 0,
-              message: `Error: ${err.message}`,
+              message: "Failed to load stations",
               step: "error",
             });
           }
+        } catch (err) {
+          clearInterval(progressInterval);
+          console.error("[DEBUG] Error fetching nj-all-stations:", err);
+          setNjLoadingProgress({
+            progress: 0,
+            message: `Error: ${err.message}`,
+            step: "error",
+          });
+        }
 
-          setLoadingProgressImmediate(80, "Loading NightJet routes...");
-          // Load all Nightjet routes for display
-          const njRes = await fetch(`/api/nj-list?date=${date}`);
-          if (njRes.ok) {
-            const data = await njRes.json();
-            if (data?.items?.length) {
-              // Store all routes for Show All Routes mode
-              const njColors = [
-                "#0ea5e9",
-                "#14b8a6",
-                "#06b6d4",
-                "#22d3ee",
-                "#0891b2",
-                "#0e7490",
-                "#0284c7",
-                "#0369a1",
-              ];
-              // Process routes: decode polyline if available for smoother curves, otherwise use station coords
-              const routes = data.items.map((item, idx) => {
-                // Decode polyline if available, otherwise use station coords
-                let coords = item.coords;
-                if (item.polyline) {
-                  try {
-                    coords = polyline.decode(item.polyline);
-                  } catch (e) {
-                    console.error("Failed to decode Nightjet polyline:", e);
-                  }
+        setLoadingProgressImmediate(80, "Loading NightJet routes...");
+        // Load all Nightjet routes for display
+        const njRes = await fetch(`/api/nj-list?date=${date}`);
+        if (njRes.ok) {
+          const data = await njRes.json();
+          if (data?.items?.length) {
+            // Store all routes for Show All Routes mode
+            const njColors = [
+              "#0ea5e9",
+              "#14b8a6",
+              "#06b6d4",
+              "#22d3ee",
+              "#0891b2",
+              "#0e7490",
+              "#0284c7",
+              "#0369a1",
+            ];
+            // Process routes: decode polyline if available for smoother curves, otherwise use station coords
+            const routes = data.items.map((item, idx) => {
+              // Decode polyline if available, otherwise use station coords
+              let coords = item.coords;
+              if (item.polyline) {
+                try {
+                  coords = polyline.decode(item.polyline);
+                } catch (e) {
+                  console.error("Failed to decode Nightjet polyline:", e);
                 }
-                return {
-                  key: item.key,
-                  lineName: item.lineName,
-                  coords,
-                  stations: item.stations,
-                  color: njColors[idx % njColors.length],
-                  type: "nightjet",
-                };
-              });
-              setAllNjRoutes(routes);
+              }
+              return {
+                key: item.key,
+                lineName: item.lineName,
+                coords,
+                stations: item.stations,
+                color: njColors[idx % njColors.length],
+                type: "nightjet",
+              };
+            });
+            setAllNjRoutes(routes);
 
-              // Extract unique stations from routes and merge with stations from API
-              // This ensures we have stations even if nj-all-stations API is slow or fails
-              const stationMap = new Map();
-              // Add stations from API first
-              njStationsFromApi.forEach((station) => {
+            // Extract unique stations from routes and merge with stations from API
+            // This ensures we have stations even if nj-all-stations API is slow or fails
+            const stationMap = new Map();
+            // Add stations from API first
+            njStationsFromApi.forEach((station) => {
+              const key =
+                station.id ||
+                `${station.location?.latitude}-${station.location?.longitude}`;
+              if (key) stationMap.set(key, station);
+            });
+            // Add stations from routes
+            data.items.forEach((route) => {
+              route.stations?.forEach((station) => {
                 const key =
                   station.id ||
                   `${station.location?.latitude}-${station.location?.longitude}`;
-                if (key) stationMap.set(key, station);
-              });
-              // Add stations from routes
-              data.items.forEach((route) => {
-                route.stations?.forEach((station) => {
-                  const key =
-                    station.id ||
-                    `${station.location?.latitude}-${station.location?.longitude}`;
-                  if (
-                    key &&
-                    station.location?.latitude &&
-                    station.location?.longitude
-                  ) {
-                    if (!stationMap.has(key)) {
-                      stationMap.set(key, station);
-                    }
-                  }
-                });
-              });
-              // Update stations with merged set
-              const mergedStations = Array.from(stationMap.values());
-              if (mergedStations.length > njStationsFromApi.length) {
-                setAllNjStations(mergedStations);
-              }
-            }
-          }
-
-          setLoadingProgressImmediate(90, "Loading EuroNight routes...");
-          // Load all EuroNight stations and routes for display
-          const enRes = await fetch(`/api/en-list?date=${date}`);
-          if (enRes.ok) {
-            const data = await enRes.json();
-            if (data?.items?.length) {
-              // Store all routes for Show All Routes mode
-              const enColors = [
-                "#a855f7",
-                "#c026d3",
-                "#d946ef",
-                "#e879f9",
-                "#9333ea",
-                "#a21caf",
-                "#86198f",
-                "#701a75",
-              ];
-              // Process routes: decode polyline if available for smoother curves, otherwise use station coords
-              const routes = data.items.map((item, idx) => {
-                // Decode polyline if available, otherwise use station coords
-                let coords = item.coords;
-                if (item.polyline) {
-                  try {
-                    coords = polyline.decode(item.polyline);
-                  } catch (e) {
-                    console.error("Failed to decode EuroNight polyline:", e);
-                  }
-                }
-                return {
-                  key: item.key,
-                  lineName: item.lineName,
-                  coords,
-                  stations: item.stations,
-                  color: enColors[idx % enColors.length],
-                  type: "euronight",
-                };
-              });
-              setAllEnRoutes(routes);
-
-              // Extract unique stations
-              const stationMap = new Map();
-              data.items.forEach((route) => {
-                route.stations?.forEach((station) => {
-                  const key = `${station.location?.latitude}-${station.location?.longitude}`;
+                if (
+                  key &&
+                  station.location?.latitude &&
+                  station.location?.longitude
+                ) {
                   if (!stationMap.has(key)) {
                     stationMap.set(key, station);
                   }
-                });
+                }
               });
-              setAllEnStations(Array.from(stationMap.values()));
+            });
+            // Update stations with merged set
+            const mergedStations = Array.from(stationMap.values());
+            if (mergedStations.length > njStationsFromApi.length) {
+              setAllNjStations(mergedStations);
             }
           }
-
-          setLoadingProgressImmediate(100, "Ready!");
-          // Mark night trains ready so loading modal can hide
-          setNightTrainsReady(true);
-          setIsMapInitialized(true);
-          setShowTooltips(true);
-        } catch (err) {
-          console.error("[DEBUG] Error loading night train data:", err);
-          // Mark ready even on error so modal doesn't block forever
-          setNightTrainsReady(true);
-          setIsMapInitialized(true);
-          setShowTooltips(true);
         }
-      })();
+
+        setLoadingProgressImmediate(90, "Loading EuroNight routes...");
+        // Load all EuroNight stations and routes for display
+        const enRes = await fetch(`/api/en-list?date=${date}`);
+        if (enRes.ok) {
+          const data = await enRes.json();
+          if (data?.items?.length) {
+            // Store all routes for Show All Routes mode
+            const enColors = [
+              "#a855f7",
+              "#c026d3",
+              "#d946ef",
+              "#e879f9",
+              "#9333ea",
+              "#a21caf",
+              "#86198f",
+              "#701a75",
+            ];
+            // Process routes: decode polyline if available for smoother curves, otherwise use station coords
+            const routes = data.items.map((item, idx) => {
+              // Decode polyline if available, otherwise use station coords
+              let coords = item.coords;
+              if (item.polyline) {
+                try {
+                  coords = polyline.decode(item.polyline);
+                } catch (e) {
+                  console.error("Failed to decode EuroNight polyline:", e);
+                }
+              }
+              return {
+                key: item.key,
+                lineName: item.lineName,
+                coords,
+                stations: item.stations,
+                color: enColors[idx % enColors.length],
+                type: "euronight",
+              };
+            });
+            setAllEnRoutes(routes);
+
+            // Extract unique stations
+            const stationMap = new Map();
+            data.items.forEach((route) => {
+              route.stations?.forEach((station) => {
+                const key = `${station.location?.latitude}-${station.location?.longitude}`;
+                if (!stationMap.has(key)) {
+                  stationMap.set(key, station);
+                }
+              });
+            });
+            setAllEnStations(Array.from(stationMap.values()));
+          }
+        }
+
+        setLoadingProgressImmediate(100, "Ready!");
+        // Mark night trains ready so loading modal can hide
+        setNightTrainsReady(true);
+        setIsMapInitialized(true);
+        setShowTooltips(true);
+      } catch (err) {
+        console.error("[DEBUG] Error loading night train data:", err);
+        // Mark ready even on error so modal doesn't block forever
+        setNightTrainsReady(true);
+        setIsMapInitialized(true);
+        setShowTooltips(true);
+      }
+    })();
   }, [
     stops,
     cities,
@@ -1743,7 +1746,11 @@ const TrainMap = ({
 
         // Snälltåget and similar: service_id with date range (e.g. "2023/12/23-2024/03/29: Sat")
         // indicates seasonal/limited operation → dashed line
-        if (/\d{4}\/\d{1,2}\/\d{1,2}\s*-\s*\d{4}\/\d{1,2}\/\d{1,2}/.test(serviceId)) {
+        if (
+          /\d{4}\/\d{1,2}\/\d{1,2}\s*-\s*\d{4}\/\d{1,2}\/\d{1,2}/.test(
+            serviceId,
+          )
+        ) {
           isSeasonal = true;
         }
 
@@ -2464,23 +2471,19 @@ const TrainMap = ({
               lineJoin: "round",
             }}
           >
-            <Tooltip sticky>{ov.lineName}</Tooltip>
+            <Tooltip sticky>
+              {ov.lineName} {ov.stations[0].name} -{" "}
+              {ov.stations[ov.stations.length - 1].name}
+            </Tooltip>
           </Polyline>
         ))}
-
         {njOverlays.flatMap((ov, idxOv) =>
           (ov.stations || []).map((s, idx) => {
-            // If hideIntermediateStations is enabled, skip intermediate stations
-            if (hideIntermediateStations) {
-              const isEnd = idx === 0 || idx === ov.stations.length - 1;
-              if (!isEnd) return null;
-            }
-
             const lat = s?.location?.latitude;
             const lon = s?.location?.longitude;
             if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-            const isEnd = idx === 0 || idx === ov.stations.length - 1;
-
+            // Last station in this overlay gets larger "end" marker
+            const isEnd = idx === (ov.stations || []).length - 1;
             // Use regular station marker styles (gradient dots)
             const icon = new Leaflet.DivIcon({
               className: "nightjet-station-dot",
@@ -2642,7 +2645,10 @@ const TrainMap = ({
               lineJoin: "round",
             }}
           >
-            <Tooltip sticky>{ov.lineName}</Tooltip>
+            <Tooltip sticky>
+              {ov.lineName} {ov.stations[0].name} -{" "}
+              {ov.stations[ov.stations.length - 1].name}
+            </Tooltip>
           </Polyline>
         ))}
 
