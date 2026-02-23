@@ -4,6 +4,7 @@ import React, { useMemo, useEffect } from "react";
 import { useAgencies } from "../../hooks/requests/useAgencies";
 import { useRoutes } from "../../hooks/requests/useRoutes";
 import { useTrips } from "../../hooks/requests/useTrips";
+import { getRouteFrequencyOverride } from "../../lib/routeFrequencyOverrides";
 
 const TrainDetailPanel = ({ isOpen, onClose, selectedRouteIds }) => {
   const { agencies } = useAgencies();
@@ -152,12 +153,37 @@ const TrainDetailPanel = ({ isOpen, onClose, selectedRouteIds }) => {
                 </div>
 
                 {/* Frequency */}
-                {trip.service_id && (
+                {(trip.service_id || getRouteFrequencyOverride(trip.route_id)) && (
                   <div className="space-y-1">
                     <div className="text-xs text-gray-500 uppercase">
                       Frequency
                     </div>
-                    <div className="text-sm">{trip.service_id}</div>
+                    <div className="text-sm">
+                      {(() => {
+                        const override = getRouteFrequencyOverride(trip.route_id);
+                        if (override) {
+                          return (
+                            <>
+                              {override.text}
+                              {override.sourceUrl && (
+                                <>
+                                  {" "}
+                                  <a
+                                    href={override.sourceUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    Details
+                                  </a>
+                                </>
+                              )}
+                            </>
+                          );
+                        }
+                        return trip.service_id;
+                      })()}
+                    </div>
                   </div>
                 )}
 

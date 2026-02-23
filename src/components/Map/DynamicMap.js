@@ -1735,6 +1735,12 @@ const TrainMap = ({
           isSeasonal = true;
         }
 
+        // Snälltåget and similar: service_id with date range (e.g. "2023/12/23-2024/03/29: Sat")
+        // indicates seasonal/limited operation → dashed line
+        if (/\d{4}\/\d{1,2}\/\d{1,2}\s*-\s*\d{4}\/\d{1,2}\/\d{1,2}/.test(serviceId)) {
+          isSeasonal = true;
+        }
+
         // Check for non-daily indicators
         if (
           irr.includes("non-daily") ||
@@ -1754,6 +1760,12 @@ const TrainMap = ({
       // If service_id indicates 3-5 days/week, use medium dash
       if (isWeekly) {
         return { weight: 4.5, dashArray: "6,9" };
+      }
+
+      // Seasonal/limited operation (e.g. Snälltåget Malmö–Austria): dashed line
+      // Source: https://www.snalltaget.se/en/austria
+      if (isSeasonal) {
+        return { weight: 4.5, dashArray: "6,6" };
       }
 
       // Estimate frequency from trip count (heuristic fallback)
