@@ -2388,12 +2388,17 @@ const TrainMap = ({
               return null;
             }
 
-            // Use cyan/teal gradient for Nightjet stations
+            // Same style as Back on Track: blue big for end stations, green small for via
+            const isEnd =
+              nightTrainEndpointStations.has(s.name) ||
+              (s.id && nightTrainEndpointStations.has(s.id));
             const icon = new Leaflet.DivIcon({
               className: "nj-station-marker",
-              html: '<div style="width: 16px; height: 16px; background: linear-gradient(135deg, #0ea5e9, #14b8a6); border-radius: 50%; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(14, 165, 233, 0.5), 0 0 0 1px rgba(14, 165, 233, 0.3); transition: all 0.3s ease; cursor: pointer; z-index: 500;"></div>',
-              iconSize: [16, 16],
-              iconAnchor: [8, 8],
+              html: isEnd
+                ? '<div style="width: 20px; height: 20px; background: linear-gradient(135deg, #2196F3, #1976D2); border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4), 0 0 0 1px rgba(33, 150, 243, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 1000;"></div>'
+                : '<div style="width: 14px; height: 14px; background: linear-gradient(135deg, #4CAF50, #388E3C); border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4), 0 0 0 1px rgba(76, 175, 80, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 100;"></div>',
+              iconSize: isEnd ? [20, 20] : [14, 14],
+              iconAnchor: isEnd ? [10, 10] : [7, 7],
             });
 
             return (
@@ -2482,9 +2487,9 @@ const TrainMap = ({
             const lat = s?.location?.latitude;
             const lon = s?.location?.longitude;
             if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-            // Last station in this overlay gets larger "end" marker
-            const isEnd = idx === (ov.stations || []).length - 1;
-            // Use regular station marker styles (gradient dots)
+            // End stations = first and last (same as Back on Track: blue big). Via = middle (green small).
+            const isEnd = idx === 0 || idx === (ov.stations || []).length - 1;
+            // Use same style as Back on Track: blue 20px for end, green 14px for via
             const icon = new Leaflet.DivIcon({
               className: "nightjet-station-dot",
               html: isEnd
@@ -2563,12 +2568,17 @@ const TrainMap = ({
           const lon = s?.location?.longitude;
           if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
 
-          // Use purple/magenta gradient for EuroNight stations
+          // Same style as Back on Track: blue big for end stations, green small for via
+          const isEnd =
+            nightTrainEndpointStations.has(s.name) ||
+            (s.id && nightTrainEndpointStations.has(s.id));
           const icon = new Leaflet.DivIcon({
             className: "en-station-marker",
-            html: '<div style="width: 16px; height: 16px; background: linear-gradient(135deg, #a855f7, #c026d3); border-radius: 50%; border: 2.5px solid white; box-shadow: 0 2px 6px rgba(168, 85, 247, 0.5), 0 0 0 1px rgba(168, 85, 247, 0.3); transition: all 0.3s ease; cursor: pointer; z-index: 500;"></div>',
-            iconSize: [16, 16],
-            iconAnchor: [8, 8],
+            html: isEnd
+              ? '<div style="width: 20px; height: 20px; background: linear-gradient(135deg, #2196F3, #1976D2); border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4), 0 0 0 1px rgba(33, 150, 243, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 1000;"></div>'
+              : '<div style="width: 14px; height: 14px; background: linear-gradient(135deg, #4CAF50, #388E3C); border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4), 0 0 0 1px rgba(76, 175, 80, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 100;"></div>',
+            iconSize: isEnd ? [20, 20] : [14, 14],
+            iconAnchor: isEnd ? [10, 10] : [7, 7],
           });
 
           return (
@@ -2663,10 +2673,12 @@ const TrainMap = ({
             const lat = s?.location?.latitude;
             const lon = s?.location?.longitude;
             if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+            // End = first and last (same as Back on Track). Via = middle (green small).
             const isEnd = idx === 0 || idx === ov.stations.length - 1;
 
             const icon = new Leaflet.DivIcon({
               className: "euronight-station-dot",
+              // Same as Back on Track: blue 20px for end, green 14px for via
               html: isEnd
                 ? '<div style="width: 20px; height: 20px; background: linear-gradient(135deg, #2196F3, #1976D2); border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4), 0 0 0 1px rgba(33, 150, 243, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 1000;"></div>'
                 : '<div style="width: 14px; height: 14px; background: linear-gradient(135deg, #4CAF50, #388E3C); border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4), 0 0 0 1px rgba(76, 175, 80, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 100;"></div>',
