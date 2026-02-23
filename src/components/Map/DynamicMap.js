@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useCallback,
   useRef,
+  startTransition,
 } from "react";
 import Leaflet from "leaflet";
 import * as ReactLeaflet from "react-leaflet";
@@ -94,6 +95,35 @@ const TrainMap = ({
 
   const mapRef = useRef();
   const sidebarRef = useRef(null);
+
+  // Ensure night-train loading runs only once (prevents progress jumping back to 35%/45%)
+  const nightTrainLoadStartedRef = useRef(false);
+
+  // Throttle loading progress updates to keep UI smooth (max ~12 updates/sec)
+  const loadingProgressRef = useRef({ progress: 0, message: "" });
+  const loadingThrottleRef = useRef(null);
+  const setLoadingProgressThrottled = useCallback((progress, message) => {
+    loadingProgressRef.current = {
+      progress: progress ?? loadingProgressRef.current.progress,
+      message: message ?? loadingProgressRef.current.message,
+    };
+    if (loadingThrottleRef.current !== null) return;
+    loadingThrottleRef.current = requestAnimationFrame(() => {
+      loadingThrottleRef.current = null;
+      setLoadingProgress(loadingProgressRef.current.progress);
+      if (loadingProgressRef.current.message)
+        setLoadingMessage(loadingProgressRef.current.message);
+    });
+  }, []);
+  // For final updates (100%, "Ready!") bypass throttle so they show immediately
+  const setLoadingProgressImmediate = useCallback((progress, message) => {
+    if (loadingThrottleRef.current !== null) {
+      cancelAnimationFrame(loadingThrottleRef.current);
+      loadingThrottleRef.current = null;
+    }
+    setLoadingProgress(progress);
+    if (message != null) setLoadingMessage(message);
+  }, []);
 
   const mapClassName = `w-full h-full ${className || ""}`;
 
@@ -265,13 +295,13 @@ const TrainMap = ({
   };
 
   // Handle polyline (route line) click to show train details
+  // Use startTransition so map stays responsive while panel opens
   const handlePolylineClick = useCallback((routeIds) => {
-    console.log("Polyline clicked! Route ID:", routeIds);
-    // routeIds can be a single ID or an array (for overlapping routes)
     const idsArray = Array.isArray(routeIds) ? routeIds : [routeIds];
-    console.log("Opening panel with route IDs:", idsArray);
-    setSelectedTrainRouteIds(idsArray);
-    setIsTrainDetailPanelOpen(true);
+    startTransition(() => {
+      setSelectedTrainRouteIds(idsArray);
+      setIsTrainDetailPanelOpen(true);
+    });
   }, []);
 
   const closeTrainDetailPanel = useCallback(() => {
@@ -320,7 +350,7 @@ const TrainMap = ({
   // Reflect real loading: Back-on-Track phase (stops + cities)
   useEffect(() => {
     if (overallLoading) {
-      setLoadingProgress(stopsLoading ? 5 : 25);
+      setLoadingProgress(stopsLoading ? 15 : 28);
       setLoadingMessage(
         stopsLoading ? "Loading stations..." : "Processing routes...",
       );
@@ -333,13 +363,13 @@ const TrainMap = ({
   // Hide loading modal only when both Back-on-Track and NightJet+EuroNight are ready
   useEffect(() => {
     if (!overallLoading && nightTrainsReady) {
-      setLoadingProgress(100);
+      setLoadingProgressImmediate(100, "Ready!");
       const t = setTimeout(() => {
         setIsLoading(false);
-      }, 500); // Small delay to show 100% completion
+      }, 400); // Brief delay to show 100% for comfort
       return () => clearTimeout(t);
     }
-  }, [overallLoading, nightTrainsReady]);
+  }, [overallLoading, nightTrainsReady, setLoadingProgressImmediate]);
 
   // When "Show All Routes" is on and no station is selected, show all NightJet and EuroNight routes
   useEffect(() => {
@@ -358,19 +388,22 @@ const TrainMap = ({
 
   // Immediate loading of map elements without delay
   useEffect(() => {
-    if (stops && stops.length > 0 && cities && !overallLoading) {
-      // Ensure filtered stops is set to all stops initially
-      setFilteredStops(stops);
+    if (!stops?.length || !cities || overallLoading) return;
 
-      // Load night train stations BEFORE showing map
-      (async () => {
+    // Run night-train load only once; avoid second run when stops/cities refs update
+    if (nightTrainLoadStartedRef.current) return;
+    nightTrainLoadStartedRef.current = true;
+
+    // Ensure filtered stops is set to all stops initially
+    setFilteredStops(stops);
+
+    // Load night train stations BEFORE showing map
+    (async () => {
         try {
           const today = new Date();
           const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-          console.log("[DEBUG] Starting to load night train data...");
-          setLoadingProgress(35);
-          setLoadingMessage("Prewarming NightJet & EuroNight...");
+          setLoadingProgressImmediate(35, "Prewarming NightJet & EuroNight...");
 
           // Prewarm both Nightjet and EuroNight in parallel
           await Promise.all([
@@ -378,14 +411,12 @@ const TrainMap = ({
             fetch("/api/en-prewarm", { method: "GET" }),
           ]);
 
-          console.log("[DEBUG] Prewarming complete, loading stations...");
-          setLoadingProgress(45);
-          setLoadingMessage("Loading NightJet stations...");
+          setLoadingProgressImmediate(45, "Loading NightJet stations...");
 
           // Load all Nightjet stations from comprehensive API with progress tracking
           let njStationsFromApi = [];
 
-          // Poll real progress and map to 45–75% for main bar
+          // Poll progress and map to 45–75% for main bar (throttled updates)
           const progressInterval = setInterval(async () => {
             try {
               const progressRes = await fetch(
@@ -396,14 +427,14 @@ const TrainMap = ({
                 setNjLoadingProgress(progress);
                 const p = progress?.progress;
                 if (typeof p === "number") {
-                  setLoadingProgress(45 + (p / 100) * 30);
-                  if (progress?.message) setLoadingMessage(progress.message);
+                setLoadingProgress(45 + (p / 100) * 30);
+                if (progress?.message) setLoadingMessage(progress.message);
                 }
               }
             } catch (err) {
               console.error("[DEBUG] Failed to fetch progress:", err);
             }
-          }, 500); // Poll every 500ms
+          }, 800); // Poll every 800ms to reduce load
 
           try {
             const njStationsRes = await fetch(
@@ -421,15 +452,13 @@ const TrainMap = ({
               if (stationsData?.stations?.length) {
                 njStationsFromApi = stationsData.stations;
                 setAllNjStations(stationsData.stations);
-                setLoadingProgress(75);
-                setLoadingMessage(`NightJet: ${stationsData.count} stations`);
+                setLoadingProgressImmediate(75, `NightJet: ${stationsData.count} stations`);
                 setNjLoadingProgress({
                   progress: 100,
                   message: `Found ${stationsData.count} stations`,
                   step: "complete",
                 });
               } else {
-                console.log("[DEBUG] No stations in response");
                 setNjLoadingProgress({
                   progress: 0,
                   message: "No stations found",
@@ -458,8 +487,7 @@ const TrainMap = ({
             });
           }
 
-          setLoadingProgress(80);
-          setLoadingMessage("Loading NightJet routes...");
+          setLoadingProgressImmediate(80, "Loading NightJet routes...");
           // Load all Nightjet routes for display
           const njRes = await fetch(`/api/nj-list?date=${date}`);
           if (njRes.ok) {
@@ -528,20 +556,12 @@ const TrainMap = ({
               // Update stations with merged set
               const mergedStations = Array.from(stationMap.values());
               if (mergedStations.length > njStationsFromApi.length) {
-                console.log(
-                  "[DEBUG] Merged stations from nj-list:",
-                  mergedStations.length,
-                  "total stations (was",
-                  njStationsFromApi.length,
-                  ")",
-                );
                 setAllNjStations(mergedStations);
               }
             }
           }
 
-          setLoadingProgress(90);
-          setLoadingMessage("Loading EuroNight routes...");
+          setLoadingProgressImmediate(90, "Loading EuroNight routes...");
           // Load all EuroNight stations and routes for display
           const enRes = await fetch(`/api/en-list?date=${date}`);
           if (enRes.ok) {
@@ -594,8 +614,7 @@ const TrainMap = ({
             }
           }
 
-          setLoadingProgress(100);
-          setLoadingMessage("Ready!");
+          setLoadingProgressImmediate(100, "Ready!");
           // Mark night trains ready so loading modal can hide
           setNightTrainsReady(true);
           setIsMapInitialized(true);
@@ -608,8 +627,13 @@ const TrainMap = ({
           setShowTooltips(true);
         }
       })();
-    }
-  }, [stops, cities, setFilteredStops, overallLoading]);
+  }, [
+    stops,
+    cities,
+    setFilteredStops,
+    overallLoading,
+    setLoadingProgressImmediate,
+  ]);
 
   const defaultIcon = useMemo(() => {
     // Create a beautiful blue dot for main stations
@@ -671,12 +695,6 @@ const TrainMap = ({
   // Accepts both originalStationName (for exact matching) and normalizedStationName (for grouped cities)
   const loadNightTrainsForStation = useCallback(
     async (normalizedStationName, originalStationName = null) => {
-      console.log(
-        "[DEBUG loadNightTrainsForStation] Called with normalizedStationName:",
-        normalizedStationName,
-        "originalStationName:",
-        originalStationName,
-      );
       try {
         const today = new Date();
         const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -767,9 +785,6 @@ const TrainMap = ({
         // Fallback: If no routes found with station name filter, try fetching all routes
         // and filter client-side. This helps when API matching isn't working correctly.
         if (njRoutes.length === 0 && enRoutes.length === 0) {
-          console.log(
-            "[DEBUG loadNightTrainsForStation] No routes found with name filter, trying all routes...",
-          );
           const [njResAll, enResAll] = await Promise.all([
             fetch(`/api/nj-list?date=${date}`),
             fetch(`/api/en-list?date=${date}`),
@@ -1100,19 +1115,11 @@ const TrainMap = ({
 
       setSelected(true);
 
-      // Fetch and overlay both Nightjet and EuroNight routes for this station
-      // Pass both normalized name (for grouped cities) and original name (for exact matching)
-      console.log(
-        "[DEBUG handleMarkerClick] filterName:",
-        filterName,
-        "stop_id:",
-        stop_id,
-      );
+      // Defer NightJet/EuroNight fetch so selection and Back-on-Track routes paint immediately
       if (filterName) {
-        // Always pass the original stop_id as the second parameter
-        // This ensures we search with both normalized and original names
-        // Even if they're the same, having both helps with API matching
-        loadNightTrainsForStation(filterName, stop_id);
+        const name = filterName;
+        const id = stop_id;
+        queueMicrotask(() => loadNightTrainsForStation(name, id));
       }
     },
     [
@@ -1401,7 +1408,6 @@ const TrainMap = ({
     });
 
     if (!stopsToShow || !stopsToShow.length) {
-      console.log("No stations to show");
       return [];
     }
 
@@ -2067,11 +2073,13 @@ const TrainMap = ({
     });
 
     // Enhance paths with OSM polylines if available
-    console.log("paths.length", paths.length);
     return paths.map((path) => {
       if (path.osmRelationId && osmPolylines.has(path.osmRelationId)) {
         let osmCoords = osmPolylines.get(path.osmRelationId);
-        osmCoords = osmCoords.slice(328, osmCoords.length);
+        // Workaround: skip first 328 points to fix incorrect/duplicate segments at start of OSM relation
+        if (osmCoords && osmCoords.length > 328) {
+          osmCoords = osmCoords.slice(328, osmCoords.length);
+        }
         if (osmCoords && osmCoords.length > 0) {
           // Use OSM polyline instead of station-based path
           // Use the same styling as other routes (based on frequency) for consistency
@@ -2389,25 +2397,12 @@ const TrainMap = ({
                 eventHandlers={{
                   click: (e) => {
                     e.originalEvent?.stopPropagation();
-                    console.log(
-                      "[DEBUG NJ marker] Clicked station:",
-                      s.name,
-                      "at",
-                      lat,
-                      lon,
-                    );
                     // Find matching station in stops to trigger selection
                     const matchingStop = stops?.find(
                       (stop) =>
                         matchStationNames(s.name, stop.stop_id) ||
                         matchStationNames(s.name, stop.stop_name),
                     );
-                    console.log(
-                      "[DEBUG NJ marker] Matched stop:",
-                      matchingStop?.stop_id,
-                      matchingStop?.stop_name,
-                    );
-
                     // Create a filteredStop object with Nightjet station name
                     // Use the original Nightjet station name for display, not the matched stop_id
                     const filteredStop = {
