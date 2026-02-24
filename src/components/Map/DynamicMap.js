@@ -321,6 +321,15 @@ const TrainMap = ({
     setSelectedNightTrainOverlay(null);
   }, []);
 
+  // When user closes the filter box: clear line filter (and panel) or station filter
+  const handleFilterClose = useCallback(() => {
+    if (selectedNightTrainOverlay) {
+      closeTrainDetailPanel();
+    } else {
+      removeFilter();
+    }
+  }, [selectedNightTrainOverlay, closeTrainDetailPanel, removeFilter]);
+
   // Component to handle map click events
   const MapClickHandler = () => {
     useMapEvents({
@@ -331,8 +340,8 @@ const TrainMap = ({
           "leaflet-interactive",
         );
 
-        if (selected && !isClickOnFeature) {
-          removeFilter();
+        if (!isClickOnFeature && (selected || selectedNightTrainOverlay)) {
+          handleFilterClose();
         }
       },
     });
@@ -342,10 +351,10 @@ const TrainMap = ({
   const escFunction = useCallback(
     (event) => {
       if (event.key === "Escape") {
-        removeFilter();
+        handleFilterClose();
       }
     },
-    [setFilteredStops, stops],
+    [handleFilterClose],
   );
 
   useEffect(() => {
@@ -2370,15 +2379,20 @@ const TrainMap = ({
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <MapClickHandler />
         <Filter
-          selected={selected}
-          filterName={selectedStationName || stopId}
-          onClose={removeFilter}
+          selected={selected || !!selectedNightTrainOverlay}
+          filterName={
+            selectedNightTrainOverlay
+              ? `${selectedNightTrainOverlay.lineName || "Train"}: ${selectedNightTrainOverlay.stations?.[0]?.name || "?"} → ${selectedNightTrainOverlay.stations?.[selectedNightTrainOverlay.stations?.length - 1]?.name || "?"}`
+              : selectedStationName || stopId
+          }
+          onClose={handleFilterClose}
         />
         <ZoomControl className="outline-none" />
         <LocationControl />
 
-        {/* All Nightjet stations - show filtered ones when filter is active, or all when no filter */}
-        {(() => {
+        {/* All Nightjet stations - hide when line filter is active (only selected line's stations shown below) */}
+        {!selectedNightTrainOverlay &&
+        (() => {
           let stationsToRender = selected ? filteredNjStations : allNjStations;
 
           // Filter out intermediate stations if hideIntermediateStations is enabled
@@ -2474,9 +2488,10 @@ const TrainMap = ({
           });
         })()}
 
-        {/* Nightjet overlays: draw polylines and station markers for each included direction */}
+        {/* Nightjet overlays: when line filter active, show only the selected line */}
         {/* NightJet routes default to "6-7 days a week" style per legend (scaled up) */}
-        {njOverlays.map((ov) => (
+        {/* When line filter active: show only the selected overlay; otherwise show all */}
+        {(selectedNightTrainOverlay ? (selectedNightTrainOverlay.type === "nightjet" ? [selectedNightTrainOverlay] : []) : njOverlays).map((ov) => (
           <Polyline
             key={`nj-route-${ov.key}`}
             positions={ov.coords}
@@ -2501,7 +2516,7 @@ const TrainMap = ({
             </Tooltip>
           </Polyline>
         ))}
-        {njOverlays.flatMap((ov, idxOv) =>
+        {(selectedNightTrainOverlay ? (selectedNightTrainOverlay.type === "nightjet" ? [selectedNightTrainOverlay] : []) : njOverlays).flatMap((ov, idxOv) =>
           (ov.stations || []).map((s, idx) => {
             const lat = s?.location?.latitude;
             const lon = s?.location?.longitude;
@@ -2565,9 +2580,11 @@ const TrainMap = ({
           }),
         )}
 
-        {/* All EuroNight stations - show filtered ones when filter is active, or all when no filter */}
-        {(() => {
+        {/* All EuroNight stations - hide when line filter is active (only selected line's stations shown below) */}
+        {!selectedNightTrainOverlay &&
+        (() => {
           let stationsToRender = selected ? filteredEnStations : allEnStations;
+          stationsToRender = stationsToRender ?? [];
 
           // Filter out intermediate stations if hideIntermediateStations is enabled
           if (hideIntermediateStations) {
@@ -2581,18 +2598,17 @@ const TrainMap = ({
             });
           }
 
-          return stationsToRender;
-        })().map((s, idx) => {
-          const lat = s?.location?.latitude;
-          const lon = s?.location?.longitude;
-          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+          return stationsToRender.map((s, idx) => {
+            const lat = s?.location?.latitude;
+            const lon = s?.location?.longitude;
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
 
-          // Same style as Back on Track: blue big for end stations, green small for via
-          const isEnd =
-            nightTrainEndpointStations.has(s.name) ||
-            (s.id && nightTrainEndpointStations.has(s.id));
-          const icon = new Leaflet.DivIcon({
-            className: "en-station-marker",
+            // Same style as Back on Track: blue big for end stations, green small for via
+            const isEnd =
+              nightTrainEndpointStations.has(s.name) ||
+              (s.id && nightTrainEndpointStations.has(s.id));
+            const icon = new Leaflet.DivIcon({
+              className: "en-station-marker",
             html: isEnd
               ? '<div style="width: 20px; height: 20px; background: linear-gradient(135deg, #2196F3, #1976D2); border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4), 0 0 0 1px rgba(33, 150, 243, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 1000;"></div>'
               : '<div style="width: 14px; height: 14px; background: linear-gradient(135deg, #4CAF50, #388E3C); border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4), 0 0 0 1px rgba(76, 175, 80, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 100;"></div>',
@@ -2658,11 +2674,12 @@ const TrainMap = ({
               </Tooltip>
             </Marker>
           );
-        })}
+          });
+        })()}
 
-        {/* EuroNight overlays: draw polylines and station markers */}
+        {/* EuroNight overlays: when line filter active, show only the selected line */}
         {/* EuroNight routes default to "6-7 days a week" style per legend (scaled up) */}
-        {enOverlays.map((ov) => (
+        {(selectedNightTrainOverlay ? (selectedNightTrainOverlay.type === "euronight" ? [selectedNightTrainOverlay] : []) : enOverlays).map((ov) => (
           <Polyline
             key={`en-route-${ov.key}`}
             positions={ov.coords}
@@ -2688,7 +2705,7 @@ const TrainMap = ({
           </Polyline>
         ))}
 
-        {enOverlays.flatMap((ov, idxOv) =>
+        {(selectedNightTrainOverlay ? (selectedNightTrainOverlay.type === "euronight" ? [selectedNightTrainOverlay] : []) : enOverlays).flatMap((ov, idxOv) =>
           (ov.stations || []).map((s, idx) => {
             // If hideIntermediateStations is enabled, skip intermediate stations
             if (hideIntermediateStations) {
@@ -2758,7 +2775,8 @@ const TrainMap = ({
           }),
         )}
 
-        {routePaths.length > 0 &&
+        {/* Back on Track route lines - hidden when night train line filter is active */}
+        {!selectedNightTrainOverlay && routePaths.length > 0 &&
           routePaths.map((path) => (
             <Polyline
               key={path.key}
@@ -2775,9 +2793,10 @@ const TrainMap = ({
               }}
             />
           ))}
-        {markers}
-        {/* Destination station markers - stations we can reach */}
-        {destinationMarkers}
+        {/* Back on Track markers - hidden when night train line filter is active */}
+        {!selectedNightTrainOverlay && markers}
+        {/* Destination station markers - hidden when night train line filter is active */}
+        {!selectedNightTrainOverlay && destinationMarkers}
         {children && children({ MapContainer, Marker, TileLayer }, Leaflet)}
       </MapContainer>
 
