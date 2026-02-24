@@ -66,6 +66,8 @@ const TrainMap = ({
   const [selectedStationLon, setSelectedStationLon] = useState(null);
   const [selectedTrainRouteIds, setSelectedTrainRouteIds] = useState([]);
   const [isTrainDetailPanelOpen, setIsTrainDetailPanelOpen] = useState(false);
+  // When user clicks a NightJet or EuroNight polyline, show its details in Train Detail Panel
+  const [selectedNightTrainOverlay, setSelectedNightTrainOverlay] = useState(null);
   // Nightjet prototype overlay: one route only (e.g., NJ 403)
   // Nightjet overlays
   // Each overlay: { key, lineName, coords, stations, color }
@@ -299,7 +301,16 @@ const TrainMap = ({
   const handlePolylineClick = useCallback((routeIds) => {
     const idsArray = Array.isArray(routeIds) ? routeIds : [routeIds];
     startTransition(() => {
+      setSelectedNightTrainOverlay(null);
       setSelectedTrainRouteIds(idsArray);
+      setIsTrainDetailPanelOpen(true);
+    });
+  }, []);
+
+  const handleNightTrainPolylineClick = useCallback((overlay) => {
+    startTransition(() => {
+      setSelectedTrainRouteIds([]);
+      setSelectedNightTrainOverlay(overlay);
       setIsTrainDetailPanelOpen(true);
     });
   }, []);
@@ -307,6 +318,7 @@ const TrainMap = ({
   const closeTrainDetailPanel = useCallback(() => {
     setIsTrainDetailPanelOpen(false);
     setSelectedTrainRouteIds([]);
+    setSelectedNightTrainOverlay(null);
   }, []);
 
   // Component to handle map click events
@@ -2474,6 +2486,13 @@ const TrainMap = ({
               opacity: 0.8,
               lineCap: "round",
               lineJoin: "round",
+              cursor: "pointer",
+            }}
+            eventHandlers={{
+              click: (e) => {
+                e.originalEvent.stopPropagation();
+                handleNightTrainPolylineClick(ov);
+              },
             }}
           >
             <Tooltip sticky>
@@ -2653,6 +2672,13 @@ const TrainMap = ({
               opacity: 0.8,
               lineCap: "round",
               lineJoin: "round",
+              cursor: "pointer",
+            }}
+            eventHandlers={{
+              click: (e) => {
+                e.originalEvent.stopPropagation();
+                handleNightTrainPolylineClick(ov);
+              },
             }}
           >
             <Tooltip sticky>
@@ -2775,6 +2801,7 @@ const TrainMap = ({
             (id) => !shouldHideRouteDueToFutureDate(id),
           ) ?? []
         }
+        nightTrainOverlay={selectedNightTrainOverlay}
       />
     </>
   );

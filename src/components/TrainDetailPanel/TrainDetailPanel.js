@@ -6,7 +6,12 @@ import { useRoutes } from "../../hooks/requests/useRoutes";
 import { useTrips } from "../../hooks/requests/useTrips";
 import { getRouteFrequencyOverride } from "../../lib/routeFrequencyOverrides";
 
-const TrainDetailPanel = ({ isOpen, onClose, selectedRouteIds }) => {
+const TrainDetailPanel = ({
+  isOpen,
+  onClose,
+  selectedRouteIds,
+  nightTrainOverlay,
+}) => {
   const { agencies } = useAgencies();
   const { routes } = useRoutes();
   const { trips } = useTrips();
@@ -74,9 +79,75 @@ const TrainDetailPanel = ({ isOpen, onClose, selectedRouteIds }) => {
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-4">
-        {relevantTrips.length === 0 ? (
-          <div className="text-gray-500 text-sm">Loading train information...</div>
+      <div className="p-4 space-y-4 mb-10">
+        {nightTrainOverlay ? (
+          (() => {
+            if (!nightTrainOverlay?.stations?.length) {
+              return (
+                <div className="text-gray-500 text-sm">
+                  {nightTrainOverlay.lineName || "Night train"} — no station
+                  times available.
+                </div>
+              );
+            }
+            const isNj = nightTrainOverlay.type === "nightjet";
+            const operatorName = isNj ? "Nightjet" : "EuroNight";
+            const stations = nightTrainOverlay.stations;
+            return (
+              <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+                <div className="space-y-2">
+                  <div className="text-xs text-gray-500 uppercase">
+                    Operator
+                  </div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {operatorName}
+                  </div>
+                </div>
+                {nightTrainOverlay.lineName && (
+                  <div className="space-y-1">
+                    <div className="text-xs text-gray-500 uppercase">
+                      Train / Line
+                    </div>
+                    <div className="text-base font-semibold text-blue-600">
+                      {nightTrainOverlay.lineName}
+                    </div>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <div className="text-xs text-gray-500 uppercase">Route</div>
+                  <div className="text-sm font-medium">
+                    {stations[0]?.name} → {stations[stations.length - 1]?.name}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs text-gray-500 uppercase">
+                    Stations & times
+                  </div>
+                  <div className="text-sm space-y-2 overflow-y-auto">
+                    {stations.map((s, i) => (
+                      <div
+                        key={`${s.id || s.name}-${i}`}
+                        className="flex justify-between gap-2 border-b border-gray-100 pb-1"
+                      >
+                        <span className="font-medium truncate">{s.name}</span>
+                        <span className="text-gray-600 shrink-0">
+                          {s.departure
+                            ? formatTime(s.departure)
+                            : s.arrival
+                              ? formatTime(s.arrival)
+                              : "—"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()
+        ) : relevantTrips.length === 0 ? (
+          <div className="text-gray-500 text-sm">
+            Loading train information...
+          </div>
         ) : (
           relevantTrips.map((trip, index) => {
             const route = routes[trip.route_id];
@@ -153,14 +224,17 @@ const TrainDetailPanel = ({ isOpen, onClose, selectedRouteIds }) => {
                 </div>
 
                 {/* Frequency */}
-                {(trip.service_id || getRouteFrequencyOverride(trip.route_id)) && (
+                {(trip.service_id ||
+                  getRouteFrequencyOverride(trip.route_id)) && (
                   <div className="space-y-1">
                     <div className="text-xs text-gray-500 uppercase">
                       Frequency
                     </div>
                     <div className="text-sm">
                       {(() => {
-                        const override = getRouteFrequencyOverride(trip.route_id);
+                        const override = getRouteFrequencyOverride(
+                          trip.route_id,
+                        );
                         if (override) {
                           return (
                             <>
@@ -200,9 +274,7 @@ const TrainDetailPanel = ({ isOpen, onClose, selectedRouteIds }) => {
                 {/* Irregularities/Notes */}
                 {trip.irregularities && (
                   <div className="space-y-1">
-                    <div className="text-xs text-gray-500 uppercase">
-                      Notes
-                    </div>
+                    <div className="text-xs text-gray-500 uppercase">Notes</div>
                     <div className="text-xs text-amber-700 bg-amber-50 p-2 rounded">
                       {trip.irregularities}
                     </div>
