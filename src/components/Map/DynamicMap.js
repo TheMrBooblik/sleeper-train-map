@@ -368,7 +368,9 @@ const TrainMap = ({
   // Calculate overall loading state
   const overallLoading = stopsLoading || citiesLoading;
 
-  // Reflect real loading: Back-on-Track phase (stops + cities)
+  // Reflect real loading: Back-on-Track phase (stops + cities).
+  // When Back-on-Track finishes, only advance progress (never step backward) so we don't
+  // overwrite NightJet progress when both load in parallel.
   useEffect(() => {
     if (overallLoading) {
       setLoadingProgress(stopsLoading ? 15 : 28);
@@ -376,8 +378,8 @@ const TrainMap = ({
         stopsLoading ? "Loading stations..." : "Processing routes...",
       );
     } else {
-      setLoadingProgress(30);
-      setLoadingMessage("Preparing night trains...");
+      // Only advance progress; don't overwrite message so NightJet progress text is preserved when both load in parallel
+      setLoadingProgress((p) => Math.max(p, 30));
     }
   }, [overallLoading, stopsLoading, citiesLoading]);
 
@@ -407,18 +409,12 @@ const TrainMap = ({
     }
   }, [showRoutes, selected, allNjRoutes, allEnRoutes]);
 
-  // Immediate loading of map elements without delay
+  // Start NightJet and EuroNight loading on mount so it runs in parallel with Back-on-Track.
+  // This allows both data sources to finish around the same time and routes to appear together.
   useEffect(() => {
-    if (!stops?.length || !cities || overallLoading) return;
-
-    // Run night-train load only once; avoid second run when stops/cities refs update
     if (nightTrainLoadStartedRef.current) return;
     nightTrainLoadStartedRef.current = true;
 
-    // Ensure filtered stops is set to all stops initially
-    setFilteredStops(stops);
-
-    // Load night train stations BEFORE showing map
     (async () => {
       try {
         const today = new Date();
@@ -651,13 +647,14 @@ const TrainMap = ({
         setShowTooltips(true);
       }
     })();
-  }, [
-    stops,
-    cities,
-    setFilteredStops,
-    overallLoading,
-    setLoadingProgressImmediate,
-  ]);
+  }, []);
+
+  // When Back-on-Track (stops + cities) is ready, set filtered stops so the map shows stations.
+  // NightJet/EuroNight load in parallel via the effect above and do not depend on this.
+  useEffect(() => {
+    if (!stops?.length || !cities || overallLoading) return;
+    setFilteredStops(stops);
+  }, [stops, cities, setFilteredStops, overallLoading]);
 
   const defaultIcon = useMemo(() => {
     // Create a beautiful blue dot for main stations
