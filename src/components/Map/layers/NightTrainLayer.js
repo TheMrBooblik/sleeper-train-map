@@ -3,6 +3,7 @@
 import React from "react";
 import Leaflet from "leaflet";
 import { Marker, Polyline, Tooltip } from "react-leaflet";
+import { StationTooltipContent } from "../utils/stationTooltip";
 
 /**
  * Renders NightJet or EuroNight stations and route polylines.
@@ -69,28 +70,9 @@ export function NightTrainStationMarkers({
           },
         }}
       >
+        {/* All-stations view: name only (no route selected); same pattern as polyline stations */}
         <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false}>
-          <div>
-            <div style={{ fontWeight: 600 }}>{s.name}</div>
-            {s.departure && (
-              <div>
-                Dep:{" "}
-                {new Date(s.departure).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </div>
-            )}
-            {s.arrival && (
-              <div>
-                Arr:{" "}
-                {new Date(s.arrival).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </div>
-            )}
-          </div>
+          <StationTooltipContent name={s.name} showTimes={false} />
         </Tooltip>
       </Marker>
     );
@@ -180,28 +162,14 @@ export function NightTrainPolylines({
                   },
                 }}
               >
+                {/* Route stations: name always; Dep/Arr only when specific route selected */}
                 <Tooltip direction="top" offset={[0, -10]} opacity={1}>
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{s.name}</div>
-                    {s.departure && (
-                      <div>
-                        Dep:{" "}
-                        {new Date(s.departure).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </div>
-                    )}
-                    {s.arrival && (
-                      <div>
-                        Arr:{" "}
-                        {new Date(s.arrival).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </div>
-                    )}
-                  </div>
+                  <StationTooltipContent
+                    name={s.name}
+                    departure={s.departure}
+                    arrival={s.arrival}
+                    showTimes={!!selectedOverlay}
+                  />
                 </Tooltip>
               </Marker>
             );

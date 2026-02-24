@@ -2,8 +2,9 @@
 
 import React, { useMemo } from "react";
 import Leaflet from "leaflet";
-import { Marker } from "react-leaflet";
+import { Marker, Tooltip } from "react-leaflet";
 import { groupCityMarkers } from "../utils/groupCityMarkers";
+import { StationTooltipContent } from "../utils/stationTooltip";
 import { shouldHideRouteDueToFutureDate } from "../utils/routeStyleUtils";
 import { createMapIcons } from "../utils/mapIcons";
 
@@ -194,8 +195,15 @@ export function useMapMarkers({
             eventHandlers={{
               click: () => handleMarkerClick(filteredStop),
             }}
-            title={filteredStop.displayName || stop_id}
-          />
+          >
+            {/* Same tooltip pattern as night-train stations: name only (no route-specific times for Back-on-Track markers) */}
+            <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+              <StationTooltipContent
+                name={filteredStop.displayName || stop_id}
+                showTimes={false}
+              />
+            </Tooltip>
+          </Marker>
         );
       })
       .filter(Boolean);
