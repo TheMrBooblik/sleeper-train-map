@@ -3,18 +3,7 @@
 import React, { useCallback } from "react";
 import { useViewMap } from "../../hooks/requests/useViewMap";
 import { useTrips } from "../../hooks/requests/useTrips";
-
-// Route colors matching DynamicMap.js
-const ROUTE_COLORS = [
-  "#FF6B35", // Orange-red
-  "#4A90E2", // Blue
-  "#50C878", // Green
-  "#9B59B6", // Purple
-  "#F39C12", // Orange
-  "#E74C3C", // Red
-  "#3498DB", // Light blue
-  "#2ECC71", // Light green
-];
+import { ROUTE_COLORS } from "../Map/constants";
 
 const TrainSidebar = ({
   isOpen,
