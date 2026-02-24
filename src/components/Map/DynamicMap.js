@@ -2510,10 +2510,12 @@ const TrainMap = ({
               },
             }}
           >
-            <Tooltip sticky>
-              {ov.lineName} {ov.stations[0].name} -{" "}
-              {ov.stations[ov.stations.length - 1].name}
-            </Tooltip>
+            {!selectedNightTrainOverlay && (
+              <Tooltip sticky>
+                {ov.lineName} {ov.stations[0].name} -{" "}
+                {ov.stations[ov.stations.length - 1].name}
+              </Tooltip>
+            )}
           </Polyline>
         ))}
         {(selectedNightTrainOverlay ? (selectedNightTrainOverlay.type === "nightjet" ? [selectedNightTrainOverlay] : []) : njOverlays).flatMap((ov, idxOv) =>
@@ -2698,10 +2700,12 @@ const TrainMap = ({
               },
             }}
           >
-            <Tooltip sticky>
-              {ov.lineName} {ov.stations[0].name} -{" "}
-              {ov.stations[ov.stations.length - 1].name}
-            </Tooltip>
+            {!selectedNightTrainOverlay && (
+              <Tooltip sticky>
+                {ov.lineName} {ov.stations[0].name} -{" "}
+                {ov.stations[ov.stations.length - 1].name}
+              </Tooltip>
+            )}
           </Polyline>
         ))}
 
