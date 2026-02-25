@@ -79,6 +79,10 @@ abbr {
 
 .station-dot div {
   transition: all 0.3s ease;
+  /* Default blue shadow (matches green dot style) */
+  box-shadow:
+    0 3px 8px rgba(33, 150, 243, 0.4),
+    0 0 0 1px rgba(33, 150, 243, 0.2);
 }
 
 .station-dot:hover div {
@@ -123,6 +127,10 @@ abbr {
 
 .via-dot div {
   transition: all 0.3s ease;
+  /* Default green shadow (matches Pingwi-style sleeper map) */
+  box-shadow:
+    0 2px 6px rgba(76, 175, 80, 0.35),
+    0 0 0 1px rgba(76, 175, 80, 0.2);
 }
 
 .via-dot:hover div {
