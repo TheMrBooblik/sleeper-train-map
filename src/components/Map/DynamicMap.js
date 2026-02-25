@@ -323,13 +323,14 @@ const TrainMap = ({
     }
   }, [showRoutes, selected, allNjRoutes, allEnRoutes, setNjOverlays, setEnOverlays]);
 
-  // Derive overlays in the same render so Back-on-Track, NightJet and EuroNight appear together (no effect-after-paint delay)
+  // Derive overlays in the same render so Back-on-Track, NightJet and EuroNight appear together (no effect-after-paint delay).
+  // When a station is selected, always show its routes (njOverlays/enOverlays from loadNightTrainsForStation); when not selected, show all only if showRoutes is on.
   const effectiveNjOverlays = useMemo(
-    () => (showRoutes ? (!selected ? allNjRoutes : njOverlays) : []),
+    () => (selected ? njOverlays : showRoutes ? allNjRoutes : []),
     [showRoutes, selected, allNjRoutes, njOverlays],
   );
   const effectiveEnOverlays = useMemo(
-    () => (showRoutes ? (!selected ? allEnRoutes : enOverlays) : []),
+    () => (selected ? enOverlays : showRoutes ? allEnRoutes : []),
     [showRoutes, selected, allEnRoutes, enOverlays],
   );
 
