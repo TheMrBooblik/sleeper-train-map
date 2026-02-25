@@ -1,14 +1,17 @@
 // pages/api/nj-list.js
 // Lists cached Nightjet routes for a given date and optionally returns only the segments
-// starting at a provided station name. Uses the same cache files written by /api/nj-train and /api/nj-prewarm.
+// starting at a provided station name. Uses cache from nj-train/nj-prewarm (.next/cache or /tmp on Vercel).
 
 import fs from 'fs'
 import path from 'path'
 import { discoverAllTrainNumbers } from './lib/nj-discovery'
+import { getCacheDir, ensureDir as ensureDirHelper } from './lib/cache-dir'
 
-const CACHE_DIR = path.join(process.cwd(), '.next', 'cache', 'nightjet')
+const CACHE_DIR = getCacheDir('nightjet')
 
-function ensureDir() { if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true }) }
+function ensureDir() {
+  return ensureDirHelper(fs, CACHE_DIR)
+}
 
 function simplifyName(s) {
   return String(s || '')
@@ -34,7 +37,12 @@ export default async function handler(req, res) {
     const stationName = (req.query.stationName || '').toString()
 
     ensureDir()
-    const files = fs.readdirSync(CACHE_DIR).filter(f => f.endsWith(`${date}.json`))
+    let files = []
+    try {
+      files = fs.readdirSync(CACHE_DIR).filter(f => f.endsWith(`${date}.json`))
+    } catch {
+      // Cache dir may not exist on Vercel cold start
+    }
 
     let items = []
     for (const f of files) {
@@ -94,7 +102,6 @@ export default async function handler(req, res) {
         
         if (uncachedTrains.length > 0) {
           console.log(`[nj-list] Fetching ${uncachedTrains.length} uncached trains via nj-prewarm...`)
-          // Use nj-prewarm API to fetch trains (it handles caching and concurrency)
           const baseUrl = `${req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'] : 'http'}://${req.headers.host}`
           try {
             await fetch(`${baseUrl}/api/nj-prewarm?max=${uncachedTrains.length}&date=${encodeURIComponent(date)}`)
@@ -102,9 +109,12 @@ export default async function handler(req, res) {
             console.error('[nj-list] Error calling nj-prewarm:', err)
           }
         }
-        
-        // Step 5: Re-read all cached files and build items list
-        const files2 = fs.readdirSync(CACHE_DIR).filter(f => f.endsWith(`${date}.json`))
+
+        // Re-read cache after prewarm
+        let files2 = []
+        try {
+          files2 = fs.readdirSync(CACHE_DIR).filter(f => f.endsWith(`${date}.json`))
+        } catch {}
         items = []
         for (const f of files2) {
           try {
@@ -132,14 +142,16 @@ export default async function handler(req, res) {
         }
         
         console.log(`[nj-list] Discovery complete. Found ${items.length} routes.`)
-      } catch (err) {
-        console.error('[nj-list] Discovery error:', err)
-        // Fallback to simple prewarm if comprehensive discovery fails
-        try {
-          const url = `${req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'] : 'http'}://${req.headers.host}/api/nj-prewarm?max=30&date=${encodeURIComponent(date)}`
-          await fetch(url)
-          // Re-read cache after fallback prewarm
-          const files2 = fs.readdirSync(CACHE_DIR).filter(f => f.endsWith(`${date}.json`))
+        } catch (err) {
+          console.error('[nj-list] Discovery error:', err)
+          try {
+            const url = `${req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'] : 'http'}://${req.headers.host}/api/nj-prewarm?max=30&date=${encodeURIComponent(date)}`
+            await fetch(url)
+          } catch {}
+          let files2 = []
+          try {
+            files2 = fs.readdirSync(CACHE_DIR).filter(f => f.endsWith(`${date}.json`))
+          } catch {}
           for (const f of files2) {
             try {
               const p = path.join(CACHE_DIR, f)

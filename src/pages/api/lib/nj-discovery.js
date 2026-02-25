@@ -3,8 +3,9 @@
 
 import fs from 'fs'
 import path from 'path'
+import { getCacheDir } from './cache-dir'
 
-const CACHE_DIR = path.join(process.cwd(), '.next', 'cache', 'nightjet')
+const CACHE_DIR = getCacheDir('nightjet')
 
 // All known NightJet country IDs
 export const NIGHTJET_COUNTRIES = [
@@ -29,27 +30,27 @@ export const NIGHTJET_COUNTRIES = [
  */
 export function getTrainNumbersFromCache(date) {
   const trainNumbers = new Set()
-  
-  if (!fs.existsSync(CACHE_DIR)) {
-    return trainNumbers
-  }
-  
-  const cachedFiles = fs.readdirSync(CACHE_DIR).filter(
-    f => f.endsWith(`${date}.json`) && f.startsWith('NJ')
-  )
-  
-  cachedFiles.forEach(file => {
-    try {
-      const filePath = path.join(CACHE_DIR, file)
-      const cached = JSON.parse(fs.readFileSync(filePath, 'utf8'))
-      if (cached?.lineName) {
-        trainNumbers.add(cached.lineName)
-      }
-    } catch {
-      // Ignore errors reading individual cache files
+  try {
+    if (!fs.existsSync(CACHE_DIR)) {
+      return trainNumbers
     }
-  })
-  
+    const cachedFiles = fs.readdirSync(CACHE_DIR).filter(
+      f => f.endsWith(`${date}.json`) && f.startsWith('NJ')
+    )
+    cachedFiles.forEach(file => {
+      try {
+        const filePath = path.join(CACHE_DIR, file)
+        const cached = JSON.parse(fs.readFileSync(filePath, 'utf8'))
+        if (cached?.lineName) {
+          trainNumbers.add(cached.lineName)
+        }
+      } catch {
+        // Ignore errors reading individual cache files
+      }
+    })
+  } catch {
+    // Cache dir may not exist or be unreadable (e.g. Vercel cold start)
+  }
   return trainNumbers
 }
 

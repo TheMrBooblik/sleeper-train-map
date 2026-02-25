@@ -1,17 +1,18 @@
 // pages/api/nj-all-stations.js
-// Fetch all Nightjet stations by iterating through countries and destinations
+// Fetch all Nightjet stations by iterating through countries and destinations. Cache in .next/cache or /tmp on Vercel.
 
 import fs from "fs";
 import path from "path";
 import { discoverAllTrainNumbers } from "./lib/nj-discovery";
+import { getCacheDir, ensureDir as ensureDirHelper } from "./lib/cache-dir";
 
-const CACHE_DIR = path.join(process.cwd(), ".next", "cache", "nightjet");
+const CACHE_DIR = getCacheDir("nightjet");
 const CACHE_FILE = path.join(CACHE_DIR, "all-stations.json");
 const PROGRESS_FILE = path.join(CACHE_DIR, "all-stations-progress.json");
 const TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days cache
 
 function ensureDir() {
-  if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+  return ensureDirHelper(fs, CACHE_DIR);
 }
 
 function isFresh(p) {
@@ -87,18 +88,18 @@ async function fetchAllStations(date, onProgress) {
   trainArray.forEach((trainNumber) => {
     const cacheKey = `${trainNumber.replace(/\s+/g, "")}-${date}.json`;
     const cachePath = path.join(CACHE_DIR, cacheKey);
-    if (fs.existsSync(cachePath)) {
-      try {
+    try {
+      if (fs.existsSync(cachePath)) {
         const cached = JSON.parse(fs.readFileSync(cachePath, "utf8"));
         if (cached?.stations?.length) {
           cachedTrains.push({ trainNumber, cached });
         } else {
           uncachedTrains.push(trainNumber);
         }
-      } catch {
+      } else {
         uncachedTrains.push(trainNumber);
       }
-    } else {
+    } catch {
       uncachedTrains.push(trainNumber);
     }
   });
@@ -256,11 +257,13 @@ export default async function handler(req, res) {
       } catch {}
     }
 
-    // Fetch fresh data; write progress to file so progress poll can show e.g. "Checking routes: 120/132 country pairs"
+    // Fetch fresh data; write progress to file so progress poll can show status
     const data = await fetchAllStations(date, (p) => updateProgress(p));
 
-    // Cache it
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(data, null, 2), "utf8");
+    // Cache it (may fail on read-only fs; we still return the data)
+    try {
+      fs.writeFileSync(CACHE_FILE, JSON.stringify(data, null, 2), "utf8");
+    } catch {}
 
     res.setHeader("X-Cache", "MISS");
     res.setHeader("Cache-Control", "public, max-age=604800"); // 7 days

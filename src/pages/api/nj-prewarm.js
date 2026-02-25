@@ -1,15 +1,18 @@
 // pages/api/nj-prewarm.js
 // Prewarm Nightjet caches without hurting performance: discover NJ trains from Back-on-Track trips,
-// fetch Nightjet's per-train endpoint, normalize, and write .next/cache/nightjet/<train>-<date>.json
+// fetch Nightjet's per-train endpoint, normalize, and write to cache (.next/cache or /tmp on Vercel)
 
 import fs from 'fs'
 import path from 'path'
 import { discoverAllTrainNumbers } from './lib/nj-discovery'
+import { getCacheDir, ensureDir as ensureDirHelper } from './lib/cache-dir'
 
-const CACHE_DIR = path.join(process.cwd(), '.next', 'cache', 'nightjet')
+const CACHE_DIR = getCacheDir('nightjet')
 const TTL_MS = 24 * 60 * 60 * 1000
 
-function ensureDir() { if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true }) }
+function ensureDir() {
+  return ensureDirHelper(fs, CACHE_DIR)
+}
 function cachePath(train, date) {
   const key = `${String(train).replace(/\s+/g,'').toUpperCase()}-${date}`
   return path.join(CACHE_DIR, `${key}.json`)
@@ -89,7 +92,9 @@ export default async function handler(req, res) {
           const nj = await fetchJson(`https://www.nightjet.com/nj-booking-ocp/destinations/train/${encodeURIComponent(train)}/${date}`)
           const payload = normalize(nj, date)
           if (payload?.stations?.length) {
-            fs.writeFileSync(p, JSON.stringify(payload, null, 2), 'utf8')
+            try {
+              fs.writeFileSync(p, JSON.stringify(payload, null, 2), 'utf8')
+            } catch {}
             results.fetched++
           }
         } catch (e) {

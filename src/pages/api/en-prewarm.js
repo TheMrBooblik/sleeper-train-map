@@ -1,13 +1,16 @@
 // pages/api/en-prewarm.js
-// Prewarm EuroNight caches: fetch all trains from partner endpoint and cache them
+// Prewarm EuroNight caches: fetch all trains from partner endpoint and cache them (.next/cache or /tmp on Vercel)
 
 import fs from 'fs'
 import path from 'path'
+import { getCacheDir, ensureDir as ensureDirHelper } from './lib/cache-dir'
 
-const CACHE_DIR = path.join(process.cwd(), '.next', 'cache', 'euronight')
+const CACHE_DIR = getCacheDir('euronight')
 const TTL_MS = 24 * 60 * 60 * 1000
 
-function ensureDir() { if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true }) }
+function ensureDir() {
+  return ensureDirHelper(fs, CACHE_DIR)
+}
 function cachePath(train, date) {
   const key = `${String(train).replace(/\s+/g,'').toUpperCase()}-${date}`
   return path.join(CACHE_DIR, `${key}.json`)
@@ -83,7 +86,9 @@ export default async function handler(req, res) {
           const en = await fetchJson(`https://www.nightjet.com/nj-booking-ocp/destinations/train/${encodeURIComponent(trainNumber)}/${date}`)
           const payload = normalize(en, date)
           if (payload?.stations?.length) {
-            fs.writeFileSync(p, JSON.stringify(payload, null, 2), 'utf8')
+            try {
+              fs.writeFileSync(p, JSON.stringify(payload, null, 2), 'utf8')
+            } catch {}
             results.fetched++
           }
         } catch (e) {

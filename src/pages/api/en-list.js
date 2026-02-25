@@ -1,12 +1,15 @@
 // pages/api/en-list.js
-// Lists cached EuroNight routes for a given date and optionally filters by station name
+// Lists cached EuroNight routes for a given date and optionally filters by station name (.next/cache or /tmp on Vercel)
 
 import fs from 'fs'
 import path from 'path'
+import { getCacheDir, ensureDir as ensureDirHelper } from './lib/cache-dir'
 
-const CACHE_DIR = path.join(process.cwd(), '.next', 'cache', 'euronight')
+const CACHE_DIR = getCacheDir('euronight')
 
-function ensureDir() { if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true }) }
+function ensureDir() {
+  return ensureDirHelper(fs, CACHE_DIR)
+}
 
 function simplifyName(s) {
   return String(s || '')
@@ -32,7 +35,12 @@ export default async function handler(req, res) {
     const stationName = (req.query.stationName || '').toString()
 
     ensureDir()
-    const files = fs.readdirSync(CACHE_DIR).filter(f => f.endsWith(`${date}.json`))
+    let files = []
+    try {
+      files = fs.readdirSync(CACHE_DIR).filter(f => f.endsWith(`${date}.json`))
+    } catch {
+      // Cache dir may not exist on Vercel cold start
+    }
 
     let items = []
     for (const f of files) {
@@ -67,8 +75,10 @@ export default async function handler(req, res) {
       try {
         const url = `${req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'] : 'http'}://${req.headers.host}/api/en-prewarm?date=${encodeURIComponent(date)}`
         await fetch(url)
-        // read again
-        const files2 = fs.readdirSync(CACHE_DIR).filter(f => f.endsWith(`${date}.json`))
+        let files2 = []
+        try {
+          files2 = fs.readdirSync(CACHE_DIR).filter(f => f.endsWith(`${date}.json`))
+        } catch {}
         for (const f of files2) {
           try {
             const p = path.join(CACHE_DIR, f)
