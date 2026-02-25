@@ -176,9 +176,8 @@ export default async function handler(req, res) {
               })
             } catch {}
           }
-        } catch {}
+        }
       }
-    }
 
     return res.status(200).json({ date, count: items.length, items })
   } catch (e) {
