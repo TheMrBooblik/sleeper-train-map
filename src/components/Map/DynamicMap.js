@@ -20,7 +20,7 @@ import { useCities } from "../../hooks/requests/useCities";
 import { normalizeStationNameForLookup } from "../../hooks/requests/useCities";
 import { useViewMap } from "../../hooks/requests/useViewMap";
 import { useTrips } from "../../hooks/requests/useTrips";
-import TrainSidebar from "@components/TrainSidebar";
+import TrainBottomBar from "@components/TrainBottomBar";
 import TrainDetailPanel from "@components/TrainDetailPanel";
 import ZoomControl from "@components/ZoomControl";
 import LocationControl from "@components/LocationControl";
@@ -342,6 +342,49 @@ const TrainMap = ({
     return endpointSet;
   }, [allNjRoutes, allEnRoutes]);
 
+  // NightJet/EuroNight routes that pass through the selected station (for sidebar)
+  const nightTrainRoutesForSidebar = useMemo(() => {
+    if (!selected || (!stopId && !selectedStationName)) return [];
+    const nameA = selectedStationName || stopId;
+    const nameB = stopId || selectedStationName;
+    const matches = (stationName) =>
+      matchStationNamesBound(stationName, nameA) ||
+      (nameB && nameB !== nameA && matchStationNamesBound(stationName, nameB));
+    const out = [];
+    njOverlays.forEach((ov) => {
+      if (!ov.stations?.length) return;
+      const passes = ov.stations.some((s) => matches(s?.name));
+      if (passes)
+        out.push({
+          type: "nightjet",
+          lineName: ov.lineName,
+          origin: ov.stations[0]?.name,
+          destination: ov.stations[ov.stations.length - 1]?.name,
+          color: ov.color,
+        });
+    });
+    enOverlays.forEach((ov) => {
+      if (!ov.stations?.length) return;
+      const passes = ov.stations.some((s) => matches(s?.name));
+      if (passes)
+        out.push({
+          type: "euronight",
+          lineName: ov.lineName,
+          origin: ov.stations[0]?.name,
+          destination: ov.stations[ov.stations.length - 1]?.name,
+          color: ov.color,
+        });
+    });
+    return out;
+  }, [
+    selected,
+    stopId,
+    selectedStationName,
+    njOverlays,
+    enOverlays,
+    matchStationNamesBound,
+  ]);
+
   const escFunction = useCallback(
     (event) => {
       if (event.key === "Escape") handleFilterClose();
@@ -464,13 +507,15 @@ const TrainMap = ({
       </MapContainer>
 
       <div ref={sidebarRef}>
-        <TrainSidebar
+        <TrainBottomBar
           isOpen={selected}
           sidebarDisabled={sidebarDisabled}
           setSidebarDisabled={setSidebarDisabled}
           stopId={stopId}
           stopRouteIds={stopRouteIds}
           selectedNormalizedName={selectedNormalizedName}
+          nightTrainRoutes={nightTrainRoutesForSidebar}
+          isDetailPanelOpen={isTrainDetailPanelOpen}
         />
       </div>
 
