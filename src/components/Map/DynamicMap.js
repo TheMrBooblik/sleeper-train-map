@@ -323,6 +323,16 @@ const TrainMap = ({
     }
   }, [showRoutes, selected, allNjRoutes, allEnRoutes, setNjOverlays, setEnOverlays]);
 
+  // Derive overlays in the same render so Back-on-Track, NightJet and EuroNight appear together (no effect-after-paint delay)
+  const effectiveNjOverlays = useMemo(
+    () => (showRoutes ? (!selected ? allNjRoutes : njOverlays) : []),
+    [showRoutes, selected, allNjRoutes, njOverlays],
+  );
+  const effectiveEnOverlays = useMemo(
+    () => (showRoutes ? (!selected ? allEnRoutes : enOverlays) : []),
+    [showRoutes, selected, allEnRoutes, enOverlays],
+  );
+
   useEffect(() => {
     if (!stops?.length || !cities || overallLoading) return;
     setFilteredStops(stops);
@@ -451,7 +461,7 @@ const TrainMap = ({
           />
         )}
         <NightTrainPolylines
-          overlays={njOverlays}
+          overlays={effectiveNjOverlays}
           selectedOverlay={selectedNightTrainOverlay}
           overlayType="nightjet"
           onPolylineClick={handleNightTrainPolylineClick}
@@ -476,7 +486,7 @@ const TrainMap = ({
           />
         )}
         <NightTrainPolylines
-          overlays={enOverlays}
+          overlays={effectiveEnOverlays}
           selectedOverlay={selectedNightTrainOverlay}
           overlayType="euronight"
           onPolylineClick={handleNightTrainPolylineClick}

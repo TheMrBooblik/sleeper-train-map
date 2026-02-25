@@ -1,15 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { memo } from "react";
 import Leaflet from "leaflet";
 import { Marker, Polyline, Tooltip } from "react-leaflet";
 import { StationTooltipContent } from "../utils/stationTooltip";
 
 /**
  * Renders NightJet or EuroNight stations and route polylines.
- * Used when line filter is inactive (all stations) or for the selected overlay type.
+ * Memoized so toggling "Show all routes" doesn't re-render these heavy layers.
  */
-export function NightTrainStationMarkers({
+export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
   stations,
   endpointStations,
   hideIntermediateStations,
@@ -77,12 +77,13 @@ export function NightTrainStationMarkers({
       </Marker>
     );
   });
-}
+});
 
 /**
  * Renders route polylines and optionally stations along the route.
+ * Memoized so toggling "Show all routes" doesn't re-render these heavy layers.
  */
-export function NightTrainPolylines({
+export const NightTrainPolylines = memo(function NightTrainPolylines({
   overlays,
   selectedOverlay,
   overlayType,
@@ -178,4 +179,4 @@ export function NightTrainPolylines({
       ))}
     </>
   );
-}
+});

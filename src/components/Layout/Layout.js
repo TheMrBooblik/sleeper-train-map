@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Header from "@components/Header";
 import ThankYouModal from "@components/ThankYouModal";
-import { useState } from "react";
+import { useState, useCallback, startTransition } from "react";
 import Container from "@components/Container";
 import Map from "@components/Map";
 import Section from "@components/Section";
@@ -18,6 +18,15 @@ const Layout = ({ children }) => {
     useState(false); // Filter to hide intermediate stations
   const { width, height } = useWindowSize();
 
+  // Defer heavy "all routes" render so checkbox updates instantly (paths are precomputed)
+  const setShowRoutesStable = useCallback((value) => {
+    if (value === true) {
+      startTransition(() => setShowRoutes(true));
+    } else {
+      setShowRoutes(false);
+    }
+  }, []);
+
   return (
     <div className="grid grid-rows-[auto_1fr_auto] overflow-hidden min-h-screen">
       <Head>
@@ -33,7 +42,7 @@ const Layout = ({ children }) => {
         isGrouped={isGrouped}
         setIsGrouped={setIsGrouped}
         showRoutes={showRoutes}
-        setShowRoutes={setShowRoutes}
+        setShowRoutes={setShowRoutesStable}
         hideIntermediateStations={hideIntermediateStations}
         setHideIntermediateStations={setHideIntermediateStations}
       />

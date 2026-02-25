@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { ROUTE_COLORS } from "../constants";
 import {
   getRouteStyleFromFrequency,
   checkEuropeanSleeper453,
   shouldHideRouteDueToFutureDate,
 } from "../utils/routeStyleUtils";
+import { buildAllRoutesPaths } from "../utils/buildAllRoutesPaths";
 
 /**
  * Hook: computes Back-on-Track route paths (polylines) and fetches OSM relation data when needed.
@@ -25,6 +26,7 @@ export function useRoutePaths({
   normalizeStationNameForLookup,
 }) {
   const [osmPolylines, setOsmPolylines] = useState(new Map());
+  const precomputedAllPathsRef = useRef(null);
 
   const routePaths = useMemo(() => {
     if (!viewMapData || !stops?.length) return [];
@@ -69,7 +71,29 @@ export function useRoutePaths({
 
     if (routesToShow.length === 0) return [];
 
+    // Use precomputed "all routes" paths if available for instant toggle
+    if (showRoutes && !selected && precomputedAllPathsRef.current != null) {
+      const basePaths = precomputedAllPathsRef.current;
+      return basePaths.map((path) => {
+        if (path.osmRelationId && osmPolylines.has(path.osmRelationId)) {
+          let osmCoords = osmPolylines.get(path.osmRelationId);
+          if (osmCoords?.length > 328) {
+            osmCoords = osmCoords.slice(328);
+          }
+          if (osmCoords?.length > 0) {
+            return {
+              ...path,
+              positions: osmCoords,
+              source: "osm",
+            };
+          }
+        }
+        return path;
+      });
+    }
+
     const routeMap = new Map();
+    const stationKey = selected ? stopId || "none" : "all-routes";
     Object.values(viewMapData).forEach((route) => {
       if (route?.route_id) {
         routeMap.set(route.route_id.toString(), route);
@@ -133,7 +157,6 @@ export function useRoutePaths({
       return sequence.length >= 2 ? sequence : null;
     };
 
-    const stationKey = selected ? stopId || "none" : "all-routes";
     const paths = [];
 
     routesToShow.forEach((routeId) => {
@@ -186,6 +209,11 @@ export function useRoutePaths({
         }
       }
     });
+
+    // Cache "all routes" paths so next time "Show all routes" is toggled we use it instantly
+    if (showRoutes && !selected && paths.length > 0) {
+      precomputedAllPathsRef.current = paths;
+    }
 
     return paths.map((path) => {
       if (path.osmRelationId && osmPolylines.has(path.osmRelationId)) {
@@ -248,6 +276,31 @@ export function useRoutePaths({
       }
     });
   }, [viewMapData, osmPolylines]);
+
+  // Precompute "all routes" paths as soon as data is loaded so "Show all routes" is instant (like selected-station routes)
+  useEffect(() => {
+    if (!viewMapData || !stops?.length) return;
+    precomputedAllPathsRef.current = null;
+    // Run synchronously so cache is ready before user can toggle; loading overlay still visible so no perceived delay
+    const paths = buildAllRoutesPaths({
+      viewMapData,
+      stops,
+      cities,
+      trips,
+      stationsToSkip,
+      normalizeStationNameForLookup,
+    });
+    if (paths.length > 0) {
+      precomputedAllPathsRef.current = paths;
+    }
+  }, [
+    viewMapData,
+    stops,
+    cities,
+    trips,
+    stationsToSkip,
+    normalizeStationNameForLookup,
+  ]);
 
   return { routePaths, osmPolylines };
 }

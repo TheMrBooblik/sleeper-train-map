@@ -152,6 +152,7 @@ export function useNightTrainData({
               buildRouteOverlay(item, idx, NJ_COLORS, "nightjet"),
             );
             setAllNjRoutes(routes);
+            setNjOverlays(routes);
             const stationMap = new Map();
             njStationsFromApi.forEach((s) => {
               const key = s.id || `${s.location?.latitude}-${s.location?.longitude}`;
@@ -181,6 +182,7 @@ export function useNightTrainData({
               buildRouteOverlay(item, idx, EN_COLORS, "euronight"),
             );
             setAllEnRoutes(routes);
+            setEnOverlays(routes);
             const stationMap = new Map();
             data.items.forEach((route) => {
               route.stations?.forEach((station) => {
