@@ -7,4 +7,4 @@
  * Format: Array of station name strings
  */
 
-export const stationsToSkip = ["Baqël", "Roman"];
+export const stationsToSkip = ["Baqël", "Roman", "Jarosław"];
