@@ -536,7 +536,8 @@ const TrainMap = ({
         <ZoomControl className="outline-none" />
         <LocationControl />
 
-        {!selectedNightTrainOverlay && (
+        {/* When a Back-on-Track route is selected (e.g. European Sleeper), hide all NightJet/EuroNight stations so only that route's stations show. */}
+        {!selectedNightTrainOverlay && !hasRouteFilter && (
           <NightTrainStationMarkers
             stations={selected ? filteredNjStations : allNjStations}
             endpointStations={nightTrainEndpointStations}
@@ -561,7 +562,7 @@ const TrainMap = ({
           markerClassName="nightjet-station-dot"
         />
 
-        {!selectedNightTrainOverlay && (
+        {!selectedNightTrainOverlay && !hasRouteFilter && (
           <NightTrainStationMarkers
             stations={selected ? filteredEnStations : allEnStations}
             endpointStations={nightTrainEndpointStations}
