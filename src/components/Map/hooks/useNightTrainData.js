@@ -41,9 +41,118 @@ function buildRouteOverlay(item, idx, colors, type) {
   };
 }
 
+/** Normalize line name for comparison (e.g. "NJ 123" vs "NJ123"). */
+function normalizeLineName(name) {
+  return String(name || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
+/**
+ * Build overlay from Back-on-Track route + stops. Used when official NJ/EN API is missing a train.
+ * Uses normalizeStationNameForLookup so station names match the rest of the app (e.g. "Bruxelles Midi / Brussel Zuid" → "Bruxelles Midi").
+ * Returns null if we cannot resolve enough stations to draw a path.
+ */
+function buildOverlayFromBackOnTrackRoute(route, routeId, trips, stops, type, colorIndex, colors, normalizeStationNameForLookup) {
+  if (!stops?.length || !route) return null;
+
+  const normLookup = typeof normalizeStationNameForLookup === "function" ? normalizeStationNameForLookup : (s) => s;
+
+  // Build station name -> coords lookup from stops. Index by stop_id, stop_name, and normalized forms
+  // so we match Back-on-Track names like "Bruxelles Midi / Brussel Zuid" via normalizeStationNameForLookup.
+  const coordsByKey = new Map();
+  const normalize = (s) =>
+    String(s || "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+  stops.forEach((stop) => {
+    if (stop.stop_lat == null || stop.stop_lon == null) return;
+    const key = [stop.stop_lat, stop.stop_lon];
+    const ids = [
+      stop.stop_id,
+      stop.stop_name,
+      normalize(stop.stop_id),
+      stop.stop_name && normalize(stop.stop_name),
+      normLookup(stop.stop_id),
+      stop.stop_name && normLookup(stop.stop_name),
+    ].filter(Boolean);
+    ids.forEach((id) => {
+      if (!coordsByKey.has(id)) coordsByKey.set(id, key);
+    });
+  });
+  const findCoords = (name) => {
+    if (!name) return null;
+    const n = name.trim();
+    return (
+      coordsByKey.get(n) ||
+      coordsByKey.get(normalize(n)) ||
+      coordsByKey.get(normLookup(n)) ||
+      null
+    );
+  };
+
+  // Get line name from first trip for this route
+  const trip = Object.values(trips || {}).find(
+    (t) => String(t?.route_id) === String(routeId),
+  );
+  const lineName = (trip?.trip_short_name || trip?.route_short_name || routeId || "?").toString().trim();
+  if (!lineName) return null;
+
+  // Build station sequence: try direction 0 first (origin_trip_0, via_0, destination_trip_0),
+  // then direction 1 if direction 0 yields fewer than 2 points (e.g. different station names resolve)
+  const buildSequence = (origin, dest, viaStr) => {
+    const viaList = (viaStr || "").toString().trim() ? (viaStr || "").split(" - ").map((s) => s.trim()).filter(Boolean) : [];
+    return [origin, ...viaList, dest].filter(Boolean);
+  };
+  let names = buildSequence(
+    (route.origin_trip_0 || "").toString().trim(),
+    (route.destination_trip_0 || "").toString().trim(),
+    route.via_0,
+  );
+  let coords = [];
+  let stations = [];
+  for (const n of names) {
+    const c = findCoords(n);
+    if (c) {
+      coords.push(c);
+      stations.push({ name: n, location: { latitude: c[0], longitude: c[1] } });
+    }
+  }
+  if (coords.length < 2 && route.origin_trip_1 && route.destination_trip_1) {
+    names = buildSequence(
+      (route.origin_trip_1 || "").toString().trim(),
+      (route.destination_trip_1 || "").toString().trim(),
+      route.via_1,
+    );
+    coords = [];
+    stations = [];
+    for (const n of names) {
+      const c = findCoords(n);
+      if (c) {
+        coords.push(c);
+        stations.push({ name: n, location: { latitude: c[0], longitude: c[1] } });
+      }
+    }
+  }
+  if (coords.length < 2) return null;
+
+  return {
+    key: `backontrack-${routeId}-${lineName.replace(/\s+/g, "")}`,
+    lineName,
+    coords,
+    stations,
+    color: colors[colorIndex % colors.length],
+    type,
+    source: "backontrack",
+  };
+}
+
 /**
  * Hook: NightJet and EuroNight state, initial loading, and loadNightTrainsForStation.
  * Runs loading once on mount; progress/ready callbacks are passed in.
+ * Optional `stops`: when provided, missing NJ/EN routes are filled from Back-on-Track as fallback.
  */
 export function useNightTrainData({
   setLoadingProgressImmediate,
@@ -51,6 +160,7 @@ export function useNightTrainData({
   setShowTooltips,
   normalizeStationNameForLookup,
   setFilteredStops,
+  stops = [],
 }) {
   const [njOverlays, setNjOverlays] = useState([]);
   const [enOverlays, setEnOverlays] = useState([]);
@@ -67,6 +177,14 @@ export function useNightTrainData({
   });
   const [nightTrainsReady, setNightTrainsReady] = useState(false);
   const loadStartedRef = useRef(false);
+  const njOverlaysRef = useRef([]);
+  const enOverlaysRef = useRef([]);
+  const allNjRoutesRef = useRef([]);
+  const allEnRoutesRef = useRef([]);
+  njOverlaysRef.current = njOverlays;
+  enOverlaysRef.current = enOverlays;
+  allNjRoutesRef.current = allNjRoutes;
+  allEnRoutesRef.current = allEnRoutes;
 
   // One-time initial load of NightJet + EuroNight data
   useEffect(() => {
@@ -211,6 +329,87 @@ export function useNightTrainData({
     setShowTooltips,
   ]);
 
+  // Fallback: when official NJ/EN data is missing some trains, add them from Back-on-Track
+  const backOnTrackMergeDoneRef = useRef(false);
+  useEffect(() => {
+    if (!nightTrainsReady || !stops?.length) return;
+    // Only run merge once we have both night trains and stops; do not mark done until merge completes
+    // so that if this ran with empty stops first, we retry when stops load
+    if (backOnTrackMergeDoneRef.current) return;
+    backOnTrackMergeDoneRef.current = true;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/night-trains-backontrack");
+        if (!res.ok) {
+          backOnTrackMergeDoneRef.current = false;
+          return;
+        }
+        const { routes, trips } = await res.json();
+        if (!routes || Object.keys(routes).length === 0) {
+          return;
+        }
+
+        const existingNjNames = new Set(
+          njOverlaysRef.current.map((o) => normalizeLineName(o.lineName)),
+        );
+        const existingEnNames = new Set(
+          enOverlaysRef.current.map((o) => normalizeLineName(o.lineName)),
+        );
+
+        let njFallback = [];
+        let enFallback = [];
+        let njIdx = existingNjNames.size;
+        let enIdx = existingEnNames.size;
+
+        Object.entries(routes).forEach(([routeKey, route]) => {
+          const routeId = route?.route_id ?? routeKey;
+          const t0 = (route?.trip_short_name_0 || "").toString();
+          const t1 = (route?.trip_short_name_1 || "").toString();
+          const isNj = /^\s*NJ\s*\d+/.test(t0) || /^\s*NJ\s*\d+/.test(t1);
+          const isEn = /^\s*EN\s*\d+/.test(t0) || /^\s*EN\s*\d+/.test(t1);
+          const type = isNj ? "nightjet" : isEn ? "euronight" : null;
+          if (!type) return;
+
+          const overlay = buildOverlayFromBackOnTrackRoute(
+            route,
+            routeId,
+            trips,
+            stops,
+            type,
+            type === "nightjet" ? njIdx : enIdx,
+            type === "nightjet" ? NJ_COLORS : EN_COLORS,
+            normalizeStationNameForLookup,
+          );
+          if (!overlay) return;
+
+          const name = normalizeLineName(overlay.lineName);
+          if (type === "nightjet" && !existingNjNames.has(name)) {
+            existingNjNames.add(name);
+            njFallback.push(overlay);
+            njIdx += 1;
+          } else if (type === "euronight" && !existingEnNames.has(name)) {
+            existingEnNames.add(name);
+            enFallback.push(overlay);
+            enIdx += 1;
+          }
+        });
+
+        if (njFallback.length > 0) {
+          setNjOverlays((prev) => [...prev, ...njFallback]);
+          setAllNjRoutes((prev) => [...prev, ...njFallback]);
+        }
+        if (enFallback.length > 0) {
+          setEnOverlays((prev) => [...prev, ...enFallback]);
+          setAllEnRoutes((prev) => [...prev, ...enFallback]);
+        }
+      } catch (err) {
+        console.error("[useNightTrainData] Back-on-Track fallback failed:", err);
+        backOnTrackMergeDoneRef.current = false;
+      }
+    })();
+  }, [nightTrainsReady, stops, normalizeStationNameForLookup]);
+
   const loadNightTrainsForStation = useCallback(
     async (normalizedStationName, originalStationName = null) => {
       try {
@@ -328,15 +527,6 @@ export function useNightTrainData({
           }
         }
 
-        const njOverlaysNext = njRoutes.map((item, idx) =>
-          buildRouteOverlay(item, idx, NJ_COLORS, "nightjet"),
-        );
-        const enOverlaysNext = enRoutes.map((item, idx) =>
-          buildRouteOverlay(item, idx, EN_COLORS, "euronight"),
-        );
-        setNjOverlays(njOverlaysNext);
-        setEnOverlays(enOverlaysNext);
-
         const matchesStation = (name) => {
           if (!name) return false;
           if (matchStationNames(name, normalizedStationName, normalizeStationNameForLookup))
@@ -348,6 +538,37 @@ export function useNightTrainData({
             return true;
           return false;
         };
+
+        let njOverlaysNext = njRoutes.map((item, idx) =>
+          buildRouteOverlay(item, idx, NJ_COLORS, "nightjet"),
+        );
+        let enOverlaysNext = enRoutes.map((item, idx) =>
+          buildRouteOverlay(item, idx, EN_COLORS, "euronight"),
+        );
+
+        // Include Back-on-Track fallback routes that pass through this station
+        // (they exist in allNjRoutes/allEnRoutes but are not returned by the API for this station)
+        const njNames = new Set(njOverlaysNext.map((o) => normalizeLineName(o.lineName)));
+        const enNames = new Set(enOverlaysNext.map((o) => normalizeLineName(o.lineName)));
+        allNjRoutesRef.current.forEach((overlay) => {
+          if (njNames.has(normalizeLineName(overlay.lineName))) return;
+          const passes = overlay.stations?.some((s) => matchesStation(s?.name));
+          if (passes) {
+            njNames.add(normalizeLineName(overlay.lineName));
+            njOverlaysNext = [...njOverlaysNext, overlay];
+          }
+        });
+        allEnRoutesRef.current.forEach((overlay) => {
+          if (enNames.has(normalizeLineName(overlay.lineName))) return;
+          const passes = overlay.stations?.some((s) => matchesStation(s?.name));
+          if (passes) {
+            enNames.add(normalizeLineName(overlay.lineName));
+            enOverlaysNext = [...enOverlaysNext, overlay];
+          }
+        });
+
+        setNjOverlays(njOverlaysNext);
+        setEnOverlays(enOverlaysNext);
 
         if (njOverlaysNext.length > 0) {
           const njStationMap = new Map();

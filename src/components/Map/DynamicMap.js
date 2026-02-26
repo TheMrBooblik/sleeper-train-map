@@ -105,6 +105,7 @@ const TrainMap = ({
     setShowTooltips,
     normalizeStationNameForLookup,
     setFilteredStops,
+    stops,
   });
 
   const {
@@ -448,6 +449,7 @@ const TrainMap = ({
           origin: ov.stations[0]?.name,
           destination: ov.stations[ov.stations.length - 1]?.name,
           color: ov.color,
+          source: ov.source,
         });
     });
     enOverlays.forEach((ov) => {
@@ -460,6 +462,7 @@ const TrainMap = ({
           origin: ov.stations[0]?.name,
           destination: ov.stations[ov.stations.length - 1]?.name,
           color: ov.color,
+          source: ov.source,
         });
     });
     return out;
