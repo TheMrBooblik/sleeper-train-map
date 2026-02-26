@@ -135,6 +135,7 @@ const TrainMap = ({
     selected,
     stopId,
     stopRouteIds,
+    selectedTrainRouteIds,
     showRoutes,
     stationsToSkip,
     normalizeStationNameForLookup,
@@ -188,10 +189,13 @@ const TrainMap = ({
   const handleFilterClose = useCallback(() => {
     if (selectedNightTrainOverlay) {
       closeTrainDetailPanel();
+    } else if (selectedTrainRouteIds?.length > 0) {
+      // Back-on-Track route filter: close panel and clear route selection (same as NightJet).
+      closeTrainDetailPanel();
     } else {
       removeFilter();
     }
-  }, [selectedNightTrainOverlay, closeTrainDetailPanel, removeFilter]);
+  }, [selectedNightTrainOverlay, selectedTrainRouteIds, closeTrainDetailPanel, removeFilter]);
 
   const matchStationNamesBound = useCallback(
     (a, b) => matchStationNames(a, b, normalizeStationNameForLookup),
@@ -280,8 +284,67 @@ const TrainMap = ({
     ],
   );
 
+  // Back-on-Track route filter (same UX as NightJet: one route on map, filter bar, and only this route's stations).
+  const hasRouteFilter = selectedTrainRouteIds?.length > 0;
+
+  // Derive the set of stations that belong to the currently selected Back-on-Track route.
+  // We re-use the same origin/destination/via fields as route polylines and map them to GTFS stops.
+  const routeFilterStops = useMemo(() => {
+    if (!hasRouteFilter || !viewMapData || !stops?.length) return null;
+    const activeId = String(selectedTrainRouteIds[0]);
+    const route = Object.values(viewMapData).find(
+      (r) => r?.route_id?.toString() === activeId,
+    );
+    if (!route) return null;
+
+    const stationNames = new Set();
+    const addDirection = (origin, destination, via) => {
+      if (origin) stationNames.add(origin);
+      if (destination) stationNames.add(destination);
+      if (via) {
+        via
+          .split(" - ")
+          .map((s) => s.trim())
+          .forEach((name) => {
+            if (name) stationNames.add(name);
+          });
+      }
+    };
+
+    addDirection(route.origin_trip_0, route.destination_trip_0, route.via_0);
+    addDirection(route.origin_trip_1, route.destination_trip_1, route.via_1);
+
+    if (stationNames.size === 0) return null;
+
+    const normalizedNameCache = new Map();
+    const getNormalized = (name) => {
+      if (!name) return null;
+      if (!normalizedNameCache.has(name)) {
+        normalizedNameCache.set(name, normalizeStationNameForLookup(name));
+      }
+      return normalizedNameCache.get(name);
+    };
+
+    const stopLookup = new Map();
+    stops.forEach((stop) => {
+      if (!stop.stop_id) return;
+      const n = getNormalized(stop.stop_id);
+      if (n && !stopLookup.has(n)) stopLookup.set(n, stop);
+      if (!stopLookup.has(stop.stop_id)) stopLookup.set(stop.stop_id, stop);
+    });
+
+    const result = [];
+    stationNames.forEach((name) => {
+      const n = getNormalized(name);
+      const match = (n && stopLookup.get(n)) || stopLookup.get(name);
+      if (match) result.push(match);
+    });
+
+    return result.length > 0 ? result : null;
+  }, [hasRouteFilter, selectedTrainRouteIds, viewMapData, stops, normalizeStationNameForLookup]);
+
   const markers = useMapMarkers({
-    filteredStops,
+    filteredStops: routeFilterStops || filteredStops,
     stops,
     cities,
     viewMapData,
@@ -329,20 +392,23 @@ const TrainMap = ({
     }
   }, [showRoutes, selected, allNjRoutes, allEnRoutes, setNjOverlays, setEnOverlays]);
 
-  // Derive overlays in the same render so Back-on-Track, NightJet and EuroNight appear together (no effect-after-paint delay).
-  // When a specific night train route is selected (selectedNightTrainOverlay), show only that route and hide the other type entirely.
+  const hasSelection = selected || !!selectedNightTrainOverlay || hasRouteFilter;
+
+  // When a specific night train route is selected, show only that route; when a Back-on-Track route is selected, hide night trains.
   const effectiveNjOverlays = useMemo(() => {
+    if (hasRouteFilter) return [];
     if (selectedNightTrainOverlay) {
       return selectedNightTrainOverlay.type === "nightjet" ? [selectedNightTrainOverlay] : [];
     }
     return selected ? njOverlays : showRoutes ? allNjRoutes : [];
-  }, [showRoutes, selected, selectedNightTrainOverlay, allNjRoutes, njOverlays]);
+  }, [showRoutes, selected, selectedNightTrainOverlay, hasRouteFilter, allNjRoutes, njOverlays]);
   const effectiveEnOverlays = useMemo(() => {
+    if (hasRouteFilter) return [];
     if (selectedNightTrainOverlay) {
       return selectedNightTrainOverlay.type === "euronight" ? [selectedNightTrainOverlay] : [];
     }
     return selected ? enOverlays : showRoutes ? allEnRoutes : [];
-  }, [showRoutes, selected, selectedNightTrainOverlay, allEnRoutes, enOverlays]);
+  }, [showRoutes, selected, selectedNightTrainOverlay, hasRouteFilter, allEnRoutes, enOverlays]);
 
   useEffect(() => {
     if (!stops?.length || !cities || overallLoading) return;
@@ -424,7 +490,18 @@ const TrainMap = ({
 
   const filterName = selectedNightTrainOverlay
     ? `${selectedNightTrainOverlay.lineName || "Train"}: ${selectedNightTrainOverlay.stations?.[0]?.name || "?"} → ${selectedNightTrainOverlay.stations?.[selectedNightTrainOverlay.stations?.length - 1]?.name || "?"}`
-    : selectedStationName || stopId;
+    : hasRouteFilter
+      ? (() => {
+          const route = viewMapData
+            ? Object.values(viewMapData).find(
+                (r) => r?.route_id?.toString() === String(selectedTrainRouteIds[0]),
+              )
+            : null;
+          return route
+            ? `Route: ${route.origin_trip_0 || "?"} → ${route.destination_trip_0 || "?"}`
+            : "Route";
+        })()
+      : selectedStationName || stopId;
 
   return (
     <>
@@ -448,11 +525,11 @@ const TrainMap = ({
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <MapClickHandler
-          hasSelection={selected || !!selectedNightTrainOverlay}
+          hasSelection={hasSelection}
           onClearFilter={handleFilterClose}
         />
         <Filter
-          selected={selected || !!selectedNightTrainOverlay}
+          selected={hasSelection}
           filterName={filterName}
           onClose={handleFilterClose}
         />

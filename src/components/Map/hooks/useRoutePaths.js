@@ -12,6 +12,7 @@ import { buildAllRoutesPaths } from "../utils/buildAllRoutesPaths";
 /**
  * Hook: computes Back-on-Track route paths (polylines) and fetches OSM relation data when needed.
  * Returns routePaths array and osmPolylines Map for European Sleeper 453 etc.
+ * When selectedTrainRouteIds is set (e.g. after route polyline click), only those routes are shown (filter like NightJet).
  */
 export function useRoutePaths({
   viewMapData,
@@ -21,6 +22,7 @@ export function useRoutePaths({
   selected,
   stopId,
   stopRouteIds,
+  selectedTrainRouteIds,
   showRoutes,
   stationsToSkip,
   normalizeStationNameForLookup,
@@ -45,7 +47,12 @@ export function useRoutePaths({
     };
 
     let routesToShow = [];
-    if (selected && stopRouteIds?.length > 0) {
+    // Route-click filter: show only the selected route(s), same behaviour as NightJet route click.
+    if (selectedTrainRouteIds?.length > 0) {
+      routesToShow = selectedTrainRouteIds.filter(
+        (routeId) => !shouldHideRouteDueToFutureDate(routeId, trips),
+      );
+    } else if (selected && stopRouteIds?.length > 0) {
       routesToShow = stopRouteIds.filter(
         (routeId) => !shouldHideRouteDueToFutureDate(routeId, trips),
       );
@@ -71,8 +78,8 @@ export function useRoutePaths({
 
     if (routesToShow.length === 0) return [];
 
-    // Use precomputed "all routes" paths if available for instant toggle
-    if (showRoutes && !selected && precomputedAllPathsRef.current != null) {
+    // Use precomputed "all routes" paths only when showing all routes (no station and no route filter).
+    if (showRoutes && !selected && selectedTrainRouteIds?.length === 0 && precomputedAllPathsRef.current != null) {
       const basePaths = precomputedAllPathsRef.current;
       return basePaths.map((path) => {
         if (path.osmRelationId && osmPolylines.has(path.osmRelationId)) {
@@ -93,7 +100,11 @@ export function useRoutePaths({
     }
 
     const routeMap = new Map();
-    const stationKey = selected ? stopId || "none" : "all-routes";
+    const stationKey = selectedTrainRouteIds?.length > 0
+      ? "selected-route"
+      : selected
+        ? stopId || "none"
+        : "all-routes";
     Object.values(viewMapData).forEach((route) => {
       if (route?.route_id) {
         routeMap.set(route.route_id.toString(), route);
@@ -210,8 +221,8 @@ export function useRoutePaths({
       }
     });
 
-    // Cache "all routes" paths so next time "Show all routes" is toggled we use it instantly
-    if (showRoutes && !selected && paths.length > 0) {
+    // Cache "all routes" paths so next time "Show all routes" is toggled we use it instantly (only when not in route-filter mode).
+    if (showRoutes && !selected && selectedTrainRouteIds?.length === 0 && paths.length > 0) {
       precomputedAllPathsRef.current = paths;
     }
 
@@ -239,6 +250,7 @@ export function useRoutePaths({
     selected,
     stopId,
     stopRouteIds,
+    selectedTrainRouteIds,
     showRoutes,
     stationsToSkip,
     normalizeStationNameForLookup,
