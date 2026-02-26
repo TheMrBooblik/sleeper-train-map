@@ -11,7 +11,7 @@ import React, {
 import Leaflet from "leaflet";
 import * as ReactLeaflet from "react-leaflet";
 
-const { MapContainer, Marker, TileLayer, Polyline } = ReactLeaflet;
+const { MapContainer, Marker, TileLayer, Polyline, Tooltip } = ReactLeaflet;
 import "leaflet/dist/leaflet.css";
 
 import Filter from "src/components/Filter";
@@ -497,9 +497,11 @@ const TrainMap = ({
                 (r) => r?.route_id?.toString() === String(selectedTrainRouteIds[0]),
               )
             : null;
-          return route
-            ? `Route: ${route.origin_trip_0 || "?"} → ${route.destination_trip_0 || "?"}`
-            : "Route";
+          if (!route) return "Route";
+          const trainNumber =
+            route.trip_short_name_0 || route.trip_short_name_1 || null;
+          const segment = `${route.origin_trip_0 || "?"} → ${route.destination_trip_0 || "?"}`;
+          return trainNumber ? `${trainNumber}: ${segment}` : `Route: ${segment}`;
         })()
       : selectedStationName || stopId;
 
@@ -587,7 +589,8 @@ const TrainMap = ({
           markerClassName="euronight-station-dot"
         />
 
-        {!selectedNightTrainOverlay && routePaths.length > 0 &&
+        {!selectedNightTrainOverlay &&
+          routePaths.length > 0 &&
           routePaths.map((path) => (
             <Polyline
               key={path.key}
@@ -599,7 +602,38 @@ const TrainMap = ({
                   handlePolylineClick(path.routeId);
                 },
               }}
-            />
+            >
+              <Tooltip sticky>
+                {(() => {
+                  const route = viewMapData
+                    ? Object.values(viewMapData).find(
+                        (r) =>
+                          r?.route_id &&
+                          r.route_id.toString() === String(path.routeId),
+                      )
+                    : null;
+                  if (!route) {
+                    return `Route ${path.routeId}`;
+                  }
+
+                  const isDirectionOne = path.key.endsWith("-1");
+                  const origin = isDirectionOne
+                    ? route.origin_trip_1 || route.origin_trip_0
+                    : route.origin_trip_0 || route.origin_trip_1;
+                  const destination = isDirectionOne
+                    ? route.destination_trip_1 || route.destination_trip_0
+                    : route.destination_trip_0 || route.destination_trip_1;
+                  const trainNumber = isDirectionOne
+                    ? route.trip_short_name_1 || route.trip_short_name_0
+                    : route.trip_short_name_0 || route.trip_short_name_1;
+
+                  const segment = `${origin || "?"} → ${destination || "?"}`;
+                  return trainNumber
+                    ? `${trainNumber}: ${segment}`
+                    : `Route: ${segment}`;
+                })()}
+              </Tooltip>
+            </Polyline>
           ))}
         {!selectedNightTrainOverlay && markers}
         {children && children({ MapContainer, Marker, TileLayer }, Leaflet)}

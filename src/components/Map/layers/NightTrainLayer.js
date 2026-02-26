@@ -123,7 +123,7 @@ export const NightTrainPolylines = memo(function NightTrainPolylines({
           >
             {!selectedOverlay && (
               <Tooltip sticky>
-                {ov.lineName} {ov.stations?.[0]?.name} -{" "}
+                {ov.lineName}: {ov.stations?.[0]?.name} →{" "}
                 {ov.stations?.[ov.stations?.length - 1]?.name}
               </Tooltip>
             )}
