@@ -61,16 +61,6 @@ export default function ThankYouModal({ isModalOpen, setModalIsOpen }) {
 
           <div className="flex justify-between items-center gap-4 mt-6">
             <a
-              href="https://github.com/TheMrBooblik/sleeper-train-map"
-              rel="noreferrer"
-              target="_blank"
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
-            >
-              <FaGithub className="text-gray-800" />
-              <span>View on GitHub</span>
-            </a>
-
-            <a
               href="https://back-on-track.eu/night-train-map"
               target="_blank"
               rel="noopener noreferrer"
