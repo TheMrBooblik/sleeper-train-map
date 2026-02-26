@@ -175,5 +175,14 @@ export function matchStationNames(a, b, normalizeForLookup) {
   const B = simplify(b);
   if (!A || !B) return false;
   if (A === B) return true;
+  // For single-word station names (e.g. "Hove", "Eindhoven") require exact match only.
+  // This prevents accidental matches where one short name is a substring of another.
+  const wordsA = A.split(" ");
+  const wordsB = B.split(" ");
+  if (wordsA.length === 1 && wordsB.length === 1) {
+    return false;
+  }
+  // For multi-word names (e.g. "Bruxelles Midi", "Paris Gare de Lyon"),
+  // still allow substring matching to handle small variations.
   return A.includes(B) || B.includes(A);
 }

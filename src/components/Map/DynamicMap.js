@@ -201,18 +201,16 @@ const TrainMap = ({
   const handleMarkerClick = useCallback(
     (filteredStop) => {
       const { stop_id } = filteredStop;
-      // Close filter when user clicks the already-selected station. Use normalized
-      // matching so different ID formats (e.g. "Eindhoven" vs "NL.Eindhoven")
-      // and different callers (map marker vs polyline) still count as same station.
-      if (
-        selected &&
-        (matchStationNamesBound(stop_id, stopId) ||
-          (selectedStationName && matchStationNamesBound(stop_id, selectedStationName)))
-      ) {
+      // Close filter only when user clicks the *same logical station* again.
+      // Compare against the previously selected stopId using the name matcher.
+      // This avoids accidentally closing when the user clicks a different station
+      // in the same city (e.g. another Brussels-area stop).
+      if (selected && stopId && matchStationNamesBound(stop_id, stopId)) {
         removeFilter();
         return;
       }
 
+      // New station selected: update filter + routes for this station.
       setStopId(stop_id);
       setSelectedStationLat(filteredStop.stop_lat);
       setSelectedStationLon(filteredStop.stop_lon);
@@ -274,7 +272,6 @@ const TrainMap = ({
       setFilteredStops,
       stopId,
       selected,
-      selectedStationName,
       removeFilter,
       matchStationNamesBound,
       normalizeStationNameForLookup,
