@@ -40,6 +40,21 @@ import {
   NightTrainPolylines,
 } from "./layers/NightTrainLayer";
 
+/** Format "YYYY-MM-DD" → "15 January 2026" for the future-route popup. */
+function formatFutureDate(dateStr) {
+  if (!dateStr) return "TBD";
+  try {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
 const TrainMap = ({
   children,
   className,
@@ -62,6 +77,8 @@ const TrainMap = ({
   const [selected, setSelected] = useState(false);
   const [stopId, setStopId] = useState();
   const [isMapInitialized, setIsMapInitialized] = useState(false);
+  // Info for a clicked future-route line: { routeId, futureStartDate }
+  const [futureRouteInfo, setFutureRouteInfo] = useState(null);
   const [showTooltips, setShowTooltips] = useState(false);
   // isLoading removed — map is shown as soon as GTFS (stops+cities) finish
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -188,6 +205,8 @@ const TrainMap = ({
   }, []);
 
   const handleFilterClose = useCallback(() => {
+    // Always clear any open future-route popup too
+    setFutureRouteInfo(null);
     if (selectedNightTrainOverlay) {
       closeTrainDetailPanel();
     } else if (selectedTrainRouteIds?.length > 0) {
@@ -613,7 +632,16 @@ const TrainMap = ({
               eventHandlers={{
                 click: (e) => {
                   e.originalEvent.stopPropagation();
-                  handlePolylineClick(path.routeId);
+                  if (path.isFuture) {
+                    // Future route: show info popup instead of detail panel
+                    setFutureRouteInfo({
+                      routeId: path.routeId,
+                      futureStartDate: path.futureStartDate,
+                    });
+                  } else {
+                    setFutureRouteInfo(null);
+                    handlePolylineClick(path.routeId);
+                  }
                 },
               }}
             >
@@ -626,9 +654,7 @@ const TrainMap = ({
                           r.route_id.toString() === String(path.routeId),
                       )
                     : null;
-                  if (!route) {
-                    return `Route ${path.routeId}`;
-                  }
+                  if (!route) return `Route ${path.routeId}`;
 
                   const isDirectionOne = path.key.endsWith("-1");
                   const origin = isDirectionOne
@@ -642,9 +668,13 @@ const TrainMap = ({
                     : route.trip_short_name_0 || route.trip_short_name_1;
 
                   const segment = `${origin || "?"} → ${destination || "?"}`;
-                  return trainNumber
+                  const label = trainNumber
                     ? `${trainNumber}: ${segment}`
                     : `Route: ${segment}`;
+                  // Hint for future routes directly in the tooltip
+                  return path.isFuture
+                    ? `${label} · opens ${formatFutureDate(path.futureStartDate)}`
+                    : label;
                 })()}
               </Tooltip>
             </Polyline>
@@ -676,6 +706,66 @@ const TrainMap = ({
         }
         nightTrainOverlay={selectedNightTrainOverlay}
       />
+
+      {/* Future-route info popup — appears when user clicks a ghost line */}
+      {futureRouteInfo && (() => {
+        const route = viewMapData
+          ? Object.values(viewMapData).find(
+              (r) => r?.route_id?.toString() === String(futureRouteInfo.routeId),
+            )
+          : null;
+        const trainNumber = route?.trip_short_name_0 || route?.trip_short_name_1 || `Route ${futureRouteInfo.routeId}`;
+        const origin = route?.origin_trip_0 || route?.origin_trip_1 || "?";
+        const destination = route?.destination_trip_0 || route?.destination_trip_1 || "?";
+        return (
+          <div
+            style={{
+              position: "absolute",
+              bottom: "50px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 1000,
+              backgroundColor: "rgba(255,255,255,0.97)",
+              borderRadius: "10px",
+              boxShadow: "0 2px 16px rgba(0,0,0,0.18)",
+              padding: "12px 16px",
+              border: "1px solid #e2e8f0",
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              maxWidth: "340px",
+              minWidth: "240px",
+              pointerEvents: "auto",
+            }}
+          >
+            <span style={{ fontSize: "22px", flexShrink: 0 }}>🗓️</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: "13px", fontWeight: "700", color: "#1e293b", marginBottom: "2px" }}>
+                {trainNumber}: {origin} → {destination}
+              </div>
+              <div style={{ fontSize: "12px", color: "#64748b" }}>
+                Future route · opens {formatFutureDate(futureRouteInfo.futureStartDate)}
+              </div>
+            </div>
+            <button
+              onClick={() => setFutureRouteInfo(null)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "#94a3b8",
+                fontSize: "18px",
+                lineHeight: 1,
+                padding: "2px 4px",
+                flexShrink: 0,
+              }}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+        );
+      })()}
     </>
   );
 };

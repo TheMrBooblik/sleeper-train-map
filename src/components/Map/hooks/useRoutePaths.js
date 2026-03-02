@@ -6,6 +6,7 @@ import {
   getRouteStyleFromFrequency,
   checkEuropeanSleeper453,
   shouldHideRouteDueToFutureDate,
+  getFutureRouteStartDate,
 } from "../utils/routeStyleUtils";
 import { buildAllRoutesPaths } from "../utils/buildAllRoutesPaths";
 
@@ -47,15 +48,12 @@ export function useRoutePaths({
     };
 
     let routesToShow = [];
+    // Include future routes in all modes — they render as ghost lines.
     // Route-click filter: show only the selected route(s), same behaviour as NightJet route click.
     if (selectedTrainRouteIds?.length > 0) {
-      routesToShow = selectedTrainRouteIds.filter(
-        (routeId) => !shouldHideRouteDueToFutureDate(routeId, trips),
-      );
+      routesToShow = selectedTrainRouteIds;
     } else if (selected && stopRouteIds?.length > 0) {
-      routesToShow = stopRouteIds.filter(
-        (routeId) => !shouldHideRouteDueToFutureDate(routeId, trips),
-      );
+      routesToShow = stopRouteIds;
     } else if (showRoutes && !selected) {
       const allRouteIds = new Set();
       Object.values(cities || {}).forEach((city) => {
@@ -69,9 +67,7 @@ export function useRoutePaths({
       Object.values(viewMapData).forEach((route) => {
         if (route?.route_id) allRouteIds.add(route.route_id.toString());
       });
-      routesToShow = Array.from(allRouteIds).filter(
-        (routeId) => !shouldHideRouteDueToFutureDate(routeId, trips),
-      );
+      routesToShow = Array.from(allRouteIds);
     } else {
       return [];
     }
@@ -174,8 +170,14 @@ export function useRoutePaths({
       const route = routeMap.get(routeId);
       if (!route) return;
 
+      const futureStartDate = getFutureRouteStartDate(routeId, trips);
+      const isFuture = futureStartDate !== null;
+
       const routeColor = ROUTE_COLORS[parseInt(routeId, 10) % ROUTE_COLORS.length];
-      const style = getRouteStyleFromFrequency(routeId, trips);
+      // Future routes: thin dashed ghost line so they're visible but clearly distinct
+      const style = isFuture
+        ? { weight: 1.5, dashArray: "4,8", opacity: 0.35 }
+        : getRouteStyleFromFrequency(routeId, trips);
       const pathOptions = {
         color: routeColor,
         weight: style.weight,
@@ -200,6 +202,8 @@ export function useRoutePaths({
           key: `route-${stationKey}-${routeId}-0`,
           pathOptions,
           osmRelationId,
+          isFuture,
+          futureStartDate,
         });
       }
 
@@ -216,6 +220,8 @@ export function useRoutePaths({
             key: `route-${stationKey}-${routeId}-1`,
             pathOptions,
             osmRelationId,
+            isFuture,
+            futureStartDate,
           });
         }
       }

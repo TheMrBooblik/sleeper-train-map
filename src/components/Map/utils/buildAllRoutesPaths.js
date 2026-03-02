@@ -6,7 +6,7 @@ import { ROUTE_COLORS } from "../constants";
 import {
   getRouteStyleFromFrequency,
   checkEuropeanSleeper453,
-  shouldHideRouteDueToFutureDate,
+  getFutureRouteStartDate,
 } from "./routeStyleUtils";
 
 export function buildAllRoutesPaths({
@@ -44,9 +44,8 @@ export function buildAllRoutesPaths({
   Object.values(viewMapData).forEach((route) => {
     if (route?.route_id) allRouteIds.add(route.route_id.toString());
   });
-  const routesToShow = Array.from(allRouteIds).filter(
-    (routeId) => !shouldHideRouteDueToFutureDate(routeId, trips)
-  );
+  // Include all routes — future ones get a ghost style and isFuture flag
+  const routesToShow = Array.from(allRouteIds);
   if (routesToShow.length === 0) return [];
 
   const routeMap = new Map();
@@ -118,8 +117,14 @@ export function buildAllRoutesPaths({
     const route = routeMap.get(routeId);
     if (!route) return;
 
+    const futureStartDate = getFutureRouteStartDate(routeId, trips);
+    const isFuture = futureStartDate !== null;
+
     const routeColor = ROUTE_COLORS[parseInt(routeId, 10) % ROUTE_COLORS.length];
-    const style = getRouteStyleFromFrequency(routeId, trips);
+    // Future routes: thin dashed ghost line so they're visible but clearly distinct
+    const style = isFuture
+      ? { weight: 1.5, dashArray: "4,8", opacity: 0.35 }
+      : getRouteStyleFromFrequency(routeId, trips);
     const pathOptions = {
       color: routeColor,
       weight: style.weight,
@@ -144,6 +149,8 @@ export function buildAllRoutesPaths({
         key: `route-${stationKey}-${routeId}-0`,
         pathOptions,
         osmRelationId,
+        isFuture,
+        futureStartDate,
       });
     }
 
@@ -160,6 +167,8 @@ export function buildAllRoutesPaths({
           key: `route-${stationKey}-${routeId}-1`,
           pathOptions,
           osmRelationId,
+          isFuture,
+          futureStartDate,
         });
       }
     }

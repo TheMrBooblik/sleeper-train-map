@@ -141,12 +141,23 @@ export function checkEuropeanSleeper453(route) {
  * @returns {boolean}
  */
 export function shouldHideRouteDueToFutureDate(routeId, trips) {
-  if (!trips || !routeId) return false;
+  return getFutureRouteStartDate(routeId, trips) !== null;
+}
+
+/**
+ * If a route has a future "From YYYY-MM-DD" irregularity, returns that date string.
+ * Returns null when the route is already running (or date cannot be determined).
+ * @param {string} routeId - Route ID
+ * @param {Object} trips - Trips data
+ * @returns {string|null} "YYYY-MM-DD" or null
+ */
+export function getFutureRouteStartDate(routeId, trips) {
+  if (!trips || !routeId) return null;
 
   const routeTrips = Object.values(trips).filter(
     (trip) => trip.route_id?.toString() === routeId.toString(),
   );
-  if (routeTrips.length === 0) return false;
+  if (routeTrips.length === 0) return null;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -155,14 +166,12 @@ export function shouldHideRouteDueToFutureDate(routeId, trips) {
     const irregularities = trip.irregularities;
     if (!irregularities || typeof irregularities !== "string") continue;
 
-    const fromDateMatch = irregularities.match(
-      /From\s+(\d{4}-\d{2}-\d{2})/i,
-    );
-    if (fromDateMatch) {
-      const fromDate = new Date(fromDateMatch[1]);
+    const match = irregularities.match(/From\s+(\d{4}-\d{2}-\d{2})/i);
+    if (match) {
+      const fromDate = new Date(match[1]);
       fromDate.setHours(0, 0, 0, 0);
-      if (fromDate > today) return true;
+      if (fromDate > today) return match[1]; // "YYYY-MM-DD"
     }
   }
-  return false;
+  return null;
 }
