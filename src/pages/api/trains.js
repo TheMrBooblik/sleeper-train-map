@@ -62,23 +62,24 @@ export default async function handler(req, res) {
         Object.keys(filtered).length,
       );
     } else if (type === "view_ontd_map") {
+      // Keep NJ and EN routes — they are used as a fallback while the official
+      // NightJet/EuroNight APIs load in the background. The frontend hides them
+      // once nightTrainsReady is true. Only Train4you is filtered out.
       console.log(
-        "[API] Filtering out Nightjet and Train4you routes from view_ontd_map",
+        "[API] Filtering out Train4you routes from view_ontd_map (NJ/EN kept as fallback)",
       );
       const filtered = {};
       Object.entries(jsonData || {}).forEach(([key, route]) => {
         const trip0 = (route?.trip_short_name_0 || "").toString();
         const trip1 = (route?.trip_short_name_1 || "").toString();
-        const isNj = /^\s*NJ\s+\d+/.test(trip0) || /^\s*NJ\s+\d+/.test(trip1);
-        const isEn = /^\s*EN\s+\d+/.test(trip0) || /^\s*EN\s+\d+/.test(trip1);
         const isT4y = isTrain4you(route, trip0) || isTrain4you(route, trip1);
-        if (!isNj && !isEn && !isT4y) {
+        if (!isT4y) {
           filtered[key] = route;
         }
       });
       jsonData = filtered;
       console.log(
-        "[API] Filtered view_ontd_map (Nightjet + Train4you excluded), remaining:",
+        "[API] Filtered view_ontd_map (Train4you excluded, NJ/EN kept), remaining:",
         Object.keys(filtered).length,
       );
     }

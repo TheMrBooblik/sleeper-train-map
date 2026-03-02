@@ -11,9 +11,26 @@ import {
 import { buildAllRoutesPaths } from "../utils/buildAllRoutesPaths";
 
 /**
+ * Returns true if a route's trip names match the NightJet (NJ) or EuroNight (EN) pattern.
+ * Used to hide NJ/EN Back-on-Track routes once the official APIs have loaded.
+ */
+function isNjOrEnRoute(route) {
+  const trip0 = (route?.trip_short_name_0 || "").toString();
+  const trip1 = (route?.trip_short_name_1 || "").toString();
+  return (
+    /^\s*NJ\s+\d+/.test(trip0) ||
+    /^\s*NJ\s+\d+/.test(trip1) ||
+    /^\s*EN\s+\d+/.test(trip0) ||
+    /^\s*EN\s+\d+/.test(trip1)
+  );
+}
+
+/**
  * Hook: computes Back-on-Track route paths (polylines) and fetches OSM relation data when needed.
  * Returns routePaths array and osmPolylines Map for European Sleeper 453 etc.
  * When selectedTrainRouteIds is set (e.g. after route polyline click), only those routes are shown (filter like NightJet).
+ * When nightTrainsReady is true, NightJet and EuroNight Back-on-Track routes are hidden
+ * because the official NJ/EN data is now rendered by NightTrainPolylines.
  */
 export function useRoutePaths({
   viewMapData,
@@ -27,6 +44,7 @@ export function useRoutePaths({
   showRoutes,
   stationsToSkip,
   normalizeStationNameForLookup,
+  nightTrainsReady,
 }) {
   const [osmPolylines, setOsmPolylines] = useState(new Map());
   const precomputedAllPathsRef = useRef(null);
@@ -74,9 +92,24 @@ export function useRoutePaths({
 
     if (routesToShow.length === 0) return [];
 
+    // Build the set of Back-on-Track NJ/EN route IDs to hide once official data is loaded.
+    // While nightTrainsReady is false, these routes show as a fallback.
+    const njEnRouteIdsToHide = new Set();
+    if (nightTrainsReady && viewMapData) {
+      Object.values(viewMapData).forEach((route) => {
+        if (isNjOrEnRoute(route) && route?.route_id) {
+          njEnRouteIdsToHide.add(route.route_id.toString());
+        }
+      });
+    }
+
     // Use precomputed "all routes" paths only when showing all routes (no station and no route filter).
     if (showRoutes && !selected && selectedTrainRouteIds?.length === 0 && precomputedAllPathsRef.current != null) {
-      const basePaths = precomputedAllPathsRef.current;
+      // Filter out NJ/EN paths from precomputed cache when official data is ready.
+      let basePaths = precomputedAllPathsRef.current;
+      if (njEnRouteIdsToHide.size > 0) {
+        basePaths = basePaths.filter((p) => !njEnRouteIdsToHide.has(p.routeId));
+      }
       return basePaths.map((path) => {
         if (path.osmRelationId && osmPolylines.has(path.osmRelationId)) {
           let osmCoords = osmPolylines.get(path.osmRelationId);
@@ -167,6 +200,9 @@ export function useRoutePaths({
     const paths = [];
 
     routesToShow.forEach((routeId) => {
+      // Skip NJ/EN routes once official night train data is loaded.
+      if (njEnRouteIdsToHide.has(routeId)) return;
+
       const route = routeMap.get(routeId);
       if (!route) return;
 
@@ -261,6 +297,7 @@ export function useRoutePaths({
     stationsToSkip,
     normalizeStationNameForLookup,
     osmPolylines,
+    nightTrainsReady,
   ]);
 
   // Fetch OSM relation polylines for routes that need them (e.g. European Sleeper 453)
