@@ -362,13 +362,24 @@ export function useNightTrainData({
         let njIdx = existingNjNames.size;
         let enIdx = existingEnNames.size;
 
+        // Only the Chopin EuroNight (EN 443 / EN 442, Praha–Warszawa) is allowed from
+        // Back-on-Track. All other EN and NightJet trains from Back-on-Track are skipped.
+        const CHOPIN_PATTERN = /^\s*EN\s*44[23]\b/i;
+
         Object.entries(routes).forEach(([routeKey, route]) => {
           const routeId = route?.route_id ?? routeKey;
           const t0 = (route?.trip_short_name_0 || "").toString();
           const t1 = (route?.trip_short_name_1 || "").toString();
           const isNj = /^\s*NJ\s*\d+/.test(t0) || /^\s*NJ\s*\d+/.test(t1);
           const isEn = /^\s*EN\s*\d+/.test(t0) || /^\s*EN\s*\d+/.test(t1);
-          const type = isNj ? "nightjet" : isEn ? "euronight" : null;
+
+          // Skip all NightJet from Back-on-Track (official NightJet API is used instead)
+          if (isNj) return;
+
+          // For EuroNight: only allow the Chopin train (EN 443 / EN 442)
+          if (isEn && !CHOPIN_PATTERN.test(t0) && !CHOPIN_PATTERN.test(t1)) return;
+
+          const type = isEn ? "euronight" : null;
           if (!type) return;
 
           const overlay = buildOverlayFromBackOnTrackRoute(
