@@ -32,6 +32,7 @@ import { useNightTrainData } from "./hooks/useNightTrainData";
 import { useRoutePaths } from "./hooks/useRoutePaths";
 import { useMapMarkers } from "./hooks/useMapMarkers";
 import LoadingOverlay from "./components/LoadingOverlay";
+import BackgroundLoadingBadge from "./components/BackgroundLoadingBadge";
 import MapClickHandler from "./components/MapClickHandler";
 import MapSkeleton from "./components/MapSkeleton";
 import {
@@ -62,7 +63,7 @@ const TrainMap = ({
   const [stopId, setStopId] = useState();
   const [isMapInitialized, setIsMapInitialized] = useState(false);
   const [showTooltips, setShowTooltips] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // isLoading removed — map is shown as soon as GTFS (stops+cities) finish
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState("Starting...");
   const [stopRouteIds, setStopRouteIds] = useState();
@@ -123,7 +124,6 @@ const TrainMap = ({
     setAllNjRoutes,
     allEnRoutes,
     setAllEnRoutes,
-    njLoadingProgress,
     nightTrainsReady,
     loadNightTrainsForStation,
   } = nightTrain;
@@ -364,6 +364,8 @@ const TrainMap = ({
   const overallLoading = stopsLoading || citiesLoading;
 
   useEffect(() => {
+    // Keep progress tracking for the background badge (used by useNightTrainData callbacks).
+    // During GTFS loading phase: set early progress markers.
     if (overallLoading) {
       setLoadingProgress(stopsLoading ? 15 : 28);
       setLoadingMessage(
@@ -374,13 +376,14 @@ const TrainMap = ({
     }
   }, [overallLoading, stopsLoading, citiesLoading]);
 
+  // As soon as GTFS data is ready, reveal the map — no need to wait for night trains.
+  // Night trains will render on top once their async load finishes.
   useEffect(() => {
-    if (!overallLoading && nightTrainsReady) {
-      setLoadingProgressImmediate(100, "Ready!");
-      const t = setTimeout(() => setIsLoading(false), 400);
-      return () => clearTimeout(t);
+    if (!overallLoading) {
+      setIsMapInitialized(true);
+      setShowTooltips(true);
     }
-  }, [overallLoading, nightTrainsReady, setLoadingProgressImmediate]);
+  }, [overallLoading]);
 
   useEffect(() => {
     if (selected) return;
@@ -486,8 +489,9 @@ const TrainMap = ({
     return () => document.removeEventListener("keydown", escFunction, false);
   }, [escFunction]);
 
-  const showLoading =
-    isLoading || overallLoading || !nightTrainsReady;
+  // Only block the map on GTFS loading (fast, ~1-2s).
+  // Night trains load in the background; badge shows their progress.
+  const showLoading = overallLoading;
   const mapClassName = `w-full h-full ${className || ""}`;
   const sidebarRef = useRef(null);
 
@@ -510,13 +514,20 @@ const TrainMap = ({
 
   return (
     <>
+      {/* Initial fast overlay: only blocks while GTFS (stations/routes) load (~1-2s) */}
       {showLoading && (
         <LoadingOverlay
-          loadingProgress={loadingProgress}
-          loadingMessage={loadingMessage}
           stopsLoading={stopsLoading}
           citiesLoading={citiesLoading}
-          njLoadingProgress={njLoadingProgress}
+        />
+      )}
+
+      {/* Non-blocking corner badge: shows NightJet/EuroNight loading progress in background */}
+      {!overallLoading && (
+        <BackgroundLoadingBadge
+          nightTrainsReady={nightTrainsReady}
+          loadingProgress={loadingProgress}
+          loadingMessage={loadingMessage}
         />
       )}
 
