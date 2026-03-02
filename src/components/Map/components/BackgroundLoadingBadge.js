@@ -97,7 +97,7 @@ export default function BackgroundLoadingBadge({
             letterSpacing: "0.01em",
           }}
         >
-          {nightTrainsReady ? "Night trains ready" : "Loading night trains"}
+          {nightTrainsReady ? "Polylines ready" : "Loading polylines"}
         </span>
       </div>
 
