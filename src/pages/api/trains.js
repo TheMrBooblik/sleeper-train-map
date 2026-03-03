@@ -99,13 +99,13 @@ export default async function handler(req, res) {
       // Continue with non-enriched data
     }
 
-    // Disable caching during development to ensure fresh data
+    // Cache on Vercel CDN edge for 5 minutes, serve stale while revalidating for up to 1 hour.
+    // The upstream Back-on-Track GitHub data rarely changes (once per day or less),
+    // so 5-minute freshness is more than adequate and saves serverless invocations.
     res.setHeader(
       "Cache-Control",
-      "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "public, s-maxage=300, stale-while-revalidate=3600",
     );
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
     res.setHeader("Content-Type", "application/json");
 
     res.status(200).json(jsonData);

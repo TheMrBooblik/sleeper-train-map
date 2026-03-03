@@ -70,8 +70,9 @@ const TrainMap = ({
     setFilteredStops,
     isLoading: stopsLoading,
   } = useStops();
-  const { cities, isLoading: citiesLoading } = useCities();
-  const { viewMapData } = useViewMap();
+  const { viewMapData, isLoading: viewMapLoading } = useViewMap();
+  // Derive city-route mapping from viewMapData (no separate fetch needed)
+  const { cities, isLoading: citiesLoading } = useCities(viewMapData);
   const { trips } = useTrips();
 
   const [selected, setSelected] = useState(false);
