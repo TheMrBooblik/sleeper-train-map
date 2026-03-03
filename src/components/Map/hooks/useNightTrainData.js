@@ -269,8 +269,11 @@ export function useNightTrainData({
             const routes = data.items.map((item, idx) =>
               buildRouteOverlay(item, idx, NJ_COLORS, "nightjet"),
             );
+            // Only update allNjRoutes here; the DynamicMap useEffect syncs
+            // njOverlays from allNjRoutes when no station is selected.
+            // Directly setting njOverlays here would overwrite station-filtered
+            // overlays if the user clicked a station while loading was in progress.
             setAllNjRoutes(routes);
-            setNjOverlays(routes);
             const stationMap = new Map();
             njStationsFromApi.forEach((s) => {
               const key = s.id || `${s.location?.latitude}-${s.location?.longitude}`;
@@ -299,8 +302,8 @@ export function useNightTrainData({
             const routes = data.items.map((item, idx) =>
               buildRouteOverlay(item, idx, EN_COLORS, "euronight"),
             );
+            // Same as NJ above: only update allEnRoutes, not enOverlays directly.
             setAllEnRoutes(routes);
-            setEnOverlays(routes);
             const stationMap = new Map();
             data.items.forEach((route) => {
               route.stations?.forEach((station) => {
@@ -406,12 +409,13 @@ export function useNightTrainData({
           }
         });
 
+        // Only update allNjRoutes/allEnRoutes. The DynamicMap useEffect syncs
+        // njOverlays/enOverlays from allRoutes when no station is selected.
+        // Directly mutating overlays here would corrupt station-filtered overlays.
         if (njFallback.length > 0) {
-          setNjOverlays((prev) => [...prev, ...njFallback]);
           setAllNjRoutes((prev) => [...prev, ...njFallback]);
         }
         if (enFallback.length > 0) {
-          setEnOverlays((prev) => [...prev, ...enFallback]);
           setAllEnRoutes((prev) => [...prev, ...enFallback]);
         }
       } catch (err) {
