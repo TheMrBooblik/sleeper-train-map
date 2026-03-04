@@ -4,11 +4,11 @@ import React from "react";
 
 /**
  * Full-screen loading overlay shown only during the fast GTFS phase
- * (loading station dots and route data from Back-on-Track).
+ * (loading station dots and base route data from Back-on-Track).
  *
  * This overlay disappears as soon as stations are ready (~1-2s),
- * revealing the map. NightJet/EuroNight routes then load in the
- * background via BackgroundLoadingBadge.
+ * revealing the map. NightJet/EuroNight routes then load from their
+ * dedicated APIs in the background via BackgroundLoadingBadge.
  */
 export default function LoadingOverlay({ stopsLoading, citiesLoading }) {
   return (

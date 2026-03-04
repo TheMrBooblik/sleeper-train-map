@@ -158,9 +158,6 @@ const TrainMap = ({
     showRoutes,
     stationsToSkip,
     normalizeStationNameForLookup,
-    // Hide NJ/EN Back-on-Track routes once official data is loaded.
-    // While nightTrainsReady is false they act as a visible fallback.
-    nightTrainsReady,
   });
 
   const removeFilter = useCallback(() => {

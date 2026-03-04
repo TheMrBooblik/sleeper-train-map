@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 
 /**
  * Small corner badge that shows NightJet/EuroNight loading progress
- * while the map is already visible and usable.
+ * from the dedicated NJ/EN APIs while the map is already visible and usable.
  *
  * - Appears as soon as GTFS (dots) are loaded
  * - Shows progress as routes load in background
