@@ -1,10 +1,16 @@
 // pages/api/nj-all-stations.js
 // Fetch all Nightjet stations by iterating through countries and destinations. Cache in .next/cache or /tmp on Vercel.
+// NOTE: On Vercel, each request runs in an isolated container with its own /tmp.
+// Progress file writes are skipped on Vercel because other containers can't read them.
 
 import fs from "fs";
 import path from "path";
 import { discoverAllTrainNumbers } from "./lib/nj-discovery";
 import { getCacheDir, ensureDir as ensureDirHelper } from "./lib/cache-dir";
+
+// On Vercel, each serverless invocation has its own isolated /tmp — progress
+// written in one container is never visible to the polling container.
+const IS_VERCEL = process.env.VERCEL === "1";
 
 const CACHE_DIR = getCacheDir("nightjet");
 const CACHE_FILE = path.join(CACHE_DIR, "all-stations.json");
@@ -24,6 +30,9 @@ function isFresh(p) {
 }
 
 function updateProgress(progress) {
+  // Skip on Vercel — progress file is local to each container and invisible
+  // to the separate containers that handle progress-poll requests.
+  if (IS_VERCEL) return;
   try {
     fs.writeFileSync(
       PROGRESS_FILE,
@@ -234,8 +243,16 @@ export default async function handler(req, res) {
 
     ensureDir();
 
-    // Progress poll: return last written progress (e.g. "Checking routes: 120/132 country pairs")
+    // Progress poll: return last written progress (e.g. "Checking routes: 120/132 country pairs").
+    // On Vercel, progress file is per-container and not shared, so we return a static message.
     if (progressOnly) {
+      if (IS_VERCEL) {
+        return res.status(200).json({
+          progress: 50,
+          message: "Loading NightJet stations…",
+          step: "fetching",
+        });
+      }
       const p = getProgress();
       return res
         .status(200)
