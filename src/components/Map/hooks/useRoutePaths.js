@@ -29,8 +29,8 @@ function isNjOrEnRoute(route) {
  * Hook: computes Back-on-Track route paths (polylines) and fetches OSM relation data when needed.
  * Returns routePaths array and osmPolylines Map for European Sleeper 453 etc.
  * When selectedTrainRouteIds is set (e.g. after route polyline click), only those routes are shown (filter like NightJet).
- * NightJet and EuroNight routes are *never* rendered from Back-on-Track here: all NJ/EN
- * lines on the map come from the dedicated NightJet/EuroNight API via useNightTrainData.
+ * When nightTrainsReady is true, NightJet and EuroNight Back-on-Track routes are hidden
+ * because the official NJ/EN data is now rendered by NightTrainPolylines.
  */
 export function useRoutePaths({
   viewMapData,
@@ -44,6 +44,7 @@ export function useRoutePaths({
   showRoutes,
   stationsToSkip,
   normalizeStationNameForLookup,
+  nightTrainsReady,
 }) {
   const [osmPolylines, setOsmPolylines] = useState(new Map());
   const precomputedAllPathsRef = useRef(null);
@@ -91,15 +92,16 @@ export function useRoutePaths({
 
     if (routesToShow.length === 0) return [];
 
-    // Build the set of Back-on-Track NJ/EN route IDs to hide.
-    // We *never* show NJ/EN routes from Back-on-Track; they are rendered
-    // exclusively via the dedicated NightJet/EuroNight APIs in useNightTrainData.
+    // Build the set of Back-on-Track NJ/EN route IDs to hide once official data is loaded.
+    // While nightTrainsReady is false, these routes show as a fallback.
     const njEnRouteIdsToHide = new Set();
-    Object.values(viewMapData).forEach((route) => {
-      if (isNjOrEnRoute(route) && route?.route_id) {
-        njEnRouteIdsToHide.add(route.route_id.toString());
-      }
-    });
+    if (nightTrainsReady && viewMapData) {
+      Object.values(viewMapData).forEach((route) => {
+        if (isNjOrEnRoute(route) && route?.route_id) {
+          njEnRouteIdsToHide.add(route.route_id.toString());
+        }
+      });
+    }
 
     // Use precomputed "all routes" paths only when showing all routes (no station and no route filter).
     if (showRoutes && !selected && selectedTrainRouteIds?.length === 0 && precomputedAllPathsRef.current != null) {
@@ -295,6 +297,7 @@ export function useRoutePaths({
     stationsToSkip,
     normalizeStationNameForLookup,
     osmPolylines,
+    nightTrainsReady,
   ]);
 
   // Fetch OSM relation polylines for routes that need them (e.g. European Sleeper 453)

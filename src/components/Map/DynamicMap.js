@@ -158,6 +158,7 @@ const TrainMap = ({
     showRoutes,
     stationsToSkip,
     normalizeStationNameForLookup,
+    nightTrainsReady,
   });
 
   const removeFilter = useCallback(() => {
