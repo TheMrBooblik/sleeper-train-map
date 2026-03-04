@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useViewMap } from "../../hooks/requests/useViewMap";
 import { useTrips } from "../../hooks/requests/useTrips";
 import { ROUTE_COLORS } from "../Map/constants";
+import { normalizeStationNameForDisplay } from "../Map/utils/stationNameUtils";
 
 /**
  * Bottom bar showing routes (Back-on-Track + NightJet/EuroNight) for the selected station.
@@ -22,40 +23,45 @@ const TrainBottomBar = ({
   const { trips } = useTrips();
 
   // Helper function to check if a route should be filtered out due to future "From <Date>" note
-  const shouldHideRouteDueToFutureDate = useCallback((routeId) => {
-    if (!trips || !routeId) return false;
+  const shouldHideRouteDueToFutureDate = useCallback(
+    (routeId) => {
+      if (!trips || !routeId) return false;
 
-    // Find all trips for this route
-    const routeTrips = Object.values(trips).filter(
-      (trip) => trip.route_id?.toString() === routeId.toString()
-    );
+      // Find all trips for this route
+      const routeTrips = Object.values(trips).filter(
+        (trip) => trip.route_id?.toString() === routeId.toString(),
+      );
 
-    if (routeTrips.length === 0) return false;
+      if (routeTrips.length === 0) return false;
 
-    // Check if any trip has a "From <Date>" note with a future date
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset to start of day for comparison
+      // Check if any trip has a "From <Date>" note with a future date
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset to start of day for comparison
 
-    for (const trip of routeTrips) {
-      const irregularities = trip.irregularities;
-      if (!irregularities || typeof irregularities !== "string") continue;
+      for (const trip of routeTrips) {
+        const irregularities = trip.irregularities;
+        if (!irregularities || typeof irregularities !== "string") continue;
 
-      // Match "From YYYY-MM-DD" pattern (case-insensitive, flexible spacing)
-      const fromDateMatch = irregularities.match(/From\s+(\d{4}-\d{2}-\d{2})/i);
-      if (fromDateMatch) {
-        const fromDateStr = fromDateMatch[1];
-        const fromDate = new Date(fromDateStr);
-        fromDate.setHours(0, 0, 0, 0);
+        // Match "From YYYY-MM-DD" pattern (case-insensitive, flexible spacing)
+        const fromDateMatch = irregularities.match(
+          /From\s+(\d{4}-\d{2}-\d{2})/i,
+        );
+        if (fromDateMatch) {
+          const fromDateStr = fromDateMatch[1];
+          const fromDate = new Date(fromDateStr);
+          fromDate.setHours(0, 0, 0, 0);
 
-        // If the "From" date is in the future, hide this route
-        if (fromDate > today) {
-          return true;
+          // If the "From" date is in the future, hide this route
+          if (fromDate > today) {
+            return true;
+          }
         }
       }
-    }
 
-    return false;
-  }, [trips]);
+      return false;
+    },
+    [trips],
+  );
 
   // Guard against undefined viewMapData and use optional chaining for route_id
   // Also filter out routes with future "From <Date>" notes
@@ -68,6 +74,29 @@ const TrainBottomBar = ({
         );
       })
     : [];
+
+  // Deduplicate NightJet/EuroNight by normalized origin–destination (and type).
+  // Keep hook usage unconditional (must run on every render).
+  const deduplicatedNightTrainRoutes = useMemo(() => {
+    if (!Array.isArray(nightTrainRoutes) || nightTrainRoutes.length === 0)
+      return [];
+    const seen = new Map();
+    nightTrainRoutes.forEach((route) => {
+      const o =
+        normalizeStationNameForDisplay(route.origin) ||
+        route.origin ||
+        "";
+      const d =
+        normalizeStationNameForDisplay(route.destination) ||
+        route.destination ||
+        "";
+      const key = `${route.type}:${[o, d].sort().join("-")}`;
+      if (!seen.has(key)) {
+        seen.set(key, route);
+      }
+    });
+    return Array.from(seen.values());
+  }, [nightTrainRoutes]);
 
   if (sidebarDisabled) return null;
   // Hide when train detail panel is open
@@ -111,13 +140,13 @@ const TrainBottomBar = ({
             selectedNormalizedName === "Zurich" ? "zürich" : null,
             selectedNormalizedName === "Brussels" ? "bruxelles" : null,
             selectedNormalizedName === "Antwerpen" ? "antwerpen" : null,
-          ].filter(Boolean)
+          ].filter(Boolean),
         );
 
         const filteredVia = viaList.filter((station) => {
           const stationLower = station.toLowerCase();
           return Array.from(cityVariations).some((cityName) =>
-            stationLower.includes(cityName)
+            stationLower.includes(cityName),
           );
         });
 
@@ -167,7 +196,7 @@ const TrainBottomBar = ({
           );
         })}
         {/* NightJet and EuroNight routes */}
-        {nightTrainRoutes.map((route, index) => {
+        {deduplicatedNightTrainRoutes.map((route, index) => {
           const label = route.type === "nightjet" ? "NightJet" : "EuroNight";
           return (
             <div
