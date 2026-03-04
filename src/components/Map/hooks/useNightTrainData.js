@@ -194,14 +194,17 @@ export function useNightTrainData({
 
     (async () => {
       try {
-        setLoadingProgressImmediate(35, "Prewarming NightJet & EuroNight...");
-        await Promise.all([
-          fetch("/api/nj-prewarm?max=30", { method: "GET" }),
-          fetch("/api/en-prewarm", { method: "GET" }),
-        ]);
+        // Phase 1: fire prewarm requests in the background — do NOT await them.
+        // Waiting for prewarm blocked all station dots from appearing.
+        // They will still warm up the server while we fetch stations.
+        fetch("/api/nj-prewarm?max=30", { method: "GET" }).catch(() => {});
+        fetch("/api/en-prewarm", { method: "GET" }).catch(() => {});
 
-        setLoadingProgressImmediate(45, "Loading NightJet stations...");
+        // Phase 1: fetch NJ stations immediately so dots appear as fast as possible.
+        setLoadingProgressImmediate(40, "Loading NightJet stations...");
         let njStationsFromApi = [];
+
+        // Poll progress while NJ stations load (cosmetic — shows user something is happening).
         const progressInterval = setInterval(async () => {
           try {
             const progressRes = await fetch(
@@ -212,7 +215,7 @@ export function useNightTrainData({
               setNjLoadingProgress(progress);
               const p = progress?.progress;
               if (typeof p === "number") {
-                setLoadingProgressImmediate(45 + (p / 100) * 30, progress?.message);
+                setLoadingProgressImmediate(40 + (p / 100) * 25, progress?.message);
               }
             }
           } catch (err) {
@@ -231,8 +234,9 @@ export function useNightTrainData({
             const stationsData = await njStationsRes.json();
             if (stationsData?.stations?.length) {
               njStationsFromApi = stationsData.stations;
+              // Dots appear on map immediately after this line.
               setAllNjStations(stationsData.stations);
-              setLoadingProgressImmediate(75, `NightJet: ${stationsData.count} stations`);
+              setLoadingProgressImmediate(65, `NightJet: ${stationsData.count} stations loaded`);
               setNjLoadingProgress({
                 progress: 100,
                 message: `Found ${stationsData.count} stations`,
@@ -261,8 +265,14 @@ export function useNightTrainData({
           });
         }
 
-        setLoadingProgressImmediate(80, "Loading NightJet routes...");
-        const njRes = await fetch(`/api/nj-list?date=${date}`);
+        // Phase 2: load NJ + EN polylines in the background — both in parallel.
+        // Dots are already visible; now we add the connecting lines.
+        setLoadingProgressImmediate(70, "Loading route polylines...");
+        const [njRes, enRes] = await Promise.all([
+          fetch(`/api/nj-list?date=${date}`),
+          fetch(`/api/en-list?date=${date}`),
+        ]);
+
         if (njRes.ok) {
           const data = await njRes.json();
           if (data?.items?.length) {
@@ -271,6 +281,7 @@ export function useNightTrainData({
             );
             setAllNjRoutes(routes);
             setNjOverlays(routes);
+            // Merge any extra stations found in route data into allNjStations.
             const stationMap = new Map();
             njStationsFromApi.forEach((s) => {
               const key = s.id || `${s.location?.latitude}-${s.location?.longitude}`;
@@ -291,8 +302,6 @@ export function useNightTrainData({
           }
         }
 
-        setLoadingProgressImmediate(90, "Loading EuroNight routes...");
-        const enRes = await fetch(`/api/en-list?date=${date}`);
         if (enRes.ok) {
           const data = await enRes.json();
           if (data?.items?.length) {
@@ -301,6 +310,7 @@ export function useNightTrainData({
             );
             setAllEnRoutes(routes);
             setEnOverlays(routes);
+            // EN stations are derived from EN route data (no separate endpoint).
             const stationMap = new Map();
             data.items.forEach((route) => {
               route.stations?.forEach((station) => {
