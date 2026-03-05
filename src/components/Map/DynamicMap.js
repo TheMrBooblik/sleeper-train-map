@@ -15,11 +15,8 @@ const { MapContainer, Marker, TileLayer, Polyline, Tooltip } = ReactLeaflet;
 import "leaflet/dist/leaflet.css";
 
 import Filter from "src/components/Filter";
-import { useStops } from "../../hooks/requests/useStops";
-import { useCities } from "../../hooks/requests/useCities";
+import { useInitialData } from "../../hooks/requests/useInitialData";
 import { normalizeStationNameForLookup } from "../../hooks/requests/useCities";
-import { useViewMap } from "../../hooks/requests/useViewMap";
-import { useTrips } from "../../hooks/requests/useTrips";
 import TrainBottomBar from "@components/TrainBottomBar";
 import TrainDetailPanel from "@components/TrainDetailPanel";
 import ZoomControl from "@components/ZoomControl";
@@ -68,11 +65,11 @@ const TrainMap = ({
     stops,
     filteredStops,
     setFilteredStops,
-    isLoading: stopsLoading,
-  } = useStops();
-  const { cities, isLoading: citiesLoading } = useCities();
-  const { viewMapData } = useViewMap();
-  const { trips } = useTrips();
+    cities,
+    viewMapData,
+    trips,
+    isLoading: initialDataLoading,
+  } = useInitialData();
 
   const [selected, setSelected] = useState(false);
   const [stopId, setStopId] = useState();
@@ -380,20 +377,17 @@ const TrainMap = ({
     trips,
   });
 
-  const overallLoading = stopsLoading || citiesLoading;
+  const overallLoading = initialDataLoading;
 
   useEffect(() => {
     // Keep progress tracking for the background badge (used by useNightTrainData callbacks).
-    // During GTFS loading phase: set early progress markers.
     if (overallLoading) {
-      setLoadingProgress(stopsLoading ? 15 : 28);
-      setLoadingMessage(
-        stopsLoading ? "Loading stations..." : "Processing routes...",
-      );
+      setLoadingProgress(15);
+      setLoadingMessage("Loading stations and routes...");
     } else {
       setLoadingProgress((p) => Math.max(p, 30));
     }
-  }, [overallLoading, stopsLoading, citiesLoading]);
+  }, [overallLoading]);
 
   // As soon as GTFS data is ready, reveal the map — no need to wait for night trains.
   // Night trains will render on top once their async load finishes.
@@ -536,8 +530,8 @@ const TrainMap = ({
       {/* Initial fast overlay: only blocks while GTFS (stations/routes) load (~1-2s) */}
       {showLoading && (
         <LoadingOverlay
-          stopsLoading={stopsLoading}
-          citiesLoading={citiesLoading}
+          stopsLoading={initialDataLoading}
+          citiesLoading={false}
         />
       )}
 

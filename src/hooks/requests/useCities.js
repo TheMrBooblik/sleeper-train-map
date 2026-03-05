@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { VIEW_CITIES, VIEW_MAP } from "../../constants/backOnTrack";
 
-// Cache duration in milliseconds (disabled during development for manual data testing)
-const CACHE_DURATION = 0; // Set to 60 * 60 * 1000 for production
+// Cache duration in milliseconds (1 hour)
+const CACHE_DURATION = 60 * 60 * 1000;
 
 // Function to normalize station names to handle inconsistencies between stops and routes data
 // Export this function so it can be used in other components
@@ -59,10 +59,6 @@ export function useCities() {
 
   useEffect(() => {
     const fetchCities = async () => {
-      // Clear cache first to ensure fresh data with new logic
-      const cacheKey = `${VIEW_MAP}_cities`;
-      localStorage.removeItem(cacheKey);
-
       // Check if we need to fetch new data
       const currentTime = new Date().getTime();
       const shouldFetchData =
@@ -74,9 +70,7 @@ export function useCities() {
         setIsLoading(true);
         try {
           // Since view_ontd_cities is corrupted, generate city-to-route mapping from view_ontd_map
-          const res = await fetch(
-            `/api/trains?type=${VIEW_MAP}&t=${Date.now()}`,
-          );
+          const res = await fetch(`/api/trains?type=${VIEW_MAP}`);
 
           if (!res.ok) {
             throw new Error(
@@ -227,12 +221,7 @@ export function useCities() {
   const refreshCities = async () => {
     setIsLoading(true);
     try {
-      // Clear cache first to ensure fresh data
-      const cacheKey = `${VIEW_MAP}_cities`;
-      localStorage.removeItem(cacheKey);
-
-      // Since view_ontd_cities is corrupted, generate city-to-route mapping from view_ontd_map
-      const res = await fetch(`/api/trains?type=${VIEW_MAP}&t=${Date.now()}`);
+      const res = await fetch(`/api/trains?type=${VIEW_MAP}`);
 
       if (!res.ok) {
         throw new Error(

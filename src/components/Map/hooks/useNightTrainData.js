@@ -200,41 +200,21 @@ export function useNightTrainData({
         fetch("/api/nj-prewarm?max=30", { method: "GET" }).catch(() => {});
         fetch("/api/en-prewarm", { method: "GET" }).catch(() => {});
 
-        // Phase 1: fetch NJ stations immediately so dots appear as fast as possible.
+        // Fetch NJ stations so dots appear as fast as possible.
+        // No progress polling — on Vercel serverless each poll is a separate
+        // container that can't read the progress file written by another.
         setLoadingProgressImmediate(40, "Loading NightJet stations...");
         let njStationsFromApi = [];
 
-        // Poll progress while NJ stations load (cosmetic — shows user something is happening).
-        const progressInterval = setInterval(async () => {
-          try {
-            const progressRes = await fetch(
-              `/api/nj-all-stations?progress=true&date=${date}`,
-            );
-            if (progressRes.ok) {
-              const progress = await progressRes.json();
-              setNjLoadingProgress(progress);
-              const p = progress?.progress;
-              if (typeof p === "number") {
-                setLoadingProgressImmediate(40 + (p / 100) * 25, progress?.message);
-              }
-            }
-          } catch (err) {
-            console.error("[DEBUG] Failed to fetch progress:", err);
-          }
-        }, 800);
-
         try {
           const njStationsRes = await fetch(
-            `/api/nj-all-stations?date=${date}&_t=${Date.now()}`,
-            { cache: "no-store" },
+            `/api/nj-all-stations?date=${date}`,
           );
-          clearInterval(progressInterval);
 
           if (njStationsRes.ok) {
             const stationsData = await njStationsRes.json();
             if (stationsData?.stations?.length) {
               njStationsFromApi = stationsData.stations;
-              // Dots appear on map immediately after this line.
               setAllNjStations(stationsData.stations);
               setLoadingProgressImmediate(65, `NightJet: ${stationsData.count} stations loaded`);
               setNjLoadingProgress({
@@ -257,7 +237,6 @@ export function useNightTrainData({
             });
           }
         } catch (err) {
-          clearInterval(progressInterval);
           setNjLoadingProgress({
             progress: 0,
             message: `Error: ${err.message}`,

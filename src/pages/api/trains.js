@@ -98,13 +98,12 @@ export default async function handler(req, res) {
       // Continue with non-enriched data
     }
 
-    // Disable caching during development to ensure fresh data
+    // CDN caches for 1 hour; serve stale while revalidating for up to 1 day.
+    // This means only ~1 serverless invocation per hour per type, worldwide.
     res.setHeader(
       "Cache-Control",
-      "no-store, no-cache, must-revalidate, proxy-revalidate",
+      "public, s-maxage=3600, stale-while-revalidate=86400",
     );
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
     res.setHeader("Content-Type", "application/json");
 
     res.status(200).json(jsonData);

@@ -8,5 +8,9 @@
     "src/pages/api/nightjet.js": { "maxDuration": 30 },
     "src/pages/api/nj-train.js": { "maxDuration": 30 },
     "src/pages/api/nj-route.js": { "maxDuration": 30 }
-  }
+  },
+  "crons": [
+    { "path": "/api/nj-prewarm?max=50", "schedule": "0 3 * * *" },
+    { "path": "/api/en-prewarm", "schedule": "0 3 * * *" }
+  ]
 }

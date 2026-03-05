@@ -179,6 +179,8 @@ export default async function handler(req, res) {
         }
       }
 
+    // CDN caches for 1 hour; serve stale while revalidating for up to 1 day
+    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400')
     return res.status(200).json({ date, count: items.length, items })
   } catch (e) {
     console.error('[api/nj-list] error', e)

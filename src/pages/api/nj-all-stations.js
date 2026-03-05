@@ -270,6 +270,7 @@ export default async function handler(req, res) {
       try {
         const cached = JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"));
         res.setHeader("X-Cache", "HIT");
+        res.setHeader("Cache-Control", "public, s-maxage=3600, max-age=604800, stale-while-revalidate=86400");
         return res.status(200).json(cached);
       } catch {}
     }
@@ -283,7 +284,8 @@ export default async function handler(req, res) {
     } catch {}
 
     res.setHeader("X-Cache", "MISS");
-    res.setHeader("Cache-Control", "public, max-age=604800"); // 7 days
+    // CDN refreshes hourly; browsers cache for 7 days (data changes slowly)
+    res.setHeader("Cache-Control", "public, s-maxage=3600, max-age=604800, stale-while-revalidate=86400");
     return res.status(200).json(data);
   } catch (e) {
     console.error("[api/nj-all-stations] error:", e);
