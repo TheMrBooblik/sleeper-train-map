@@ -4,6 +4,15 @@ import React, { memo } from "react";
 import Leaflet from "leaflet";
 import { Marker, Polyline, Tooltip } from "react-leaflet";
 import { StationTooltipContent } from "../utils/stationTooltip";
+import { createMapIcons } from "../utils/mapIcons";
+
+// Re-use the same icons as Back-on-Track markers so NightTrain and Back-on-Track stations
+// look identical. This also avoids creating new DivIcon instances for every marker.
+const {
+  defaultIcon: nightTrainDefaultIcon,
+  selectedIcon: nightTrainSelectedIcon,
+  viaIcon: nightTrainViaIcon,
+} = createMapIcons(Leaflet);
 
 /**
  * Renders NightJet or EuroNight stations and route polylines.
@@ -18,6 +27,8 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
   stops,
   matchStationNames,
   onMarkerClick,
+  selected,
+  stopId,
 }) {
   let toRender = stations ?? [];
   if (hideIntermediateStations) {
@@ -36,14 +47,17 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
 
     const isEnd =
       endpointStations.has(s.name) || (s.id && endpointStations.has(s.id));
-    const icon = new Leaflet.DivIcon({
-      className: markerClassName,
-      html: isEnd
-        ? '<div style="width: 20px; height: 20px; background: linear-gradient(135deg, #2196F3, #1976D2); border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4), 0 0 0 1px rgba(33, 150, 243, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 1000;"></div>'
-        : '<div style="width: 14px; height: 14px; background: linear-gradient(135deg, #4CAF50, #388E3C); border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 6px rgba(76, 175, 80, 0.35), 0 0 0 1px rgba(76, 175, 80, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 100;"></div>',
-      iconSize: isEnd ? [20, 20] : [14, 14],
-      iconAnchor: isEnd ? [10, 10] : [7, 7],
-    });
+    const isSelected =
+      selected && stopId && matchStationNames(s.name, stopId);
+    // Same visual style and selection color as Back-on-Track markers:
+    // - selected station: orange dot
+    // - endpoint: blue dot
+    // - intermediate: green via dot
+    const icon = isSelected
+      ? nightTrainSelectedIcon
+      : isEnd
+        ? nightTrainDefaultIcon
+        : nightTrainViaIcon;
 
     return (
       <Marker
@@ -62,6 +76,7 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
               ...(matchingStop || {}),
               stop_id: s.name,
               stop_name: s.name,
+              displayName: s.name, // Same shape as useMapMarkers so handleMarkerClick / tooltips behave identically.
               stop_lat: lat,
               stop_lon: lon,
               isGrouped: false,
@@ -71,7 +86,12 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
         }}
       >
         {/* All-stations view: name only (no route selected); same pattern as polyline stations */}
-        <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false}>
+        <Tooltip
+          direction="top"
+          offset={[0, -10]}
+          opacity={1}
+          permanent={false}
+        >
           <StationTooltipContent name={s.name} showTimes={false} />
         </Tooltip>
       </Marker>
@@ -94,6 +114,8 @@ export const NightTrainPolylines = memo(function NightTrainPolylines({
   hideIntermediateStations,
   stationKeyPrefix,
   markerClassName,
+  selected,
+  stopId,
 }) {
   const list =
     selectedOverlay && selectedOverlay.type === overlayType
@@ -130,36 +152,44 @@ export const NightTrainPolylines = memo(function NightTrainPolylines({
           </Polyline>
           {(ov.stations || []).map((s, idx) => {
             if (hideIntermediateStations) {
-              const isEnd =
-                idx === 0 || idx === (ov.stations?.length ?? 0) - 1;
+              const isEnd = idx === 0 || idx === (ov.stations?.length ?? 0) - 1;
               if (!isEnd) return null;
             }
             const lat = s?.location?.latitude;
             const lon = s?.location?.longitude;
             if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-            const isEnd =
-              idx === 0 || idx === (ov.stations?.length ?? 0) - 1;
-            const icon = new Leaflet.DivIcon({
-              className: markerClassName,
-              html: isEnd
-                ? '<div style="width: 20px; height: 20px; background: linear-gradient(135deg, #2196F3, #1976D2); border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4), 0 0 0 1px rgba(33, 150, 243, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 1000;"></div>'
-                : '<div style="width: 14px; height: 14px; background: linear-gradient(135deg, #4CAF50, #388E3C); border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 6px rgba(76, 175, 80, 0.35), 0 0 0 1px rgba(76, 175, 80, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 100;"></div>',
-              iconSize: isEnd ? [20, 20] : [14, 14],
-              iconAnchor: isEnd ? [10, 10] : [7, 7],
-            });
+            const isEnd = idx === 0 || idx === (ov.stations?.length ?? 0) - 1;
+            const isSelected =
+              selected && stopId && matchStationNames(s.name, stopId);
+            // Same visual style and selection color as Back-on-Track markers.
+            const icon = isSelected
+              ? nightTrainSelectedIcon
+              : isEnd
+                ? nightTrainDefaultIcon
+                : nightTrainViaIcon;
             return (
               <Marker
                 key={`${stationKeyPrefix}-${ov.key}-${idx}-${s.id || s.name}`}
                 position={[lat, lon]}
                 icon={icon}
                 eventHandlers={{
-                  click: () => {
+                  click: (e) => {
+                    e.originalEvent?.stopPropagation();
                     const matchingStop = stops?.find(
                       (stop) =>
                         matchStationNames(s.name, stop.stop_id) ||
                         matchStationNames(s.name, stop.stop_name),
                     );
-                    if (matchingStop) onRouteStationClick(matchingStop);
+                    // Same shape as useMapMarkers: always call handler so behavior matches (bottom bar, filter).
+                    const filteredStop = matchingStop ?? {
+                      stop_id: s.name,
+                      stop_name: s.name,
+                      displayName: s.name,
+                      stop_lat: lat,
+                      stop_lon: lon,
+                      isGrouped: false,
+                    };
+                    onRouteStationClick(filteredStop);
                   },
                 }}
               >

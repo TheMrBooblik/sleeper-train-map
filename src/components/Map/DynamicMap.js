@@ -582,6 +582,8 @@ const TrainMap = ({
             stops={stops}
             matchStationNames={matchStationNamesBound}
             onMarkerClick={handleMarkerClick}
+            selected={selected}
+            stopId={stopId}
           />
         )}
         <NightTrainPolylines
@@ -595,6 +597,8 @@ const TrainMap = ({
           hideIntermediateStations={hideIntermediateStations}
           stationKeyPrefix="nj-station"
           markerClassName="nightjet-station-dot"
+          selected={selected}
+          stopId={stopId}
         />
 
         {!selectedNightTrainOverlay && !hasRouteFilter && (
@@ -607,6 +611,8 @@ const TrainMap = ({
             stops={stops}
             matchStationNames={matchStationNamesBound}
             onMarkerClick={handleMarkerClick}
+            selected={selected}
+            stopId={stopId}
           />
         )}
         <NightTrainPolylines
@@ -620,6 +626,8 @@ const TrainMap = ({
           hideIntermediateStations={hideIntermediateStations}
           stationKeyPrefix="en-station"
           markerClassName="euronight-station-dot"
+          selected={selected}
+          stopId={stopId}
         />
 
         {!selectedNightTrainOverlay &&
