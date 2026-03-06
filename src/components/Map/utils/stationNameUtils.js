@@ -12,6 +12,12 @@
 export function normalizeStationNameForDisplay(stationName) {
   if (!stationName) return stationName;
 
+  // Important exception: never group "Wiener Neustadt" into Vienna.
+  // This keeps Wiener Neustadt as its own city marker even if the name also contains "Wien".
+  if (stationName.includes("Wiener Neustadt")) {
+    return "Wiener Neustadt";
+  }
+
   if (stationName.includes("Paris")) return "Paris";
   if (
     stationName.includes("Bruxelles") ||
@@ -32,7 +38,8 @@ export function normalizeStationNameForDisplay(stationName) {
   ) {
     return "Liège";
   }
-  if (stationName.includes("Wien") || stationName.includes("Vienna")) {
+  // Treat only true Vienna stations as "Vienna" – do not include "Wiener Neustadt" or other "Wiener ..." names.
+  if (/\bWien\b/.test(stationName) || stationName.includes("Vienna")) {
     return "Vienna";
   }
   if (
@@ -183,6 +190,14 @@ export function matchStationNames(a, b, normalizeForLookup) {
     return false;
   }
   // For multi-word names (e.g. "Bruxelles Midi", "Paris Gare de Lyon"),
-  // still allow substring matching to handle small variations.
-  return A.includes(B) || B.includes(A);
+  // still allow "substring" matching, but ONLY when the shorter string appears
+  // as a full word inside the longer one. This prevents false matches like
+  // "Wien" matching "Wiener Neustadt".
+  const containsAsWord = (text, sub) => {
+    if (!text || !sub) return false;
+    const pattern = new RegExp(`(^| )${sub}( |$)`);
+    return pattern.test(text);
+  };
+
+  return containsAsWord(A, B) || containsAsWord(B, A);
 }
