@@ -70,8 +70,8 @@ export default async function handler(req, res) {
       } catch {}
     }
 
-    // Optional auto-prewarm if nothing cached yet and no station filter
-    if (items.length === 0 && !stationName) {
+    // Optional auto-prewarm if nothing cached yet (even with station filter, e.g. on Vercel /tmp cold start)
+    if (items.length === 0) {
       try {
         const url = `${req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'] : 'http'}://${req.headers.host}/api/en-prewarm?date=${encodeURIComponent(date)}`
         await fetch(url)
@@ -84,7 +84,12 @@ export default async function handler(req, res) {
             const p = path.join(CACHE_DIR, f)
             const obj = JSON.parse(fs.readFileSync(p, 'utf8'))
             if (!obj?.stations?.length) continue
-            const coords = obj.stations
+            let stations = obj.stations
+            if (stationName) {
+              const idx = stations.findIndex(s => matchName(stationName, s.name))
+              if (idx < 0) continue
+            }
+            const coords = stations
               .map((s) => [s?.location?.latitude, s?.location?.longitude])
               .filter((a) => Array.isArray(a) && Number.isFinite(a[0]) && Number.isFinite(a[1]))
             items.push({
@@ -92,7 +97,7 @@ export default async function handler(req, res) {
               lineName: obj.lineName,
               operator: obj.operator || 'EuroNight',
               date,
-              stations: obj.stations,
+              stations,
               coords,
               polyline: obj.polyline || null,
             })

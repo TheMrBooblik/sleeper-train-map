@@ -75,11 +75,11 @@ export default async function handler(req, res) {
     // Comprehensive discovery: if no routes found (or when explicitly requested), discover all trains
     // This ensures we get ALL possible NightJet trains, not just cached ones
     // Only do comprehensive discovery when:
-    // 1. No items found AND no station filter (to populate cache)
+    // 1. No items found (incl. when station filter is used and cache is cold, e.g. on Vercel /tmp)
     // 2. Explicitly requested via ?discover=true (even with station filter, to ensure all trains are cached)
-    const shouldDiscover = (items.length === 0 && !stationName) || req.query.discover === 'true'
+    const shouldDiscover = items.length === 0 || req.query.discover === 'true'
     
-    if (shouldDiscover && !stationName) {
+    if (shouldDiscover) {
       try {
         console.log('[nj-list] Starting comprehensive train discovery...')
         
