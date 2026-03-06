@@ -464,11 +464,11 @@ export function useNightTrainData({
         return result;
       };
 
-      const njOverlaysNext = filterRoutesForStation(
+      let njOverlaysNext = filterRoutesForStation(
         allNjRoutesRef.current,
         "nightjet",
       );
-      const enOverlaysNext = filterRoutesForStation(
+      let enOverlaysNext = filterRoutesForStation(
         allEnRoutesRef.current,
         "euronight",
       );
@@ -510,6 +510,143 @@ export function useNightTrainData({
         setFilteredEnStations(Array.from(enStationMap.values()));
       } else {
         setFilteredEnStations([]);
+      }
+
+      // Fallback for production: if no routes are found in memory (e.g. cold cache on Vercel),
+      // fetch station-specific routes from the API in the background and merge them.
+      if (njOverlaysNext.length === 0 && enOverlaysNext.length === 0) {
+        (async () => {
+          try {
+            const date = formatDate(new Date());
+            const njRouteKeys = new Set();
+            const enRouteKeys = new Set();
+            const njRoutes = [];
+            const enRoutes = [];
+
+            const [njRes, enRes] = await Promise.all([
+              fetch(
+                `/api/nj-list?date=${date}&stationName=${encodeURIComponent(
+                  normalizedStationName,
+                )}`,
+              ),
+              fetch(
+                `/api/en-list?date=${date}&stationName=${encodeURIComponent(
+                  normalizedStationName,
+                )}`,
+              ),
+            ]);
+
+            if (njRes.ok) {
+              const data = await njRes.json();
+              data?.items?.forEach((item) => {
+                if (!njRouteKeys.has(item.key)) {
+                  njRouteKeys.add(item.key);
+                  njRoutes.push(item);
+                }
+              });
+            }
+            if (enRes.ok) {
+              const data = await enRes.json();
+              data?.items?.forEach((item) => {
+                if (!enRouteKeys.has(item.key)) {
+                  enRouteKeys.add(item.key);
+                  enRoutes.push(item);
+                }
+              });
+            }
+
+            if (
+              originalStationName &&
+              originalStationName !== normalizedStationName
+            ) {
+              const [njRes2, enRes2] = await Promise.all([
+                fetch(
+                  `/api/nj-list?date=${date}&stationName=${encodeURIComponent(
+                    originalStationName,
+                  )}`,
+                ),
+                fetch(
+                  `/api/en-list?date=${date}&stationName=${encodeURIComponent(
+                    originalStationName,
+                  )}`,
+                ),
+              ]);
+              if (njRes2.ok) {
+                const data = await njRes2.json();
+                data?.items?.forEach((item) => {
+                  if (!njRouteKeys.has(item.key)) {
+                    njRouteKeys.add(item.key);
+                    njRoutes.push(item);
+                  }
+                });
+              }
+              if (enRes2.ok) {
+                const data = await enRes2.json();
+                data?.items?.forEach((item) => {
+                  if (!enRouteKeys.has(item.key)) {
+                    enRouteKeys.add(item.key);
+                    enRoutes.push(item);
+                  }
+                });
+              }
+            }
+
+            if (njRoutes.length === 0 && enRoutes.length === 0) {
+              return;
+            }
+
+            // Merge newly fetched routes into the global route lists.
+            setAllNjRoutes((prev) => [...prev, ...njRoutes]);
+            setAllEnRoutes((prev) => [...prev, ...enRoutes]);
+
+            // Recompute overlays and filtered stations with updated data.
+            njOverlaysNext = filterRoutesForStation(
+              [...allNjRoutesRef.current, ...njRoutes],
+              "nightjet",
+            );
+            enOverlaysNext = filterRoutesForStation(
+              [...allEnRoutesRef.current, ...enRoutes],
+              "euronight",
+            );
+
+            setNjOverlays(njOverlaysNext);
+            setEnOverlays(enOverlaysNext);
+
+            if (njOverlaysNext.length > 0) {
+              const njStationMap = new Map();
+              njOverlaysNext.forEach((overlay) => {
+                const idx = overlay.stations?.findIndex((s) =>
+                  matchesStation(s.name),
+                );
+                if (idx !== -1 && overlay.stations) {
+                  overlay.stations.forEach((station) => {
+                    const key = `${station.location?.latitude}-${station.location?.longitude}`;
+                    if (!njStationMap.has(key)) njStationMap.set(key, station);
+                  });
+                }
+              });
+              setFilteredNjStations(Array.from(njStationMap.values()));
+            }
+
+            if (enOverlaysNext.length > 0) {
+              const enStationMap = new Map();
+              enOverlaysNext.forEach((overlay) => {
+                const idx = overlay.stations?.findIndex((s) =>
+                  matchesStation(s.name),
+                );
+                if (idx !== -1 && overlay.stations) {
+                  overlay.stations.forEach((station) => {
+                    const key = `${station.location?.latitude}-${station.location?.longitude}`;
+                    if (!enStationMap.has(key)) enStationMap.set(key, station);
+                  });
+                }
+              });
+              setFilteredEnStations(Array.from(enStationMap.values()));
+            }
+          } catch (e) {
+            console.error("Night trains fallback fetch error", e);
+          }
+        })();
       }
     },
     [normalizeStationNameForLookup],
