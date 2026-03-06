@@ -411,203 +411,108 @@ export function useNightTrainData({
   }, [nightTrainsReady, stops, normalizeStationNameForLookup]);
 
   const loadNightTrainsForStation = useCallback(
-    async (normalizedStationName, originalStationName = null) => {
-      try {
-        const date = formatDate(new Date());
-        const njRouteKeys = new Set();
-        const enRouteKeys = new Set();
-        const njRoutes = [];
-        const enRoutes = [];
-
-        const [njRes1, enRes1] = await Promise.all([
-          fetch(
-            `/api/nj-list?date=${date}&stationName=${encodeURIComponent(normalizedStationName)}`,
-          ),
-          fetch(
-            `/api/en-list?date=${date}&stationName=${encodeURIComponent(normalizedStationName)}`,
-          ),
-        ]);
-
-        if (njRes1.ok) {
-          const data = await njRes1.json();
-          data?.items?.forEach((item) => {
-            if (!njRouteKeys.has(item.key)) {
-              njRouteKeys.add(item.key);
-              njRoutes.push(item);
-            }
-          });
-        }
-        if (enRes1.ok) {
-          const data = await enRes1.json();
-          data?.items?.forEach((item) => {
-            if (!enRouteKeys.has(item.key)) {
-              enRouteKeys.add(item.key);
-              enRoutes.push(item);
-            }
-          });
-        }
-
+    (normalizedStationName, originalStationName = null) => {
+      const matchesStation = (name) => {
+        if (!name) return false;
+        if (
+          matchStationNames(
+            name,
+            normalizedStationName,
+            normalizeStationNameForLookup,
+          )
+        )
+          return true;
         if (
           originalStationName &&
-          originalStationName !== normalizedStationName
-        ) {
-          const [njRes2, enRes2] = await Promise.all([
-            fetch(
-              `/api/nj-list?date=${date}&stationName=${encodeURIComponent(originalStationName)}`,
-            ),
-            fetch(
-              `/api/en-list?date=${date}&stationName=${encodeURIComponent(originalStationName)}`,
-            ),
-          ]);
-          if (njRes2.ok) {
-            const data = await njRes2.json();
-            data?.items?.forEach((item) => {
-              if (!njRouteKeys.has(item.key)) {
-                njRouteKeys.add(item.key);
-                njRoutes.push(item);
-              }
-            });
-          }
-          if (enRes2.ok) {
-            const data = await enRes2.json();
-            data?.items?.forEach((item) => {
-              if (!enRouteKeys.has(item.key)) {
-                enRouteKeys.add(item.key);
-                enRoutes.push(item);
-              }
-            });
-          }
-        }
-
-        // Fallback: fetch all and filter client-side
-        if (njRoutes.length === 0 && enRoutes.length === 0) {
-          const routePassesThrough = (route, _name) => {
-            if (!route?.stations?.length) return false;
-            return route.stations.some((station) => {
-              const name = station?.name || "";
-              if (matchStationNames(name, normalizedStationName, normalizeStationNameForLookup))
-                return true;
-              if (
-                originalStationName &&
-                matchStationNames(name, originalStationName, normalizeStationNameForLookup)
-              )
-                return true;
-              const a = name.toLowerCase().replace(/[^a-z0-9]/g, "");
-              const b = normalizedStationName.toLowerCase().replace(/[^a-z0-9]/g, "");
-              if (a.includes(b) || b.includes(a)) return true;
-              if (originalStationName) {
-                const c = originalStationName.toLowerCase().replace(/[^a-z0-9]/g, "");
-                if (a.includes(c) || c.includes(a)) return true;
-              }
-              return false;
-            });
-          };
-
-          const [njResAll, enResAll] = await Promise.all([
-            fetch(`/api/nj-list?date=${date}`),
-            fetch(`/api/en-list?date=${date}`),
-          ]);
-          if (njResAll.ok) {
-            const data = await njResAll.json();
-            data?.items?.forEach((item) => {
-              if (routePassesThrough(item) && !njRouteKeys.has(item.key)) {
-                njRouteKeys.add(item.key);
-                njRoutes.push(item);
-              }
-            });
-          }
-          if (enResAll.ok) {
-            const data = await enResAll.json();
-            data?.items?.forEach((item) => {
-              if (routePassesThrough(item) && !enRouteKeys.has(item.key)) {
-                enRouteKeys.add(item.key);
-                enRoutes.push(item);
-              }
-            });
-          }
-        }
-
-        const matchesStation = (name) => {
-          if (!name) return false;
-          if (matchStationNames(name, normalizedStationName, normalizeStationNameForLookup))
-            return true;
-          if (
-            originalStationName &&
-            matchStationNames(name, originalStationName, normalizeStationNameForLookup)
+          matchStationNames(
+            name,
+            originalStationName,
+            normalizeStationNameForLookup,
           )
-            return true;
-          return false;
-        };
+        )
+          return true;
+        const a = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const b = normalizedStationName.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (a.includes(b) || b.includes(a)) return true;
+        if (originalStationName) {
+          const c = originalStationName.toLowerCase().replace(/[^a-z0-9]/g, "");
+          if (a.includes(c) || c.includes(a)) return true;
+        }
+        return false;
+      };
 
-        let njOverlaysNext = njRoutes.map((item, idx) =>
-          buildRouteOverlay(item, idx, NJ_COLORS, "nightjet"),
-        );
-        let enOverlaysNext = enRoutes.map((item, idx) =>
-          buildRouteOverlay(item, idx, EN_COLORS, "euronight"),
-        );
+      const filterRoutesForStation = (routes, type) => {
+        const seen = new Set();
+        const result = [];
+        routes.forEach((route) => {
+          const name = normalizeLineName(route.lineName);
+          if (seen.has(name)) return;
+          const passes = route.stations?.some((s) => matchesStation(s?.name));
+          if (!passes) return;
+          seen.add(name);
+          result.push(
+            route.coords && route.stations
+              ? route
+              : buildRouteOverlay(
+                  route,
+                  result.length,
+                  type === "nightjet" ? NJ_COLORS : EN_COLORS,
+                  type,
+                ),
+          );
+        });
+        return result;
+      };
 
-        // Include Back-on-Track fallback routes that pass through this station
-        // (they exist in allNjRoutes/allEnRoutes but are not returned by the API for this station)
-        const njNames = new Set(njOverlaysNext.map((o) => normalizeLineName(o.lineName)));
-        const enNames = new Set(enOverlaysNext.map((o) => normalizeLineName(o.lineName)));
-        allNjRoutesRef.current.forEach((overlay) => {
-          if (njNames.has(normalizeLineName(overlay.lineName))) return;
-          const passes = overlay.stations?.some((s) => matchesStation(s?.name));
-          if (passes) {
-            njNames.add(normalizeLineName(overlay.lineName));
-            njOverlaysNext = [...njOverlaysNext, overlay];
+      const njOverlaysNext = filterRoutesForStation(
+        allNjRoutesRef.current,
+        "nightjet",
+      );
+      const enOverlaysNext = filterRoutesForStation(
+        allEnRoutesRef.current,
+        "euronight",
+      );
+
+      setNjOverlays(njOverlaysNext);
+      setEnOverlays(enOverlaysNext);
+
+      if (njOverlaysNext.length > 0) {
+        const njStationMap = new Map();
+        njOverlaysNext.forEach((overlay) => {
+          const idx = overlay.stations?.findIndex((s) =>
+            matchesStation(s.name),
+          );
+          if (idx !== -1 && overlay.stations) {
+            overlay.stations.forEach((station) => {
+              const key = `${station.location?.latitude}-${station.location?.longitude}`;
+              if (!njStationMap.has(key)) njStationMap.set(key, station);
+            });
           }
         });
-        allEnRoutesRef.current.forEach((overlay) => {
-          if (enNames.has(normalizeLineName(overlay.lineName))) return;
-          const passes = overlay.stations?.some((s) => matchesStation(s?.name));
-          if (passes) {
-            enNames.add(normalizeLineName(overlay.lineName));
-            enOverlaysNext = [...enOverlaysNext, overlay];
+        setFilteredNjStations(Array.from(njStationMap.values()));
+      } else {
+        setFilteredNjStations([]);
+      }
+
+      if (enOverlaysNext.length > 0) {
+        const enStationMap = new Map();
+        enOverlaysNext.forEach((overlay) => {
+          const idx = overlay.stations?.findIndex((s) =>
+            matchesStation(s.name),
+          );
+          if (idx !== -1 && overlay.stations) {
+            overlay.stations.forEach((station) => {
+              const key = `${station.location?.latitude}-${station.location?.longitude}`;
+              if (!enStationMap.has(key)) enStationMap.set(key, station);
+            });
           }
         });
-
-        setNjOverlays(njOverlaysNext);
-        setEnOverlays(enOverlaysNext);
-
-        if (njOverlaysNext.length > 0) {
-          const njStationMap = new Map();
-          njOverlaysNext.forEach((overlay) => {
-            const idx = overlay.stations?.findIndex((s) => matchesStation(s.name));
-            if (idx !== -1 && overlay.stations) {
-              overlay.stations.forEach((station) => {
-                const key = `${station.location?.latitude}-${station.location?.longitude}`;
-                if (!njStationMap.has(key)) njStationMap.set(key, station);
-              });
-            }
-          });
-          setFilteredNjStations(Array.from(njStationMap.values()));
-        } else {
-          setFilteredNjStations([]);
-        }
-
-        if (enOverlaysNext.length > 0) {
-          const enStationMap = new Map();
-          enOverlaysNext.forEach((overlay) => {
-            const idx = overlay.stations?.findIndex((s) => matchesStation(s.name));
-            if (idx !== -1 && overlay.stations) {
-              overlay.stations.forEach((station) => {
-                const key = `${station.location?.latitude}-${station.location?.longitude}`;
-                if (!enStationMap.has(key)) enStationMap.set(key, station);
-              });
-            }
-          });
-          setFilteredEnStations(Array.from(enStationMap.values()));
-        } else {
-          setFilteredEnStations([]);
-        }
-      } catch (e) {
-        console.error("Night trains fetch error", e);
-        setNjOverlays([]);
-        setEnOverlays([]);
+        setFilteredEnStations(Array.from(enStationMap.values()));
+      } else {
+        setFilteredEnStations([]);
       }
     },
-    [normalizeStationNameForLookup, setFilteredStops],
+    [normalizeStationNameForLookup],
   );
 
   return {
