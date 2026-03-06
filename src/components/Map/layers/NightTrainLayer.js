@@ -5,6 +5,7 @@ import Leaflet from "leaflet";
 import { Marker, Polyline, Tooltip } from "react-leaflet";
 import { StationTooltipContent } from "../utils/stationTooltip";
 import { createMapIcons } from "../utils/mapIcons";
+import { normalizeStationNameForDisplay } from "../utils/stationNameUtils";
 
 // Re-use the same icons as Back-on-Track markers so NightTrain and Back-on-Track stations
 // look identical. This also avoids creating new DivIcon instances for every marker.
@@ -22,6 +23,7 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
   stations,
   endpointStations,
   hideIntermediateStations,
+  isGrouped,
   stationKeyPrefix,
   markerClassName,
   stops,
@@ -38,6 +40,72 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
         endpointStations.has(s.name) || (s.id && endpointStations.has(s.id))
       );
     });
+  }
+
+  if (isGrouped && toRender.length > 0) {
+    const cityGroups = new Map();
+
+    toRender.forEach((s) => {
+      const lat = s?.location?.latitude;
+      const lon = s?.location?.longitude;
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+      const rawName = s.name || s.id;
+      if (!rawName) return;
+
+      const cityName = normalizeStationNameForDisplay(rawName);
+      const key = cityName || rawName;
+
+      if (!cityGroups.has(key)) {
+        cityGroups.set(key, []);
+      }
+      cityGroups.get(key).push(s);
+    });
+
+    const grouped = [];
+
+    cityGroups.forEach((stationsInCity, cityKey) => {
+      if (stationsInCity.length === 1) {
+        grouped.push(stationsInCity[0]);
+        return;
+      }
+
+      const mainStation =
+        stationsInCity.find((station) => {
+          const name = String(station.name || "").toLowerCase();
+          return (
+            name.includes("centraal") ||
+            name.includes("central") ||
+            name.includes("hbf") ||
+            name.includes("hauptbahnhof")
+          );
+        }) || stationsInCity[0];
+
+      const avgLat =
+        stationsInCity.reduce(
+          (sum, station) => sum + station.location.latitude,
+          0,
+        ) / stationsInCity.length;
+      const avgLon =
+        stationsInCity.reduce(
+          (sum, station) => sum + station.location.longitude,
+          0,
+        ) / stationsInCity.length;
+
+      grouped.push({
+        ...mainStation,
+        location: {
+          latitude: avgLat,
+          longitude: avgLon,
+        },
+        isGrouped: true,
+        groupSize: stationsInCity.length,
+        groupedStations: stationsInCity,
+        displayName: cityKey,
+      });
+    });
+
+    toRender = grouped;
   }
 
   return toRender.map((s, idx) => {
@@ -92,7 +160,10 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
           opacity={1}
           permanent={false}
         >
-          <StationTooltipContent name={s.name} showTimes={false} />
+          <StationTooltipContent
+            name={s.displayName || s.name}
+            showTimes={false}
+          />
         </Tooltip>
       </Marker>
     );
