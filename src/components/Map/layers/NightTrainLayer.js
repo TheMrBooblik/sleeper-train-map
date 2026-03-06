@@ -81,23 +81,8 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
           );
         }) || stationsInCity[0];
 
-      const avgLat =
-        stationsInCity.reduce(
-          (sum, station) => sum + station.location.latitude,
-          0,
-        ) / stationsInCity.length;
-      const avgLon =
-        stationsInCity.reduce(
-          (sum, station) => sum + station.location.longitude,
-          0,
-        ) / stationsInCity.length;
-
       grouped.push({
         ...mainStation,
-        location: {
-          latitude: avgLat,
-          longitude: avgLon,
-        },
         isGrouped: true,
         groupSize: stationsInCity.length,
         groupedStations: stationsInCity,
@@ -115,8 +100,7 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
 
     const isEnd =
       endpointStations.has(s.name) || (s.id && endpointStations.has(s.id));
-    const isSelected =
-      selected && stopId && matchStationNames(s.name, stopId);
+    const isSelected = selected && stopId && matchStationNames(s.name, stopId);
     // Same visual style and selection color as Back-on-Track markers:
     // - selected station: orange dot
     // - endpoint: blue dot
