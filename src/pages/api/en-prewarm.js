@@ -55,6 +55,7 @@ async function fetchJson(url) {
 
 export default async function handler(req, res) {
   try {
+    const max = Math.max(1, Math.min(50, parseInt(req.query.max ?? '25', 10)))
     const date = (req.query.date || (() => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()).toString()
 
     ensureDir()
@@ -68,7 +69,11 @@ export default async function handler(req, res) {
 
     const data = await response.json()
     const trains = Array.isArray(data) ? data : []
-    const trainNumbers = trains.map(t => t?.trainNumber).filter(Boolean)
+    // Limit number of trains per invocation so we can prewarm in chunks (e.g. multiple cron runs)
+    const trainNumbers = trains
+      .map(t => t?.trainNumber)
+      .filter(Boolean)
+      .slice(0, max)
 
     const results = { date, requested: trainNumbers.length, skippedFresh: 0, fetched: 0, errors: [] }
 
