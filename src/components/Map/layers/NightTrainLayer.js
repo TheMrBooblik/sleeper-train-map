@@ -24,6 +24,7 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
   endpointStations,
   hideIntermediateStations,
   isGrouped,
+  backOnTrackCityNames,
   stationKeyPrefix,
   markerClassName,
   stops,
@@ -90,7 +91,18 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
       });
     });
 
-    toRender = grouped;
+    // If Back-on-Track markers already provide a grouped city marker,
+    // avoid drawing an additional NightJet/EuroNight marker for the same city.
+    if (backOnTrackCityNames && backOnTrackCityNames.size > 0) {
+      toRender = grouped.filter((station) => {
+        const rawCity = station.displayName || station.name;
+        if (!rawCity) return true;
+        const normalizedCity = normalizeStationNameForDisplay(rawCity);
+        return !backOnTrackCityNames.has(normalizedCity);
+      });
+    } else {
+      toRender = grouped;
+    }
   }
 
   return toRender.map((s, idx) => {

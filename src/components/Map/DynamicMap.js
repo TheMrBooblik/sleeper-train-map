@@ -28,6 +28,7 @@ import { shouldHideRouteDueToFutureDate } from "./utils/routeStyleUtils";
 import { useNightTrainData } from "./hooks/useNightTrainData";
 import { useRoutePaths } from "./hooks/useRoutePaths";
 import { useMapMarkers } from "./hooks/useMapMarkers";
+import { groupCityMarkers } from "./utils/groupCityMarkers";
 import LoadingOverlay from "./components/LoadingOverlay";
 import BackgroundLoadingBadge from "./components/BackgroundLoadingBadge";
 import MapClickHandler from "./components/MapClickHandler";
@@ -377,6 +378,40 @@ const TrainMap = ({
     trips,
   });
 
+  // When city grouping is enabled, compute the set of Back-on-Track city names
+  // (using the same grouping heuristic as useMapMarkers) so we can avoid
+  // drawing duplicate NightJet/EuroNight markers for the same city.
+  const backOnTrackCityNames = useMemo(() => {
+    if (!isGrouped) return null;
+    const baseStops = routeFilterStops || filteredStops;
+    if (!baseStops?.length || !cities) return null;
+
+    const grouped = groupCityMarkers(
+      baseStops,
+      cities,
+      true,
+      normalizeStationNameForDisplay,
+      normalizeStationNameForLookup,
+    );
+    if (!grouped.length) return null;
+
+    const set = new Set();
+    grouped.forEach((stop) => {
+      const raw = stop.displayName || stop.stop_id;
+      if (!raw) return;
+      const normalized = normalizeStationNameForDisplay(raw);
+      if (normalized) set.add(normalized);
+    });
+    return set;
+  }, [
+    isGrouped,
+    routeFilterStops,
+    filteredStops,
+    cities,
+    normalizeStationNameForDisplay,
+    normalizeStationNameForLookup,
+  ]);
+
   const overallLoading = initialDataLoading;
 
   useEffect(() => {
@@ -571,6 +606,7 @@ const TrainMap = ({
             stations={selected ? filteredNjStations : allNjStations}
             endpointStations={nightTrainEndpointStations}
             hideIntermediateStations={hideIntermediateStations}
+            backOnTrackCityNames={backOnTrackCityNames}
             isGrouped={isGrouped}
             stationKeyPrefix="nj-all-station"
             markerClassName="nj-station-marker"
@@ -601,6 +637,7 @@ const TrainMap = ({
             stations={selected ? filteredEnStations : allEnStations}
             endpointStations={nightTrainEndpointStations}
             hideIntermediateStations={hideIntermediateStations}
+            backOnTrackCityNames={backOnTrackCityNames}
             isGrouped={isGrouped}
             stationKeyPrefix="en-all-station"
             markerClassName="en-station-marker"
