@@ -12,6 +12,39 @@ function formatDate(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+// Client cache so night train data is instant on reload (TTL 24h, keyed by date).
+const NIGHT_TRAIN_CACHE_KEY = "train-map-night-routes";
+const NIGHT_TRAIN_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function getNightTrainCache(dateStr) {
+  try {
+    const raw = typeof localStorage !== "undefined" && localStorage.getItem(NIGHT_TRAIN_CACHE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || data.date !== dateStr) return null;
+    if (Date.now() - (data.cachedAt || 0) > NIGHT_TRAIN_CACHE_TTL_MS) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function setNightTrainCache(dateStr, payload) {
+  try {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(
+      NIGHT_TRAIN_CACHE_KEY,
+      JSON.stringify({
+        date: dateStr,
+        cachedAt: Date.now(),
+        ...payload,
+      }),
+    );
+  } catch {
+    // Ignore quota or private mode errors.
+  }
+}
+
 /**
  * Decodes polyline and returns coords array; falls back to item.coords on error.
  */
@@ -229,6 +262,61 @@ export function useNightTrainData({
 
     (async () => {
       try {
+        // Try cache first so reload is instant (same date, within TTL).
+        const cached = getNightTrainCache(date);
+        if (cached?.njStations?.length >= 0 && (cached?.njItems?.length > 0 || cached?.enItems?.length > 0)) {
+          const njItems = cached.njItems || [];
+          const enItems = cached.enItems || [];
+          const njStationsFromCache = cached.njStations || [];
+          const njOverlayList = njItems.map((item, idx) =>
+            buildRouteOverlay(item, idx, NJ_COLORS, "nightjet"),
+          );
+          const enOverlayList = enItems.map((item, idx) =>
+            buildRouteOverlay(item, idx, EN_COLORS, "euronight"),
+          );
+          setAllNjRoutes(njOverlayList);
+          setNjOverlays(njOverlayList);
+          setAllEnRoutes(enOverlayList);
+          setEnOverlays(enOverlayList);
+          // Merge stations: cache stations + any from route data.
+          const stationMapNj = new Map();
+          njStationsFromCache.forEach((s) => {
+            const key = s.id || `${s.location?.latitude}-${s.location?.longitude}`;
+            if (key) stationMapNj.set(key, s);
+          });
+          njItems.forEach((route) => {
+            route.stations?.forEach((station) => {
+              const key =
+                station.id ||
+                `${station.location?.latitude}-${station.location?.longitude}`;
+              if (key && station.location?.latitude != null && station.location?.longitude != null && !stationMapNj.has(key)) {
+                stationMapNj.set(key, station);
+              }
+            });
+          });
+          setAllNjStations(Array.from(stationMapNj.values()));
+          const stationMapEn = new Map();
+          enItems.forEach((route) => {
+            route.stations?.forEach((station) => {
+              const key =
+                station?.location != null
+                  ? `${station.location.latitude}-${station.location.longitude}`
+                  : null;
+              if (key && !stationMapEn.has(key)) stationMapEn.set(key, station);
+            });
+          });
+          setAllEnStations(Array.from(stationMapEn.values()));
+          setNjLoadingProgress({ progress: 100, message: "From cache", step: "complete" });
+          setLoadingProgressImmediate(100, "Ready!");
+          setNightTrainsReady(true);
+          setIsMapInitialized?.(true);
+          setShowTooltips?.(true);
+          // Refresh in background to keep cache warm for next time.
+          fetch(`/api/nj-list?date=${date}`).catch(() => {});
+          fetch(`/api/en-list?date=${date}`).catch(() => {});
+          return;
+        }
+
         // Phase 1: fire prewarm requests in the background — do NOT await them.
         // Waiting for prewarm blocked all station dots from appearing.
         // They will still warm up the server while we fetch stations.
@@ -389,6 +477,13 @@ export function useNightTrainData({
           });
         });
         setAllEnStations(Array.from(stationMapEn.values()));
+
+        // Persist to localStorage so next page load is instant (same date, within TTL).
+        setNightTrainCache(date, {
+          njStations: mergedNj,
+          njItems,
+          enItems,
+        });
 
         setLoadingProgressImmediate(100, "Ready!");
         setNightTrainsReady(true);
