@@ -32,6 +32,47 @@ function matchName(a, b) {
   return A === B || A.includes(B) || B.includes(A);
 }
 
+/** Read route items from cache files for a given date; optionally filter by station name. */
+function readItemsFromCache(cacheDir, date, stationName) {
+  let files = [];
+  try {
+    files = fs.readdirSync(cacheDir).filter((f) => f.endsWith(`${date}.json`));
+  } catch {
+    // Cache dir may not exist on Vercel cold start
+  }
+  const items = [];
+  for (const f of files) {
+    try {
+      const p = path.join(cacheDir, f);
+      const obj = JSON.parse(fs.readFileSync(p, "utf8"));
+      if (!obj?.stations?.length) continue;
+      if (stationName) {
+        const idx = obj.stations.findIndex((s) => matchName(stationName, s.name));
+        if (idx < 0) continue;
+      }
+      const stations = obj.stations;
+      const coords = stations
+        .map((s) => [s?.location?.latitude, s?.location?.longitude])
+        .filter(
+          (a) =>
+            Array.isArray(a) &&
+            Number.isFinite(a[0]) &&
+            Number.isFinite(a[1]),
+        );
+      items.push({
+        key: `${obj.lineName}-${date}`,
+        lineName: obj.lineName,
+        operator: obj.operator || "Nightjet",
+        date,
+        stations,
+        coords,
+        polyline: obj.polyline || null,
+      });
+    } catch {}
+  }
+  return items;
+}
+
 export default async function handler(req, res) {
   try {
     const date = (
@@ -44,78 +85,27 @@ export default async function handler(req, res) {
     const stationName = (req.query.stationName || "").toString();
 
     ensureDir();
-    let files = [];
-    try {
-      files = fs
-        .readdirSync(CACHE_DIR)
-        .filter((f) => f.endsWith(`${date}.json`));
-    } catch {
-      // Cache dir may not exist on Vercel cold start
-    }
+    let items = readItemsFromCache(CACHE_DIR, date, stationName || "");
 
-    let items = [];
-    for (const f of files) {
-      try {
-        const p = path.join(CACHE_DIR, f);
-        const obj = JSON.parse(fs.readFileSync(p, "utf8"));
-        if (!obj?.stations?.length) continue;
-        let stations = obj.stations;
-        if (stationName) {
-          const idx = stations.findIndex((s) => matchName(stationName, s.name));
-          if (idx < 0) continue;
-          // Keep all stations on this route since you can travel in both directions
-          // Don't slice - show the entire route
-        }
-        const coords = stations
-          .map((s) => [s?.location?.latitude, s?.location?.longitude])
-          .filter(
-            (a) =>
-              Array.isArray(a) &&
-              Number.isFinite(a[0]) &&
-              Number.isFinite(a[1]),
-          );
-        items.push({
-          key: `${obj.lineName}-${date}`,
-          lineName: obj.lineName,
-          operator: obj.operator || "Nightjet",
-          date,
-          stations,
-          coords,
-          polyline: obj.polyline || null,
-        });
-      } catch {}
-    }
-
-    // Comprehensive discovery: if no routes found (or when explicitly requested), discover all trains
-    // This ensures we get ALL possible NightJet trains, not just cached ones
-    // Only do comprehensive discovery when:
-    // 1. No items found (incl. when station filter is used and cache is cold, e.g. on Vercel /tmp)
-    // 2. Explicitly requested via ?discover=true (even with station filter, to ensure all trains are cached)
+    // If no routes in cache (e.g. cold start), discover trains and prewarm cache, then re-read.
     const shouldDiscover = items.length === 0 || req.query.discover === "true";
 
     if (shouldDiscover) {
       try {
-        // Use shared discovery utility to find all train numbers
         const baseUrl = `${req.headers["x-forwarded-proto"] ? req.headers["x-forwarded-proto"] : "http"}://${req.headers.host}`;
         const trainNumbers = await discoverAllTrainNumbers(
           date,
           baseUrl,
-          (progress) => {
-            // console.log(`[nj-list] ${progress.message}`)
-          },
+          () => {},
         );
 
-        // Step 4: Fetch and cache routes for discovered trains (if not already cached)
-        // Use nj-prewarm to fetch and cache trains efficiently
         const trainArray = Array.from(trainNumbers);
         const uncachedTrains = trainArray.filter((trainNumber) => {
           const cacheKey = `${trainNumber.replace(/\s+/g, "")}-${date}.json`;
-          const cachePath = path.join(CACHE_DIR, cacheKey);
-          return !fs.existsSync(cachePath);
+          return !fs.existsSync(path.join(CACHE_DIR, cacheKey));
         });
 
         if (uncachedTrains.length > 0) {
-          const baseUrl = `${req.headers["x-forwarded-proto"] ? req.headers["x-forwarded-proto"] : "http"}://${req.headers.host}`;
           try {
             await fetch(
               `${baseUrl}/api/nj-prewarm?max=${uncachedTrains.length}&date=${encodeURIComponent(date)}`,
@@ -125,88 +115,14 @@ export default async function handler(req, res) {
           }
         }
 
-        // Re-read cache after prewarm
-        let files2 = [];
-        try {
-          files2 = fs
-            .readdirSync(CACHE_DIR)
-            .filter((f) => f.endsWith(`${date}.json`));
-        } catch {}
-        items = [];
-        for (const f of files2) {
-          try {
-            const p = path.join(CACHE_DIR, f);
-            const obj = JSON.parse(fs.readFileSync(p, "utf8"));
-            if (!obj?.stations?.length) continue;
-            let stations = obj.stations;
-            if (stationName) {
-              const idx = stations.findIndex((s) =>
-                matchName(stationName, s.name),
-              );
-              if (idx < 0) continue;
-            }
-            const coords = stations
-              .map((s) => [s?.location?.latitude, s?.location?.longitude])
-              .filter(
-                (a) =>
-                  Array.isArray(a) &&
-                  Number.isFinite(a[0]) &&
-                  Number.isFinite(a[1]),
-              );
-            items.push({
-              key: `${obj.lineName}-${date}`,
-              lineName: obj.lineName,
-              operator: obj.operator || "Nightjet",
-              date,
-              stations,
-              coords,
-              polyline: obj.polyline || null,
-            });
-          } catch {}
-        }
+        items = readItemsFromCache(CACHE_DIR, date, stationName || "");
       } catch (err) {
         console.error("[nj-list] Discovery error:", err);
         try {
           const url = `${req.headers["x-forwarded-proto"] ? req.headers["x-forwarded-proto"] : "http"}://${req.headers.host}/api/nj-prewarm?max=30&date=${encodeURIComponent(date)}`;
           await fetch(url);
         } catch {}
-        let files2 = [];
-        try {
-          files2 = fs
-            .readdirSync(CACHE_DIR)
-            .filter((f) => f.endsWith(`${date}.json`));
-        } catch {}
-        for (const f of files2) {
-          try {
-            const p = path.join(CACHE_DIR, f);
-            const obj = JSON.parse(fs.readFileSync(p, "utf8"));
-            if (!obj?.stations?.length) continue;
-            let stations = obj.stations;
-            if (stationName) {
-              const idx = stations.findIndex((s) =>
-                matchName(stationName, s.name),
-              );
-              if (idx < 0) continue;
-            }
-            const coords = stations
-              .map((s) => [s?.location?.latitude, s?.location?.longitude])
-              .filter(
-                (a) =>
-                  Array.isArray(a) &&
-                  Number.isFinite(a[0]) &&
-                  Number.isFinite(a[1]),
-              );
-            items.push({
-              key: `${obj.lineName}-${date}`,
-              lineName: obj.lineName,
-              operator: obj.operator || "Nightjet",
-              date,
-              stations,
-              coords,
-              polyline: obj.polyline || null,
-            });
-          } catch {}
-        }
+        items = readItemsFromCache(CACHE_DIR, date, stationName || "");
       }
     }
 

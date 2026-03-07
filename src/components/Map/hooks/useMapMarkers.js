@@ -72,6 +72,14 @@ export function useMapMarkers({
       stopsToShow = filteredStops;
     }
 
+    // Only show stations that have at least one route (in cities with stop_route_ids).
+    stopsToShow = stopsToShow.filter((stop) => {
+      if (!stop?.stop_id) return false;
+      const n = normalizeStationNameForLookup(stop.stop_id);
+      const cityInfo = cities[n] || cities[stop.stop_id];
+      return !!(cityInfo?.stop_route_ids);
+    });
+
     const skipSet = new Set();
     stationsToSkip.forEach((name) => {
       skipSet.add(name);

@@ -58,16 +58,7 @@ const Layout = ({ children }) => {
             setIsGrouped={setIsGrouped}
             showRoutes={showRoutes}
             hideIntermediateStations={hideIntermediateStations}
-          >
-            {({ TileLayer }) => (
-              <>
-                <TileLayer
-                  url={`https://tile.openstreetmap.org/{z}/{x}/{y}.png`}
-                  attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-                />
-              </>
-            )}
-          </Map>
+          />
         </Container>
       </main>
       <ThankYouModal

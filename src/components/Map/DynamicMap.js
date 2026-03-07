@@ -32,7 +32,6 @@ import { groupCityMarkers } from "./utils/groupCityMarkers";
 import LoadingOverlay from "./components/LoadingOverlay";
 import BackgroundLoadingBadge from "./components/BackgroundLoadingBadge";
 import MapClickHandler from "./components/MapClickHandler";
-import MapSkeleton from "./components/MapSkeleton";
 import {
   NightTrainStationMarkers,
   NightTrainPolylines,
@@ -54,7 +53,6 @@ function formatFutureDate(dateStr) {
 }
 
 const TrainMap = ({
-  children,
   className,
   isGrouped,
   showRoutes = true,
@@ -75,10 +73,7 @@ const TrainMap = ({
   const [selected, setSelected] = useState(false);
   const [stopId, setStopId] = useState();
   const [isMapInitialized, setIsMapInitialized] = useState(false);
-  // Info for a clicked future-route line: { routeId, futureStartDate }
-  const [futureRouteInfo, setFutureRouteInfo] = useState(null);
   const [showTooltips, setShowTooltips] = useState(false);
-  // isLoading removed — map is shown as soon as GTFS (stops+cities) finish
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState("Starting...");
   const [stopRouteIds, setStopRouteIds] = useState();
@@ -90,27 +85,7 @@ const TrainMap = ({
   const [isTrainDetailPanelOpen, setIsTrainDetailPanelOpen] = useState(false);
   const [selectedNightTrainOverlay, setSelectedNightTrainOverlay] = useState(null);
 
-  const loadingProgressRef = useRef({ progress: 0, message: "" });
-  const loadingThrottleRef = useRef(null);
-  const setLoadingProgressThrottled = useCallback((progress, message) => {
-    loadingProgressRef.current = {
-      progress: progress ?? loadingProgressRef.current.progress,
-      message: message ?? loadingProgressRef.current.message,
-    };
-    if (loadingThrottleRef.current !== null) return;
-    loadingThrottleRef.current = requestAnimationFrame(() => {
-      loadingThrottleRef.current = null;
-      setLoadingProgress(loadingProgressRef.current.progress);
-      if (loadingProgressRef.current.message) {
-        setLoadingMessage(loadingProgressRef.current.message);
-      }
-    });
-  }, []);
   const setLoadingProgressImmediate = useCallback((progress, message) => {
-    if (loadingThrottleRef.current !== null) {
-      cancelAnimationFrame(loadingThrottleRef.current);
-      loadingThrottleRef.current = null;
-    }
     setLoadingProgress(progress);
     if (message != null) setLoadingMessage(message);
   }, []);
@@ -203,12 +178,9 @@ const TrainMap = ({
   }, []);
 
   const handleFilterClose = useCallback(() => {
-    // Always clear any open future-route popup too
-    setFutureRouteInfo(null);
     if (selectedNightTrainOverlay) {
       closeTrainDetailPanel();
     } else if (selectedTrainRouteIds?.length > 0) {
-      // Back-on-Track route filter: close panel and clear route selection (same as NightJet).
       closeTrainDetailPanel();
     } else {
       removeFilter();
@@ -415,12 +387,11 @@ const TrainMap = ({
   const overallLoading = initialDataLoading;
 
   useEffect(() => {
-    // Keep progress tracking for the background badge (used by useNightTrainData callbacks).
-    if (overallLoading) {
+    if (!overallLoading) {
+      setLoadingProgress((p) => Math.max(p, 30));
+    } else {
       setLoadingProgress(15);
       setLoadingMessage("Loading stations and routes...");
-    } else {
-      setLoadingProgress((p) => Math.max(p, 30));
     }
   }, [overallLoading]);
 
@@ -480,6 +451,31 @@ const TrainMap = ({
     });
     return endpointSet;
   }, [allNjRoutes, allEnRoutes]);
+
+  // Only show NightJet/EuroNight station dots for stations that appear on at least one loaded route.
+  // Avoids showing stations from nj-all-stations when we have no route for them.
+  const njStationsFromRoutes = useMemo(() => {
+    const seen = new Map();
+    allNjRoutes.forEach((route) => {
+      route.stations?.forEach((s) => {
+        if (s?.location?.latitude == null || s?.location?.longitude == null) return;
+        const key = s.id || `${s.location?.latitude}-${s.location?.longitude}`;
+        if (key && !seen.has(key)) seen.set(key, s);
+      });
+    });
+    return Array.from(seen.values());
+  }, [allNjRoutes]);
+  const enStationsFromRoutes = useMemo(() => {
+    const seen = new Map();
+    allEnRoutes.forEach((route) => {
+      route.stations?.forEach((s) => {
+        if (s?.location?.latitude == null || s?.location?.longitude == null) return;
+        const key = s.id || `${s.location?.latitude}-${s.location?.longitude}`;
+        if (key && !seen.has(key)) seen.set(key, s);
+      });
+    });
+    return Array.from(seen.values());
+  }, [allEnRoutes]);
 
   // NightJet/EuroNight routes that pass through the selected station (for sidebar)
   const nightTrainRoutesForSidebar = useMemo(() => {
@@ -579,8 +575,6 @@ const TrainMap = ({
         />
       )}
 
-      {!isMapInitialized && <MapSkeleton />}
-
       <MapContainer
         className={mapClassName}
         zoomControl={false}
@@ -603,7 +597,7 @@ const TrainMap = ({
         {/* When a Back-on-Track route is selected (e.g. European Sleeper), hide all NightJet/EuroNight stations so only that route's stations show. */}
         {!selectedNightTrainOverlay && !hasRouteFilter && (
           <NightTrainStationMarkers
-            stations={selected ? filteredNjStations : allNjStations}
+            stations={selected ? filteredNjStations : njStationsFromRoutes}
             endpointStations={nightTrainEndpointStations}
             hideIntermediateStations={hideIntermediateStations}
             backOnTrackCityNames={backOnTrackCityNames}
@@ -634,7 +628,7 @@ const TrainMap = ({
 
         {!selectedNightTrainOverlay && !hasRouteFilter && (
           <NightTrainStationMarkers
-            stations={selected ? filteredEnStations : allEnStations}
+            stations={selected ? filteredEnStations : enStationsFromRoutes}
             endpointStations={nightTrainEndpointStations}
             hideIntermediateStations={hideIntermediateStations}
             backOnTrackCityNames={backOnTrackCityNames}
@@ -674,15 +668,10 @@ const TrainMap = ({
                 click: (e) => {
                   e.originalEvent.stopPropagation();
                   if (path.isFuture) {
-                    // Future route: show info popup instead of detail panel
-                    setFutureRouteInfo({
-                      routeId: path.routeId,
-                      futureStartDate: path.futureStartDate,
-                    });
-                  } else {
-                    setFutureRouteInfo(null);
-                    handlePolylineClick(path.routeId);
+                    // Future route: tooltip already shows "opens …"; no panel
+                    return;
                   }
+                  handlePolylineClick(path.routeId);
                 },
               }}
             >
@@ -721,7 +710,6 @@ const TrainMap = ({
             </Polyline>
           ))}
         {!selectedNightTrainOverlay && markers}
-        {children && children({ MapContainer, Marker, TileLayer }, Leaflet)}
       </MapContainer>
 
       <div ref={sidebarRef}>
@@ -747,66 +735,6 @@ const TrainMap = ({
         }
         nightTrainOverlay={selectedNightTrainOverlay}
       />
-
-      {/* Future-route info popup — appears when user clicks a ghost line */}
-      {futureRouteInfo && (() => {
-        const route = viewMapData
-          ? Object.values(viewMapData).find(
-              (r) => r?.route_id?.toString() === String(futureRouteInfo.routeId),
-            )
-          : null;
-        const trainNumber = route?.trip_short_name_0 || route?.trip_short_name_1 || `Route ${futureRouteInfo.routeId}`;
-        const origin = route?.origin_trip_0 || route?.origin_trip_1 || "?";
-        const destination = route?.destination_trip_0 || route?.destination_trip_1 || "?";
-        return (
-          <div
-            style={{
-              position: "absolute",
-              bottom: "50px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 1000,
-              backgroundColor: "rgba(255,255,255,0.97)",
-              borderRadius: "10px",
-              boxShadow: "0 2px 16px rgba(0,0,0,0.18)",
-              padding: "12px 16px",
-              border: "1px solid #e2e8f0",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              maxWidth: "340px",
-              minWidth: "240px",
-              pointerEvents: "auto",
-            }}
-          >
-            <span style={{ fontSize: "22px", flexShrink: 0 }}>🗓️</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: "13px", fontWeight: "700", color: "#1e293b", marginBottom: "2px" }}>
-                {trainNumber}: {origin} → {destination}
-              </div>
-              <div style={{ fontSize: "12px", color: "#64748b" }}>
-                Future route · opens {formatFutureDate(futureRouteInfo.futureStartDate)}
-              </div>
-            </div>
-            <button
-              onClick={() => setFutureRouteInfo(null)}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "#94a3b8",
-                fontSize: "18px",
-                lineHeight: 1,
-                padding: "2px 4px",
-                flexShrink: 0,
-              }}
-              aria-label="Close"
-            >
-              ×
-            </button>
-          </div>
-        );
-      })()}
     </>
   );
 };

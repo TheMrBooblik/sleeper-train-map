@@ -555,42 +555,6 @@ export function useNightTrainData({
               });
             }
 
-            if (
-              originalStationName &&
-              originalStationName !== normalizedStationName
-            ) {
-              const [njRes2, enRes2] = await Promise.all([
-                fetch(
-                  `/api/nj-list?date=${date}&stationName=${encodeURIComponent(
-                    originalStationName,
-                  )}`,
-                ),
-                fetch(
-                  `/api/en-list?date=${date}&stationName=${encodeURIComponent(
-                    originalStationName,
-                  )}`,
-                ),
-              ]);
-              if (njRes2.ok) {
-                const data = await njRes2.json();
-                data?.items?.forEach((item) => {
-                  if (!njRouteKeys.has(item.key)) {
-                    njRouteKeys.add(item.key);
-                    njRoutes.push(item);
-                  }
-                });
-              }
-              if (enRes2.ok) {
-                const data = await enRes2.json();
-                data?.items?.forEach((item) => {
-                  if (!enRouteKeys.has(item.key)) {
-                    enRouteKeys.add(item.key);
-                    enRoutes.push(item);
-                  }
-                });
-              }
-            }
-
             if (njRoutes.length === 0 && enRoutes.length === 0) {
               return;
             }
