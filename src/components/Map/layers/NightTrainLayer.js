@@ -82,12 +82,23 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
           );
         }) || stationsInCity[0];
 
+      // If any station in the group is a route start/end, show the main marker as destination (endpoint).
+      // Use matchStationNames so we match name variants (e.g. "Wien Hbf" vs "Wien Hauptbahnhof").
+      const isEndpoint = stationsInCity.some((st) => {
+        const name = st?.name || st?.id;
+        if (!name) return false;
+        if (endpointStations.has(name) || (st.id && endpointStations.has(st.id)))
+          return true;
+        return Array.from(endpointStations).some((ep) => matchStationNames(name, ep));
+      });
+
       grouped.push({
         ...mainStation,
         isGrouped: true,
         groupSize: stationsInCity.length,
         groupedStations: stationsInCity,
         displayName: cityKey,
+        isEndpoint,
       });
     });
 
@@ -110,8 +121,14 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
     const lon = s?.location?.longitude;
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
 
+    // Endpoint = route starts or ends here. For grouped markers, use isEndpoint set from any station in the group.
+    // Also match by name variant (e.g. "Wien Hbf" vs "Wien Hauptbahnhof") using matchStationNames.
     const isEnd =
-      endpointStations.has(s.name) || (s.id && endpointStations.has(s.id));
+      s.isEndpoint === true ||
+      endpointStations.has(s.name) ||
+      (s.id && endpointStations.has(s.id)) ||
+      (s.name &&
+        Array.from(endpointStations).some((ep) => matchStationNames(s.name, ep)));
     const isSelected = selected && stopId && matchStationNames(s.name, stopId);
     // Same visual style and selection color as Back-on-Track markers:
     // - selected station: orange dot

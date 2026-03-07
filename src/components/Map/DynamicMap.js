@@ -333,6 +333,25 @@ const TrainMap = ({
     return result.length > 0 ? result : null;
   }, [hasRouteFilter, selectedTrainRouteIds, viewMapData, stops, normalizeStationNameForLookup]);
 
+  // Set of station names/ids where a NightJet or EuroNight route starts or ends (for endpoint icon).
+  // Include raw names and display-normalized names so Back-on-Track markers (e.g. displayName "Brussels") match.
+  const nightTrainEndpointStations = useMemo(() => {
+    const endpointSet = new Set();
+    [...allNjRoutes, ...allEnRoutes].forEach((route) => {
+      if (!route.stations?.length) return;
+      const first = route.stations[0];
+      const last = route.stations[route.stations.length - 1];
+      [first, last].forEach((s) => {
+        if (s?.name) {
+          endpointSet.add(s.name);
+          endpointSet.add(normalizeStationNameForDisplay(s.name));
+        }
+        if (s?.id) endpointSet.add(s.id);
+      });
+    });
+    return endpointSet;
+  }, [allNjRoutes, allEnRoutes, normalizeStationNameForDisplay]);
+
   const markers = useMapMarkers({
     filteredStops: routeFilterStops || filteredStops,
     stops,
@@ -348,6 +367,7 @@ const TrainMap = ({
     normalizeStationNameForDisplay,
     handleMarkerClick,
     trips,
+    nightTrainEndpointStations,
   });
 
   // When city grouping is enabled, compute the set of Back-on-Track city names
@@ -437,20 +457,6 @@ const TrainMap = ({
     if (!stops?.length || !cities || overallLoading) return;
     setFilteredStops(stops);
   }, [stops, cities, setFilteredStops, overallLoading]);
-
-  const nightTrainEndpointStations = useMemo(() => {
-    const endpointSet = new Set();
-    [...allNjRoutes, ...allEnRoutes].forEach((route) => {
-      if (!route.stations?.length) return;
-      const first = route.stations[0];
-      const last = route.stations[route.stations.length - 1];
-      if (first?.name) endpointSet.add(first.name);
-      if (first?.id) endpointSet.add(first.id);
-      if (last?.name) endpointSet.add(last.name);
-      if (last?.id) endpointSet.add(last.id);
-    });
-    return endpointSet;
-  }, [allNjRoutes, allEnRoutes]);
 
   // Only show NightJet/EuroNight station dots for stations that appear on at least one loaded route.
   // Avoids showing stations from nj-all-stations when we have no route for them.
