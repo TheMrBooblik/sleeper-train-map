@@ -307,7 +307,7 @@ export function useNightTrainData({
           });
           setAllEnStations(Array.from(stationMapEn.values()));
           setNjLoadingProgress({ progress: 100, message: "From cache", step: "complete" });
-          setLoadingProgressImmediate(100, "Ready!");
+          setLoadingProgressImmediate(100, "Loaded from cache!");
           setNightTrainsReady(true);
           setIsMapInitialized?.(true);
           setShowTooltips?.(true);
@@ -318,16 +318,20 @@ export function useNightTrainData({
         }
 
         // Phase 1: fire prewarm requests in the background — do NOT await them.
+        // These warm up the Vercel serverless functions / filesystem cache while we wait.
         fetch("/api/nj-prewarm?max=30", { method: "GET" }).catch(() => {});
         fetch("/api/en-prewarm", { method: "GET" }).catch(() => {});
 
-        // Phase 2: do NOT block on nj-all-stations (often slow). Load routes as soon as
-        // nj-list + en-list are ready so "Loading night trains" finishes much sooner.
-        // nj-all-stations runs in parallel and merges in when done (more station dots).
-        setLoadingProgressImmediate(40, "Fetching route list…");
+        // Phase 2: fetch route lists in parallel.
+        // nj-all-stations is slow (many stations), so we fire it but don't wait — it merges in later.
+        // Progress: 40% = starting fetch, 55% = parsing, 60%+ = drawing routes one by one.
+        setLoadingProgressImmediate(40, "Contacting NightJet API…");
         const dateParam = `date=${date}`;
 
         const pStations = fetch(`/api/nj-all-stations?${dateParam}`);
+
+        // Fetch both route lists in parallel; show distinct messages when each resolves
+        setLoadingProgressImmediate(42, "Fetching NightJet & EuroNight route list…");
         const [njRes, enRes] = await Promise.all([
           fetch(`/api/nj-list?${dateParam}`),
           fetch(`/api/en-list?${dateParam}`),
@@ -359,16 +363,18 @@ export function useNightTrainData({
           .catch(() => {});
 
         // Parse route list responses and build overlays (don't wait for nj-all-stations).
-        setLoadingProgressImmediate(55, "Building route data…");
+        setLoadingProgressImmediate(55, "Parsing route data…");
         let njItems = [];
         let enItems = [];
         if (njRes.ok) {
           const data = await njRes.json();
           njItems = data?.items ?? [];
+          setLoadingProgressImmediate(57, `Got ${njItems.length} NightJet routes — fetching EuroNight…`);
         }
         if (enRes.ok) {
           const data = await enRes.json();
           enItems = data?.items ?? [];
+          setLoadingProgressImmediate(59, `Got ${enItems.length} EuroNight routes — drawing…`);
         }
 
         const totalRoutes = njItems.length + enItems.length;
@@ -398,9 +404,10 @@ export function useNightTrainData({
         }
 
         // Batched progressive reveal: show several routes per tick to finish faster
-        // and reduce React state updates (was 1 route per 60ms).
-        const REVEAL_BATCH_SIZE = 4;
-        const REVEAL_BATCH_DELAY_MS = 50;
+        // and reduce React state updates.
+        // Increased batch from 4→8 and delay from 50ms→30ms — roughly 3× faster animation.
+        const REVEAL_BATCH_SIZE = 8;
+        const REVEAL_BATCH_DELAY_MS = 30;
         let shown = 0;
         const njAccum = [];
         const enAccum = [];
@@ -435,7 +442,7 @@ export function useNightTrainData({
           }
           setLoadingProgressImmediate(
             70 + Math.round((shown / totalRoutes) * 28),
-            `Showing route ${shown} of ${totalRoutes}…`,
+            `Drawing route ${shown} of ${totalRoutes}…`,
           );
           await new Promise((r) => setTimeout(r, REVEAL_BATCH_DELAY_MS));
         }

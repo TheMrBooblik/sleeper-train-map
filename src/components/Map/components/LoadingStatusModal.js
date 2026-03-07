@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 /**
  * Single small loading modal used for the whole load sequence.
@@ -11,6 +11,7 @@ import React, { useState, useEffect } from "react";
  * Then: "Night trains ready" and fade out.
  *
  * Progress bar: indeterminate during phase 1; real 0–100% during phase 2.
+ * Elapsed timer: shows seconds since mount so users see the load is progressing (not frozen).
  */
 export default function LoadingStatusModal({
   /** True while /api/initial-data (stations & routes) is loading */
@@ -24,6 +25,19 @@ export default function LoadingStatusModal({
 }) {
   const [fadeOut, setFadeOut] = useState(false);
   const [hidden, setHidden] = useState(false);
+  // Track elapsed seconds so the user can see time is passing (especially on Vercel cold starts)
+  const [elapsedSec, setElapsedSec] = useState(0);
+  const startTimeRef = useRef(Date.now());
+
+  // Tick elapsed timer every second while loading is in progress
+  useEffect(() => {
+    const done = !initialDataLoading && nightTrainsReady;
+    if (done) return;
+    const interval = setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [initialDataLoading, nightTrainsReady]);
 
   useEffect(() => {
     const done = !initialDataLoading && nightTrainsReady;
@@ -49,14 +63,21 @@ export default function LoadingStatusModal({
       ? Math.min(100, Math.max(0, Math.round(((loadingProgress - 35) / 65) * 100)))
       : 0;
 
+  // Show elapsed time for slow loads — helps users know the page isn't frozen.
+  // Only shown when loading has been going on for more than 3 seconds.
+  const elapsedLabel = elapsedSec >= 3 ? ` · ${elapsedSec}s` : "";
+
+  // Show a "first visit takes longer" hint after 8 seconds — typical Vercel cold-start scenario
+  const coldStartHint = isPhase2 && elapsedSec >= 8;
+
   const title = isPhase1
-    ? "Loading…"
+    ? `Loading…${elapsedLabel}`
     : isDone
       ? "Night trains ready"
-      : "Loading night trains";
+      : `Loading night trains${elapsedLabel}`;
 
   const message = isPhase1
-    ? "Stations & routes from Back-on-Track…"
+    ? "Fetching stations & routes…"
     : isPhase2
       ? (loadingMessage || "Fetching route data…")
       : "NightJet & EuroNight routes on map";
@@ -165,6 +186,19 @@ export default function LoadingStatusModal({
           >
             {message}
           </div>
+          {/* Cold-start notice: first visit on Vercel wakes a serverless function, which takes longer */}
+          {coldStartHint && (
+            <div
+              style={{
+                fontSize: "10px",
+                color: "#9ca3af",
+                marginTop: "4px",
+                lineHeight: "1.3",
+              }}
+            >
+              First visit wakes the server — please wait…
+            </div>
+          )}
         </>
       )}
 
