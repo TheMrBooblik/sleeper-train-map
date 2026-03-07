@@ -29,8 +29,7 @@ import { useNightTrainData } from "./hooks/useNightTrainData";
 import { useRoutePaths } from "./hooks/useRoutePaths";
 import { useMapMarkers } from "./hooks/useMapMarkers";
 import { groupCityMarkers } from "./utils/groupCityMarkers";
-import LoadingOverlay from "./components/LoadingOverlay";
-import BackgroundLoadingBadge from "./components/BackgroundLoadingBadge";
+import LoadingStatusModal from "./components/LoadingStatusModal";
 import MapClickHandler from "./components/MapClickHandler";
 import {
   NightTrainStationMarkers,
@@ -539,9 +538,7 @@ const TrainMap = ({
     return () => document.removeEventListener("keydown", escFunction, false);
   }, [escFunction]);
 
-  // Only block the map on GTFS loading (fast, ~1-2s).
-  // Night trains load in the background; badge shows their progress.
-  const showLoading = overallLoading;
+  // Single small modal shows real status for both phases (no full-screen block).
   const mapClassName = `w-full h-full ${className || ""}`;
   const sidebarRef = useRef(null);
 
@@ -564,22 +561,13 @@ const TrainMap = ({
 
   return (
     <>
-      {/* Initial fast overlay: only blocks while GTFS (stations/routes) load (~1-2s) */}
-      {showLoading && (
-        <LoadingOverlay
-          stopsLoading={initialDataLoading}
-          citiesLoading={false}
-        />
-      )}
-
-      {/* Non-blocking corner badge: shows NightJet/EuroNight loading progress in background */}
-      {!overallLoading && (
-        <BackgroundLoadingBadge
-          nightTrainsReady={nightTrainsReady}
-          loadingProgress={loadingProgress}
-          loadingMessage={loadingMessage}
-        />
-      )}
+      {/* Single small modal: real status for "Stations & routes" and "Night trains" (no full-screen block) */}
+      <LoadingStatusModal
+        initialDataLoading={overallLoading}
+        nightTrainsReady={nightTrainsReady}
+        loadingProgress={loadingProgress}
+        loadingMessage={loadingMessage}
+      />
 
       <MapContainer
         className={mapClassName}

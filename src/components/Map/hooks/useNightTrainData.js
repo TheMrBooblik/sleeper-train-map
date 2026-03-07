@@ -324,7 +324,7 @@ export function useNightTrainData({
         // Phase 2: do NOT block on nj-all-stations (often slow). Load routes as soon as
         // nj-list + en-list are ready so "Loading night trains" finishes much sooner.
         // nj-all-stations runs in parallel and merges in when done (more station dots).
-        setLoadingProgressImmediate(40, "Loading routes…");
+        setLoadingProgressImmediate(40, "Fetching route list…");
         const dateParam = `date=${date}`;
 
         const pStations = fetch(`/api/nj-all-stations?${dateParam}`);
@@ -359,7 +359,7 @@ export function useNightTrainData({
           .catch(() => {});
 
         // Parse route list responses and build overlays (don't wait for nj-all-stations).
-        setLoadingProgressImmediate(55, "Loading route polylines…");
+        setLoadingProgressImmediate(55, "Building route data…");
         let njItems = [];
         let enItems = [];
         if (njRes.ok) {
@@ -380,6 +380,7 @@ export function useNightTrainData({
           return;
         }
 
+        setLoadingProgressImmediate(60, "Drawing routes on map…");
         // Build overlay lists (same shape as before) but reveal one route at a time.
         const njOverlayList = njItems.map((item, idx) =>
           buildRouteOverlay(item, idx, NJ_COLORS, "nightjet"),

@@ -8,7 +8,7 @@ import React from "react";
  *
  * This overlay disappears as soon as stations are ready (~1-2s),
  * revealing the map. NightJet/EuroNight routes then load in the
- * background via BackgroundLoadingBadge.
+ * background via LoadingStatusModal (single small modal for both phases).
  */
 export default function LoadingOverlay({ stopsLoading, citiesLoading }) {
   return (
