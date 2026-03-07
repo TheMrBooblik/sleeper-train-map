@@ -318,59 +318,48 @@ export function useNightTrainData({
         }
 
         // Phase 1: fire prewarm requests in the background — do NOT await them.
-        // Waiting for prewarm blocked all station dots from appearing.
-        // They will still warm up the server while we fetch stations.
         fetch("/api/nj-prewarm?max=30", { method: "GET" }).catch(() => {});
         fetch("/api/en-prewarm", { method: "GET" }).catch(() => {});
 
-        // Phase 2: fetch stations and route polylines in parallel so total time is
-        // max(nj-all-stations, nj-list, en-list) instead of their sum.
-        setLoadingProgressImmediate(40, "Loading NightJet stations...");
+        // Phase 2: do NOT block on nj-all-stations (often slow). Load routes as soon as
+        // nj-list + en-list are ready so "Loading night trains" finishes much sooner.
+        // nj-all-stations runs in parallel and merges in when done (more station dots).
+        setLoadingProgressImmediate(40, "Loading routes…");
         const dateParam = `date=${date}`;
-        const [njStationsRes, njRes, enRes] = await Promise.all([
-          fetch(`/api/nj-all-stations?${dateParam}`),
+
+        const pStations = fetch(`/api/nj-all-stations?${dateParam}`);
+        const [njRes, enRes] = await Promise.all([
           fetch(`/api/nj-list?${dateParam}`),
           fetch(`/api/en-list?${dateParam}`),
         ]);
 
-        // Apply stations as soon as we have them (dots appear quickly).
-        let njStationsFromApi = [];
-        try {
-          if (njStationsRes.ok) {
-            const stationsData = await njStationsRes.json();
-            if (stationsData?.stations?.length) {
-              njStationsFromApi = stationsData.stations;
-              setAllNjStations(stationsData.stations);
-              setLoadingProgressImmediate(65, `NightJet: ${stationsData.count} stations loaded`);
-              setNjLoadingProgress({
-                progress: 100,
-                message: `Found ${stationsData.count} stations`,
-                step: "complete",
+        // When nj-all-stations resolves later, merge its stations into state.
+        pStations
+          .then((njStationsRes) => {
+            if (!njStationsRes.ok) return null;
+            return njStationsRes.json();
+          })
+          .then((stationsData) => {
+            if (!stationsData?.stations?.length) return;
+            const fromApi = stationsData.stations;
+            setAllNjStations((prev) => {
+              const byKey = new Map();
+              prev.forEach((s) => {
+                const key = s.id || `${s?.location?.latitude}-${s?.location?.longitude}`;
+                if (key) byKey.set(key, s);
               });
-            } else {
-              setNjLoadingProgress({
-                progress: 0,
-                message: "No stations found",
-                step: "complete",
+              fromApi.forEach((s) => {
+                const key = s.id || `${s?.location?.latitude}-${s?.location?.longitude}`;
+                if (key) byKey.set(key, s);
               });
-            }
-          } else {
-            setNjLoadingProgress({
-              progress: 0,
-              message: "Failed to load stations",
-              step: "error",
+              return Array.from(byKey.values());
             });
-          }
-        } catch (err) {
-          setNjLoadingProgress({
-            progress: 0,
-            message: `Error: ${err.message}`,
-            step: "error",
-          });
-        }
+            setNjLoadingProgress({ progress: 100, message: `Found ${stationsData.count} stations`, step: "complete" });
+          })
+          .catch(() => {});
 
-        // Parse route list responses (already resolved from Promise.all).
-        setLoadingProgressImmediate(70, "Loading route polylines...");
+        // Parse route list responses and build overlays (don't wait for nj-all-stations).
+        setLoadingProgressImmediate(55, "Loading route polylines…");
         let njItems = [];
         let enItems = [];
         if (njRes.ok) {
@@ -450,7 +439,7 @@ export function useNightTrainData({
           await new Promise((r) => setTimeout(r, REVEAL_BATCH_DELAY_MS));
         }
 
-        // Merge stations from all routes (same as before).
+        // Merge stations from route data so dots appear immediately (nj-all-stations merges in when ready).
         const stationMapNj = new Map();
         njItems.forEach((route) => {
           route.stations?.forEach((station) => {
@@ -462,12 +451,7 @@ export function useNightTrainData({
             }
           });
         });
-        njStationsFromApi.forEach((s) => {
-          const key = s.id || `${s.location?.latitude}-${s.location?.longitude}`;
-          if (key) stationMapNj.set(key, s);
-        });
-        const mergedNj = Array.from(stationMapNj.values());
-        if (mergedNj.length > njStationsFromApi.length) setAllNjStations(mergedNj);
+        setAllNjStations(Array.from(stationMapNj.values()));
 
         const stationMapEn = new Map();
         enItems.forEach((route) => {
@@ -477,6 +461,8 @@ export function useNightTrainData({
           });
         });
         setAllEnStations(Array.from(stationMapEn.values()));
+
+        const mergedNj = Array.from(stationMapNj.values());
 
         // Persist to localStorage so next page load is instant (same date, within TTL).
         setNightTrainCache(date, {
