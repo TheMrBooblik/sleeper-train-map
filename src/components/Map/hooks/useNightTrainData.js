@@ -50,6 +50,39 @@ function normalizeLineName(name) {
 }
 
 /**
+ * Returns true if the station name matches the selected filter (same logic as in loadNightTrainsForStation).
+ * Used so the progressive reveal loop can keep showing only routes for the selected station when user clicks during load.
+ */
+function overlayMatchesStation(name, filter, normalizeStationNameForLookup) {
+  if (!name || !filter) return false;
+  const { normalizedStationName, originalStationName } = filter;
+  if (matchStationNames(name, normalizedStationName, normalizeStationNameForLookup)) return true;
+  if (originalStationName && matchStationNames(name, originalStationName, normalizeStationNameForLookup)) return true;
+  const a = String(name).toLowerCase().replace(/[^a-z0-9]/g, "");
+  const b = String(normalizedStationName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (a && b && (a.includes(b) || b.includes(a))) return true;
+  if (originalStationName) {
+    const c = String(originalStationName).toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (a && c && (a.includes(c) || c.includes(a))) return true;
+  }
+  return false;
+}
+
+/** Filter overlay list to only routes that pass through the selected station. */
+function filterOverlaysByStation(overlays, filter, normalizeStationNameForLookup) {
+  if (!filter || !overlays?.length) return overlays;
+  const seen = new Set();
+  return overlays.filter((route) => {
+    const name = normalizeLineName(route.lineName);
+    if (seen.has(name)) return false;
+    const passes = route.stations?.some((s) => overlayMatchesStation(s?.name, filter, normalizeStationNameForLookup));
+    if (!passes) return false;
+    seen.add(name);
+    return true;
+  });
+}
+
+/**
  * Build overlay from Back-on-Track route + stops. Used when official NJ/EN API is missing a train.
  * Uses normalizeStationNameForLookup so station names match the rest of the app (e.g. "Bruxelles Midi / Brussel Zuid" → "Bruxelles Midi").
  * Returns null if we cannot resolve enough stations to draw a path.
@@ -181,6 +214,8 @@ export function useNightTrainData({
   const enOverlaysRef = useRef([]);
   const allNjRoutesRef = useRef([]);
   const allEnRoutesRef = useRef([]);
+  /** When user clicks a station during loading, we keep showing only routes for that station instead of all. */
+  const filterStationRef = useRef(null);
   njOverlaysRef.current = njOverlays;
   enOverlaysRef.current = enOverlays;
   allNjRoutesRef.current = allNjRoutes;
@@ -244,62 +279,116 @@ export function useNightTrainData({
           });
         }
 
-        // Phase 2: load NJ + EN polylines in the background — both in parallel.
-        // Dots are already visible; now we add the connecting lines.
+        // Phase 2: load NJ + EN polylines; then reveal routes one-by-one so user sees progress.
         setLoadingProgressImmediate(70, "Loading route polylines...");
         const [njRes, enRes] = await Promise.all([
           fetch(`/api/nj-list?date=${date}`),
           fetch(`/api/en-list?date=${date}`),
         ]);
 
+        let njItems = [];
+        let enItems = [];
         if (njRes.ok) {
           const data = await njRes.json();
-          if (data?.items?.length) {
-            const routes = data.items.map((item, idx) =>
-              buildRouteOverlay(item, idx, NJ_COLORS, "nightjet"),
-            );
-            setAllNjRoutes(routes);
-            setNjOverlays(routes);
-            // Merge any extra stations found in route data into allNjStations.
-            const stationMap = new Map();
-            njStationsFromApi.forEach((s) => {
-              const key = s.id || `${s.location?.latitude}-${s.location?.longitude}`;
-              if (key) stationMap.set(key, s);
-            });
-            data.items.forEach((route) => {
-              route.stations?.forEach((station) => {
-                const key =
-                  station.id ||
-                  `${station.location?.latitude}-${station.location?.longitude}`;
-                if (key && station.location?.latitude && station.location?.longitude && !stationMap.has(key)) {
-                  stationMap.set(key, station);
-                }
-              });
-            });
-            const merged = Array.from(stationMap.values());
-            if (merged.length > njStationsFromApi.length) setAllNjStations(merged);
-          }
+          njItems = data?.items ?? [];
         }
-
         if (enRes.ok) {
           const data = await enRes.json();
-          if (data?.items?.length) {
-            const routes = data.items.map((item, idx) =>
-              buildRouteOverlay(item, idx, EN_COLORS, "euronight"),
-            );
-            setAllEnRoutes(routes);
-            setEnOverlays(routes);
-            // EN stations are derived from EN route data (no separate endpoint).
-            const stationMap = new Map();
-            data.items.forEach((route) => {
-              route.stations?.forEach((station) => {
-                const key = `${station.location?.latitude}-${station.location?.longitude}`;
-                if (!stationMap.has(key)) stationMap.set(key, station);
-              });
-            });
-            setAllEnStations(Array.from(stationMap.values()));
-          }
+          enItems = data?.items ?? [];
         }
+
+        const totalRoutes = njItems.length + enItems.length;
+        if (totalRoutes === 0) {
+          setLoadingProgressImmediate(100, "Ready!");
+          setNightTrainsReady(true);
+          setIsMapInitialized?.(true);
+          setShowTooltips?.(true);
+          return;
+        }
+
+        // Build overlay lists (same shape as before) but reveal one route at a time.
+        const njOverlayList = njItems.map((item, idx) =>
+          buildRouteOverlay(item, idx, NJ_COLORS, "nightjet"),
+        );
+        const enOverlayList = enItems.map((item, idx) =>
+          buildRouteOverlay(item, idx, EN_COLORS, "euronight"),
+        );
+
+        // Interleave NJ and EN so both types appear progressively (one route at a time).
+        const interleaved = [];
+        const maxLen = Math.max(njOverlayList.length, enOverlayList.length);
+        for (let i = 0; i < maxLen; i++) {
+          if (njOverlayList[i]) interleaved.push({ type: "nj", overlay: njOverlayList[i] });
+          if (enOverlayList[i]) interleaved.push({ type: "en", overlay: enOverlayList[i] });
+        }
+
+        const REVEAL_DELAY_MS = 60;
+        let shown = 0;
+        const njAccum = [];
+        const enAccum = [];
+
+        for (const { type, overlay } of interleaved) {
+          if (type === "nj") {
+            njAccum.push(overlay);
+            setAllNjRoutes([...njAccum]);
+            // When user has selected a station, do not overwrite overlays — leave the filtered list from loadNightTrainsForStation.
+            // Only update overlays when no station filter is active.
+            if (!filterStationRef.current) {
+              setNjOverlays([...njAccum]);
+            } else {
+              setNjOverlays((prev) => {
+                // Re-apply station filter to current accum so new routes through the station appear, but never show unrelated routes.
+                const filtered = filterOverlaysByStation(njAccum, filterStationRef.current, normalizeStationNameForLookup);
+                return filtered.length > 0 ? filtered : prev;
+              });
+            }
+          } else {
+            enAccum.push(overlay);
+            setAllEnRoutes([...enAccum]);
+            if (!filterStationRef.current) {
+              setEnOverlays([...enAccum]);
+            } else {
+              setEnOverlays((prev) => {
+                const filtered = filterOverlaysByStation(enAccum, filterStationRef.current, normalizeStationNameForLookup);
+                return filtered.length > 0 ? filtered : prev;
+              });
+            }
+          }
+          shown += 1;
+          setLoadingProgressImmediate(
+            70 + Math.round((shown / totalRoutes) * 28),
+            `Showing route ${shown} of ${totalRoutes}…`,
+          );
+          await new Promise((r) => setTimeout(r, REVEAL_DELAY_MS));
+        }
+
+        // Merge stations from all routes (same as before).
+        const stationMapNj = new Map();
+        njItems.forEach((route) => {
+          route.stations?.forEach((station) => {
+            const key =
+              station.id ||
+              `${station.location?.latitude}-${station.location?.longitude}`;
+            if (key && station.location?.latitude && station.location?.longitude && !stationMapNj.has(key)) {
+              stationMapNj.set(key, station);
+            }
+          });
+        });
+        njStationsFromApi.forEach((s) => {
+          const key = s.id || `${s.location?.latitude}-${s.location?.longitude}`;
+          if (key) stationMapNj.set(key, s);
+        });
+        const mergedNj = Array.from(stationMapNj.values());
+        if (mergedNj.length > njStationsFromApi.length) setAllNjStations(mergedNj);
+
+        const stationMapEn = new Map();
+        enItems.forEach((route) => {
+          route.stations?.forEach((station) => {
+            const key = `${station.location?.latitude}-${station.location?.longitude}`;
+            if (!stationMapEn.has(key)) stationMapEn.set(key, station);
+          });
+        });
+        setAllEnStations(Array.from(stationMapEn.values()));
 
         setLoadingProgressImmediate(100, "Ready!");
         setNightTrainsReady(true);
@@ -396,12 +485,28 @@ export function useNightTrainData({
         });
 
         if (njFallback.length > 0) {
-          setNjOverlays((prev) => [...prev, ...njFallback]);
           setAllNjRoutes((prev) => [...prev, ...njFallback]);
+          const filter = filterStationRef.current;
+          if (filter) {
+            setNjOverlays((prev) => {
+              const full = [...prev, ...njFallback];
+              return filterOverlaysByStation(full, filter, normalizeStationNameForLookup);
+            });
+          } else {
+            setNjOverlays((prev) => [...prev, ...njFallback]);
+          }
         }
         if (enFallback.length > 0) {
-          setEnOverlays((prev) => [...prev, ...enFallback]);
           setAllEnRoutes((prev) => [...prev, ...enFallback]);
+          const filter = filterStationRef.current;
+          if (filter) {
+            setEnOverlays((prev) => {
+              const full = [...prev, ...enFallback];
+              return filterOverlaysByStation(full, filter, normalizeStationNameForLookup);
+            });
+          } else {
+            setEnOverlays((prev) => [...prev, ...enFallback]);
+          }
         }
       } catch (err) {
         console.error("[useNightTrainData] Back-on-Track fallback failed:", err);
@@ -412,6 +517,13 @@ export function useNightTrainData({
 
   const loadNightTrainsForStation = useCallback(
     (normalizedStationName, originalStationName = null) => {
+      // Remember filter so the progressive reveal loop (if still running) only shows routes for this station.
+      // Clear filter when no station (e.g. parent wants to show all routes again).
+      filterStationRef.current =
+        normalizedStationName != null && normalizedStationName !== ""
+          ? { normalizedStationName, originalStationName }
+          : null;
+
       const matchesStation = (name) => {
         if (!name) return false;
         if (
