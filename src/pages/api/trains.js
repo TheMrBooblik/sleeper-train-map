@@ -41,7 +41,6 @@ export default async function handler(req, res) {
     // Nightjet: we use official Nightjet API instead
     // Train4you: don't show stations only with Train4you or its routes
     if (type === "trips") {
-      console.log("[API] Filtering out Nightjet and Train4you from trips data");
       const filtered = {};
       Object.entries(jsonData || {}).forEach(([key, trip]) => {
         const tripName = (
@@ -57,14 +56,7 @@ export default async function handler(req, res) {
         }
       });
       jsonData = filtered;
-      console.log(
-        "[API] Filtered trips (Nightjet + Train4you excluded), remaining:",
-        Object.keys(filtered).length,
-      );
     } else if (type === "view_ontd_map") {
-      console.log(
-        "[API] Filtering out Nightjet and Train4you routes from view_ontd_map",
-      );
       const filtered = {};
       Object.entries(jsonData || {}).forEach(([key, route]) => {
         const trip0 = (route?.trip_short_name_0 || "").toString();
@@ -77,20 +69,13 @@ export default async function handler(req, res) {
         }
       });
       jsonData = filtered;
-      console.log(
-        "[API] Filtered view_ontd_map (Nightjet + Train4you excluded), remaining:",
-        Object.keys(filtered).length,
-      );
     }
 
     // Enrich with manual UZ data if available
     try {
-      console.log("[API] Request type:", type);
       if (type === "stops") {
-        console.log("[API] Enriching stops data");
         jsonData = await enrichStopsData(jsonData);
       } else if (type === "view_ontd_map") {
-        console.log("[API] Enriching view_ontd_map data");
         jsonData = await enrichRoutesData(jsonData);
       }
     } catch (enrichError) {

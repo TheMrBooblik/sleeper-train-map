@@ -67,7 +67,7 @@ async function fetchAllStations(date, onProgress) {
   log("Starting to fetch all stations for date:", date);
 
   const allStations = new Map(); // Use Map to deduplicate by EVA number
-  
+
   // Use shared discovery utility to find all train numbers
   // This combines cache, Back-on-Track, and comprehensive API discovery
   log("Step 1: Discovering train numbers...");
@@ -79,13 +79,9 @@ async function fetchAllStations(date, onProgress) {
       if (onProgress) {
         onProgress(progress);
       }
-    }
+    },
   );
 
-  log(`Found ${trainNumbers.size} unique train numbers total`);
-
-  // Step 3: Fetch full route data for each train (parallelized in batches)
-  log("Step 3: Fetching full routes for each train...");
   const trainArray = Array.from(trainNumbers);
   const trainBatchSize = 3; // Process 3 trains in parallel
   let trainsProcessed = 0;
@@ -113,10 +109,6 @@ async function fetchAllStations(date, onProgress) {
     }
   });
 
-  log(
-    `Found ${cachedTrains.length} cached trains, fetching ${uncachedTrains.length} from API...`,
-  );
-
   // Process cached trains first
   cachedTrains.forEach(({ trainNumber, cached }) => {
     cached.stations?.forEach((station) => {
@@ -139,6 +131,7 @@ async function fetchAllStations(date, onProgress) {
     const promises = batch.map(async (trainNumber) => {
       try {
         const trainUrl = `https://www.nightjet.com/nj-booking-ocp/destinations/train/${encodeURIComponent(trainNumber)}/${date}`;
+        console.log(trainUrl);
         const trainResponse = await fetch(trainUrl, {
           headers: { accept: "application/json" },
         });
@@ -254,15 +247,13 @@ export default async function handler(req, res) {
         });
       }
       const p = getProgress();
-      return res
-        .status(200)
-        .json(
-          p || {
-            progress: 0,
-            message: "Starting…",
-            step: "",
-          },
-        );
+      return res.status(200).json(
+        p || {
+          progress: 0,
+          message: "Starting…",
+          step: "",
+        },
+      );
     }
 
     // Return cached if fresh and not forcing refresh
@@ -270,7 +261,10 @@ export default async function handler(req, res) {
       try {
         const cached = JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"));
         res.setHeader("X-Cache", "HIT");
-        res.setHeader("Cache-Control", "public, s-maxage=3600, max-age=604800, stale-while-revalidate=86400");
+        res.setHeader(
+          "Cache-Control",
+          "public, s-maxage=3600, max-age=604800, stale-while-revalidate=86400",
+        );
         return res.status(200).json(cached);
       } catch {}
     }
@@ -285,7 +279,10 @@ export default async function handler(req, res) {
 
     res.setHeader("X-Cache", "MISS");
     // CDN refreshes hourly; browsers cache for 7 days (data changes slowly)
-    res.setHeader("Cache-Control", "public, s-maxage=3600, max-age=604800, stale-while-revalidate=86400");
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=3600, max-age=604800, stale-while-revalidate=86400",
+    );
     return res.status(200).json(data);
   } catch (e) {
     console.error("[api/nj-all-stations] error:", e);
