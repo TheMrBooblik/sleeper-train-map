@@ -229,69 +229,63 @@ export function useNightTrainData({
 
     (async () => {
       try {
-        // Phase 1: fire prewarm requests in the background — do NOT await them.
-        // Waiting for prewarm blocked all station dots from appearing.
-        // They will still warm up the server while we fetch stations.
+        // Fire prewarm requests in the background — do NOT await them.
         fetch("/api/nj-prewarm?max=30", { method: "GET" }).catch(() => {});
         fetch("/api/en-prewarm", { method: "GET" }).catch(() => {});
 
-        // Fetch NJ stations so dots appear as fast as possible.
-        // No progress polling — on Vercel serverless each poll is a separate
-        // container that can't read the progress file written by another.
-        setLoadingProgressImmediate(40, "Loading NightJet stations...");
-        let njStationsFromApi = [];
+        // Fire ALL data fetches in parallel.
+        // Previously nj-list waited for nj-all-stations to finish first;
+        // now they run concurrently so NJ routes appear much faster.
+        setLoadingProgressImmediate(30, "Loading NightJet routes...");
+        const njListPromise = fetch(`/api/nj-list?date=${date}`);
+        const enListPromise = fetch(`/api/en-list?date=${date}`);
+        const njStationsPromise = fetch(`/api/nj-all-stations?date=${date}`);
 
-        try {
-          const njStationsRes = await fetch(
-            `/api/nj-all-stations?date=${date}`,
-          );
-
-          if (njStationsRes.ok) {
-            const stationsData = await njStationsRes.json();
-            if (stationsData?.stations?.length) {
-              njStationsFromApi = stationsData.stations;
-              setAllNjStations(stationsData.stations);
-              setLoadingProgressImmediate(65, `NightJet: ${stationsData.count} stations loaded`);
-              setNjLoadingProgress({
-                progress: 100,
-                message: `Found ${stationsData.count} stations`,
-                step: "complete",
-              });
-            } else {
-              setNjLoadingProgress({
-                progress: 0,
-                message: "No stations found",
-                step: "complete",
-              });
-            }
-          } else {
-            setNjLoadingProgress({
-              progress: 0,
-              message: "Failed to load stations",
-              step: "error",
-            });
-          }
-        } catch (err) {
-          setNjLoadingProgress({
-            progress: 0,
-            message: `Error: ${err.message}`,
-            step: "error",
-          });
-        }
-
-        // Phase 2: load NJ + EN polylines; then reveal routes one-by-one so user sees progress.
-        setLoadingProgressImmediate(70, "Loading route polylines...");
-        const [njRes, enRes] = await Promise.all([
-          fetch(`/api/nj-list?date=${date}`),
-          fetch(`/api/en-list?date=${date}`),
-        ]);
-
+        // --- Phase 1: Reveal NJ routes first ---
+        // NightJet routes criss-cross Germany/Austria, filling the map quickly.
+        // Don't wait for EN data — start showing NJ as soon as it arrives.
+        const njRes = await njListPromise;
         let njItems = [];
-        let enItems = [];
         if (njRes.ok) {
           const data = await njRes.json();
           njItems = data?.items ?? [];
         }
+
+        const njOverlayList = njItems.map((item, idx) =>
+          buildRouteOverlay(item, idx, NJ_COLORS, "nightjet"),
+        );
+
+        // Progressive reveal: show one route at a time with a short delay.
+        // 25ms (down from 60ms) keeps the animation smooth without feeling slow.
+        const REVEAL_DELAY_MS = 25;
+        let shown = 0;
+        const njAccum = [];
+
+        for (const overlay of njOverlayList) {
+          njAccum.push(overlay);
+          setAllNjRoutes([...njAccum]);
+          // When user has selected a station, re-apply station filter so new routes
+          // through the station appear, but never show unrelated routes.
+          if (!filterStationRef.current) {
+            setNjOverlays([...njAccum]);
+          } else {
+            setNjOverlays((prev) => {
+              const filtered = filterOverlaysByStation(njAccum, filterStationRef.current, normalizeStationNameForLookup);
+              return filtered.length > 0 ? filtered : prev;
+            });
+          }
+          shown += 1;
+          setLoadingProgressImmediate(
+            30 + Math.round((shown / Math.max(njItems.length, 1)) * 40),
+            `NightJet route ${shown} of ${njItems.length}…`,
+          );
+          await new Promise((r) => setTimeout(r, REVEAL_DELAY_MS));
+        }
+
+        // --- Phase 2: Reveal EN routes (fetch should already be done by now) ---
+        setLoadingProgressImmediate(72, "Loading EuroNight routes...");
+        const enRes = await enListPromise;
+        let enItems = [];
         if (enRes.ok) {
           const data = await enRes.json();
           enItems = data?.items ?? [];
@@ -306,81 +300,63 @@ export function useNightTrainData({
           return;
         }
 
-        // Build overlay lists (same shape as before) but reveal one route at a time.
-        const njOverlayList = njItems.map((item, idx) =>
-          buildRouteOverlay(item, idx, NJ_COLORS, "nightjet"),
-        );
         const enOverlayList = enItems.map((item, idx) =>
           buildRouteOverlay(item, idx, EN_COLORS, "euronight"),
         );
 
-        // Interleave NJ and EN so both types appear progressively (one route at a time).
-        const interleaved = [];
-        const maxLen = Math.max(njOverlayList.length, enOverlayList.length);
-        for (let i = 0; i < maxLen; i++) {
-          if (njOverlayList[i]) interleaved.push({ type: "nj", overlay: njOverlayList[i] });
-          if (enOverlayList[i]) interleaved.push({ type: "en", overlay: enOverlayList[i] });
-        }
-
-        const REVEAL_DELAY_MS = 60;
-        let shown = 0;
-        const njAccum = [];
         const enAccum = [];
-
-        for (const { type, overlay } of interleaved) {
-          if (type === "nj") {
-            njAccum.push(overlay);
-            setAllNjRoutes([...njAccum]);
-            // When user has selected a station, do not overwrite overlays — leave the filtered list from loadNightTrainsForStation.
-            // Only update overlays when no station filter is active.
-            if (!filterStationRef.current) {
-              setNjOverlays([...njAccum]);
-            } else {
-              setNjOverlays((prev) => {
-                // Re-apply station filter to current accum so new routes through the station appear, but never show unrelated routes.
-                const filtered = filterOverlaysByStation(njAccum, filterStationRef.current, normalizeStationNameForLookup);
-                return filtered.length > 0 ? filtered : prev;
-              });
-            }
+        for (const overlay of enOverlayList) {
+          enAccum.push(overlay);
+          setAllEnRoutes([...enAccum]);
+          if (!filterStationRef.current) {
+            setEnOverlays([...enAccum]);
           } else {
-            enAccum.push(overlay);
-            setAllEnRoutes([...enAccum]);
-            if (!filterStationRef.current) {
-              setEnOverlays([...enAccum]);
-            } else {
-              setEnOverlays((prev) => {
-                const filtered = filterOverlaysByStation(enAccum, filterStationRef.current, normalizeStationNameForLookup);
-                return filtered.length > 0 ? filtered : prev;
-              });
-            }
+            setEnOverlays((prev) => {
+              const filtered = filterOverlaysByStation(enAccum, filterStationRef.current, normalizeStationNameForLookup);
+              return filtered.length > 0 ? filtered : prev;
+            });
           }
           shown += 1;
           setLoadingProgressImmediate(
-            70 + Math.round((shown / totalRoutes) * 28),
-            `Showing route ${shown} of ${totalRoutes}…`,
+            72 + Math.round(((shown - njItems.length) / Math.max(enItems.length, 1)) * 26),
+            `EuroNight route ${shown - njItems.length} of ${enItems.length}…`,
           );
           await new Promise((r) => setTimeout(r, REVEAL_DELAY_MS));
         }
 
-        // Merge stations from all routes (same as before).
-        const stationMapNj = new Map();
-        njItems.forEach((route) => {
-          route.stations?.forEach((station) => {
-            const key =
-              station.id ||
-              `${station.location?.latitude}-${station.location?.longitude}`;
-            if (key && station.location?.latitude && station.location?.longitude && !stationMapNj.has(key)) {
-              stationMapNj.set(key, station);
-            }
-          });
-        });
-        njStationsFromApi.forEach((s) => {
-          const key = s.id || `${s.location?.latitude}-${s.location?.longitude}`;
-          if (key) stationMapNj.set(key, s);
-        });
-        const mergedNj = Array.from(stationMapNj.values());
-        if (mergedNj.length > njStationsFromApi.length) setAllNjStations(mergedNj);
+        // --- Phase 3: Merge station data ---
+        // nj-all-stations provides extra station dots not on any loaded route.
+        // Handle it whenever it finishes — doesn't block the map display.
+        njStationsPromise
+          .then(async (stationsRes) => {
+            if (!stationsRes.ok) return;
+            const stationsData = await stationsRes.json();
+            if (!stationsData?.stations?.length) return;
 
+            // Merge route stations with nj-all-stations for completeness
+            const stationMapNj = new Map();
+            njItems.forEach((route) => {
+              route.stations?.forEach((station) => {
+                const key = station.id || `${station.location?.latitude}-${station.location?.longitude}`;
+                if (key && station.location?.latitude && station.location?.longitude && !stationMapNj.has(key)) {
+                  stationMapNj.set(key, station);
+                }
+              });
+            });
+            stationsData.stations.forEach((s) => {
+              const key = s.id || `${s.location?.latitude}-${s.location?.longitude}`;
+              if (key) stationMapNj.set(key, s);
+            });
+            setAllNjStations(Array.from(stationMapNj.values()));
+            setNjLoadingProgress({
+              progress: 100,
+              message: `Found ${stationsData.count} stations`,
+              step: "complete",
+            });
+          })
+          .catch(() => {});
+
+        // EN station merge
         const stationMapEn = new Map();
         enItems.forEach((route) => {
           route.stations?.forEach((station) => {
