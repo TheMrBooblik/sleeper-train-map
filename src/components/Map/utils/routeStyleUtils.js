@@ -135,6 +135,35 @@ export function checkEuropeanSleeper453(route) {
 }
 
 /**
+ * Whether the route is RegioJet 1020/1021 (Praha – Chop).
+ * Detected by agency_id "RJ" and trip names 1020/1021, or by origin/destination matching.
+ * Uses combined OSM relations for accurate geometry along the railway tracks.
+ * @param {Object} route - View map route object
+ * @returns {boolean}
+ */
+export function checkRegioJetPrahaChop(route) {
+  if (!route) return false;
+
+  // Primary check: trip short names 1020 / 1021 with RJ agency
+  const trip0 = (route.trip_short_name_0 || "").toString().trim();
+  const trip1 = (route.trip_short_name_1 || "").toString().trim();
+  const agency = (route.agency_id || "").toUpperCase();
+  if (agency === "RJ" && (trip0 === "1020" || trip0 === "1021" || trip1 === "1020" || trip1 === "1021")) {
+    return true;
+  }
+
+  // Fallback: match origin/destination pair (Praha + Chop/Čop)
+  const fields = [
+    route.origin_trip_0, route.destination_trip_0,
+    route.origin_trip_1, route.destination_trip_1,
+  ].map((f) => (f || "").toLowerCase());
+
+  const hasPraha = fields.some((f) => f.includes("praha"));
+  const hasChop = fields.some((f) => f.includes("chop") || f.includes("čop"));
+  return hasPraha && hasChop;
+}
+
+/**
  * Whether to hide a route because it has a future "From <Date>" note in irregularities.
  * @param {string} routeId - Route ID
  * @param {Object} trips - Trips data

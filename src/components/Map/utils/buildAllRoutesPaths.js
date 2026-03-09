@@ -6,6 +6,7 @@ import { ROUTE_COLORS } from "../constants";
 import {
   getRouteStyleFromFrequency,
   checkEuropeanSleeper453,
+  checkRegioJetPrahaChop,
   getFutureRouteStartDate,
 } from "./routeStyleUtils";
 
@@ -134,8 +135,13 @@ export function buildAllRoutesPaths({
       lineJoin: "round",
     };
 
-    const useOsm = checkEuropeanSleeper453(route);
-    const osmRelationId = useOsm ? "18616102" : null;
+    // Determine OSM relation ID(s) for routes with accurate track geometry
+    let osmRelationId = null;
+    if (checkEuropeanSleeper453(route)) {
+      osmRelationId = "18616102";
+    } else if (checkRegioJetPrahaChop(route)) {
+      osmRelationId = "3347914,14865040";
+    }
 
     const path0 = buildPathForDirection(
       route.origin_trip_0,

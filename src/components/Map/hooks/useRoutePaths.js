@@ -5,10 +5,19 @@ import { ROUTE_COLORS } from "../constants";
 import {
   getRouteStyleFromFrequency,
   checkEuropeanSleeper453,
+  checkRegioJetPrahaChop,
   shouldHideRouteDueToFutureDate,
   getFutureRouteStartDate,
 } from "../utils/routeStyleUtils";
 import { buildAllRoutesPaths } from "../utils/buildAllRoutesPaths";
+
+// Number of leading coordinates to skip per OSM relation key.
+// Some OSM relations have station approach segments at the start
+// that cause visual backtracking on the map.
+const OSM_TRIM_OFFSETS = {
+  "18616102": 328,           // European Sleeper 453
+  "3347914,14865040": 194,   // RegioJet 1020/1021 Praha–Chop
+};
 
 /**
  * Hook: computes Back-on-Track route paths (polylines) and fetches OSM relation data when needed.
@@ -80,8 +89,9 @@ export function useRoutePaths({
       return basePaths.map((path) => {
         if (path.osmRelationId && osmPolylines.has(path.osmRelationId)) {
           let osmCoords = osmPolylines.get(path.osmRelationId);
-          if (osmCoords?.length > 328) {
-            osmCoords = osmCoords.slice(328);
+          const trimStart = OSM_TRIM_OFFSETS[path.osmRelationId] || 0;
+          if (trimStart > 0 && osmCoords?.length > trimStart) {
+            osmCoords = osmCoords.slice(trimStart);
           }
           if (osmCoords?.length > 0) {
             return {
@@ -187,8 +197,15 @@ export function useRoutePaths({
         lineJoin: "round",
       };
 
-      const useOsm = checkEuropeanSleeper453(route);
-      const osmRelationId = useOsm ? "18616102" : null;
+      // Determine OSM relation ID(s) for routes with accurate track geometry.
+      // European Sleeper 453: single relation.
+      // RegioJet 1020/1021 Praha–Chop: two combined relations (Praha-Košice + Košice-Čop).
+      let osmRelationId = null;
+      if (checkEuropeanSleeper453(route)) {
+        osmRelationId = "18616102";
+      } else if (checkRegioJetPrahaChop(route)) {
+        osmRelationId = "3347914,14865040";
+      }
 
       const path0 = buildPathForDirection(
         route.origin_trip_0,
@@ -235,8 +252,9 @@ export function useRoutePaths({
     return paths.map((path) => {
       if (path.osmRelationId && osmPolylines.has(path.osmRelationId)) {
         let osmCoords = osmPolylines.get(path.osmRelationId);
-        if (osmCoords?.length > 328) {
-          osmCoords = osmCoords.slice(328);
+        const trimStart = OSM_TRIM_OFFSETS[path.osmRelationId] || 0;
+        if (trimStart > 0 && osmCoords?.length > trimStart) {
+          osmCoords = osmCoords.slice(trimStart);
         }
         if (osmCoords?.length > 0) {
           return {
@@ -263,13 +281,17 @@ export function useRoutePaths({
     osmPolylines,
   ]);
 
-  // Fetch OSM relation polylines for routes that need them (e.g. European Sleeper 453)
+  // Fetch OSM relation polylines for routes that need them
+  // (European Sleeper 453, RegioJet 1020/1021 Praha–Chop, etc.)
   useEffect(() => {
     if (!viewMapData) return;
     const relationIdsToFetch = new Set();
     Object.values(viewMapData).forEach((route) => {
       if (checkEuropeanSleeper453(route)) {
         relationIdsToFetch.add("18616102");
+      }
+      if (checkRegioJetPrahaChop(route)) {
+        relationIdsToFetch.add("3347914,14865040");
       }
     });
     relationIdsToFetch.forEach(async (relationId) => {

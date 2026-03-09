@@ -86,26 +86,49 @@ function normalizeLineName(name) {
 function overlayMatchesStation(name, filter, normalizeStationNameForLookup) {
   if (!name || !filter) return false;
   const { normalizedStationName, originalStationName } = filter;
-  if (matchStationNames(name, normalizedStationName, normalizeStationNameForLookup)) return true;
-  if (originalStationName && matchStationNames(name, originalStationName, normalizeStationNameForLookup)) return true;
-  const a = String(name).toLowerCase().replace(/[^a-z0-9]/g, "");
-  const b = String(normalizedStationName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (
+    matchStationNames(
+      name,
+      normalizedStationName,
+      normalizeStationNameForLookup,
+    )
+  )
+    return true;
+  if (
+    originalStationName &&
+    matchStationNames(name, originalStationName, normalizeStationNameForLookup)
+  )
+    return true;
+  const a = String(name)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  const b = String(normalizedStationName || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
   if (a && b && (a.includes(b) || b.includes(a))) return true;
   if (originalStationName) {
-    const c = String(originalStationName).toLowerCase().replace(/[^a-z0-9]/g, "");
+    const c = String(originalStationName)
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
     if (a && c && (a.includes(c) || c.includes(a))) return true;
   }
   return false;
 }
 
 /** Filter overlay list to only routes that pass through the selected station. */
-function filterOverlaysByStation(overlays, filter, normalizeStationNameForLookup) {
+function filterOverlaysByStation(
+  overlays,
+  filter,
+  normalizeStationNameForLookup,
+) {
   if (!filter || !overlays?.length) return overlays;
   const seen = new Set();
   return overlays.filter((route) => {
     const name = normalizeLineName(route.lineName);
     if (seen.has(name)) return false;
-    const passes = route.stations?.some((s) => overlayMatchesStation(s?.name, filter, normalizeStationNameForLookup));
+    const passes = route.stations?.some((s) =>
+      overlayMatchesStation(s?.name, filter, normalizeStationNameForLookup),
+    );
     if (!passes) return false;
     seen.add(name);
     return true;
@@ -117,10 +140,22 @@ function filterOverlaysByStation(overlays, filter, normalizeStationNameForLookup
  * Uses normalizeStationNameForLookup so station names match the rest of the app (e.g. "Bruxelles Midi / Brussel Zuid" → "Bruxelles Midi").
  * Returns null if we cannot resolve enough stations to draw a path.
  */
-function buildOverlayFromBackOnTrackRoute(route, routeId, trips, stops, type, colorIndex, colors, normalizeStationNameForLookup) {
+function buildOverlayFromBackOnTrackRoute(
+  route,
+  routeId,
+  trips,
+  stops,
+  type,
+  colorIndex,
+  colors,
+  normalizeStationNameForLookup,
+) {
   if (!stops?.length || !route) return null;
 
-  const normLookup = typeof normalizeStationNameForLookup === "function" ? normalizeStationNameForLookup : (s) => s;
+  const normLookup =
+    typeof normalizeStationNameForLookup === "function"
+      ? normalizeStationNameForLookup
+      : (s) => s;
 
   // Build station name -> coords lookup from stops. Index by stop_id, stop_name, and normalized forms
   // so we match Back-on-Track names like "Bruxelles Midi / Brussel Zuid" via normalizeStationNameForLookup.
@@ -160,13 +195,25 @@ function buildOverlayFromBackOnTrackRoute(route, routeId, trips, stops, type, co
   const trip = Object.values(trips || {}).find(
     (t) => String(t?.route_id) === String(routeId),
   );
-  const lineName = (trip?.trip_short_name || trip?.route_short_name || routeId || "?").toString().trim();
+  const lineName = (
+    trip?.trip_short_name ||
+    trip?.route_short_name ||
+    routeId ||
+    "?"
+  )
+    .toString()
+    .trim();
   if (!lineName) return null;
 
   // Build station sequence: try direction 0 first (origin_trip_0, via_0, destination_trip_0),
   // then direction 1 if direction 0 yields fewer than 2 points (e.g. different station names resolve)
   const buildSequence = (origin, dest, viaStr) => {
-    const viaList = (viaStr || "").toString().trim() ? (viaStr || "").split(" - ").map((s) => s.trim()).filter(Boolean) : [];
+    const viaList = (viaStr || "").toString().trim()
+      ? (viaStr || "")
+          .split(" - ")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
     return [origin, ...viaList, dest].filter(Boolean);
   };
   let names = buildSequence(
@@ -195,7 +242,10 @@ function buildOverlayFromBackOnTrackRoute(route, routeId, trips, stops, type, co
       const c = findCoords(n);
       if (c) {
         coords.push(c);
-        stations.push({ name: n, location: { latitude: c[0], longitude: c[1] } });
+        stations.push({
+          name: n,
+          location: { latitude: c[0], longitude: c[1] },
+        });
       }
     }
   }
@@ -375,7 +425,11 @@ export function useNightTrainData({
             setNjOverlays([...njAccum]);
           } else {
             setNjOverlays((prev) => {
-              const filtered = filterOverlaysByStation(njAccum, filterStationRef.current, normalizeStationNameForLookup);
+              const filtered = filterOverlaysByStation(
+                njAccum,
+                filterStationRef.current,
+                normalizeStationNameForLookup,
+              );
               return filtered.length > 0 ? filtered : prev;
             });
           }
@@ -417,13 +471,20 @@ export function useNightTrainData({
             setEnOverlays([...enAccum]);
           } else {
             setEnOverlays((prev) => {
-              const filtered = filterOverlaysByStation(enAccum, filterStationRef.current, normalizeStationNameForLookup);
+              const filtered = filterOverlaysByStation(
+                enAccum,
+                filterStationRef.current,
+                normalizeStationNameForLookup,
+              );
               return filtered.length > 0 ? filtered : prev;
             });
           }
           shown += 1;
           setLoadingProgressImmediate(
-            72 + Math.round(((shown - njItems.length) / Math.max(enItems.length, 1)) * 26),
+            72 +
+              Math.round(
+                ((shown - njItems.length) / Math.max(enItems.length, 1)) * 26,
+              ),
             `EuroNight route ${shown - njItems.length} of ${enItems.length}…`,
           );
           await new Promise((r) => setTimeout(r, REVEAL_DELAY_MS));
@@ -443,14 +504,22 @@ export function useNightTrainData({
             const stationMapNj = new Map();
             njItems.forEach((route) => {
               route.stations?.forEach((station) => {
-                const key = station.id || `${station.location?.latitude}-${station.location?.longitude}`;
-                if (key && station.location?.latitude && station.location?.longitude && !stationMapNj.has(key)) {
+                const key =
+                  station.id ||
+                  `${station.location?.latitude}-${station.location?.longitude}`;
+                if (
+                  key &&
+                  station.location?.latitude &&
+                  station.location?.longitude &&
+                  !stationMapNj.has(key)
+                ) {
                   stationMapNj.set(key, station);
                 }
               });
             });
             stationsData.stations.forEach((s) => {
-              const key = s.id || `${s.location?.latitude}-${s.location?.longitude}`;
+              const key =
+                s.id || `${s.location?.latitude}-${s.location?.longitude}`;
               if (key) stationMapNj.set(key, s);
             });
             setAllNjStations(Array.from(stationMapNj.values()));
@@ -483,11 +552,7 @@ export function useNightTrainData({
         setShowTooltips?.(true);
       }
     })();
-  }, [
-    setLoadingProgressImmediate,
-    setIsMapInitialized,
-    setShowTooltips,
-  ]);
+  }, [setLoadingProgressImmediate, setIsMapInitialized, setShowTooltips]);
 
   // Fallback: when official NJ/EN data is missing some trains, add them from Back-on-Track
   const backOnTrackMergeDoneRef = useRef(false);
@@ -537,7 +602,8 @@ export function useNightTrainData({
           if (isNj) return;
 
           // For EuroNight: only allow the Chopin train (EN 443 / EN 442)
-          if (isEn && !CHOPIN_PATTERN.test(t0) && !CHOPIN_PATTERN.test(t1)) return;
+          if (isEn && !CHOPIN_PATTERN.test(t0) && !CHOPIN_PATTERN.test(t1))
+            return;
 
           const type = isEn ? "euronight" : null;
           if (!type) return;
@@ -572,7 +638,11 @@ export function useNightTrainData({
           if (filter) {
             setNjOverlays((prev) => {
               const full = [...prev, ...njFallback];
-              return filterOverlaysByStation(full, filter, normalizeStationNameForLookup);
+              return filterOverlaysByStation(
+                full,
+                filter,
+                normalizeStationNameForLookup,
+              );
             });
           } else {
             setNjOverlays((prev) => [...prev, ...njFallback]);
@@ -584,14 +654,21 @@ export function useNightTrainData({
           if (filter) {
             setEnOverlays((prev) => {
               const full = [...prev, ...enFallback];
-              return filterOverlaysByStation(full, filter, normalizeStationNameForLookup);
+              return filterOverlaysByStation(
+                full,
+                filter,
+                normalizeStationNameForLookup,
+              );
             });
           } else {
             setEnOverlays((prev) => [...prev, ...enFallback]);
           }
         }
       } catch (err) {
-        console.error("[useNightTrainData] Back-on-Track fallback failed:", err);
+        console.error(
+          "[useNightTrainData] Back-on-Track fallback failed:",
+          err,
+        );
         backOnTrackMergeDoneRef.current = false;
       }
     })();
