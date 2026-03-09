@@ -12,6 +12,36 @@ function formatDate(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+// --- localStorage cache for NJ/EN route items ---
+// Keyed by date so stale data is automatically replaced.
+const CACHE_KEY = "nighttrain-routes";
+
+/** Read cached NJ/EN items from localStorage. Returns null on miss or error. */
+function readRouteCache(date) {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const cached = JSON.parse(raw);
+    if (cached?.date !== date) return null;
+    if (!cached.njItems?.length && !cached.enItems?.length) return null;
+    return cached;
+  } catch {
+    return null;
+  }
+}
+
+/** Write NJ/EN items to localStorage cache. Silently ignores quota errors. */
+function writeRouteCache(date, njItems, enItems) {
+  try {
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({ date, njItems, enItems, cachedAt: Date.now() }),
+    );
+  } catch {
+    // localStorage full or unavailable — not critical
+  }
+}
+
 /**
  * Decodes polyline and returns coords array; falls back to item.coords on error.
  */
@@ -227,21 +257,96 @@ export function useNightTrainData({
     loadStartedRef.current = true;
     const date = formatDate(new Date());
 
+    /** Apply fetched NJ/EN items: build overlays, merge stations, mark ready. */
+    const applyItems = (njItems, enItems) => {
+      const njOverlayList = njItems.map((item, idx) =>
+        buildRouteOverlay(item, idx, NJ_COLORS, "nightjet"),
+      );
+      const enOverlayList = enItems.map((item, idx) =>
+        buildRouteOverlay(item, idx, EN_COLORS, "euronight"),
+      );
+
+      setAllNjRoutes(njOverlayList);
+      setAllEnRoutes(enOverlayList);
+      if (!filterStationRef.current) {
+        setNjOverlays(njOverlayList);
+        setEnOverlays(enOverlayList);
+      }
+
+      // EN station merge
+      const stationMapEn = new Map();
+      enItems.forEach((route) => {
+        route.stations?.forEach((station) => {
+          const key = `${station.location?.latitude}-${station.location?.longitude}`;
+          if (!stationMapEn.has(key)) stationMapEn.set(key, station);
+        });
+      });
+      setAllEnStations(Array.from(stationMapEn.values()));
+    };
+
+    /** Fetch NJ/EN items from the API. Returns { njItems, enItems }. */
+    const fetchFromApi = async () => {
+      const njListPromise = fetch(`/api/nj-list?date=${date}`);
+      const enListPromise = fetch(`/api/en-list?date=${date}`);
+
+      const njRes = await njListPromise;
+      let njItems = [];
+      if (njRes.ok) {
+        const data = await njRes.json();
+        njItems = data?.items ?? [];
+      }
+
+      const enRes = await enListPromise;
+      let enItems = [];
+      if (enRes.ok) {
+        const data = await enRes.json();
+        enItems = data?.items ?? [];
+      }
+
+      return { njItems, enItems };
+    };
+
     (async () => {
       try {
         // Fire prewarm requests in the background — do NOT await them.
         fetch("/api/nj-prewarm?max=30", { method: "GET" }).catch(() => {});
         fetch("/api/en-prewarm", { method: "GET" }).catch(() => {});
 
-        // Fire ALL data fetches in parallel.
-        // Previously nj-list waited for nj-all-stations to finish first;
-        // now they run concurrently so NJ routes appear much faster.
+        // --- Check localStorage cache first ---
+        // On repeat visits (same day), routes appear instantly with no loading.
+        const cached = readRouteCache(date);
+
+        if (cached) {
+          // Cache hit — show all routes at once, no progressive reveal needed.
+          setLoadingProgressImmediate(90, "Restoring cached routes...");
+          applyItems(cached.njItems, cached.enItems);
+          setLoadingProgressImmediate(100, "Ready!");
+          setNightTrainsReady(true);
+          setIsMapInitialized?.(true);
+          setShowTooltips?.(true);
+
+          // Refresh from API in background so cache stays fresh.
+          // nj-all-stations also runs in background for extra station dots.
+          fetch(`/api/nj-all-stations?date=${date}`).catch(() => {});
+          fetchFromApi()
+            .then(({ njItems, enItems }) => {
+              if (njItems.length || enItems.length) {
+                applyItems(njItems, enItems);
+                writeRouteCache(date, njItems, enItems);
+              }
+            })
+            .catch(() => {});
+          return;
+        }
+
+        // --- Cache miss: progressive fetch + reveal ---
+        // Fire all data fetches in parallel.
         setLoadingProgressImmediate(30, "Loading NightJet routes...");
         const njListPromise = fetch(`/api/nj-list?date=${date}`);
         const enListPromise = fetch(`/api/en-list?date=${date}`);
         const njStationsPromise = fetch(`/api/nj-all-stations?date=${date}`);
 
-        // --- Phase 1: Reveal NJ routes first ---
+        // Phase 1: Reveal NJ routes first.
         // NightJet routes criss-cross Germany/Austria, filling the map quickly.
         // Don't wait for EN data — start showing NJ as soon as it arrives.
         const njRes = await njListPromise;
@@ -256,7 +361,7 @@ export function useNightTrainData({
         );
 
         // Progressive reveal: show one route at a time with a short delay.
-        // 25ms (down from 60ms) keeps the animation smooth without feeling slow.
+        // 25ms keeps the animation smooth without feeling slow.
         const REVEAL_DELAY_MS = 25;
         let shown = 0;
         const njAccum = [];
@@ -282,7 +387,7 @@ export function useNightTrainData({
           await new Promise((r) => setTimeout(r, REVEAL_DELAY_MS));
         }
 
-        // --- Phase 2: Reveal EN routes (fetch should already be done by now) ---
+        // Phase 2: Reveal EN routes (fetch should already be done by now).
         setLoadingProgressImmediate(72, "Loading EuroNight routes...");
         const enRes = await enListPromise;
         let enItems = [];
@@ -324,16 +429,17 @@ export function useNightTrainData({
           await new Promise((r) => setTimeout(r, REVEAL_DELAY_MS));
         }
 
-        // --- Phase 3: Merge station data ---
+        // Save to localStorage so the next page load is instant.
+        writeRouteCache(date, njItems, enItems);
+
+        // Phase 3: Merge station data in background.
         // nj-all-stations provides extra station dots not on any loaded route.
-        // Handle it whenever it finishes — doesn't block the map display.
         njStationsPromise
           .then(async (stationsRes) => {
             if (!stationsRes.ok) return;
             const stationsData = await stationsRes.json();
             if (!stationsData?.stations?.length) return;
 
-            // Merge route stations with nj-all-stations for completeness
             const stationMapNj = new Map();
             njItems.forEach((route) => {
               route.stations?.forEach((station) => {
