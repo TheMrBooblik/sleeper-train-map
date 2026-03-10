@@ -7,8 +7,10 @@ import {
   checkEuropeanSleeper453,
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
+  checkZemplinBratislavaHumenne,
   isRegioJetRoute,
   REGIOJET_COLOR,
+  ZEMPLIN_COLOR,
   shouldHideRouteDueToFutureDate,
   getFutureRouteStartDate,
 } from "../utils/routeStyleUtils";
@@ -19,7 +21,6 @@ import { buildAllRoutesPaths } from "../utils/buildAllRoutesPaths";
 // that cause visual backtracking on the map.
 const OSM_TRIM_OFFSETS = {
   "18616102": 328,           // European Sleeper 453
-  "3347914,14865040": 194,   // RegioJet 1020/1021 Praha–Chop
 };
 
 /**
@@ -202,20 +203,26 @@ export function useRoutePaths({
 
       // Determine OSM relation ID(s) for routes with accurate track geometry.
       // European Sleeper 453: single OSM relation.
-      // RegioJet 1020/1021 Praha–Chop: two combined OSM relations.
-      // RegioJet 1038/1039 Praha–Przemyśl: pre-computed static polyline.
+      // RegioJet routes and Zemplín: pre-computed static polylines (avoids
+      // double-track / scattered-approach issues in raw OSM relations).
       let osmRelationId = null;
       if (checkEuropeanSleeper453(route)) {
         osmRelationId = "18616102";
       } else if (checkRegioJetPrahaChop(route)) {
-        osmRelationId = "3347914,14865040";
+        osmRelationId = "static:rjChop";
       } else if (checkRegioJetPrahaPrzemysl(route)) {
         osmRelationId = "static:rj1038";
+      } else if (checkZemplinBratislavaHumenne(route)) {
+        osmRelationId = "static:zemplin";
       }
 
       // RegioJet routes use their brand color instead of the default palette
       if (isRegioJetRoute(route)) {
         pathOptions.color = REGIOJET_COLOR;
+      }
+      // Zemplín route uses red
+      if (checkZemplinBratislavaHumenne(route)) {
+        pathOptions.color = ZEMPLIN_COLOR;
       }
 
       const path0 = buildPathForDirection(
@@ -293,7 +300,6 @@ export function useRoutePaths({
   ]);
 
   // Fetch OSM relation polylines for routes that need them
-  // (European Sleeper 453, RegioJet 1020/1021 Praha–Chop, RegioJet 1038/1039 Praha–Przemyśl)
   useEffect(() => {
     if (!viewMapData) return;
     const polylineKeysToFetch = new Set();
@@ -302,10 +308,13 @@ export function useRoutePaths({
         polylineKeysToFetch.add("18616102");
       }
       if (checkRegioJetPrahaChop(route)) {
-        polylineKeysToFetch.add("3347914,14865040");
+        polylineKeysToFetch.add("static:rjChop");
       }
       if (checkRegioJetPrahaPrzemysl(route)) {
         polylineKeysToFetch.add("static:rj1038");
+      }
+      if (checkZemplinBratislavaHumenne(route)) {
+        polylineKeysToFetch.add("static:zemplin");
       }
     });
     polylineKeysToFetch.forEach(async (key) => {

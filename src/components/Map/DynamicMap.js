@@ -445,13 +445,59 @@ const TrainMap = ({
     }
     return selected ? njOverlays : showRoutes ? allNjRoutes : [];
   }, [showRoutes, selected, selectedNightTrainOverlay, hasRouteFilter, allNjRoutes, njOverlays]);
-  const effectiveEnOverlays = useMemo(() => {
+  const effectiveEnOverlaysRaw = useMemo(() => {
     if (hasRouteFilter) return [];
     if (selectedNightTrainOverlay) {
       return selectedNightTrainOverlay.type === "euronight" ? [selectedNightTrainOverlay] : [];
     }
     return selected ? enOverlays : showRoutes ? allEnRoutes : [];
   }, [showRoutes, selected, selectedNightTrainOverlay, hasRouteFilter, allEnRoutes, enOverlays]);
+
+  // OSM polyline overrides for EuroNight routes that hafas returns as straight lines.
+  // Key = OSM relation IDs, value = fetched [lat,lon] array.
+  const [enOsmPolylines, setEnOsmPolylines] = useState(new Map());
+
+  // Returns true for EN 442/443 overlays that go via Humenné (not the Chopin/Warszawa variant).
+  const isEN442Humenne = useCallback((ov) => {
+    if (!/^EN\s*44[23]$/i.test(ov.lineName?.trim())) return false;
+    return ov.stations?.some((s) =>
+      /humen/i.test(s?.name || ""),
+    );
+  }, []);
+
+  // Fetch static polyline for EN 442/443 Humenné–Praha
+  useEffect(() => {
+    const EN_KEY = "enHumenne";
+    const needsFetch = allEnRoutes.some(isEN442Humenne);
+    if (needsFetch && !enOsmPolylines.has(EN_KEY)) {
+      fetch("/data/enHumennePolyline.json")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((coords) => {
+          if (coords?.length > 0) {
+            setEnOsmPolylines((prev) => {
+              const next = new Map(prev);
+              next.set(EN_KEY, coords);
+              return next;
+            });
+          }
+        })
+        .catch((err) => console.error("[DynamicMap] EN polyline fetch failed:", err));
+    }
+  }, [allEnRoutes, enOsmPolylines, isEN442Humenne]);
+
+  // Apply static polyline overrides to EuroNight overlays
+  const effectiveEnOverlays = useMemo(() => {
+    if (enOsmPolylines.size === 0) return effectiveEnOverlaysRaw;
+    const osmCoords = enOsmPolylines.get("enHumenne");
+    if (!osmCoords) return effectiveEnOverlaysRaw;
+
+    return effectiveEnOverlaysRaw.map((ov) => {
+      if (isEN442Humenne(ov)) {
+        return { ...ov, coords: osmCoords };
+      }
+      return ov;
+    });
+  }, [effectiveEnOverlaysRaw, enOsmPolylines, isEN442Humenne]);
 
   useEffect(() => {
     if (!stops?.length || !cities || overallLoading) return;

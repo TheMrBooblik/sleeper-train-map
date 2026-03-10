@@ -191,6 +191,64 @@ export function checkRegioJetPrahaPrzemysl(route) {
 }
 
 /**
+ * Whether the route is EN 442/443 (Humenné – Praha).
+ * ZSSK-operated night train via Košice, Poprad Tatry, Olomouc.
+ * Uses combined OSM relations: Praha→Košice + Košice→Humenné.
+ * @param {Object} route - View map route object
+ * @returns {boolean}
+ */
+export function checkENHumennePraha(route) {
+  if (!route) return false;
+
+  const trip0 = (route.trip_short_name_0 || "").toString().trim();
+  const trip1 = (route.trip_short_name_1 || "").toString().trim();
+
+  // Match "EN 442" or "EN 443" (but not the PKP/ČD Warsaw variant in route 9)
+  const isEN442or443 =
+    /^EN\s*44[23]$/.test(trip0) || /^EN\s*44[23]$/.test(trip1);
+  if (!isEN442or443) return false;
+
+  // Distinguish from the Praha–Warszawa EN 443 (route 9, agency PKP/ČD)
+  // by checking for Humenné in origin/destination
+  const fields = [
+    route.origin_trip_0, route.destination_trip_0,
+    route.origin_trip_1, route.destination_trip_1,
+  ].map((f) => (f || "").toLowerCase());
+
+  return fields.some((f) => f.includes("humen"));
+}
+
+/**
+ * Whether the route is R 680/681 "Zemplín" (Bratislava – Humenné).
+ * ZSSK-operated daytime Rychlík via Žilina, Košice, Trebišov, Michalovce.
+ * Uses a pre-computed static polyline combining ŽSR 120 + 180 + Košice→Humenné.
+ * @param {Object} route - View map route object
+ * @returns {boolean}
+ */
+export function checkZemplinBratislavaHumenne(route) {
+  if (!route) return false;
+  const trip0 = (route.trip_short_name_0 || "").toString().trim();
+  const trip1 = (route.trip_short_name_1 || "").toString().trim();
+  if (/^R\s*680$/.test(trip0) || /^R\s*681$/.test(trip0)) return true;
+  if (/^R\s*680$/.test(trip1) || /^R\s*681$/.test(trip1)) return true;
+
+  // Fallback: Bratislava + Humenné with ZSSK agency
+  const agency = (route.agency_id || "").toUpperCase();
+  if (agency !== "ZSSK") return false;
+  const fields = [
+    route.origin_trip_0, route.destination_trip_0,
+    route.origin_trip_1, route.destination_trip_1,
+  ].map((f) => (f || "").toLowerCase());
+  return (
+    fields.some((f) => f.includes("bratislava")) &&
+    fields.some((f) => f.includes("humen"))
+  );
+}
+
+// Color for the Zemplín Bratislava–Humenné route
+export const ZEMPLIN_COLOR = "#D32F2F";
+
+/**
  * Whether the route belongs to RegioJet (agency_id === "RJ").
  * Used to apply RegioJet brand color (yellow) instead of default palette.
  * @param {Object} route - View map route object

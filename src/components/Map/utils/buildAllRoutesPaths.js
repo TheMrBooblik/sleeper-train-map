@@ -8,8 +8,10 @@ import {
   checkEuropeanSleeper453,
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
+  checkZemplinBratislavaHumenne,
   isRegioJetRoute,
   REGIOJET_COLOR,
+  ZEMPLIN_COLOR,
   getFutureRouteStartDate,
 } from "./routeStyleUtils";
 
@@ -143,14 +145,20 @@ export function buildAllRoutesPaths({
     if (checkEuropeanSleeper453(route)) {
       osmRelationId = "18616102";
     } else if (checkRegioJetPrahaChop(route)) {
-      osmRelationId = "3347914,14865040";
+      osmRelationId = "static:rjChop";
     } else if (checkRegioJetPrahaPrzemysl(route)) {
       osmRelationId = "static:rj1038";
+    } else if (checkZemplinBratislavaHumenne(route)) {
+      osmRelationId = "static:zemplin";
     }
 
     // RegioJet routes use their brand color instead of the default palette
     if (isRegioJetRoute(route)) {
       pathOptions.color = REGIOJET_COLOR;
+    }
+    // Zemplín route uses red
+    if (checkZemplinBratislavaHumenne(route)) {
+      pathOptions.color = ZEMPLIN_COLOR;
     }
 
     const path0 = buildPathForDirection(
