@@ -164,6 +164,46 @@ export function checkRegioJetPrahaChop(route) {
 }
 
 /**
+ * Whether the route is RegioJet 1038/1039 (Praha – Przemyśl).
+ * Uses a pre-computed polyline built from EN 443 (Praha→Kraków) + IC 8358 (Kraków→Przemyśl).
+ * @param {Object} route - View map route object
+ * @returns {boolean}
+ */
+export function checkRegioJetPrahaPrzemysl(route) {
+  if (!route) return false;
+
+  const trip0 = (route.trip_short_name_0 || "").toString().trim();
+  const trip1 = (route.trip_short_name_1 || "").toString().trim();
+  const agency = (route.agency_id || "").toUpperCase();
+  if (agency === "RJ" && (trip0 === "1038" || trip0 === "1039" || trip1 === "1038" || trip1 === "1039")) {
+    return true;
+  }
+
+  // Fallback: Praha + Przemyśl with RJ agency
+  const fields = [
+    route.origin_trip_0, route.destination_trip_0,
+    route.origin_trip_1, route.destination_trip_1,
+  ].map((f) => (f || "").toLowerCase());
+
+  const hasPraha = fields.some((f) => f.includes("praha"));
+  const hasPrzemysl = fields.some((f) => f.includes("przemy"));
+  return agency === "RJ" && hasPraha && hasPrzemysl;
+}
+
+/**
+ * Whether the route belongs to RegioJet (agency_id === "RJ").
+ * Used to apply RegioJet brand color (yellow) instead of default palette.
+ * @param {Object} route - View map route object
+ * @returns {boolean}
+ */
+export function isRegioJetRoute(route) {
+  return (route?.agency_id || "").toUpperCase() === "RJ";
+}
+
+// RegioJet brand color – golden yellow matching their train livery
+export const REGIOJET_COLOR = "#F0AB00";
+
+/**
  * Whether to hide a route because it has a future "From <Date>" note in irregularities.
  * @param {string} routeId - Route ID
  * @param {Object} trips - Trips data

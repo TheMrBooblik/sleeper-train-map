@@ -7,6 +7,9 @@ import {
   getRouteStyleFromFrequency,
   checkEuropeanSleeper453,
   checkRegioJetPrahaChop,
+  checkRegioJetPrahaPrzemysl,
+  isRegioJetRoute,
+  REGIOJET_COLOR,
   getFutureRouteStartDate,
 } from "./routeStyleUtils";
 
@@ -141,6 +144,13 @@ export function buildAllRoutesPaths({
       osmRelationId = "18616102";
     } else if (checkRegioJetPrahaChop(route)) {
       osmRelationId = "3347914,14865040";
+    } else if (checkRegioJetPrahaPrzemysl(route)) {
+      osmRelationId = "static:rj1038";
+    }
+
+    // RegioJet routes use their brand color instead of the default palette
+    if (isRegioJetRoute(route)) {
+      pathOptions.color = REGIOJET_COLOR;
     }
 
     const path0 = buildPathForDirection(

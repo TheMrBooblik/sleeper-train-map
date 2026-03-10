@@ -6,6 +6,9 @@ import {
   getRouteStyleFromFrequency,
   checkEuropeanSleeper453,
   checkRegioJetPrahaChop,
+  checkRegioJetPrahaPrzemysl,
+  isRegioJetRoute,
+  REGIOJET_COLOR,
   shouldHideRouteDueToFutureDate,
   getFutureRouteStartDate,
 } from "../utils/routeStyleUtils";
@@ -198,13 +201,21 @@ export function useRoutePaths({
       };
 
       // Determine OSM relation ID(s) for routes with accurate track geometry.
-      // European Sleeper 453: single relation.
-      // RegioJet 1020/1021 Praha–Chop: two combined relations (Praha-Košice + Košice-Čop).
+      // European Sleeper 453: single OSM relation.
+      // RegioJet 1020/1021 Praha–Chop: two combined OSM relations.
+      // RegioJet 1038/1039 Praha–Przemyśl: pre-computed static polyline.
       let osmRelationId = null;
       if (checkEuropeanSleeper453(route)) {
         osmRelationId = "18616102";
       } else if (checkRegioJetPrahaChop(route)) {
         osmRelationId = "3347914,14865040";
+      } else if (checkRegioJetPrahaPrzemysl(route)) {
+        osmRelationId = "static:rj1038";
+      }
+
+      // RegioJet routes use their brand color instead of the default palette
+      if (isRegioJetRoute(route)) {
+        pathOptions.color = REGIOJET_COLOR;
       }
 
       const path0 = buildPathForDirection(
@@ -282,35 +293,44 @@ export function useRoutePaths({
   ]);
 
   // Fetch OSM relation polylines for routes that need them
-  // (European Sleeper 453, RegioJet 1020/1021 Praha–Chop, etc.)
+  // (European Sleeper 453, RegioJet 1020/1021 Praha–Chop, RegioJet 1038/1039 Praha–Przemyśl)
   useEffect(() => {
     if (!viewMapData) return;
-    const relationIdsToFetch = new Set();
+    const polylineKeysToFetch = new Set();
     Object.values(viewMapData).forEach((route) => {
       if (checkEuropeanSleeper453(route)) {
-        relationIdsToFetch.add("18616102");
+        polylineKeysToFetch.add("18616102");
       }
       if (checkRegioJetPrahaChop(route)) {
-        relationIdsToFetch.add("3347914,14865040");
+        polylineKeysToFetch.add("3347914,14865040");
+      }
+      if (checkRegioJetPrahaPrzemysl(route)) {
+        polylineKeysToFetch.add("static:rj1038");
       }
     });
-    relationIdsToFetch.forEach(async (relationId) => {
-      if (osmPolylines.has(relationId)) return;
+    polylineKeysToFetch.forEach(async (key) => {
+      if (osmPolylines.has(key)) return;
       try {
-        const res = await fetch(`/api/osm-relation?relationId=${relationId}`);
+        // Static polylines are stored as pre-computed JSON files in /data/
+        const url = key.startsWith("static:")
+          ? `/data/${key.replace("static:", "")}Polyline.json`
+          : `/api/osm-relation?relationId=${key}`;
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          if (data.coordinates?.length > 0) {
+          // Static files are a plain coordinate array; API responses wrap in { coordinates }
+          const coords = Array.isArray(data) ? data : data.coordinates;
+          if (coords?.length > 0) {
             setOsmPolylines((prev) => {
               const next = new Map(prev);
-              next.set(relationId, data.coordinates);
+              next.set(key, coords);
               return next;
             });
           }
         }
       } catch (error) {
         console.error(
-          `[DynamicMap] Failed to fetch OSM relation ${relationId}:`,
+          `[DynamicMap] Failed to fetch polyline ${key}:`,
           error,
         );
       }
