@@ -11,16 +11,26 @@ import {
   isRegioJetRoute,
   REGIOJET_COLOR,
   ZEMPLIN_COLOR,
+  PKP_COLOR,
+  checkPkpKarkonosze,
+  checkPkpPodhalanin,
+  checkPkpUrsa,
+  checkPkpUznam,
+  checkPkpKarpaty,
+  checkPkpPirat,
+  checkPkpWolin,
+  checkPkpUstronie,
   shouldHideRouteDueToFutureDate,
   getFutureRouteStartDate,
 } from "../utils/routeStyleUtils";
+import { STATIC_PKP_ROUTE_IDS, STATIC_PKP_ROUTES } from "../utils/staticPkpRoutes";
 import { buildAllRoutesPaths } from "../utils/buildAllRoutesPaths";
 
 // Number of leading coordinates to skip per OSM relation key.
 // Some OSM relations have station approach segments at the start
 // that cause visual backtracking on the map.
 const OSM_TRIM_OFFSETS = {
-  "18616102": 328,           // European Sleeper 453
+  18616102: 328, // European Sleeper 453
 };
 
 /**
@@ -80,6 +90,8 @@ export function useRoutePaths({
       Object.values(viewMapData).forEach((route) => {
         if (route?.route_id) allRouteIds.add(route.route_id.toString());
       });
+      // Include static PKP routes not in API (e.g. Ustronie) so they appear when showing all routes
+      STATIC_PKP_ROUTE_IDS.forEach((id) => allRouteIds.add(id));
       routesToShow = Array.from(allRouteIds);
     } else {
       return [];
@@ -88,7 +100,12 @@ export function useRoutePaths({
     if (routesToShow.length === 0) return [];
 
     // Use precomputed "all routes" paths only when showing all routes (no station and no route filter).
-    if (showRoutes && !selected && selectedTrainRouteIds?.length === 0 && precomputedAllPathsRef.current != null) {
+    if (
+      showRoutes &&
+      !selected &&
+      selectedTrainRouteIds?.length === 0 &&
+      precomputedAllPathsRef.current != null
+    ) {
       const basePaths = precomputedAllPathsRef.current;
       return basePaths.map((path) => {
         if (path.osmRelationId && osmPolylines.has(path.osmRelationId)) {
@@ -110,15 +127,20 @@ export function useRoutePaths({
     }
 
     const routeMap = new Map();
-    const stationKey = selectedTrainRouteIds?.length > 0
-      ? "selected-route"
-      : selected
-        ? stopId || "none"
-        : "all-routes";
+    const stationKey =
+      selectedTrainRouteIds?.length > 0
+        ? "selected-route"
+        : selected
+          ? stopId || "none"
+          : "all-routes";
     Object.values(viewMapData).forEach((route) => {
       if (route?.route_id) {
         routeMap.set(route.route_id.toString(), route);
       }
+    });
+    // Add static PKP routes so they get a path and polyline from *Polyline.json
+    Object.entries(STATIC_PKP_ROUTES).forEach(([id, route]) => {
+      routeMap.set(id, route);
     });
 
     const stationCoordsMap = new Map();
@@ -145,9 +167,7 @@ export function useRoutePaths({
       if (!stationName) return null;
       const n = getCachedNormalizedName(stationName);
       return (
-        stationCoordsMap.get(n) ||
-        stationCoordsMap.get(stationName) ||
-        null
+        stationCoordsMap.get(n) || stationCoordsMap.get(stationName) || null
       );
     };
 
@@ -187,7 +207,8 @@ export function useRoutePaths({
       const futureStartDate = getFutureRouteStartDate(routeId, trips);
       const isFuture = futureStartDate !== null;
 
-      const routeColor = ROUTE_COLORS[parseInt(routeId, 10) % ROUTE_COLORS.length];
+      const routeColor =
+        ROUTE_COLORS[parseInt(routeId, 10) % ROUTE_COLORS.length];
       // Future routes: thin dashed ghost line so they're visible but clearly distinct
       const style = isFuture
         ? { weight: 1.5, dashArray: "4,8", opacity: 0.35 }
@@ -205,6 +226,7 @@ export function useRoutePaths({
       // European Sleeper 453: single OSM relation.
       // RegioJet routes and Zemplín: pre-computed static polylines (avoids
       // double-track / scattered-approach issues in raw OSM relations).
+      // PKP Poland: 11 routes with static polylines in public/data/pkp*Polyline.json
       let osmRelationId = null;
       if (checkEuropeanSleeper453(route)) {
         osmRelationId = "18616102";
@@ -214,6 +236,22 @@ export function useRoutePaths({
         osmRelationId = "static:rj1038";
       } else if (checkZemplinBratislavaHumenne(route)) {
         osmRelationId = "static:zemplin";
+      } else if (checkPkpKarkonosze(route)) {
+        osmRelationId = "static:pkpKarkonosze";
+      } else if (checkPkpPodhalanin(route)) {
+        osmRelationId = "static:pkpPodhalanin";
+      } else if (checkPkpUrsa(route)) {
+        osmRelationId = "static:pkpUrsa";
+      } else if (checkPkpUznam(route)) {
+        osmRelationId = "static:pkpUznam";
+      } else if (checkPkpKarpaty(route)) {
+        osmRelationId = "static:pkpKarpaty";
+      } else if (checkPkpPirat(route)) {
+        osmRelationId = "static:pkpPirat";
+      } else if (checkPkpWolin(route)) {
+        osmRelationId = "static:pkpWolin";
+      } else if (checkPkpUstronie(route)) {
+        osmRelationId = "static:pkpUstronie";
       }
 
       // RegioJet routes use their brand color instead of the default palette
@@ -224,15 +262,29 @@ export function useRoutePaths({
       if (checkZemplinBratislavaHumenne(route)) {
         pathOptions.color = ZEMPLIN_COLOR;
       }
+      // PKP Poland routes use navy blue (IC/TLK branding)
+      if (
+        checkPkpKarkonosze(route) ||
+        checkPkpPodhalanin(route) ||
+        checkPkpUrsa(route) ||
+        checkPkpUznam(route) ||
+        checkPkpKarpaty(route) ||
+        checkPkpPirat(route) ||
+        checkPkpWolin(route) ||
+        checkPkpUstronie(route)
+      ) {
+        pathOptions.color = PKP_COLOR;
+      }
 
       const path0 = buildPathForDirection(
         route.origin_trip_0,
         route.destination_trip_0,
         route.via_0,
       );
-      if (path0) {
+      const path0ToUse = path0 ?? route.fallbackPositions ?? null;
+      if (path0ToUse && path0ToUse.length >= 2) {
         paths.push({
-          positions: path0,
+          positions: path0ToUse,
           routeId,
           key: `route-${stationKey}-${routeId}-0`,
           pathOptions,
@@ -248,9 +300,10 @@ export function useRoutePaths({
           route.destination_trip_1,
           route.via_1,
         );
-        if (path1) {
+        const path1ToUse = path1 ?? route.fallbackPositions ?? null;
+        if (path1ToUse && path1ToUse.length >= 2) {
           paths.push({
-            positions: path1,
+            positions: path1ToUse,
             routeId,
             key: `route-${stationKey}-${routeId}-1`,
             pathOptions,
@@ -263,7 +316,12 @@ export function useRoutePaths({
     });
 
     // Cache "all routes" paths so next time "Show all routes" is toggled we use it instantly (only when not in route-filter mode).
-    if (showRoutes && !selected && selectedTrainRouteIds?.length === 0 && paths.length > 0) {
+    if (
+      showRoutes &&
+      !selected &&
+      selectedTrainRouteIds?.length === 0 &&
+      paths.length > 0
+    ) {
       precomputedAllPathsRef.current = paths;
     }
 
@@ -316,7 +374,22 @@ export function useRoutePaths({
       if (checkZemplinBratislavaHumenne(route)) {
         polylineKeysToFetch.add("static:zemplin");
       }
+      if (checkPkpKarkonosze(route))
+        polylineKeysToFetch.add("static:pkpKarkonosze");
+      if (checkPkpPodhalanin(route))
+        polylineKeysToFetch.add("static:pkpPodhalanin");
+      if (checkPkpUrsa(route)) polylineKeysToFetch.add("static:pkpUrsa");
+      if (checkPkpUznam(route)) polylineKeysToFetch.add("static:pkpUznam");
+      if (checkPkpKarpaty(route)) polylineKeysToFetch.add("static:pkpKarpaty");
+      if (checkPkpPirat(route)) polylineKeysToFetch.add("static:pkpPirat");
+      if (checkPkpWolin(route)) polylineKeysToFetch.add("static:pkpWolin");
+      if (checkPkpUstronie(route))
+        polylineKeysToFetch.add("static:pkpUstronie");
     });
+    // Always fetch static PKP polylines (e.g. Ustronie) so they appear even when route is not in API
+    STATIC_PKP_ROUTE_IDS.forEach((id) =>
+      polylineKeysToFetch.add(`static:${id}`),
+    );
     polylineKeysToFetch.forEach(async (key) => {
       if (osmPolylines.has(key)) return;
       try {
@@ -338,10 +411,7 @@ export function useRoutePaths({
           }
         }
       } catch (error) {
-        console.error(
-          `[DynamicMap] Failed to fetch polyline ${key}:`,
-          error,
-        );
+        console.error(`[DynamicMap] Failed to fetch polyline ${key}:`, error);
       }
     });
   }, [viewMapData, osmPolylines]);

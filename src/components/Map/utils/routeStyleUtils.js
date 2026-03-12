@@ -148,14 +148,22 @@ export function checkRegioJetPrahaChop(route) {
   const trip0 = (route.trip_short_name_0 || "").toString().trim();
   const trip1 = (route.trip_short_name_1 || "").toString().trim();
   const agency = (route.agency_id || "").toUpperCase();
-  if (agency === "RJ" && (trip0 === "1020" || trip0 === "1021" || trip1 === "1020" || trip1 === "1021")) {
+  if (
+    agency === "RJ" &&
+    (trip0 === "1020" ||
+      trip0 === "1021" ||
+      trip1 === "1020" ||
+      trip1 === "1021")
+  ) {
     return true;
   }
 
   // Fallback: match origin/destination pair (Praha + Chop/Čop)
   const fields = [
-    route.origin_trip_0, route.destination_trip_0,
-    route.origin_trip_1, route.destination_trip_1,
+    route.origin_trip_0,
+    route.destination_trip_0,
+    route.origin_trip_1,
+    route.destination_trip_1,
   ].map((f) => (f || "").toLowerCase());
 
   const hasPraha = fields.some((f) => f.includes("praha"));
@@ -175,14 +183,22 @@ export function checkRegioJetPrahaPrzemysl(route) {
   const trip0 = (route.trip_short_name_0 || "").toString().trim();
   const trip1 = (route.trip_short_name_1 || "").toString().trim();
   const agency = (route.agency_id || "").toUpperCase();
-  if (agency === "RJ" && (trip0 === "1038" || trip0 === "1039" || trip1 === "1038" || trip1 === "1039")) {
+  if (
+    agency === "RJ" &&
+    (trip0 === "1038" ||
+      trip0 === "1039" ||
+      trip1 === "1038" ||
+      trip1 === "1039")
+  ) {
     return true;
   }
 
   // Fallback: Praha + Przemyśl with RJ agency
   const fields = [
-    route.origin_trip_0, route.destination_trip_0,
-    route.origin_trip_1, route.destination_trip_1,
+    route.origin_trip_0,
+    route.destination_trip_0,
+    route.origin_trip_1,
+    route.destination_trip_1,
   ].map((f) => (f || "").toLowerCase());
 
   const hasPraha = fields.some((f) => f.includes("praha"));
@@ -211,8 +227,10 @@ export function checkENHumennePraha(route) {
   // Distinguish from the Praha–Warszawa EN 443 (route 9, agency PKP/ČD)
   // by checking for Humenné in origin/destination
   const fields = [
-    route.origin_trip_0, route.destination_trip_0,
-    route.origin_trip_1, route.destination_trip_1,
+    route.origin_trip_0,
+    route.destination_trip_0,
+    route.origin_trip_1,
+    route.destination_trip_1,
   ].map((f) => (f || "").toLowerCase());
 
   return fields.some((f) => f.includes("humen"));
@@ -236,8 +254,10 @@ export function checkZemplinBratislavaHumenne(route) {
   const agency = (route.agency_id || "").toUpperCase();
   if (agency !== "ZSSK") return false;
   const fields = [
-    route.origin_trip_0, route.destination_trip_0,
-    route.origin_trip_1, route.destination_trip_1,
+    route.origin_trip_0,
+    route.destination_trip_0,
+    route.origin_trip_1,
+    route.destination_trip_1,
   ].map((f) => (f || "").toLowerCase());
   return (
     fields.some((f) => f.includes("bratislava")) &&
@@ -247,6 +267,118 @@ export function checkZemplinBratislavaHumenne(route) {
 
 // Color for the Zemplín Bratislava–Humenné route
 export const ZEMPLIN_COLOR = "#D32F2F";
+
+// Color for PKP Intercity routes — navy blue matching PKP IC branding
+export const PKP_COLOR = "#003580";
+
+// ──── PKP Poland detection functions ────
+// All 11 PKP routes in the Back-on-Track viewMapData that need static polylines.
+// Detection is based on route_long_name since each PKP route has a unique name.
+// Trip short names (TLK xxxxx / IC xxxxx) are used as a secondary check.
+
+/**
+ * Route 121: Karkonosze — Warszawa→Szklarska Poręba via Wrocław, Jelenia Góra
+ * IC 16170 / IC 61170
+ */
+export function checkPkpKarkonosze(route) {
+  if (!route) return false;
+  const name = (route.route_long_name || "").toLowerCase();
+  if (name.includes("karkonosze")) return true;
+  const t0 = (route.trip_short_name_0 || "").toString().trim();
+  const t1 = (route.trip_short_name_1 || "").toString().trim();
+  return t0 === "IC 16170" || t1 === "IC 61170";
+}
+
+/**
+ * Route 122: Podhalanin — Zakopane→Szczecin via Bielsko-Biała, Katowice, Poznań
+ * IC 38192 / IC 83192
+ */
+export function checkPkpPodhalanin(route) {
+  if (!route) return false;
+  const name = (route.route_long_name || "").toLowerCase();
+  if (name.includes("podhalanin")) return true;
+  const t0 = (route.trip_short_name_0 || "").toString().trim();
+  const t1 = (route.trip_short_name_1 || "").toString().trim();
+  return t0 === "IC 38192" || t1 === "IC 83192";
+}
+
+/**
+ * Route 126: Przemyślanin — Przemyśl→Świnoujście via Kraków, Katowice, Poznań, Szczecin
+ * IC 38172 / IC 83172
+ */
+export function checkPkpUrsa(route) {
+  if (!route) return false;
+  const name = (route.route_long_name || "").toLowerCase();
+  if (name.includes("przemy") && name.includes("lanin")) return true;
+  const t0 = (route.trip_short_name_0 || "").toString().trim();
+  const t1 = (route.trip_short_name_1 || "").toString().trim();
+  return t0 === "IC 38172" || t1 === "IC 83172";
+}
+
+/**
+ * Route 128: Uznam — Warszawa→Świnoujście via Szczecin
+ * TLK 18170 / TLK 81170
+ */
+export function checkPkpUznam(route) {
+  if (!route) return false;
+  const name = (route.route_long_name || "").toLowerCase();
+  if (name.includes("uznam")) return true;
+  const t0 = (route.trip_short_name_0 || "").toString().trim();
+  const t1 = (route.trip_short_name_1 || "").toString().trim();
+  return t0 === "TLK 18170" || t1 === "TLK 81170";
+}
+
+/**
+ * Route 129: Karpaty — Zakopane→Gdynia via Kraków, Warszawa, Gdańsk
+ * TLK 35170 / TLK 53170
+ */
+export function checkPkpKarpaty(route) {
+  if (!route) return false;
+  const name = (route.route_long_name || "").toLowerCase();
+  if (name.includes("karpaty")) return true;
+  const t0 = (route.trip_short_name_0 || "").toString().trim();
+  const t1 = (route.trip_short_name_1 || "").toString().trim();
+  return t0 === "TLK 35170" || t1 === "TLK 53170";
+}
+
+/**
+ * Route 136: Pirat — Bielsko-Biała→Kołobrzeg via Rybnik, Opole
+ * TLK 48190 / TLK 84190
+ */
+export function checkPkpPirat(route) {
+  if (!route) return false;
+  const name = (route.route_long_name || "").toLowerCase();
+  if (name.includes("pirat")) return true;
+  const t0 = (route.trip_short_name_0 || "").toString().trim();
+  const t1 = (route.trip_short_name_1 || "").toString().trim();
+  return t0 === "TLK 48190" || t1 === "TLK 84190";
+}
+
+/**
+ * Route 137: Wolin — Bielsko-Biała→Świnoujście via Rybnik, Opole, Szczecin
+ * TLK 46174/38174 / TLK 83174/64174
+ */
+export function checkPkpWolin(route) {
+  if (!route) return false;
+  const name = (route.route_long_name || "").toLowerCase();
+  if (name.includes("wolin")) return true;
+  const t0 = (route.trip_short_name_0 || "").toString().trim();
+  const t1 = (route.trip_short_name_1 || "").toString().trim();
+  return /^TLK\s+(46174|38174)/.test(t0) || /^TLK\s+(83174|64174)/.test(t1);
+}
+
+/**
+ * Route 138: Ustronie — Kraków→Kołobrzeg via Kielce, Radom, Gdańsk
+ * TLK 38170 / TLK 83170
+ */
+export function checkPkpUstronie(route) {
+  if (!route) return false;
+  const name = (route.route_long_name || "").toLowerCase();
+  if (name.includes("ustronie")) return true;
+  const t0 = (route.trip_short_name_0 || "").toString().trim();
+  const t1 = (route.trip_short_name_1 || "").toString().trim();
+  return t0 === "TLK 38170" || t1 === "TLK 83170";
+}
 
 /**
  * Whether the route belongs to RegioJet (agency_id === "RJ").
