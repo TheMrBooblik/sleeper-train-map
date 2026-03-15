@@ -296,6 +296,12 @@ export function useNightTrainData({
   const allEnRoutesRef = useRef([]);
   /** When user clicks a station during loading, we keep showing only routes for that station instead of all. */
   const filterStationRef = useRef(null);
+  /** Tracks whether Back-on-Track placeholder overlays are currently showing.
+   * When true, the main loading loop skips progressive reveal and applies all at once. */
+  const placeholderActiveRef = useRef(false);
+  /** Set to true when the main loop starts progressive reveal, so the placeholder
+   * effect won't overwrite partially-revealed official routes. */
+  const progressiveRevealStartedRef = useRef(false);
   njOverlaysRef.current = njOverlays;
   enOverlaysRef.current = enOverlays;
   allNjRoutesRef.current = allNjRoutes;
@@ -405,6 +411,71 @@ export function useNightTrainData({
           const data = await njRes.json();
           njItems = data?.items ?? [];
         }
+
+        // If Back-on-Track placeholders are showing, skip progressive reveal.
+        // Replace all overlays at once for a seamless transition to official data.
+        if (placeholderActiveRef.current) {
+          placeholderActiveRef.current = false;
+
+          const enRes = await enListPromise;
+          let enItems = [];
+          if (enRes.ok) {
+            const data = await enRes.json();
+            enItems = data?.items ?? [];
+          }
+
+          if (njItems.length || enItems.length) {
+            applyItems(njItems, enItems);
+            writeRouteCache(date, njItems, enItems);
+          }
+
+          // NJ station merge in background
+          njStationsPromise
+            .then(async (stationsRes) => {
+              if (!stationsRes.ok) return;
+              const stationsData = await stationsRes.json();
+              if (!stationsData?.stations?.length) return;
+
+              const stationMapNj = new Map();
+              njItems.forEach((route) => {
+                route.stations?.forEach((station) => {
+                  const key =
+                    station.id ||
+                    `${station.location?.latitude}-${station.location?.longitude}`;
+                  if (
+                    key &&
+                    station.location?.latitude &&
+                    station.location?.longitude &&
+                    !stationMapNj.has(key)
+                  ) {
+                    stationMapNj.set(key, station);
+                  }
+                });
+              });
+              stationsData.stations.forEach((s) => {
+                const key =
+                  s.id || `${s.location?.latitude}-${s.location?.longitude}`;
+                if (key) stationMapNj.set(key, s);
+              });
+              setAllNjStations(Array.from(stationMapNj.values()));
+              setNjLoadingProgress({
+                progress: 100,
+                message: `Found ${stationsData.count} stations`,
+                step: "complete",
+              });
+            })
+            .catch(() => {});
+
+          setLoadingProgressImmediate(100, "Ready!");
+          setNightTrainsReady(true);
+          setIsMapInitialized?.(true);
+          setShowTooltips?.(true);
+          return;
+        }
+
+        // Mark that progressive reveal is about to start so the placeholder
+        // effect (if still pending) won't overwrite partially-revealed routes.
+        progressiveRevealStartedRef.current = true;
 
         const njOverlayList = njItems.map((item, idx) =>
           buildRouteOverlay(item, idx, NJ_COLORS, "nightjet"),
@@ -673,6 +744,81 @@ export function useNightTrainData({
       }
     })();
   }, [nightTrainsReady, stops, normalizeStationNameForLookup]);
+
+  // Early placeholder: show Back-on-Track NJ/EN routes while official APIs load.
+  // Fills the map with straight-line routes (station to station) immediately.
+  // When official data arrives, it replaces these with accurate rail geometry
+  // (see placeholderActiveRef check in the main loading useEffect above).
+  const placeholderFetchedRef = useRef(false);
+  useEffect(() => {
+    // Only fetch once, only when stops are loaded and official data hasn't arrived yet
+    if (!stops?.length || nightTrainsReady || placeholderFetchedRef.current) return;
+    placeholderFetchedRef.current = true;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/night-trains-backontrack");
+        if (!res.ok) return;
+        const { routes, trips: botTrips } = await res.json();
+        if (!routes || Object.keys(routes).length === 0) return;
+
+        const njPlaceholders = [];
+        const enPlaceholders = [];
+        let njIdx = 0;
+        let enIdx = 0;
+
+        Object.entries(routes).forEach(([routeKey, route]) => {
+          const routeId = route?.route_id ?? routeKey;
+          const t0 = (route?.trip_short_name_0 || "").toString();
+          const t1 = (route?.trip_short_name_1 || "").toString();
+          const isNj = /^\s*NJ\s*\d+/.test(t0) || /^\s*NJ\s*\d+/.test(t1);
+          const isEn = /^\s*EN\s*\d+/.test(t0) || /^\s*EN\s*\d+/.test(t1);
+          const type = isNj ? "nightjet" : isEn ? "euronight" : null;
+          if (!type) return;
+
+          const overlay = buildOverlayFromBackOnTrackRoute(
+            route,
+            routeId,
+            botTrips,
+            stops,
+            type,
+            type === "nightjet" ? njIdx : enIdx,
+            type === "nightjet" ? NJ_COLORS : EN_COLORS,
+            normalizeStationNameForLookup,
+          );
+          if (!overlay) return;
+
+          if (type === "nightjet") {
+            njPlaceholders.push(overlay);
+            njIdx += 1;
+          } else {
+            enPlaceholders.push(overlay);
+            enIdx += 1;
+          }
+        });
+
+        // Only set placeholders if progressive reveal hasn't started yet.
+        // This prevents overwriting partially-revealed official routes.
+        if (
+          !progressiveRevealStartedRef.current &&
+          (njPlaceholders.length > 0 || enPlaceholders.length > 0)
+        ) {
+          placeholderActiveRef.current = true;
+          setAllNjRoutes(njPlaceholders);
+          setAllEnRoutes(enPlaceholders);
+          if (!filterStationRef.current) {
+            setNjOverlays(njPlaceholders);
+            setEnOverlays(enPlaceholders);
+          }
+        }
+      } catch (err) {
+        console.error(
+          "[useNightTrainData] Back-on-Track placeholder fetch failed:",
+          err,
+        );
+      }
+    })();
+  }, [stops, nightTrainsReady, normalizeStationNameForLookup]);
 
   const loadNightTrainsForStation = useCallback(
     (normalizedStationName, originalStationName = null) => {
