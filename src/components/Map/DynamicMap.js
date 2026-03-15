@@ -118,11 +118,38 @@ const TrainMap = ({
     loadNightTrainsForStation,
   } = nightTrain;
 
+  // Client-side filtering: remove NJ/EN routes from viewMapData and trips once
+  // official NightJet/EuroNight data has loaded. Before that, NJ/EN render as
+  // regular Back-on-Track routes so their stations appear with consistent styling.
+  const effectiveViewMapData = useMemo(() => {
+    if (!viewMapData || !nightTrainsReady) return viewMapData;
+    const filtered = {};
+    Object.entries(viewMapData).forEach(([key, route]) => {
+      const t0 = (route?.trip_short_name_0 || "").toString();
+      const t1 = (route?.trip_short_name_1 || "").toString();
+      if (/^\s*NJ\s+\d+/.test(t0) || /^\s*NJ\s+\d+/.test(t1)) return;
+      if (/^\s*EN\s+\d+/.test(t0) || /^\s*EN\s+\d+/.test(t1)) return;
+      filtered[key] = route;
+    });
+    return filtered;
+  }, [viewMapData, nightTrainsReady]);
+
+  const effectiveTrips = useMemo(() => {
+    if (!trips || !nightTrainsReady) return trips;
+    const filtered = {};
+    Object.entries(trips).forEach(([key, trip]) => {
+      const name = (trip?.trip_short_name || trip?.route_short_name || "").toString();
+      if (/^\s*NJ\s+\d+/.test(name) || /^\s*EN\s+\d+/.test(name)) return;
+      filtered[key] = trip;
+    });
+    return filtered;
+  }, [trips, nightTrainsReady]);
+
   const { routePaths } = useRoutePaths({
-    viewMapData,
+    viewMapData: effectiveViewMapData,
     stops,
     cities,
-    trips,
+    trips: effectiveTrips,
     selected,
     stopId,
     stopRouteIds,
@@ -280,9 +307,9 @@ const TrainMap = ({
   // Derive the set of stations that belong to the currently selected Back-on-Track route.
   // We re-use the same origin/destination/via fields as route polylines and map them to GTFS stops.
   const routeFilterStops = useMemo(() => {
-    if (!hasRouteFilter || !viewMapData || !stops?.length) return null;
+    if (!hasRouteFilter || !effectiveViewMapData || !stops?.length) return null;
     const activeId = String(selectedTrainRouteIds[0]);
-    const route = Object.values(viewMapData).find(
+    const route = Object.values(effectiveViewMapData).find(
       (r) => r?.route_id?.toString() === activeId,
     );
     if (!route) return null;
@@ -331,7 +358,7 @@ const TrainMap = ({
     });
 
     return result.length > 0 ? result : null;
-  }, [hasRouteFilter, selectedTrainRouteIds, viewMapData, stops, normalizeStationNameForLookup]);
+  }, [hasRouteFilter, selectedTrainRouteIds, effectiveViewMapData, stops, normalizeStationNameForLookup]);
 
   // Set of station names/ids where a NightJet or EuroNight route starts or ends (for endpoint icon).
   // Include raw names and display-normalized names so Back-on-Track markers (e.g. displayName "Brussels") match.
@@ -356,7 +383,7 @@ const TrainMap = ({
     filteredStops: routeFilterStops || filteredStops,
     stops,
     cities,
-    viewMapData,
+    viewMapData: effectiveViewMapData,
     selected,
     stopId,
     stopRouteIds,
@@ -366,7 +393,7 @@ const TrainMap = ({
     normalizeStationNameForLookup,
     normalizeStationNameForDisplay,
     handleMarkerClick,
-    trips,
+    trips: effectiveTrips,
     nightTrainEndpointStations,
   });
 
@@ -595,8 +622,8 @@ const TrainMap = ({
     ? `${selectedNightTrainOverlay.lineName || "Train"}: ${selectedNightTrainOverlay.stations?.[0]?.name || "?"} → ${selectedNightTrainOverlay.stations?.[selectedNightTrainOverlay.stations?.length - 1]?.name || "?"}`
     : hasRouteFilter
       ? (() => {
-          const route = viewMapData
-            ? Object.values(viewMapData).find(
+          const route = effectiveViewMapData
+            ? Object.values(effectiveViewMapData).find(
                 (r) => r?.route_id?.toString() === String(selectedTrainRouteIds[0]),
               )
             : null;
@@ -729,8 +756,8 @@ const TrainMap = ({
             >
               <Tooltip sticky>
                 {(() => {
-                  const route = viewMapData
-                    ? Object.values(viewMapData).find(
+                  const route = effectiveViewMapData
+                    ? Object.values(effectiveViewMapData).find(
                         (r) =>
                           r?.route_id &&
                           r.route_id.toString() === String(path.routeId),
@@ -782,7 +809,7 @@ const TrainMap = ({
         onClose={closeTrainDetailPanel}
         selectedRouteIds={
           selectedTrainRouteIds?.filter(
-            (id) => !shouldHideRouteDueToFutureDate(id, trips),
+            (id) => !shouldHideRouteDueToFutureDate(id, effectiveTrips),
           ) ?? []
         }
         nightTrainOverlay={selectedNightTrainOverlay}

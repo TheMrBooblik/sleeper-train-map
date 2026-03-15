@@ -22,8 +22,9 @@ async function fetchType(type) {
 }
 
 /**
- * Filter out NightJet, EuroNight, and Train4you from trips data.
- * These operators are shown via their own dedicated APIs instead.
+ * Filter out Train4you from trips data.
+ * NJ/EN are kept here so they render as Back-on-Track routes initially;
+ * the client filters them out once official NightJet/EuroNight data loads.
  */
 function filterTrips(data) {
   const filtered = {};
@@ -31,10 +32,8 @@ function filterTrips(data) {
     const tripName = (
       trip?.trip_short_name || trip?.route_short_name || ""
     ).toString();
-    const isNj = /^\s*NJ\s+\d+/.test(tripName);
-    const isEn = /^\s*EN\s+\d+/.test(tripName);
     const isT4y = isTrain4you(trip, tripName);
-    if (!isNj && !isEn && !isT4y) {
+    if (!isT4y) {
       filtered[key] = trip;
     }
   });
@@ -42,17 +41,17 @@ function filterTrips(data) {
 }
 
 /**
- * Filter out NightJet, EuroNight, and Train4you from view_ontd_map data.
+ * Filter out Train4you from view_ontd_map data.
+ * NJ/EN are kept here so they render as Back-on-Track routes initially;
+ * the client filters them out once official NightJet/EuroNight data loads.
  */
 function filterViewMap(data) {
   const filtered = {};
   Object.entries(data || {}).forEach(([key, route]) => {
     const trip0 = (route?.trip_short_name_0 || "").toString();
     const trip1 = (route?.trip_short_name_1 || "").toString();
-    const isNj = /^\s*NJ\s+\d+/.test(trip0) || /^\s*NJ\s+\d+/.test(trip1);
-    const isEn = /^\s*EN\s+\d+/.test(trip0) || /^\s*EN\s+\d+/.test(trip1);
     const isT4y = isTrain4you(route, trip0) || isTrain4you(route, trip1);
-    if (!isNj && !isEn && !isT4y) {
+    if (!isT4y) {
       filtered[key] = route;
     }
   });

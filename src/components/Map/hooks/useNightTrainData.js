@@ -296,12 +296,6 @@ export function useNightTrainData({
   const allEnRoutesRef = useRef([]);
   /** When user clicks a station during loading, we keep showing only routes for that station instead of all. */
   const filterStationRef = useRef(null);
-  /** Tracks whether Back-on-Track placeholder overlays are currently showing.
-   * When true, the main loading loop skips progressive reveal and applies all at once. */
-  const placeholderActiveRef = useRef(false);
-  /** Set to true when the main loop starts progressive reveal, so the placeholder
-   * effect won't overwrite partially-revealed official routes. */
-  const progressiveRevealStartedRef = useRef(false);
   njOverlaysRef.current = njOverlays;
   enOverlaysRef.current = enOverlays;
   allNjRoutesRef.current = allNjRoutes;
@@ -395,177 +389,19 @@ export function useNightTrainData({
           return;
         }
 
-        // --- Cache miss: progressive fetch + reveal ---
-        // Fire all data fetches in parallel.
-        setLoadingProgressImmediate(30, "Loading NightJet routes...");
-        const njListPromise = fetch(`/api/nj-list?date=${date}`);
-        const enListPromise = fetch(`/api/en-list?date=${date}`);
+        // --- Cache miss: fetch NJ/EN data and apply all at once ---
+        // Back-on-Track initial-data already shows NJ/EN routes as placeholders,
+        // so no progressive reveal needed — just replace when official data arrives.
+        setLoadingProgressImmediate(35, "Loading NightJet & EuroNight routes...");
         const njStationsPromise = fetch(`/api/nj-all-stations?date=${date}`);
+        const { njItems, enItems } = await fetchFromApi();
 
-        // Phase 1: Reveal NJ routes first.
-        // NightJet routes criss-cross Germany/Austria, filling the map quickly.
-        // Don't wait for EN data — start showing NJ as soon as it arrives.
-        const njRes = await njListPromise;
-        let njItems = [];
-        if (njRes.ok) {
-          const data = await njRes.json();
-          njItems = data?.items ?? [];
+        if (njItems.length || enItems.length) {
+          applyItems(njItems, enItems);
+          writeRouteCache(date, njItems, enItems);
         }
 
-        // If Back-on-Track placeholders are showing, skip progressive reveal.
-        // Replace all overlays at once for a seamless transition to official data.
-        if (placeholderActiveRef.current) {
-          placeholderActiveRef.current = false;
-
-          const enRes = await enListPromise;
-          let enItems = [];
-          if (enRes.ok) {
-            const data = await enRes.json();
-            enItems = data?.items ?? [];
-          }
-
-          if (njItems.length || enItems.length) {
-            applyItems(njItems, enItems);
-            writeRouteCache(date, njItems, enItems);
-          }
-
-          // NJ station merge in background
-          njStationsPromise
-            .then(async (stationsRes) => {
-              if (!stationsRes.ok) return;
-              const stationsData = await stationsRes.json();
-              if (!stationsData?.stations?.length) return;
-
-              const stationMapNj = new Map();
-              njItems.forEach((route) => {
-                route.stations?.forEach((station) => {
-                  const key =
-                    station.id ||
-                    `${station.location?.latitude}-${station.location?.longitude}`;
-                  if (
-                    key &&
-                    station.location?.latitude &&
-                    station.location?.longitude &&
-                    !stationMapNj.has(key)
-                  ) {
-                    stationMapNj.set(key, station);
-                  }
-                });
-              });
-              stationsData.stations.forEach((s) => {
-                const key =
-                  s.id || `${s.location?.latitude}-${s.location?.longitude}`;
-                if (key) stationMapNj.set(key, s);
-              });
-              setAllNjStations(Array.from(stationMapNj.values()));
-              setNjLoadingProgress({
-                progress: 100,
-                message: `Found ${stationsData.count} stations`,
-                step: "complete",
-              });
-            })
-            .catch(() => {});
-
-          setLoadingProgressImmediate(100, "Ready!");
-          setNightTrainsReady(true);
-          setIsMapInitialized?.(true);
-          setShowTooltips?.(true);
-          return;
-        }
-
-        // Mark that progressive reveal is about to start so the placeholder
-        // effect (if still pending) won't overwrite partially-revealed routes.
-        progressiveRevealStartedRef.current = true;
-
-        const njOverlayList = njItems.map((item, idx) =>
-          buildRouteOverlay(item, idx, NJ_COLORS, "nightjet"),
-        );
-
-        // Progressive reveal: show one route at a time with a short delay.
-        // 25ms keeps the animation smooth without feeling slow.
-        const REVEAL_DELAY_MS = 25;
-        let shown = 0;
-        const njAccum = [];
-
-        for (const overlay of njOverlayList) {
-          njAccum.push(overlay);
-          setAllNjRoutes([...njAccum]);
-          // When user has selected a station, re-apply station filter so new routes
-          // through the station appear, but never show unrelated routes.
-          if (!filterStationRef.current) {
-            setNjOverlays([...njAccum]);
-          } else {
-            setNjOverlays((prev) => {
-              const filtered = filterOverlaysByStation(
-                njAccum,
-                filterStationRef.current,
-                normalizeStationNameForLookup,
-              );
-              return filtered.length > 0 ? filtered : prev;
-            });
-          }
-          shown += 1;
-          setLoadingProgressImmediate(
-            30 + Math.round((shown / Math.max(njItems.length, 1)) * 40),
-            `NightJet route ${shown} of ${njItems.length}…`,
-          );
-          await new Promise((r) => setTimeout(r, REVEAL_DELAY_MS));
-        }
-
-        // Phase 2: Reveal EN routes (fetch should already be done by now).
-        setLoadingProgressImmediate(72, "Loading EuroNight routes...");
-        const enRes = await enListPromise;
-        let enItems = [];
-        if (enRes.ok) {
-          const data = await enRes.json();
-          enItems = data?.items ?? [];
-        }
-
-        const totalRoutes = njItems.length + enItems.length;
-        if (totalRoutes === 0) {
-          setLoadingProgressImmediate(100, "Ready!");
-          setNightTrainsReady(true);
-          setIsMapInitialized?.(true);
-          setShowTooltips?.(true);
-          return;
-        }
-
-        const enOverlayList = enItems.map((item, idx) =>
-          buildRouteOverlay(item, idx, EN_COLORS, "euronight"),
-        );
-
-        const enAccum = [];
-        for (const overlay of enOverlayList) {
-          enAccum.push(overlay);
-          setAllEnRoutes([...enAccum]);
-          if (!filterStationRef.current) {
-            setEnOverlays([...enAccum]);
-          } else {
-            setEnOverlays((prev) => {
-              const filtered = filterOverlaysByStation(
-                enAccum,
-                filterStationRef.current,
-                normalizeStationNameForLookup,
-              );
-              return filtered.length > 0 ? filtered : prev;
-            });
-          }
-          shown += 1;
-          setLoadingProgressImmediate(
-            72 +
-              Math.round(
-                ((shown - njItems.length) / Math.max(enItems.length, 1)) * 26,
-              ),
-            `EuroNight route ${shown - njItems.length} of ${enItems.length}…`,
-          );
-          await new Promise((r) => setTimeout(r, REVEAL_DELAY_MS));
-        }
-
-        // Save to localStorage so the next page load is instant.
-        writeRouteCache(date, njItems, enItems);
-
-        // Phase 3: Merge station data in background.
-        // nj-all-stations provides extra station dots not on any loaded route.
+        // NJ station merge in background (extra station dots from nj-all-stations)
         njStationsPromise
           .then(async (stationsRes) => {
             if (!stationsRes.ok) return;
@@ -601,16 +437,6 @@ export function useNightTrainData({
             });
           })
           .catch(() => {});
-
-        // EN station merge
-        const stationMapEn = new Map();
-        enItems.forEach((route) => {
-          route.stations?.forEach((station) => {
-            const key = `${station.location?.latitude}-${station.location?.longitude}`;
-            if (!stationMapEn.has(key)) stationMapEn.set(key, station);
-          });
-        });
-        setAllEnStations(Array.from(stationMapEn.values()));
 
         setLoadingProgressImmediate(100, "Ready!");
         setNightTrainsReady(true);
@@ -744,81 +570,6 @@ export function useNightTrainData({
       }
     })();
   }, [nightTrainsReady, stops, normalizeStationNameForLookup]);
-
-  // Early placeholder: show Back-on-Track NJ/EN routes while official APIs load.
-  // Fills the map with straight-line routes (station to station) immediately.
-  // When official data arrives, it replaces these with accurate rail geometry
-  // (see placeholderActiveRef check in the main loading useEffect above).
-  const placeholderFetchedRef = useRef(false);
-  useEffect(() => {
-    // Only fetch once, only when stops are loaded and official data hasn't arrived yet
-    if (!stops?.length || nightTrainsReady || placeholderFetchedRef.current) return;
-    placeholderFetchedRef.current = true;
-
-    (async () => {
-      try {
-        const res = await fetch("/api/night-trains-backontrack");
-        if (!res.ok) return;
-        const { routes, trips: botTrips } = await res.json();
-        if (!routes || Object.keys(routes).length === 0) return;
-
-        const njPlaceholders = [];
-        const enPlaceholders = [];
-        let njIdx = 0;
-        let enIdx = 0;
-
-        Object.entries(routes).forEach(([routeKey, route]) => {
-          const routeId = route?.route_id ?? routeKey;
-          const t0 = (route?.trip_short_name_0 || "").toString();
-          const t1 = (route?.trip_short_name_1 || "").toString();
-          const isNj = /^\s*NJ\s*\d+/.test(t0) || /^\s*NJ\s*\d+/.test(t1);
-          const isEn = /^\s*EN\s*\d+/.test(t0) || /^\s*EN\s*\d+/.test(t1);
-          const type = isNj ? "nightjet" : isEn ? "euronight" : null;
-          if (!type) return;
-
-          const overlay = buildOverlayFromBackOnTrackRoute(
-            route,
-            routeId,
-            botTrips,
-            stops,
-            type,
-            type === "nightjet" ? njIdx : enIdx,
-            type === "nightjet" ? NJ_COLORS : EN_COLORS,
-            normalizeStationNameForLookup,
-          );
-          if (!overlay) return;
-
-          if (type === "nightjet") {
-            njPlaceholders.push(overlay);
-            njIdx += 1;
-          } else {
-            enPlaceholders.push(overlay);
-            enIdx += 1;
-          }
-        });
-
-        // Only set placeholders if progressive reveal hasn't started yet.
-        // This prevents overwriting partially-revealed official routes.
-        if (
-          !progressiveRevealStartedRef.current &&
-          (njPlaceholders.length > 0 || enPlaceholders.length > 0)
-        ) {
-          placeholderActiveRef.current = true;
-          setAllNjRoutes(njPlaceholders);
-          setAllEnRoutes(enPlaceholders);
-          if (!filterStationRef.current) {
-            setNjOverlays(njPlaceholders);
-            setEnOverlays(enPlaceholders);
-          }
-        }
-      } catch (err) {
-        console.error(
-          "[useNightTrainData] Back-on-Track placeholder fetch failed:",
-          err,
-        );
-      }
-    })();
-  }, [stops, nightTrainsReady, normalizeStationNameForLookup]);
 
   const loadNightTrainsForStation = useCallback(
     (normalizedStationName, originalStationName = null) => {
