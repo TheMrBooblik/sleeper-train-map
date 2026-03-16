@@ -1,11 +1,16 @@
 // pages/api/nj-list.js
 // Lists cached Nightjet routes for a given date and optionally returns only the segments
 // starting at a provided station name. Uses cache from nj-train/nj-prewarm (.next/cache or /tmp on Vercel).
+//
+// FIX: Previously called nj-prewarm via HTTP to populate cache, but on Vercel each API route
+// runs in a separate serverless function with isolated /tmp. Now fetches and caches trains
+// in-process using shared fetchAndCacheTrains utility.
 
 import fs from "fs";
 import path from "path";
 import { discoverAllTrainNumbers } from "./lib/nj-discovery";
 import { getCacheDir, ensureDir as ensureDirHelper } from "./lib/cache-dir";
+import { fetchAndCacheTrains } from "./lib/train-fetcher";
 
 const CACHE_DIR = getCacheDir("nightjet");
 
@@ -87,7 +92,10 @@ export default async function handler(req, res) {
     ensureDir();
     let items = readItemsFromCache(CACHE_DIR, date, stationName || "");
 
-    // If no routes in cache (e.g. cold start), discover trains and prewarm cache, then re-read.
+    // If no routes in cache (e.g. Vercel cold start), discover trains and fetch them
+    // in-process. We can't HTTP-call nj-prewarm because on Vercel each API route is a
+    // separate serverless function with its own /tmp — files written by prewarm would
+    // be invisible to this function.
     const shouldDiscover = items.length === 0 || req.query.discover === "true";
 
     if (shouldDiscover) {
@@ -105,24 +113,22 @@ export default async function handler(req, res) {
           return !fs.existsSync(path.join(CACHE_DIR, cacheKey));
         });
 
+        // Fetch and cache uncached trains directly in this process
         if (uncachedTrains.length > 0) {
           try {
-            await fetch(
-              `${baseUrl}/api/nj-prewarm?max=${uncachedTrains.length}&date=${encodeURIComponent(date)}`,
-            );
+            await fetchAndCacheTrains(CACHE_DIR, uncachedTrains, date, {
+              operator: "Nightjet",
+              source: "nightjet-com",
+              concurrency: 6,
+            });
           } catch (err) {
-            console.error("[nj-list] Error calling nj-prewarm:", err);
+            console.error("[nj-list] Error fetching trains:", err);
           }
         }
 
         items = readItemsFromCache(CACHE_DIR, date, stationName || "");
       } catch (err) {
         console.error("[nj-list] Discovery error:", err);
-        try {
-          const url = `${req.headers["x-forwarded-proto"] ? req.headers["x-forwarded-proto"] : "http"}://${req.headers.host}/api/nj-prewarm?max=30&date=${encodeURIComponent(date)}`;
-          await fetch(url);
-        } catch {}
-        items = readItemsFromCache(CACHE_DIR, date, stationName || "");
       }
     }
 

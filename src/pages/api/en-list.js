@@ -1,9 +1,14 @@
 // pages/api/en-list.js
 // Lists cached EuroNight routes for a given date and optionally filters by station name (.next/cache or /tmp on Vercel)
+//
+// FIX: Previously called en-prewarm via HTTP to populate cache, but on Vercel each API route
+// runs in a separate serverless function with isolated /tmp. Now fetches and caches trains
+// in-process using shared fetchAndCacheTrains / fetchPartnerTrainNumbers utilities.
 
 import fs from 'fs'
 import path from 'path'
 import { getCacheDir, ensureDir as ensureDirHelper } from './lib/cache-dir'
+import { fetchAndCacheTrains, fetchPartnerTrainNumbers } from './lib/train-fetcher'
 
 const CACHE_DIR = getCacheDir('euronight')
 
@@ -70,40 +75,50 @@ export default async function handler(req, res) {
       } catch {}
     }
 
-    // Optional auto-prewarm if nothing cached yet (even with station filter, e.g. on Vercel /tmp cold start)
+    // If nothing cached yet (e.g. Vercel /tmp cold start), discover and fetch EuroNight
+    // trains directly in this process. We can't HTTP-call en-prewarm because on Vercel
+    // each API route is a separate serverless function with its own /tmp.
     if (items.length === 0) {
       try {
-        const url = `${req.headers['x-forwarded-proto'] ? req.headers['x-forwarded-proto'] : 'http'}://${req.headers.host}/api/en-prewarm?date=${encodeURIComponent(date)}`
-        await fetch(url)
-        let files2 = []
-        try {
-          files2 = fs.readdirSync(CACHE_DIR).filter(f => f.endsWith(`${date}.json`))
-        } catch {}
-        for (const f of files2) {
+        const trainNumbers = await fetchPartnerTrainNumbers(date)
+        if (trainNumbers.length > 0) {
+          await fetchAndCacheTrains(CACHE_DIR, trainNumbers, date, {
+            operator: 'EuroNight',
+            source: 'nightjet-com-train',
+            concurrency: 3,
+          })
+          // Re-read cache after in-process fetch
           try {
-            const p = path.join(CACHE_DIR, f)
-            const obj = JSON.parse(fs.readFileSync(p, 'utf8'))
-            if (!obj?.stations?.length) continue
-            let stations = obj.stations
-            if (stationName) {
-              const idx = stations.findIndex(s => matchName(stationName, s.name))
-              if (idx < 0) continue
+            const files2 = fs.readdirSync(CACHE_DIR).filter(f => f.endsWith(`${date}.json`))
+            for (const f of files2) {
+              try {
+                const p = path.join(CACHE_DIR, f)
+                const obj = JSON.parse(fs.readFileSync(p, 'utf8'))
+                if (!obj?.stations?.length) continue
+                let stations = obj.stations
+                if (stationName) {
+                  const idx = stations.findIndex(s => matchName(stationName, s.name))
+                  if (idx < 0) continue
+                }
+                const coords = stations
+                  .map((s) => [s?.location?.latitude, s?.location?.longitude])
+                  .filter((a) => Array.isArray(a) && Number.isFinite(a[0]) && Number.isFinite(a[1]))
+                items.push({
+                  key: `${obj.lineName}-${date}`,
+                  lineName: obj.lineName,
+                  operator: obj.operator || 'EuroNight',
+                  date,
+                  stations,
+                  coords,
+                  polyline: obj.polyline || null,
+                })
+              } catch {}
             }
-            const coords = stations
-              .map((s) => [s?.location?.latitude, s?.location?.longitude])
-              .filter((a) => Array.isArray(a) && Number.isFinite(a[0]) && Number.isFinite(a[1]))
-            items.push({
-              key: `${obj.lineName}-${date}`,
-              lineName: obj.lineName,
-              operator: obj.operator || 'EuroNight',
-              date,
-              stations,
-              coords,
-              polyline: obj.polyline || null,
-            })
           } catch {}
         }
-      } catch {}
+      } catch (err) {
+        console.error('[en-list] Error fetching trains:', err)
+      }
     }
 
     // CDN caches for 1 hour; serve stale while revalidating for up to 1 day
