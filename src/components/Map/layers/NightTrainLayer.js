@@ -71,16 +71,36 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
         return;
       }
 
+      // Pick the main station for the grouped marker's position. Try name-based
+      // keywords first (covers most European "main station" naming conventions),
+      // then fall back to route endpoints (first/last stop on a route).
       const mainStation =
         stationsInCity.find((station) => {
           const name = String(station.name || "").toLowerCase();
           return (
             name.includes("centraal") ||
             name.includes("central") ||
+            name.includes("centrale") ||
+            name.includes("centralna") ||
             name.includes("hbf") ||
-            name.includes("hauptbahnhof")
+            name.includes("hauptbahnhof") ||
+            name.includes("hlavní") ||
+            name.includes("hlavni") ||
+            name.includes("hl.n") ||
+            name.includes("główny") ||
+            name.includes("glowny") ||
+            name.includes("termini")
           );
-        }) || stationsInCity[0];
+        }) ||
+        stationsInCity.find((station) => {
+          const name = station?.name || station?.id;
+          if (!name) return false;
+          return (
+            endpointStations.has(name) ||
+            (station.id && endpointStations.has(station.id))
+          );
+        }) ||
+        stationsInCity[0];
 
       // If any station in the group is a route start/end, show the main marker as destination (endpoint).
       // Use matchStationNames so we match name variants (e.g. "Wien Hbf" vs "Wien Hauptbahnhof").
