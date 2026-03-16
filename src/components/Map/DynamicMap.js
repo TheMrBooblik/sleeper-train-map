@@ -145,10 +145,34 @@ const TrainMap = ({
     return filtered;
   }, [trips, nightTrainsReady]);
 
+  // When official NightJet/EuroNight data is loaded, filter cities to only keep
+  // route IDs present in effectiveViewMapData. Stations that ONLY had NJ/EN routes
+  // will have no remaining route IDs and won't render as Back-on-Track markers
+  // (the NightTrain layer already shows them with proper styling).
+  const effectiveCities = useMemo(() => {
+    if (!nightTrainsReady || !cities || !effectiveViewMapData) return cities;
+    const validRouteIds = new Set();
+    Object.values(effectiveViewMapData).forEach((route) => {
+      if (route?.route_id) validRouteIds.add(route.route_id.toString());
+    });
+    const filtered = {};
+    Object.entries(cities).forEach(([key, city]) => {
+      if (!city?.stop_route_ids) return;
+      const kept = city.stop_route_ids
+        .split(",")
+        .map((id) => id.trim())
+        .filter((id) => id && validRouteIds.has(id));
+      if (kept.length > 0) {
+        filtered[key] = { ...city, stop_route_ids: kept.join(",") };
+      }
+    });
+    return filtered;
+  }, [nightTrainsReady, cities, effectiveViewMapData]);
+
   const { routePaths } = useRoutePaths({
     viewMapData: effectiveViewMapData,
     stops,
-    cities,
+    cities: effectiveCities,
     trips: effectiveTrips,
     selected,
     stopId,
@@ -236,7 +260,7 @@ const TrainMap = ({
       setSelectedStationLat(filteredStop.stop_lat);
       setSelectedStationLon(filteredStop.stop_lon);
       const normalizedStopId = normalizeStationNameForLookup(stop_id);
-      const cityInfo = cities[normalizedStopId] || cities[stop_id];
+      const cityInfo = effectiveCities[normalizedStopId] || effectiveCities[stop_id];
       const filterName = normalizeStationNameForDisplay(stop_id);
       setSelectedStationName(filterName);
       setSelectedNormalizedName(normalizeStationNameForDisplay(stop_id));
@@ -248,7 +272,7 @@ const TrainMap = ({
           const allRouteIds = new Set();
           filteredStop.groupedStations.forEach((station) => {
             const n = normalizeStationNameForLookup(station.stop_id);
-            const info = cities[n] || cities[station.stop_id];
+            const info = effectiveCities[n] || effectiveCities[station.stop_id];
             if (info?.stop_route_ids) {
               info.stop_route_ids.split(",").forEach((id) => allRouteIds.add(id));
             }
@@ -261,7 +285,7 @@ const TrainMap = ({
         }
         setStopRouteIds(routeIdsArray);
 
-        const routeCities = Object.values(cities).filter((viewCity) => {
+        const routeCities = Object.values(effectiveCities).filter((viewCity) => {
           if (!viewCity?.stop_route_ids) return false;
           const arr = viewCity.stop_route_ids.split(",");
           return arr.some((id) => routeIdsArray.includes(id));
@@ -288,7 +312,7 @@ const TrainMap = ({
       }
     },
     [
-      cities,
+      effectiveCities,
       stops,
       setFilteredStops,
       stopId,
@@ -382,7 +406,7 @@ const TrainMap = ({
   const markers = useMapMarkers({
     filteredStops: routeFilterStops || filteredStops,
     stops,
-    cities,
+    cities: effectiveCities,
     viewMapData: effectiveViewMapData,
     selected,
     stopId,
@@ -407,7 +431,7 @@ const TrainMap = ({
 
     const grouped = groupCityMarkers(
       baseStops,
-      cities,
+      effectiveCities,
       true,
       normalizeStationNameForDisplay,
       normalizeStationNameForLookup,
@@ -426,7 +450,7 @@ const TrainMap = ({
     isGrouped,
     routeFilterStops,
     filteredStops,
-    cities,
+    effectiveCities,
     normalizeStationNameForDisplay,
     normalizeStationNameForLookup,
   ]);
