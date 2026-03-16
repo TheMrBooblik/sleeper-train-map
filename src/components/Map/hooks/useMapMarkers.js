@@ -29,6 +29,7 @@ export function useMapMarkers({
   handleMarkerClick,
   trips,
   nightTrainEndpointStations,
+  nightTrainCityNames,
 }) {
   const { defaultIcon, selectedIcon, viaIcon } = useMemo(
     () => createMapIcons(Leaflet),
@@ -95,13 +96,23 @@ export function useMapMarkers({
 
     if (!stopsToShow.length) return [];
 
-    const groupedStops = groupCityMarkers(
+    let groupedStops = groupCityMarkers(
       stopsToShow,
       cities,
       isGrouped,
       normalizeStationNameForDisplay,
       normalizeStationNameForLookup,
     );
+
+    // When NightTrain markers cover a city, hide the Back-on-Track marker
+    // for that city to avoid duplicates (NightTrain takes priority).
+    if (nightTrainCityNames && nightTrainCityNames.size > 0) {
+      groupedStops = groupedStops.filter((stop) => {
+        const raw = stop.displayName || stop.stop_id;
+        if (!raw) return true;
+        return !nightTrainCityNames.has(normalizeStationNameForDisplay(raw));
+      });
+    }
 
     const routeIdMap = new Map();
     const normalizedNameCache = new Map();
@@ -253,6 +264,7 @@ export function useMapMarkers({
     handleMarkerClick,
     trips,
     nightTrainEndpointStations,
+    nightTrainCityNames,
     defaultIcon,
     selectedIcon,
     viaIcon,

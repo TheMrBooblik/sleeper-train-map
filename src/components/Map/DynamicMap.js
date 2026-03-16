@@ -260,29 +260,63 @@ const TrainMap = ({
       setSelectedStationLat(filteredStop.stop_lat);
       setSelectedStationLon(filteredStop.stop_lon);
       const normalizedStopId = normalizeStationNameForLookup(stop_id);
-      const cityInfo = effectiveCities[normalizedStopId] || effectiveCities[stop_id];
+      // Direct key lookup first; fallback to fuzzy match when NightTrain names
+      // differ from Back-on-Track keys (e.g. "Wien Hbf" vs "Wien").
+      let cityInfo = effectiveCities[normalizedStopId] || effectiveCities[stop_id];
+      if (!cityInfo) {
+        const match = Object.entries(effectiveCities).find(([key]) =>
+          matchStationNamesBound(stop_id, key),
+        );
+        if (match) cityInfo = match[1];
+      }
       const filterName = normalizeStationNameForDisplay(stop_id);
       setSelectedStationName(filterName);
       setSelectedNormalizedName(normalizeStationNameForDisplay(stop_id));
 
+      // Aggregate routes from all effectiveCities entries in the same city group.
+      // This ensures clicking any marker (BoT grouped, BoT single, or NightTrain)
+      // always shows all routes for the city, not just one station's routes.
+      const allRouteIds = new Set();
+
+      // 1. Add from directly-found cityInfo
       if (cityInfo?.stop_route_ids) {
-        const { stop_route_ids } = cityInfo;
-        let routeIdsArray;
-        if (filteredStop.isGrouped && filteredStop.groupedStations) {
-          const allRouteIds = new Set();
-          filteredStop.groupedStations.forEach((station) => {
-            const n = normalizeStationNameForLookup(station.stop_id);
-            const info = effectiveCities[n] || effectiveCities[station.stop_id];
-            if (info?.stop_route_ids) {
-              info.stop_route_ids.split(",").forEach((id) => allRouteIds.add(id));
-            }
-          });
-          routeIdsArray = Array.from(allRouteIds);
-        } else {
-          routeIdsArray = Array.from(
-            new Set(stop_route_ids.split(",").filter(Boolean)),
-          );
-        }
+        cityInfo.stop_route_ids.split(",").forEach((id) => {
+          const t = id.trim();
+          if (t) allRouteIds.add(t);
+        });
+      }
+
+      // 2. Add from BoT grouped stations on the marker (when available)
+      if (filteredStop.isGrouped && filteredStop.groupedStations) {
+        filteredStop.groupedStations.forEach((station) => {
+          const n = normalizeStationNameForLookup(station.stop_id);
+          const info = effectiveCities[n] || effectiveCities[station.stop_id];
+          if (info?.stop_route_ids) {
+            info.stop_route_ids.split(",").forEach((id) => {
+              const t = id.trim();
+              if (t) allRouteIds.add(t);
+            });
+          }
+        });
+      }
+
+      // 3. Find other effectiveCities entries with the same display city name.
+      //    Handles NightTrain markers (which lose grouping info) and ensures
+      //    all sub-stations of a city (e.g. "Wien", "Wien Meidling") contribute.
+      if (filterName) {
+        Object.entries(effectiveCities).forEach(([key, city]) => {
+          if (!city?.stop_route_ids) return;
+          if (normalizeStationNameForDisplay(key) === filterName) {
+            city.stop_route_ids.split(",").forEach((id) => {
+              const t = id.trim();
+              if (t) allRouteIds.add(t);
+            });
+          }
+        });
+      }
+
+      const routeIdsArray = Array.from(allRouteIds);
+      if (routeIdsArray.length > 0) {
         setStopRouteIds(routeIdsArray);
 
         const routeCities = Object.values(effectiveCities).filter((viewCity) => {
@@ -403,6 +437,38 @@ const TrainMap = ({
     return endpointSet;
   }, [allNjRoutes, allEnRoutes, normalizeStationNameForDisplay]);
 
+  // When NightTrain data is loaded and grouping is on, compute the set of city
+  // names covered by NightTrain station markers. Back-on-Track markers for these
+  // cities are hidden to avoid duplicates (NightTrain markers take priority
+  // because they carry richer route info from the official NJ/EN APIs).
+  const nightTrainCityNames = useMemo(() => {
+    if (!isGrouped || !nightTrainsReady) return null;
+
+    // Use the same stations that NightTrainStationMarkers will render.
+    const stations = [
+      ...(selected ? filteredNjStations : allNjRoutes.flatMap((r) => r.stations || [])),
+      ...(selected ? filteredEnStations : allEnRoutes.flatMap((r) => r.stations || [])),
+    ];
+    if (!stations.length) return null;
+
+    const set = new Set();
+    stations.forEach((s) => {
+      const name = s?.name || s?.id;
+      if (!name) return;
+      const displayName = normalizeStationNameForDisplay(name);
+      if (displayName) set.add(displayName);
+    });
+    return set.size > 0 ? set : null;
+  }, [
+    isGrouped,
+    nightTrainsReady,
+    selected,
+    filteredNjStations,
+    filteredEnStations,
+    allNjRoutes,
+    allEnRoutes,
+  ]);
+
   const markers = useMapMarkers({
     filteredStops: routeFilterStops || filteredStops,
     stops,
@@ -419,41 +485,8 @@ const TrainMap = ({
     handleMarkerClick,
     trips: effectiveTrips,
     nightTrainEndpointStations,
+    nightTrainCityNames,
   });
-
-  // When city grouping is enabled, compute the set of Back-on-Track city names
-  // (using the same grouping heuristic as useMapMarkers) so we can avoid
-  // drawing duplicate NightJet/EuroNight markers for the same city.
-  const backOnTrackCityNames = useMemo(() => {
-    if (!isGrouped) return null;
-    const baseStops = routeFilterStops || filteredStops;
-    if (!baseStops?.length || !cities) return null;
-
-    const grouped = groupCityMarkers(
-      baseStops,
-      effectiveCities,
-      true,
-      normalizeStationNameForDisplay,
-      normalizeStationNameForLookup,
-    );
-    if (!grouped.length) return null;
-
-    const set = new Set();
-    grouped.forEach((stop) => {
-      const raw = stop.displayName || stop.stop_id;
-      if (!raw) return;
-      const normalized = normalizeStationNameForDisplay(raw);
-      if (normalized) set.add(normalized);
-    });
-    return set;
-  }, [
-    isGrouped,
-    routeFilterStops,
-    filteredStops,
-    effectiveCities,
-    normalizeStationNameForDisplay,
-    normalizeStationNameForLookup,
-  ]);
 
   const overallLoading = initialDataLoading;
 
@@ -703,7 +736,7 @@ const TrainMap = ({
             stations={selected ? filteredNjStations : njStationsFromRoutes}
             endpointStations={nightTrainEndpointStations}
             hideIntermediateStations={hideIntermediateStations}
-            backOnTrackCityNames={backOnTrackCityNames}
+            backOnTrackCityNames={null}
             isGrouped={isGrouped}
             stationKeyPrefix="nj-all-station"
             markerClassName="nj-station-marker"
@@ -734,7 +767,7 @@ const TrainMap = ({
             stations={selected ? filteredEnStations : enStationsFromRoutes}
             endpointStations={nightTrainEndpointStations}
             hideIntermediateStations={hideIntermediateStations}
-            backOnTrackCityNames={backOnTrackCityNames}
+            backOnTrackCityNames={null}
             isGrouped={isGrouped}
             stationKeyPrefix="en-all-station"
             markerClassName="en-station-marker"
