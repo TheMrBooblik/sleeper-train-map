@@ -5,7 +5,7 @@
     "154": {
       "route_name": "Kharkiv - Odesa Holovna",
       "train_number": "007 O/059 O = 008 Š/060 Š",
-      "stops": [    
+      "stops": [
         {
           "name": "Kharkiv"
         },
@@ -14,25 +14,25 @@
         },
         {
           "name": "Kremenchuk"
-        }, 
+        },
         {
           "name": "Znamianka-Pas."
-        },  
+        },
         {
-          "name": "Kropyvnyts'kyi"
+          "name": "Kropyvnytskyi"
         },
         {
           "name": "Voznesens'k"
-        },            
+        },
         {
           "name": "Odesa-Holovna"
-        }                             
+        }
       ]
     },
     "162": {
       "route_name": "Kharkiv - Uzhhorod",
       "train_number": "1",
-      "stops": [    
+      "stops": [
         {
           "name": "Kharkiv"
         },
@@ -41,7 +41,7 @@
         },
         {
           "name": "Myrhorod"
-        },        
+        },
         {
           "name": "Lubny"
         },
@@ -51,18 +51,18 @@
         {
           "name": "Lviv"
         },
-         {
+        {
           "name": "Stryj"
-        },        
+        },
         {
           "name": "Uzhhorod"
-        }                                        
+        }
       ]
-    },     
+    },
     "164": {
       "route_name": "Kharkiv - Vorokhta",
       "train_number": "1",
-      "stops": [    
+      "stops": [
         {
           "name": "Kharkiv"
         },
@@ -71,25 +71,25 @@
         },
         {
           "name": "Myrhorod"
-        },        
+        },
         {
           "name": "Lubny"
         },
         {
           "name": "Kyiv Pasazhyrskyi"
-        }, 
+        },
         {
           "name": "Lviv"
         },
         {
           "name": "Ivano-Frankivsk"
-        }                                        
+        }
       ]
     },
     "178": {
       "route_name": "Ivano-Frankivsk - Cherkasy",
       "train_number": "043 L = 043 Š",
-      "stops": [    
+      "stops": [
         {
           "name": "Ivano-Frankivsk"
         },
@@ -98,24 +98,24 @@
         },
         {
           "name": "Dolyna"
-        },        
+        },
         {
           "name": "Stryj"
-        },        
+        },
         {
           "name": "Lviv"
         },
         {
           "name": "Kyiv Pasazhyrskyi"
-        }, 
+        },
         {
           "name": "Im.tarasa Shevchenka"
         },
         {
           "name": "Cherkasy"
-        }                                        
+        }
       ]
-    },     
+    },
     "180": {
       "route_name": "Kyiv - Kamianets-Podilskyi",
       "train_number": "139 = 140",
@@ -151,16 +151,16 @@
           "name": "Hrechany"
         },
         {
-           "name": "Yarmolyntsi" 
+          "name": "Yarmolyntsi"
         },
         {
-           "name": "Dunaivtsi" 
-        },        
+          "name": "Dunaivtsi"
+        },
         {
-           "name": "Balyn" 
-        },                
+          "name": "Balyn"
+        },
         {
-           "name": "Kamianets-Podilskyi"
+          "name": "Kamianets-Podilskyi"
         }
       ]
     },
@@ -196,11 +196,11 @@
           "name": "Truskavets"
         }
       ]
-    },    
+    },
     "191": {
       "route_name": "Lviv - Odesa Holovna",
       "train_number": "012 L = 012 Š",
-      "stops": [    
+      "stops": [
         {
           "name": "Lviv"
         },
@@ -209,22 +209,22 @@
         },
         {
           "name": "Ternopil"
-        }, 
+        },
         {
           "name": "Khmelnytskyi"
-        },  
+        },
         {
           "name": "Zhmerynka"
         },
         {
           "name": "Odesa-Holovna"
-        }                             
+        }
       ]
     },
     "209": {
       "route_name": "Kovel - Zaporizhia",
       "train_number": "088 L = 088 P",
-      "stops": [    
+      "stops": [
         {
           "name": "Kovel"
         },
@@ -236,13 +236,13 @@
         },
         {
           "name": "Zdolbuniv"
-        },         
+        },
         {
           "name": "Shepetivka"
         },
         {
           "name": "Berdychiv"
-        },           
+        },
         {
           "name": "Koziatyn I"
         },
@@ -251,22 +251,22 @@
         },
         {
           "name": "Im.tarasa Shevchenka"
-        },  
+        },
         {
           "name": "Oleksandriia"
         },
         {
           "name": "Dnipro-Holovnyi"
-        },                                
+        },
         {
           "name": "Zaporizhia"
-        }                             
+        }
       ]
     },
     "222": {
       "route_name": "Kovel - Odesa Holovna",
       "train_number": "088 L = 088 Š",
-      "stops": [    
+      "stops": [
         {
           "name": "Kovel"
         },
@@ -278,13 +278,13 @@
         },
         {
           "name": "Zdolbuniv"
-        },         
+        },
         {
           "name": "Shepetivka"
         },
         {
           "name": "Berdychiv"
-        },   
+        },
         {
           "name": "Koziatyn I"
         },
@@ -293,17 +293,17 @@
         },
         {
           "name": "Zhmerynka"
-        },  
+        },
         {
           "name": "Kodyma"
         },
         {
           "name": "Podilsk"
-        },                                
+        },
         {
           "name": "Odesa Holovna"
-        }                             
+        }
       ]
-    }    
-  }  
+    }
+  }
 }
