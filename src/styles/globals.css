@@ -105,6 +105,10 @@ img {
  * This modifier grows the button into a horizontal pill only from 1280px up.
  */
 @media (min-width: 1280px) {
+  .icon-toggle-button[data-tooltip]::after {
+    content: none;
+  }
+
   .icon-toggle-button--labeled {
     width: auto;
     min-width: 2rem;
@@ -120,10 +124,7 @@ img {
     flex-shrink: 0;
   }
 
-  /* Label is visible; hover tooltip would duplicate and look messy. */
-  .icon-toggle-button--labeled[data-tooltip]::after {
-    content: none;
-  }
+  /* Desktop labels are visible, so all header tooltips stay off. */
 }
 
 /* Lightweight tooltip for icon-only controls. */
@@ -156,6 +157,16 @@ img {
 @media (max-width: 1279px) {
   .icon-toggle-button--show-tooltip-mobile[data-tooltip]::after {
     opacity: 1;
+  }
+}
+
+/* Keep desktop clean: labels are visible, so tooltips must stay off. */
+@media (min-width: 1280px) {
+  .icon-toggle-button[data-tooltip]::after,
+  .icon-toggle-button:hover[data-tooltip]::after,
+  .icon-toggle-button:focus-visible[data-tooltip]::after {
+    content: none !important;
+    opacity: 0 !important;
   }
 }
 

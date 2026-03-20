@@ -26,7 +26,6 @@ const IconToggleButton = ({
     }`}
     aria-label={ariaLabel || label}
     data-tooltip={ariaLabel || label}
-    title={ariaLabel || label}
   >
     {icon}
     <span className="hidden min-[1280px]:inline text-xs font-medium leading-none whitespace-nowrap">
@@ -127,7 +126,6 @@ const Header = ({
             }`}
             aria-label="Open info"
             data-tooltip="Open info"
-            title="Open info"
           >
             <FaInfo size={14} />
           </button>
