@@ -205,7 +205,16 @@ export function useMapMarkers({
             }}
           >
             {/* Same tooltip pattern as night-train stations: name only (no route-specific times for Back-on-Track markers) */}
-            <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+            <Tooltip
+              direction="top"
+              offset={[0, -10]}
+              opacity={1}
+              // Avoid tooltips getting "stuck" when the pointer leaves the marker.
+              // Leaflet keeps the tooltip visible longer when it is interactive/sticky.
+              interactive={false}
+              sticky={false}
+              permanent={false}
+            >
               <StationTooltipContent
                 name={filteredStop.displayName || stop_id}
                 showTimes={false}

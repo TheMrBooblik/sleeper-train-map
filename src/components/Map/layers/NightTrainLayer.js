@@ -192,6 +192,9 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
           offset={[0, -10]}
           opacity={1}
           permanent={false}
+          // Avoid tooltips getting "stuck" when the pointer leaves the marker.
+          interactive={false}
+          sticky={false}
         >
           <StationTooltipContent
             name={s.displayName || s.name}
@@ -298,7 +301,15 @@ export const NightTrainPolylines = memo(function NightTrainPolylines({
                 }}
               >
                 {/* Route stations: name always; Dep/Arr only when specific route selected */}
-                <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+                <Tooltip
+                  direction="top"
+                  offset={[0, -10]}
+                  opacity={1}
+                  permanent={false}
+                  // Avoid tooltips getting "stuck" when the pointer leaves the marker.
+                  interactive={false}
+                  sticky={false}
+                >
                   <StationTooltipContent
                     name={s.name}
                     departure={s.departure}
