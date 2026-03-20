@@ -9,6 +9,7 @@ import {
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
   checkZemplinBratislavaHumenne,
+  checkENHumennePraha,
   isRegioJetRoute,
   REGIOJET_COLOR,
   ZEMPLIN_COLOR,
@@ -150,6 +151,8 @@ export function buildAllRoutesPaths({
       osmRelationId = "static:rj1038";
     } else if (checkZemplinBratislavaHumenne(route)) {
       osmRelationId = "static:zemplin";
+    } else if (checkENHumennePraha(route)) {
+      osmRelationId = "static:enHumenne";
     }
 
     // RegioJet routes use their brand color instead of the default palette

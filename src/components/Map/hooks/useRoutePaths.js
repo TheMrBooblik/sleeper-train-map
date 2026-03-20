@@ -8,6 +8,7 @@ import {
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
   checkZemplinBratislavaHumenne,
+  checkENHumennePraha,
   isRegioJetRoute,
   REGIOJET_COLOR,
   ZEMPLIN_COLOR,
@@ -214,6 +215,8 @@ export function useRoutePaths({
         osmRelationId = "static:rj1038";
       } else if (checkZemplinBratislavaHumenne(route)) {
         osmRelationId = "static:zemplin";
+      } else if (checkENHumennePraha(route)) {
+        osmRelationId = "static:enHumenne";
       }
 
       // RegioJet routes use their brand color instead of the default palette
@@ -315,6 +318,9 @@ export function useRoutePaths({
       }
       if (checkZemplinBratislavaHumenne(route)) {
         polylineKeysToFetch.add("static:zemplin");
+      }
+      if (checkENHumennePraha(route)) {
+        polylineKeysToFetch.add("static:enHumenne");
       }
     });
     polylineKeysToFetch.forEach(async (key) => {
