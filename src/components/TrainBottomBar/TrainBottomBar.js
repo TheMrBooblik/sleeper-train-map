@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback } from "react";
 import { useViewMap } from "../../hooks/requests/useViewMap";
 import { useTrips } from "../../hooks/requests/useTrips";
 import { ROUTE_COLORS } from "../Map/constants";
@@ -16,7 +16,6 @@ const TrainBottomBar = ({
   stopId,
   stopRouteIds,
   selectedNormalizedName,
-  nightTrainRoutes = [],
   isDetailPanelOpen = false,
 }) => {
   const { viewMapData } = useViewMap();
@@ -75,38 +74,13 @@ const TrainBottomBar = ({
       })
     : [];
 
-  // Deduplicate NightJet/EuroNight by normalized origin–destination (and type).
-  // Keep hook usage unconditional (must run on every render).
-  const deduplicatedNightTrainRoutes = useMemo(() => {
-    if (!Array.isArray(nightTrainRoutes) || nightTrainRoutes.length === 0)
-      return [];
-    const seen = new Map();
-    nightTrainRoutes.forEach((route) => {
-      const o =
-        normalizeStationNameForDisplay(route.origin) ||
-        route.origin ||
-        "";
-      const d =
-        normalizeStationNameForDisplay(route.destination) ||
-        route.destination ||
-        "";
-      const key = `${route.type}:${[o, d].sort().join("-")}`;
-      if (!seen.has(key)) {
-        seen.set(key, route);
-      }
-    });
-    return Array.from(seen.values());
-  }, [nightTrainRoutes]);
-
   if (sidebarDisabled) return null;
   // Hide when train detail panel is open
   if (isDetailPanelOpen) return null;
-  // Show bar when we have Back-on-Track routes or NightJet/EuroNight routes for this station
+  // Show bar when we have Back-on-Track routes for this station
   const hasBackOnTrackRoutes =
     !!stopRouteIds?.length && filteredViewMapData?.length > 0;
-  const hasNightTrainRoutes =
-    Array.isArray(nightTrainRoutes) && nightTrainRoutes.length > 0;
-  if (!hasBackOnTrackRoutes && !hasNightTrainRoutes) return null;
+  if (!hasBackOnTrackRoutes) return null;
 
   // Group routes by origin-destination to avoid duplicates
   // Store route_id to determine color
@@ -190,27 +164,6 @@ const TrainBottomBar = ({
                 &nbsp;-&nbsp;
                 {route.viaText ? <span>({route.viaText})</span> : null}
                 {route.viaText && <>&nbsp;-&nbsp;</>}
-                <strong>{route.destination}</strong>
-              </div>
-            </div>
-          );
-        })}
-        {/* NightJet and EuroNight routes */}
-        {deduplicatedNightTrainRoutes.map((route, index) => {
-          const label = route.type === "nightjet" ? "NightJet" : "EuroNight";
-          return (
-            <div
-              className="relative flex items-center pl-2 pr-3 whitespace-nowrap text-sm"
-              key={`night-${route.type}-${index}`}
-            >
-              <div
-                className="absolute left-0 top-0.5 bottom-0.5 w-1 rounded shrink-0"
-                style={{ backgroundColor: route.color }}
-              />
-              <div className="flex items-center">
-                <span className="text-gray-500 text-xs mr-1">{label}</span>
-                <strong>{route.origin}</strong>
-                &nbsp;-&nbsp;
                 <strong>{route.destination}</strong>
               </div>
             </div>

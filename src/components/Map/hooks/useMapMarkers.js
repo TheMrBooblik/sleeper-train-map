@@ -7,7 +7,6 @@ import { groupCityMarkers } from "../utils/groupCityMarkers";
 import { StationTooltipContent } from "../utils/stationTooltip";
 import { shouldHideRouteDueToFutureDate } from "../utils/routeStyleUtils";
 import { createMapIcons } from "../utils/mapIcons";
-import { matchStationNames } from "../utils/stationNameUtils";
 
 /**
  * Hook: builds Back-on-Track station markers (grouped or not, with correct icons).
@@ -28,8 +27,6 @@ export function useMapMarkers({
   normalizeStationNameForDisplay,
   handleMarkerClick,
   trips,
-  nightTrainEndpointStations,
-  nightTrainCityNames,
 }) {
   const { defaultIcon, selectedIcon, viaIcon } = useMemo(
     () => createMapIcons(Leaflet),
@@ -104,16 +101,6 @@ export function useMapMarkers({
       normalizeStationNameForLookup,
     );
 
-    // When NightTrain markers cover a city, hide the Back-on-Track marker
-    // for that city to avoid duplicates (NightTrain takes priority).
-    if (nightTrainCityNames && nightTrainCityNames.size > 0) {
-      groupedStops = groupedStops.filter((stop) => {
-        const raw = stop.displayName || stop.stop_id;
-        if (!raw) return true;
-        return !nightTrainCityNames.has(normalizeStationNameForDisplay(raw));
-      });
-    }
-
     const routeIdMap = new Map();
     const normalizedNameCache = new Map();
     if (selected && stopRouteIds?.length > 0 && viewMapData) {
@@ -187,29 +174,9 @@ export function useMapMarkers({
           isViaStationForFilteredRoutes = !isOriginOrDestination;
         }
 
-        // If this station is a NightJet/EuroNight endpoint (route starts or ends there),
-        // show as destination (blue) even when it's only a via for Back-on-Track.
-        // Include displayName (e.g. "Brussels") so grouped Back-on-Track markers match normalized endpoint names.
-        const stationNamesToCheck =
-          filteredStop.isGrouped && filteredStop.groupedStations
-            ? [
-                ...filteredStop.groupedStations.map((s) => s.stop_id),
-                filteredStop.displayName,
-              ].filter(Boolean)
-            : [stop_id, filteredStop.displayName].filter(Boolean);
-        const isNightTrainEndpoint =
-          nightTrainEndpointStations?.size > 0 &&
-          stationNamesToCheck.some(
-            (name) =>
-              nightTrainEndpointStations.has(name) ||
-              Array.from(nightTrainEndpointStations).some((ep) =>
-                matchStationNames(name, ep, normalizeStationNameForLookup),
-              ),
-          );
-
         let iconToUse = defaultIcon;
         if (isSelected) iconToUse = selectedIcon;
-        else if (isViaStationForFilteredRoutes && !isNightTrainEndpoint) iconToUse = viaIcon;
+        else if (isViaStationForFilteredRoutes) iconToUse = viaIcon;
 
         if (filteredStop.isGrouped) {
           const bgGradient = isSelected
@@ -263,8 +230,6 @@ export function useMapMarkers({
     normalizeStationNameForDisplay,
     handleMarkerClick,
     trips,
-    nightTrainEndpointStations,
-    nightTrainCityNames,
     defaultIcon,
     selectedIcon,
     viaIcon,

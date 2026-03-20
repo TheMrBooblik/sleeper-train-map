@@ -72,16 +72,16 @@ export default async function handler(req, res) {
     }
 
     // Enrich with manual UZ data if available
-    try {
-      if (type === "stops") {
-        jsonData = await enrichStopsData(jsonData);
-      } else if (type === "view_ontd_map") {
-        jsonData = await enrichRoutesData(jsonData);
-      }
-    } catch (enrichError) {
-      console.error("[API] Error enriching data:", enrichError);
-      // Continue with non-enriched data
-    }
+    // try {
+    //   if (type === "stops") {
+    //     jsonData = await enrichStopsData(jsonData);
+    //   } else if (type === "view_ontd_map") {
+    //     jsonData = await enrichRoutesData(jsonData);
+    //   }
+    // } catch (enrichError) {
+    //   console.error("[API] Error enriching data:", enrichError);
+    //   // Continue with non-enriched data
+    // }
 
     // CDN caches for 1 hour; serve stale while revalidating for up to 1 day.
     // This means only ~1 serverless invocation per hour per type, worldwide.
