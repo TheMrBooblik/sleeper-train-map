@@ -27,6 +27,7 @@ export function useMapMarkers({
   normalizeStationNameForDisplay,
   handleMarkerClick,
   trips,
+  routeFilteredMode = false,
 }) {
   const { defaultIcon, selectedIcon, viaIcon } = useMemo(
     () => createMapIcons(Leaflet),
@@ -72,13 +73,16 @@ export function useMapMarkers({
       stopsToShow = filteredStops;
     }
 
-    // Only show stations that have at least one route (in cities with stop_route_ids).
-    stopsToShow = stopsToShow.filter((stop) => {
-      if (!stop?.stop_id) return false;
-      const n = normalizeStationNameForLookup(stop.stop_id);
-      const cityInfo = cities[n] || cities[stop.stop_id];
-      return !!(cityInfo?.stop_route_ids);
-    });
+    // In normal mode, show only stations that have at least one BoT route.
+    // In route-filter mode, allow GTFS-derived stations even when city metadata is missing.
+    if (!routeFilteredMode) {
+      stopsToShow = stopsToShow.filter((stop) => {
+        if (!stop?.stop_id) return false;
+        const n = normalizeStationNameForLookup(stop.stop_id);
+        const cityInfo = cities[n] || cities[stop.stop_id];
+        return !!(cityInfo?.stop_route_ids);
+      });
+    }
 
     const skipSet = new Set();
     stationsToSkip.forEach((name) => {
@@ -93,10 +97,12 @@ export function useMapMarkers({
 
     if (!stopsToShow.length) return [];
 
+    // GTFS route-filter markers may not exist in Back-on-Track city metadata.
+    // Keep them visible by disabling city-grouping in this mode.
     let groupedStops = groupCityMarkers(
       stopsToShow,
       cities,
-      isGrouped,
+      routeFilteredMode ? false : isGrouped,
       normalizeStationNameForDisplay,
       normalizeStationNameForLookup,
     );
@@ -129,17 +135,23 @@ export function useMapMarkers({
         const cityInfo = cities[normalizedStopId] || cities[stop_id];
         const { stop_route_ids } = cityInfo || {};
 
-        if (!stopLat || !stopLon || !stop_route_ids || !cityInfo) return null;
+        if (!stopLat || !stopLon) return null;
+        if (!routeFilteredMode && (!stop_route_ids || !cityInfo)) return null;
 
-        if (selected && stopRouteIds?.length > 0) {
-          const stationRouteIds = stop_route_ids.split(",").map((id) => id.trim()).filter(Boolean);
+        // This filter is Back-on-Track specific (requires city.stop_route_ids).
+        // In routeFilteredMode we may render GTFS-only stations without this field.
+        if (!routeFilteredMode && selected && stopRouteIds?.length > 0) {
+          const stationRouteIds = (stop_route_ids || "")
+            .split(",")
+            .map((id) => id.trim())
+            .filter(Boolean);
           const isPartOfSelectedRoutes = stationRouteIds.some((id) =>
             stopRouteIds.includes(id),
           );
           if (!isPartOfSelectedRoutes) return null;
         }
 
-        let isViaStationForFilteredRoutes = cityInfo.isViaStation;
+        let isViaStationForFilteredRoutes = !!cityInfo?.isViaStation;
         if (
           selected &&
           stopRouteIds?.length > 0 &&
@@ -239,6 +251,7 @@ export function useMapMarkers({
     normalizeStationNameForDisplay,
     handleMarkerClick,
     trips,
+    routeFilteredMode,
     defaultIcon,
     selectedIcon,
     viaIcon,

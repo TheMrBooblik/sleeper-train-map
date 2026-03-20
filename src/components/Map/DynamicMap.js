@@ -24,7 +24,11 @@ import LocationControl from "@components/LocationControl";
 import { stationsToSkip } from "../../data/stationsToSkip";
 
 import { normalizeStationNameForDisplay, matchStationNames } from "./utils/stationNameUtils";
-import { shouldHideRouteDueToFutureDate } from "./utils/routeStyleUtils";
+import {
+  shouldHideRouteDueToFutureDate,
+  checkRegioJetPrahaChop,
+  checkRegioJetPrahaPrzemysl,
+} from "./utils/routeStyleUtils";
 import { useRoutePaths } from "./hooks/useRoutePaths";
 import { useMapMarkers } from "./hooks/useMapMarkers";
 import LoadingOverlay from "./components/LoadingOverlay";
@@ -73,6 +77,8 @@ const TrainMap = ({
   const [selectedStationLon, setSelectedStationLon] = useState(null);
   const [selectedTrainRouteIds, setSelectedTrainRouteIds] = useState([]);
   const [isTrainDetailPanelOpen, setIsTrainDetailPanelOpen] = useState(false);
+  const [gtfsRouteFilterStops, setGtfsRouteFilterStops] = useState(null);
+  const gtfsStopsCacheRef = useRef(new Map());
 
   const { routePaths } = useRoutePaths({
     viewMapData,
@@ -295,8 +301,78 @@ const TrainMap = ({
     return result.length > 0 ? result : null;
   }, [hasRouteFilter, selectedTrainRouteIds, viewMapData, stops, normalizeStationNameForLookup]);
 
+  // For selected RegioJet routes, use GTFS timetable stops as marker source.
+  // This keeps map stations aligned with GTFS details while preserving BoT fallback.
+  useEffect(() => {
+    if (!hasRouteFilter || !viewMapData) {
+      setGtfsRouteFilterStops(null);
+      return;
+    }
+
+    const activeId = String(selectedTrainRouteIds[0]);
+    const activeRoute = Object.values(viewMapData).find(
+      (r) => r?.route_id?.toString() === activeId,
+    );
+    if (!activeRoute) {
+      setGtfsRouteFilterStops(null);
+      return;
+    }
+
+    let filePath = null;
+    if (checkRegioJetPrahaChop(activeRoute)) {
+      filePath = "/data/gtfs/rjChopTimetable.json";
+    } else if (checkRegioJetPrahaPrzemysl(activeRoute)) {
+      filePath = "/data/gtfs/rjPremyslTimetable.json";
+    }
+
+    if (!filePath) {
+      setGtfsRouteFilterStops(null);
+      return;
+    }
+
+    let cancelled = false;
+    const buildStopsFromGtfs = (json) => {
+      const unique = new Map();
+      (json?.trips || []).forEach((trip) => {
+        (trip?.stops || []).forEach((stop) => {
+          const key = `${stop.stopId || stop.name}-${stop.lat}-${stop.lon}`;
+          if (!unique.has(key) && stop?.name && stop?.lat && stop?.lon) {
+            unique.set(key, {
+              stop_id: stop.name,
+              stop_lat: stop.lat,
+              stop_lon: stop.lon,
+            });
+          }
+        });
+      });
+      return Array.from(unique.values());
+    };
+
+    const loadGtfsStops = async () => {
+      try {
+        if (gtfsStopsCacheRef.current.has(filePath)) {
+          setGtfsRouteFilterStops(gtfsStopsCacheRef.current.get(filePath));
+          return;
+        }
+        const response = await fetch(filePath);
+        if (!response.ok) throw new Error(`Failed to load ${filePath}`);
+        const json = await response.json();
+        const mapped = buildStopsFromGtfs(json);
+        gtfsStopsCacheRef.current.set(filePath, mapped);
+        if (!cancelled) setGtfsRouteFilterStops(mapped);
+      } catch {
+        if (!cancelled) setGtfsRouteFilterStops(null);
+      }
+    };
+
+    loadGtfsStops();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasRouteFilter, selectedTrainRouteIds, viewMapData]);
+
   const markers = useMapMarkers({
-    filteredStops: routeFilterStops || filteredStops,
+    filteredStops: gtfsRouteFilterStops || routeFilterStops || filteredStops,
     stops,
     cities,
     viewMapData,
@@ -310,6 +386,7 @@ const TrainMap = ({
     normalizeStationNameForDisplay,
     handleMarkerClick,
     trips,
+    routeFilteredMode: hasRouteFilter,
   });
 
   const overallLoading = initialDataLoading;
