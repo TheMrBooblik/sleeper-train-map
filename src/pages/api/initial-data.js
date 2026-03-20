@@ -30,7 +30,9 @@ function filterTrips(data) {
   const filtered = {};
   Object.entries(data || {}).forEach(([key, trip]) => {
     const tripName = (
-      trip?.trip_short_name || trip?.route_short_name || ""
+      trip?.trip_short_name ||
+      trip?.route_short_name ||
+      ""
     ).toString();
     const isT4y = isTrain4you(trip, tripName);
     if (!isT4y) {
@@ -74,16 +76,16 @@ export default async function handler(req, res) {
     // Enrich with manual UZ data (same as /api/trains)
     let stops = rawStops;
     let viewMap = filteredViewMap;
-    try {
-      stops = await enrichStopsData(rawStops);
-    } catch (err) {
-      console.error("[initial-data] Error enriching stops:", err);
-    }
-    try {
-      viewMap = await enrichRoutesData(filteredViewMap);
-    } catch (err) {
-      console.error("[initial-data] Error enriching viewMap:", err);
-    }
+    // try {
+    //   stops = await enrichStopsData(rawStops);
+    // } catch (err) {
+    //   console.error("[initial-data] Error enriching stops:", err);
+    // }
+    // try {
+    //   viewMap = await enrichRoutesData(filteredViewMap);
+    // } catch (err) {
+    //   console.error("[initial-data] Error enriching viewMap:", err);
+    // }
 
     // CDN caches for 1 hour; serve stale while revalidating for up to 1 day
     res.setHeader(
