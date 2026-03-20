@@ -2,7 +2,6 @@
 // Combined endpoint: returns stops + viewMap + trips in one response.
 // Vercel CDN caches this for 1 hour so only ~1 serverless invocation per hour worldwide.
 
-import { enrichStopsData, enrichRoutesData } from "../../lib/uzDataEnricher";
 import { isTrain4you } from "../../lib/trainOperatorsFilter";
 
 const BASE_URL =
@@ -73,19 +72,8 @@ export default async function handler(req, res) {
     const filteredTrips = filterTrips(rawTrips);
     const filteredViewMap = filterViewMap(rawViewMap);
 
-    // Enrich with manual UZ data (same as /api/trains)
     let stops = rawStops;
     let viewMap = filteredViewMap;
-    // try {
-    //   stops = await enrichStopsData(rawStops);
-    // } catch (err) {
-    //   console.error("[initial-data] Error enriching stops:", err);
-    // }
-    // try {
-    //   viewMap = await enrichRoutesData(filteredViewMap);
-    // } catch (err) {
-    //   console.error("[initial-data] Error enriching viewMap:", err);
-    // }
 
     // CDN caches for 1 hour; serve stale while revalidating for up to 1 day
     res.setHeader(
