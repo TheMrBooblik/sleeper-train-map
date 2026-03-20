@@ -98,10 +98,16 @@ function matchesEndpoint(stopName, tripEndpoint) {
   return a.includes(b) || b.includes(a);
 }
 
-const TrainDetailPanel = ({ isOpen, onClose, selectedRouteIds }) => {
+const TrainDetailPanel = ({
+  isOpen,
+  onClose,
+  selectedRouteIds,
+  tripsData,
+}) => {
   const { agencies } = useAgencies();
   const { routes, isLoading: routesLoading } = useRoutes();
-  const { trips, isLoading: tripsLoading } = useTrips();
+  const { trips: fetchedTrips, isLoading: tripsLoading } = useTrips();
+  const trips = tripsData || fetchedTrips;
   const [gtfsTimetableData, setGtfsTimetableData] = useState(null);
   const [gtfsLoadFailed, setGtfsLoadFailed] = useState(false);
 
