@@ -403,7 +403,13 @@ const TrainMap = ({
                 },
               }}
             >
-              <Tooltip sticky>
+              <Tooltip
+                // Route tooltip should only be visible while hovering the route line.
+                // Non-sticky prevents overlap with station tooltip when cursor moves.
+                sticky={false}
+                permanent={false}
+                interactive={false}
+              >
                 {(() => {
                   const route = viewMapData
                     ? Object.values(viewMapData).find(

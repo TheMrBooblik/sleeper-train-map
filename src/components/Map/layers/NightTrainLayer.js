@@ -251,7 +251,13 @@ export const NightTrainPolylines = memo(function NightTrainPolylines({
             }}
           >
             {!selectedOverlay && (
-              <Tooltip sticky>
+              <Tooltip
+                // Keep route tooltip hover-only so it does not remain together
+                // with a station tooltip when the cursor moves between elements.
+                sticky={false}
+                permanent={false}
+                interactive={false}
+              >
                 {ov.lineName}: {ov.stations?.[0]?.name} →{" "}
                 {ov.stations?.[ov.stations?.length - 1]?.name}
               </Tooltip>
