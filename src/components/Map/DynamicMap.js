@@ -121,8 +121,11 @@ const TrainMap = ({
   // Client-side filtering: remove NJ/EN routes from viewMapData and trips once
   // official NightJet/EuroNight data has loaded. Before that, NJ/EN render as
   // regular Back-on-Track routes so their stations appear with consistent styling.
+  const hasNightTrainOverlays = (allNjRoutes?.length ?? 0) > 0 || (allEnRoutes?.length ?? 0) > 0;
   const effectiveViewMapData = useMemo(() => {
-    if (!viewMapData || !nightTrainsReady) return viewMapData;
+    // Avoid stations "disappearing" during loading by only filtering once
+    // we actually have night overlay routes to display.
+    if (!viewMapData || !nightTrainsReady || !hasNightTrainOverlays) return viewMapData;
     const filtered = {};
     Object.entries(viewMapData).forEach(([key, route]) => {
       const t0 = (route?.trip_short_name_0 || "").toString();
@@ -132,10 +135,10 @@ const TrainMap = ({
       filtered[key] = route;
     });
     return filtered;
-  }, [viewMapData, nightTrainsReady]);
+  }, [viewMapData, nightTrainsReady, hasNightTrainOverlays]);
 
   const effectiveTrips = useMemo(() => {
-    if (!trips || !nightTrainsReady) return trips;
+    if (!trips || !nightTrainsReady || !hasNightTrainOverlays) return trips;
     const filtered = {};
     Object.entries(trips).forEach(([key, trip]) => {
       const name = (trip?.trip_short_name || trip?.route_short_name || "").toString();
@@ -143,14 +146,14 @@ const TrainMap = ({
       filtered[key] = trip;
     });
     return filtered;
-  }, [trips, nightTrainsReady]);
+  }, [trips, nightTrainsReady, hasNightTrainOverlays]);
 
   // When official NightJet/EuroNight data is loaded, filter cities to only keep
   // route IDs present in effectiveViewMapData. Stations that ONLY had NJ/EN routes
   // will have no remaining route IDs and won't render as Back-on-Track markers
   // (the NightTrain layer already shows them with proper styling).
   const effectiveCities = useMemo(() => {
-    if (!nightTrainsReady || !cities || !effectiveViewMapData) return cities;
+    if (!nightTrainsReady || !hasNightTrainOverlays || !cities || !effectiveViewMapData) return cities;
     const validRouteIds = new Set();
     Object.values(effectiveViewMapData).forEach((route) => {
       if (route?.route_id) validRouteIds.add(route.route_id.toString());
@@ -167,7 +170,7 @@ const TrainMap = ({
       }
     });
     return filtered;
-  }, [nightTrainsReady, cities, effectiveViewMapData]);
+  }, [nightTrainsReady, hasNightTrainOverlays, cities, effectiveViewMapData]);
 
   const { routePaths } = useRoutePaths({
     viewMapData: effectiveViewMapData,
@@ -442,7 +445,7 @@ const TrainMap = ({
   // cities are hidden to avoid duplicates (NightTrain markers take priority
   // because they carry richer route info from the official NJ/EN APIs).
   const nightTrainCityNames = useMemo(() => {
-    if (!isGrouped || !nightTrainsReady) return null;
+    if (!isGrouped || !nightTrainsReady || !hasNightTrainOverlays) return null;
 
     // Use the same stations that NightTrainStationMarkers will render.
     const stations = [

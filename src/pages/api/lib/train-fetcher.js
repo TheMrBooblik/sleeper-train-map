@@ -25,10 +25,20 @@ export function isFresh(filePath) {
   }
 }
 
+// Returns parsed JSON on success, null on any failure (HTTP error, network timeout, etc.).
+// The NightJet nj-booking-ocp API was decommissioned; callers handle null gracefully.
 async function fetchJson(url) {
-  const r = await fetch(url, { headers: { accept: "application/json" } });
-  if (!r.ok) throw new Error(`upstream ${r.status}`);
-  return r.json();
+  try {
+    const r = await fetch(url, { headers: { accept: "application/json" } });
+    if (!r.ok) {
+      console.warn(`[train-fetcher] upstream ${r.status} for ${url}`);
+      return null;
+    }
+    return r.json();
+  } catch (e) {
+    console.warn(`[train-fetcher] fetch failed for ${url}: ${e.message}`);
+    return null;
+  }
 }
 
 /**
@@ -102,6 +112,8 @@ export async function fetchAndCacheTrains(
         const data = await fetchJson(
           `https://www.nightjet.com/nj-booking-ocp/destinations/train/${encodeURIComponent(train)}/${date}`,
         );
+        // fetchJson returns null when upstream is unavailable (e.g. API decommissioned)
+        if (!data) continue;
         const payload = normalize(data, date, operator, source);
         if (payload?.stations?.length) {
           try {
@@ -128,14 +140,23 @@ export async function fetchAndCacheTrains(
  */
 export async function fetchPartnerTrainNumbers(date, max = 25) {
   const partnerUrl = `https://www.nightjet.com/nj-booking-ocp/destinations/partner/${date}`;
-  const response = await fetch(partnerUrl, {
-    headers: { accept: "application/json" },
-  });
-  if (!response.ok) throw new Error(`upstream ${response.status}`);
-  const data = await response.json();
-  const trains = Array.isArray(data) ? data : [];
-  return trains
-    .map((t) => t?.trainNumber)
-    .filter(Boolean)
-    .slice(0, max);
+  try {
+    const response = await fetch(partnerUrl, {
+      headers: { accept: "application/json" },
+    });
+    // Return empty list when upstream is unavailable (API was decommissioned March 2026)
+    if (!response.ok) {
+      console.warn(`[train-fetcher] partner endpoint returned ${response.status}, returning empty list`);
+      return [];
+    }
+    const data = await response.json();
+    const trains = Array.isArray(data) ? data : [];
+    return trains
+      .map((t) => t?.trainNumber)
+      .filter(Boolean)
+      .slice(0, max);
+  } catch (e) {
+    console.warn(`[train-fetcher] partner fetch failed: ${e.message}`);
+    return [];
+  }
 }

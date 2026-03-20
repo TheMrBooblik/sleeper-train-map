@@ -334,34 +334,15 @@ export function useNightTrainData({
       setAllEnStations(Array.from(stationMapEn.values()));
     };
 
-    /** Fetch NJ/EN items from the API. Returns { njItems, enItems }. */
+    // NightJet API is disabled for now.
+    // We keep the "fetchFromApi" shape so the rest of the hook stays small,
+    // but we never call /api/nj-* or /api/en-* (which would hit the upstream).
     const fetchFromApi = async () => {
-      const njListPromise = fetch(`/api/nj-list?date=${date}`);
-      const enListPromise = fetch(`/api/en-list?date=${date}`);
-
-      const njRes = await njListPromise;
-      let njItems = [];
-      if (njRes.ok) {
-        const data = await njRes.json();
-        njItems = data?.items ?? [];
-      }
-
-      const enRes = await enListPromise;
-      let enItems = [];
-      if (enRes.ok) {
-        const data = await enRes.json();
-        enItems = data?.items ?? [];
-      }
-
-      return { njItems, enItems };
+      return { njItems: [], enItems: [] };
     };
 
     (async () => {
       try {
-        // Fire prewarm requests in the background — do NOT await them.
-        fetch("/api/nj-prewarm?max=30", { method: "GET" }).catch(() => {});
-        fetch("/api/en-prewarm", { method: "GET" }).catch(() => {});
-
         // --- Check localStorage cache first ---
         // On repeat visits (same day), routes appear instantly with no loading.
         const cached = readRouteCache(date);
@@ -374,18 +355,6 @@ export function useNightTrainData({
           setNightTrainsReady(true);
           setIsMapInitialized?.(true);
           setShowTooltips?.(true);
-
-          // Refresh from API in background so cache stays fresh.
-          // nj-all-stations also runs in background for extra station dots.
-          fetch(`/api/nj-all-stations?date=${date}`).catch(() => {});
-          fetchFromApi()
-            .then(({ njItems, enItems }) => {
-              if (njItems.length || enItems.length) {
-                applyItems(njItems, enItems);
-                writeRouteCache(date, njItems, enItems);
-              }
-            })
-            .catch(() => {});
           return;
         }
 
@@ -393,50 +362,8 @@ export function useNightTrainData({
         // Back-on-Track initial-data already shows NJ/EN routes as placeholders,
         // so no progressive reveal needed — just replace when official data arrives.
         setLoadingProgressImmediate(35, "Loading NightJet & EuroNight routes...");
-        const njStationsPromise = fetch(`/api/nj-all-stations?date=${date}`);
-        const { njItems, enItems } = await fetchFromApi();
-
-        if (njItems.length || enItems.length) {
-          applyItems(njItems, enItems);
-          writeRouteCache(date, njItems, enItems);
-        }
-
-        // NJ station merge in background (extra station dots from nj-all-stations)
-        njStationsPromise
-          .then(async (stationsRes) => {
-            if (!stationsRes.ok) return;
-            const stationsData = await stationsRes.json();
-            if (!stationsData?.stations?.length) return;
-
-            const stationMapNj = new Map();
-            njItems.forEach((route) => {
-              route.stations?.forEach((station) => {
-                const key =
-                  station.id ||
-                  `${station.location?.latitude}-${station.location?.longitude}`;
-                if (
-                  key &&
-                  station.location?.latitude &&
-                  station.location?.longitude &&
-                  !stationMapNj.has(key)
-                ) {
-                  stationMapNj.set(key, station);
-                }
-              });
-            });
-            stationsData.stations.forEach((s) => {
-              const key =
-                s.id || `${s.location?.latitude}-${s.location?.longitude}`;
-              if (key) stationMapNj.set(key, s);
-            });
-            setAllNjStations(Array.from(stationMapNj.values()));
-            setNjLoadingProgress({
-              progress: 100,
-              message: `Found ${stationsData.count} stations`,
-              step: "complete",
-            });
-          })
-          .catch(() => {});
+        // NightJet API disabled. The hook's Back-on-Track merge effect below
+        // populates the night overlays.
 
         setLoadingProgressImmediate(100, "Ready!");
         setNightTrainsReady(true);
@@ -484,10 +411,11 @@ export function useNightTrainData({
         let njIdx = existingNjNames.size;
         let enIdx = existingEnNames.size;
 
-        // Only the Chopin EuroNight (EN 443 / EN 442, Praha–Warszawa) is allowed from
-        // Back-on-Track. All other EN and NightJet trains from Back-on-Track are skipped.
-        const CHOPIN_PATTERN = /^\s*EN\s*44[23]\b/i;
-
+        // Use all NJ and EN trains from Back-on-Track as fallback.
+        // The official NightJet nj-booking-ocp API was decommissioned (March 2026),
+        // so Back-on-Track is now the primary data source for NJ/EN routes.
+        // Trains already loaded from the official API (if it comes back) are
+        // deduplicated via existingNjNames / existingEnNames.
         Object.entries(routes).forEach(([routeKey, route]) => {
           const routeId = route?.route_id ?? routeKey;
           const t0 = (route?.trip_short_name_0 || "").toString();
@@ -495,15 +423,9 @@ export function useNightTrainData({
           const isNj = /^\s*NJ\s*\d+/.test(t0) || /^\s*NJ\s*\d+/.test(t1);
           const isEn = /^\s*EN\s*\d+/.test(t0) || /^\s*EN\s*\d+/.test(t1);
 
-          // Skip all NightJet from Back-on-Track (official NightJet API is used instead)
-          if (isNj) return;
+          if (!isNj && !isEn) return;
 
-          // For EuroNight: only allow the Chopin train (EN 443 / EN 442)
-          if (isEn && !CHOPIN_PATTERN.test(t0) && !CHOPIN_PATTERN.test(t1))
-            return;
-
-          const type = isEn ? "euronight" : null;
-          if (!type) return;
+          const type = isNj ? "nightjet" : "euronight";
 
           const overlay = buildOverlayFromBackOnTrackRoute(
             route,
@@ -680,106 +602,8 @@ export function useNightTrainData({
         setFilteredEnStations([]);
       }
 
-      // Fallback for production: if no routes are found in memory (e.g. cold cache on Vercel),
-      // fetch station-specific routes from the API in the background and merge them.
-      if (njOverlaysNext.length === 0 && enOverlaysNext.length === 0) {
-        (async () => {
-          try {
-            const date = formatDate(new Date());
-            const njRouteKeys = new Set();
-            const enRouteKeys = new Set();
-            const njRoutes = [];
-            const enRoutes = [];
-
-            const [njRes, enRes] = await Promise.all([
-              fetch(
-                `/api/nj-list?date=${date}&stationName=${encodeURIComponent(
-                  normalizedStationName,
-                )}`,
-              ),
-              fetch(
-                `/api/en-list?date=${date}&stationName=${encodeURIComponent(
-                  normalizedStationName,
-                )}`,
-              ),
-            ]);
-
-            if (njRes.ok) {
-              const data = await njRes.json();
-              data?.items?.forEach((item) => {
-                if (!njRouteKeys.has(item.key)) {
-                  njRouteKeys.add(item.key);
-                  njRoutes.push(item);
-                }
-              });
-            }
-            if (enRes.ok) {
-              const data = await enRes.json();
-              data?.items?.forEach((item) => {
-                if (!enRouteKeys.has(item.key)) {
-                  enRouteKeys.add(item.key);
-                  enRoutes.push(item);
-                }
-              });
-            }
-
-            if (njRoutes.length === 0 && enRoutes.length === 0) {
-              return;
-            }
-
-            // Merge newly fetched routes into the global route lists.
-            setAllNjRoutes((prev) => [...prev, ...njRoutes]);
-            setAllEnRoutes((prev) => [...prev, ...enRoutes]);
-
-            // Recompute overlays and filtered stations with updated data.
-            njOverlaysNext = filterRoutesForStation(
-              [...allNjRoutesRef.current, ...njRoutes],
-              "nightjet",
-            );
-            enOverlaysNext = filterRoutesForStation(
-              [...allEnRoutesRef.current, ...enRoutes],
-              "euronight",
-            );
-
-            setNjOverlays(njOverlaysNext);
-            setEnOverlays(enOverlaysNext);
-
-            if (njOverlaysNext.length > 0) {
-              const njStationMap = new Map();
-              njOverlaysNext.forEach((overlay) => {
-                const idx = overlay.stations?.findIndex((s) =>
-                  matchesStation(s.name),
-                );
-                if (idx !== -1 && overlay.stations) {
-                  overlay.stations.forEach((station) => {
-                    const key = `${station.location?.latitude}-${station.location?.longitude}`;
-                    if (!njStationMap.has(key)) njStationMap.set(key, station);
-                  });
-                }
-              });
-              setFilteredNjStations(Array.from(njStationMap.values()));
-            }
-
-            if (enOverlaysNext.length > 0) {
-              const enStationMap = new Map();
-              enOverlaysNext.forEach((overlay) => {
-                const idx = overlay.stations?.findIndex((s) =>
-                  matchesStation(s.name),
-                );
-                if (idx !== -1 && overlay.stations) {
-                  overlay.stations.forEach((station) => {
-                    const key = `${station.location?.latitude}-${station.location?.longitude}`;
-                    if (!enStationMap.has(key)) enStationMap.set(key, station);
-                  });
-                }
-              });
-              setFilteredEnStations(Array.from(enStationMap.values()));
-            }
-          } catch (e) {
-            console.error("Night trains fallback fetch error", e);
-          }
-        })();
-      }
+      // NightJet API disabled for now, so we do not fetch station-specific
+      // routes from /api/nj-list or /api/en-list here.
     },
     [normalizeStationNameForLookup],
   );
