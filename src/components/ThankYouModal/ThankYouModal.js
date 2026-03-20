@@ -2,8 +2,6 @@ import { useCallback, useEffect } from "react";
 import { FaGithub, FaExternalLinkAlt } from "react-icons/fa";
 
 export default function ThankYouModal({ isModalOpen, setModalIsOpen }) {
-  if (!isModalOpen) return null;
-
   const escFunction = useCallback(
     (event) => {
       if (event.key === "Escape") {
@@ -14,12 +12,14 @@ export default function ThankYouModal({ isModalOpen, setModalIsOpen }) {
   );
 
   useEffect(() => {
+    if (!isModalOpen) return undefined;
+
     document.addEventListener("keydown", escFunction, false);
 
     return () => {
       document.removeEventListener("keydown", escFunction, false);
     };
-  }, [escFunction]);
+  }, [isModalOpen, escFunction]);
 
   // Handle click outside modal to close it
   const handleBackdropClick = useCallback(
@@ -31,6 +31,8 @@ export default function ThankYouModal({ isModalOpen, setModalIsOpen }) {
     },
     [setModalIsOpen],
   );
+
+  if (!isModalOpen) return null;
 
   return (
     <div
