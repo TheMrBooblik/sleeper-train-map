@@ -130,6 +130,14 @@ const TrainMap = ({
     setHoveredRouteId(null);
   }, []);
 
+  // Guard against stale hover state. If the bottom bar is not in the
+  // active route-list mode, we should not keep any hover preview dimming.
+  useEffect(() => {
+    if (!selected || isTrainDetailPanelOpen) {
+      setHoveredRouteId(null);
+    }
+  }, [selected, isTrainDetailPanelOpen]);
+
   const handleFilterClose = useCallback(() => {
     if (selectedTrainRouteIds?.length > 0) {
       closeTrainDetailPanel();
@@ -467,6 +475,10 @@ const TrainMap = ({
     return [...nonHovered, ...hovered];
   }, [routePaths, hoveredRouteId]);
 
+  // Only apply route-dimming preview while the bottom bar route list is active.
+  const shouldApplyHoverPreview =
+    !!hoveredRouteId && selected && !isTrainDetailPanelOpen;
+
   return (
     <>
       {/* Initial fast overlay: only blocks while GTFS (stations/routes) load (~1-2s) */}
@@ -505,12 +517,12 @@ const TrainMap = ({
                 ...path.pathOptions,
                 cursor: "pointer",
                 // When hovering a bottom-bar route, preview focus by dimming others.
-                opacity: hoveredRouteId
+                opacity: shouldApplyHoverPreview
                   ? String(path.routeId) === hoveredRouteId
                     ? 0.95
                     : 0.2
                   : path.pathOptions.opacity,
-                weight: hoveredRouteId
+                weight: shouldApplyHoverPreview
                   ? String(path.routeId) === hoveredRouteId
                     ? Math.max(path.pathOptions.weight || 1, 4)
                     : path.pathOptions.weight

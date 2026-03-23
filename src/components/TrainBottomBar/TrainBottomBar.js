@@ -3,8 +3,7 @@
 import React, { useCallback } from "react";
 import { useViewMap } from "../../hooks/requests/useViewMap";
 import { useTrips } from "../../hooks/requests/useTrips";
-import { ROUTE_COLORS } from "../Map/constants";
-import { isRegioJetRoute, REGIOJET_COLOR } from "../Map/utils/routeStyleUtils";
+import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../Map/utils/operatorColors";
 import { normalizeStationNameForDisplay } from "../Map/utils/stationNameUtils";
 
 /**
@@ -86,6 +85,14 @@ const TrainBottomBar = ({
     !!stopRouteIds?.length && filteredViewMapData?.length > 0;
   if (!hasBackOnTrackRoutes) return null;
 
+  // Build operator-based color map for these routes (brand colors with shade variation)
+  const routeIds = filteredViewMapData.map((el) => el?.route_id?.toString()).filter(Boolean);
+  const routeDataMap = new Map();
+  filteredViewMapData.forEach((el) => {
+    if (el?.route_id) routeDataMap.set(el.route_id.toString(), el);
+  });
+  const routeColorMap = buildRouteColorMap(routeIds, routeDataMap);
+
   // Group routes by origin-destination to avoid duplicates
   // Store route_id to determine color
   const routeMap = new Map();
@@ -150,13 +157,9 @@ const TrainBottomBar = ({
       <div className="flex p-1">
         {/* Back-on-Track routes */}
         {Array.from(routeMap.values()).map((route, index) => {
-          // Default color uses route ID palette
-          let routeColor =
-            ROUTE_COLORS[parseInt(route.routeId) % ROUTE_COLORS.length];
-          // RegioJet routes use brand yellow, same as map polylines
-          if (isRegioJetRoute(route.routeData)) {
-            routeColor = REGIOJET_COLOR;
-          }
+          // Operator brand color (with shade variation for same-operator routes)
+          const routeColor =
+            routeColorMap.get(route.routeId) || NEUTRAL_FALLBACK_COLOR;
 
           return (
             <div

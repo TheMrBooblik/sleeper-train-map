@@ -10,6 +10,7 @@ import {
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
 } from "../Map/utils/routeStyleUtils";
+import { getOperatorBaseColor, hexWithAlpha } from "../Map/utils/operatorColors";
 
 const GTFS_ROUTE_KIND = {
   chop: "chop",
@@ -250,6 +251,8 @@ const TrainDetailPanel = ({
             {relevantTrips.map((trip, index) => {
               const route = routes[trip.route_id];
               const agency = agencies[trip.agency_id];
+              // Operator brand color for accent styling
+              const operatorColor = getOperatorBaseColor(trip);
               const normalizedTrainNumber = normalizeTrainNumber(
                 trip.trip_short_name,
               );
@@ -281,6 +284,7 @@ const TrainDetailPanel = ({
                 <div
                   key={`${trip.trip_id}-${index}`}
                   className="rounded-xl space-y-2 bg-white pb-3 border-b border-gray-100 last:border-b-0"
+                  style={{ borderLeft: `3px solid ${operatorColor}`, paddingLeft: "12px" }}
                 >
                   {/* Header: operator + train number */}
                   <div className="flex items-center justify-between gap-3">
@@ -300,7 +304,13 @@ const TrainDetailPanel = ({
                       </div>
                     </div>
                     {trip.trip_short_name && (
-                      <div className="shrink-0 bg-blue-50 text-blue-700 rounded-md px-2 py-1 text-sm font-semibold">
+                      <div
+                        className="shrink-0 rounded-md px-2 py-1 text-sm font-semibold"
+                        style={{
+                          backgroundColor: hexWithAlpha(operatorColor, 0.12),
+                          color: operatorColor,
+                        }}
+                      >
                         {trip.trip_short_name}
                       </div>
                     )}

@@ -2,7 +2,6 @@
  * Builds the "all routes" path list for Back-on-Track (no OSM substitution).
  * Used for background precomputation so "Show all routes" is instant when toggled.
  */
-import { ROUTE_COLORS } from "../constants";
 import {
   getRouteStyleFromFrequency,
   checkEuropeanSleeper453,
@@ -10,11 +9,9 @@ import {
   checkRegioJetPrahaPrzemysl,
   checkZemplinBratislavaHumenne,
   checkENHumennePraha,
-  isRegioJetRoute,
-  REGIOJET_COLOR,
-  ZEMPLIN_COLOR,
   getFutureRouteStartDate,
 } from "./routeStyleUtils";
+import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "./operatorColors";
 
 export function buildAllRoutesPaths({
   viewMapData,
@@ -117,6 +114,9 @@ export function buildAllRoutesPaths({
     return sequence.length >= 2 ? sequence : null;
   };
 
+  // Build operator-based color map (brand colors with shade variation)
+  const routeColorMap = buildRouteColorMap(routesToShow, routeMap);
+
   const stationKey = "all-routes";
   const paths = [];
 
@@ -127,7 +127,7 @@ export function buildAllRoutesPaths({
     const futureStartDate = getFutureRouteStartDate(routeId, trips);
     const isFuture = futureStartDate !== null;
 
-    const routeColor = ROUTE_COLORS[parseInt(routeId, 10) % ROUTE_COLORS.length];
+    const routeColor = routeColorMap.get(routeId) || NEUTRAL_FALLBACK_COLOR;
     // Future routes: thin dashed ghost line so they're visible but clearly distinct
     const style = isFuture
       ? { weight: 1.5, dashArray: "4,8", opacity: 0.35 }
@@ -135,7 +135,7 @@ export function buildAllRoutesPaths({
     const pathOptions = {
       color: routeColor,
       weight: style.weight,
-      opacity: style.opacity ?? 0.8,
+      opacity: style.opacity ?? 0.92,
       dashArray: style.dashArray || undefined,
       lineCap: "round",
       lineJoin: "round",
@@ -153,15 +153,6 @@ export function buildAllRoutesPaths({
       osmRelationId = "static:zemplin";
     } else if (checkENHumennePraha(route)) {
       osmRelationId = "static:enHumenne";
-    }
-
-    // RegioJet routes use their brand color instead of the default palette
-    if (isRegioJetRoute(route)) {
-      pathOptions.color = REGIOJET_COLOR;
-    }
-    // Zemplín route uses red
-    if (checkZemplinBratislavaHumenne(route)) {
-      pathOptions.color = ZEMPLIN_COLOR;
     }
 
     const path0 = buildPathForDirection(

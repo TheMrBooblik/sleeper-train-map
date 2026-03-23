@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { ROUTE_COLORS } from "../constants";
 import {
   getRouteStyleFromFrequency,
   checkEuropeanSleeper453,
@@ -9,12 +8,10 @@ import {
   checkRegioJetPrahaPrzemysl,
   checkZemplinBratislavaHumenne,
   checkENHumennePraha,
-  isRegioJetRoute,
-  REGIOJET_COLOR,
-  ZEMPLIN_COLOR,
   shouldHideRouteDueToFutureDate,
   getFutureRouteStartDate,
 } from "../utils/routeStyleUtils";
+import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../utils/operatorColors";
 import { buildAllRoutesPaths } from "../utils/buildAllRoutesPaths";
 
 // Number of leading coordinates to skip per OSM relation key.
@@ -179,6 +176,9 @@ export function useRoutePaths({
       return sequence.length >= 2 ? sequence : null;
     };
 
+    // Build operator-based color map (brand colors with shade variation)
+    const routeColorMap = buildRouteColorMap(routesToShow, routeMap);
+
     const paths = [];
 
     routesToShow.forEach((routeId) => {
@@ -188,7 +188,7 @@ export function useRoutePaths({
       const futureStartDate = getFutureRouteStartDate(routeId, trips);
       const isFuture = futureStartDate !== null;
 
-      const routeColor = ROUTE_COLORS[parseInt(routeId, 10) % ROUTE_COLORS.length];
+      const routeColor = routeColorMap.get(routeId) || NEUTRAL_FALLBACK_COLOR;
       // Future routes: thin dashed ghost line so they're visible but clearly distinct
       const style = isFuture
         ? { weight: 1.5, dashArray: "4,8", opacity: 0.35 }
@@ -196,7 +196,7 @@ export function useRoutePaths({
       const pathOptions = {
         color: routeColor,
         weight: style.weight,
-        opacity: style.opacity ?? 0.8,
+        opacity: style.opacity ?? 0.92,
         dashArray: style.dashArray || undefined,
         lineCap: "round",
         lineJoin: "round",
@@ -217,15 +217,6 @@ export function useRoutePaths({
         osmRelationId = "static:zemplin";
       } else if (checkENHumennePraha(route)) {
         osmRelationId = "static:enHumenne";
-      }
-
-      // RegioJet routes use their brand color instead of the default palette
-      if (isRegioJetRoute(route)) {
-        pathOptions.color = REGIOJET_COLOR;
-      }
-      // Zemplín route uses red
-      if (checkZemplinBratislavaHumenne(route)) {
-        pathOptions.color = ZEMPLIN_COLOR;
       }
 
       const path0 = buildPathForDirection(
