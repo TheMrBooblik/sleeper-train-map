@@ -9,16 +9,19 @@ import { getRouteFrequencyOverride } from "../../lib/routeFrequencyOverrides";
 import {
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
+  isOBBRoute,
 } from "../Map/utils/routeStyleUtils";
 
 const GTFS_ROUTE_KIND = {
   chop: "chop",
   premysl: "premysl",
+  obb: "obb",
 };
 
 const GTFS_TIMETABLE_FILE_BY_KIND = {
   [GTFS_ROUTE_KIND.chop]: "/data/gtfs/rjChopTimetable.json",
   [GTFS_ROUTE_KIND.premysl]: "/data/gtfs/rjPremyslTimetable.json",
+  [GTFS_ROUTE_KIND.obb]: "/data/gtfs/obbTimetable.json",
 };
 
 function detectGtfsRouteKindFromRoutes(selectedRouteIds, routes) {
@@ -29,6 +32,7 @@ function detectGtfsRouteKindFromRoutes(selectedRouteIds, routes) {
     if (!route) continue;
     if (checkRegioJetPrahaChop(route)) return GTFS_ROUTE_KIND.chop;
     if (checkRegioJetPrahaPrzemysl(route)) return GTFS_ROUTE_KIND.premysl;
+    if (isOBBRoute(route)) return GTFS_ROUTE_KIND.obb;
   }
 
   return null;
@@ -48,6 +52,15 @@ function detectGtfsRouteKindFromTrips(relevantTrips) {
   }
   if (trainNumbers.has("RJ 1022") || trainNumbers.has("RJ 1023")) {
     return GTFS_ROUTE_KIND.premysl;
+  }
+
+  // OBB detection by train number prefix (RJ, RJX, D, EC, IC, NJ, EN)
+  const obbPrefixes = ["RJ ", "RJX ", "D ", "EC ", "IC ", "ICE ", "NJ ", "EN "];
+  for (const number of trainNumbers) {
+    const upper = number.toUpperCase();
+    if (obbPrefixes.some((p) => upper.startsWith(p))) {
+      return GTFS_ROUTE_KIND.obb;
+    }
   }
 
   return null;
@@ -144,10 +157,21 @@ const TrainDetailPanel = ({
     return detectGtfsRouteKindFromTrips(relevantTrips);
   }, [selectedRouteIds, routes, relevantTrips]);
 
+  // Flatten trips from both single-route (RegioJet) and multi-route (OBB) formats
+  const allGtfsTrips = useMemo(() => {
+    if (!gtfsTimetableData) return [];
+    // OBB format: { operator, routes: [{ trips }] }
+    if (gtfsTimetableData.routes?.length) {
+      return gtfsTimetableData.routes.flatMap((r) => r.trips || []);
+    }
+    // RegioJet format: { routeId, trips }
+    return gtfsTimetableData.trips || [];
+  }, [gtfsTimetableData]);
+
   const timetableByTrainNumber = useMemo(() => {
-    if (!gtfsTimetableData?.trips?.length) return new Map();
+    if (!allGtfsTrips.length) return new Map();
     const next = new Map();
-    gtfsTimetableData.trips.forEach((trip) => {
+    allGtfsTrips.forEach((trip) => {
       const fullKey = normalizeTrainNumber(trip.trainNumber);
       const numericKey = extractTrainNumberDigits(trip.trainNumber);
 
@@ -159,7 +183,7 @@ const TrainDetailPanel = ({
       }
     });
     return next;
-  }, [gtfsTimetableData]);
+  }, [allGtfsTrips]);
 
   useEffect(() => {
     if (!isOpen || !gtfsRouteKind) {
@@ -261,8 +285,8 @@ const TrainDetailPanel = ({
                 timetableByTrainNumber.get(numericTrainNumber) ||
                 null;
               const endpointMatchedSchedule =
-                !detailedSchedule && gtfsTimetableData?.trips?.length
-                  ? gtfsTimetableData.trips.find((candidate) => {
+                !detailedSchedule && allGtfsTrips.length
+                  ? allGtfsTrips.find((candidate) => {
                       const stops = candidate?.stops || [];
                       if (stops.length < 2) return false;
                       const firstStop = stops[0]?.name;

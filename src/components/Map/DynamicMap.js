@@ -31,6 +31,7 @@ import {
   shouldHideRouteDueToFutureDate,
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
+  isOBBRoute,
 } from "./utils/routeStyleUtils";
 import { useRoutePaths } from "./hooks/useRoutePaths";
 import { useMapMarkers } from "./hooks/useMapMarkers";
@@ -329,6 +330,8 @@ const TrainMap = ({
       filePath = "/data/gtfs/rjChopTimetable.json";
     } else if (checkRegioJetPrahaPrzemysl(activeRoute)) {
       filePath = "/data/gtfs/rjPremyslTimetable.json";
+    } else if (isOBBRoute(activeRoute)) {
+      filePath = "/data/gtfs/obbTimetable.json";
     }
 
     if (!filePath) {
@@ -336,10 +339,31 @@ const TrainMap = ({
       return;
     }
 
+    // For OBB, only show stops for the matching train number(s) on this route
+    const activeTrainNumbers = new Set();
+    if (isOBBRoute(activeRoute)) {
+      const t0 = (activeRoute.trip_short_name_0 || "").toString().trim().toUpperCase();
+      const t1 = (activeRoute.trip_short_name_1 || "").toString().trim().toUpperCase();
+      if (t0) activeTrainNumbers.add(t0);
+      if (t1) activeTrainNumbers.add(t1);
+    }
+
     let cancelled = false;
     const buildStopsFromGtfs = (json) => {
+      // Support both single-route (RegioJet) and multi-route (OBB) formats
+      let allTrips = json?.routes?.length
+        ? json.routes.flatMap((r) => r.trips || [])
+        : json?.trips || [];
+
+      // For multi-route files (OBB), filter to matching train numbers only
+      if (activeTrainNumbers.size > 0) {
+        allTrips = allTrips.filter((trip) =>
+          activeTrainNumbers.has((trip.trainNumber || "").toUpperCase()),
+        );
+      }
+
       const unique = new Map();
-      (json?.trips || []).forEach((trip) => {
+      allTrips.forEach((trip) => {
         (trip?.stops || []).forEach((stop) => {
           const key = `${stop.stopId || stop.name}-${stop.lat}-${stop.lon}`;
           if (!unique.has(key) && stop?.name && stop?.lat && stop?.lon) {

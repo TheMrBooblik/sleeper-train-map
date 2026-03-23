@@ -261,6 +261,35 @@ export function isRegioJetRoute(route) {
 // RegioJet brand color – golden yellow matching their train livery
 export const REGIOJET_COLOR = "#F0AB00";
 
+// OBB brand color – red matching their corporate identity
+export const OBB_COLOR = "#E2001A";
+
+/**
+ * Known OBB train number prefixes in the GTFS timetable.
+ * Used to detect OBB routes from Back-on-Track trip data.
+ */
+const OBB_TRAIN_PREFIXES = ["RJ ", "RJX ", "D ", "EC ", "IC ", "ICE ", "NJ ", "EN "];
+
+/**
+ * Whether the route belongs to OBB (Austrian Federal Railways).
+ * Detected by train number prefix (RJ, RJX, D, EC, IC, NJ, EN).
+ * Excludes routes already identified as RegioJet (agency_id "RJ").
+ * @param {Object} route - View map route object
+ * @returns {boolean}
+ */
+export function isOBBRoute(route) {
+  if (!route) return false;
+  // Don't match RegioJet routes (they also use "RJ" prefix)
+  if ((route.agency_id || "").toUpperCase() === "RJ") return false;
+
+  const trip0 = (route.trip_short_name_0 || "").toString().trim().toUpperCase();
+  const trip1 = (route.trip_short_name_1 || "").toString().trim().toUpperCase();
+
+  return OBB_TRAIN_PREFIXES.some(
+    (prefix) => trip0.startsWith(prefix) || trip1.startsWith(prefix),
+  );
+}
+
 /**
  * Whether to hide a route because it has a future "From <Date>" note in irregularities.
  * @param {string} routeId - Route ID

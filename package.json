@@ -10,6 +10,7 @@
     "export": "next export",
     "start": "next start",
     "parse-gtfs": "node scripts/parse-regiojet-gtfs.js",
+    "parse-obb-gtfs": "node scripts/parse-obb-gtfs.js",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
