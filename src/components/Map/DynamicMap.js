@@ -533,6 +533,7 @@ const TrainMap = ({
           stopRouteIds={stopRouteIds}
           selectedNormalizedName={selectedNormalizedName}
           isDetailPanelOpen={isTrainDetailPanelOpen}
+          onRouteClick={handlePolylineClick}
         />
       </div>
 

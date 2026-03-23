@@ -17,6 +17,7 @@ const TrainBottomBar = ({
   stopRouteIds,
   selectedNormalizedName,
   isDetailPanelOpen = false,
+  onRouteClick,
 }) => {
   const { viewMapData } = useViewMap();
   const { trips } = useTrips();
@@ -151,8 +152,17 @@ const TrainBottomBar = ({
 
           return (
             <div
-              className="relative flex items-center pl-2 pr-3 whitespace-nowrap text-sm"
+              className="relative flex items-center pl-2 pr-3 whitespace-nowrap text-sm cursor-pointer hover:bg-gray-100 transition-colors"
               key={`route-info-${index}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => onRouteClick?.(route.routeId)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onRouteClick?.(route.routeId);
+                }
+              }}
             >
               {/* Color indicator line */}
               <div
