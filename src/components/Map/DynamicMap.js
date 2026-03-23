@@ -23,7 +23,10 @@ import ZoomControl from "@components/ZoomControl";
 import LocationControl from "@components/LocationControl";
 import { stationsToSkip } from "../../data/stationsToSkip";
 
-import { normalizeStationNameForDisplay, matchStationNames } from "./utils/stationNameUtils";
+import {
+  normalizeStationNameForDisplay,
+  matchStationNames,
+} from "./utils/stationNameUtils";
 import {
   shouldHideRouteDueToFutureDate,
   checkRegioJetPrahaChop,
@@ -103,10 +106,7 @@ const TrainMap = ({
     setSelectedStationLon(null);
     setStopRouteIds([]);
     setFilteredStops(stops);
-  }, [
-    setFilteredStops,
-    stops,
-  ]);
+  }, [setFilteredStops, stops]);
 
   const handlePolylineClick = useCallback((routeIds) => {
     const idsArray = Array.isArray(routeIds) ? routeIds : [routeIds];
@@ -299,7 +299,13 @@ const TrainMap = ({
     });
 
     return result.length > 0 ? result : null;
-  }, [hasRouteFilter, selectedTrainRouteIds, viewMapData, stops, normalizeStationNameForLookup]);
+  }, [
+    hasRouteFilter,
+    selectedTrainRouteIds,
+    viewMapData,
+    stops,
+    normalizeStationNameForLookup,
+  ]);
 
   // For selected RegioJet routes, use GTFS timetable stops as marker source.
   // This keeps map stations aligned with GTFS details while preserving BoT fallback.
@@ -428,7 +434,8 @@ const TrainMap = ({
             )
           : null;
         if (!route) return "Route";
-        const trainNumber = route.trip_short_name_0 || route.trip_short_name_1 || null;
+        const trainNumber =
+          route.trip_short_name_0 || route.trip_short_name_1 || null;
         const segment = `${route.origin_trip_0 || "?"} → ${route.destination_trip_0 || "?"}`;
         return trainNumber ? `${trainNumber}: ${segment}` : `Route: ${segment}`;
       })()
@@ -480,13 +487,7 @@ const TrainMap = ({
                 },
               }}
             >
-              <Tooltip
-                // Route tooltip should only be visible while hovering the route line.
-                // Non-sticky prevents overlap with station tooltip when cursor moves.
-                sticky={false}
-                permanent={false}
-                interactive={false}
-              >
+              <Tooltip sticky>
                 {(() => {
                   const route = viewMapData
                     ? Object.values(viewMapData).find(
