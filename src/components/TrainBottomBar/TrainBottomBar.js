@@ -4,6 +4,7 @@ import React, { useCallback } from "react";
 import { useViewMap } from "../../hooks/requests/useViewMap";
 import { useTrips } from "../../hooks/requests/useTrips";
 import { ROUTE_COLORS } from "../Map/constants";
+import { isRegioJetRoute, REGIOJET_COLOR } from "../Map/utils/routeStyleUtils";
 import { normalizeStationNameForDisplay } from "../Map/utils/stationNameUtils";
 
 /**
@@ -137,6 +138,7 @@ const TrainBottomBar = ({
         destination: stationArr[1],
         viaText: viaText,
         routeId: el?.route_id?.toString(), // Store route_id for color determination
+        routeData: el, // Keep source route data for special color rules (e.g. RegioJet)
       });
     }
   });
@@ -148,9 +150,13 @@ const TrainBottomBar = ({
       <div className="flex p-1">
         {/* Back-on-Track routes */}
         {Array.from(routeMap.values()).map((route, index) => {
-          // Get color for this route (same logic as DynamicMap.js)
-          const routeColor =
+          // Default color uses route ID palette
+          let routeColor =
             ROUTE_COLORS[parseInt(route.routeId) % ROUTE_COLORS.length];
+          // RegioJet routes use brand yellow, same as map polylines
+          if (isRegioJetRoute(route.routeData)) {
+            routeColor = REGIOJET_COLOR;
+          }
 
           return (
             <div
