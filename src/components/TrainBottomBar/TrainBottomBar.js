@@ -18,6 +18,8 @@ const TrainBottomBar = ({
   selectedNormalizedName,
   isDetailPanelOpen = false,
   onRouteClick,
+  onRouteHover,
+  onRouteLeave,
 }) => {
   const { viewMapData } = useViewMap();
   const { trips } = useTrips();
@@ -157,6 +159,10 @@ const TrainBottomBar = ({
               role="button"
               tabIndex={0}
               onClick={() => onRouteClick?.(route.routeId)}
+              onMouseEnter={() => onRouteHover?.(route.routeId)}
+              onMouseLeave={() => onRouteLeave?.()}
+              onFocus={() => onRouteHover?.(route.routeId)}
+              onBlur={() => onRouteLeave?.()}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault();

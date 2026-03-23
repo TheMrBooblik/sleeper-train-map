@@ -80,6 +80,7 @@ const TrainMap = ({
   const [selectedStationLon, setSelectedStationLon] = useState(null);
   const [selectedTrainRouteIds, setSelectedTrainRouteIds] = useState([]);
   const [isTrainDetailPanelOpen, setIsTrainDetailPanelOpen] = useState(false);
+  const [hoveredRouteId, setHoveredRouteId] = useState(null);
   const [gtfsRouteFilterStops, setGtfsRouteFilterStops] = useState(null);
   const gtfsStopsCacheRef = useRef(new Map());
 
@@ -119,6 +120,14 @@ const TrainMap = ({
   const closeTrainDetailPanel = useCallback(() => {
     setIsTrainDetailPanelOpen(false);
     setSelectedTrainRouteIds([]);
+  }, []);
+
+  const handleRouteHover = useCallback((routeId) => {
+    setHoveredRouteId(routeId ? String(routeId) : null);
+  }, []);
+
+  const handleRouteLeave = useCallback(() => {
+    setHoveredRouteId(null);
   }, []);
 
   const handleFilterClose = useCallback(() => {
@@ -441,6 +450,23 @@ const TrainMap = ({
       })()
     : selectedStationName || stopId;
 
+  const visibleRoutePaths = useMemo(() => {
+    if (!hoveredRouteId || routePaths.length === 0) return routePaths;
+
+    // Draw hovered route last so it stays fully visible on top of overlapping lines.
+    const nonHovered = [];
+    const hovered = [];
+    routePaths.forEach((path) => {
+      if (String(path.routeId) === hoveredRouteId) {
+        hovered.push(path);
+      } else {
+        nonHovered.push(path);
+      }
+    });
+
+    return [...nonHovered, ...hovered];
+  }, [routePaths, hoveredRouteId]);
+
   return (
     <>
       {/* Initial fast overlay: only blocks while GTFS (stations/routes) load (~1-2s) */}
@@ -470,12 +496,26 @@ const TrainMap = ({
         <ZoomControl className="outline-none" />
         <LocationControl />
 
-        {routePaths.length > 0 &&
-          routePaths.map((path) => (
+        {visibleRoutePaths.length > 0 &&
+          visibleRoutePaths.map((path) => (
             <Polyline
               key={path.key}
               positions={path.positions}
-              pathOptions={{ ...path.pathOptions, cursor: "pointer" }}
+              pathOptions={{
+                ...path.pathOptions,
+                cursor: "pointer",
+                // When hovering a bottom-bar route, preview focus by dimming others.
+                opacity: hoveredRouteId
+                  ? String(path.routeId) === hoveredRouteId
+                    ? 0.95
+                    : 0.2
+                  : path.pathOptions.opacity,
+                weight: hoveredRouteId
+                  ? String(path.routeId) === hoveredRouteId
+                    ? Math.max(path.pathOptions.weight || 1, 4)
+                    : path.pathOptions.weight
+                  : path.pathOptions.weight,
+              }}
               eventHandlers={{
                 click: (e) => {
                   e.originalEvent.stopPropagation();
@@ -534,6 +574,8 @@ const TrainMap = ({
           selectedNormalizedName={selectedNormalizedName}
           isDetailPanelOpen={isTrainDetailPanelOpen}
           onRouteClick={handlePolylineClick}
+          onRouteHover={handleRouteHover}
+          onRouteLeave={handleRouteLeave}
         />
       </div>
 
