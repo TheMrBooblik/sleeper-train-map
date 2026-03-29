@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { VIEW_CITIES, VIEW_MAP } from "../../constants/backOnTrack";
+import { VIEW_MAP } from "../../constants/backOnTrack";
 
 // Cache duration in milliseconds (1 hour)
 const CACHE_DURATION = 60 * 60 * 1000;
