@@ -249,7 +249,7 @@ const TrainDetailPanel = ({
             )}
 
             {relevantTrips.map((trip, index) => {
-              const route = routes[trip.route_id];
+              // Trip list uses trip fields; route rows from useRoutes are only for GTFS-kind detection.
               const agency = agencies[trip.agency_id];
               // Operator brand color for accent styling
               const operatorColor = getOperatorBaseColor(trip);

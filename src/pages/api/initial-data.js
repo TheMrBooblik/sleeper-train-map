@@ -1,8 +1,10 @@
 // pages/api/initial-data.js
 // Combined endpoint: returns stops + viewMap + trips in one response.
+// Reads from Vercel Blob (daily scrape) when fresh; falls back to GitHub.
 // Vercel CDN caches this for 1 hour so only ~1 serverless invocation per hour worldwide.
 
 import { isTrain4you } from "../../lib/trainOperatorsFilter";
+import { getBlobData, isFresh } from "./lib/blob-store";
 
 const BASE_URL =
   "https://raw.githubusercontent.com/Back-on-Track-eu/night-train-data/main/data/latest";
@@ -20,6 +22,10 @@ async function fetchType(type) {
   return response.json();
 }
 
+function isActiveRecord(record) {
+  return (record?.is_active || "Y").toString().toUpperCase() !== "N";
+}
+
 /**
  * Filter out Train4you from trips data.
  * NJ/EN are kept here so they render as Back-on-Track routes initially;
@@ -28,6 +34,7 @@ async function fetchType(type) {
 function filterTrips(data) {
   const filtered = {};
   Object.entries(data || {}).forEach(([key, trip]) => {
+    if (!isActiveRecord(trip)) return;
     const tripName = (
       trip?.trip_short_name ||
       trip?.route_short_name ||
@@ -49,6 +56,7 @@ function filterTrips(data) {
 function filterViewMap(data) {
   const filtered = {};
   Object.entries(data || {}).forEach(([key, route]) => {
+    if (!isActiveRecord(route)) return;
     const trip0 = (route?.trip_short_name_0 || "").toString();
     const trip1 = (route?.trip_short_name_1 || "").toString();
     const isT4y = isTrain4you(route, trip0) || isTrain4you(route, trip1);
@@ -61,19 +69,39 @@ function filterViewMap(data) {
 
 export default async function handler(req, res) {
   try {
-    // Fetch all three types from GitHub in parallel
-    const [rawStops, rawViewMap, rawTrips] = await Promise.all([
-      fetchType("stops"),
-      fetchType("view_ontd_map"),
-      fetchType("trips"),
+    let rawStops, rawViewMap, rawTrips;
+    let source = "github";
+
+    // Try Vercel Blob first (daily scrape)
+    const [blobStops, blobViewMap, blobTrips] = await Promise.all([
+      getBlobData("stops"),
+      getBlobData("view_ontd_map"),
+      getBlobData("trips"),
     ]);
+
+    if (
+      blobStops && isFresh(blobStops.uploadedAt) &&
+      blobViewMap && isFresh(blobViewMap.uploadedAt) &&
+      blobTrips && isFresh(blobTrips.uploadedAt)
+    ) {
+      rawStops = blobStops.data;
+      rawViewMap = blobViewMap.data;
+      rawTrips = blobTrips.data;
+      source = "blob";
+    } else {
+      // Fall back to GitHub
+      [rawStops, rawViewMap, rawTrips] = await Promise.all([
+        fetchType("stops"),
+        fetchType("view_ontd_map"),
+        fetchType("trips"),
+      ]);
+    }
+
+    console.log(`[initial-data] source: ${source}`);
 
     // Apply operator filtering
     const filteredTrips = filterTrips(rawTrips);
     const filteredViewMap = filterViewMap(rawViewMap);
-
-    let stops = rawStops;
-    let viewMap = filteredViewMap;
 
     // CDN caches for 1 hour; serve stale while revalidating for up to 1 day
     res.setHeader(
@@ -83,8 +111,8 @@ export default async function handler(req, res) {
     res.setHeader("Content-Type", "application/json");
 
     res.status(200).json({
-      stops,
-      viewMap,
+      stops: rawStops,
+      viewMap: filteredViewMap,
       trips: filteredTrips,
     });
   } catch (error) {

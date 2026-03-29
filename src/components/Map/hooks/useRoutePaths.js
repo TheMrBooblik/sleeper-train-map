@@ -21,6 +21,10 @@ const OSM_TRIM_OFFSETS = {
   "18616102": 328,           // European Sleeper 453
 };
 
+function isInactiveRoute(route) {
+  return (route?.is_active || "Y").toString().toUpperCase() === "N";
+}
+
 /**
  * Hook: computes Back-on-Track route paths (polylines) and fetches OSM relation data when needed.
  * Returns routePaths array and osmPolylines Map for European Sleeper 453 etc.
@@ -76,7 +80,9 @@ export function useRoutePaths({
         }
       });
       Object.values(viewMapData).forEach((route) => {
-        if (route?.route_id) allRouteIds.add(route.route_id.toString());
+        if (route?.route_id && !isInactiveRoute(route)) {
+          allRouteIds.add(route.route_id.toString());
+        }
       });
       routesToShow = Array.from(allRouteIds);
     } else {
@@ -114,7 +120,7 @@ export function useRoutePaths({
         ? stopId || "none"
         : "all-routes";
     Object.values(viewMapData).forEach((route) => {
-      if (route?.route_id) {
+      if (route?.route_id && !isInactiveRoute(route)) {
         routeMap.set(route.route_id.toString(), route);
       }
     });
@@ -298,6 +304,7 @@ export function useRoutePaths({
     if (!viewMapData) return;
     const polylineKeysToFetch = new Set();
     Object.values(viewMapData).forEach((route) => {
+      if (isInactiveRoute(route)) return;
       if (checkEuropeanSleeper453(route)) {
         polylineKeysToFetch.add("18616102");
       }

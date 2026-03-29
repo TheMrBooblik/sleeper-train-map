@@ -13,6 +13,10 @@ import {
 } from "./routeStyleUtils";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "./operatorColors";
 
+function isInactiveRoute(route) {
+  return (route?.is_active || "Y").toString().toUpperCase() === "N";
+}
+
 export function buildAllRoutesPaths({
   viewMapData,
   stops,
@@ -46,7 +50,9 @@ export function buildAllRoutesPaths({
     }
   });
   Object.values(viewMapData).forEach((route) => {
-    if (route?.route_id) allRouteIds.add(route.route_id.toString());
+    if (route?.route_id && !isInactiveRoute(route)) {
+      allRouteIds.add(route.route_id.toString());
+    }
   });
   // Include all routes — future ones get a ghost style and isFuture flag
   const routesToShow = Array.from(allRouteIds);
@@ -54,7 +60,7 @@ export function buildAllRoutesPaths({
 
   const routeMap = new Map();
   Object.values(viewMapData).forEach((route) => {
-    if (route?.route_id) {
+    if (route?.route_id && !isInactiveRoute(route)) {
       routeMap.set(route.route_id.toString(), route);
     }
   });
