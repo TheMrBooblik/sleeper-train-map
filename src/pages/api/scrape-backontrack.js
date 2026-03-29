@@ -2,7 +2,9 @@
 // Daily cron job: fetches Back-on-Track data + OSM relation geometries and stores in Vercel Blob.
 // Vercel injects Authorization: Bearer <CRON_SECRET> automatically for cron invocations.
 
-import { putBlobData, putOsmRelation } from "./lib/blob-store";
+import polyline from "@mapbox/polyline";
+import { putBlobData, putOsmRelation, putNJTrains } from "./lib/blob-store";
+import { fetchSingleTrain, fetchPartnerTrainNumbers } from "./lib/train-fetcher";
 
 const BASE_URL =
   "https://raw.githubusercontent.com/Back-on-Track-eu/night-train-data/main/data/latest";
@@ -58,12 +60,15 @@ export default async function handler(req, res) {
 
   const errors = [];
 
-  // Fetch and store Back-on-Track datasets
-  const botKeys = ["stops", "view_ontd_map", "trips"];
-  const [stops, view_ontd_map, trips] = await Promise.all(botKeys.map(fetchBackontrack));
+  // Fetch Back-on-Track datasets
+  const [stops, view_ontd_map, trips] = await Promise.all([
+    fetchBackontrack("stops"),
+    fetchBackontrack("view_ontd_map"),
+    fetchBackontrack("trips"),
+  ]);
+  // Store stops and trips immediately; view_ontd_map will be enriched with NJ/EN positions below.
   await Promise.all([
     putBlobData("stops", stops),
-    putBlobData("view_ontd_map", view_ontd_map),
     putBlobData("trips", trips),
   ]);
 
@@ -78,13 +83,71 @@ export default async function handler(req, res) {
     }
   }
 
+  // Scrape NightJet / EuroNight official API data
+  const today = new Date().toISOString().slice(0, 10);
+  let njCount = 0;
+  try {
+    // NJ train numbers from Back-on-Track trips (already fetched above)
+    const njNumbers = new Set();
+    Object.values(trips || {}).forEach((t) => {
+      const n = (t?.trip_short_name || "").toString().trim();
+      if (/^NJ\s+\d+/.test(n)) njNumbers.add(n);
+    });
+
+    // EN train numbers from official partner endpoint
+    const enNumbers = await fetchPartnerTrainNumbers(today);
+
+    const allNumbers = [...njNumbers, ...enNumbers];
+    const CONCURRENCY = 6;
+    const results = {};
+
+    for (let i = 0; i < allNumbers.length; i += CONCURRENCY) {
+      const batch = allNumbers.slice(i, i + CONCURRENCY);
+      const fetched = await Promise.all(batch.map((n) => fetchSingleTrain(n, today)));
+      fetched.forEach((train) => {
+        if (!train) return;
+        const positions = train.polyline
+          ? polyline.decode(train.polyline)
+          : train.stations.map((s) => [s.location.latitude, s.location.longitude]);
+        results[train.lineName] = {
+          lineName: train.lineName,
+          operator: train.operator,
+          positions,
+          stations: train.stations,
+        };
+      });
+    }
+
+    await putNJTrains({ uploadedAt: today, trains: results });
+    njCount = Object.keys(results).length;
+
+    // Merge NJ/EN positions into view_ontd_map so initial-data can serve pre-enriched data
+    Object.values(view_ontd_map).forEach((route) => {
+      const names = [route.trip_short_name_0, route.trip_short_name_1].filter(Boolean);
+      for (const name of names) {
+        const match = results[name.trim()];
+        if (match?.positions?.length) {
+          route.nj_positions = match.positions;
+          break;
+        }
+      }
+    });
+  } catch (err) {
+    errors.push({ source: "nightjet", error: err.message });
+    console.error("[scrape-backontrack] NightJet scrape failed:", err.message);
+  }
+
+  // Store view_ontd_map now — enriched with nj_positions where available
+  await putBlobData("view_ontd_map", view_ontd_map);
+
   const uploadedAt = new Date().toISOString();
   console.log(`[scrape-backontrack] Done at ${uploadedAt}`);
 
   res.status(200).json({
     ok: true,
-    backontrack: botKeys,
+    backontrack: ["stops", "view_ontd_map", "trips"],
     osmRelations: OSM_RELATION_IDS,
+    nightjet: njCount,
     uploadedAt,
     errors,
   });

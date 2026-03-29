@@ -38,3 +38,4 @@ yarn-error.log*
 .idea
 # Large GTFS raw files
 gtfs-data/obb/shapes.txt
+.env*.local

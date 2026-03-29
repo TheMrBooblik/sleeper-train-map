@@ -34,17 +34,23 @@ npm run test:smoke   # Run smoke tests (separate config)
 ### Key Architectural Decisions
 
 - **Map is always client-side only** — never attempt SSR for anything in `src/components/Map/`.
-- **Operator filtering at two levels:** Train4you is filtered at the API level (`initial-data.js`, `trains.js`). NightJet/EuroNight are kept in Back-on-Track data but filtered client-side when official data loads. Use `isTrain4you()` from `src/lib/trainOperatorsFilter.js`.
-- **Data sources:** Primary data comes from the Back-on-Track EU GitHub repo, scraped daily into Vercel Blob. The NightJet official API was decommissioned March 2026. RegioJet GTFS is parsed separately via `npm run parse-gtfs`.
+- **Operator filtering:** Train4you is filtered at the API level (`initial-data.js`, `trains.js`). NightJet/EuroNight routes come from both Back-on-Track (route metadata) and the official NightJet API (accurate polylines). Use `isTrain4you()` from `src/lib/trainOperatorsFilter.js`.
+- **Data sources:** Back-on-Track EU GitHub repo (route metadata, station lists) + NightJet official API (accurate polylines for NJ/EN routes). Both scraped daily into Vercel Blob. RegioJet GTFS is parsed separately via `npm run parse-gtfs`.
 - **Station coordinates** are stored in `src/data/stationCoordinates.js` as a lookup table and merged via `src/helpers/enrichStationsWithCoordinates.js`.
 - **Route polylines** use `@mapbox/polyline` encoding. Route styling per operator is in `src/components/Map/utils/`.
 
 ### Data Storage (Vercel Blob)
 
-Train data is scraped once daily and stored in Vercel Blob (`backontrack/stops.json`, `backontrack/view_ontd_map.json`, `backontrack/trips.json`). API routes read from Blob first (if uploaded within 25h) and fall back to fetching directly from Back-on-Track GitHub.
+Data is scraped once daily and stored in Vercel Blob. API routes read from Blob first (if uploaded within 25h) and fall back to GitHub / official APIs.
 
-- **`src/pages/api/lib/blob-store.js`** — Vercel Blob wrapper: `getBlobData(key)` / `putBlobData(key, data)` / `getOsmRelation(cacheKey)` / `putOsmRelation(cacheKey, data)` / `isFresh(uploadedAt)`. Module-level listing cache (per prefix) avoids repeated `list()` calls per cold start.
-- **`src/pages/api/scrape-backontrack.js`** — Daily cron (3AM UTC) that fetches all three datasets from GitHub and stores them in Blob. Also pre-fetches OSM relation geometries used by the frontend (currently `18616102` — European Sleeper 453). Protected by `Authorization: Bearer <CRON_SECRET>`.
+**Blob keys:**
+- `backontrack/stops.json`, `backontrack/view_ontd_map.json`, `backontrack/trips.json` — Back-on-Track datasets
+- `nightjet/trains.json` — Official NJ/EN train data with decoded polylines `{ uploadedAt, trains: { "NJ 403": {positions, stations}, ... } }`
+- `osm-relation/{id}.json` — OSM relation geometries (e.g. European Sleeper 453)
+
+- **`src/pages/api/lib/blob-store.js`** — Vercel Blob wrapper: `getBlobData` / `putBlobData` (Back-on-Track), `getNJTrains` / `putNJTrains` (NightJet), `getOsmRelation` / `putOsmRelation` (OSM), `isFresh(uploadedAt)`. Module-level listing cache (per prefix) avoids repeated `list()` calls per cold start.
+- **`src/pages/api/lib/train-fetcher.js`** — `fetchSingleTrain(number, date)`, `fetchPartnerTrainNumbers(date)`, `normalize(data, date, operator)`.
+- **`src/pages/api/scrape-backontrack.js`** — Daily cron (3AM UTC): fetches Back-on-Track datasets from GitHub, NJ/EN trains from NightJet API (polylines decoded and stored), OSM relation geometries. Protected by `Authorization: Bearer <CRON_SECRET>`.
 - **`src/pages/api/osm-relation.js`** — Reads relation geometry from Blob first; falls back to Overpass API and stores the result in Blob for future requests.
 
 Required env vars: `BLOB_READ_WRITE_TOKEN` (auto-set when linking a Vercel Blob store to the project), `CRON_SECRET`.
@@ -53,12 +59,10 @@ Required env vars: `BLOB_READ_WRITE_TOKEN` (auto-set when linking a Vercel Blob 
 
 | Route                   | Purpose                                                                     |
 | ----------------------- | --------------------------------------------------------------------------- |
-| `initial-data.js`       | Combined stops + routes + trips — reads Blob first, falls back to GitHub    |
+| `initial-data.js`       | Combined stops + routes + trips (with NJ/EN polylines merged) — Blob first  |
 | `trains.js`             | Generic Back-on-Track data fetcher — reads Blob first, falls back to GitHub |
-| `scrape-backontrack.js` | Daily cron: scrapes GitHub and stores to Vercel Blob                        |
+| `scrape-backontrack.js` | Daily cron: scrapes Back-on-Track + NightJet API, stores to Vercel Blob     |
 | `osm-relation.js`       | OSM relation geometry — reads Blob first, falls back to Overpass API        |
-| `nightjet.js`           | NightJet API proxy (decommissioned; returns empty)                          |
-| `nj-*.js` / `en-*.js`  | NightJet / EuroNight endpoints (kept for manual use; not in cron schedule)  |
 
 ### Testing
 

@@ -225,39 +225,53 @@ export function useRoutePaths({
         osmRelationId = "static:enHumenne";
       }
 
-      const path0 = buildPathForDirection(
-        route.origin_trip_0,
-        route.destination_trip_0,
-        route.via_0,
-      );
-      if (path0) {
+      // Official NJ/EN polyline takes precedence over station-name-based coords
+      if (route.nj_positions?.length >= 2) {
         paths.push({
-          positions: path0,
+          positions: route.nj_positions,
           routeId,
           key: `route-${stationKey}-${routeId}-0`,
           pathOptions,
-          osmRelationId,
+          osmRelationId: null,
           isFuture,
           futureStartDate,
+          source: "nightjet",
         });
-      }
-
-      if (route.origin_trip_1 && route.destination_trip_1) {
-        const path1 = buildPathForDirection(
-          route.origin_trip_1,
-          route.destination_trip_1,
-          route.via_1,
+      } else {
+        const path0 = buildPathForDirection(
+          route.origin_trip_0,
+          route.destination_trip_0,
+          route.via_0,
         );
-        if (path1) {
+        if (path0) {
           paths.push({
-            positions: path1,
+            positions: path0,
             routeId,
-            key: `route-${stationKey}-${routeId}-1`,
+            key: `route-${stationKey}-${routeId}-0`,
             pathOptions,
             osmRelationId,
             isFuture,
             futureStartDate,
           });
+        }
+
+        if (route.origin_trip_1 && route.destination_trip_1) {
+          const path1 = buildPathForDirection(
+            route.origin_trip_1,
+            route.destination_trip_1,
+            route.via_1,
+          );
+          if (path1) {
+            paths.push({
+              positions: path1,
+              routeId,
+              key: `route-${stationKey}-${routeId}-1`,
+              pathOptions,
+              osmRelationId,
+              isFuture,
+              futureStartDate,
+            });
+          }
         }
       }
     });

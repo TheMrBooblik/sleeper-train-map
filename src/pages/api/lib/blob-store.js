@@ -6,11 +6,15 @@
 //
 // OSM relation geometries (key: numeric relation ID or comma-joined IDs):
 //   getOsmRelation(cacheKey) / putOsmRelation(cacheKey, data)
+//
+// NightJet / EuroNight train data:
+//   getNJTrains() / putNJTrains(data)
 
 import { list, put } from "@vercel/blob";
 
 const BACKONTRACK_PREFIX = "backontrack/";
 const OSM_PREFIX = "osm-relation/";
+const NIGHTJET_PREFIX = "nightjet/";
 const CACHE_TTL_MS = 25 * 60 * 60 * 1000; // 25 hours
 
 // Per-prefix module-level listing caches (avoids repeated list() calls per cold start)
@@ -30,6 +34,12 @@ function invalidateListingCache(prefix) {
   delete listingCaches[prefix];
 }
 
+async function fetchBlob(url) {
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  return res.json();
+}
+
 // ─── Back-on-Track datasets ────────────────────────────────────────────────
 
 /**
@@ -42,9 +52,9 @@ export async function getBlobData(key) {
     const blobs = await getListing(BACKONTRACK_PREFIX);
     const blob = blobs.find((b) => b.pathname === `${BACKONTRACK_PREFIX}${key}.json`);
     if (!blob) return null;
-    const res = await fetch(blob.url);
-    if (!res.ok) return null;
-    return { data: await res.json(), uploadedAt: new Date(blob.uploadedAt) };
+    const data = await fetchBlob(blob.url);
+    if (!data) return null;
+    return { data, uploadedAt: new Date(blob.uploadedAt) };
   } catch {
     return null;
   }
@@ -76,9 +86,9 @@ export async function getOsmRelation(cacheKey) {
     const safe = cacheKey.replace(/,/g, "_");
     const blob = blobs.find((b) => b.pathname === `${OSM_PREFIX}${safe}.json`);
     if (!blob) return null;
-    const res = await fetch(blob.url);
-    if (!res.ok) return null;
-    return { data: await res.json(), uploadedAt: new Date(blob.uploadedAt) };
+    const data = await fetchBlob(blob.url);
+    if (!data) return null;
+    return { data, uploadedAt: new Date(blob.uploadedAt) };
   } catch {
     return null;
   }
@@ -95,6 +105,38 @@ export async function putOsmRelation(cacheKey, data) {
     contentType: "application/json",
   });
   invalidateListingCache(OSM_PREFIX);
+}
+
+// ─── NightJet / EuroNight train data ──────────────────────────────────────
+
+/**
+ * Retrieve scraped NightJet/EuroNight train data from Vercel Blob.
+ * Returns { data: { uploadedAt, trains }, uploadedAt } or null.
+ */
+export async function getNJTrains() {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
+  try {
+    const blobs = await getListing(NIGHTJET_PREFIX);
+    const blob = blobs.find((b) => b.pathname === `${NIGHTJET_PREFIX}trains.json`);
+    if (!blob) return null;
+    const data = await fetchBlob(blob.url);
+    if (!data) return null;
+    return { data, uploadedAt: new Date(blob.uploadedAt) };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Upload/overwrite NightJet/EuroNight train data in Vercel Blob.
+ */
+export async function putNJTrains(data) {
+  await put(`${NIGHTJET_PREFIX}trains.json`, JSON.stringify(data), {
+    access: "public",
+    addRandomSuffix: false,
+    contentType: "application/json",
+  });
+  invalidateListingCache(NIGHTJET_PREFIX);
 }
 
 // ─── Shared ────────────────────────────────────────────────────────────────

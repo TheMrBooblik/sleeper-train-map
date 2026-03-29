@@ -72,7 +72,7 @@ export default async function handler(req, res) {
     let rawStops, rawViewMap, rawTrips;
     let source = "github";
 
-    // Try Vercel Blob first (daily scrape)
+    // Try Vercel Blob first (daily scrape — view_ontd_map already has nj_positions merged in)
     const [blobStops, blobViewMap, blobTrips] = await Promise.all([
       getBlobData("stops"),
       getBlobData("view_ontd_map"),
@@ -89,7 +89,7 @@ export default async function handler(req, res) {
       rawTrips = blobTrips.data;
       source = "blob";
     } else {
-      // Fall back to GitHub
+      // Fall back to GitHub (no NJ positions — scrape hasn't run yet)
       [rawStops, rawViewMap, rawTrips] = await Promise.all([
         fetchType("stops"),
         fetchType("view_ontd_map"),
