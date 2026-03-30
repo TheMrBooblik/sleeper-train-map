@@ -588,6 +588,8 @@ const TrainMap = ({
           onRouteClick={handlePolylineClick}
           onRouteHover={handleRouteHover}
           onRouteLeave={handleRouteLeave}
+          viewMapData={viewMapData}
+          trips={trips}
         />
       </div>
 

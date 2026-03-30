@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useCallback } from "react";
-import { useViewMap } from "../../hooks/requests/useViewMap";
-import { useTrips } from "../../hooks/requests/useTrips";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../Map/utils/operatorColors";
 import { normalizeStationNameForDisplay } from "../Map/utils/stationNameUtils";
 
@@ -20,9 +18,9 @@ const TrainBottomBar = ({
   onRouteClick,
   onRouteHover,
   onRouteLeave,
+  viewMapData,
+  trips,
 }) => {
-  const { viewMapData } = useViewMap();
-  const { trips } = useTrips();
 
   // Helper function to check if a route should be filtered out due to future "From <Date>" note
   const shouldHideRouteDueToFutureDate = useCallback(
