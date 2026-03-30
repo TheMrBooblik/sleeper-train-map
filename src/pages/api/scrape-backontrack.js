@@ -4,7 +4,7 @@
 
 import polyline from "@mapbox/polyline";
 import { putBlobData, putOsmRelation, putNJTrains } from "./lib/blob-store";
-import { fetchSingleTrain, fetchPartnerTrainNumbers } from "./lib/train-fetcher";
+import { fetchSingleTrain, fetchNJTrainNumbers, fetchPartnerTrainNumbers } from "./lib/train-fetcher";
 
 const BASE_URL =
   "https://raw.githubusercontent.com/Back-on-Track-eu/night-train-data/main/data/latest";
@@ -87,17 +87,14 @@ export default async function handler(req, res) {
   const today = new Date().toISOString().slice(0, 10);
   let njCount = 0;
   try {
-    // NJ train numbers from Back-on-Track trips (already fetched above)
-    const njNumbers = new Set();
-    Object.values(trips || {}).forEach((t) => {
-      const n = (t?.trip_short_name || "").toString().trim();
-      if (/^NJ\s+\d+/.test(n)) njNumbers.add(n);
-    });
+    // NJ train numbers from NightJet country-pair API (authoritative — BoT data can be outdated)
+    // EN train numbers from NightJet partner endpoint
+    const [njNumbers, enNumbers] = await Promise.all([
+      fetchNJTrainNumbers(today),
+      fetchPartnerTrainNumbers(today),
+    ]);
 
-    // EN train numbers from official partner endpoint
-    const enNumbers = await fetchPartnerTrainNumbers(today);
-
-    const allNumbers = [...njNumbers, ...enNumbers];
+    const allNumbers = [...new Set([...njNumbers, ...enNumbers])];
     const CONCURRENCY = 6;
     const results = {};
 

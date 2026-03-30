@@ -67,6 +67,7 @@ export async function putBlobData(key, data) {
   await put(`${BACKONTRACK_PREFIX}${key}.json`, JSON.stringify(data), {
     access: "public",
     addRandomSuffix: false,
+    allowOverwrite: true,
     contentType: "application/json",
   });
   invalidateListingCache(BACKONTRACK_PREFIX);
@@ -102,6 +103,7 @@ export async function putOsmRelation(cacheKey, data) {
   await put(`${OSM_PREFIX}${safe}.json`, JSON.stringify(data), {
     access: "public",
     addRandomSuffix: false,
+    allowOverwrite: true,
     contentType: "application/json",
   });
   invalidateListingCache(OSM_PREFIX);
@@ -134,6 +136,7 @@ export async function putNJTrains(data) {
   await put(`${NIGHTJET_PREFIX}trains.json`, JSON.stringify(data), {
     access: "public",
     addRandomSuffix: false,
+    allowOverwrite: true,
     contentType: "application/json",
   });
   invalidateListingCache(NIGHTJET_PREFIX);

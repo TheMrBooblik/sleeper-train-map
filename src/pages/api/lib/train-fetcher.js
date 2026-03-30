@@ -69,6 +69,47 @@ export async function fetchSingleTrain(trainNumber, date) {
 }
 
 /**
+ * Discover NightJet (non-partner) train numbers by querying the country-pair endpoint.
+ * Country codes are UIC standard: 80=DE, 81=AT, 83=IT, 84=NL, 85=CH, 88=BE.
+ * Querying all pairs guarantees we find trains regardless of what BoT data contains.
+ *
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @returns {Promise<string[]>} Array of NJ train numbers
+ */
+export async function fetchNJTrainNumbers(date) {
+  // Countries served by NightJet (non-partner) trains
+  const NJ_COUNTRIES = [80, 81, 83, 84, 85, 88]; // DE, AT, IT, NL, CH, BE
+
+  // Query all N×N ordered pairs — the endpoint is directional (AT→DE ≠ DE→AT)
+  const pairs = [];
+  for (const from of NJ_COUNTRIES) {
+    for (const to of NJ_COUNTRIES) {
+      pairs.push([from, to]);
+    }
+  }
+
+  const njNumbers = new Set();
+  await Promise.all(
+    pairs.map(async ([from, to]) => {
+      const url = `https://www.nightjet.com/nj-booking-ocp/destinations/country/${from}/country/${to}/${date}`;
+      try {
+        const res = await fetchWithTimeout(url, { headers: { accept: "application/json" } });
+        if (!res.ok) return;
+        const trains = await res.json();
+        if (!Array.isArray(trains)) return;
+        trains.forEach((t) => {
+          if (t?.trainNumber && !t.partnerTrain) njNumbers.add(t.trainNumber);
+        });
+      } catch (e) {
+        console.warn(`[train-fetcher] country ${from}/${to} failed: ${e.message}`);
+      }
+    }),
+  );
+
+  return Array.from(njNumbers);
+}
+
+/**
  * Discover EuroNight partner train numbers from NightJet API.
  *
  * @param {string} date - Date in YYYY-MM-DD format
