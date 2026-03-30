@@ -9,12 +9,16 @@
 //
 // NightJet / EuroNight train data:
 //   getNJTrains() / putNJTrains(data)
+//
+// Czech Railways (cd.cz) EC train timetables:
+//   getCDTrains() / putCDTrains(data)
 
 import { list, put } from "@vercel/blob";
 
 const BACKONTRACK_PREFIX = "backontrack/";
 const OSM_PREFIX = "osm-relation/";
 const NIGHTJET_PREFIX = "nightjet/";
+const CD_PREFIX = "cd/";
 const CACHE_TTL_MS = 25 * 60 * 60 * 1000; // 25 hours
 
 // Per-prefix module-level listing caches (avoids repeated list() calls per cold start)
@@ -140,6 +144,39 @@ export async function putNJTrains(data) {
     contentType: "application/json",
   });
   invalidateListingCache(NIGHTJET_PREFIX);
+}
+
+// ─── Czech Railways (cd.cz) EC train timetables ───────────────────────────
+
+/**
+ * Retrieve scraped Czech Railways EC train timetable data from Vercel Blob.
+ * Returns { data: { uploadedAt, trains }, uploadedAt } or null.
+ */
+export async function getCDTrains() {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
+  try {
+    const blobs = await getListing(CD_PREFIX);
+    const blob = blobs.find((b) => b.pathname === `${CD_PREFIX}trains.json`);
+    if (!blob) return null;
+    const data = await fetchBlob(blob.url);
+    if (!data) return null;
+    return { data, uploadedAt: new Date(blob.uploadedAt) };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Upload/overwrite Czech Railways EC train timetable data in Vercel Blob.
+ */
+export async function putCDTrains(data) {
+  await put(`${CD_PREFIX}trains.json`, JSON.stringify(data), {
+    access: "public",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+  });
+  invalidateListingCache(CD_PREFIX);
 }
 
 // ─── Shared ────────────────────────────────────────────────────────────────

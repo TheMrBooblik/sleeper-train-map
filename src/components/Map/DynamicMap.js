@@ -83,6 +83,8 @@ const TrainMap = ({
   const [hoveredRouteId, setHoveredRouteId] = useState(null);
   const [gtfsRouteFilterStops, setGtfsRouteFilterStops] = useState(null);
   const gtfsStopsCacheRef = useRef(new Map());
+  const [cdRouteFilterStops, setCdRouteFilterStops] = useState(null);
+  const cdTrainsCacheRef = useRef(null);
 
   const { routePaths } = useRoutePaths({
     viewMapData,
@@ -394,8 +396,82 @@ const TrainMap = ({
     };
   }, [hasRouteFilter, selectedTrainRouteIds, viewMapData]);
 
+  // For selected EC routes, use CD timetable stops as marker source.
+  // Station names from cd.cz are matched against BoT stops data for coordinates.
+  useEffect(() => {
+    if (!hasRouteFilter || !stops?.length) {
+      setCdRouteFilterStops(null);
+      return;
+    }
+
+    // Check if the selected route is an EC train
+    const activeId = String(selectedTrainRouteIds[0]);
+    let ecTrainNumber = null;
+    Object.values(trips || {}).forEach((trip) => {
+      if (trip?.route_id?.toString() === activeId) {
+        const m = (trip.trip_short_name || "").match(/^\s*EC\s+(\d+)/i);
+        if (m) ecTrainNumber = m[1];
+      }
+    });
+
+    if (!ecTrainNumber) {
+      setCdRouteFilterStops(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const buildStopsFromCD = (cdData) => {
+      const trainData = cdData?.trains?.[ecTrainNumber];
+      if (!trainData?.stops?.length) return null;
+
+      const stopLookup = new Map();
+      stops.forEach((stop) => {
+        if (!stop.stop_id) return;
+        const n = normalizeStationNameForLookup(stop.stop_id);
+        if (n && !stopLookup.has(n)) stopLookup.set(n, stop);
+        if (!stopLookup.has(stop.stop_id)) stopLookup.set(stop.stop_id, stop);
+      });
+
+      const result = [];
+      const seen = new Set();
+      trainData.stops.forEach((cdStop) => {
+        if (!cdStop.name) return;
+        const n = normalizeStationNameForLookup(cdStop.name);
+        const match = stopLookup.get(n) || stopLookup.get(cdStop.name);
+        if (match?.stop_lat && match?.stop_lon && !seen.has(n)) {
+          seen.add(n);
+          result.push({ stop_id: cdStop.name, stop_lat: match.stop_lat, stop_lon: match.stop_lon });
+        }
+      });
+      return result.length > 0 ? result : null;
+    };
+
+    const loadCDStops = async () => {
+      try {
+        if (cdTrainsCacheRef.current) {
+          if (!cancelled) setCdRouteFilterStops(buildStopsFromCD(cdTrainsCacheRef.current));
+          return;
+        }
+        const response = await fetch("/api/cd-trains");
+        if (!response.ok) {
+          if (!cancelled) setCdRouteFilterStops(null);
+          return;
+        }
+        const data = await response.json();
+        cdTrainsCacheRef.current = data;
+        if (!cancelled) setCdRouteFilterStops(buildStopsFromCD(data));
+      } catch {
+        if (!cancelled) setCdRouteFilterStops(null);
+      }
+    };
+
+    loadCDStops();
+    return () => { cancelled = true; };
+  }, [hasRouteFilter, selectedTrainRouteIds, trips, stops, normalizeStationNameForLookup]);
+
   const markers = useMapMarkers({
-    filteredStops: gtfsRouteFilterStops || routeFilterStops || filteredStops,
+    filteredStops: cdRouteFilterStops || gtfsRouteFilterStops || routeFilterStops || filteredStops,
     stops,
     cities,
     viewMapData,

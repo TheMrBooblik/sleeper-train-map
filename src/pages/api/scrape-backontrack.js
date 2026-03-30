@@ -3,8 +3,9 @@
 // Vercel injects Authorization: Bearer <CRON_SECRET> automatically for cron invocations.
 
 import polyline from "@mapbox/polyline";
-import { putBlobData, putOsmRelation, putNJTrains } from "./lib/blob-store";
+import { putBlobData, putOsmRelation, putNJTrains, putCDTrains } from "./lib/blob-store";
 import { fetchSingleTrain, fetchNJTrainNumbers, fetchPartnerTrainNumbers } from "./lib/train-fetcher";
+import { fetchCDTrain, extractECNumbers } from "./lib/cd-fetcher";
 
 const BASE_URL =
   "https://raw.githubusercontent.com/Back-on-Track-eu/night-train-data/main/data/latest";
@@ -143,6 +144,29 @@ export default async function handler(req, res) {
   // Store view_ontd_map now — enriched with nj_positions where available
   await putBlobData("view_ontd_map", view_ontd_map);
 
+  // Scrape Czech Railways (cd.cz) EC train timetables
+  let cdCount = 0;
+  try {
+    const ecNumbers = extractECNumbers(trips);
+    const CONCURRENCY = 6;
+    const cdResults = {};
+
+    for (let i = 0; i < ecNumbers.length; i += CONCURRENCY) {
+      const batch = ecNumbers.slice(i, i + CONCURRENCY);
+      const fetched = await Promise.all(batch.map((n) => fetchCDTrain(n)));
+      fetched.forEach((train) => {
+        if (!train) return;
+        cdResults[train.trainNumber] = train;
+      });
+    }
+
+    await putCDTrains({ uploadedAt: today, trains: cdResults });
+    cdCount = Object.keys(cdResults).length;
+  } catch (err) {
+    errors.push({ source: "cd", error: err.message });
+    console.error("[scrape-backontrack] CD scrape failed:", err.message);
+  }
+
   const uploadedAt = new Date().toISOString();
   console.log(`[scrape-backontrack] Done at ${uploadedAt}`);
 
@@ -151,6 +175,7 @@ export default async function handler(req, res) {
     backontrack: ["stops", "view_ontd_map", "trips"],
     osmRelations: OSM_RELATION_IDS,
     nightjet: njCount,
+    cd: cdCount,
     uploadedAt,
     errors,
   });

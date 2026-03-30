@@ -1,6 +1,6 @@
 {
   "functions": {
-    "src/pages/api/scrape-backontrack.js": { "maxDuration": 30 },
+    "src/pages/api/scrape-backontrack.js": { "maxDuration": 60 },
     "src/pages/api/nj-all-stations.js": { "maxDuration": 60 },
     "src/pages/api/nj-prewarm.js": { "maxDuration": 60 },
     "src/pages/api/nj-list.js": { "maxDuration": 60 },
