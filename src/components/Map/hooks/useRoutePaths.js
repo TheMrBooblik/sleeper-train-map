@@ -13,6 +13,7 @@ import {
 } from "../utils/routeStyleUtils";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../utils/operatorColors";
 import { buildAllRoutesPaths } from "../utils/buildAllRoutesPaths";
+import polyline from "@mapbox/polyline";
 
 // Number of leading coordinates to skip per OSM relation key.
 // Some OSM relations have station approach segments at the start
@@ -226,9 +227,9 @@ export function useRoutePaths({
       }
 
       // Official NJ/EN polyline takes precedence over station-name-based coords
-      if (route.nj_positions?.length >= 2) {
+      if (route.nj_polyline) {
         paths.push({
-          positions: route.nj_positions,
+          positions: polyline.decode(route.nj_polyline),
           routeId,
           key: `route-${stationKey}-${routeId}-0`,
           pathOptions,

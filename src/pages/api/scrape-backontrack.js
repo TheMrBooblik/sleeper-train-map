@@ -103,13 +103,19 @@ export default async function handler(req, res) {
       const fetched = await Promise.all(batch.map((n) => fetchSingleTrain(n, today)));
       fetched.forEach((train) => {
         if (!train) return;
-        const positions = train.polyline
-          ? polyline.decode(train.polyline)
-          : train.stations.map((s) => [s.location.latitude, s.location.longitude]);
+        // Store the encoded polyline string — much smaller than decoded arrays.
+        // Fall back to encoding station coords when the API doesn't provide a polyline.
+        const fallbackPositions = train.stations
+          .filter((s) => s.location?.latitude && s.location?.longitude)
+          .map((s) => [s.location.latitude, s.location.longitude]);
+        const encodedPolyline =
+          train.polyline ||
+          (fallbackPositions.length >= 2 ? polyline.encode(fallbackPositions) : null);
+        if (!encodedPolyline) return;
         results[train.lineName] = {
           lineName: train.lineName,
           operator: train.operator,
-          positions,
+          polyline: encodedPolyline,
           stations: train.stations,
         };
       });
@@ -123,8 +129,8 @@ export default async function handler(req, res) {
       const names = [route.trip_short_name_0, route.trip_short_name_1].filter(Boolean);
       for (const name of names) {
         const match = results[name.trim()];
-        if (match?.positions?.length) {
-          route.nj_positions = match.positions;
+        if (match?.polyline) {
+          route.nj_polyline = match.polyline;
           break;
         }
       }

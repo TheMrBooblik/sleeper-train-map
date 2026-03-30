@@ -12,6 +12,7 @@ import {
   getFutureRouteStartDate,
 } from "./routeStyleUtils";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "./operatorColors";
+import polyline from "@mapbox/polyline";
 
 function isInactiveRoute(route) {
   return (route?.is_active || "Y").toString().toUpperCase() === "N";
@@ -162,9 +163,9 @@ export function buildAllRoutesPaths({
     }
 
     // Official NJ/EN polyline takes precedence over station-name-based coords
-    if (route.nj_positions?.length >= 2) {
+    if (route.nj_polyline) {
       paths.push({
-        positions: route.nj_positions,
+        positions: polyline.decode(route.nj_polyline),
         routeId,
         key: `route-${stationKey}-${routeId}-0`,
         pathOptions,

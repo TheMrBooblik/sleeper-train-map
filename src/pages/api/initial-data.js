@@ -130,8 +130,20 @@ export default async function handler(req, res) {
     );
     res.setHeader("Content-Type", "application/json");
 
+    // Strip stops to only the fields the client needs (name + coords) — raw BoT stops
+    // have 17 fields and 28k+ entries which bloats the response to 11MB+.
+    const stopsArray = Array.isArray(rawStops)
+      ? rawStops
+      : Object.values(rawStops || {});
+    const trimmedStops = stopsArray.map((s) => ({
+      stop_id: s.stop_id,
+      stop_name: s.stop_name,
+      stop_lat: s.stop_lat,
+      stop_lon: s.stop_lon,
+    }));
+
     res.status(200).json({
-      stops: rawStops,
+      stops: trimmedStops,
       viewMap: filteredViewMap,
       trips: filteredTrips,
     });
