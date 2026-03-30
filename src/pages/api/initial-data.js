@@ -5,6 +5,11 @@
 
 import { isTrain4you } from "../../lib/trainOperatorsFilter";
 import { getBlobData, isFresh } from "./lib/blob-store";
+import {
+  keepViewMapRowForTripActivity,
+  routeIdsFromFilteredTrips,
+  routeIdsReferencedInTrips,
+} from "./trains";
 
 const BASE_URL =
   "https://raw.githubusercontent.com/Back-on-Track-eu/night-train-data/main/data/latest";
@@ -53,16 +58,31 @@ function filterTrips(data) {
  * NJ/EN are kept here so they render as Back-on-Track routes initially;
  * the client filters them out once official NightJet/EuroNight data loads.
  */
-function filterViewMap(data) {
+/**
+ * view_ontd_map rows often lack is_active; trips.json is authoritative per service.
+ * If every trip for route_id is inactive (filtered out), hide the map row.
+ */
+function filterViewMap(data, rawTrips, filteredTrips) {
+  const referencedIds = routeIdsReferencedInTrips(rawTrips);
+  const visibleIds = routeIdsFromFilteredTrips(filteredTrips);
   const filtered = {};
   Object.entries(data || {}).forEach(([key, route]) => {
     if (!isActiveRecord(route)) return;
     const trip0 = (route?.trip_short_name_0 || "").toString();
     const trip1 = (route?.trip_short_name_1 || "").toString();
     const isT4y = isTrain4you(route, trip0) || isTrain4you(route, trip1);
-    if (!isT4y) {
-      filtered[key] = route;
+    const rowOk = !isT4y;
+    if (
+      !keepViewMapRowForTripActivity(
+        rowOk,
+        route?.route_id,
+        referencedIds,
+        visibleIds,
+      )
+    ) {
+      return;
     }
+    filtered[key] = route;
   });
   return filtered;
 }
@@ -101,7 +121,7 @@ export default async function handler(req, res) {
 
     // Apply operator filtering
     const filteredTrips = filterTrips(rawTrips);
-    const filteredViewMap = filterViewMap(rawViewMap);
+    const filteredViewMap = filterViewMap(rawViewMap, rawTrips, filteredTrips);
 
     // CDN caches for 1 hour; serve stale while revalidating for up to 1 day
     res.setHeader(
