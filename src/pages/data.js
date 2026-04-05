@@ -203,7 +203,7 @@ export default function DataPage() {
   const s = data?.sources;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" style={{ overflowY: "auto", height: "100vh" }}>
       <Head>
         <title>Data status – Pingwi</title>
         <link
