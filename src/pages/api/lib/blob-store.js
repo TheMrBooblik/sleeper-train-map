@@ -12,6 +12,9 @@
 //
 // Czech Railways (cd.cz) EC train timetables:
 //   getCDTrains() / putCDTrains(data)
+//
+// SNCF Intercités de Nuit polylines:
+//   getSNCFTrains() / putSNCFTrains(data)
 
 import { list, put } from "@vercel/blob";
 
@@ -19,6 +22,7 @@ const BACKONTRACK_PREFIX = "backontrack/";
 const OSM_PREFIX = "osm-relation/";
 const NIGHTJET_PREFIX = "nightjet/";
 const CD_PREFIX = "cd/";
+const SNCF_PREFIX = "sncf/";
 const CACHE_TTL_MS = 25 * 60 * 60 * 1000; // 25 hours
 
 // Per-prefix module-level listing caches (avoids repeated list() calls per cold start)
@@ -177,6 +181,39 @@ export async function putCDTrains(data) {
     contentType: "application/json",
   });
   invalidateListingCache(CD_PREFIX);
+}
+
+// ─── SNCF Intercités de Nuit polylines ───────────────────────────────────
+
+/**
+ * Retrieve scraped SNCF Intercités de Nuit polyline data from Vercel Blob.
+ * Returns { data: { uploadedAt, trains }, uploadedAt } or null.
+ */
+export async function getSNCFTrains() {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
+  try {
+    const blobs = await getListing(SNCF_PREFIX);
+    const blob = blobs.find((b) => b.pathname === `${SNCF_PREFIX}trains.json`);
+    if (!blob) return null;
+    const data = await fetchBlob(blob.url);
+    if (!data) return null;
+    return { data, uploadedAt: new Date(blob.uploadedAt) };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Upload/overwrite SNCF Intercités de Nuit polyline data in Vercel Blob.
+ */
+export async function putSNCFTrains(data) {
+  await put(`${SNCF_PREFIX}trains.json`, JSON.stringify(data), {
+    access: "public",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+  });
+  invalidateListingCache(SNCF_PREFIX);
 }
 
 // ─── Shared ────────────────────────────────────────────────────────────────

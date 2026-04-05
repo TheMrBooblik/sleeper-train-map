@@ -29,6 +29,7 @@
     "@tailwindcss/postcss": "^4.0.8",
     "@vercel/blob": "^2.3.2",
     "copy-webpack-plugin": "^11.0.0",
+    "fflate": "^0.8.2",
     "hafas-client": "^6.3.6",
     "leaflet": "^1.9.4",
     "next": "15.1.11",

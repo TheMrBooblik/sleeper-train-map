@@ -162,7 +162,8 @@ export function buildAllRoutesPaths({
       osmRelationId = "static:enHumenne";
     }
 
-    // Official NJ/EN polyline takes precedence over station-name-based coords
+    // Official NJ/EN polyline takes precedence over station-name-based coords.
+    // SNCF polyline (from GTFS shapes) takes precedence over station-name stitching.
     if (route.nj_polyline) {
       paths.push({
         positions: polyline.decode(route.nj_polyline),
@@ -173,6 +174,17 @@ export function buildAllRoutesPaths({
         isFuture,
         futureStartDate,
         source: "nightjet",
+      });
+    } else if (route.sncf_polyline) {
+      paths.push({
+        positions: polyline.decode(route.sncf_polyline),
+        routeId,
+        key: `route-${stationKey}-${routeId}-0`,
+        pathOptions,
+        osmRelationId: null,
+        isFuture,
+        futureStartDate,
+        source: "sncf",
       });
     } else {
       const path0 = buildPathForDirection(
