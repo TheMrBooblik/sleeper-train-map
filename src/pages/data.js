@@ -270,6 +270,22 @@ export default function DataPage() {
               />
             </SourceCard>
 
+            {/* SNCF — official operator */}
+            <SourceCard
+              title="SNCF Intercités de Nuit"
+              description="Official SNCF GTFS open data — polylines for IC Nuit routes"
+              priority
+            >
+              <DataRow
+                label="IC Nuit trains"
+                count={s.sncf.count}
+                status={s.sncf.status}
+                hoursAgo={s.sncf.hoursAgo}
+                items={s.sncf.items}
+                itemLabel="trains"
+              />
+            </SourceCard>
+
             {/* Back-on-Track — community GTFS dataset */}
             <SourceCard
               title="Back-on-Track"

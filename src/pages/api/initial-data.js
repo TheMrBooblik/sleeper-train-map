@@ -4,7 +4,7 @@
 // Vercel CDN caches this for 1 hour so only ~1 serverless invocation per hour worldwide.
 
 import { isTrain4you } from "../../lib/trainOperatorsFilter";
-import { getBlobData, isFresh } from "./lib/blob-store";
+import { getBlobData, getSNCFTrains, isFresh } from "./lib/blob-store";
 import {
   keepViewMapRowForTripActivity,
   routeIdsFromFilteredTrips,
@@ -93,10 +93,11 @@ export default async function handler(req, res) {
     let source = "github";
 
     // Try Vercel Blob first (daily scrape — view_ontd_map already has nj_positions merged in)
-    const [blobStops, blobViewMap, blobTrips] = await Promise.all([
+    const [blobStops, blobViewMap, blobTrips, sncfBlob] = await Promise.all([
       getBlobData("stops"),
       getBlobData("view_ontd_map"),
       getBlobData("trips"),
+      getSNCFTrains(),
     ]);
 
     if (
@@ -122,6 +123,21 @@ export default async function handler(req, res) {
     // Apply operator filtering
     const filteredTrips = filterTrips(rawTrips);
     const filteredViewMap = filterViewMap(rawViewMap, rawTrips, filteredTrips);
+
+    // Merge SNCF polylines into viewMap (from sncf/trains.json blob, seeded by /api/seed-sncf)
+    if (sncfBlob?.data?.trains) {
+      const sncfTrains = sncfBlob.data.trains;
+      Object.values(filteredViewMap).forEach((route) => {
+        const names = [route.trip_short_name_0, route.trip_short_name_1].filter(Boolean);
+        for (const name of names) {
+          const match = sncfTrains[name.trim()];
+          if (match?.polyline) {
+            route.sncf_polyline = match.polyline;
+            break;
+          }
+        }
+      });
+    }
 
     // CDN caches for 1 hour; serve stale while revalidating for up to 1 day
     res.setHeader(

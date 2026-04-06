@@ -6,6 +6,7 @@ import {
   getBlobData,
   getNJTrains,
   getCDTrains,
+  getSNCFTrains,
   getOsmRelation,
   isFresh,
 } from "./lib/blob-store";
@@ -34,13 +35,14 @@ export default async function handler(req, res) {
   }
 
   // Fetch all blob data in parallel
-  const [stopsBlob, routesBlob, tripsBlob, njBlob, cdBlob, ...osmBlobs] =
+  const [stopsBlob, routesBlob, tripsBlob, njBlob, cdBlob, sncfBlob, ...osmBlobs] =
     await Promise.all([
       getBlobData("stops"),
       getBlobData("view_ontd_map"),
       getBlobData("trips"),
       getNJTrains(),
       getCDTrains(),
+      getSNCFTrains(),
       ...OSM_RELATION_IDS.map((id) => getOsmRelation(id)),
     ]);
 
@@ -135,6 +137,25 @@ export default async function handler(req, res) {
       }
     : { uploadedAt: null, count: 0, status: "missing", hoursAgo: null, items: [] };
 
+  // SNCF Intercités de Nuit (official GTFS polylines)
+  let sncfItems = [];
+  if (sncfBlob?.data?.trains) {
+    sncfItems = Object.entries(sncfBlob.data.trains).map(([trainNumber, t]) => ({
+      trainNumber,
+      coordinateCount: t.coordinateCount ?? 0,
+    }));
+    sncfItems.sort((a, b) => a.trainNumber.localeCompare(b.trainNumber, undefined, { numeric: true }));
+  }
+  const sncf = sncfBlob
+    ? {
+        uploadedAt: sncfBlob.uploadedAt,
+        count: sncfItems.length,
+        status: freshnessStatus(sncfBlob.uploadedAt),
+        hoursAgo: hoursAgo(sncfBlob.uploadedAt),
+        items: sncfItems,
+      }
+    : { uploadedAt: null, count: 0, status: "missing", hoursAgo: null, items: [] };
+
   // OSM Relations
   const osmRelations = OSM_RELATION_IDS.map((id, i) => {
     const blob = osmBlobs[i];
@@ -155,6 +176,7 @@ export default async function handler(req, res) {
     sources: {
       nightjet,
       cdRailways,
+      sncf,
       backontrack: { stops, routes, trips },
       osmRelations,
     },
