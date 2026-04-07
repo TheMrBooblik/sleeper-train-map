@@ -4,8 +4,12 @@
 import polyline from "@mapbox/polyline";
 import { unzipSync } from "fflate";
 
-export const SNCF_GTFS_URL =
-  "https://eu.ftp.opendatasoft.com/sncf/plandata/export-intercites-gtfs-last.zip";
+// Multiple candidate URLs tried in order — opendatasoft FTP may restrict server IPs.
+const SNCF_GTFS_URLS = [
+  "https://eu.ftp.opendatasoft.com/sncf/plandata/export-intercites-gtfs-last.zip",
+  // Consolidated SNCF GTFS (TGV + Intercités + TER — larger but more reliable access)
+  "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip",
+];
 
 // Exact trip_short_name values from Back-on-Track view_ontd_map for IC Nuit trains.
 const SNCF_IC_NUIT_NUMBERS = [
@@ -57,8 +61,26 @@ function extractTrainNumber(botName) {
  *   { "IC Nuit 5787": { polyline: "<encoded>", coordinateCount: N }, ... }
  */
 export async function fetchSNCFNightTrainPolylines() {
-  const response = await fetch(SNCF_GTFS_URL);
-  if (!response.ok) throw new Error(`SNCF GTFS fetch failed: ${response.status}`);
+  // Try each URL in order; opendatasoft may block data-centre IPs on some routes.
+  const fetchHeaders = {
+    "User-Agent": "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://github.com/TheMrBooblik/sleeper-train-map)",
+    "Accept": "*/*",
+    "Referer": "https://ressources.data.sncf.com/",
+  };
+
+  let response = null;
+  for (const url of SNCF_GTFS_URLS) {
+    try {
+      response = await fetch(url, { headers: fetchHeaders });
+      if (response.ok) break;
+      console.warn(`[sncf-fetcher] ${url} returned ${response.status}, trying next`);
+    } catch (err) {
+      console.warn(`[sncf-fetcher] ${url} failed: ${err.message}, trying next`);
+    }
+  }
+  if (!response?.ok) {
+    throw new Error(`All SNCF GTFS URLs failed (last status: ${response?.status ?? "network error"})`);
+  }
 
   const buffer = await response.arrayBuffer();
   const files = unzipSync(new Uint8Array(buffer));
