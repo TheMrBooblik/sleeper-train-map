@@ -109,7 +109,9 @@ export async function inspectSNCFGtfs() {
   };
 }
 
-
+/**
+ * Download SNCF Intercités GTFS and extract encoded polylines for all IC Nuit trains.
+ *
  * Strategy:
  *   1. Use shapes.txt if present (accurate track geometry).
  *   2. Fall back to stop sequence from stop_times.txt + stops.txt.
