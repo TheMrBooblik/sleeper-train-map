@@ -74,6 +74,37 @@ function deriveCities(mapData) {
     });
   });
 
+  // Third pass: NJ/EN full station lists (all intermediate stops from the NightJet API).
+  // nj_via_stations is a " - " separated string added during the daily scrape.
+  // This ensures every NightJet/EuroNight stop gets a cities entry and appears as a map marker.
+  Object.values(mapData).forEach((route) => {
+    if (!route?.route_id || !route.nj_via_stations) return;
+    const routeId = route.route_id.toString();
+
+    route.nj_via_stations
+      .split(" - ")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .forEach((station) => {
+        const normalized = normalizeStationNameForLookup(station);
+        if (!cityRouteMap[normalized]) {
+          cityRouteMap[normalized] = {
+            stop_id: normalized,
+            stop_route_ids: routeId,
+            isViaStation: true,
+            isMainStation: false,
+          };
+        } else {
+          if (!cityRouteMap[normalized].stop_route_ids.split(",").includes(routeId)) {
+            cityRouteMap[normalized].stop_route_ids += `,${routeId}`;
+          }
+          if (!cityRouteMap[normalized].isMainStation) {
+            cityRouteMap[normalized].isViaStation = true;
+          }
+        }
+      });
+  });
+
   return cityRouteMap;
 }
 

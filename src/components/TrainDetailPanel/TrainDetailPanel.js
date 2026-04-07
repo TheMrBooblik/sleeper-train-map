@@ -41,6 +41,12 @@ function isECTrip(relevantTrips) {
   );
 }
 
+function isNJOrENTrip(relevantTrips) {
+  return relevantTrips?.some((trip) =>
+    /^\s*(NJ|EN)\s+\d+/i.test(trip.trip_short_name || ""),
+  );
+}
+
 function detectGtfsRouteKindFromTrips(relevantTrips) {
   if (!relevantTrips?.length) return null;
 
@@ -119,6 +125,8 @@ const TrainDetailPanel = ({
   const [gtfsLoadFailed, setGtfsLoadFailed] = useState(false);
   const [cdTimetableData, setCdTimetableData] = useState(null);
   const [cdLoadFailed, setCdLoadFailed] = useState(false);
+  const [njTimetableData, setNjTimetableData] = useState(null);
+  const [njLoadFailed, setNjLoadFailed] = useState(false);
 
   // Handle ESC key press
   useEffect(() => {
@@ -234,6 +242,35 @@ const TrainDetailPanel = ({
     };
   }, [isOpen, relevantTrips]);
 
+  useEffect(() => {
+    if (!isOpen || !isNJOrENTrip(relevantTrips)) {
+      setNjTimetableData(null);
+      setNjLoadFailed(false);
+      return;
+    }
+
+    let active = true;
+    const loadNJTimetable = async () => {
+      try {
+        setNjLoadFailed(false);
+        const response = await fetch("/api/nj-trains");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (active) setNjTimetableData(data);
+      } catch {
+        if (active) {
+          setNjTimetableData(null);
+          setNjLoadFailed(true);
+        }
+      }
+    };
+
+    loadNJTimetable();
+    return () => {
+      active = false;
+    };
+  }, [isOpen, relevantTrips]);
+
   const cdScheduleByTrainNumber = useMemo(() => {
     if (!cdTimetableData?.trains) return new Map();
     const next = new Map();
@@ -244,6 +281,18 @@ const TrainDetailPanel = ({
     });
     return next;
   }, [cdTimetableData]);
+
+  const njScheduleByTrainNumber = useMemo(() => {
+    if (!njTimetableData?.trains) return new Map();
+    const next = new Map();
+    Object.entries(njTimetableData.trains).forEach(([key, train]) => {
+      next.set(key, train);
+      next.set(normalizeTrainNumber(key), train);
+      const digits = extractTrainNumberDigits(key);
+      if (digits) next.set(digits, train);
+    });
+    return next;
+  }, [njTimetableData]);
 
   // Format time from ISO string
   const formatTime = (isoString) => {
@@ -300,6 +349,11 @@ const TrainDetailPanel = ({
                 Czech Railways timetable is currently unavailable.
               </div>
             )}
+            {njLoadFailed && isNJOrENTrip(relevantTrips) && (
+              <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                NightJet timetable is currently unavailable.
+              </div>
+            )}
 
             {relevantTrips.map((trip, index) => {
               // Trip list uses trip fields; route rows from useRoutes are only for GTFS-kind detection.
@@ -319,6 +373,10 @@ const TrainDetailPanel = ({
               const cdSchedule =
                 cdScheduleByTrainNumber.get(numericTrainNumber) ||
                 cdScheduleByTrainNumber.get(normalizedTrainNumber) ||
+                null;
+              const njSchedule =
+                njScheduleByTrainNumber.get(normalizedTrainNumber) ||
+                njScheduleByTrainNumber.get(numericTrainNumber) ||
                 null;
               const endpointMatchedSchedule =
                 !detailedSchedule && gtfsTimetableData?.trips?.length
@@ -503,6 +561,51 @@ const TrainDetailPanel = ({
                               </div>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    </details>
+                  )}
+
+                  {/* Accordion: NightJet / EuroNight official station timetable */}
+                  {njSchedule?.stations?.length > 0 && (
+                    <details className="rounded-md bg-gray-50">
+                      <summary className="cursor-pointer list-none px-2 py-1.5 flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-gray-900">
+                          Show all stations ({njSchedule.stations.length})
+                        </span>
+                        <span
+                          className="inline-flex items-center justify-center h-5 w-5 text-gray-500 transition-transform duration-200 group-open:rotate-180"
+                          aria-hidden
+                        >
+                          <FiChevronDown className="h-4 w-4" />
+                        </span>
+                      </summary>
+                      <div className="px-2 pb-2 space-y-1">
+                        <div className="rounded bg-white">
+                          {njSchedule.stations.map((s, i) => (
+                            <div
+                              key={`nj-${njSchedule.lineName}-${i}`}
+                              className={`grid grid-cols-[1fr_auto] gap-2 px-2 py-1.5 text-xs border-b border-gray-50 last:border-b-0 ${
+                                !s.pickup && !s.dropoff ? "opacity-40" : ""
+                              }`}
+                            >
+                              <div className="text-gray-800">{s.name}</div>
+                              <div className="text-gray-600 tabular-nums whitespace-nowrap">
+                                {s.arrival ? formatTime(s.arrival) : "--"} /{" "}
+                                {s.departure ? formatTime(s.departure) : "--"}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="text-xs text-gray-400 pt-1">
+                          <a
+                            href="https://www.nightjet.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                          >
+                            Source: NightJet (nightjet.com)
+                          </a>
                         </div>
                       </div>
                     </details>

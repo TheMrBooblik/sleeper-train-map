@@ -18,6 +18,19 @@ const OVERPASS_ENDPOINTS = [
 // OSM relation IDs used by the frontend (hardcoded in useRoutePaths.js)
 const OSM_RELATION_IDS = ["18616102"]; // European Sleeper 453
 
+/**
+ * Minimal station-name normalizer for deduplication when merging NJ stations into BoT stops.
+ * Strips diacritics, lowercases, collapses whitespace.
+ */
+function normalizeStopName(name) {
+  return (name || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 async function fetchBackontrack(type) {
   const response = await fetch(`${BASE_URL}/${type}.json`, {
     headers: { "Accept-Encoding": "gzip, deflate, br" },
@@ -67,11 +80,8 @@ export default async function handler(req, res) {
     fetchBackontrack("view_ontd_map"),
     fetchBackontrack("trips"),
   ]);
-  // Store stops and trips immediately; view_ontd_map will be enriched with NJ/EN positions below.
-  await Promise.all([
-    putBlobData("stops", stops),
-    putBlobData("trips", trips),
-  ]);
+  // Store trips immediately; stops will be enriched with NJ station coords below.
+  await putBlobData("trips", trips);
 
   // Fetch and store OSM relation geometries
   for (const id of OSM_RELATION_IDS) {
@@ -125,23 +135,74 @@ export default async function handler(req, res) {
     await putNJTrains({ uploadedAt: today, trains: results });
     njCount = Object.keys(results).length;
 
-    // Merge NJ/EN positions into view_ontd_map so initial-data can serve pre-enriched data
+    // Merge NJ/EN positions + full station list into view_ontd_map
     Object.values(view_ontd_map).forEach((route) => {
       const names = [route.trip_short_name_0, route.trip_short_name_1].filter(Boolean);
       for (const name of names) {
         const match = results[name.trim()];
         if (match?.polyline) {
           route.nj_polyline = match.polyline;
+          // Full ordered stop list for city-lookup and timetable rendering
+          route.nj_via_stations = match.stations
+            .filter((s) => s.location?.latitude && s.location?.longitude)
+            .map((s) => s.name)
+            .join(" - ");
           break;
         }
       }
     });
+
+    // Enrich BoT stops with NJ station coordinates.
+    // Collect unique NJ stations by EVA ID, then:
+    //   - update existing BoT stops that lack coordinates
+    //   - append genuinely new NJ-only stops
+    const njStationsByEvaId = {};
+    Object.values(results).forEach((train) => {
+      train.stations.forEach((s) => {
+        if (!s.id || !s.location?.latitude || !s.location?.longitude) return;
+        if (!njStationsByEvaId[s.id]) {
+          njStationsByEvaId[s.id] = {
+            stop_id: `nj_${s.id}`,
+            stop_name: s.name,
+            stop_lat: s.location.latitude,
+            stop_lon: s.location.longitude,
+          };
+        }
+      });
+    });
+
+    const stopsArray = Array.isArray(stops) ? stops : Object.values(stops || {});
+    const botStopByNormalizedName = {};
+    stopsArray.forEach((s) => {
+      const key = normalizeStopName(s.stop_name || s.stop_id || "");
+      if (key) botStopByNormalizedName[key] = s;
+    });
+
+    const njOnlyStops = [];
+    Object.values(njStationsByEvaId).forEach((njStop) => {
+      const key = normalizeStopName(njStop.stop_name);
+      const existing = botStopByNormalizedName[key];
+      if (existing) {
+        if (!existing.stop_lat || !existing.stop_lon) {
+          existing.stop_lat = njStop.stop_lat;
+          existing.stop_lon = njStop.stop_lon;
+        }
+      } else {
+        njOnlyStops.push(njStop);
+      }
+    });
+
+    const enrichedStops = [...stopsArray, ...njOnlyStops];
+    await putBlobData("stops", enrichedStops);
   } catch (err) {
     errors.push({ source: "nightjet", error: err.message });
     console.error("[scrape-backontrack] NightJet scrape failed:", err.message);
+
+    // NJ scrape failed — still store the original BoT stops
+    await putBlobData("stops", stops);
   }
 
-  // Store view_ontd_map now — enriched with nj_positions where available
+  // Store view_ontd_map now — enriched with nj_polyline + nj_via_stations where available
   await putBlobData("view_ontd_map", view_ontd_map);
 
   // Scrape Czech Railways (cd.cz) EC train timetables
@@ -177,6 +238,6 @@ export default async function handler(req, res) {
     nightjet: njCount,
     cd: cdCount,
     uploadedAt,
-    errors,
+    ...(errors.length > 0 ? { errors } : {}),
   });
 }
