@@ -2,9 +2,11 @@
 // On-demand endpoint: downloads the SNCF Intercités GTFS and stores polylines in Vercel Blob.
 // Use this to seed SNCF data without waiting for the daily cron.
 // Protected by the same CRON_SECRET as scrape-backontrack when the secret is configured.
+//
+// ?debug=1  — returns GTFS inspection data instead of seeding (useful for debugging 0-match issues)
 
 import { putSNCFTrains } from "./lib/blob-store";
-import { fetchSNCFNightTrainPolylines } from "./lib/sncf-fetcher";
+import { fetchSNCFNightTrainPolylines, inspectSNCFGtfs } from "./lib/sncf-fetcher";
 
 export default async function handler(req, res) {
   const authHeader = req.headers["authorization"];
@@ -13,8 +15,18 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN && !req.query.debug) {
     return res.status(500).json({ error: "BLOB_READ_WRITE_TOKEN not configured" });
+  }
+
+  // Debug mode: inspect GTFS content without storing anything
+  if (req.query.debug === "1") {
+    try {
+      const info = await inspectSNCFGtfs();
+      return res.status(200).json(info);
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
   }
 
   try {

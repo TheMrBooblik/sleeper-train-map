@@ -51,8 +51,65 @@ function extractTrainNumber(botName) {
 }
 
 /**
- * Download SNCF Intercités GTFS and extract encoded polylines for all IC Nuit trains.
- *
+ * Download the SNCF GTFS and return a diagnostic snapshot — used by /api/seed-sncf?debug=1.
+ * Does NOT store anything. Returns sample rows so we can see the actual field formats.
+ */
+export async function inspectSNCFGtfs() {
+  const fetchHeaders = {
+    "User-Agent": "Mozilla/5.0 (compatible; sleeper-train-map/1.0)",
+    "Accept": "*/*",
+    "Referer": "https://ressources.data.sncf.com/",
+  };
+
+  let response = null;
+  let usedUrl = null;
+  for (const url of SNCF_GTFS_URLS) {
+    try {
+      response = await fetch(url, { headers: fetchHeaders });
+      if (response.ok) { usedUrl = url; break; }
+    } catch { /* try next */ }
+  }
+  if (!response?.ok) throw new Error(`All SNCF GTFS URLs failed (status: ${response?.status})`);
+
+  const buffer = await response.arrayBuffer();
+  const files = unzipSync(new Uint8Array(buffer));
+
+  const fileList = Object.keys(files);
+  const routesRows = files["routes.txt"] ? parseCsv(files["routes.txt"]) : [];
+  const tripsRows  = files["trips.txt"]  ? parseCsv(files["trips.txt"])  : [];
+
+  // Find any rows that look like night trains
+  const nightRoutes = routesRows.filter((r) =>
+    (r.route_long_name || "").toLowerCase().includes("nuit") ||
+    (r.route_short_name || "").toLowerCase().includes("nuit") ||
+    (r.route_long_name || "").toLowerCase().includes("night")
+  );
+
+  // Sample of trip_short_name values for the night routes (or first 20 trips if none found)
+  const nightRouteIds = new Set(nightRoutes.map((r) => r.route_id));
+  const sampleTrips = tripsRows
+    .filter((t) => nightRouteIds.size === 0 || nightRouteIds.has(t.route_id))
+    .slice(0, 30)
+    .map((t) => ({
+      route_id: t.route_id,
+      trip_short_name: t.trip_short_name,
+      trip_headsign: t.trip_headsign,
+      shape_id: t.shape_id,
+    }));
+
+  return {
+    usedUrl,
+    files: fileList,
+    routeCount: routesRows.length,
+    tripCount: tripsRows.length,
+    nightRoutes: nightRoutes.slice(0, 20),
+    sampleTrips,
+    // Raw first 5 rows of routes.txt for format inspection
+    routesSample: routesRows.slice(0, 5),
+  };
+}
+
+
  * Strategy:
  *   1. Use shapes.txt if present (accurate track geometry).
  *   2. Fall back to stop sequence from stop_times.txt + stops.txt.
