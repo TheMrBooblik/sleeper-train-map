@@ -19,14 +19,14 @@ const SNCF_GTFS_URLS = [
 // `cities`: keywords (accent-stripped, lowercase) that appear in route_long_name for this line.
 // `key` / `altKey`: BoT trip_short_name values that will get this polyline.
 const IC_NUIT_ROUTES = [
-  { cities: ["briancon", "briançon"],                          key: "IC Nuit 5787", altKey: "IC Nuit 5792" },
-  { cities: ["nice"],                                          key: "IC Nuit 5781", altKey: "IC Nuit 5772" },
-  { cities: ["rodez", "albi"],                                 key: "IC Nuit 3754", altKey: "IC Nuit 3755" },
-  { cities: ["cerbere", "cerbère", "portbou"],                 key: "IC Nuit 5737", altKey: "IC Nuit 5738" },
-  { cities: ["latour-de-carol", "latour de carol", "enveitg"], key: "IC Nuit 3970", altKey: "IC Nuit 3971" },
-  { cities: ["aurillac"],                                      key: "IC Nuit 3789", altKey: "IC Nuit 3790" },
-  { cities: ["toulouse"],                                      key: "IC Nuit 3750", altKey: "IC Nuit 3751" },
-  { cities: ["tarbes"],                                        key: "IC Nuit 3731", altKey: "IC Nuit 3740" },
+  { cities: ["briancon", "briançon"],                                    key: "IC Nuit 5787", altKey: "IC Nuit 5792" },
+  { cities: ["nice"],                                                    key: "IC Nuit 5781", altKey: "IC Nuit 5772" },
+  { cities: ["rodez", "albi"],                                           key: "IC Nuit 3754", altKey: "IC Nuit 3755" },
+  { cities: ["cerbere", "cerbère", "portbou", "port-bou", "port bou"],  key: "IC Nuit 5737", altKey: "IC Nuit 5738" },
+  { cities: ["latour-de-carol", "latour de carol", "enveitg"],           key: "IC Nuit 3970", altKey: "IC Nuit 3971" },
+  { cities: ["aurillac"],                                                key: "IC Nuit 3789", altKey: "IC Nuit 3790" },
+  { cities: ["toulouse"],                                                key: "IC Nuit 3750", altKey: "IC Nuit 3751" },
+  { cities: ["tarbes"],                                                  key: "IC Nuit 3731", altKey: "IC Nuit 3740" },
 ];
 
 /** Normalize: lowercase + strip accents. */
@@ -105,13 +105,14 @@ export async function fetchSNCFNightTrainPolylines() {
   console.log(`[sncf-fetcher] ${routesRows.length} routes, ${tripsRows.length} trips, shapes=${hasShapes}`);
 
   // ── Match routes by terminal city in route_long_name ─────────────────────────
-  // All IC Nuit trains depart from Paris, so route_long_name must start with "paris".
-  // This excludes lines like "Toulouse - Hendaye" that contain a city keyword but
-  // are not IC Nuit routes.
+  // IC Nuit trains connect Paris to a terminal city. The route_long_name must contain
+  // "paris" to exclude unrelated lines (e.g. "Toulouse - Hendaye").
+  // We use includes() rather than startsWith() to handle reversed names like
+  // "Cerbère - Paris Austerlitz" that some GTFS exports produce.
   const routeIdToRouteDef = new Map();
   for (const row of routesRows) {
     const longName = norm(row.route_long_name);
-    if (!longName.startsWith("paris")) continue; // must originate in Paris
+    if (!longName.includes("paris")) continue; // must include Paris as one endpoint
     for (const routeDef of IC_NUIT_ROUTES) {
       if (routeDef.cities.some((c) => longName.includes(norm(c)))) {
         routeIdToRouteDef.set(row.route_id, routeDef);
@@ -215,22 +216,13 @@ export async function inspectSNCFGtfs() {
   const routesRows = files["routes.txt"] ? parseCsv(files["routes.txt"]) : [];
   const tripsRows  = files["trips.txt"]  ? parseCsv(files["trips.txt"])  : [];
 
-  const matchedRoutes = routesRows.filter((r) => {
+  // Show ALL routes — there are only ~34 so it fits in one response
+  const parisRoutes = routesRows.filter((r) => norm(r.route_long_name).includes("paris"));
+  const matchedRoutes = parisRoutes.filter((r) => {
     const n = norm(r.route_long_name);
     return IC_NUIT_ROUTES.some((def) => def.cities.some((c) => n.includes(norm(c))));
   });
-
-  const matchedRouteIds = new Set(matchedRoutes.map((r) => r.route_id));
-  const sampleTrips = tripsRows
-    .filter((t) => matchedRouteIds.has(t.route_id))
-    .slice(0, 20)
-    .map((t) => ({
-      route_id: t.route_id,
-      trip_id: t.trip_id,
-      trip_short_name: t.trip_short_name,
-      trip_headsign: t.trip_headsign,
-      shape_id: t.shape_id,
-    }));
+  const unmatchedParisRoutes = parisRoutes.filter((r) => !matchedRoutes.includes(r));
 
   return {
     usedUrl,
@@ -238,7 +230,7 @@ export async function inspectSNCFGtfs() {
     routeCount: routesRows.length,
     tripCount: tripsRows.length,
     matchedRoutes,
-    sampleTrips,
-    routesSample: routesRows.slice(0, 10),
+    unmatchedParisRoutes,
+    allRoutes: routesRows,
   };
 }
