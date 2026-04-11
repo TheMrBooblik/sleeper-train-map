@@ -1,30 +1,44 @@
 // lib/sncf-fetcher.js
 // Fetches SNCF Intercités de Nuit polylines from the official GTFS open data feed.
+//
+// The SNCF Intercités GTFS has:
+//   - route_long_name like "Paris Austerlitz - Nice" or "Paris - Toulouse"
+//   - trip_headsign = internal stop ID (NOT a city name — unusable for matching)
+//   - NO shapes.txt → polylines are built from stop_times.txt + stops.txt
 
 import polyline from "@mapbox/polyline";
 import { unzipSync } from "fflate";
 
-// Multiple candidate URLs tried in order — opendatasoft FTP may restrict server IPs.
+// Multiple candidate URLs tried in order.
 const SNCF_GTFS_URLS = [
   "https://eu.ftp.opendatasoft.com/sncf/plandata/export-intercites-gtfs-last.zip",
-  // Consolidated SNCF GTFS (TGV + Intercités + TER — larger but more reliable access)
   "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip",
 ];
 
-// Exact trip_short_name values from Back-on-Track view_ontd_map for IC Nuit trains.
-const SNCF_IC_NUIT_NUMBERS = [
-  "IC Nuit 5787", "IC Nuit 5792",  // Paris ↔ Briançon
-  "IC Nuit 5781", "IC Nuit 5772",  // Paris ↔ Nice
-  "IC Nuit 3754", "IC Nuit 3755",  // Paris ↔ Rodez/Albi
-  "IC Nuit 5737", "IC Nuit 5738",  // Paris ↔ Cerbère
-  "IC Nuit 3970", "IC Nuit 3971",  // Paris ↔ Latour-de-Carol
-  "IC Nuit 3789", "IC Nuit 3790",  // Paris ↔ Aurillac
-  "IC Nuit 3750", "IC Nuit 3751",  // Paris ↔ Toulouse
-  "IC Nuit 3731", "IC Nuit 3740",  // Paris ↔ Tarbes (Le Pyrénéen weekday)
+// IC Nuit route definitions.
+// `cities`: keywords (accent-stripped, lowercase) that appear in route_long_name for this line.
+// `key` / `altKey`: BoT trip_short_name values that will get this polyline.
+const IC_NUIT_ROUTES = [
+  { cities: ["briancon", "briançon"],                          key: "IC Nuit 5787", altKey: "IC Nuit 5792" },
+  { cities: ["nice"],                                          key: "IC Nuit 5781", altKey: "IC Nuit 5772" },
+  { cities: ["rodez", "albi"],                                 key: "IC Nuit 3754", altKey: "IC Nuit 3755" },
+  { cities: ["cerbere", "cerbère", "portbou"],                 key: "IC Nuit 5737", altKey: "IC Nuit 5738" },
+  { cities: ["latour-de-carol", "latour de carol", "enveitg"], key: "IC Nuit 3970", altKey: "IC Nuit 3971" },
+  { cities: ["aurillac"],                                      key: "IC Nuit 3789", altKey: "IC Nuit 3790" },
+  { cities: ["toulouse"],                                      key: "IC Nuit 3750", altKey: "IC Nuit 3751" },
+  { cities: ["tarbes"],                                        key: "IC Nuit 3731", altKey: "IC Nuit 3740" },
 ];
 
+/** Normalize: lowercase + strip accents. */
+function norm(s) {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 /**
- * Parse a GTFS CSV file (Uint8Array or string) into an array of row objects.
+ * Parse a GTFS CSV (Uint8Array or string) into an array of row objects.
  * Handles Windows-style line endings.
  */
 function parseCsv(input) {
@@ -44,148 +58,86 @@ function parseCsv(input) {
   return rows;
 }
 
-/** Extract numeric part from BoT train name, e.g. "IC Nuit 5787" → "5787". */
-function extractTrainNumber(botName) {
-  const m = (botName || "").match(/\d+/);
-  return m ? m[0] : null;
-}
-
-/**
- * Download the SNCF GTFS and return a diagnostic snapshot — used by /api/seed-sncf?debug=1.
- * Does NOT store anything. Returns sample rows so we can see the actual field formats.
- */
-export async function inspectSNCFGtfs() {
+async function downloadGtfs() {
   const fetchHeaders = {
     "User-Agent": "Mozilla/5.0 (compatible; sleeper-train-map/1.0)",
     "Accept": "*/*",
     "Referer": "https://ressources.data.sncf.com/",
   };
-
   let response = null;
   let usedUrl = null;
   for (const url of SNCF_GTFS_URLS) {
     try {
       response = await fetch(url, { headers: fetchHeaders });
       if (response.ok) { usedUrl = url; break; }
-    } catch { /* try next */ }
-  }
-  if (!response?.ok) throw new Error(`All SNCF GTFS URLs failed (status: ${response?.status})`);
-
-  const buffer = await response.arrayBuffer();
-  const files = unzipSync(new Uint8Array(buffer));
-
-  const fileList = Object.keys(files);
-  const routesRows = files["routes.txt"] ? parseCsv(files["routes.txt"]) : [];
-  const tripsRows  = files["trips.txt"]  ? parseCsv(files["trips.txt"])  : [];
-
-  // Find any rows that look like night trains
-  const nightRoutes = routesRows.filter((r) =>
-    (r.route_long_name || "").toLowerCase().includes("nuit") ||
-    (r.route_short_name || "").toLowerCase().includes("nuit") ||
-    (r.route_long_name || "").toLowerCase().includes("night")
-  );
-
-  // Sample of trip_short_name values for the night routes (or first 20 trips if none found)
-  const nightRouteIds = new Set(nightRoutes.map((r) => r.route_id));
-  const sampleTrips = tripsRows
-    .filter((t) => nightRouteIds.size === 0 || nightRouteIds.has(t.route_id))
-    .slice(0, 30)
-    .map((t) => ({
-      route_id: t.route_id,
-      trip_short_name: t.trip_short_name,
-      trip_headsign: t.trip_headsign,
-      shape_id: t.shape_id,
-    }));
-
-  return {
-    usedUrl,
-    files: fileList,
-    routeCount: routesRows.length,
-    tripCount: tripsRows.length,
-    nightRoutes: nightRoutes.slice(0, 20),
-    sampleTrips,
-    // Raw first 5 rows of routes.txt for format inspection
-    routesSample: routesRows.slice(0, 5),
-  };
-}
-
-/**
- * Download SNCF Intercités GTFS and extract encoded polylines for all IC Nuit trains.
- *
- * Strategy:
- *   1. Use shapes.txt if present (accurate track geometry).
- *   2. Fall back to stop sequence from stop_times.txt + stops.txt.
- *
- * Returns an object keyed by BoT trip_short_name:
- *   { "IC Nuit 5787": { polyline: "<encoded>", coordinateCount: N }, ... }
- */
-export async function fetchSNCFNightTrainPolylines() {
-  // Try each URL in order; opendatasoft may block data-centre IPs on some routes.
-  const fetchHeaders = {
-    "User-Agent": "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://github.com/TheMrBooblik/sleeper-train-map)",
-    "Accept": "*/*",
-    "Referer": "https://ressources.data.sncf.com/",
-  };
-
-  let response = null;
-  for (const url of SNCF_GTFS_URLS) {
-    try {
-      response = await fetch(url, { headers: fetchHeaders });
-      if (response.ok) break;
-      console.warn(`[sncf-fetcher] ${url} returned ${response.status}, trying next`);
+      console.warn(`[sncf-fetcher] ${url} → ${response.status}, trying next`);
     } catch (err) {
-      console.warn(`[sncf-fetcher] ${url} failed: ${err.message}, trying next`);
+      console.warn(`[sncf-fetcher] ${url} failed: ${err.message}`);
     }
   }
   if (!response?.ok) {
     throw new Error(`All SNCF GTFS URLs failed (last status: ${response?.status ?? "network error"})`);
   }
-
+  console.log(`[sncf-fetcher] Downloaded from ${usedUrl}`);
   const buffer = await response.arrayBuffer();
-  const files = unzipSync(new Uint8Array(buffer));
+  return { files: unzipSync(new Uint8Array(buffer)), usedUrl };
+}
 
-  const routesRows   = files["routes.txt"]    ? parseCsv(files["routes.txt"])    : [];
-  const tripsRows    = files["trips.txt"]      ? parseCsv(files["trips.txt"])     : [];
-  const hasShapes    = Boolean(files["shapes.txt"]);
-  const shapesRows   = hasShapes               ? parseCsv(files["shapes.txt"])    : [];
-  const stopsRows    = files["stops.txt"]      ? parseCsv(files["stops.txt"])     : [];
-  const stopTimesRows = !hasShapes && files["stop_times.txt"]
-    ? parseCsv(files["stop_times.txt"]) : [];
+/**
+ * Download SNCF Intercités GTFS and extract polylines for IC Nuit trains.
+ *
+ * Matching: route_long_name contains the terminal city name (e.g. "Paris Austerlitz - Nice").
+ * Polylines: built from stop_times.txt + stops.txt ordered stop sequence (no shapes.txt).
+ *
+ * Returns { "IC Nuit 5787": { polyline: "<encoded>", coordinateCount: N }, ... }
+ */
+export async function fetchSNCFNightTrainPolylines() {
+  const { files } = await downloadGtfs();
 
-  // Build: numeric string → BoT name  (e.g. "5787" → "IC Nuit 5787")
-  const numberToBotName = new Map();
-  for (const botName of SNCF_IC_NUIT_NUMBERS) {
-    const num = extractTrainNumber(botName);
-    if (num && !numberToBotName.has(num)) numberToBotName.set(num, botName);
-  }
+  const routesRows = files["routes.txt"]    ? parseCsv(files["routes.txt"])    : [];
+  const tripsRows  = files["trips.txt"]     ? parseCsv(files["trips.txt"])     : [];
+  const stopsRows  = files["stops.txt"]     ? parseCsv(files["stops.txt"])     : [];
 
-  // Find IC Nuit route_ids from routes.txt (long_name or short_name contains "nuit")
-  const icNuitRouteIds = new Set();
+  // stop_times.txt can be large — only parse when needed (no shapes.txt present)
+  const hasShapes = Boolean(files["shapes.txt"]);
+  const shapesRows = hasShapes ? parseCsv(files["shapes.txt"]) : [];
+
+  console.log(`[sncf-fetcher] ${routesRows.length} routes, ${tripsRows.length} trips, shapes=${hasShapes}`);
+
+  // ── Match routes by terminal city in route_long_name ─────────────────────────
+  // All IC Nuit trains depart from Paris, so route_long_name must start with "paris".
+  // This excludes lines like "Toulouse - Hendaye" that contain a city keyword but
+  // are not IC Nuit routes.
+  const routeIdToRouteDef = new Map();
   for (const row of routesRows) {
-    if (
-      (row.route_long_name || "").toLowerCase().includes("nuit") ||
-      (row.route_short_name || "").toLowerCase().includes("nuit")
-    ) {
-      icNuitRouteIds.add(row.route_id);
+    const longName = norm(row.route_long_name);
+    if (!longName.startsWith("paris")) continue; // must originate in Paris
+    for (const routeDef of IC_NUIT_ROUTES) {
+      if (routeDef.cities.some((c) => longName.includes(norm(c)))) {
+        routeIdToRouteDef.set(row.route_id, routeDef);
+        break;
+      }
     }
   }
+  console.log(`[sncf-fetcher] Matched ${routeIdToRouteDef.size} GTFS routes to IC Nuit lines`);
 
-  // Map numeric train number → first matching trip (trip_id + shape_id)
-  const trainNumberToTrip = new Map();
-  for (const row of tripsRows) {
-    const tripNum = (row.trip_short_name || "").trim();
-    if (!tripNum) continue;
-    const inNuitRoute = icNuitRouteIds.size === 0 || icNuitRouteIds.has(row.route_id);
-    if (!inNuitRoute) continue;
-    if (numberToBotName.has(tripNum) && !trainNumberToTrip.has(tripNum)) {
-      trainNumberToTrip.set(tripNum, { trip_id: row.trip_id, shape_id: row.shape_id || "" });
+  // Take one representative trip per IC Nuit line (first trip wins).
+  // Both directions share the same track — one polyline is enough.
+  const tripByBotKey = new Map(); // botKey → { trip_id, shape_id }
+  for (const trip of tripsRows) {
+    const routeDef = routeIdToRouteDef.get(trip.route_id);
+    if (!routeDef) continue;
+    if (!tripByBotKey.has(routeDef.key)) {
+      tripByBotKey.set(routeDef.key, { trip_id: trip.trip_id, shape_id: trip.shape_id || "" });
     }
   }
+  console.log(`[sncf-fetcher] Found representative trips for ${tripByBotKey.size} IC Nuit lines`);
 
+  // ── Build polylines ───────────────────────────────────────────────────────────
   const results = {};
 
   if (hasShapes && shapesRows.length > 0) {
-    // Build shape_id → sorted [lat, lon] array
+    // Rare case: shapes.txt is present — use it for accurate track geometry.
     const shapeCoords = new Map();
     for (const row of shapesRows) {
       const sid = row.shape_id;
@@ -201,42 +153,92 @@ export async function fetchSNCFNightTrainPolylines() {
       pts.sort((a, b) => a.seq - b.seq);
       shapeCoords.set(sid, pts.map((p) => [p.lat, p.lon]));
     }
-
-    for (const [trainNum, { shape_id }] of trainNumberToTrip) {
-      const botName = numberToBotName.get(trainNum);
-      if (!botName) continue;
+    for (const [botKey, { shape_id }] of tripByBotKey) {
       const coords = shapeCoords.get(shape_id);
-      if (!coords || coords.length < 2) continue;
-      results[botName] = { polyline: polyline.encode(coords), coordinateCount: coords.length };
+      if (coords?.length >= 2) {
+        results[botKey] = { polyline: polyline.encode(coords), coordinateCount: coords.length };
+      }
     }
   } else {
-    // Fallback: ordered stop sequence
-    const stopCoords = new Map();
+    // Standard case: build from stop_times.txt ordered stop sequence.
+    const stopTimesRows = files["stop_times.txt"] ? parseCsv(files["stop_times.txt"]) : [];
+    console.log(`[sncf-fetcher] ${stopTimesRows.length} stop_times rows`);
+
+    const stopCoords = new Map(); // stop_id → [lat, lon]
     for (const row of stopsRows) {
       const lat = parseFloat(row.stop_lat);
       const lon = parseFloat(row.stop_lon);
       if (!isNaN(lat) && !isNaN(lon)) stopCoords.set(row.stop_id, [lat, lon]);
     }
 
-    const tripStops = new Map();
+    // Collect trip_ids we actually need
+    const neededTripIds = new Set(Array.from(tripByBotKey.values()).map((t) => t.trip_id));
+
+    const tripStops = new Map(); // trip_id → [{seq, stop_id}]
     for (const row of stopTimesRows) {
       const tid = row.trip_id;
-      if (!tid) continue;
+      if (!neededTripIds.has(tid)) continue;
       if (!tripStops.has(tid)) tripStops.set(tid, []);
       tripStops.get(tid).push({ seq: parseInt(row.stop_sequence, 10), stop_id: row.stop_id });
     }
 
-    for (const [trainNum, { trip_id }] of trainNumberToTrip) {
-      const botName = numberToBotName.get(trainNum);
-      if (!botName) continue;
+    for (const [botKey, { trip_id }] of tripByBotKey) {
       const stops = tripStops.get(trip_id);
-      if (!stops || stops.length < 2) continue;
+      if (!stops?.length) {
+        console.warn(`[sncf-fetcher] No stop_times for ${botKey} (trip_id=${trip_id})`);
+        continue;
+      }
       stops.sort((a, b) => a.seq - b.seq);
       const coords = stops.map((s) => stopCoords.get(s.stop_id)).filter(Boolean);
-      if (coords.length < 2) continue;
-      results[botName] = { polyline: polyline.encode(coords), coordinateCount: coords.length };
+      if (coords.length >= 2) {
+        results[botKey] = { polyline: polyline.encode(coords), coordinateCount: coords.length };
+      }
     }
   }
 
+  // Mirror each result to the altKey so initial-data can match on trip_short_name_1 too.
+  for (const routeDef of IC_NUIT_ROUTES) {
+    if (results[routeDef.key] && routeDef.altKey && !results[routeDef.altKey]) {
+      results[routeDef.altKey] = results[routeDef.key];
+    }
+  }
+
+  console.log(`[sncf-fetcher] Produced polylines for: ${Object.keys(results).join(", ")}`);
   return results;
+}
+
+/**
+ * Diagnostic snapshot — used by /api/seed-sncf?debug=1. Does NOT store anything.
+ */
+export async function inspectSNCFGtfs() {
+  const { files, usedUrl } = await downloadGtfs();
+  const routesRows = files["routes.txt"] ? parseCsv(files["routes.txt"]) : [];
+  const tripsRows  = files["trips.txt"]  ? parseCsv(files["trips.txt"])  : [];
+
+  const matchedRoutes = routesRows.filter((r) => {
+    const n = norm(r.route_long_name);
+    return IC_NUIT_ROUTES.some((def) => def.cities.some((c) => n.includes(norm(c))));
+  });
+
+  const matchedRouteIds = new Set(matchedRoutes.map((r) => r.route_id));
+  const sampleTrips = tripsRows
+    .filter((t) => matchedRouteIds.has(t.route_id))
+    .slice(0, 20)
+    .map((t) => ({
+      route_id: t.route_id,
+      trip_id: t.trip_id,
+      trip_short_name: t.trip_short_name,
+      trip_headsign: t.trip_headsign,
+      shape_id: t.shape_id,
+    }));
+
+  return {
+    usedUrl,
+    files: Object.keys(files),
+    routeCount: routesRows.length,
+    tripCount: tripsRows.length,
+    matchedRoutes,
+    sampleTrips,
+    routesSample: routesRows.slice(0, 10),
+  };
 }
