@@ -215,24 +215,50 @@ export async function fetchSNCFNightTrainPolylines() {
     }
 
     for (const [botKey, trips] of tripsByBotKey) {
-      // Select the trip that reaches the FARTHEST point from Paris Austerlitz.
-      // "Most stops" is a wrong criterion: a short daytime service Paris→Toulouse
-      // may have MORE intermediate stops than the night express Paris→Latour-de-Carol,
-      // causing us to pick a trip that doesn't reach the terminal city.
+      // Select the best representative trip using a two-tier criterion:
+      //
+      // Tier 1 (preferred): trips where ONE endpoint is near Paris Austerlitz
+      //   (≤ PARIS_KM). Among those, pick the trip whose OTHER endpoint is
+      //   farthest from Paris — that's the full terminal-city run.
+      //
+      // Tier 2 (fallback): if NO trip has a Paris endpoint (split-train case
+      //   where the Paris leg lives under a different route_id), pick the trip
+      //   whose farthest endpoint is most distant — then let the stitching
+      //   pass prepend the Paris→junction segment.
+      //
+      // This prevents a central-France depot→terminal positioning run (which
+      // has a far endpoint but no Paris endpoint) from beating the correct
+      // Paris→terminal night train.
       let bestTripStops = null;
       let bestDist = -1;
+      let hasParisTrip = false;
+
       for (const { trip_id } of trips) {
         const stops = tripStops.get(trip_id);
         if (!stops?.length) continue;
         const sorted = [...stops].sort((a, b) => a.seq - b.seq);
-        // Check both endpoints (trip may be stored in either direction)
-        for (const endpoint of [sorted[0], sorted[sorted.length - 1]]) {
-          const coord = stopCoords.get(endpoint.stop_id);
-          if (!coord) continue;
-          const dist = haversineKm(coord, PARIS);
-          if (dist > bestDist) { bestDist = dist; bestTripStops = sorted; }
+
+        const firstCoord = stopCoords.get(sorted[0].stop_id);
+        const lastCoord  = stopCoords.get(sorted[sorted.length - 1].stop_id);
+        const firstDist  = firstCoord ? haversineKm(firstCoord, PARIS) : Infinity;
+        const lastDist   = lastCoord  ? haversineKm(lastCoord,  PARIS) : Infinity;
+        const nearestEnd = Math.min(firstDist, lastDist);
+        const farthestEnd = Math.max(firstDist, lastDist);
+
+        if (nearestEnd <= PARIS_KM) {
+          // Paris-originating trip — always preferred over non-Paris trips
+          if (!hasParisTrip || farthestEnd > bestDist) {
+            hasParisTrip = true;
+            bestDist = farthestEnd;
+            bestTripStops = sorted;
+          }
+        } else if (!hasParisTrip && farthestEnd > bestDist) {
+          // No Paris trip found yet — keep best by farthest endpoint (fallback)
+          bestDist = farthestEnd;
+          bestTripStops = sorted;
         }
       }
+
       if (!bestTripStops) {
         console.warn(`[sncf-fetcher] No stop_times for ${botKey}`);
         continue;
