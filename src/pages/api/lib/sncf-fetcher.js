@@ -213,6 +213,65 @@ export async function fetchSNCFNightTrainPolylines() {
     }
   }
 
+  // ── Stitch split-train segments ────────────────────────────────────────────
+  // Some IC Nuit trains are split at an intermediate city (e.g. Toulouse):
+  //   IC 3750 covers Paris → Toulouse (full segment in GTFS)
+  //   IC 3970 covers only Toulouse → Latour-de-Carol (the Paris leg is in IC 3750's route)
+  // Detect polylines that don't start near Paris and prepend a neighbouring segment.
+  // We iterate in order of increasing distance-from-Paris so that a stitched
+  // result (e.g. Paris→Toulouse→Latour-de-Carol) is available as a prefix for
+  // any further extension needed.
+
+  const PARIS = [48.8443, 2.3637]; // Paris Austerlitz
+  const PARIS_KM  = 30;  // within 30 km → "starts near Paris"
+  const STITCH_KM = 25;  // within 25 km → "these segments connect"
+
+  function haversineKm([lat1, lon1], [lat2, lon2]) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  // Decode all built polylines so we can measure distances
+  const decodedCoords = new Map(); // botKey → [[lat, lon], ...]
+  for (const [key, val] of Object.entries(results)) {
+    decodedCoords.set(key, polyline.decode(val.polyline));
+  }
+
+  // Sort keys by distance-from-Paris ascending so Paris-starting routes are
+  // processed first and their stitched versions are available as prefixes.
+  const sortedKeys = Array.from(decodedCoords.keys()).sort((a, b) => {
+    const distA = haversineKm(decodedCoords.get(a)[0], PARIS);
+    const distB = haversineKm(decodedCoords.get(b)[0], PARIS);
+    return distA - distB;
+  });
+
+  for (const botKey of sortedKeys) {
+    const coords = decodedCoords.get(botKey);
+    if (haversineKm(coords[0], PARIS) <= PARIS_KM) continue; // already starts near Paris
+
+    // Find the neighbour whose last point is closest to this route's first point
+    let bestPrefix = null;
+    let bestDist = STITCH_KM;
+    for (const [otherKey, otherCoords] of decodedCoords) {
+      if (otherKey === botKey) continue;
+      const dist = haversineKm(otherCoords[otherCoords.length - 1], coords[0]);
+      if (dist < bestDist) { bestDist = dist; bestPrefix = otherCoords; }
+    }
+
+    if (bestPrefix) {
+      const combined = [...bestPrefix, ...coords];
+      results[botKey] = { polyline: polyline.encode(combined), coordinateCount: combined.length };
+      decodedCoords.set(botKey, combined); // allow this to serve as prefix for further routes
+      console.log(`[sncf-fetcher] Stitched ${botKey}: prepended ${bestPrefix.length}-pt prefix (total ${combined.length} stops)`);
+    } else {
+      console.warn(`[sncf-fetcher] ${botKey} starts ${Math.round(haversineKm(coords[0], PARIS))}km from Paris — no matching prefix found`);
+    }
+  }
+
   // Mirror each result to the altKey so initial-data can match on trip_short_name_1 too.
   for (const routeDef of IC_NUIT_ROUTES) {
     if (results[routeDef.key] && routeDef.altKey && !results[routeDef.altKey]) {
