@@ -1,5 +1,12 @@
 import { stopNameReplacements } from "../data/stationNameReplacements";
 
+/** Coerce API lat/lon to a finite number, or null if unusable (avoids Leaflet crashes on bad strings). */
+export function parseCoord(value) {
+  if (value == null || value === "") return null;
+  const n = typeof value === "number" ? value : parseFloat(String(value).trim());
+  return Number.isFinite(n) ? n : null;
+}
+
 /**
  * Enriches station data with coordinates
  *
@@ -88,13 +95,15 @@ export function enrichStationsWithCoordinates(stops, customCoordinates) {
     }
 
     // Otherwise, use coordinates from Open Night Train Database (if available)
-    // The stop object should already have stop_lat and stop_lon from the database
+    const dbLat = parseCoord(stop.stop_lat);
+    const dbLon = parseCoord(stop.stop_lon);
     return {
       ...stop,
       stop_id: stationName, // Use replaced station name
-      // Keep original coordinates from database, or mark as missing
+      stop_lat: dbLat,
+      stop_lon: dbLon,
       coordinatesSource:
-        stop.stop_lat && stop.stop_lon ? "database" : "missing",
+        dbLat != null && dbLon != null ? "database" : "missing",
     };
   });
 

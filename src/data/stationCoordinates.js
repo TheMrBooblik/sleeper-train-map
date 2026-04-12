@@ -38,6 +38,9 @@ export const stationCoordinates = {
   // Czech Republic
   "Ústí nad Labem hl.n.": { lat: 50.659881, lon: 14.044687 },
 
+  // Latvia — Back-on-Track once shipped a garbage string for stop_lon here; override with a real point near RIX / Rail Baltica plans
+  "Rīga Airport (Rail Baltica)": { lat: 56.92235, lon: 23.97085 },
+
   // Italy - Rome stations
   // Add both "Roma" and "Rome" variants to handle different naming conventions
   "Roma Termini": { lat: 41.9005, lon: 12.5012 },

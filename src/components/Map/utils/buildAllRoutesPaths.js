@@ -12,22 +12,12 @@ import {
   REGIOJET_COLOR,
   ZEMPLIN_COLOR,
   PKP_COLOR,
-  checkPkpKarkonosze,
-  checkPkpPodhalanin,
-  checkPkpUrsa,
-  checkPkpUznam,
-  checkPkpKarpaty,
-  checkPkpPirat,
-  checkPkpWolin,
-  checkPkpUstronie,
+  isPkpAgencyRoute,
   checkENHumennePraha,
   getFutureRouteStartDate,
 } from "./routeStyleUtils";
-import {
-  STATIC_PKP_ROUTE_IDS,
-  STATIC_PKP_ROUTES,
-} from "./staticPkpRoutes";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "./operatorColors";
+import { parseCoord } from "../../../helpers/enrichStationsWithCoordinates";
 import polyline from "@mapbox/polyline";
 
 function isInactiveRoute(route) {
@@ -71,8 +61,6 @@ export function buildAllRoutesPaths({
       allRouteIds.add(route.route_id.toString());
     }
   });
-  // Include static PKP routes that are not in API (e.g. Ustronie) so they appear when showing all routes
-  STATIC_PKP_ROUTE_IDS.forEach((id) => allRouteIds.add(id));
   // Include all routes — future ones get a ghost style and isFuture flag
   const routesToShow = Array.from(allRouteIds);
   if (routesToShow.length === 0) return [];
@@ -83,11 +71,6 @@ export function buildAllRoutesPaths({
       routeMap.set(route.route_id.toString(), route);
     }
   });
-  // Add static PKP routes so they get a path and polyline (e.g. pkpUstronie from pkpUstroniePolyline.json)
-  Object.entries(STATIC_PKP_ROUTES).forEach(([id, route]) => {
-    routeMap.set(id, route);
-  });
-
   const stationCoordsMap = new Map();
   const normalizedNameCache = new Map();
   const getCachedNormalizedName = (name) => {
@@ -98,13 +81,17 @@ export function buildAllRoutesPaths({
   };
 
   stops.forEach((stop) => {
-    if (!stop.stop_id || !stop.stop_lat || !stop.stop_lon) return;
+    if (!stop.stop_id) return;
+    // Must reject non-numeric coords (API junk strings are truthy and break Leaflet LatLng).
+    const lat = parseCoord(stop.stop_lat);
+    const lon = parseCoord(stop.stop_lon);
+    if (lat == null || lon == null) return;
     const n = getCachedNormalizedName(stop.stop_id);
     if (!stationCoordsMap.has(n)) {
-      stationCoordsMap.set(n, [stop.stop_lat, stop.stop_lon]);
+      stationCoordsMap.set(n, [lat, lon]);
     }
     if (!stationCoordsMap.has(stop.stop_id)) {
-      stationCoordsMap.set(stop.stop_id, [stop.stop_lat, stop.stop_lon]);
+      stationCoordsMap.set(stop.stop_id, [lat, lon]);
     }
   });
 
@@ -176,22 +163,6 @@ export function buildAllRoutesPaths({
       osmRelationId = "static:rj1038";
     } else if (checkZemplinBratislavaHumenne(route)) {
       osmRelationId = "static:zemplin";
-    } else if (checkPkpKarkonosze(route)) {
-      osmRelationId = "static:pkpKarkonosze";
-    } else if (checkPkpPodhalanin(route)) {
-      osmRelationId = "static:pkpPodhalanin";
-    } else if (checkPkpUrsa(route)) {
-      osmRelationId = "static:pkpUrsa";
-    } else if (checkPkpUznam(route)) {
-      osmRelationId = "static:pkpUznam";
-    } else if (checkPkpKarpaty(route)) {
-      osmRelationId = "static:pkpKarpaty";
-    } else if (checkPkpPirat(route)) {
-      osmRelationId = "static:pkpPirat";
-    } else if (checkPkpWolin(route)) {
-      osmRelationId = "static:pkpWolin";
-    } else if (checkPkpUstronie(route)) {
-      osmRelationId = "static:pkpUstronie";
     } else if (checkENHumennePraha(route)) {
       osmRelationId = "static:enHumenne";
     }
@@ -204,17 +175,7 @@ export function buildAllRoutesPaths({
     if (checkZemplinBratislavaHumenne(route)) {
       pathOptions.color = ZEMPLIN_COLOR;
     }
-    // PKP Poland routes use navy blue (IC/TLK branding)
-    if (
-      checkPkpKarkonosze(route) ||
-      checkPkpPodhalanin(route) ||
-      checkPkpUrsa(route) ||
-      checkPkpUznam(route) ||
-      checkPkpKarpaty(route) ||
-      checkPkpPirat(route) ||
-      checkPkpWolin(route) ||
-      checkPkpUstronie(route)
-    ) {
+    if (isPkpAgencyRoute(route)) {
       pathOptions.color = PKP_COLOR;
     }
 
@@ -231,38 +192,46 @@ export function buildAllRoutesPaths({
         source: "nightjet",
       });
     } else {
+      const gtfs0 =
+        route.pkp_gtfs_positions_0?.length >= 2
+          ? route.pkp_gtfs_positions_0
+          : null;
       const path0 = buildPathForDirection(
         route.origin_trip_0,
         route.destination_trip_0,
         route.via_0,
       );
-      const path0ToUse = path0 ?? route.fallbackPositions ?? null;
+      const path0ToUse = gtfs0 ?? path0 ?? route.fallbackPositions ?? null;
       if (path0ToUse && path0ToUse.length >= 2) {
         paths.push({
           positions: path0ToUse,
           routeId,
           key: `route-${stationKey}-${routeId}-0`,
           pathOptions,
-          osmRelationId,
+          osmRelationId: gtfs0 ? null : osmRelationId,
           isFuture,
           futureStartDate,
         });
       }
 
       if (route.origin_trip_1 && route.destination_trip_1) {
+        const gtfs1 =
+          route.pkp_gtfs_positions_1?.length >= 2
+            ? route.pkp_gtfs_positions_1
+            : null;
         const path1 = buildPathForDirection(
           route.origin_trip_1,
           route.destination_trip_1,
           route.via_1,
         );
-        const path1ToUse = path1 ?? route.fallbackPositions ?? null;
+        const path1ToUse = gtfs1 ?? path1 ?? route.fallbackPositions ?? null;
         if (path1ToUse && path1ToUse.length >= 2) {
           paths.push({
             positions: path1ToUse,
             routeId,
             key: `route-${stationKey}-${routeId}-1`,
             pathOptions,
-            osmRelationId,
+            osmRelationId: gtfs1 ? null : osmRelationId,
             isFuture,
             futureStartDate,
           });
