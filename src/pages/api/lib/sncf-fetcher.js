@@ -122,23 +122,24 @@ export async function fetchSNCFNightTrainPolylines() {
   }
   console.log(`[sncf-fetcher] Matched ${routeIdToRouteDef.size} GTFS routes to IC Nuit lines`);
 
-  // Take one representative trip per IC Nuit line (first trip wins).
-  // Both directions share the same track — one polyline is enough.
-  const tripByBotKey = new Map(); // botKey → { trip_id, shape_id }
+  // Collect ALL trips per IC Nuit line so we can later pick the one with the
+  // most stops. "First trip wins" risks selecting a short-working or positioning
+  // service that only covers part of the route (e.g. Limoges → Toulouse instead
+  // of Paris → Toulouse).
+  const tripsByBotKey = new Map(); // botKey → [{ trip_id, shape_id }]
   for (const trip of tripsRows) {
     const routeDef = routeIdToRouteDef.get(trip.route_id);
     if (!routeDef) continue;
-    if (!tripByBotKey.has(routeDef.key)) {
-      tripByBotKey.set(routeDef.key, { trip_id: trip.trip_id, shape_id: trip.shape_id || "" });
-    }
+    if (!tripsByBotKey.has(routeDef.key)) tripsByBotKey.set(routeDef.key, []);
+    tripsByBotKey.get(routeDef.key).push({ trip_id: trip.trip_id, shape_id: trip.shape_id || "" });
   }
-  console.log(`[sncf-fetcher] Found representative trips for ${tripByBotKey.size} IC Nuit lines`);
+  console.log(`[sncf-fetcher] Collected trips for ${tripsByBotKey.size} IC Nuit lines`);
 
   // ── Build polylines ───────────────────────────────────────────────────────────
   const results = {};
 
   if (hasShapes && shapesRows.length > 0) {
-    // Rare case: shapes.txt is present — use it for accurate track geometry.
+    // Rare case: shapes.txt is present — use shape with the most points per route.
     const shapeCoords = new Map();
     for (const row of shapesRows) {
       const sid = row.shape_id;
@@ -154,14 +155,22 @@ export async function fetchSNCFNightTrainPolylines() {
       pts.sort((a, b) => a.seq - b.seq);
       shapeCoords.set(sid, pts.map((p) => [p.lat, p.lon]));
     }
-    for (const [botKey, { shape_id }] of tripByBotKey) {
-      const coords = shapeCoords.get(shape_id);
-      if (coords?.length >= 2) {
-        results[botKey] = { polyline: polyline.encode(coords), coordinateCount: coords.length };
+    for (const [botKey, trips] of tripsByBotKey) {
+      // Pick the shape with the most points (longest/fullest route)
+      let best = null;
+      for (const { shape_id } of trips) {
+        const coords = shapeCoords.get(shape_id);
+        if (coords && (!best || coords.length > best.length)) best = coords;
+      }
+      if (best?.length >= 2) {
+        results[botKey] = { polyline: polyline.encode(best), coordinateCount: best.length };
       }
     }
   } else {
     // Standard case: build from stop_times.txt ordered stop sequence.
+    // Parse stop_times for ALL candidate trips, then pick the trip with the most
+    // stops per route — this avoids short-working services that cover only part
+    // of the full Paris → terminal city journey.
     const stopTimesRows = files["stop_times.txt"] ? parseCsv(files["stop_times.txt"]) : [];
     console.log(`[sncf-fetcher] ${stopTimesRows.length} stop_times rows`);
 
@@ -172,8 +181,10 @@ export async function fetchSNCFNightTrainPolylines() {
       if (!isNaN(lat) && !isNaN(lon)) stopCoords.set(row.stop_id, [lat, lon]);
     }
 
-    // Collect trip_ids we actually need
-    const neededTripIds = new Set(Array.from(tripByBotKey.values()).map((t) => t.trip_id));
+    // Collect all trip_ids we need to inspect
+    const neededTripIds = new Set(
+      Array.from(tripsByBotKey.values()).flatMap((trips) => trips.map((t) => t.trip_id))
+    );
 
     const tripStops = new Map(); // trip_id → [{seq, stop_id}]
     for (const row of stopTimesRows) {
@@ -183,14 +194,19 @@ export async function fetchSNCFNightTrainPolylines() {
       tripStops.get(tid).push({ seq: parseInt(row.stop_sequence, 10), stop_id: row.stop_id });
     }
 
-    for (const [botKey, { trip_id }] of tripByBotKey) {
-      const stops = tripStops.get(trip_id);
-      if (!stops?.length) {
-        console.warn(`[sncf-fetcher] No stop_times for ${botKey} (trip_id=${trip_id})`);
+    for (const [botKey, trips] of tripsByBotKey) {
+      // Pick the trip with the most stops (= the full end-to-end service)
+      let bestStops = null;
+      for (const { trip_id } of trips) {
+        const stops = tripStops.get(trip_id);
+        if (stops && (!bestStops || stops.length > bestStops.length)) bestStops = stops;
+      }
+      if (!bestStops?.length) {
+        console.warn(`[sncf-fetcher] No stop_times for ${botKey}`);
         continue;
       }
-      stops.sort((a, b) => a.seq - b.seq);
-      const coords = stops.map((s) => stopCoords.get(s.stop_id)).filter(Boolean);
+      bestStops.sort((a, b) => a.seq - b.seq);
+      const coords = bestStops.map((s) => stopCoords.get(s.stop_id)).filter(Boolean);
       if (coords.length >= 2) {
         results[botKey] = { polyline: polyline.encode(coords), coordinateCount: coords.length };
       }
