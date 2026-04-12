@@ -124,7 +124,11 @@ export default async function handler(req, res) {
     const filteredTrips = filterTrips(rawTrips);
     const filteredViewMap = filterViewMap(rawViewMap, rawTrips, filteredTrips);
 
-    // Merge SNCF polylines into viewMap (from sncf/trains.json blob, seeded by /api/seed-sncf)
+    // Merge SNCF polylines + authoritative stop data into viewMap.
+    // For IC Nuit routes: override BoT origin/destination/via with SNCF GTFS station
+    // names (which may be more accurate or up-to-date than Back-on-Track data).
+    const sncfExtraStops = new Map(); // stop_id → { stop_id, stop_name, stop_lat, stop_lon }
+
     if (sncfBlob?.data?.trains) {
       const sncfTrains = sncfBlob.data.trains;
       Object.values(filteredViewMap).forEach((route) => {
@@ -133,6 +137,23 @@ export default async function handler(req, res) {
           const match = sncfTrains[name.trim()];
           if (match?.polyline) {
             route.sncf_polyline = match.polyline;
+
+            // Override station names with SNCF GTFS data when stops are available
+            if (match.stops?.length >= 2) {
+              const stops = match.stops;
+              const viaNames = stops.slice(1, -1).map((s) => s.stop_name);
+              route.origin_trip_0      = stops[0].stop_name;
+              route.destination_trip_0 = stops[stops.length - 1].stop_name;
+              route.via_0              = viaNames.join(" - ");
+              // Direction 1 = reverse (same stations, opposite direction)
+              route.origin_trip_1      = stops[stops.length - 1].stop_name;
+              route.destination_trip_1 = stops[0].stop_name;
+              route.via_1              = [...viaNames].reverse().join(" - ");
+              // Collect SNCF stops for injection into the global stops array
+              for (const s of stops) {
+                if (!sncfExtraStops.has(s.stop_id)) sncfExtraStops.set(s.stop_id, s);
+              }
+            }
             break;
           }
         }
@@ -157,6 +178,15 @@ export default async function handler(req, res) {
       stop_lat: s.stop_lat,
       stop_lon: s.stop_lon,
     }));
+
+    // Inject SNCF stops that aren't already in the BoT stops array
+    const existingStopIds = new Set(trimmedStops.map((s) => s.stop_id));
+    for (const s of sncfExtraStops.values()) {
+      if (!existingStopIds.has(s.stop_id)) {
+        trimmedStops.push(s);
+        existingStopIds.add(s.stop_id);
+      }
+    }
 
     res.status(200).json({
       stops: trimmedStops,

@@ -182,11 +182,12 @@ export async function fetchSNCFNightTrainPolylines() {
     const stopTimesRows = files["stop_times.txt"] ? parseCsv(files["stop_times.txt"]) : [];
     console.log(`[sncf-fetcher] ${stopTimesRows.length} stop_times rows`);
 
-    // Build stop coord map with parent-station fallback.
-    // Some GTFS exports use child platform stops (no own lat/lon) that inherit
-    // coordinates from a parent_station entry.
-    const parentOf = new Map(); // child stop_id → parent stop_id
+    // Build stop coord + name maps with parent-station fallback.
+    // Some GTFS exports use child platform stops (no own lat/lon / name) that
+    // inherit coordinates from a parent_station entry.
+    const parentOf   = new Map(); // child stop_id → parent stop_id
     const stopCoords = new Map(); // stop_id → [lat, lon]
+    const stopNames  = new Map(); // stop_id → stop_name
     for (const row of stopsRows) {
       if (row.parent_station) parentOf.set(row.stop_id, row.parent_station);
       const lat = parseFloat(row.stop_lat);
@@ -194,10 +195,14 @@ export async function fetchSNCFNightTrainPolylines() {
       if (!isNaN(lat) && !isNaN(lon) && (lat !== 0 || lon !== 0)) {
         stopCoords.set(row.stop_id, [lat, lon]);
       }
+      if (row.stop_name) stopNames.set(row.stop_id, row.stop_name);
     }
     for (const [childId, parentId] of parentOf) {
       if (!stopCoords.has(childId) && stopCoords.has(parentId)) {
         stopCoords.set(childId, stopCoords.get(parentId));
+      }
+      if (!stopNames.has(childId) && stopNames.has(parentId)) {
+        stopNames.set(childId, stopNames.get(parentId));
       }
     }
 
@@ -263,9 +268,19 @@ export async function fetchSNCFNightTrainPolylines() {
         console.warn(`[sncf-fetcher] No stop_times for ${botKey}`);
         continue;
       }
-      const coords = bestTripStops.map((s) => stopCoords.get(s.stop_id)).filter(Boolean);
+
+      // Build stop list with names for use as authoritative station data
+      const stopsList = bestTripStops
+        .map((s) => {
+          const coord = stopCoords.get(s.stop_id);
+          if (!coord) return null;
+          return { stop_id: s.stop_id, stop_name: stopNames.get(s.stop_id) || "", stop_lat: coord[0], stop_lon: coord[1] };
+        })
+        .filter(Boolean);
+
+      const coords = stopsList.map((s) => [s.stop_lat, s.stop_lon]);
       if (coords.length >= 2) {
-        results[botKey] = { polyline: polyline.encode(coords), coordinateCount: coords.length };
+        results[botKey] = { polyline: polyline.encode(coords), coordinateCount: coords.length, stops: stopsList };
       }
     }
   }
@@ -291,8 +306,9 @@ export async function fetchSNCFNightTrainPolylines() {
     const startDist = haversineKm(coords[0], PARIS);
     const endDist   = haversineKm(coords[coords.length - 1], PARIS);
     if (endDist < startDist) {
-      const reversed = [...coords].reverse();
-      results[botKey] = { polyline: polyline.encode(reversed), coordinateCount: reversed.length };
+      const reversed      = [...coords].reverse();
+      const reversedStops = results[botKey]?.stops ? [...results[botKey].stops].reverse() : undefined;
+      results[botKey] = { polyline: polyline.encode(reversed), coordinateCount: reversed.length, stops: reversedStops };
       decodedCoords.set(botKey, reversed);
       console.log(`[sncf-fetcher] Reversed direction for ${botKey}`);
     }
@@ -310,17 +326,23 @@ export async function fetchSNCFNightTrainPolylines() {
     if (haversineKm(coords[0], PARIS) <= PARIS_KM) continue; // already starts near Paris
 
     // Find the neighbour whose last point is closest to this route's first point
-    let bestPrefix = null;
-    let bestDist = STITCH_KM;
+    let bestPrefixKey = null;
+    let bestPrefix    = null;
+    let bestDist      = STITCH_KM;
     for (const [otherKey, otherCoords] of decodedCoords) {
       if (otherKey === botKey) continue;
       const dist = haversineKm(otherCoords[otherCoords.length - 1], coords[0]);
-      if (dist < bestDist) { bestDist = dist; bestPrefix = otherCoords; }
+      if (dist < bestDist) { bestDist = dist; bestPrefix = otherCoords; bestPrefixKey = otherKey; }
     }
 
     if (bestPrefix) {
-      const combined = [...bestPrefix, ...coords];
-      results[botKey] = { polyline: polyline.encode(combined), coordinateCount: combined.length };
+      const combined      = [...bestPrefix, ...coords];
+      // Merge stop lists — prefix stops + suffix stops, skip the duplicate junction stop
+      const prefixStops   = results[bestPrefixKey]?.stops || [];
+      const suffixStops   = results[botKey]?.stops || [];
+      const junctionId    = prefixStops[prefixStops.length - 1]?.stop_id;
+      const combinedStops = [...prefixStops, ...suffixStops.filter((s) => s.stop_id !== junctionId)];
+      results[botKey] = { polyline: polyline.encode(combined), coordinateCount: combined.length, stops: combinedStops };
       decodedCoords.set(botKey, combined); // allow this to serve as prefix for further routes
       console.log(`[sncf-fetcher] Stitched ${botKey}: prepended ${bestPrefix.length}-pt prefix (total ${combined.length} stops)`);
     } else {
