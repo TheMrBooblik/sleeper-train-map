@@ -213,14 +213,15 @@ export async function fetchSNCFNightTrainPolylines() {
     }
   }
 
-  // ── Stitch split-train segments ────────────────────────────────────────────
-  // Some IC Nuit trains are split at an intermediate city (e.g. Toulouse):
-  //   IC 3750 covers Paris → Toulouse (full segment in GTFS)
-  //   IC 3970 covers only Toulouse → Latour-de-Carol (the Paris leg is in IC 3750's route)
-  // Detect polylines that don't start near Paris and prepend a neighbouring segment.
-  // We iterate in order of increasing distance-from-Paris so that a stitched
-  // result (e.g. Paris→Toulouse→Latour-de-Carol) is available as a prefix for
-  // any further extension needed.
+  // ── Normalise direction + stitch split-train segments ─────────────────────
+  // Some IC Nuit trains split at Toulouse: IC 3750 owns Paris→Toulouse in GTFS,
+  // IC 3970 owns only Toulouse→Latour-de-Carol. We must prepend IC 3750's
+  // polyline to IC 3970's to get the full Paris→Latour-de-Carol route.
+  //
+  // Complication: "most stops" may pick a trip stored in the REVERSE direction
+  // (e.g. Toulouse→Paris for IC 3750), making its last point Paris instead of
+  // Toulouse. We normalise direction first (Paris-end always at index 0), then
+  // stitch any route that still doesn't start near Paris.
 
   const PARIS = [48.8443, 2.3637]; // Paris Austerlitz
   const PARIS_KM  = 30;  // within 30 km → "starts near Paris"
@@ -241,13 +242,26 @@ export async function fetchSNCFNightTrainPolylines() {
     decodedCoords.set(key, polyline.decode(val.polyline));
   }
 
-  // Sort keys by distance-from-Paris ascending so Paris-starting routes are
-  // processed first and their stitched versions are available as prefixes.
-  const sortedKeys = Array.from(decodedCoords.keys()).sort((a, b) => {
-    const distA = haversineKm(decodedCoords.get(a)[0], PARIS);
-    const distB = haversineKm(decodedCoords.get(b)[0], PARIS);
-    return distA - distB;
-  });
+  // Pass 1 — normalise direction: all IC Nuit routes start from Paris, so the
+  // end closer to Paris is always the Paris end. If the polyline is stored
+  // endpoint-first, reverse it so index 0 = Paris end.
+  for (const [botKey, coords] of decodedCoords) {
+    const startDist = haversineKm(coords[0], PARIS);
+    const endDist   = haversineKm(coords[coords.length - 1], PARIS);
+    if (endDist < startDist) {
+      const reversed = [...coords].reverse();
+      results[botKey] = { polyline: polyline.encode(reversed), coordinateCount: reversed.length };
+      decodedCoords.set(botKey, reversed);
+      console.log(`[sncf-fetcher] Reversed direction for ${botKey}`);
+    }
+  }
+
+  // Pass 2 — stitch: process in order of distance-from-Paris so that a stitched
+  // result (Paris→Toulouse) is ready before it's needed as a prefix for
+  // Paris→Toulouse→Latour-de-Carol.
+  const sortedKeys = Array.from(decodedCoords.keys()).sort((a, b) =>
+    haversineKm(decodedCoords.get(a)[0], PARIS) - haversineKm(decodedCoords.get(b)[0], PARIS)
+  );
 
   for (const botKey of sortedKeys) {
     const coords = decodedCoords.get(botKey);
