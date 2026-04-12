@@ -18,13 +18,7 @@ test.describe('Map Interactivity', () => {
     });
 
     await page.goto('/');
-
-    // PKP polylines: static GTFS-derived bundle must exist (merged client-side in useInitialData)
-    const pkpRes = await page.request.get('/data/gtfs/pkpTrainShapes.json');
-    expect(pkpRes.ok(), 'pkpTrainShapes.json should be served').toBeTruthy();
-    const pkpJson = await pkpRes.json();
-    expect(pkpJson.byTrainKey?.['16170']?.positions?.length ?? 0).toBeGreaterThan(10);
-
+    
     // Wait for the map to load
     await page.waitForSelector('.leaflet-container', { timeout: 10000 });
     

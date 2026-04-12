@@ -1,13 +1,15 @@
 // pages/api/data-status.js
-// Returns metadata about all data stored in Vercel Blob for the /data dashboard page.
+// Returns metadata for the /data dashboard: Vercel Blob (scraped/official feeds)
+// plus checked-in static files under public/data (e.g. PKP GTFS shapes, RegioJet timetables).
 // Always fresh — no CDN caching.
 
+import fs from "node:fs";
+import path from "node:path";
 import {
   getBlobData,
   getNJTrains,
   getCDTrains,
   getOsmRelation,
-  isFresh,
 } from "./lib/blob-store";
 
 const OSM_RELATION_IDS = ["18616102"]; // European Sleeper 453
@@ -25,11 +27,61 @@ function freshnessStatus(uploadedAt) {
   return "old";
 }
 
+/**
+ * PKP / Polish rail map shapes: committed JSON from `npm run parse-pkp-gtfs`
+ * (not in Blob — same preservation model as RegioJet files in public/data/gtfs).
+ */
+function loadPkpGtfsBundleStatus() {
+  const filePath = path.join(
+    process.cwd(),
+    "public",
+    "data",
+    "gtfs",
+    "pkpTrainShapes.json",
+  );
+  try {
+    const raw = fs.readFileSync(filePath, "utf8");
+    const data = JSON.parse(raw);
+    const byTrainKey = data.byTrainKey || {};
+    const keys = Object.keys(byTrainKey).sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true }),
+    );
+    const items = keys.map((k) => ({
+      trainNumber: k,
+      coordinateCount: byTrainKey[k]?.positions?.length ?? 0,
+    }));
+    const uploadedAt = data.generatedAt || null;
+    return {
+      uploadedAt,
+      count: keys.length,
+      status: freshnessStatus(uploadedAt),
+      hoursAgo: hoursAgo(uploadedAt),
+      items,
+      sourceUrl: data.source || null,
+      botTripsUrl: data.botTripsUrl || null,
+    };
+  } catch {
+    return {
+      uploadedAt: null,
+      count: 0,
+      status: "missing",
+      hoursAgo: null,
+      items: [],
+      sourceUrl: null,
+      botTripsUrl: null,
+    };
+  }
+}
+
 export default async function handler(req, res) {
+  const pkpGtfs = loadPkpGtfsBundleStatus();
+
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return res.status(200).json({
       error: "BLOB_READ_WRITE_TOKEN not configured",
-      sources: null,
+      sources: {
+        pkpGtfs,
+      },
     });
   }
 
@@ -157,6 +209,7 @@ export default async function handler(req, res) {
       cdRailways,
       backontrack: { stops, routes, trips },
       osmRelations,
+      pkpGtfs,
     },
   });
 }

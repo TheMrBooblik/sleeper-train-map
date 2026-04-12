@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 /**
+ * Checked-in artifact (like parse-regiojet-gtfs): regenerate, then commit the JSON.
+ *
  * Builds public/data/gtfs/pkpTrainShapes.json from the Polish GTFS feed (shapes.txt)
  * plus PKP / PKP/ČD trip labels from Back-on-Track trips.json (night-train scope).
  *
@@ -10,8 +12,10 @@
  * and extracts to gtfs-data/polish-trains-unpacked/
  *
  * Usage:
- *   node scripts/parse-pkp-gtfs.js
+ *   npm run parse-pkp-gtfs
  *   node scripts/parse-pkp-gtfs.js /path/to/unpacked-gtfs-dir   # skip download
+ *
+ * Same workflow as RegioJet: commit public/data/gtfs/pkpTrainShapes.json; /data shows freshness.
  */
 
 const fs = require("node:fs");

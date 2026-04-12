@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
  * Extracts PKP route data from a Portal Pasażera ShowTrack API response.
+ * Prefer the GTFS pipeline for map polylines: `npm run parse-pkp-gtfs` →
+ * public/data/gtfs/pkpTrainShapes.json (see scripts/parse-pkp-gtfs.js).
  *
  * Outputs two files under public/data/:
  * - <name>Polyline.json         → [ [lat, lon], ... ] main route polyline

@@ -14,6 +14,7 @@ import {
   isPkpAgencyRoute,
   checkENHumennePraha,
   getFutureRouteStartDate,
+  isRouteOutsideServiceIdSeason,
 } from "../utils/routeStyleUtils";
 import { parseCoord } from "../../../helpers/enrichStationsWithCoordinates";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../utils/operatorColors";
@@ -203,6 +204,11 @@ export function useRoutePaths({
     routesToShow.forEach((routeId) => {
       const route = routeMap.get(routeId);
       if (!route) return;
+
+      // Calendar service_id (e.g. summer-only): omit lines entirely outside BoT window.
+      if (isRouteOutsideServiceIdSeason(routeId, trips)) {
+        return;
+      }
 
       const futureStartDate = getFutureRouteStartDate(routeId, trips);
       const isFuture = futureStartDate !== null;

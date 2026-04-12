@@ -3,6 +3,59 @@
  * Used to determine line weight, dash array, and special cases (e.g. European Sleeper 453).
  */
 
+// BoT calendar window in trip.service_id, e.g. "2026/06/26-2026/08/30: Daily"
+const SERVICE_ID_CALENDAR_RANGE_RE =
+  /(\d{4})\/(\d{1,2})\/(\d{1,2})\s*-\s*(\d{4})\/(\d{1,2})\/(\d{1,2})/;
+
+/**
+ * Parse YYYY/MM/DD-YYYY/MM/DD from Back-on-Track service_id (optional ": …" suffix).
+ * @param {string} [serviceId]
+ * @returns {{ start: Date, end: Date } | null} Local-date start/end (inclusive).
+ */
+export function parseBoTServiceIdDateRange(serviceId) {
+  if (!serviceId || typeof serviceId !== "string") return null;
+  const m = serviceId.match(SERVICE_ID_CALENDAR_RANGE_RE);
+  if (!m) return null;
+  const start = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const end = new Date(Number(m[4]), Number(m[5]) - 1, Number(m[6]));
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  return { start, end };
+}
+
+/**
+ * True when every trip on this route has a calendar service_id range and today is outside all of them.
+ * If any trip has no such range (e.g. "2026: Daily"), the route stays visible year-round.
+ * @param {string|number} routeId
+ * @param {Record<string, object>} trips
+ * @returns {boolean}
+ */
+export function isRouteOutsideServiceIdSeason(routeId, trips) {
+  if (!trips || routeId == null) return false;
+
+  const routeTrips = Object.values(trips).filter(
+    (trip) => trip.route_id?.toString() === routeId.toString(),
+  );
+  if (routeTrips.length === 0) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const ranges = [];
+  for (const trip of routeTrips) {
+    const range = parseBoTServiceIdDateRange(trip.service_id);
+    if (!range) {
+      return false;
+    }
+    ranges.push(range);
+  }
+
+  const inAny = ranges.some(
+    ({ start, end }) => today >= start && today <= end,
+  );
+  return !inAny;
+}
+
 /**
  * Get polyline style (weight, dashArray, opacity) from route frequency in trips.
  * Matches legend: 6-7 days = solid, 3-5 = medium dash, seasonal = dashed + lighter.
@@ -56,9 +109,7 @@ export function getRouteStyleFromFrequency(routeId, trips) {
       isSeasonal = true;
     }
 
-    if (
-      /\d{4}\/\d{1,2}\/\d{1,2}\s*-\s*\d{4}\/\d{1,2}\/\d{1,2}/.test(serviceId)
-    ) {
+    if (parseBoTServiceIdDateRange(trip.service_id || "")) {
       isSeasonal = true;
     }
 
@@ -295,13 +346,17 @@ export function isRegioJetRoute(route) {
 export const REGIOJET_COLOR = "#F0AB00";
 
 /**
- * Whether to hide a route because it has a future "From <Date>" note in irregularities.
+ * Hide route in lists/markers when: (1) irregularities have a future "From YYYY-MM-DD", or
+ * (2) every trip uses a service_id calendar range (YYYY/MM/DD-YYYY/MM/DD) and today is outside all ranges.
+ * Map polylines: future "From" still draw as ghost lines; seasonal-outside routes are omitted (see useRoutePaths).
  * @param {string} routeId - Route ID
  * @param {Object} trips - Trips data
  * @returns {boolean}
  */
 export function shouldHideRouteDueToFutureDate(routeId, trips) {
-  return getFutureRouteStartDate(routeId, trips) !== null;
+  if (getFutureRouteStartDate(routeId, trips) !== null) return true;
+  if (isRouteOutsideServiceIdSeason(routeId, trips)) return true;
+  return false;
 }
 
 /**
