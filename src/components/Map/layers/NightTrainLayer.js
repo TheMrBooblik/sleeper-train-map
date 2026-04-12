@@ -71,16 +71,36 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
         return;
       }
 
+      // Pick the main station for the grouped marker's position. Try name-based
+      // keywords first (covers most European "main station" naming conventions),
+      // then fall back to route endpoints (first/last stop on a route).
       const mainStation =
         stationsInCity.find((station) => {
           const name = String(station.name || "").toLowerCase();
           return (
             name.includes("centraal") ||
             name.includes("central") ||
+            name.includes("centrale") ||
+            name.includes("centralna") ||
             name.includes("hbf") ||
-            name.includes("hauptbahnhof")
+            name.includes("hauptbahnhof") ||
+            name.includes("hlavní") ||
+            name.includes("hlavni") ||
+            name.includes("hl.n") ||
+            name.includes("główny") ||
+            name.includes("glowny") ||
+            name.includes("termini")
           );
-        }) || stationsInCity[0];
+        }) ||
+        stationsInCity.find((station) => {
+          const name = station?.name || station?.id;
+          if (!name) return false;
+          return (
+            endpointStations.has(name) ||
+            (station.id && endpointStations.has(station.id))
+          );
+        }) ||
+        stationsInCity[0];
 
       // If any station in the group is a route start/end, show the main marker as destination (endpoint).
       // Use matchStationNames so we match name variants (e.g. "Wien Hbf" vs "Wien Hauptbahnhof").
@@ -172,6 +192,9 @@ export const NightTrainStationMarkers = memo(function NightTrainStationMarkers({
           offset={[0, -10]}
           opacity={1}
           permanent={false}
+          // Avoid tooltips getting "stuck" when the pointer leaves the marker.
+          interactive={false}
+          sticky={false}
         >
           <StationTooltipContent
             name={s.displayName || s.name}
@@ -228,7 +251,13 @@ export const NightTrainPolylines = memo(function NightTrainPolylines({
             }}
           >
             {!selectedOverlay && (
-              <Tooltip sticky>
+              <Tooltip
+                // Keep route tooltip hover-only so it does not remain together
+                // with a station tooltip when the cursor moves between elements.
+                sticky={false}
+                permanent={false}
+                interactive={false}
+              >
                 {ov.lineName}: {ov.stations?.[0]?.name} →{" "}
                 {ov.stations?.[ov.stations?.length - 1]?.name}
               </Tooltip>
@@ -278,7 +307,15 @@ export const NightTrainPolylines = memo(function NightTrainPolylines({
                 }}
               >
                 {/* Route stations: name always; Dep/Arr only when specific route selected */}
-                <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+                <Tooltip
+                  direction="top"
+                  offset={[0, -10]}
+                  opacity={1}
+                  permanent={false}
+                  // Avoid tooltips getting "stuck" when the pointer leaves the marker.
+                  interactive={false}
+                  sticky={false}
+                >
                   <StationTooltipContent
                     name={s.name}
                     departure={s.departure}

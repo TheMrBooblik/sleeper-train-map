@@ -1,0 +1,12 @@
+---
+description: Use Context7 to verify external docs before implementation
+alwaysApply: true
+---
+
+# Context7 Documentation Checks
+
+- Before writing or changing code that depends on external libraries, frameworks, SDKs, APIs, CLIs, or platform features, check the official docs using Context7 first.
+- Prefer Context7 results over memory when there is any uncertainty about API behavior, options, signatures, config, or version-specific changes.
+- Base implementation details on what Context7 confirms.
+- If documentation cannot be found in Context7, state that clearly and ask the user whether to proceed with best-effort assumptions.
+- Keep this process lightweight: only fetch the docs needed for the current task.

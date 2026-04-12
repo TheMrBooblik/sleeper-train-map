@@ -23,19 +23,19 @@ import ZoomControl from "@components/ZoomControl";
 import LocationControl from "@components/LocationControl";
 import { stationsToSkip } from "../../data/stationsToSkip";
 
-import { normalizeStationNameForDisplay, matchStationNames } from "./utils/stationNameUtils";
-import { shouldHideRouteDueToFutureDate } from "./utils/routeStyleUtils";
-import { useNightTrainData } from "./hooks/useNightTrainData";
+import {
+  normalizeStationNameForDisplay,
+  matchStationNames,
+} from "./utils/stationNameUtils";
+import {
+  shouldHideRouteDueToFutureDate,
+  checkRegioJetPrahaChop,
+  checkRegioJetPrahaPrzemysl,
+} from "./utils/routeStyleUtils";
 import { useRoutePaths } from "./hooks/useRoutePaths";
 import { useMapMarkers } from "./hooks/useMapMarkers";
-import { groupCityMarkers } from "./utils/groupCityMarkers";
 import LoadingOverlay from "./components/LoadingOverlay";
-import BackgroundLoadingBadge from "./components/BackgroundLoadingBadge";
 import MapClickHandler from "./components/MapClickHandler";
-import {
-  NightTrainStationMarkers,
-  NightTrainPolylines,
-} from "./layers/NightTrainLayer";
 
 /** Format "YYYY-MM-DD" → "15 January 2026" for the future-route popup. */
 function formatFutureDate(dateStr) {
@@ -72,10 +72,7 @@ const TrainMap = ({
 
   const [selected, setSelected] = useState(false);
   const [stopId, setStopId] = useState();
-  const [isMapInitialized, setIsMapInitialized] = useState(false);
   const [showTooltips, setShowTooltips] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [loadingMessage, setLoadingMessage] = useState("Starting...");
   const [stopRouteIds, setStopRouteIds] = useState();
   const [selectedStationName, setSelectedStationName] = useState("");
   const [selectedNormalizedName, setSelectedNormalizedName] = useState("");
@@ -83,40 +80,11 @@ const TrainMap = ({
   const [selectedStationLon, setSelectedStationLon] = useState(null);
   const [selectedTrainRouteIds, setSelectedTrainRouteIds] = useState([]);
   const [isTrainDetailPanelOpen, setIsTrainDetailPanelOpen] = useState(false);
-  const [selectedNightTrainOverlay, setSelectedNightTrainOverlay] = useState(null);
-
-  const setLoadingProgressImmediate = useCallback((progress, message) => {
-    setLoadingProgress(progress);
-    if (message != null) setLoadingMessage(message);
-  }, []);
-
-  const nightTrain = useNightTrainData({
-    setLoadingProgressImmediate,
-    setIsMapInitialized,
-    setShowTooltips,
-    normalizeStationNameForLookup,
-    setFilteredStops,
-    stops,
-  });
-
-  const {
-    njOverlays,
-    setNjOverlays,
-    enOverlays,
-    setEnOverlays,
-    allNjStations,
-    allEnStations,
-    filteredNjStations,
-    setFilteredNjStations,
-    filteredEnStations,
-    setFilteredEnStations,
-    allNjRoutes,
-    setAllNjRoutes,
-    allEnRoutes,
-    setAllEnRoutes,
-    nightTrainsReady,
-    loadNightTrainsForStation,
-  } = nightTrain;
+  const [hoveredRouteId, setHoveredRouteId] = useState(null);
+  const [gtfsRouteFilterStops, setGtfsRouteFilterStops] = useState(null);
+  const gtfsStopsCacheRef = useRef(new Map());
+  const [cdRouteFilterStops, setCdRouteFilterStops] = useState(null);
+  const cdTrainsCacheRef = useRef(null);
 
   const { routePaths } = useRoutePaths({
     viewMapData,
@@ -133,10 +101,6 @@ const TrainMap = ({
   });
 
   const removeFilter = useCallback(() => {
-    setNjOverlays([]);
-    setEnOverlays([]);
-    setFilteredNjStations([]);
-    setFilteredEnStations([]);
     setStopId(null);
     setSelected(false);
     setSelectedStationName("");
@@ -145,28 +109,12 @@ const TrainMap = ({
     setSelectedStationLon(null);
     setStopRouteIds([]);
     setFilteredStops(stops);
-  }, [
-    setNjOverlays,
-    setEnOverlays,
-    setFilteredNjStations,
-    setFilteredEnStations,
-    setFilteredStops,
-    stops,
-  ]);
+  }, [setFilteredStops, stops]);
 
   const handlePolylineClick = useCallback((routeIds) => {
     const idsArray = Array.isArray(routeIds) ? routeIds : [routeIds];
     startTransition(() => {
-      setSelectedNightTrainOverlay(null);
       setSelectedTrainRouteIds(idsArray);
-      setIsTrainDetailPanelOpen(true);
-    });
-  }, []);
-
-  const handleNightTrainPolylineClick = useCallback((overlay) => {
-    startTransition(() => {
-      setSelectedTrainRouteIds([]);
-      setSelectedNightTrainOverlay(overlay);
       setIsTrainDetailPanelOpen(true);
     });
   }, []);
@@ -174,18 +122,31 @@ const TrainMap = ({
   const closeTrainDetailPanel = useCallback(() => {
     setIsTrainDetailPanelOpen(false);
     setSelectedTrainRouteIds([]);
-    setSelectedNightTrainOverlay(null);
   }, []);
 
+  const handleRouteHover = useCallback((routeId) => {
+    setHoveredRouteId(routeId ? String(routeId) : null);
+  }, []);
+
+  const handleRouteLeave = useCallback(() => {
+    setHoveredRouteId(null);
+  }, []);
+
+  // Guard against stale hover state. If the bottom bar is not in the
+  // active route-list mode, we should not keep any hover preview dimming.
+  useEffect(() => {
+    if (!selected || isTrainDetailPanelOpen) {
+      setHoveredRouteId(null);
+    }
+  }, [selected, isTrainDetailPanelOpen]);
+
   const handleFilterClose = useCallback(() => {
-    if (selectedNightTrainOverlay) {
-      closeTrainDetailPanel();
-    } else if (selectedTrainRouteIds?.length > 0) {
+    if (selectedTrainRouteIds?.length > 0) {
       closeTrainDetailPanel();
     } else {
       removeFilter();
     }
-  }, [selectedNightTrainOverlay, selectedTrainRouteIds, closeTrainDetailPanel, removeFilter]);
+  }, [selectedTrainRouteIds, closeTrainDetailPanel, removeFilter]);
 
   const matchStationNamesBound = useCallback(
     (a, b) => matchStationNames(a, b, normalizeStationNameForLookup),
@@ -209,29 +170,59 @@ const TrainMap = ({
       setSelectedStationLat(filteredStop.stop_lat);
       setSelectedStationLon(filteredStop.stop_lon);
       const normalizedStopId = normalizeStationNameForLookup(stop_id);
-      const cityInfo = cities[normalizedStopId] || cities[stop_id];
+      // Direct key lookup first; fallback to fuzzy match when display variants differ.
+      let cityInfo = cities[normalizedStopId] || cities[stop_id];
+      if (!cityInfo) {
+        const match = Object.entries(cities).find(([key]) =>
+          matchStationNamesBound(stop_id, key),
+        );
+        if (match) cityInfo = match[1];
+      }
       const filterName = normalizeStationNameForDisplay(stop_id);
       setSelectedStationName(filterName);
       setSelectedNormalizedName(normalizeStationNameForDisplay(stop_id));
 
+      // Aggregate routes from all city entries in the same city group.
+      // This ensures clicking any marker always shows all routes for the city.
+      const allRouteIds = new Set();
+
+      // 1. Add from directly-found cityInfo
       if (cityInfo?.stop_route_ids) {
-        const { stop_route_ids } = cityInfo;
-        let routeIdsArray;
-        if (filteredStop.isGrouped && filteredStop.groupedStations) {
-          const allRouteIds = new Set();
-          filteredStop.groupedStations.forEach((station) => {
-            const n = normalizeStationNameForLookup(station.stop_id);
-            const info = cities[n] || cities[station.stop_id];
-            if (info?.stop_route_ids) {
-              info.stop_route_ids.split(",").forEach((id) => allRouteIds.add(id));
-            }
-          });
-          routeIdsArray = Array.from(allRouteIds);
-        } else {
-          routeIdsArray = Array.from(
-            new Set(stop_route_ids.split(",").filter(Boolean)),
-          );
-        }
+        cityInfo.stop_route_ids.split(",").forEach((id) => {
+          const t = id.trim();
+          if (t) allRouteIds.add(t);
+        });
+      }
+
+      // 2. Add from BoT grouped stations on the marker (when available)
+      if (filteredStop.isGrouped && filteredStop.groupedStations) {
+        filteredStop.groupedStations.forEach((station) => {
+          const n = normalizeStationNameForLookup(station.stop_id);
+          const info = cities[n] || cities[station.stop_id];
+          if (info?.stop_route_ids) {
+            info.stop_route_ids.split(",").forEach((id) => {
+              const t = id.trim();
+              if (t) allRouteIds.add(t);
+            });
+          }
+        });
+      }
+
+      // 3. Find other city entries with the same display city name.
+      if (filterName) {
+        Object.entries(cities).forEach(([key, city]) => {
+          if (!city?.stop_route_ids) return;
+          if (normalizeStationNameForDisplay(key) === filterName) {
+            city.stop_route_ids.split(",").forEach((id) => {
+              const t = id.trim();
+              if (t) allRouteIds.add(t);
+            });
+          }
+        });
+      }
+
+      const routeIdsArray = Array.from(allRouteIds);
+      if (routeIdsArray.length > 0) {
         setStopRouteIds(routeIdsArray);
 
         const routeCities = Object.values(cities).filter((viewCity) => {
@@ -256,9 +247,6 @@ const TrainMap = ({
       }
 
       setSelected(true);
-      if (filterName) {
-        queueMicrotask(() => loadNightTrainsForStation(filterName, stop_id));
-      }
     },
     [
       cities,
@@ -270,7 +258,6 @@ const TrainMap = ({
       matchStationNamesBound,
       normalizeStationNameForLookup,
       normalizeStationNameForDisplay,
-      loadNightTrainsForStation,
     ],
   );
 
@@ -331,29 +318,160 @@ const TrainMap = ({
     });
 
     return result.length > 0 ? result : null;
-  }, [hasRouteFilter, selectedTrainRouteIds, viewMapData, stops, normalizeStationNameForLookup]);
+  }, [
+    hasRouteFilter,
+    selectedTrainRouteIds,
+    viewMapData,
+    stops,
+    normalizeStationNameForLookup,
+  ]);
 
-  // Set of station names/ids where a NightJet or EuroNight route starts or ends (for endpoint icon).
-  // Include raw names and display-normalized names so Back-on-Track markers (e.g. displayName "Brussels") match.
-  const nightTrainEndpointStations = useMemo(() => {
-    const endpointSet = new Set();
-    [...allNjRoutes, ...allEnRoutes].forEach((route) => {
-      if (!route.stations?.length) return;
-      const first = route.stations[0];
-      const last = route.stations[route.stations.length - 1];
-      [first, last].forEach((s) => {
-        if (s?.name) {
-          endpointSet.add(s.name);
-          endpointSet.add(normalizeStationNameForDisplay(s.name));
-        }
-        if (s?.id) endpointSet.add(s.id);
+  // For selected RegioJet routes, use GTFS timetable stops as marker source.
+  // This keeps map stations aligned with GTFS details while preserving BoT fallback.
+  useEffect(() => {
+    if (!hasRouteFilter || !viewMapData) {
+      setGtfsRouteFilterStops(null);
+      return;
+    }
+
+    const activeId = String(selectedTrainRouteIds[0]);
+    const activeRoute = Object.values(viewMapData).find(
+      (r) => r?.route_id?.toString() === activeId,
+    );
+    if (!activeRoute) {
+      setGtfsRouteFilterStops(null);
+      return;
+    }
+
+    let filePath = null;
+    if (checkRegioJetPrahaChop(activeRoute)) {
+      filePath = "/data/gtfs/rjChopTimetable.json";
+    } else if (checkRegioJetPrahaPrzemysl(activeRoute)) {
+      filePath = "/data/gtfs/rjPremyslTimetable.json";
+    }
+
+    if (!filePath) {
+      setGtfsRouteFilterStops(null);
+      return;
+    }
+
+    let cancelled = false;
+    const buildStopsFromGtfs = (json) => {
+      const unique = new Map();
+      (json?.trips || []).forEach((trip) => {
+        (trip?.stops || []).forEach((stop) => {
+          const key = `${stop.stopId || stop.name}-${stop.lat}-${stop.lon}`;
+          if (!unique.has(key) && stop?.name && stop?.lat && stop?.lon) {
+            unique.set(key, {
+              stop_id: stop.name,
+              stop_lat: stop.lat,
+              stop_lon: stop.lon,
+            });
+          }
+        });
       });
+      return Array.from(unique.values());
+    };
+
+    const loadGtfsStops = async () => {
+      try {
+        if (gtfsStopsCacheRef.current.has(filePath)) {
+          setGtfsRouteFilterStops(gtfsStopsCacheRef.current.get(filePath));
+          return;
+        }
+        const response = await fetch(filePath);
+        if (!response.ok) throw new Error(`Failed to load ${filePath}`);
+        const json = await response.json();
+        const mapped = buildStopsFromGtfs(json);
+        gtfsStopsCacheRef.current.set(filePath, mapped);
+        if (!cancelled) setGtfsRouteFilterStops(mapped);
+      } catch {
+        if (!cancelled) setGtfsRouteFilterStops(null);
+      }
+    };
+
+    loadGtfsStops();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasRouteFilter, selectedTrainRouteIds, viewMapData]);
+
+  // For selected EC routes, use CD timetable stops as marker source.
+  // Station names from cd.cz are matched against BoT stops data for coordinates.
+  useEffect(() => {
+    if (!hasRouteFilter || !stops?.length) {
+      setCdRouteFilterStops(null);
+      return;
+    }
+
+    // Check if the selected route is an EC train
+    const activeId = String(selectedTrainRouteIds[0]);
+    let ecTrainNumber = null;
+    Object.values(trips || {}).forEach((trip) => {
+      if (trip?.route_id?.toString() === activeId) {
+        const m = (trip.trip_short_name || "").match(/^\s*EC\s+(\d+)/i);
+        if (m) ecTrainNumber = m[1];
+      }
     });
-    return endpointSet;
-  }, [allNjRoutes, allEnRoutes, normalizeStationNameForDisplay]);
+
+    if (!ecTrainNumber) {
+      setCdRouteFilterStops(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const buildStopsFromCD = (cdData) => {
+      const trainData = cdData?.trains?.[ecTrainNumber];
+      if (!trainData?.stops?.length) return null;
+
+      const stopLookup = new Map();
+      stops.forEach((stop) => {
+        if (!stop.stop_id) return;
+        const n = normalizeStationNameForLookup(stop.stop_id);
+        if (n && !stopLookup.has(n)) stopLookup.set(n, stop);
+        if (!stopLookup.has(stop.stop_id)) stopLookup.set(stop.stop_id, stop);
+      });
+
+      const result = [];
+      const seen = new Set();
+      trainData.stops.forEach((cdStop) => {
+        if (!cdStop.name) return;
+        const n = normalizeStationNameForLookup(cdStop.name);
+        const match = stopLookup.get(n) || stopLookup.get(cdStop.name);
+        if (match?.stop_lat && match?.stop_lon && !seen.has(n)) {
+          seen.add(n);
+          result.push({ stop_id: cdStop.name, stop_lat: match.stop_lat, stop_lon: match.stop_lon });
+        }
+      });
+      return result.length > 0 ? result : null;
+    };
+
+    const loadCDStops = async () => {
+      try {
+        if (cdTrainsCacheRef.current) {
+          if (!cancelled) setCdRouteFilterStops(buildStopsFromCD(cdTrainsCacheRef.current));
+          return;
+        }
+        const response = await fetch("/api/cd-trains");
+        if (!response.ok) {
+          if (!cancelled) setCdRouteFilterStops(null);
+          return;
+        }
+        const data = await response.json();
+        cdTrainsCacheRef.current = data;
+        if (!cancelled) setCdRouteFilterStops(buildStopsFromCD(data));
+      } catch {
+        if (!cancelled) setCdRouteFilterStops(null);
+      }
+    };
+
+    loadCDStops();
+    return () => { cancelled = true; };
+  }, [hasRouteFilter, selectedTrainRouteIds, trips, stops, normalizeStationNameForLookup]);
 
   const markers = useMapMarkers({
-    filteredStops: routeFilterStops || filteredStops,
+    filteredStops: cdRouteFilterStops || gtfsRouteFilterStops || routeFilterStops || filteredStops,
     stops,
     cities,
     viewMapData,
@@ -367,212 +485,21 @@ const TrainMap = ({
     normalizeStationNameForDisplay,
     handleMarkerClick,
     trips,
-    nightTrainEndpointStations,
+    routeFilteredMode: hasRouteFilter,
   });
 
-  // When city grouping is enabled, compute the set of Back-on-Track city names
-  // (using the same grouping heuristic as useMapMarkers) so we can avoid
-  // drawing duplicate NightJet/EuroNight markers for the same city.
-  const backOnTrackCityNames = useMemo(() => {
-    if (!isGrouped) return null;
-    const baseStops = routeFilterStops || filteredStops;
-    if (!baseStops?.length || !cities) return null;
-
-    const grouped = groupCityMarkers(
-      baseStops,
-      cities,
-      true,
-      normalizeStationNameForDisplay,
-      normalizeStationNameForLookup,
-    );
-    if (!grouped.length) return null;
-
-    const set = new Set();
-    grouped.forEach((stop) => {
-      const raw = stop.displayName || stop.stop_id;
-      if (!raw) return;
-      const normalized = normalizeStationNameForDisplay(raw);
-      if (normalized) set.add(normalized);
-    });
-    return set;
-  }, [
-    isGrouped,
-    routeFilterStops,
-    filteredStops,
-    cities,
-    normalizeStationNameForDisplay,
-    normalizeStationNameForLookup,
-  ]);
-
   const overallLoading = initialDataLoading;
-
   useEffect(() => {
     if (!overallLoading) {
-      setLoadingProgress((p) => Math.max(p, 30));
-    } else {
-      setLoadingProgress(15);
-      setLoadingMessage("Loading stations and routes...");
-    }
-  }, [overallLoading]);
-
-  // As soon as GTFS data is ready, reveal the map — no need to wait for night trains.
-  // Night trains will render on top once their async load finishes.
-  useEffect(() => {
-    if (!overallLoading) {
-      setIsMapInitialized(true);
       setShowTooltips(true);
     }
   }, [overallLoading]);
-
-  useEffect(() => {
-    if (selected) return;
-    if (showRoutes) {
-      setNjOverlays(allNjRoutes);
-      setEnOverlays(allEnRoutes);
-    } else {
-      setNjOverlays([]);
-      setEnOverlays([]);
-    }
-  }, [showRoutes, selected, allNjRoutes, allEnRoutes, setNjOverlays, setEnOverlays]);
-
-  const hasSelection = selected || !!selectedNightTrainOverlay || hasRouteFilter;
-
-  // When a specific night train route is selected, show only that route; when a Back-on-Track route is selected, hide night trains.
-  const effectiveNjOverlays = useMemo(() => {
-    if (hasRouteFilter) return [];
-    if (selectedNightTrainOverlay) {
-      return selectedNightTrainOverlay.type === "nightjet" ? [selectedNightTrainOverlay] : [];
-    }
-    return selected ? njOverlays : showRoutes ? allNjRoutes : [];
-  }, [showRoutes, selected, selectedNightTrainOverlay, hasRouteFilter, allNjRoutes, njOverlays]);
-  const effectiveEnOverlaysRaw = useMemo(() => {
-    if (hasRouteFilter) return [];
-    if (selectedNightTrainOverlay) {
-      return selectedNightTrainOverlay.type === "euronight" ? [selectedNightTrainOverlay] : [];
-    }
-    return selected ? enOverlays : showRoutes ? allEnRoutes : [];
-  }, [showRoutes, selected, selectedNightTrainOverlay, hasRouteFilter, allEnRoutes, enOverlays]);
-
-  // OSM polyline overrides for EuroNight routes that hafas returns as straight lines.
-  // Key = OSM relation IDs, value = fetched [lat,lon] array.
-  const [enOsmPolylines, setEnOsmPolylines] = useState(new Map());
-
-  // Returns true for EN 442/443 overlays that go via Humenné (not the Chopin/Warszawa variant).
-  const isEN442Humenne = useCallback((ov) => {
-    if (!/^EN\s*44[23]$/i.test(ov.lineName?.trim())) return false;
-    return ov.stations?.some((s) =>
-      /humen/i.test(s?.name || ""),
-    );
-  }, []);
-
-  // Fetch static polyline for EN 442/443 Humenné–Praha
-  useEffect(() => {
-    const EN_KEY = "enHumenne";
-    const needsFetch = allEnRoutes.some(isEN442Humenne);
-    if (needsFetch && !enOsmPolylines.has(EN_KEY)) {
-      fetch("/data/enHumennePolyline.json")
-        .then((r) => (r.ok ? r.json() : null))
-        .then((coords) => {
-          if (coords?.length > 0) {
-            setEnOsmPolylines((prev) => {
-              const next = new Map(prev);
-              next.set(EN_KEY, coords);
-              return next;
-            });
-          }
-        })
-        .catch((err) => console.error("[DynamicMap] EN polyline fetch failed:", err));
-    }
-  }, [allEnRoutes, enOsmPolylines, isEN442Humenne]);
-
-  // Apply static polyline overrides to EuroNight overlays
-  const effectiveEnOverlays = useMemo(() => {
-    if (enOsmPolylines.size === 0) return effectiveEnOverlaysRaw;
-    const osmCoords = enOsmPolylines.get("enHumenne");
-    if (!osmCoords) return effectiveEnOverlaysRaw;
-
-    return effectiveEnOverlaysRaw.map((ov) => {
-      if (isEN442Humenne(ov)) {
-        return { ...ov, coords: osmCoords };
-      }
-      return ov;
-    });
-  }, [effectiveEnOverlaysRaw, enOsmPolylines, isEN442Humenne]);
+  const hasSelection = selected || hasRouteFilter;
 
   useEffect(() => {
     if (!stops?.length || !cities || overallLoading) return;
     setFilteredStops(stops);
   }, [stops, cities, setFilteredStops, overallLoading]);
-
-  // Only show NightJet/EuroNight station dots for stations that appear on at least one loaded route.
-  // Avoids showing stations from nj-all-stations when we have no route for them.
-  const njStationsFromRoutes = useMemo(() => {
-    const seen = new Map();
-    allNjRoutes.forEach((route) => {
-      route.stations?.forEach((s) => {
-        if (s?.location?.latitude == null || s?.location?.longitude == null) return;
-        const key = s.id || `${s.location?.latitude}-${s.location?.longitude}`;
-        if (key && !seen.has(key)) seen.set(key, s);
-      });
-    });
-    return Array.from(seen.values());
-  }, [allNjRoutes]);
-  const enStationsFromRoutes = useMemo(() => {
-    const seen = new Map();
-    allEnRoutes.forEach((route) => {
-      route.stations?.forEach((s) => {
-        if (s?.location?.latitude == null || s?.location?.longitude == null) return;
-        const key = s.id || `${s.location?.latitude}-${s.location?.longitude}`;
-        if (key && !seen.has(key)) seen.set(key, s);
-      });
-    });
-    return Array.from(seen.values());
-  }, [allEnRoutes]);
-
-  // NightJet/EuroNight routes that pass through the selected station (for sidebar)
-  const nightTrainRoutesForSidebar = useMemo(() => {
-    if (!selected || (!stopId && !selectedStationName)) return [];
-    const nameA = selectedStationName || stopId;
-    const nameB = stopId || selectedStationName;
-    const matches = (stationName) =>
-      matchStationNamesBound(stationName, nameA) ||
-      (nameB && nameB !== nameA && matchStationNamesBound(stationName, nameB));
-    const out = [];
-    njOverlays.forEach((ov) => {
-      if (!ov.stations?.length) return;
-      const passes = ov.stations.some((s) => matches(s?.name));
-      if (passes)
-        out.push({
-          type: "nightjet",
-          lineName: ov.lineName,
-          origin: ov.stations[0]?.name,
-          destination: ov.stations[ov.stations.length - 1]?.name,
-          color: ov.color,
-          source: ov.source,
-        });
-    });
-    enOverlays.forEach((ov) => {
-      if (!ov.stations?.length) return;
-      const passes = ov.stations.some((s) => matches(s?.name));
-      if (passes)
-        out.push({
-          type: "euronight",
-          lineName: ov.lineName,
-          origin: ov.stations[0]?.name,
-          destination: ov.stations[ov.stations.length - 1]?.name,
-          color: ov.color,
-          source: ov.source,
-        });
-    });
-    return out;
-  }, [
-    selected,
-    stopId,
-    selectedStationName,
-    njOverlays,
-    enOverlays,
-    matchStationNamesBound,
-  ]);
 
   const escFunction = useCallback(
     (event) => {
@@ -591,22 +518,42 @@ const TrainMap = ({
   const mapClassName = `w-full h-full ${className || ""}`;
   const sidebarRef = useRef(null);
 
-  const filterName = selectedNightTrainOverlay
-    ? `${selectedNightTrainOverlay.lineName || "Train"}: ${selectedNightTrainOverlay.stations?.[0]?.name || "?"} → ${selectedNightTrainOverlay.stations?.[selectedNightTrainOverlay.stations?.length - 1]?.name || "?"}`
-    : hasRouteFilter
-      ? (() => {
-          const route = viewMapData
-            ? Object.values(viewMapData).find(
-                (r) => r?.route_id?.toString() === String(selectedTrainRouteIds[0]),
-              )
-            : null;
-          if (!route) return "Route";
-          const trainNumber =
-            route.trip_short_name_0 || route.trip_short_name_1 || null;
-          const segment = `${route.origin_trip_0 || "?"} → ${route.destination_trip_0 || "?"}`;
-          return trainNumber ? `${trainNumber}: ${segment}` : `Route: ${segment}`;
-        })()
-      : selectedStationName || stopId;
+  const filterName = hasRouteFilter
+    ? (() => {
+        const route = viewMapData
+          ? Object.values(viewMapData).find(
+              (r) =>
+                r?.route_id?.toString() === String(selectedTrainRouteIds[0]),
+            )
+          : null;
+        if (!route) return "Route";
+        const trainNumber =
+          route.trip_short_name_0 || route.trip_short_name_1 || null;
+        const segment = `${route.origin_trip_0 || "?"} → ${route.destination_trip_0 || "?"}`;
+        return trainNumber ? `${trainNumber}: ${segment}` : `Route: ${segment}`;
+      })()
+    : selectedStationName || stopId;
+
+  const visibleRoutePaths = useMemo(() => {
+    if (!hoveredRouteId || routePaths.length === 0) return routePaths;
+
+    // Draw hovered route last so it stays fully visible on top of overlapping lines.
+    const nonHovered = [];
+    const hovered = [];
+    routePaths.forEach((path) => {
+      if (String(path.routeId) === hoveredRouteId) {
+        hovered.push(path);
+      } else {
+        nonHovered.push(path);
+      }
+    });
+
+    return [...nonHovered, ...hovered];
+  }, [routePaths, hoveredRouteId]);
+
+  // Only apply route-dimming preview while the bottom bar route list is active.
+  const shouldApplyHoverPreview =
+    !!hoveredRouteId && selected && !isTrainDetailPanelOpen;
 
   return (
     <>
@@ -615,15 +562,6 @@ const TrainMap = ({
         <LoadingOverlay
           stopsLoading={initialDataLoading}
           citiesLoading={false}
-        />
-      )}
-
-      {/* Non-blocking corner badge: shows NightJet/EuroNight loading progress in background */}
-      {!overallLoading && (
-        <BackgroundLoadingBadge
-          nightTrainsReady={nightTrainsReady}
-          loadingProgress={loadingProgress}
-          loadingMessage={loadingMessage}
         />
       )}
 
@@ -646,76 +584,26 @@ const TrainMap = ({
         <ZoomControl className="outline-none" />
         <LocationControl />
 
-        {/* When a Back-on-Track route is selected (e.g. European Sleeper), hide all NightJet/EuroNight stations so only that route's stations show. */}
-        {!selectedNightTrainOverlay && !hasRouteFilter && (
-          <NightTrainStationMarkers
-            stations={selected ? filteredNjStations : njStationsFromRoutes}
-            endpointStations={nightTrainEndpointStations}
-            hideIntermediateStations={hideIntermediateStations}
-            backOnTrackCityNames={backOnTrackCityNames}
-            isGrouped={isGrouped}
-            stationKeyPrefix="nj-all-station"
-            markerClassName="nj-station-marker"
-            stops={stops}
-            matchStationNames={matchStationNamesBound}
-            onMarkerClick={handleMarkerClick}
-            selected={selected}
-            stopId={stopId}
-          />
-        )}
-        <NightTrainPolylines
-          overlays={effectiveNjOverlays}
-          selectedOverlay={selectedNightTrainOverlay}
-          overlayType="nightjet"
-          onPolylineClick={handleNightTrainPolylineClick}
-          onRouteStationClick={handleMarkerClick}
-          stops={stops}
-          matchStationNames={matchStationNamesBound}
-          hideIntermediateStations={hideIntermediateStations}
-          stationKeyPrefix="nj-station"
-          markerClassName="nightjet-station-dot"
-          selected={selected}
-          stopId={stopId}
-        />
-
-        {!selectedNightTrainOverlay && !hasRouteFilter && (
-          <NightTrainStationMarkers
-            stations={selected ? filteredEnStations : enStationsFromRoutes}
-            endpointStations={nightTrainEndpointStations}
-            hideIntermediateStations={hideIntermediateStations}
-            backOnTrackCityNames={backOnTrackCityNames}
-            isGrouped={isGrouped}
-            stationKeyPrefix="en-all-station"
-            markerClassName="en-station-marker"
-            stops={stops}
-            matchStationNames={matchStationNamesBound}
-            onMarkerClick={handleMarkerClick}
-            selected={selected}
-            stopId={stopId}
-          />
-        )}
-        <NightTrainPolylines
-          overlays={effectiveEnOverlays}
-          selectedOverlay={selectedNightTrainOverlay}
-          overlayType="euronight"
-          onPolylineClick={handleNightTrainPolylineClick}
-          onRouteStationClick={handleMarkerClick}
-          stops={stops}
-          matchStationNames={matchStationNamesBound}
-          hideIntermediateStations={hideIntermediateStations}
-          stationKeyPrefix="en-station"
-          markerClassName="euronight-station-dot"
-          selected={selected}
-          stopId={stopId}
-        />
-
-        {!selectedNightTrainOverlay &&
-          routePaths.length > 0 &&
-          routePaths.map((path) => (
+        {visibleRoutePaths.length > 0 &&
+          visibleRoutePaths.map((path) => (
             <Polyline
               key={path.key}
               positions={path.positions}
-              pathOptions={{ ...path.pathOptions, cursor: "pointer" }}
+              pathOptions={{
+                ...path.pathOptions,
+                cursor: "pointer",
+                // When hovering a bottom-bar route, preview focus by dimming others.
+                opacity: shouldApplyHoverPreview
+                  ? String(path.routeId) === hoveredRouteId
+                    ? 0.95
+                    : 0.2
+                  : path.pathOptions.opacity,
+                weight: shouldApplyHoverPreview
+                  ? String(path.routeId) === hoveredRouteId
+                    ? Math.max(path.pathOptions.weight || 1, 4)
+                    : path.pathOptions.weight
+                  : path.pathOptions.weight,
+              }}
               eventHandlers={{
                 click: (e) => {
                   e.originalEvent.stopPropagation();
@@ -761,7 +649,7 @@ const TrainMap = ({
               </Tooltip>
             </Polyline>
           ))}
-        {!selectedNightTrainOverlay && markers}
+        {markers}
       </MapContainer>
 
       <div ref={sidebarRef}>
@@ -772,20 +660,24 @@ const TrainMap = ({
           stopId={stopId}
           stopRouteIds={stopRouteIds}
           selectedNormalizedName={selectedNormalizedName}
-          nightTrainRoutes={nightTrainRoutesForSidebar}
           isDetailPanelOpen={isTrainDetailPanelOpen}
+          onRouteClick={handlePolylineClick}
+          onRouteHover={handleRouteHover}
+          onRouteLeave={handleRouteLeave}
+          viewMapData={viewMapData}
+          trips={trips}
         />
       </div>
 
       <TrainDetailPanel
         isOpen={isTrainDetailPanelOpen}
         onClose={closeTrainDetailPanel}
+        tripsData={trips}
         selectedRouteIds={
           selectedTrainRouteIds?.filter(
             (id) => !shouldHideRouteDueToFutureDate(id, trips),
           ) ?? []
         }
-        nightTrainOverlay={selectedNightTrainOverlay}
       />
     </>
   );

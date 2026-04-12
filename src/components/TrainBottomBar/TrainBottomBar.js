@@ -1,9 +1,7 @@
 "use client";
 
-import React, { useCallback, useMemo } from "react";
-import { useViewMap } from "../../hooks/requests/useViewMap";
-import { useTrips } from "../../hooks/requests/useTrips";
-import { ROUTE_COLORS } from "../Map/constants";
+import React, { useCallback } from "react";
+import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../Map/utils/operatorColors";
 import { normalizeStationNameForDisplay } from "../Map/utils/stationNameUtils";
 
 /**
@@ -16,11 +14,13 @@ const TrainBottomBar = ({
   stopId,
   stopRouteIds,
   selectedNormalizedName,
-  nightTrainRoutes = [],
   isDetailPanelOpen = false,
+  onRouteClick,
+  onRouteHover,
+  onRouteLeave,
+  viewMapData,
+  trips,
 }) => {
-  const { viewMapData } = useViewMap();
-  const { trips } = useTrips();
 
   // Helper function to check if a route should be filtered out due to future "From <Date>" note
   const shouldHideRouteDueToFutureDate = useCallback(
@@ -75,38 +75,21 @@ const TrainBottomBar = ({
       })
     : [];
 
-  // Deduplicate NightJet/EuroNight by normalized origin–destination (and type).
-  // Keep hook usage unconditional (must run on every render).
-  const deduplicatedNightTrainRoutes = useMemo(() => {
-    if (!Array.isArray(nightTrainRoutes) || nightTrainRoutes.length === 0)
-      return [];
-    const seen = new Map();
-    nightTrainRoutes.forEach((route) => {
-      const o =
-        normalizeStationNameForDisplay(route.origin) ||
-        route.origin ||
-        "";
-      const d =
-        normalizeStationNameForDisplay(route.destination) ||
-        route.destination ||
-        "";
-      const key = `${route.type}:${[o, d].sort().join("-")}`;
-      if (!seen.has(key)) {
-        seen.set(key, route);
-      }
-    });
-    return Array.from(seen.values());
-  }, [nightTrainRoutes]);
-
   if (sidebarDisabled) return null;
   // Hide when train detail panel is open
   if (isDetailPanelOpen) return null;
-  // Show bar when we have Back-on-Track routes or NightJet/EuroNight routes for this station
+  // Show bar when we have Back-on-Track routes for this station
   const hasBackOnTrackRoutes =
     !!stopRouteIds?.length && filteredViewMapData?.length > 0;
-  const hasNightTrainRoutes =
-    Array.isArray(nightTrainRoutes) && nightTrainRoutes.length > 0;
-  if (!hasBackOnTrackRoutes && !hasNightTrainRoutes) return null;
+  if (!hasBackOnTrackRoutes) return null;
+
+  // Build operator-based color map for these routes (brand colors with shade variation)
+  const routeIds = filteredViewMapData.map((el) => el?.route_id?.toString()).filter(Boolean);
+  const routeDataMap = new Map();
+  filteredViewMapData.forEach((el) => {
+    if (el?.route_id) routeDataMap.set(el.route_id.toString(), el);
+  });
+  const routeColorMap = buildRouteColorMap(routeIds, routeDataMap);
 
   // Group routes by origin-destination to avoid duplicates
   // Store route_id to determine color
@@ -160,6 +143,7 @@ const TrainBottomBar = ({
         destination: stationArr[1],
         viaText: viaText,
         routeId: el?.route_id?.toString(), // Store route_id for color determination
+        routeData: el, // Keep source route data for special color rules (e.g. RegioJet)
       });
     }
   });
@@ -171,14 +155,27 @@ const TrainBottomBar = ({
       <div className="flex p-1">
         {/* Back-on-Track routes */}
         {Array.from(routeMap.values()).map((route, index) => {
-          // Get color for this route (same logic as DynamicMap.js)
+          // Operator brand color (with shade variation for same-operator routes)
           const routeColor =
-            ROUTE_COLORS[parseInt(route.routeId) % ROUTE_COLORS.length];
+            routeColorMap.get(route.routeId) || NEUTRAL_FALLBACK_COLOR;
 
           return (
             <div
-              className="relative flex items-center pl-2 pr-3 whitespace-nowrap text-sm"
+              className="relative flex items-center pl-2 pr-3 whitespace-nowrap text-sm cursor-pointer hover:bg-gray-100 transition-colors"
               key={`route-info-${index}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => onRouteClick?.(route.routeId)}
+              onMouseEnter={() => onRouteHover?.(route.routeId)}
+              onMouseLeave={() => onRouteLeave?.()}
+              onFocus={() => onRouteHover?.(route.routeId)}
+              onBlur={() => onRouteLeave?.()}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onRouteClick?.(route.routeId);
+                }
+              }}
             >
               {/* Color indicator line */}
               <div
@@ -190,27 +187,6 @@ const TrainBottomBar = ({
                 &nbsp;-&nbsp;
                 {route.viaText ? <span>({route.viaText})</span> : null}
                 {route.viaText && <>&nbsp;-&nbsp;</>}
-                <strong>{route.destination}</strong>
-              </div>
-            </div>
-          );
-        })}
-        {/* NightJet and EuroNight routes */}
-        {deduplicatedNightTrainRoutes.map((route, index) => {
-          const label = route.type === "nightjet" ? "NightJet" : "EuroNight";
-          return (
-            <div
-              className="relative flex items-center pl-2 pr-3 whitespace-nowrap text-sm"
-              key={`night-${route.type}-${index}`}
-            >
-              <div
-                className="absolute left-0 top-0.5 bottom-0.5 w-1 rounded shrink-0"
-                style={{ backgroundColor: route.color }}
-              />
-              <div className="flex items-center">
-                <span className="text-gray-500 text-xs mr-1">{label}</span>
-                <strong>{route.origin}</strong>
-                &nbsp;-&nbsp;
                 <strong>{route.destination}</strong>
               </div>
             </div>

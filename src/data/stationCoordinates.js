@@ -63,7 +63,7 @@ export const stationCoordinates = {
     
   // Ukraine
   "Kyiv Pasazhyrskyi": { lat: 50.4402, lon: 30.4888 },
-  "Kropyvnyts'kyi": { lat: 48.5236, lon: 32.2607 },  
+  "Kropyvnytskyi": { lat: 48.5236, lon: 32.2607 },  
   "Voznesens'k": { lat: 47.5606, lon: 31.3162 },  
   Kodyma: { lat: 48.0897, lon: 29.1202 },  
   Zhmerynka: { lat: 49.0354, lon: 28.1124 },

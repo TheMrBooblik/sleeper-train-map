@@ -1,14 +1,42 @@
 import { useEffect, useState } from "react";
-import { ROUTES } from "../../constants/backOnTrack";
+import { VIEW_MAP } from "../../constants/backOnTrack";
 
 // Cache duration in milliseconds (1 hour)
 const CACHE_DURATION = 60 * 60 * 1000; // Set to 60 * 60 * 1000 for production
 
-// Cache structure
+// Cache structure — stores routes keyed by route_id string (same shape consumers expect).
 const routesCache = {
   data: null,
   timestamp: null,
 };
+
+/**
+ * Turn `view_ontd_map.json` (object keyed arbitrarily or array of rows) into a plain
+ * record: { [routeId]: row }. Trips use `route_id`; lookups must work with string or number.
+ *
+ * We use the map feed instead of GTFS `routes.json` so route metadata matches what the map draws.
+ *
+ * @param {Record<string, unknown>|unknown[]|null|undefined} raw - API JSON body
+ * @returns {Record<string, object>}
+ */
+function normalizeViewMapToRoutesRecord(raw) {
+  if (!raw) return {};
+
+  const rows = Array.isArray(raw) ? raw : Object.values(raw);
+  /** @type {Record<string, object>} */
+  const byId = {};
+
+  for (const row of rows) {
+    if (!row || typeof row !== "object") continue;
+    const id = row.route_id;
+    if (id === undefined || id === null) continue;
+    const key = id.toString();
+    // One entry per route_id; last wins if duplicates exist (should not happen).
+    byId[key] = row;
+  }
+
+  return byId;
+}
 
 export function useRoutes() {
   const [routes, setRoutes] = useState({});
@@ -26,17 +54,20 @@ export function useRoutes() {
       if (shouldFetchData) {
         setIsLoading(true);
         try {
-          const res = await fetch(`/api/trains?type=${ROUTES}`);
+          // Back-on-Track map view: same source as useInitialData / useRoutePaths.
+          const res = await fetch(`/api/trains?type=${VIEW_MAP}`);
           const data = await res.json();
 
+          const normalized = normalizeViewMapToRoutesRecord(data);
+
           // Update the cache
-          routesCache.data = data;
+          routesCache.data = normalized;
           routesCache.timestamp = currentTime;
 
           // Update the state
-          setRoutes(data || {});
+          setRoutes(normalized);
         } catch (error) {
-          console.error("Error fetching routes:", error);
+          console.error("Error fetching routes (view_ontd_map):", error);
           setRoutes({});
         } finally {
           setIsLoading(false);

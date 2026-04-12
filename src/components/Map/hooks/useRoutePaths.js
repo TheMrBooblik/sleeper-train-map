@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { ROUTE_COLORS } from "../constants";
 import {
   getRouteStyleFromFrequency,
   checkEuropeanSleeper453,
@@ -20,11 +19,13 @@ import {
   checkPkpPirat,
   checkPkpWolin,
   checkPkpUstronie,
-  shouldHideRouteDueToFutureDate,
+  checkENHumennePraha,
   getFutureRouteStartDate,
 } from "../utils/routeStyleUtils";
 import { STATIC_PKP_ROUTE_IDS, STATIC_PKP_ROUTES } from "../utils/staticPkpRoutes";
+import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../utils/operatorColors";
 import { buildAllRoutesPaths } from "../utils/buildAllRoutesPaths";
+import polyline from "@mapbox/polyline";
 
 // Number of leading coordinates to skip per OSM relation key.
 // Some OSM relations have station approach segments at the start
@@ -32,6 +33,10 @@ import { buildAllRoutesPaths } from "../utils/buildAllRoutesPaths";
 const OSM_TRIM_OFFSETS = {
   18616102: 328, // European Sleeper 453
 };
+
+function isInactiveRoute(route) {
+  return (route?.is_active || "Y").toString().toUpperCase() === "N";
+}
 
 /**
  * Hook: computes Back-on-Track route paths (polylines) and fetches OSM relation data when needed.
@@ -88,7 +93,9 @@ export function useRoutePaths({
         }
       });
       Object.values(viewMapData).forEach((route) => {
-        if (route?.route_id) allRouteIds.add(route.route_id.toString());
+        if (route?.route_id && !isInactiveRoute(route)) {
+          allRouteIds.add(route.route_id.toString());
+        }
       });
       // Include static PKP routes not in API (e.g. Ustronie) so they appear when showing all routes
       STATIC_PKP_ROUTE_IDS.forEach((id) => allRouteIds.add(id));
@@ -134,7 +141,7 @@ export function useRoutePaths({
           ? stopId || "none"
           : "all-routes";
     Object.values(viewMapData).forEach((route) => {
-      if (route?.route_id) {
+      if (route?.route_id && !isInactiveRoute(route)) {
         routeMap.set(route.route_id.toString(), route);
       }
     });
@@ -198,6 +205,9 @@ export function useRoutePaths({
       return sequence.length >= 2 ? sequence : null;
     };
 
+    // Build operator-based color map (brand colors with shade variation)
+    const routeColorMap = buildRouteColorMap(routesToShow, routeMap);
+
     const paths = [];
 
     routesToShow.forEach((routeId) => {
@@ -207,8 +217,7 @@ export function useRoutePaths({
       const futureStartDate = getFutureRouteStartDate(routeId, trips);
       const isFuture = futureStartDate !== null;
 
-      const routeColor =
-        ROUTE_COLORS[parseInt(routeId, 10) % ROUTE_COLORS.length];
+      const routeColor = routeColorMap.get(routeId) || NEUTRAL_FALLBACK_COLOR;
       // Future routes: thin dashed ghost line so they're visible but clearly distinct
       const style = isFuture
         ? { weight: 1.5, dashArray: "4,8", opacity: 0.35 }
@@ -216,7 +225,7 @@ export function useRoutePaths({
       const pathOptions = {
         color: routeColor,
         weight: style.weight,
-        opacity: style.opacity ?? 0.8,
+        opacity: style.opacity ?? 0.92,
         dashArray: style.dashArray || undefined,
         lineCap: "round",
         lineJoin: "round",
@@ -252,6 +261,8 @@ export function useRoutePaths({
         osmRelationId = "static:pkpWolin";
       } else if (checkPkpUstronie(route)) {
         osmRelationId = "static:pkpUstronie";
+      } else if (checkENHumennePraha(route)) {
+        osmRelationId = "static:enHumenne";
       }
 
       // RegioJet routes use their brand color instead of the default palette
@@ -276,41 +287,55 @@ export function useRoutePaths({
         pathOptions.color = PKP_COLOR;
       }
 
-      const path0 = buildPathForDirection(
-        route.origin_trip_0,
-        route.destination_trip_0,
-        route.via_0,
-      );
-      const path0ToUse = path0 ?? route.fallbackPositions ?? null;
-      if (path0ToUse && path0ToUse.length >= 2) {
+      // Official NJ/EN polyline takes precedence over station-name-based coords
+      if (route.nj_polyline) {
         paths.push({
-          positions: path0ToUse,
+          positions: polyline.decode(route.nj_polyline),
           routeId,
           key: `route-${stationKey}-${routeId}-0`,
           pathOptions,
-          osmRelationId,
+          osmRelationId: null,
           isFuture,
           futureStartDate,
+          source: "nightjet",
         });
-      }
-
-      if (route.origin_trip_1 && route.destination_trip_1) {
-        const path1 = buildPathForDirection(
-          route.origin_trip_1,
-          route.destination_trip_1,
-          route.via_1,
+      } else {
+        const path0 = buildPathForDirection(
+          route.origin_trip_0,
+          route.destination_trip_0,
+          route.via_0,
         );
-        const path1ToUse = path1 ?? route.fallbackPositions ?? null;
-        if (path1ToUse && path1ToUse.length >= 2) {
+        const path0ToUse = path0 ?? route.fallbackPositions ?? null;
+        if (path0ToUse && path0ToUse.length >= 2) {
           paths.push({
-            positions: path1ToUse,
+            positions: path0ToUse,
             routeId,
-            key: `route-${stationKey}-${routeId}-1`,
+            key: `route-${stationKey}-${routeId}-0`,
             pathOptions,
             osmRelationId,
             isFuture,
             futureStartDate,
           });
+        }
+
+        if (route.origin_trip_1 && route.destination_trip_1) {
+          const path1 = buildPathForDirection(
+            route.origin_trip_1,
+            route.destination_trip_1,
+            route.via_1,
+          );
+          const path1ToUse = path1 ?? route.fallbackPositions ?? null;
+          if (path1ToUse && path1ToUse.length >= 2) {
+            paths.push({
+              positions: path1ToUse,
+              routeId,
+              key: `route-${stationKey}-${routeId}-1`,
+              pathOptions,
+              osmRelationId,
+              isFuture,
+              futureStartDate,
+            });
+          }
         }
       }
     });
@@ -362,6 +387,7 @@ export function useRoutePaths({
     if (!viewMapData) return;
     const polylineKeysToFetch = new Set();
     Object.values(viewMapData).forEach((route) => {
+      if (isInactiveRoute(route)) return;
       if (checkEuropeanSleeper453(route)) {
         polylineKeysToFetch.add("18616102");
       }
@@ -385,6 +411,9 @@ export function useRoutePaths({
       if (checkPkpWolin(route)) polylineKeysToFetch.add("static:pkpWolin");
       if (checkPkpUstronie(route))
         polylineKeysToFetch.add("static:pkpUstronie");
+      if (checkENHumennePraha(route)) {
+        polylineKeysToFetch.add("static:enHumenne");
+      }
     });
     // Always fetch static PKP polylines (e.g. Ustronie) so they appear even when route is not in API
     STATIC_PKP_ROUTE_IDS.forEach((id) =>

@@ -26,9 +26,9 @@ export default function BackgroundLoadingBadge({
   useEffect(() => {
     if (!nightTrainsReady) return;
     // Start fade 1.5s after routes finish loading
-    const fadeTimer = setTimeout(() => setFadeOut(true), 1500);
+    const fadeTimer = setTimeout(() => setFadeOut(true), 1000);
     // Remove from DOM 0.6s later (after CSS transition)
-    const hideTimer = setTimeout(() => setHidden(true), 2100);
+    const hideTimer = setTimeout(() => setHidden(true), 1000);
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(hideTimer);

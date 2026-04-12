@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const SMOKE_TEST_PORT = process.env.SMOKE_TEST_PORT || '3100';
+const SMOKE_TEST_URL = `http://localhost:${SMOKE_TEST_PORT}`;
+
 export default defineConfig({
   testDir: './tests',
   testMatch: 'smoke.spec.js',
@@ -9,7 +12,8 @@ export default defineConfig({
   retries: 0,
   reporter: 'line',
   use: {
-    baseURL: 'http://localhost:3000',
+    // Use a dedicated smoke-test port so local app on 3000 stays untouched.
+    baseURL: SMOKE_TEST_URL,
     trace: 'off',
     screenshot: 'off',
     video: 'off',
@@ -23,8 +27,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: `npm run dev -- --port ${SMOKE_TEST_PORT}`,
+    url: SMOKE_TEST_URL,
     reuseExistingServer: true,
     timeout: 30000,
   },

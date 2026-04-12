@@ -1,0 +1,1949 @@
+trans_id,lang,translation
+"Ostrava, hl.n.",de,"Ostrava, hl.n."
+"Ostrava, hl.n.",en,"Ostrava, hl.n."
+"Ostrava, hl.n.",cs,"Ostrava, hl.n."
+"Ostrava, hl.n.",sk,"Ostrava, hl.n."
+"Ostrava, hl.n.",pl,"Ostrawa, hl.n."
+10202040,de,Trenčín
+10202040,sl,Trenčín
+10202040,fr,Trenčín
+10202040,en,Trenčín
+10202040,cs,Trenčín
+10202040,it,Trenčín
+10202040,uk,Тренчин
+10202040,ro,Trenčín
+10202040,hr,Trenčín
+10202040,hu,Trencsén
+10202040,sk,Trenčín
+10202040,pl,Trenczyn
+"Lucemburk, P+R Bouillon",de,"Luxemburg, P+R Bouillon"
+"Lucemburk, P+R Bouillon",en,"Luxembourg, P+R Bouillon"
+"Lucemburk, P+R Bouillon",cs,"Lucemburk, P+R Bouillon"
+"Lucemburk, P+R Bouillon",sk,"Luxemburg, P+R Bouillon"
+"Lucemburk, P+R Bouillon",pl,"Luxembourg, P+R Bouillon"
+"Návsí (Jablunkov), žst.",de,"Návsí (Jablunkov), žst."
+"Návsí (Jablunkov), žst.",en,"Návsí (Jablunkov), žst."
+"Návsí (Jablunkov), žst.",cs,"Návsí (Jablunkov), žst."
+"Návsí (Jablunkov), žst.",sk,"Návsí (Jablunkov), žst."
+"Návsí (Jablunkov), žst.",pl,"Návsí (Jablunkov), žst."
+10202044,de,Brüssel
+10202044,sl,Brusel
+10202044,fr,Brussel
+10202044,en,Brussels
+10202044,cs,Brusel
+10202044,it,Bruxelles
+10202044,hr,Bruxelles
+10202044,uk,Брюссель
+10202044,ro,Brussel
+10202044,hu,Brüsszel
+10202044,sk,Brussel
+10202044,pl,Brussel
+"Lugano, Via Giacomo E Filippo Ciani",de,"Lugano, Via Giacomo E Filippo Ciani"
+"Lugano, Via Giacomo E Filippo Ciani",en,"Lugano, Via Giacomo E Filippo Ciani"
+"Lugano, Via Giacomo E Filippo Ciani",cs,"Lugano, Via Giacomo E Filippo Ciani"
+"Lugano, Via Giacomo E Filippo Ciani",sk,"Lugano, Via Giacomo E Filippo Ciani"
+"Lugano, Via Giacomo E Filippo Ciani",pl,"Lugano, Via Giacomo E Filippo Ciani"
+5358041023,de,Crikvenica
+5358041023,sl,Crikvenica
+5358041023,fr,Crikvenica
+5358041023,en,Crikvenica
+5358041023,cs,Crikvenica
+5358041023,it,Crikvenica
+5358041023,hr,Crikvenica
+5358041023,uk,Crikvenica
+5358041023,ro,Crikvenica
+5358041023,sk,Crikvenica
+5358041023,hu,Crikvenica
+5358041023,pl,Crikvenica
+1313136001,de,Bystřice (Třinec)
+1313136001,sl,Bystřice (Třinec)
+1313136001,fr,Bystřice (Třinec)
+1313136001,en,Bystřice (Třinec)
+1313136001,cs,Bystřice (Třinec)
+1313136001,it,Bystřice (Třinec)
+1313136001,uk,Бистржіце (Tржінец)
+1313136001,ro,Bystřice (Třinec)
+1313136001,hr,Bystřice (Třinec)
+1313136001,sk,Bystřice (Třinec)
+1313136001,hu,Bystřice (Třinec)
+1313136001,pl,Bystřice (Třinec)
+1313136000,de,Česká Třebová
+1313136000,sl,Česká Třebová
+1313136000,fr,Česká Třebová
+1313136000,en,Česká Třebová
+1313136000,cs,Česká Třebová
+1313136000,it,Česká Třebová
+1313136000,uk,Чеська Тршебова
+1313136000,ro,Česká Třebová
+1313136000,hr,Česká Třebová
+1313136000,sk,Česká Třebová
+1313136000,hu,Česká Třebová
+1313136000,pl,Česká Třebová
+10202045,de,Luxemburg
+10202045,sl,Luxembourg
+10202045,fr,Luxembourg
+10202045,en,Luxembourg
+10202045,cs,Lucemburk
+10202045,it,Lussemburgo
+10202045,hr,Luksemburg
+10202045,ro,Luxemburg
+10202045,uk,Люксембург
+10202045,sk,Luxemburg
+10202045,hu,Luxembourg
+10202045,pl,Luxembourg
+"Púchov, žst.",de,"Púchov, žst."
+"Púchov, žst.",en,"Púchov, žst."
+"Púchov, žst.",cs,"Púchov, žst."
+"Púchov, žst.",sk,"Púchov, žst."
+"Púchov, žst.",pl,"Púchov, žst."
+"Česká Třebová, žst.",de,"Česká Třebová, žst."
+"Česká Třebová, žst.",en,"Česká Třebová, žst."
+"Česká Třebová, žst.",cs,"Česká Třebová, žst."
+"Česká Třebová, žst.",sk,"Česká Třebová, žst."
+"Česká Třebová, žst.",pl,"Česká Třebová, žst."
+"Trogir, aut.kolodvor",de,"Trogir, aut.kolodvor"
+"Trogir, aut.kolodvor",en,"Trogir, aut.kolodvor"
+"Trogir, aut.kolodvor",cs,"Trogir, aut.kolodvor"
+"Trogir, aut.kolodvor",sk,"Trogir, aut.kolodvor"
+"Trogir, aut.kolodvor",pl,"Trogir, aut.kolodvor"
+10202038,de,Žilina
+10202038,sl,Žilina
+10202038,fr,Žilina
+10202038,en,Žilina
+10202038,cs,Žilina
+10202038,it,Žilina
+10202038,uk,Жиліна
+10202038,ro,Žilina
+10202038,hr,Žilina
+10202038,hu,Zsolna
+10202038,sk,Žilina
+10202038,pl,Žilina
+10202039,de,Považská Bystrica
+10202039,sl,Považská Bystrica
+10202039,fr,Považská Bystrica
+10202039,en,Považská Bystrica
+10202039,cs,Považská Bystrica
+10202039,it,Považská Bystrica
+10202039,uk,Поважська Бистриця
+10202039,ro,Považská Bystrica
+10202039,hr,Považská Bystrica
+10202039,hu,Vágbeszterce
+10202039,sk,Považská Bystrica
+10202039,pl,Považská Bystrica
+"Budapešť, Kelenföld aut.áll.",de,"Budapest, Kelenföld aut.áll."
+"Budapešť, Kelenföld aut.áll.",en,"Budapest, Kelenföld aut.áll."
+"Budapešť, Kelenföld aut.áll.",cs,"Budapešť, Kelenföld aut.áll."
+"Budapešť, Kelenföld aut.áll.",sk,"Budapešť, Kelenföld aut.áll."
+"Budapešť, Kelenföld aut.áll.",pl,"Budapeszt, Kelenföld aut.áll."
+271526010,de,Split
+271526010,sl,Split
+271526010,fr,Split
+271526010,en,Split
+271526010,cs,Split
+271526010,it,Split
+271526010,uk,Спліт
+271526010,hr,Split
+271526010,ro,Split
+271526010,sk,Split
+271526010,hu,Split
+271526010,pl,Split
+"Vídeň, Meidling",de,"Wien, Meidling"
+"Vídeň, Meidling",en,"Vienna, Meidling"
+"Vídeň, Meidling",cs,"Vídeň, Meidling"
+"Vídeň, Meidling",sk,"Viedeň, Meidling"
+"Vídeň, Meidling",pl,"Wiedeń, Meidling"
+"Trenčín, žst.",de,"Trenčín, žst."
+"Trenčín, žst.",en,"Trenčín, žst."
+"Trenčín, žst.",cs,"Trenčín, žst."
+"Trenčín, žst.",sk,"Trenčín, žst."
+"Trenčín, žst.",pl,"Trenczyn, žst."
+271526012,de,Šibenik
+271526012,sl,Šibenik
+271526012,fr,Šibenik
+271526012,en,Šibenik
+271526012,cs,Šibenik
+271526012,it,Šibenik
+271526012,uk,Шибеник
+271526012,hr,Šibenik
+271526012,ro,Šibenik
+271526012,sk,Šibenik
+271526012,hu,Šibenik
+271526012,pl,Šibenik
+271526013,de,Trogir
+271526013,sl,Trogir
+271526013,fr,Trogir
+271526013,en,Trogir
+271526013,cs,Trogir
+271526013,it,Trogir
+271526013,uk,Трогір
+271526013,hr,Trogir
+271526013,ro,Trogir
+271526013,sk,Trogir
+271526013,hu,Trogir
+271526013,pl,Trogir
+"Spišská Nová Ves, žst.",de,"Spišská Nová Ves, žst."
+"Spišská Nová Ves, žst.",en,"Spišská Nová Ves, žst."
+"Spišská Nová Ves, žst.",cs,"Spišská Nová Ves, žst."
+"Spišská Nová Ves, žst.",sk,"Spišská Nová Ves, žst."
+"Spišská Nová Ves, žst.",pl,"Spišská Nová Ves, žst."
+508808001,de,Třinec centrum
+508808001,sl,Třinec centrum
+508808001,fr,Centre de Třinec
+508808001,en,Třinec centrum
+508808001,cs,Třinec centrum
+508808001,it,Třinec centrum
+508808001,uk,Тршінец центр
+508808001,ro,Třinec centrum
+508808001,hr,Třinec centrum
+508808001,hu,Třinec központ
+508808001,sk,Třinec centrum
+508808001,pl,Trzyniec Centrum
+508808002,de,Čadca
+508808002,sl,Čadca
+508808002,fr,Čadca
+508808002,en,Čadca
+508808002,cs,Čadca
+508808002,it,Čadca
+508808002,uk,Чадця
+508808002,ro,Čadca
+508808002,hr,Čadca
+508808002,hu,Csaca
+508808002,sk,Čadca
+508808002,pl,Čadca
+"Katovice, Sądowa Dworzec",de,"Katowice, Sądowa Dworzec"
+"Katovice, Sądowa Dworzec",en,"Katowice, Sądowa Dworzec"
+"Katovice, Sądowa Dworzec",cs,"Katovice, Sądowa Dworzec"
+"Katovice, Sądowa Dworzec",sk,"Katowice, Sądowa Dworzec"
+"Katovice, Sądowa Dworzec",pl,"Katowice, Sądowa Dworzec"
+508808000,de,Český Těšín
+508808000,sl,Český Těšín
+508808000,fr,Český Těšín
+508808000,en,Český Těšín
+508808000,cs,Český Těšín
+508808000,it,Český Těšín
+508808000,uk,Чеський Тешин
+508808000,ro,Český Těšín
+508808000,hr,Český Těšín
+508808000,sk,Český Těšín
+508808000,hu,Český Těšín
+508808000,pl,Czeski Cieszyn
+Autobusová linka: Praha - Mnichov,de,Buslinie: Prag – München
+Autobusová linka: Praha - Mnichov,en,Bus line: Prag – München
+Autobusová linka: Praha - Mnichov,cs,Autobusová linka: Praha - Mnichov
+Autobusová linka: Praha - Mnichov,sk,Autobusová linka: Praha – Mnichov
+"Bruggy, Rijselstraat-Spoorwegstraat",de,"Brügge, Rijselstraat-Spoorwegstraat"
+"Bruggy, Rijselstraat-Spoorwegstraat",en,"Bruges, Rijselstraat-Spoorwegstraat"
+"Bruggy, Rijselstraat-Spoorwegstraat",cs,"Bruggy, Rijselstraat-Spoorwegstraat"
+"Bruggy, Rijselstraat-Spoorwegstraat",sk,"Brugge, Rijselstraat-Spoorwegstraat"
+"Bruggy, Rijselstraat-Spoorwegstraat",pl,"Brugia, Rijselstraat-Spoorwegstraat"
+10202052,de,Wien
+10202052,sl,Dunaj
+10202052,fr,Vienne
+10202052,en,Vienna
+10202052,cs,Vídeň
+10202052,it,Vienna
+10202052,uk,Відень
+10202052,hr,Beč
+10202052,ro,Viena
+10202052,sk,Viedeň
+10202052,hu,Bécs
+10202052,pl,Wiedeń
+"Padova, Autostaz. VIALE della Pace",de,"Padua, Autostaz. VIALE della Pace"
+"Padova, Autostaz. VIALE della Pace",en,"Padua, Autostaz. VIALE della Pace"
+"Padova, Autostaz. VIALE della Pace",cs,"Padova, Autostaz. VIALE della Pace"
+"Padova, Autostaz. VIALE della Pace",sk,"Padova, Autostaz. VIALE della Pace"
+"Padova, Autostaz. VIALE della Pace",pl,"Padwa, Autostaz. VIALE della Pace"
+"Sukošan, dr. Franje Tuďmana",de,"Sukošan, dr. Franje Tuďmana"
+"Sukošan, dr. Franje Tuďmana",en,"Sukošan, dr. Franje Tuďmana"
+"Sukošan, dr. Franje Tuďmana",cs,"Sukošan, dr. Franje Tuďmana"
+"Sukošan, dr. Franje Tuďmana",sk,"Sukošan, dr. Franje Tuďmana"
+"Sukošan, dr. Franje Tuďmana",pl,"Sukošan, dr. Franje Tuďmana"
+Autobusová linka: Praha – Drážďany – Berlín,de,Buslinie: Prague – Dresden – Berlin
+Autobusová linka: Praha – Drážďany – Berlín,en,Bus line: Prague – Dresden – Berlin
+Autobusová linka: Praha – Drážďany – Berlín,cs,Autobusová linka: Praha – Drážďany – Berlín
+Autobusová linka: Praha – Drážďany – Berlín,sk,Autobusová linka: Praha – Drážďany – Berlín
+10202049,de,London
+10202049,sl,London
+10202049,fr,Londres
+10202049,en,London
+10202049,cs,Londýn
+10202049,it,Londre
+10202049,ro,Londra
+10202049,uk,Лондон
+10202049,hr,London
+10202049,sk,Londýn
+10202049,hu,London
+10202049,pl,London
+"Budapešť, Népliget aut.áll.",de,"Budapest, Népliget aut.áll."
+"Budapešť, Népliget aut.áll.",en,"Budapest, Népliget aut.áll."
+"Budapešť, Népliget aut.áll.",cs,"Budapešť, Népliget aut.áll."
+"Budapešť, Népliget aut.áll.",sk,"Budapešť, Népliget aut.áll."
+"Budapešť, Népliget aut.áll.",pl,"Budapeszt, Népliget aut.áll."
+"Hranice na M., žst.",de,"Hranice na M., žst."
+"Hranice na M., žst.",en,"Hranice na M., žst."
+"Hranice na M., žst.",cs,"Hranice na M., žst."
+"Hranice na M., žst.",sk,"Hranice na M., žst."
+"Hranice na M., žst.",pl,"Hranice na M., žst."
+RJ,de,RegioJet
+RJ,en,RegioJet
+RJ,cs,RegioJet
+RJ,sk,RegioJet
+"Curych, Carparkplatz Sihlquai",de,"Zürich, Carparkplatz Sihlquai"
+"Curych, Carparkplatz Sihlquai",en,"Zürich, Carparkplatz Sihlquai"
+"Curych, Carparkplatz Sihlquai",cs,"Curych, Carparkplatz Sihlquai"
+"Curych, Carparkplatz Sihlquai",sk,"Zürich, Carparkplatz Sihlquai"
+"Curych, Carparkplatz Sihlquai",pl,"Zürich, Carparkplatz Sihlquai"
+10202021,de,Nürnberg
+10202021,sl,Nürnberg
+10202021,fr,Nuremberg
+10202021,en,Nuremberg
+10202021,cs,Norimberk
+10202021,it,Norimberga
+10202021,uk,Нюрнберг
+10202021,ro,Nürnberg
+10202021,hr,Nürnberg
+10202021,sk,Norimberg
+10202021,hu,Nürnberg
+10202021,pl,Nürnberg
+5990055007,de,Řešov
+5990055007,sl,Řešov
+5990055007,fr,Řešov
+5990055007,en,Řešov
+5990055007,cs,Řešov
+5990055007,it,Řešov
+5990055007,uk,Ряшів
+5990055007,ro,Řešov
+5990055007,hr,Řešov
+5990055007,sk,Řešov
+5990055007,hu,Řešov
+5990055007,pl,Řešov
+"Vídeň, Hbf (Südtiroler Platz)",de,"Wien, Hbf (Südtiroler Platz)"
+"Vídeň, Hbf (Südtiroler Platz)",en,"Vienna, Hbf (Südtiroler Platz)"
+"Vídeň, Hbf (Südtiroler Platz)",cs,"Vídeň, Hbf (Südtiroler Platz)"
+"Vídeň, Hbf (Südtiroler Platz)",sk,"Viedeň, Hbf (Südtiroler Platz)"
+"Vídeň, Hbf (Südtiroler Platz)",pl,"Wiedeń, Hbf (Südtiroler Platz)"
+10202020,de,Bern
+10202020,sl,Bern
+10202020,fr,Berne
+10202020,en,Bern
+10202020,cs,Bern
+10202020,it,Bern
+10202020,ro,Berna
+10202020,uk,Берн
+10202020,hr,Bern
+10202020,sk,Bern
+10202020,hu,Bern
+10202020,pl,Berno
+"Nové Mesto nad Váhom, žst.",de,"Nové Mesto nad Váhom, žst."
+"Nové Mesto nad Váhom, žst.",en,"Nové Mesto nad Váhom, žst."
+"Nové Mesto nad Váhom, žst.",cs,"Nové Mesto nad Váhom, žst."
+"Nové Mesto nad Váhom, žst.",sk,"Nové Mesto nad Váhom, žst."
+"Nové Mesto nad Váhom, žst.",pl,"Nové Mesto nad Váhom, žst."
+"Košice, žst.",de,"Košice, žst."
+"Košice, žst.",en,"Košice, žst."
+"Košice, žst.",cs,"Košice, žst."
+"Košice, žst.",sk,"Košice, žst."
+"Košice, žst.",pl,"Koszyce, žst."
+10202026,de,Eindhoven
+10202026,sl,Eindhoven
+10202026,fr,Eindhoven
+10202026,en,Eindhoven
+10202026,cs,Eindhoven
+10202026,it,Eindhoven
+10202026,uk,Ейндговен
+10202026,ro,Eindhoven
+10202026,hr,Eindhoven
+10202026,sk,Eindhoven
+10202026,hu,Eindhoven
+10202026,pl,Eindhoven
+10202023,de,Frankfurt am Main
+10202023,sl,Frankfurt am Main
+10202023,fr,Francfort-sur-le-Main
+10202023,en,Frankfurt am Main
+10202023,cs,Frankfurt nad Mohanem
+10202023,it,Francoforte
+10202023,uk,Франкфурт
+10202023,ro,Frankfurt am Main
+10202023,hr,Frankfurt am Main
+10202023,sk,Frankfurt nad Mohanom
+10202023,hu,Frankfurt am Main
+10202023,pl,Frankfurt am Main
+Autobusová linka: Praha – Brno – Vídeň,de,Buslinie: Prag – Brünn – Wien
+Autobusová linka: Praha – Brno – Vídeň,en,Bus line: Prague – Brno – Vienna
+Autobusová linka: Praha – Brno – Vídeň,cs,Autobusová linka: Praha – Brno – Vídeň
+Autobusová linka: Praha – Brno – Vídeň,sk,Autobusová linka: Praha – Brno – Viedeň
+Vlaková linka: Praha - Čop,cs,Vlaková linka: Praha - Čop
+"Plzeň, CAN",de,"Pilsen, CAN"
+"Plzeň, CAN",en,"Pilsen, CAN"
+"Plzeň, CAN",cs,"Plzeň, CAN"
+"Plzeň, CAN",sk,"Plzeň, CAN"
+"Plzeň, CAN",pl,"Plzeň, CAN"
+"Györ, žst.",de,"Györ, žst."
+"Györ, žst.",en,"Györ, žst."
+"Györ, žst.",cs,"Györ, žst."
+"Györ, žst.",sk,"Györ, žst."
+"Györ, žst.",pl,"Györ, žst."
+"Zábřeh na Moravě, žst.",de,"Zábřeh na Moravě, žst."
+"Zábřeh na Moravě, žst.",en,"Zábřeh na Moravě, žst."
+"Zábřeh na Moravě, žst.",cs,"Zábřeh na Moravě, žst."
+"Zábřeh na Moravě, žst.",sk,"Zábřeh na Moravě, žst."
+"Zábřeh na Moravě, žst.",pl,"Zábřeh na Moravě, žst."
+Autobusová linka: Praha – Plzeň – Lucemburk – Brussel – Londýn,de,Buslinie: Prag – Luxembourg – Brussel – London
+Autobusová linka: Praha – Plzeň – Lucemburk – Brussel – Londýn,en,Bus line: Prague – Luxembourg – Brussel – London
+Autobusová linka: Praha – Plzeň – Lucemburk – Brussel – Londýn,cs,Autobusová linka: Praha – Plzeň – Lucemburk – Brussel – Londýn
+Autobusová linka: Praha – Plzeň – Lucemburk – Brussel – Londýn,sk,Autobusová linka: Praha – Plzeň – Lucemburk – Brussel – Londýn
+Autobusová linka: Praha – Plzeň – Mnichov – St. Gallen – Curych – Bern – Lausanne – Ženeva – Lyon,de,Buslinie: Prag – Pilsen – München – St. Gallen – Zürich – Bern – Lausanne – Genf– Lyon
+Autobusová linka: Praha – Plzeň – Mnichov – St. Gallen – Curych – Bern – Lausanne – Ženeva – Lyon,en,Bus line: Prag – Pilsen – München – St. Gallen – Winterthur – Zürich – Bern – Lausanne – Geneve – Lyon
+Autobusová linka: Praha – Plzeň – Mnichov – St. Gallen – Curych – Bern – Lausanne – Ženeva – Lyon,cs,Autobusová linka: Praha – Plzeň – Mnichov – St. Gallen – Curych – Bern – Lausanne – Ženeva – Lyon
+Autobusová linka: Praha – Plzeň – Mnichov – St. Gallen – Curych – Bern – Lausanne – Ženeva – Lyon,sk,Autobusová linka: Praha – Plzeň – Mnichov – St. Gallen – Zürich – Bern – Lausanne – Ženeva – Lyon
+"Svitavy, žst.",de,"Svitavy, žst."
+"Svitavy, žst.",en,"Svitavy, žst."
+"Svitavy, žst.",cs,"Svitavy, žst."
+"Svitavy, žst.",sk,"Svitavy, žst."
+"Svitavy, žst.",pl,"Svitavy, žst."
+"Zadar, aut.kolodvor",de,"Zadar, aut.kolodvor"
+"Zadar, aut.kolodvor",en,"Zadar, aut.kolodvor"
+"Zadar, aut.kolodvor",cs,"Zadar, aut.kolodvor"
+"Zadar, aut.kolodvor",sk,"Zadar, aut.kolodvor"
+"Zadar, aut.kolodvor",pl,"Zadar, aut.kolodvor"
+"Mosonmagyaróvár, nádraží",de,"Mosonmagyaróvár, nádraží"
+"Mosonmagyaróvár, nádraží",en,"Mosonmagyaróvár, nádraží"
+"Mosonmagyaróvár, nádraží",cs,"Mosonmagyaróvár, nádraží"
+"Mosonmagyaróvár, nádraží",sk,"Mosonmagyaróvár, nádraží"
+"Mosonmagyaróvár, nádraží",pl,"Mosonmagyaróvár, nádraží"
+"Skalice nad Svitavou, žst.",de,"Skalice nad Svitavou, žst."
+"Skalice nad Svitavou, žst.",en,"Skalice nad Svitavou, žst."
+"Skalice nad Svitavou, žst.",cs,"Skalice nad Svitavou, žst."
+"Skalice nad Svitavou, žst.",sk,"Skalice nad Svitavou, žst."
+"Skalice nad Svitavou, žst.",pl,"Skalice nad Svitavou, žst."
+"Pakoštane, Bus stop (výstup)",de,"Pakoštane, Bus stop (výstup)"
+"Pakoštane, Bus stop (výstup)",en,"Pakoštane, Bus stop (výstup)"
+"Pakoštane, Bus stop (výstup)",cs,"Pakoštane, Bus stop (výstup)"
+"Pakoštane, Bus stop (výstup)",sk,"Pakoštane, Bus stop (výstup)"
+"Pakoštane, Bus stop (výstup)",pl,"Pakoštane, Bus stop (výstup)"
+Autobusová linka: Krakov -  Ostrava - Brno - Vídeň,de,Buslinie: Krakau  – Ostrava – Brünn – Wien
+Autobusová linka: Krakov -  Ostrava - Brno - Vídeň,en,Bus line: Kraków – Ostrava – Brno – Vienna
+Autobusová linka: Krakov -  Ostrava - Brno - Vídeň,cs,Autobusová linka: Krakov -  Ostrava - Brno - Vídeň
+Autobusová linka: Krakov -  Ostrava - Brno - Vídeň,sk,Autobusová linka: Krakov -  Ostrava - Brno - Vídeň
+"Brno, Židenice",de,"Brünn, Židenice"
+"Brno, Židenice",en,"Brno, Židenice"
+"Brno, Židenice",cs,"Brno, Židenice"
+"Brno, Židenice",sk,"Brno, Židenice"
+"Brno, Židenice",pl,"Brno, Židenice"
+"Gliwice, žst.",de,"Gliwice, žst."
+"Gliwice, žst.",en,"Gliwice, žst."
+"Gliwice, žst.",cs,"Gliwice, žst."
+"Gliwice, žst.",sk,"Gliwice, žst."
+"Gliwice, žst.",pl,"Gliwice, žst."
+"Benátky, MESTRE Viale Stazione 3",de,"Venedig, MESTRE Viale Stazione 3"
+"Benátky, MESTRE Viale Stazione 3",en,"Venice, MESTRE Viale Stazione 3"
+"Benátky, MESTRE Viale Stazione 3",cs,"Benátky, MESTRE Viale Stazione 3"
+"Benátky, MESTRE Viale Stazione 3",sk,"Benátky, MESTRE Viale Stazione 3"
+"Benátky, MESTRE Viale Stazione 3",pl,"Venezia, MESTRE Viale Stazione 3"
+10202033,de,Košice
+10202033,sl,Košice
+10202033,fr,Košice
+10202033,en,Košice
+10202033,cs,Košice
+10202033,it,Košice
+10202033,uk,Кошице
+10202033,ro,Košice
+10202033,hr,Košice
+10202033,hu,Kassa
+10202033,sk,Košice
+10202033,pl,Koszyce
+10202030,de,Amsterdam
+10202030,sl,Amsterdam
+10202030,fr,Amsterdam
+10202030,en,Amsterdam
+10202030,cs,Amsterdam
+10202030,it,Amsterdam
+10202030,uk,Амстердам
+10202030,ro,Amsterdam
+10202030,hr,Amsterdam
+10202030,sk,Amsterdam
+10202030,hu,Amsterdam
+10202030,pl,Amsterdam
+"Eindhoven, JF Kennedylaan/Limbopad",de,"Eindhoven, JF Kennedylaan/Limbopad"
+"Eindhoven, JF Kennedylaan/Limbopad",en,"Eindhoven, JF Kennedylaan/Limbopad"
+"Eindhoven, JF Kennedylaan/Limbopad",cs,"Eindhoven, JF Kennedylaan/Limbopad"
+"Eindhoven, JF Kennedylaan/Limbopad",sk,"Eindhoven, JF Kennedylaan/Limbopad"
+"Eindhoven, JF Kennedylaan/Limbopad",pl,"Eindhoven, JF Kennedylaan/Limbopad"
+10202031,de,Olomouc
+10202031,sl,Olomouc
+10202031,fr,Olomouc
+10202031,en,Olomouc
+10202031,cs,Olomouc
+10202031,it,Olomouc
+10202031,uk,Оломоуц
+10202031,ro,Olomouc
+10202031,hr,Olomouc
+10202031,sk,Olomouc
+10202031,hu,Olomouc
+10202031,pl,Ołomuniec
+10202036,de,Liptovský Mikuláš
+10202036,sl,Liptovský Mikuláš
+10202036,fr,Liptovský Mikuláš
+10202036,en,Liptovský Mikuláš
+10202036,cs,Liptovský Mikuláš
+10202036,it,Liptovský Mikuláš
+10202036,uk,Ліптовський Мікулаш
+10202036,ro,Liptovský Mikuláš
+10202036,hr,Liptovský Mikuláš
+10202036,hu,Liptószentmiklós
+10202036,sk,Liptovský Mikuláš
+10202036,pl,Liptovský Mikuláš
+10202037,de,Ružomberok
+10202037,sl,Ružomberok
+10202037,fr,Ružomberok
+10202037,en,Ružomberok
+10202037,cs,Ružomberok
+10202037,it,Ružomberok
+10202037,uk,Ружомберок
+10202037,ro,Ružomberok
+10202037,hr,Ružomberok
+10202037,hu,Rózsahegy
+10202037,sk,Ružomberok
+10202037,pl,Ružomberok
+"Vodice, aut.kolodvor",de,"Vodice, aut.kolodvor"
+"Vodice, aut.kolodvor",en,"Vodice, aut.kolodvor"
+"Vodice, aut.kolodvor",cs,"Vodice, aut.kolodvor"
+"Vodice, aut.kolodvor",sk,"Vodice, aut.kolodvor"
+"Vodice, aut.kolodvor",pl,"Vodice, aut.kolodvor"
+10202035,de,Poprad
+10202035,sl,Poprad
+10202035,fr,Poprad
+10202035,en,Poprad
+10202035,cs,Poprad
+10202035,it,Poprad
+10202035,uk,Попрад
+10202035,ro,Poprad
+10202035,hr,Poprad
+10202035,hu,Poprád
+10202035,sk,Poprad
+10202035,pl,Poprad
+10202028,de,Rotterdam
+10202028,sl,Rotterdam
+10202028,fr,Rotterdam
+10202028,en,Rotterdam
+10202028,cs,Rotterdam
+10202028,it,Rotterdam
+10202028,uk,Роттердам
+10202028,ro,Rotterdam
+10202028,hr,Rotterdam
+10202028,sk,Rotterdam
+10202028,hu,Rotterdam
+10202028,pl,Rotterdam
+5990055004,de,Přemyšl
+5990055004,sl,Přemyšl
+5990055004,fr,Přemyšl
+5990055004,en,Přemyšl
+5990055004,cs,Přemyšl
+5990055004,it,Přemyšl
+5990055004,uk,Перемишль
+5990055004,ro,Přemyšl
+5990055004,hr,Přemyšl
+5990055004,sk,Přemyšl
+5990055004,hu,Přemyšl
+5990055004,pl,Přemyšl
+"Mnichov, Letiště FJS, Terminál 2",de,"München, Letiště FJS, Terminál 2"
+"Mnichov, Letiště FJS, Terminál 2",en,"Munich, Letiště FJS, Terminál 2"
+"Mnichov, Letiště FJS, Terminál 2",cs,"Mnichov, Letiště FJS, Terminál 2"
+"Mnichov, Letiště FJS, Terminál 2",sk,"Mníchov, Letiště FJS, Terminál 2"
+"Mnichov, Letiště FJS, Terminál 2",pl,"München, Letiště FJS, Terminál 2"
+"Liptovský Mikuláš, žst.",de,"Liptovský Mikuláš, žst."
+"Liptovský Mikuláš, žst.",en,"Liptovský Mikuláš, žst."
+"Liptovský Mikuláš, žst.",cs,"Liptovský Mikuláš, žst."
+"Liptovský Mikuláš, žst.",sk,"Liptovský Mikuláš, žst."
+"Liptovský Mikuláš, žst.",pl,"Liptovský Mikuláš, žst."
+"Primošten, aut.kolodvor",de,"Primošten, aut.kolodvor"
+"Primošten, aut.kolodvor",en,"Primošten, aut.kolodvor"
+"Primošten, aut.kolodvor",cs,"Primošten, aut.kolodvor"
+"Primošten, aut.kolodvor",sk,"Primošten, aut.kolodvor"
+"Primošten, aut.kolodvor",pl,"Primošten, aut.kolodvor"
+"Bratislava, Einsteinova",de,"Bratislava, Einsteinova"
+"Bratislava, Einsteinova",en,"Bratislava, Einsteinova"
+"Bratislava, Einsteinova",cs,"Bratislava, Einsteinova"
+"Bratislava, Einsteinova",sk,"Bratislava, Einsteinova"
+"Bratislava, Einsteinova",pl,"Bratysława, Einsteinova"
+"Varšava, Dworzec Centralny 04",de,"Warschau, Dworzec Centralny 04"
+"Varšava, Dworzec Centralny 04",en,"Warsaw, Dworzec Centralny 04"
+"Varšava, Dworzec Centralny 04",cs,"Varšava, Dworzec Centralny 04"
+"Varšava, Dworzec Centralny 04",sk,"Varšava, Dworzec Centralny 04"
+"Varšava, Dworzec Centralny 04",pl,"Warszawa, Dworzec Centralny 04"
+10202080,de,Venedig
+10202080,sl,Benetke
+10202080,fr,Venise
+10202080,en,Venice
+10202080,cs,Benátky
+10202080,it,Venezia
+10202080,uk,Венеція
+10202080,hr,Venecija
+10202080,ro,Venezie
+10202080,sk,Benátky
+10202080,hu,Velence
+10202080,pl,Venezia
+"Praha, Zahradní Město",de,"Prag, Zahradní Město"
+"Praha, Zahradní Město",en,"Prague, Zahradní Město"
+"Praha, Zahradní Město",cs,"Praha, Zahradní Město"
+"Praha, Zahradní Město",sk,"Praha, Zahradní Město"
+"Praha, Zahradní Město",pl,"Praga, Zahradní Město"
+10202084,de,Bologna
+10202084,sl,Bologna
+10202084,fr,Bologne
+10202084,en,Bologna
+10202084,cs,Boloňa
+10202084,it,Bologna
+10202084,uk,Болонья
+10202084,ro,Bologna
+10202084,hr,Bologna
+10202084,sk,Boloňa
+10202084,hu,Bologna
+10202084,pl,Bolonia
+"Paříž, Bercy Seine",de,"Paris, Bercy Seine"
+"Paříž, Bercy Seine",en,"Paris, Bercy Seine"
+"Paříž, Bercy Seine",cs,"Paříž, Bercy Seine"
+"Paříž, Bercy Seine",sk,"Paríž, Bercy Seine"
+"Paříž, Bercy Seine",pl,"Paryż, Bercy Seine"
+10202082,de,Mailand
+10202082,sl,Milano
+10202082,fr,Milan
+10202082,en,Milan
+10202082,cs,Milán
+10202082,it,Milano
+10202082,uk,Мілан
+10202082,ro,Milano
+10202082,hr,Milano
+10202082,sk,Miláno
+10202082,hu,Miláno
+10202082,pl,Mediolan
+10202088,de,Mosonmagyaróvár
+10202088,sl,Mosonmagyaróvár
+10202088,fr,Mosonmagyaróvár
+10202088,en,Mosonmagyaróvár
+10202088,cs,Mosonmagyaróvár
+10202088,it,Mosonmagyaróvár
+10202088,uk,Mosonmagyaróvár
+10202088,ro,Mosonmagyaróvár
+10202088,hr,Mosonmagyaróvár
+10202088,hu,Mosonmagyaróvár
+10202088,sk,Mosonmagyaróvár
+10202088,pl,Mosonmagyaróvár
+10202085,de,Florenz
+10202085,sl,Firenze
+10202085,fr,Florence
+10202085,en,Florence
+10202085,cs,Florencie
+10202085,it,Firenze
+10202085,hr,Firenca
+10202085,uk,Флореція
+10202085,ro,Firenze
+10202085,sk,Florencia
+10202085,hu,Firenze
+10202085,pl,Florencja
+10202086,de,Roma
+10202086,sl,Rim
+10202086,fr,Rome
+10202086,en,Rome
+10202086,cs,Řím
+10202086,it,Roma
+10202086,hr,Rim
+10202086,uk,Рим
+10202086,ro,Roma
+10202086,sk,Rím
+10202086,hu,Roma
+10202086,pl,Rzym
+10202089,de,Györ
+10202089,sl,Györ
+10202089,fr,Györ
+10202089,en,Györ
+10202089,cs,Györ
+10202089,it,Györ
+10202089,uk,Дьєр
+10202089,ro,Györ
+10202089,hr,Györ
+10202089,sk,Györ
+10202089,hu,Györ
+10202089,pl,Györ
+"Biograd na Moru, aut.kolodvor",de,"Biograd na Moru, aut.kolodvor"
+"Biograd na Moru, aut.kolodvor",en,"Biograd na Moru, aut.kolodvor"
+"Biograd na Moru, aut.kolodvor",cs,"Biograd na Moru, aut.kolodvor"
+"Biograd na Moru, aut.kolodvor",sk,"Biograd na Moru, aut.kolodvor"
+"Biograd na Moru, aut.kolodvor",pl,"Biograd na Moru, aut.kolodvor"
+8257901001,de,Racibórz
+8257901001,sl,Racibórz
+8257901001,fr,Racibórz
+8257901001,en,Racibórz
+8257901001,cs,Ratiboř
+8257901001,it,Racibórz
+8257901001,uk,Ратибор
+8257901001,ro,Racibórz
+8257901001,hr,Racibórz
+8257901001,sk,Racibórz
+8257901001,hu,Racibórz
+8257901001,pl,Racibórz
+2651667000,de,Lyon
+2651667000,sl,Lyon
+2651667000,fr,Lyon
+2651667000,en,Lyon
+2651667000,cs,Lyon
+2651667000,it,Lione
+2651667000,uk,Ліон
+2651667000,ro,Lyon
+2651667000,hr,Lyon
+2651667000,sk,Lyon
+2651667000,hu,Lyon
+2651667000,pl,Lyon
+1805420001,de,Straßburg
+1805420001,sl,Strasbourg
+1805420001,fr,Strasbourg
+1805420001,en,Strasbourg
+1805420001,cs,Štrasburk
+1805420001,it,Strasburgo
+1805420001,uk,Страсбург
+1805420001,ro,Strasbourg
+1805420001,hr,Strasbourg
+1805420001,sk,Štrasburg
+1805420001,hu,Strasbourg
+1805420001,pl,Strasbourg
+8257901002,de,Tarnowskie Góry
+8257901002,sl,Tarnowskie Góry
+8257901002,fr,Tarnowskie Góry
+8257901002,en,Tarnowskie Góry
+8257901002,cs,Tarnovské Hory
+8257901002,it,Tarnowskie Góry
+8257901002,uk,Тарновські Гури
+8257901002,ro,Tarnowskie Góry
+8257901002,hr,Tarnowskie Góry
+8257901002,sk,Tarnowskie Góry
+8257901002,hu,Tarnowskie Góry
+8257901002,pl,Tarnowskie Góry
+"Berlín, ZOB am Funkturm",de,"Berlin, ZOB am Funkturm"
+"Berlín, ZOB am Funkturm",en,"Berlin, ZOB am Funkturm"
+"Berlín, ZOB am Funkturm",cs,"Berlín, ZOB am Funkturm"
+"Berlín, ZOB am Funkturm",sk,"Berlín, ZOB am Funkturm"
+"Berlín, ZOB am Funkturm",pl,"Berlin, ZOB am Funkturm"
+"Ružomberok, žst.",de,"Ružomberok, žst."
+"Ružomberok, žst.",en,"Ružomberok, žst."
+"Ružomberok, žst.",cs,"Ružomberok, žst."
+"Ružomberok, žst.",sk,"Ružomberok, žst."
+"Ružomberok, žst.",pl,"Ružomberok, žst."
+10202091,de,Budapest
+10202091,sl,Budimpešta
+10202091,fr,Budapest
+10202091,en,Budapest
+10202091,cs,Budapešť
+10202091,it,Budapest
+10202091,hr,Budimpešta
+10202091,ro,Budapesta
+10202091,uk,Будапешт
+10202091,sk,Budapešť
+10202091,hu,Budapest
+10202091,pl,Budapeszt
+"Bohumín, žst.",de,"Bohumín, žst."
+"Bohumín, žst.",en,"Bohumín, žst."
+"Bohumín, žst.",cs,"Bohumín, žst."
+"Bohumín, žst.",sk,"Bohumín, žst."
+"Bohumín, žst.",pl,"Bogumin, žst."
+"Krakov, letiště",de,"Krakau, letiště"
+"Krakov, letiště",en,"Cracow, letiště"
+"Krakov, letiště",cs,"Krakov, letiště"
+"Krakov, letiště",sk,"Krakov, letiště"
+"Krakov, letiště",pl,"Kraków, letiště"
+10202096,de,Paris
+10202096,sl,Pariz
+10202096,fr,Paris
+10202096,en,Paris
+10202096,cs,Paříž
+10202096,it,Parigi
+10202096,hr,Pariz
+10202096,uk,Париж
+10202096,ro,Paris
+10202096,sk,Paríž
+10202096,hu,Párizs
+10202096,pl,Paryż
+"Pakoštane, Bus stop (nástup)",de,"Pakoštane, Bus stop (nástup)"
+"Pakoštane, Bus stop (nástup)",en,"Pakoštane, Bus stop (nástup)"
+"Pakoštane, Bus stop (nástup)",cs,"Pakoštane, Bus stop (nástup)"
+"Pakoštane, Bus stop (nástup)",sk,"Pakoštane, Bus stop (nástup)"
+"Pakoštane, Bus stop (nástup)",pl,"Pakoštane, Bus stop (nástup)"
+"Šibenik, aut.kolodvor",de,"Šibenik, aut.kolodvor"
+"Šibenik, aut.kolodvor",en,"Šibenik, aut.kolodvor"
+"Šibenik, aut.kolodvor",cs,"Šibenik, aut.kolodvor"
+"Šibenik, aut.kolodvor",sk,"Šibenik, aut.kolodvor"
+"Šibenik, aut.kolodvor",pl,"Šibenik, aut.kolodvor"
+1723745000,de,Trnava
+1723745000,sl,Trnava
+1723745000,fr,Trnava
+1723745000,en,Trnava
+1723745000,cs,Trnava
+1723745000,it,Trnava
+1723745000,uk,Trnava
+1723745000,ro,Trnava
+1723745000,hr,Trnava
+1723745000,sk,Trnava
+1723745000,hu,Trnava
+1723745000,pl,Trnava
+"Stuttgart, Leonberg, Bahnhof",de,"Stuttgart, Leonberg, Bahnhof"
+"Stuttgart, Leonberg, Bahnhof",en,"Stuttgart, Leonberg, Bahnhof"
+"Stuttgart, Leonberg, Bahnhof",cs,"Stuttgart, Leonberg, Bahnhof"
+"Stuttgart, Leonberg, Bahnhof",sk,"Stuttgart, Leonberg, Bahnhof"
+"Stuttgart, Leonberg, Bahnhof",pl,"Stuttgart, Leonberg, Bahnhof"
+"Bratislava, Most SNP (Nový most)",de,"Bratislava, Most SNP (Nový most)"
+"Bratislava, Most SNP (Nový most)",en,"Bratislava, Most SNP (Nový most)"
+"Bratislava, Most SNP (Nový most)",cs,"Bratislava, Most SNP (Nový most)"
+"Bratislava, Most SNP (Nový most)",sk,"Bratislava, Most SNP (Nový most)"
+"Bratislava, Most SNP (Nový most)",pl,"Bratysława, Most SNP (Nový most)"
+5118475001,de,Piešťany
+5118475001,sl,Piešťany
+5118475001,fr,Piešťany
+5118475001,en,Piešťany
+5118475001,cs,Piešťany
+5118475001,it,Piešťany
+5118475001,uk,Piešťany
+5118475001,ro,Piešťany
+5118475001,hr,Piešťany
+5118475001,sk,Piešťany
+5118475001,hu,Piešťany
+5118475001,pl,Piešťany
+5118475002,de,Nové Mesto nad Váhom
+5118475002,sl,Nové Mesto nad Váhom
+5118475002,fr,Nové Mesto nad Váhom
+5118475002,en,Nové Mesto nad Váhom
+5118475002,cs,Nové Mesto nad Váhom
+5118475002,it,Nové Mesto nad Váhom
+5118475002,uk,Nové Mesto nad Váhom
+5118475002,ro,Nové Mesto nad Váhom
+5118475002,hr,Nové Mesto nad Váhom
+5118475002,sk,Nové Mesto nad Váhom
+5118475002,hu,Nové Mesto nad Váhom
+5118475002,pl,Nové Mesto nad Váhom
+5118475003,de,Trenčianska Teplá
+5118475003,sl,Trenčianska Teplá
+5118475003,fr,Trenčianska Teplá
+5118475003,en,Trenčianska Teplá
+5118475003,cs,Trenčianska Teplá
+5118475003,it,Trenčianska Teplá
+5118475003,uk,Trenčianska Teplá
+5118475003,ro,Trenčianska Teplá
+5118475003,hr,Trenčianska Teplá
+5118475003,sk,Trenčianska Teplá
+5118475003,hu,Trenčianska Teplá
+5118475003,pl,Trenčianska Teplá
+5118475004,de,Púchov
+5118475004,sl,Púchov
+5118475004,fr,Púchov
+5118475004,en,Púchov
+5118475004,cs,Púchov
+5118475004,it,Púchov
+5118475004,uk,Púchov
+5118475004,ro,Púchov
+5118475004,hr,Púchov
+5118475004,sk,Púchov
+5118475004,hu,Púchov
+5118475004,pl,Púchov
+Vlaková linka: Praha – Ostrava - Varšava,cs,Vlaková linka: Praha – Ostrava - Varšava
+"Břeclav, žst.",de,"Břeclav, žst."
+"Břeclav, žst.",en,"Břeclav, žst."
+"Břeclav, žst.",cs,"Břeclav, žst."
+"Břeclav, žst.",sk,"Břeclav, žst."
+"Břeclav, žst.",pl,"Brzecław, žst."
+10202066,de,St.Gallen
+10202066,sl,St.Gallen
+10202066,fr,Saint-Gall
+10202066,en,St.Gallen
+10202066,cs,St.Gallen
+10202066,it,St.Gallen
+10202066,uk,Санкт-Галлен
+10202066,ro,St.Gallen
+10202066,hr,St.Gallen
+10202066,sk,St.Gallen
+10202066,hu,St.Gallen
+10202066,pl,St.Gallen
+"Kysak (u města Prešov), žst.",de,"Kysak (u města Prešov), žst."
+"Kysak (u města Prešov), žst.",en,"Kysak (u města Prešov), žst."
+"Kysak (u města Prešov), žst.",cs,"Kysak (u města Prešov), žst."
+"Kysak (u města Prešov), žst.",sk,"Kysak (u města Prešov), žst."
+"Kysak (u města Prešov), žst.",pl,"Kysak (pod Preszowem), žst."
+10202069,de,Genf
+10202069,sl,Ženeva
+10202069,fr,Genève
+10202069,en,Geneve
+10202069,cs,Ženeva
+10202069,it,Geneve
+10202069,hr,Ženeva
+10202069,uk,Женева
+10202069,ro,Geneve
+10202069,sk,Ženeva
+10202069,hu,Geneve
+10202069,pl,Geneve
+4971491000,de,Den Haag
+4971491000,sl,Den Haag
+4971491000,fr,Den Haag
+4971491000,en,The Hague
+4971491000,cs,Den Haag
+4971491000,it,Den Haag
+4971491000,uk,Den Haag
+4971491000,ro,Den Haag
+4971491000,hr,Den Haag
+4971491000,sk,Den Haag
+4971491000,hu,Den Haag
+4971491000,pl,Den Haag
+307730007,de,Zadar
+307730007,sl,Zadar
+307730007,fr,Zadar
+307730007,en,Zadar
+307730007,cs,Zadar
+307730007,it,Zadar
+307730007,uk,Задар
+307730007,hr,Zadar
+307730007,ro,Zadar
+307730007,sk,Zadar
+307730007,hu,Zadar
+307730007,pl,Zadar
+10202067,de,Zürich
+10202067,sl,Zurich
+10202067,fr,Zurich
+10202067,en,Zürich
+10202067,cs,Curych
+10202067,it,Zürich
+10202067,ro,Zurich
+10202067,uk,Цюрих
+10202067,hr,Zürich
+10202067,sk,Zürich
+10202067,hu,Zürich
+10202067,pl,Zürich
+"Poprad, Tatry",de,"Poprad, Tatry"
+"Poprad, Tatry",en,"Poprad, Tatry"
+"Poprad, Tatry",cs,"Poprad, Tatry"
+"Poprad, Tatry",sk,"Poprad, Tatry"
+"Poprad, Tatry",pl,"Poprad, Tatry"
+10202068,de,Lausanne
+10202068,sl,Lausanne
+10202068,fr,Lausanne
+10202068,en,Lausanne
+10202068,cs,Lausanne
+10202068,it,Lausanne
+10202068,uk,Лозанна
+10202068,ro,Lausanne
+10202068,hr,Lausanne
+10202068,sk,Lausanne
+10202068,hu,Lausanne
+10202068,pl,Lozanna
+"Katovice, letiště Pyrzowice",de,"Katowice, letiště Pyrzowice"
+"Katovice, letiště Pyrzowice",en,"Katowice, letiště Pyrzowice"
+"Katovice, letiště Pyrzowice",cs,"Katovice, letiště Pyrzowice"
+"Katovice, letiště Pyrzowice",sk,"Katowice, letiště Pyrzowice"
+"Katovice, letiště Pyrzowice",pl,"Katowice, letiště Pyrzowice"
+"Budapešť, Keleti pu.",de,"Budapest, Keleti pu."
+"Budapešť, Keleti pu.",en,"Budapest, Keleti pu."
+"Budapešť, Keleti pu.",cs,"Budapešť, Keleti pu."
+"Budapešť, Keleti pu.",sk,"Budapešť, Keleti pu."
+"Budapešť, Keleti pu.",pl,"Budapeszt, Keleti pu."
+"Split, aut.kolodvor",de,"Split, aut.kolodvor"
+"Split, aut.kolodvor",en,"Split, aut.kolodvor"
+"Split, aut.kolodvor",cs,"Split, aut.kolodvor"
+"Split, aut.kolodvor",sk,"Split, aut.kolodvor"
+"Split, aut.kolodvor",pl,"Split, aut.kolodvor"
+"Ratiboř, žst.",de,"Racibórz, žst."
+"Ratiboř, žst.",en,"Racibórz, žst."
+"Ratiboř, žst.",cs,"Ratiboř, žst."
+"Ratiboř, žst.",sk,"Racibórz, žst."
+"Ratiboř, žst.",pl,"Racibórz, žst."
+Vlaková linka: Praha – Brno – Bratislava/Žilina/Vídeň/Budapešť,cs,Vlaková linka: Praha – Brno – Bratislava/Žilina/Vídeň/Budapešť
+"Čadca, žst.",de,"Čadca, žst."
+"Čadca, žst.",en,"Čadca, žst."
+"Čadca, žst.",cs,"Čadca, žst."
+"Čadca, žst.",sk,"Čadca, žst."
+"Čadca, žst.",pl,"Čadca, žst."
+10202072,de,Berlin
+10202072,sl,Berlin
+10202072,fr,Berlin
+10202072,en,Berlin
+10202072,cs,Berlín
+10202072,it,Berlino
+10202072,uk,Берлін
+10202072,ro,Berlin
+10202072,hr,Berlin
+10202072,sk,Berlín
+10202072,hu,Berlin
+10202072,pl,Berlin
+"Blansko, žst.",de,"Blansko, žst."
+"Blansko, žst.",en,"Blansko, žst."
+"Blansko, žst.",cs,"Blansko, žst."
+"Blansko, žst.",sk,"Blansko, žst."
+"Blansko, žst.",pl,"Blansko, žst."
+10202071,de,Dresden
+10202071,sl,Dresden
+10202071,fr,Dresde
+10202071,en,Dresden
+10202071,cs,Drážďany
+10202071,it,Dresda
+10202071,uk,Дрезден
+10202071,ro,Dresden
+10202071,hr,Dresden
+10202071,sk,Drážďany
+10202071,hu,Dresden
+10202071,pl,Dresden
+"Budapešť, Déli pu.",de,"Budapest, Déli pu."
+"Budapešť, Déli pu.",en,"Budapest, Déli pu."
+"Budapešť, Déli pu.",cs,"Budapešť, Déli pu."
+"Budapešť, Déli pu.",sk,"Budapešť, Déli pu."
+"Budapešť, Déli pu.",pl,"Budapeszt, Déli pu."
+10202078,de,Udine
+10202078,sl,Udine
+10202078,fr,Udine
+10202078,en,Udine
+10202078,cs,Udine
+10202078,it,Udine
+10202078,uk,Удіне
+10202078,ro,Udine
+10202078,hr,Udine
+10202078,sk,Udine
+10202078,hu,Udine
+10202078,pl,Udine
+"Tarnovské Hory, žst.",de,"Tarnowskie Góry, žst."
+"Tarnovské Hory, žst.",en,"Tarnowskie Góry, žst."
+"Tarnovské Hory, žst.",cs,"Tarnovské Hory, žst."
+"Tarnovské Hory, žst.",sk,"Tarnowskie Góry, žst."
+"Tarnovské Hory, žst.",pl,"Tarnowskie Góry, žst."
+10202079,de,Padua
+10202079,sl,Padova
+10202079,fr,Padoue
+10202079,en,Padua
+10202079,cs,Padova
+10202079,it,Padova
+10202079,uk,Падуя
+10202079,ro,Padova
+10202079,hr,Padova
+10202079,sk,Padova
+10202079,hu,Padova
+10202079,pl,Padwa
+7122881001,de,Chop
+7122881001,sl,Chop
+7122881001,fr,Chop
+7122881001,en,Chop
+7122881001,cs,Čop
+7122881001,it,Chop
+7122881001,uk,Chop
+7122881001,ro,Chop
+7122881001,hr,Chop
+7122881001,sk,Čop
+7122881001,hu,Chop
+7122881001,pl,Chop
+"St.Gallen, Lagerstrasse",de,"St.Gallen, Lagerstrasse"
+"St.Gallen, Lagerstrasse",en,"St.Gallen, Lagerstrasse"
+"St.Gallen, Lagerstrasse",cs,"St.Gallen, Lagerstrasse"
+"St.Gallen, Lagerstrasse",sk,"St.Gallen, Lagerstrasse"
+"St.Gallen, Lagerstrasse",pl,"St.Gallen, Lagerstrasse"
+"Udine, Autostaz. Viale Europa Unita",de,"Udine, Autostaz. Viale Europa Unita"
+"Udine, Autostaz. Viale Europa Unita",en,"Udine, Autostaz. Viale Europa Unita"
+"Udine, Autostaz. Viale Europa Unita",cs,"Udine, Autostaz. Viale Europa Unita"
+"Udine, Autostaz. Viale Europa Unita",sk,"Udine, Autostaz. Viale Europa Unita"
+"Udine, Autostaz. Viale Europa Unita",pl,"Udine, Autostaz. Viale Europa Unita"
+"Letovice, žst.",de,"Letovice, žst."
+"Letovice, žst.",en,"Letovice, žst."
+"Letovice, žst.",cs,"Letovice, žst."
+"Letovice, žst.",sk,"Letovice, žst."
+"Letovice, žst.",pl,"Letovice, žst."
+"Ostrava, Stodolní",de,"Ostrava, Stodolní"
+"Ostrava, Stodolní",en,"Ostrava, Stodolní"
+"Ostrava, Stodolní",cs,"Ostrava, Stodolní"
+"Ostrava, Stodolní",sk,"Ostrava, Stodolní"
+"Ostrava, Stodolní",pl,"Ostrawa, Stodolní"
+"Lodž, dw.Kaliska",de,"Łódź, dw.Kaliska"
+"Lodž, dw.Kaliska",en,"Lodz, dw.Kaliska"
+"Lodž, dw.Kaliska",cs,"Lodž, dw.Kaliska"
+"Lodž, dw.Kaliska",sk,"Łódź, dw.Kaliska"
+"Lodž, dw.Kaliska",pl,"Łódź, dw.Kaliska"
+Vlaková linka: Praha – Havířov – Žilina – Košice,cs,Vlaková linka: Praha – Havířov – Žilina – Košice
+"Havířov, žst.",de,"Havířov, žst."
+"Havířov, žst.",en,"Havířov, žst."
+"Havířov, žst.",cs,"Havířov, žst."
+"Havířov, žst.",sk,"Havířov, žst."
+"Havířov, žst.",pl,"Hawierzów, žst."
+"Třinec centrum, žst.",de,"Třinec centrum, žst."
+"Třinec centrum, žst.",en,"Třinec centrum, žst."
+"Třinec centrum, žst.",cs,"Třinec centrum, žst."
+"Třinec centrum, žst.",sk,"Třinec centrum, žst."
+"Třinec centrum, žst.",pl,"Trzyniec Centrum, žst."
+Autobusová linka: Praha – Brno – Vídeň – Udine – Benátky Mestre – Padova – Boloňa – Florencie – Řím,de,Buslinie: Prag – Pilsner – München – St. Gallen – Zürich – Luzern – Lugano – Como – Milano
+Autobusová linka: Praha – Brno – Vídeň – Udine – Benátky Mestre – Padova – Boloňa – Florencie – Řím,en,Bus line: Prague – Pilsen – Munich – St. Gallen – Zürich – Luzern – Lugano – Como – Milan
+Autobusová linka: Praha – Brno – Vídeň – Udine – Benátky Mestre – Padova – Boloňa – Florencie – Řím,cs,Autobusová linka: Praha – Brno – Vídeň – Udine – Benátky Mestre – Padova – Boloňa – Florencie – Řím
+Autobusová linka: Praha – Brno – Vídeň – Udine – Benátky Mestre – Padova – Boloňa – Florencie – Řím,sk,Autobusová linka: Praha – Plzeň – Mníchov – St. Gallen – Zürich – Luzern – Lugano – Como – Milán
+"Praha, Wilsonova (zast. u hl. n.)",de,"Prag, Wilsonova (zast. u hl. n.)"
+"Praha, Wilsonova (zast. u hl. n.)",en,"Prague, Wilsonova (zast. u hl. n.)"
+"Praha, Wilsonova (zast. u hl. n.)",cs,"Praha, Wilsonova (zast. u hl. n.)"
+"Praha, Wilsonova (zast. u hl. n.)",sk,"Praha, Wilsonova (zast. u hl. n.)"
+"Praha, Wilsonova (zast. u hl. n.)",pl,"Praga, Wilsonova (zast. u hl. n.)"
+"Štrasburk, Place de l'Étoile",de,"Straßburg, Place de l'Étoile"
+"Štrasburk, Place de l'Étoile",en,"Strasbourg, Place de l'Étoile"
+"Štrasburk, Place de l'Étoile",cs,"Štrasburk, Place de l'Étoile"
+"Štrasburk, Place de l'Étoile",sk,"Štrasburg, Place de l'Étoile"
+"Štrasburk, Place de l'Étoile",pl,"Strasbourg, Place de l'Étoile"
+"Vrútky, žst.",de,"Vrútky, žst."
+"Vrútky, žst.",en,"Vrútky, žst."
+"Vrútky, žst.",cs,"Vrútky, žst."
+"Vrútky, žst.",sk,"Vrútky, žst."
+"Vrútky, žst.",pl,"Vrútky, žst."
+2737640000,de,Warschau
+2737640000,sl,Warszawa
+2737640000,fr,Warszawa
+2737640000,en,Warsaw
+2737640000,cs,Varšava
+2737640000,it,Warszawa
+2737640000,uk,Warszawa
+2737640000,ro,Warszawa
+2737640000,hr,Warszawa
+2737640000,sk,Varšava
+2737640000,hu,Warszawa
+2737640000,pl,Warszawa
+"Varšava, Centrální nádraží",de,"Warschau, Centrální nádraží"
+"Varšava, Centrální nádraží",en,"Warsaw, Centrální nádraží"
+"Varšava, Centrální nádraží",cs,"Varšava, Centrální nádraží"
+"Varšava, Centrální nádraží",sk,"Varšava, Centrální nádraží"
+"Varšava, Centrální nádraží",pl,"Warszawa, Centrální nádraží"
+"Krakov, Hlavní nádraží",de,"Krakau, Hlavní nádraží"
+"Krakov, Hlavní nádraží",en,"Cracow, Hlavní nádraží"
+"Krakov, Hlavní nádraží",cs,"Krakov, Hlavní nádraží"
+"Krakov, Hlavní nádraží",sk,"Krakov, Hlavní nádraží"
+"Krakov, Hlavní nádraží",pl,"Kraków, Hlavní nádraží"
+1558067000,de,Návsí (Jablunkov)
+1558067000,sl,Návsí (Jablunkov)
+1558067000,fr,Návsí (Jablunkov)
+1558067000,en,Návsí (Jablunkov)
+1558067000,cs,Návsí (Jablunkov)
+1558067000,it,Návsí (Jablunkov)
+1558067000,uk,Навсі  (Яблунков)
+1558067000,ro,Návsí (Jablunkov)
+1558067000,hr,Návsí (Jablunkov)
+1558067000,sk,Návsí (Jablunkov)
+1558067000,hu,Návsí (Jablunkov)
+1558067000,pl,Návsí (Jablunkov)
+"Vratislav, dw.PKS ul.Sucha",de,"Breslau, dw.PKS ul.Sucha"
+"Vratislav, dw.PKS ul.Sucha",en,"Wroclaw, dw.PKS ul.Sucha"
+"Vratislav, dw.PKS ul.Sucha",cs,"Vratislav, dw.PKS ul.Sucha"
+"Vratislav, dw.PKS ul.Sucha",sk,"Wroclaw, dw.PKS ul.Sucha"
+"Vratislav, dw.PKS ul.Sucha",pl,"Wroclaw, dw.PKS ul.Sucha"
+3334999001,de,Biograd na Moru
+3334999001,sl,Biograd na Moru
+3334999001,fr,Biograd na Moru
+3334999001,en,Biograd na Moru
+3334999001,cs,Biograd na Moru
+3334999001,it,Biograd na Moru
+3334999001,uk,Біоград
+3334999001,hr,Biograd na Moru
+3334999001,ro,Biograd na Moru
+3334999001,sk,Biograd na Moru
+3334999001,hu,Biograd na Moru
+3334999001,pl,Biograd na Moru
+Autobusová linka: Praha – Plzeň – Mnichov – St. Gallen – Zürich – Luzern – Lugano – Como – Milán,de,Buslinie: Prag – Pilsner – München – St. Gallen – Zürich – Luzern – Lugano – Como – Milano
+Autobusová linka: Praha – Plzeň – Mnichov – St. Gallen – Zürich – Luzern – Lugano – Como – Milán,en,Bus line: Prague – Pilsen – Munich – St. Gallen – Zürich – Luzern – Lugano – Como – Milan
+Autobusová linka: Praha – Plzeň – Mnichov – St. Gallen – Zürich – Luzern – Lugano – Como – Milán,cs,Autobusová linka: Praha – Plzeň – Mnichov – St. Gallen – Zürich – Luzern – Lugano – Como – Milán
+Autobusová linka: Praha – Plzeň – Mnichov – St. Gallen – Zürich – Luzern – Lugano – Como – Milán,sk,Autobusová linka: Praha – Plzeň – Mníchov – St. Gallen – Zürich – Luzern – Lugano – Como – Milán
+"Opava východ, nádr.",de,"Opava východ, nádr."
+"Opava východ, nádr.",en,"Opava východ, nádr."
+"Opava východ, nádr.",cs,"Opava východ, nádr."
+"Opava východ, nádr.",sk,"Opava východ, nádr."
+"Opava východ, nádr.",pl,"Opawa Wschodnia, nádr."
+3334999000,de,Sukošan
+3334999000,sl,Sukošan
+3334999000,fr,Sukošan
+3334999000,en,Sukošan
+3334999000,cs,Sukošan
+3334999000,it,Sukošan
+3334999000,uk,Сукошан
+3334999000,hr,Sukošan
+3334999000,ro,Sukošan
+3334999000,sk,Sukošan
+3334999000,hu,Sukošan
+3334999000,pl,Sukošan
+Autobusová linka: Praha – Plzeň – Norimberk – Frankfurt (Main) – Kolín n. R./Bonn Flughafen – Düsseldorf – Eindhoven – Rotterdam – Haag – Amsterdam,de,Buslinie: Prag – Nürnberg – Frankfurt am Main – Köln/Bonn Flughafen – Düsseldoft – Eindhoven – Rotterdam – Den Haag – Amsterdam
+Autobusová linka: Praha – Plzeň – Norimberk – Frankfurt (Main) – Kolín n. R./Bonn Flughafen – Düsseldorf – Eindhoven – Rotterdam – Haag – Amsterdam,en,Bus line: Prague – Nuremberg– Frankfurt am Main – Cologne/Bonn Airport – Düsseldoft – Eindhoven – Rotterdam – The Hague – Amsterdam
+Autobusová linka: Praha – Plzeň – Norimberk – Frankfurt (Main) – Kolín n. R./Bonn Flughafen – Düsseldorf – Eindhoven – Rotterdam – Haag – Amsterdam,cs,Autobusová linka: Praha – Plzeň – Norimberk – Frankfurt (Main) – Kolín n. R./Bonn Flughafen – Düsseldorf – Eindhoven – Rotterdam – Haag – Amsterdam
+Autobusová linka: Praha – Plzeň – Norimberk – Frankfurt (Main) – Kolín n. R./Bonn Flughafen – Düsseldorf – Eindhoven – Rotterdam – Haag – Amsterdam,sk,Autobusová linka: Praha – Plzeň – Norimberk – Frankfurt (Main) – Kolín n. R./Bonn Flughafen – Düsseldorf – Eindhoven – Rotterdam – Den Haag – Amsterdam
+"Vídeň, Letiště Schwechat",de,"Wien, Letiště Schwechat"
+"Vídeň, Letiště Schwechat",en,"Vienna, Letiště Schwechat"
+"Vídeň, Letiště Schwechat",cs,"Vídeň, Letiště Schwechat"
+"Vídeň, Letiště Schwechat",sk,"Viedeň, Letiště Schwechat"
+"Vídeň, Letiště Schwechat",pl,"Wiedeń, Letiště Schwechat"
+"Bystřice (Třinec), žst.",de,"Bystřice (Třinec), žst."
+"Bystřice (Třinec), žst.",en,"Bystřice (Třinec), žst."
+"Bystřice (Třinec), žst.",cs,"Bystřice (Třinec), žst."
+"Bystřice (Třinec), žst.",sk,"Bystřice (Třinec), žst."
+"Bystřice (Třinec), žst.",pl,"Bystřice (Třinec), žst."
+3334999003,de,Vodice
+3334999003,sl,Vodice
+3334999003,fr,Vodice
+3334999003,en,Vodice
+3334999003,cs,Vodice
+3334999003,it,Vodice
+3334999003,uk,Водіце
+3334999003,hr,Vodice
+3334999003,ro,Vodice
+3334999003,sk,Vodice
+3334999003,hu,Vodice
+3334999003,pl,Vodice
+3334999002,de,Pakoštane
+3334999002,sl,Pakoštane
+3334999002,fr,Pakoštane
+3334999002,en,Pakoštane
+3334999002,cs,Pakoštane
+3334999002,it,Pakoštane
+3334999002,uk,Пакоштенє
+3334999002,hr,Pakoštane
+3334999002,ro,Pakoštane
+3334999002,sk,Pakoštane
+3334999002,hu,Pakoštane
+3334999002,pl,Pakoštane
+2737640001,de,Łódź
+2737640001,sl,Łódź
+2737640001,fr,Łódź
+2737640001,en,Lodz
+2737640001,cs,Lodž
+2737640001,it,Łódź
+2737640001,uk,Łódź
+2737640001,ro,Łódź
+2737640001,hr,Łódź
+2737640001,sk,Łódź
+2737640001,hu,Łódź
+2737640001,pl,Łódź
+"Varšava, Východní nádraží",de,"Warschau, Východní nádraží"
+"Varšava, Východní nádraží",en,"Warsaw, Východní nádraží"
+"Varšava, Východní nádraží",cs,"Varšava, Východní nádraží"
+"Varšava, Východní nádraží",sk,"Varšava, Východní nádraží"
+"Varšava, Východní nádraží",pl,"Warszawa, Východní nádraží"
+https://brn-ybus-online.sa.cz,de,https://fahrkarten.regiojet.com
+https://brn-ybus-online.sa.cz,en,https://bustickets.regiojet.com
+https://brn-ybus-online.sa.cz,cs,https://brn-ybus-online.sa.cz
+https://brn-ybus-online.sa.cz,sk,https://cestovnelistky.regiojet.sk
+5362782005,de,Rijeka
+5362782005,sl,Rijeka
+5362782005,fr,Rijeka
+5362782005,en,Rijeka
+5362782005,cs,Rijeka
+5362782005,it,Rijeka
+5362782005,hr,Rijeka
+5362782005,uk,Rijeka
+5362782005,ro,Rijeka
+5362782005,sk,Rijeka
+5362782005,hu,Rijeka
+5362782005,pl,Rijeka
+"Štrba, žst.",de,"Štrba, žst."
+"Štrba, žst.",en,"Štrba, žst."
+"Štrba, žst.",cs,"Štrba, žst."
+"Štrba, žst.",sk,"Štrba, žst."
+"Štrba, žst.",pl,"Štrba, žst."
+"Londýn, Victoria Green Line Station",de,"London, Victoria Green Line Station"
+"Londýn, Victoria Green Line Station",en,"London, Victoria Green Line Station"
+"Londýn, Victoria Green Line Station",cs,"Londýn, Victoria Green Line Station"
+"Londýn, Victoria Green Line Station",sk,"Londýn, Victoria Green Line Station"
+"Londýn, Victoria Green Line Station",pl,"London, Victoria Green Line Station"
+Autobusová linka: Praha - Brno - Bratislava - Rijeka - Crikvenica,de,Buslinie: Prag – Brünn – Bratislava – Rijeka – Crikvenica
+Autobusová linka: Praha - Brno - Bratislava - Rijeka - Crikvenica,en,Bus line: Prague - Brno - Bratislava - Rijeka - Crikvenica
+Autobusová linka: Praha - Brno - Bratislava - Rijeka - Crikvenica,cs,Autobusová linka: Praha - Brno - Bratislava - Rijeka - Crikvenica
+Autobusová linka: Praha - Brno - Bratislava - Rijeka - Crikvenica,sk,Autobusová linka: Bratislava - Brno - Bratislava - Rijeka - Crikvenica
+"Milán, Terminal Bus di Lampugnano",de,"Mailand, Terminal Bus di Lampugnano"
+"Milán, Terminal Bus di Lampugnano",en,"Milan, Terminal Bus di Lampugnano"
+"Milán, Terminal Bus di Lampugnano",cs,"Milán, Terminal Bus di Lampugnano"
+"Milán, Terminal Bus di Lampugnano",sk,"Miláno, Terminal Bus di Lampugnano"
+"Milán, Terminal Bus di Lampugnano",pl,"Mediolan, Terminal Bus di Lampugnano"
+"Varšava, Západní nádraží",de,"Warschau, Západní nádraží"
+"Varšava, Západní nádraží",en,"Warsaw, Západní nádraží"
+"Varšava, Západní nádraží",cs,"Varšava, Západní nádraží"
+"Varšava, Západní nádraží",sk,"Varšava, Západní nádraží"
+"Varšava, Západní nádraží",pl,"Warszawa, Západní nádraží"
+"Budapešť, Kelenföld",de,"Budapest, Kelenföld"
+"Budapešť, Kelenföld",en,"Budapest, Kelenföld"
+"Budapešť, Kelenföld",cs,"Budapešť, Kelenföld"
+"Budapešť, Kelenföld",sk,"Budapešť, Kelenföld"
+"Budapešť, Kelenföld",pl,"Budapeszt, Kelenföld"
+1225791001,de,Katowice
+1225791001,sl,Katowice
+1225791001,fr,Katowice
+1225791001,en,Katowice
+1225791001,cs,Katovice
+1225791001,it,Katowice
+1225791001,uk,Катовіце
+1225791001,ro,Katowice
+1225791001,hr,Katowice
+1225791001,sk,Katowice
+1225791001,hu,Katowice
+1225791001,pl,Katowice
+"Ostrava, Svinov",de,"Ostrava, Svinov"
+"Ostrava, Svinov",en,"Ostrava, Svinov"
+"Ostrava, Svinov",cs,"Ostrava, Svinov"
+"Ostrava, Svinov",sk,"Ostrava, Svinov"
+"Ostrava, Svinov",pl,"Ostrawa, Svinov"
+1225791000,de,Krakau
+1225791000,sl,Krakow
+1225791000,fr,Cracovie
+1225791000,en,Cracow
+1225791000,cs,Krakov
+1225791000,it,Cracovia
+1225791000,uk,Краков
+1225791000,hr,Krakow
+1225791000,ro,Cracovia
+1225791000,sk,Krakov
+1225791000,hu,Krakkó
+1225791000,pl,Kraków
+"Norimberk, ZOB, Bahnhofstrasse - Will. - Br. Platz",de,"Nürnberg, ZOB, Bahnhofstrasse - Will. - Br. Platz"
+"Norimberk, ZOB, Bahnhofstrasse - Will. - Br. Platz",en,"Nuremberg, ZOB, Bahnhofstrasse - Will. - Br. Platz"
+"Norimberk, ZOB, Bahnhofstrasse - Will. - Br. Platz",cs,"Norimberk, ZOB, Bahnhofstrasse - Will. - Br. Platz"
+"Norimberk, ZOB, Bahnhofstrasse - Will. - Br. Platz",sk,"Norimberg, ZOB, Bahnhofstrasse - Will. - Br. Platz"
+"Norimberk, ZOB, Bahnhofstrasse - Will. - Br. Platz",pl,"Nürnberg, ZOB, Bahnhofstrasse - Will. - Br. Platz"
+"Český Těšín, žst.",de,"Český Těšín, žst."
+"Český Těšín, žst.",en,"Český Těšín, žst."
+"Český Těšín, žst.",cs,"Český Těšín, žst."
+"Český Těšín, žst.",sk,"Český Těšín, žst."
+"Český Těšín, žst.",pl,"Czeski Cieszyn, žst."
+"Bratislava, Vinohrady",de,"Bratislava, Vinohrady"
+"Bratislava, Vinohrady",en,"Bratislava, Vinohrady"
+"Bratislava, Vinohrady",cs,"Bratislava, Vinohrady"
+"Bratislava, Vinohrady",sk,"Bratislava, Vinohrady"
+"Bratislava, Vinohrady",pl,"Bratysława, Vinohrady"
+"Rijeka, aut.kolodvor",de,"Rijeka, aut.kolodvor"
+"Rijeka, aut.kolodvor",en,"Rijeka, aut.kolodvor"
+"Rijeka, aut.kolodvor",cs,"Rijeka, aut.kolodvor"
+"Rijeka, aut.kolodvor",sk,"Rijeka, aut.kolodvor"
+"Rijeka, aut.kolodvor",pl,"Rijeka, aut.kolodvor"
+"Lausanne, park.Velodrome",de,"Lausanne, park.Velodrome"
+"Lausanne, park.Velodrome",en,"Lausanne, park.Velodrome"
+"Lausanne, park.Velodrome",cs,"Lausanne, park.Velodrome"
+"Lausanne, park.Velodrome",sk,"Lausanne, park.Velodrome"
+"Lausanne, park.Velodrome",pl,"Lozanna, park.Velodrome"
+2317706000,de,Margecany
+2317706000,sl,Margecany
+2317706000,fr,Margecany
+2317706000,en,Margecany
+2317706000,cs,Margecany
+2317706000,it,Margecany
+2317706000,uk,Маргецани
+2317706000,ro,Margecany
+2317706000,hr,Margecany
+2317706000,hu,Margitfalva
+2317706000,sk,Margecany
+2317706000,pl,Margecany
+"Crikvenica, aut.kolodvor",de,"Crikvenica, aut.kolodvor"
+"Crikvenica, aut.kolodvor",en,"Crikvenica, aut.kolodvor"
+"Crikvenica, aut.kolodvor",cs,"Crikvenica, aut.kolodvor"
+"Crikvenica, aut.kolodvor",sk,"Crikvenica, aut.kolodvor"
+"Crikvenica, aut.kolodvor",pl,"Crikvenica, aut.kolodvor"
+"Žilina, žst.",de,"Žilina, žst."
+"Žilina, žst.",en,"Žilina, žst."
+"Žilina, žst.",cs,"Žilina, žst."
+"Žilina, žst.",sk,"Žilina, žst."
+"Žilina, žst.",pl,"Žilina, žst."
+"Řešov, Hlavní nádraží",de,"Řešov, Hlavní nádraží"
+"Řešov, Hlavní nádraží",en,"Řešov, Hlavní nádraží"
+"Řešov, Hlavní nádraží",cs,"Řešov, Hlavní nádraží"
+"Řešov, Hlavní nádraží",sk,"Řešov, Hlavní nádraží"
+"Řešov, Hlavní nádraží",pl,"Řešov, Hlavní nádraží"
+"Mnichov, ZOB (Hackerbrücke)",de,"München, ZOB (Hackerbrücke)"
+"Mnichov, ZOB (Hackerbrücke)",en,"Munich, ZOB (Hackerbrücke)"
+"Mnichov, ZOB (Hackerbrücke)",cs,"Mnichov, ZOB (Hackerbrücke)"
+"Mnichov, ZOB (Hackerbrücke)",sk,"Mníchov, ZOB (Hackerbrücke)"
+"Mnichov, ZOB (Hackerbrücke)",pl,"München, ZOB (Hackerbrücke)"
+"Bratislava, Autobusová stanica Nivy",de,"Bratislava, Autobusová stanica Nivy"
+"Bratislava, Autobusová stanica Nivy",en,"Bratislava, Autobusová stanica Nivy"
+"Bratislava, Autobusová stanica Nivy",cs,"Bratislava, Autobusová stanica Nivy"
+"Bratislava, Autobusová stanica Nivy",sk,"Bratislava, Autobusová stanica Nivy"
+"Bratislava, Autobusová stanica Nivy",pl,"Bratysława, Autobusová stanica Nivy"
+"Vídeň, Hbf",de,"Wien, Hbf"
+"Vídeň, Hbf",en,"Vienna, Hbf"
+"Vídeň, Hbf",cs,"Vídeň, Hbf"
+"Vídeň, Hbf",sk,"Viedeň, Hbf"
+"Vídeň, Hbf",pl,"Wiedeń, Hbf"
+"Trnava, žst.",de,"Trnava, žst."
+"Trnava, žst.",en,"Trnava, žst."
+"Trnava, žst.",cs,"Trnava, žst."
+"Trnava, žst.",sk,"Trnava, žst."
+"Trnava, žst.",pl,"Trnava, žst."
+3741270001,de,Svitavy
+3741270001,sl,Svitavy
+3741270001,fr,Svitavy
+3741270001,en,Svitavy
+3741270001,cs,Svitavy
+3741270001,it,Svitavy
+3741270001,uk,Світави
+3741270001,ro,Svitavy
+3741270001,hr,Svitavy
+3741270001,sk,Svitavy
+3741270001,hu,Svitavy
+3741270001,pl,Svitavy
+"Přemyšl, Hlavní nádraží",de,"Přemyšl, Hlavní nádraží"
+"Přemyšl, Hlavní nádraží",en,"Přemyšl, Hlavní nádraží"
+"Přemyšl, Hlavní nádraží",cs,"Přemyšl, Hlavní nádraží"
+"Přemyšl, Hlavní nádraží",sk,"Přemyšl, Hlavní nádraží"
+"Přemyšl, Hlavní nádraží",pl,"Přemyšl, Hlavní nádraží"
+3741270000,de,Opava východ
+3741270000,sl,Opava východ
+3741270000,fr,Opava východ
+3741270000,en,Opava východ
+3741270000,cs,Opava východ
+3741270000,it,Opava východ
+3741270000,uk,Опава
+3741270000,ro,Opava východ
+3741270000,hr,Opava východ
+3741270000,sk,Opava východ
+3741270000,hu,Opava východ
+3741270000,pl,Opawa Wschodnia
+"Pardubice, hl.n.",de,"Pardubice, hl.n."
+"Pardubice, hl.n.",en,"Pardubice, hl.n."
+"Pardubice, hl.n.",cs,"Pardubice, hl.n."
+"Pardubice, hl.n.",sk,"Pardubice, hl.n."
+"Pardubice, hl.n.",pl,"Pardubice, hl.n."
+165611000,de,Břeclav
+165611000,sl,Břeclav
+165611000,fr,Břeclav
+165611000,en,Břeclav
+165611000,cs,Břeclav
+165611000,it,Břeclav
+165611000,uk,Бржецлав
+165611000,ro,Břeclav
+165611000,hr,Břeclav
+165611000,sk,Břeclav
+165611000,hu,Břeclav
+165611000,pl,Brzecław
+"Bern, Car-Terminal Neufeld",de,"Bern, Car-Terminal Neufeld"
+"Bern, Car-Terminal Neufeld",en,"Bern, Car-Terminal Neufeld"
+"Bern, Car-Terminal Neufeld",cs,"Bern, Car-Terminal Neufeld"
+"Bern, Car-Terminal Neufeld",sk,"Bern, Car-Terminal Neufeld"
+"Bern, Car-Terminal Neufeld",pl,"Berno, Car-Terminal Neufeld"
+3741270003,de,Blansko
+3741270003,sl,Blansko
+3741270003,fr,Blansko
+3741270003,en,Blansko
+3741270003,cs,Blansko
+3741270003,it,Blansko
+3741270003,uk,Бланско
+3741270003,ro,Blansko
+3741270003,hr,Blansko
+3741270003,sk,Blansko
+3741270003,hu,Blansko
+3741270003,pl,Blansko
+3741270002,de,Letovice
+3741270002,sl,Letovice
+3741270002,fr,Letovice
+3741270002,en,Letovice
+3741270002,cs,Letovice
+3741270002,it,Letovice
+3741270002,uk,Летовіце
+3741270002,ro,Letovice
+3741270002,hr,Letovice
+3741270002,sk,Letovice
+3741270002,hu,Letovice
+3741270002,pl,Letovice
+"Rotterdam, Conradstraat/Weena",de,"Rotterdam, Conradstraat/Weena"
+"Rotterdam, Conradstraat/Weena",en,"Rotterdam, Conradstraat/Weena"
+"Rotterdam, Conradstraat/Weena",cs,"Rotterdam, Conradstraat/Weena"
+"Rotterdam, Conradstraat/Weena",sk,"Rotterdam, Conradstraat/Weena"
+"Rotterdam, Conradstraat/Weena",pl,"Rotterdam, Conradstraat/Weena"
+4552142000,de,Luzern
+4552142000,sl,Luzern
+4552142000,fr,Lucerne
+4552142000,en,Lucerne
+4552142000,cs,Lucern
+4552142000,it,Luzern
+4552142000,uk,Luzern
+4552142000,ro,Luzern
+4552142000,hr,Luzern
+4552142000,sk,Luzern
+4552142000,hu,Luzern
+4552142000,pl,Luzern
+241620000,de,Köln/Bonn Flughafen
+241620000,sl,Köln/Bonn Flughafen
+241620000,fr,Köln/Bonn Flughafen
+241620000,en,Cologne/Bonn Airport
+241620000,cs,Kolín n. R./Bonn letiště
+241620000,it,Köln/Bonn Flughafen
+241620000,uk,Kельн / Бонн Флукгафен
+241620000,ro,Köln/Bonn Flughafen
+241620000,hr,Köln/Bonn Flughafen
+241620000,sk,Kolín n. R./Bonn letisko
+241620000,hu,Köln/Bonn Flughafen
+241620000,pl,Köln/Bonn Flughafen
+"Frankfurt nad Mohanem, Fernbusbahnhof Stuttgarter Str.",de,"Frankfurt am Main, Fernbusbahnhof Stuttgarter Str."
+"Frankfurt nad Mohanem, Fernbusbahnhof Stuttgarter Str.",en,"Frankfurt am Main, Fernbusbahnhof Stuttgarter Str."
+"Frankfurt nad Mohanem, Fernbusbahnhof Stuttgarter Str.",cs,"Frankfurt nad Mohanem, Fernbusbahnhof Stuttgarter Str."
+"Frankfurt nad Mohanem, Fernbusbahnhof Stuttgarter Str.",sk,"Frankfurt nad Mohanom, Fernbusbahnhof Stuttgarter Str."
+"Frankfurt nad Mohanem, Fernbusbahnhof Stuttgarter Str.",pl,"Frankfurt am Main, Fernbusbahnhof Stuttgarter Str."
+2147875000,de,Bohumín
+2147875000,sl,Bohumín
+2147875000,fr,Bohumín
+2147875000,en,Bohumín
+2147875000,cs,Bohumín
+2147875000,it,Bohumín
+2147875000,uk,Богумін
+2147875000,ro,Bohumín
+2147875000,hr,Bohumín
+2147875000,sk,Bohumín
+2147875000,hu,Bohumín
+2147875000,pl,Bogumin
+Vlaková linka: Praha - Přemyšl,cs,Vlaková linka: Praha - Přemyšl
+10202000,de,Ostrava
+10202000,sl,Ostrava
+10202000,fr,Ostrava
+10202000,en,Ostrava
+10202000,cs,Ostrava
+10202000,it,Ostrava
+10202000,uk,Острава
+10202000,ro,Ostrava
+10202000,hr,Ostrava
+10202000,sk,Ostrava
+10202000,hu,Ostrava
+10202000,pl,Ostrawa
+10202003,de,Prag
+10202003,sl,Praha
+10202003,fr,Prague
+10202003,en,Prague
+10202003,cs,Praha
+10202003,it,Praga
+10202003,hr,Prag
+10202003,ro,Praga
+10202003,uk,Прага
+10202003,hu,Prága
+10202003,sk,Praha
+10202003,pl,Praga
+"Amsterdam, Sloterdijk",de,"Amsterdam, Sloterdijk"
+"Amsterdam, Sloterdijk",en,"Amsterdam, Sloterdijk"
+"Amsterdam, Sloterdijk",cs,"Amsterdam, Sloterdijk"
+"Amsterdam, Sloterdijk",sk,"Amsterdam, Sloterdijk"
+"Amsterdam, Sloterdijk",pl,"Amsterdam, Sloterdijk"
+"Hegyeshalom, žst.",de,"Hegyeshalom, žst."
+"Hegyeshalom, žst.",en,"Hegyeshalom, žst."
+"Hegyeshalom, žst.",cs,"Hegyeshalom, žst."
+"Hegyeshalom, žst.",sk,"Hegyeshalom, žst."
+"Hegyeshalom, žst.",pl,"Hegyeshalom, žst."
+10202004,de,Pilsen
+10202004,sl,Plzeň
+10202004,fr,Plzeň
+10202004,en,Pilsen
+10202004,cs,Plzeň
+10202004,it,Plzeň
+10202004,uk,Плзень
+10202004,ro,Plzeň
+10202004,hr,Plzeň
+10202004,sk,Plzeň
+10202004,hu,Plzeň
+10202004,pl,Plzeň
+"Berlín, Südkreuz Bf",de,"Berlin, Südkreuz Bf"
+"Berlín, Südkreuz Bf",en,"Berlin, Südkreuz Bf"
+"Berlín, Südkreuz Bf",cs,"Berlín, Südkreuz Bf"
+"Berlín, Südkreuz Bf",sk,"Berlín, Südkreuz Bf"
+"Berlín, Südkreuz Bf",pl,"Berlin, Südkreuz Bf"
+10202001,de,Bratislava
+10202001,sl,Bratislava
+10202001,fr,Bratislava
+10202001,en,Bratislava
+10202001,cs,Bratislava
+10202001,it,Bratislava
+10202001,uk,Братислава
+10202001,ro,Bratislava
+10202001,hr,Bratislava
+10202001,hu,Pozsony
+10202001,sk,Bratislava
+10202001,pl,Bratysława
+"Piešťany, žst.",de,"Piešťany, žst."
+"Piešťany, žst.",en,"Piešťany, žst."
+"Piešťany, žst.",cs,"Piešťany, žst."
+"Piešťany, žst.",sk,"Piešťany, žst."
+"Piešťany, žst.",pl,"Piešťany, žst."
+10202002,de,Brünn
+10202002,sl,Brno
+10202002,fr,Brno
+10202002,en,Brno
+10202002,cs,Brno
+10202002,it,Brno
+10202002,uk,Брно
+10202002,ro,Brno
+10202002,hr,Brno
+10202002,sk,Brno
+10202002,hu,Brno
+10202002,pl,Brno
+3798068000,de,Hegyeshalom
+3798068000,sl,Hegyeshalom
+3798068000,fr,Hegyeshalom
+3798068000,en,Hegyeshalom
+3798068000,cs,Hegyeshalom
+3798068000,it,Hegyeshalom
+3798068000,uk,Hegyeshalom
+3798068000,ro,Hegyeshalom
+3798068000,hr,Hegyeshalom
+3798068000,hu,Hegyeshalom
+3798068000,sk,Hegyeshalom
+3798068000,pl,Hegyeshalom
+"Brusel, Gare du Midi",de,"Brüssel, Gare du Midi"
+"Brusel, Gare du Midi",en,"Brussels, Gare du Midi"
+"Brusel, Gare du Midi",cs,"Brusel, Gare du Midi"
+"Brusel, Gare du Midi",sk,"Brussel, Gare du Midi"
+"Brusel, Gare du Midi",pl,"Brussel, Gare du Midi"
+"Kolín n. R./Bonn letiště, Terminál 2",de,"Köln/Bonn Flughafen, Terminál 2"
+"Kolín n. R./Bonn letiště, Terminál 2",en,"Cologne/Bonn Airport, Terminál 2"
+"Kolín n. R./Bonn letiště, Terminál 2",cs,"Kolín n. R./Bonn letiště, Terminál 2"
+"Kolín n. R./Bonn letiště, Terminál 2",sk,"Kolín n. R./Bonn letisko, Terminál 2"
+"Kolín n. R./Bonn letiště, Terminál 2",pl,"Köln/Bonn Flughafen, Terminál 2"
+"Praha, hl.n.",de,"Prag, hl.n."
+"Praha, hl.n.",en,"Prague, hl.n."
+"Praha, hl.n.",cs,"Praha, hl.n."
+"Praha, hl.n.",sk,"Praha, hl.n."
+"Praha, hl.n.",pl,"Praga, hl.n."
+"Bratislava, hl.n.",de,"Bratislava, hl.n."
+"Bratislava, hl.n.",en,"Bratislava, hl.n."
+"Bratislava, hl.n.",cs,"Bratislava, hl.n."
+"Bratislava, hl.n.",sk,"Bratislava, hl.n."
+"Bratislava, hl.n.",pl,"Bratysława, hl.n."
+"Florencie, Scandicci - parcheggio scambiatore Villa Costanza",de,"Florenz, Scandicci - parcheggio scambiatore Villa Costanza"
+"Florencie, Scandicci - parcheggio scambiatore Villa Costanza",en,"Florence, Scandicci - parcheggio scambiatore Villa Costanza"
+"Florencie, Scandicci - parcheggio scambiatore Villa Costanza",cs,"Florencie, Scandicci - parcheggio scambiatore Villa Costanza"
+"Florencie, Scandicci - parcheggio scambiatore Villa Costanza",sk,"Florencia, Scandicci - parcheggio scambiatore Villa Costanza"
+"Florencie, Scandicci - parcheggio scambiatore Villa Costanza",pl,"Florencja, Scandicci - parcheggio scambiatore Villa Costanza"
+"Řím, Largo Mazzoni (Autostaz. Tiburtina)",de,"Roma, Largo Mazzoni (Autostaz. Tiburtina)"
+"Řím, Largo Mazzoni (Autostaz. Tiburtina)",en,"Rome, Largo Mazzoni (Autostaz. Tiburtina)"
+"Řím, Largo Mazzoni (Autostaz. Tiburtina)",cs,"Řím, Largo Mazzoni (Autostaz. Tiburtina)"
+"Řím, Largo Mazzoni (Autostaz. Tiburtina)",sk,"Rím, Largo Mazzoni (Autostaz. Tiburtina)"
+"Řím, Largo Mazzoni (Autostaz. Tiburtina)",pl,"Rzym, Largo Mazzoni (Autostaz. Tiburtina)"
+"Považská Bystrica, žst.",de,"Považská Bystrica, žst."
+"Považská Bystrica, žst.",en,"Považská Bystrica, žst."
+"Považská Bystrica, žst.",cs,"Považská Bystrica, žst."
+"Považská Bystrica, žst.",sk,"Považská Bystrica, žst."
+"Považská Bystrica, žst.",pl,"Považská Bystrica, žst."
+"Brno, hl.n.",de,"Brünn, hl.n."
+"Brno, hl.n.",en,"Brno, hl.n."
+"Brno, hl.n.",cs,"Brno, hl.n."
+"Brno, hl.n.",sk,"Brno, hl.n."
+"Brno, hl.n.",pl,"Brno, hl.n."
+"Brno, AN u hotelu Grand",de,"Brünn, AN u hotelu Grand"
+"Brno, AN u hotelu Grand",en,"Brno, AN u hotelu Grand"
+"Brno, AN u hotelu Grand",cs,"Brno, AN u hotelu Grand"
+"Brno, AN u hotelu Grand",sk,"Brno, AN u hotelu Grand"
+"Brno, AN u hotelu Grand",pl,"Brno, AN u hotelu Grand"
+Autobusová linka: Praha – Brno – Bratislava – Zadar – Sukošan – Biograd – Pakoštane – Vodice – Šibenik – Primošten – Trogir – Split,de,Buslinie: Prag – Brünn – Bratislava – Zadar – Sukošan – Biograd – Pakoštane – Vodice – Šibenik – Primošten – Trogir – Split
+Autobusová linka: Praha – Brno – Bratislava – Zadar – Sukošan – Biograd – Pakoštane – Vodice – Šibenik – Primošten – Trogir – Split,en,Bus line: Prague – Brno – Bratislava – Zadar – Sukošan – Biograd – Pakoštane – Vodice – Šibenik – Primošten – Trogir – Split
+Autobusová linka: Praha – Brno – Bratislava – Zadar – Sukošan – Biograd – Pakoštane – Vodice – Šibenik – Primošten – Trogir – Split,cs,Autobusová linka: Praha – Brno – Bratislava – Zadar – Sukošan – Biograd – Pakoštane – Vodice – Šibenik – Primošten – Trogir – Split
+Autobusová linka: Praha – Brno – Bratislava – Zadar – Sukošan – Biograd – Pakoštane – Vodice – Šibenik – Primošten – Trogir – Split,sk,Autobusová linka: Praha – Brno – Bratislava – Zadar – Sukošan – Biograd – Pakoštane – Vodice – Šibenik – Primošten – Trogir – Split
+10202006,de,München
+10202006,sl,München
+10202006,fr,Munich
+10202006,en,Munich
+10202006,cs,Mnichov
+10202006,it,Monaco di Baviera
+10202006,hr,Minhen
+10202006,uk,Мюнхен
+10202006,ro,München
+10202006,sk,Mníchov
+10202006,hu,München
+10202006,pl,München
+10202009,de,Stuttgart
+10202009,sl,Stuttgart
+10202009,fr,Stuttgart
+10202009,en,Stuttgart
+10202009,cs,Stuttgart
+10202009,it,Stoccarda
+10202009,uk,Штутґарт
+10202009,ro,Stuttgart
+10202009,hr,Stuttgart
+10202009,sk,Stuttgart
+10202009,hu,Stuttgart
+10202009,pl,Stuttgart
+4448705000,de,Brügge
+4448705000,sl,Brugge
+4448705000,fr,Brugge
+4448705000,en,Bruges
+4448705000,cs,Bruggy
+4448705000,it,Brugge
+4448705000,uk,Брюгге
+4448705000,ro,Brugge
+4448705000,hr,Brugge
+4448705000,sk,Brugge
+4448705000,hu,Brugge
+4448705000,pl,Brugia
+"Zawiercie, Hlavní nádraží",de,"Zawiercie, Hlavní nádraží"
+"Zawiercie, Hlavní nádraží",en,"Zawiercie, Hlavní nádraží"
+"Zawiercie, Hlavní nádraží",cs,"Zawiercie, Hlavní nádraží"
+"Zawiercie, Hlavní nádraží",sk,"Zawiercie, Hlavní nádraží"
+"Zawiercie, Hlavní nádraží",pl,"Zawiercie, Hlavní nádraží"
+"Drážďany, Hbf., Bayerische Strasse",de,"Dresden, Hbf., Bayerische Strasse"
+"Drážďany, Hbf., Bayerische Strasse",en,"Dresden, Hbf., Bayerische Strasse"
+"Drážďany, Hbf., Bayerische Strasse",cs,"Drážďany, Hbf., Bayerische Strasse"
+"Drážďany, Hbf., Bayerische Strasse",sk,"Drážďany, Hbf., Bayerische Strasse"
+"Drážďany, Hbf., Bayerische Strasse",pl,"Dresden, Hbf., Bayerische Strasse"
+1606573001,de,Gliwice
+1606573001,sl,Gliwice
+1606573001,fr,Gliwice
+1606573001,en,Gliwice
+1606573001,cs,Gliwice
+1606573001,it,Gliwice
+1606573001,uk,Глівіце
+1606573001,ro,Gliwice
+1606573001,hr,Gliwice
+1606573001,sk,Gliwice
+1606573001,hu,Gliwice
+1606573001,pl,Gliwice
+"Ženeva, Gare Routiere, pl. Dorciere",de,"Genf, Gare Routiere, pl. Dorciere"
+"Ženeva, Gare Routiere, pl. Dorciere",en,"Geneve, Gare Routiere, pl. Dorciere"
+"Ženeva, Gare Routiere, pl. Dorciere",cs,"Ženeva, Gare Routiere, pl. Dorciere"
+"Ženeva, Gare Routiere, pl. Dorciere",sk,"Ženeva, Gare Routiere, pl. Dorciere"
+"Ženeva, Gare Routiere, pl. Dorciere",pl,"Geneve, Gare Routiere, pl. Dorciere"
+4406925000,de,Skalice nad Svitavou
+4406925000,sl,Skalice nad Svitavou
+4406925000,fr,Skalice nad Svitavou
+4406925000,en,Skalice nad Svitavou
+4406925000,cs,Skalice nad Svitavou
+4406925000,it,Skalice nad Svitavou
+4406925000,uk,Скаліце над Світавоу
+4406925000,ro,Skalice nad Svitavou
+4406925000,hr,Skalice nad Svitavou
+4406925000,sk,Skalice nad Svitavou
+4406925000,hu,Skalice nad Svitavou
+4406925000,pl,Skalice nad Svitavou
+"Trenčianska Teplá, žst.",de,"Trenčianska Teplá, žst."
+"Trenčianska Teplá, žst.",en,"Trenčianska Teplá, žst."
+"Trenčianska Teplá, žst.",cs,"Trenčianska Teplá, žst."
+"Trenčianska Teplá, žst.",sk,"Trenčianska Teplá, žst."
+"Trenčianska Teplá, žst.",pl,"Trenčianska Teplá, žst."
+"Margecany, žel. st.",de,"Margecany, žel. st."
+"Margecany, žel. st.",en,"Margecany, žel. st."
+"Margecany, žel. st.",cs,"Margecany, žel. st."
+"Margecany, žel. st.",sk,"Margecany, žel. st."
+"Margecany, žel. st.",pl,"Margecany, žel. st."
+"Boloňa, Autostaz.Piazza XX Settembre",de,"Bologna, Autostaz.Piazza XX Settembre"
+"Boloňa, Autostaz.Piazza XX Settembre",en,"Bologna, Autostaz.Piazza XX Settembre"
+"Boloňa, Autostaz.Piazza XX Settembre",cs,"Boloňa, Autostaz.Piazza XX Settembre"
+"Boloňa, Autostaz.Piazza XX Settembre",sk,"Boloňa, Autostaz.Piazza XX Settembre"
+"Boloňa, Autostaz.Piazza XX Settembre",pl,"Bolonia, Autostaz.Piazza XX Settembre"
+1762994001,de,Kysak (u města Prešov)
+1762994001,sl,Kysak (u města Prešov)
+1762994001,fr,Kysak (u města Prešov)
+1762994001,en,Kysak (u města Prešov)
+1762994001,cs,Kysak (u města Prešov)
+1762994001,it,Kysak (u města Prešov)
+1762994001,uk,Кисак (поблизу Прешова)
+1762994001,ro,Kysak (u města Prešov)
+1762994001,hr,Kysak (u města Prešov)
+1762994001,sk,Kysak (u města Prešov)
+1762994001,hu,Sároskőszeg
+1762994001,pl,Kysak (pod Preszowem)
+1762994000,de,Spišská Nová Ves
+1762994000,sl,Spišská Nová Ves
+1762994000,fr,Spišská Nová Ves
+1762994000,en,Spišská Nová Ves
+1762994000,cs,Spišská Nová Ves
+1762994000,it,Spišská Nová Ves
+1762994000,uk,Спішска Нова Вес
+1762994000,ro,Spišská Nová Ves
+1762994000,hr,Spišská Nová Ves
+1762994000,hu,Igló
+1762994000,sk,Spišská Nová Ves
+1762994000,pl,Spišská Nová Ves
+"Düsseldorf, Hbf., Worringer Str.",de,"Düsseldorf, Hbf., Worringer Str."
+"Düsseldorf, Hbf., Worringer Str.",en,"Düsseldorf, Hbf., Worringer Str."
+"Düsseldorf, Hbf., Worringer Str.",cs,"Düsseldorf, Hbf., Worringer Str."
+"Düsseldorf, Hbf., Worringer Str.",sk,"Düsseldorf, Hbf., Worringer Str."
+"Düsseldorf, Hbf., Worringer Str.",pl,"Düsseldorf, Hbf., Worringer Str."
+7998843001,de,Zawiercie
+7998843001,sl,Zawiercie
+7998843001,fr,Zawiercie
+7998843001,en,Zawiercie
+7998843001,cs,Zawiercie
+7998843001,it,Zawiercie
+7998843001,uk,Zawiercie
+7998843001,ro,Zawiercie
+7998843001,hr,Zawiercie
+7998843001,sk,Zawiercie
+7998843001,hu,Zawiercie
+7998843001,pl,Zawiercie
+"Frankfurt nad Mohanem, Letiště,  Terminál 1, Busparkplatz P36",de,"Frankfurt am Main, Letiště,  Terminál 1, Busparkplatz P36"
+"Frankfurt nad Mohanem, Letiště,  Terminál 1, Busparkplatz P36",en,"Frankfurt am Main, Letiště,  Terminál 1, Busparkplatz P36"
+"Frankfurt nad Mohanem, Letiště,  Terminál 1, Busparkplatz P36",cs,"Frankfurt nad Mohanem, Letiště,  Terminál 1, Busparkplatz P36"
+"Frankfurt nad Mohanem, Letiště,  Terminál 1, Busparkplatz P36",sk,"Frankfurt nad Mohanom, Letiště,  Terminál 1, Busparkplatz P36"
+"Frankfurt nad Mohanem, Letiště,  Terminál 1, Busparkplatz P36",pl,"Frankfurt am Main, Letiště,  Terminál 1, Busparkplatz P36"
+"Čop, žst.",de,"Chop, žst."
+"Čop, žst.",en,"Chop, žst."
+"Čop, žst.",cs,"Čop, žst."
+"Čop, žst.",sk,"Čop, žst."
+"Čop, žst.",pl,"Chop, žst."
+"Olomouc, hl.n.",de,"Olomouc, hl.n."
+"Olomouc, hl.n.",en,"Olomouc, hl.n."
+"Olomouc, hl.n.",cs,"Olomouc, hl.n."
+"Olomouc, hl.n.",sk,"Olomouc, hl.n."
+"Olomouc, hl.n.",pl,"Ołomuniec, hl.n."
+Autobusová linka:  Bratislava – Wien,de,Buslinie: Bratislava – Wien
+Autobusová linka:  Bratislava – Wien,en,Bus line: Bratislava – Vienna
+Autobusová linka:  Bratislava – Wien,cs,Autobusová linka:  Bratislava – Wien
+Autobusová linka:  Bratislava – Wien,sk,Autobusová linka:  Bratislava – Viedeň
+Autobusová linka: Praha – Plzeň – Stuttgart – Štrasburk – Paříž,de,Buslinie: Prag – Stuttgart– Straßburg – Paris
+Autobusová linka: Praha – Plzeň – Stuttgart – Štrasburk – Paříž,en,Bus line: Prague – Stuttgart – Strasbourg – Paris
+Autobusová linka: Praha – Plzeň – Stuttgart – Štrasburk – Paříž,cs,Autobusová linka: Praha – Plzeň – Stuttgart – Štrasburk – Paříž
+Autobusová linka: Praha – Plzeň – Stuttgart – Štrasburk – Paříž,sk,Autobusová linka: Praha – Stuttgart – Štrasburg – Paříž
+Vlaková linka: Vídeň - Budapešť,cs,Vlaková linka: Vídeň - Budapešť
+Autobusová linka: Praha – Brno – Bratislava – Budapešť,de,Buslinie: Prag – Brünn – Bratislava – Budapest
+Autobusová linka: Praha – Brno – Bratislava – Budapešť,en,Bus line: Prague – Brno – Bratislava – Budapest
+Autobusová linka: Praha – Brno – Bratislava – Budapešť,cs,Autobusová linka: Praha – Brno – Bratislava – Budapešť
+Autobusová linka: Praha – Brno – Bratislava – Budapešť,sk,Autobusová linka: Praha – Brno – Bratislava – Budapešť
+1801253000,de,Breslau
+1801253000,sl,Wroclaw
+1801253000,fr,Wroclaw
+1801253000,en,Wroclaw
+1801253000,cs,Vratislav
+1801253000,it,Wroclaw
+1801253000,uk,Wroclaw
+1801253000,ro,Wroclaw
+1801253000,hr,Wroclaw
+1801253000,sk,Wroclaw
+1801253000,hu,Wroclaw
+1801253000,pl,Wroclaw
+"Lyon, Gerland (Bus Station)",de,"Lyon, Gerland (Bus Station)"
+"Lyon, Gerland (Bus Station)",en,"Lyon, Gerland (Bus Station)"
+"Lyon, Gerland (Bus Station)",cs,"Lyon, Gerland (Bus Station)"
+"Lyon, Gerland (Bus Station)",sk,"Lyon, Gerland (Bus Station)"
+"Lyon, Gerland (Bus Station)",pl,"Lyon, Gerland (Bus Station)"
+"Como, Piazzale San Gottardo",de,"Como, Piazzale San Gottardo"
+"Como, Piazzale San Gottardo",en,"Como, Piazzale San Gottardo"
+"Como, Piazzale San Gottardo",cs,"Como, Piazzale San Gottardo"
+"Como, Piazzale San Gottardo",sk,"Como, Piazzale San Gottardo"
+"Como, Piazzale San Gottardo",pl,"Como, Piazzale San Gottardo"
+372842004,de,Havířov
+372842004,sl,Havířov
+372842004,fr,Havířov
+372842004,en,Havířov
+372842004,cs,Havířov
+372842004,it,Havířov
+372842004,uk,Гавіржов
+372842004,ro,Havířov
+372842004,hr,Havířov
+372842004,sk,Havířov
+372842004,hu,Havířov
+372842004,pl,Hawierzów
+"Praha, ÚAN Florenc",de,"Prag, ÚAN Florenc"
+"Praha, ÚAN Florenc",en,"Prague, ÚAN Florenc"
+"Praha, ÚAN Florenc",cs,"Praha, ÚAN Florenc"
+"Praha, ÚAN Florenc",sk,"Praha, ÚAN Florenc"
+"Praha, ÚAN Florenc",pl,"Praga, ÚAN Florenc"
+"Den Haag, Den Haag Centraal",de,"Den Haag, Den Haag Centraal"
+"Den Haag, Den Haag Centraal",en,"The Hague, Den Haag Centraal"
+"Den Haag, Den Haag Centraal",cs,"Den Haag, Den Haag Centraal"
+"Den Haag, Den Haag Centraal",sk,"Den Haag, Den Haag Centraal"
+"Den Haag, Den Haag Centraal",pl,"Den Haag, Den Haag Centraal"
+10202104,de,Düsseldorf
+10202104,sl,Düsseldorf
+10202104,fr,Düsseldorf
+10202104,en,Düsseldorf
+10202104,cs,Düsseldorf
+10202104,it,Düsseldorf
+10202104,uk,Дюссельдорф
+10202104,ro,Düsseldorf
+10202104,hr,Düsseldorf
+10202104,sk,Düsseldorf
+10202104,hu,Düsseldorf
+10202104,pl,Düsseldorf
+2930911000,de,Como
+2930911000,sl,Como
+2930911000,fr,Côme
+2930911000,en,Como
+2930911000,cs,Como
+2930911000,it,Como
+2930911000,uk,Комо
+2930911000,ro,Como
+2930911000,hr,Como
+2930911000,sk,Como
+2930911000,hu,Como
+2930911000,pl,Como
+372842000,de,Pardubice
+372842000,sl,Pardubice
+372842000,fr,Pardubice
+372842000,en,Pardubice
+372842000,cs,Pardubice
+372842000,it,Pardubice
+372842000,uk,Пардубіце
+372842000,ro,Pardubice
+372842000,hr,Pardubice
+372842000,sk,Pardubice
+372842000,hu,Pardubice
+372842000,pl,Pardubice
+372842003,de,Hranice na M.
+372842003,sl,Hranice na M.
+372842003,fr,Hranice na M.
+372842003,en,Hranice na M.
+372842003,cs,Hranice na M.
+372842003,it,Hranice na M.
+372842003,uk,Граніце на Мораве
+372842003,ro,Hranice na M.
+372842003,hr,Hranice na M.
+372842003,sk,Hranice na M.
+372842003,hu,Hranice na M.
+372842003,pl,Hranice na M.
+271526009,de,Primošten
+271526009,sl,Primošten
+271526009,fr,Primošten
+271526009,en,Primošten
+271526009,cs,Primošten
+271526009,it,Primošten
+271526009,uk,Прімоштен
+271526009,hr,Primošten
+271526009,ro,Primošten
+271526009,sk,Primošten
+271526009,hu,Primošten
+271526009,pl,Primošten
+372842002,de,Zábřeh na Moravě
+372842002,sl,Zábřeh na Moravě
+372842002,fr,Zábřeh na Moravě
+372842002,en,Zábřeh na Moravě
+372842002,cs,Zábřeh na Moravě
+372842002,it,Zábřeh na Moravě
+372842002,uk,Забржег на Мораві
+372842002,ro,Zábřeh na Moravě
+372842002,hr,Zábřeh na Moravě
+372842002,sk,Zábřeh na Moravě
+372842002,hu,Zábřeh na Moravě
+372842002,pl,Zábřeh na Moravě
+49584002,de,Štrba
+49584002,sl,Štrba
+49584002,fr,Štrba
+49584002,en,Štrba
+49584002,cs,Štrba
+49584002,it,Štrba
+49584002,uk,Штрба
+49584002,ro,Štrba
+49584002,hr,Štrba
+49584002,hu,Csorba
+49584002,sk,Štrba
+49584002,pl,Štrba
+"Krakov, Reg. Dw. Autob. ul. Bosacka 18",de,"Krakau, Reg. Dw. Autob. ul. Bosacka 18"
+"Krakov, Reg. Dw. Autob. ul. Bosacka 18",en,"Cracow, Reg. Dw. Autob. ul. Bosacka 18"
+"Krakov, Reg. Dw. Autob. ul. Bosacka 18",cs,"Krakov, Reg. Dw. Autob. ul. Bosacka 18"
+"Krakov, Reg. Dw. Autob. ul. Bosacka 18",sk,"Krakov, Reg. Dw. Autob. ul. Bosacka 18"
+"Krakov, Reg. Dw. Autob. ul. Bosacka 18",pl,"Kraków, Reg. Dw. Autob. ul. Bosacka 18"
+49584000,de,Vrútky
+49584000,sl,Vrútky
+49584000,fr,Vrútky
+49584000,en,Vrútky
+49584000,cs,Vrútky
+49584000,it,Vrútky
+49584000,uk,Врутки
+49584000,ro,Vrútky
+49584000,hr,Vrútky
+49584000,hu,Ruttka
+49584000,sk,Vrútky
+49584000,pl,Vrútky
+Autobusová linka: Praha - Varšava,de,Buslinie: Prague – Warszawa
+Autobusová linka: Praha - Varšava,en,Bus line: Prague – Warszawa
+Autobusová linka: Praha - Varšava,cs,Autobusová linka: Praha - Varšava
+Autobusová linka: Praha - Varšava,sk,Autobusová linka: Praha – Varšava
+"Lucern, Landenberg",de,"Luzern, Landenberg"
+"Lucern, Landenberg",en,"Lucerne, Landenberg"
+"Lucern, Landenberg",cs,"Lucern, Landenberg"
+"Lucern, Landenberg",sk,"Luzern, Landenberg"
+"Lucern, Landenberg",pl,"Luzern, Landenberg"
+4552142001,de,Lugano
+4552142001,sl,Lugano
+4552142001,fr,Lugano
+4552142001,en,Lugano
+4552142001,cs,Lugano
+4552142001,it,Lugano
+4552142001,uk,Лугано
+4552142001,ro,Lugano
+4552142001,hr,Lugano
+4552142001,sk,Lugano
+4552142001,hu,Lugano
+4552142001,pl,Lugano

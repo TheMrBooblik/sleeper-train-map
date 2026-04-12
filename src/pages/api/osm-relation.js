@@ -1,18 +1,15 @@
 // pages/api/osm-relation.js
 // Fetch OpenStreetMap relation geometry (polyline) for one or more relation IDs.
-// Supports comma-separated IDs (e.g. "3347914,15014175") to combine multiple
-// relations into a single polyline — useful for routes that span several segments.
+// Reads from Vercel Blob (daily scrape) when fresh; falls back to Overpass API.
+// Supports comma-separated IDs (e.g. "3347914,15014175") to combine segments.
 
-// Multiple Overpass API instances to try in order (the primary one can time out)
+import { getOsmRelation, putOsmRelation, isFresh } from "./lib/blob-store";
+
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
 ];
 
-/**
- * Run an Overpass query, trying each endpoint until one succeeds.
- * Returns parsed JSON data or throws on failure.
- */
 async function queryOverpass(overpassQuery) {
   let response = null;
   let lastError = null;
@@ -33,9 +30,8 @@ async function queryOverpass(overpassQuery) {
   }
 
   if (!response || !response.ok) {
-    const status = response?.status || 503;
     const error = new Error("All Overpass API endpoints failed");
-    error.status = status;
+    error.status = response?.status || 503;
     error.cause = lastError;
     throw error;
   }
@@ -43,30 +39,21 @@ async function queryOverpass(overpassQuery) {
   return response.json();
 }
 
-/**
- * Extract ordered [lat, lon] coordinates from a single relation element.
- * Uses the inline geometry from `out geom;` on way members.
- */
 function extractCoordsFromRelation(relation) {
   const coords = [];
   if (!relation.members) return coords;
-
-  const wayMembers = relation.members.filter((m) => m.type === "way");
-  wayMembers.forEach((member) => {
-    if (member.geometry && Array.isArray(member.geometry)) {
-      member.geometry.forEach((point) => {
-        if (point.lat && point.lon) {
-          coords.push([point.lat, point.lon]);
-        }
-      });
-    }
-  });
+  relation.members
+    .filter((m) => m.type === "way")
+    .forEach((member) => {
+      if (Array.isArray(member.geometry)) {
+        member.geometry.forEach((point) => {
+          if (point.lat && point.lon) coords.push([point.lat, point.lon]);
+        });
+      }
+    });
   return coords;
 }
 
-/**
- * Remove duplicate consecutive coordinates from the list.
- */
 function deduplicateConsecutive(coords) {
   const result = [];
   let prev = null;
@@ -79,6 +66,38 @@ function deduplicateConsecutive(coords) {
   return result;
 }
 
+function buildResponse(relationIds, data) {
+  const relationMap = new Map();
+  for (const el of data.elements || []) {
+    if (el.type === "relation") relationMap.set(String(el.id), el);
+  }
+
+  const allCoords = [];
+  const names = [];
+
+  for (const id of relationIds) {
+    const rel = relationMap.get(id);
+    if (!rel) {
+      console.warn(`[osm-relation] Relation ${id} not found in response, skipping`);
+      continue;
+    }
+    allCoords.push(...extractCoordsFromRelation(rel));
+    if (rel.tags?.name) names.push(rel.tags.name);
+  }
+
+  const coordinates = deduplicateConsecutive(allCoords);
+  const idList = relationIds.join(",");
+  const firstRelation = relationMap.get(relationIds[0]);
+
+  return {
+    relationId: relationIds.length === 1 ? firstRelation?.id : idList,
+    name: names.length === 1 ? names[0] : names.join(" + ") || null,
+    coordinates,
+    count: coordinates.length,
+    tags: relationIds.length === 1 ? (firstRelation?.tags || {}) : {},
+  };
+}
+
 export default async function handler(req, res) {
   const { relationId } = req.query;
 
@@ -86,21 +105,32 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing relationId parameter" });
   }
 
-  // Support comma-separated relation IDs for combining multiple segments
   const relationIds = relationId.split(",").map((id) => id.trim()).filter(Boolean);
 
   if (relationIds.length === 0) {
     return res.status(400).json({ error: "No valid relation IDs provided" });
   }
 
-  // Validate all IDs are numeric (prevent injection into Overpass query)
   if (relationIds.some((id) => !/^\d+$/.test(id))) {
     return res.status(400).json({ error: "Relation IDs must be numeric" });
   }
 
+  const cacheKey = relationIds.join(",");
+
   try {
-    // Fetch all relations in a single Overpass query
-    const idList = relationIds.join(",");
+    // Try Vercel Blob first (pre-scraped daily)
+    const cached = await getOsmRelation(cacheKey);
+    if (cached && isFresh(cached.uploadedAt)) {
+      const result = buildResponse(relationIds, cached.data);
+      if (result.coordinates.length === 0) {
+        return res.status(404).json({ error: "No relations found" });
+      }
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.setHeader("Content-Type", "application/json");
+      return res.status(200).json(result);
+    }
+
+    // Fall back to Overpass API
     const overpassQuery = `
       [out:json][timeout:30];
       (
@@ -115,48 +145,18 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "No relations found" });
     }
 
-    // Build a map of id -> relation element for ordered processing
-    const relationMap = new Map();
-    for (const el of data.elements) {
-      if (el.type === "relation") {
-        relationMap.set(String(el.id), el);
-      }
-    }
+    // Store in Blob for future requests
+    await putOsmRelation(cacheKey, data).catch((err) =>
+      console.warn("[osm-relation] Blob store failed:", err.message)
+    );
 
-    // Extract and concatenate coordinates in the order the IDs were provided.
-    // This lets callers control segment ordering (e.g. Praha-Košice first, then Košice-Humenné).
-    const allCoords = [];
-    const names = [];
+    const result = buildResponse(relationIds, data);
 
-    for (const id of relationIds) {
-      const rel = relationMap.get(id);
-      if (!rel) {
-        console.warn(`[osm-relation] Relation ${id} not found in response, skipping`);
-        continue;
-      }
-      const coords = extractCoordsFromRelation(rel);
-      allCoords.push(...coords);
-      if (rel.tags?.name) names.push(rel.tags.name);
-    }
-
-    const uniqueCoords = deduplicateConsecutive(allCoords);
-
-    res.setHeader("Cache-Control", "public, max-age=86400"); // Cache for 1 day
+    res.setHeader("Cache-Control", "public, max-age=86400");
     res.setHeader("Content-Type", "application/json");
-
-    // For single relations, keep the same response shape as before (backward compatible).
-    // For multiple, return combined data.
-    const firstRelation = relationMap.get(relationIds[0]);
-    return res.status(200).json({
-      relationId: relationIds.length === 1 ? firstRelation?.id : idList,
-      name: names.length === 1 ? names[0] : names.join(" + ") || null,
-      coordinates: uniqueCoords,
-      count: uniqueCoords.length,
-      tags: relationIds.length === 1 ? (firstRelation?.tags || {}) : {},
-    });
+    return res.status(200).json(result);
   } catch (error) {
     console.error("[osm-relation] Error:", error);
-    const status = error.status || 500;
-    return res.status(status).json({ error: error.message });
+    return res.status(error.status || 500).json({ error: error.message });
   }
 }
