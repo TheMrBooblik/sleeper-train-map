@@ -15,6 +15,20 @@ const SNCF_GTFS_URLS = [
   "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip",
 ];
 
+const PARIS = [48.8443, 2.3637]; // Paris Austerlitz
+const PARIS_KM  = 30;  // within 30 km → "starts near Paris"
+const STITCH_KM = 25;  // within 25 km → "these segments connect"
+
+/** Haversine distance in km between two [lat, lon] points. */
+function haversineKm([lat1, lon1], [lat2, lon2]) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 // IC Nuit route definitions.
 // `cities`: keywords (accent-stripped, lowercase) that appear in route_long_name for this line.
 // `key` / `altKey`: BoT trip_short_name values that will get this polyline.
@@ -122,10 +136,7 @@ export async function fetchSNCFNightTrainPolylines() {
   }
   console.log(`[sncf-fetcher] Matched ${routeIdToRouteDef.size} GTFS routes to IC Nuit lines`);
 
-  // Collect ALL trips per IC Nuit line so we can later pick the one with the
-  // most stops. "First trip wins" risks selecting a short-working or positioning
-  // service that only covers part of the route (e.g. Limoges → Toulouse instead
-  // of Paris → Toulouse).
+  // Collect ALL trips per IC Nuit line so we can pick the best representative.
   const tripsByBotKey = new Map(); // botKey → [{ trip_id, shape_id }]
   for (const trip of tripsRows) {
     const routeDef = routeIdToRouteDef.get(trip.route_id);
@@ -168,17 +179,26 @@ export async function fetchSNCFNightTrainPolylines() {
     }
   } else {
     // Standard case: build from stop_times.txt ordered stop sequence.
-    // Parse stop_times for ALL candidate trips, then pick the trip with the most
-    // stops per route — this avoids short-working services that cover only part
-    // of the full Paris → terminal city journey.
     const stopTimesRows = files["stop_times.txt"] ? parseCsv(files["stop_times.txt"]) : [];
     console.log(`[sncf-fetcher] ${stopTimesRows.length} stop_times rows`);
 
+    // Build stop coord map with parent-station fallback.
+    // Some GTFS exports use child platform stops (no own lat/lon) that inherit
+    // coordinates from a parent_station entry.
+    const parentOf = new Map(); // child stop_id → parent stop_id
     const stopCoords = new Map(); // stop_id → [lat, lon]
     for (const row of stopsRows) {
+      if (row.parent_station) parentOf.set(row.stop_id, row.parent_station);
       const lat = parseFloat(row.stop_lat);
       const lon = parseFloat(row.stop_lon);
-      if (!isNaN(lat) && !isNaN(lon)) stopCoords.set(row.stop_id, [lat, lon]);
+      if (!isNaN(lat) && !isNaN(lon) && (lat !== 0 || lon !== 0)) {
+        stopCoords.set(row.stop_id, [lat, lon]);
+      }
+    }
+    for (const [childId, parentId] of parentOf) {
+      if (!stopCoords.has(childId) && stopCoords.has(parentId)) {
+        stopCoords.set(childId, stopCoords.get(parentId));
+      }
     }
 
     // Collect all trip_ids we need to inspect
@@ -195,18 +215,29 @@ export async function fetchSNCFNightTrainPolylines() {
     }
 
     for (const [botKey, trips] of tripsByBotKey) {
-      // Pick the trip with the most stops (= the full end-to-end service)
-      let bestStops = null;
+      // Select the trip that reaches the FARTHEST point from Paris Austerlitz.
+      // "Most stops" is a wrong criterion: a short daytime service Paris→Toulouse
+      // may have MORE intermediate stops than the night express Paris→Latour-de-Carol,
+      // causing us to pick a trip that doesn't reach the terminal city.
+      let bestTripStops = null;
+      let bestDist = -1;
       for (const { trip_id } of trips) {
         const stops = tripStops.get(trip_id);
-        if (stops && (!bestStops || stops.length > bestStops.length)) bestStops = stops;
+        if (!stops?.length) continue;
+        const sorted = [...stops].sort((a, b) => a.seq - b.seq);
+        // Check both endpoints (trip may be stored in either direction)
+        for (const endpoint of [sorted[0], sorted[sorted.length - 1]]) {
+          const coord = stopCoords.get(endpoint.stop_id);
+          if (!coord) continue;
+          const dist = haversineKm(coord, PARIS);
+          if (dist > bestDist) { bestDist = dist; bestTripStops = sorted; }
+        }
       }
-      if (!bestStops?.length) {
+      if (!bestTripStops) {
         console.warn(`[sncf-fetcher] No stop_times for ${botKey}`);
         continue;
       }
-      bestStops.sort((a, b) => a.seq - b.seq);
-      const coords = bestStops.map((s) => stopCoords.get(s.stop_id)).filter(Boolean);
+      const coords = bestTripStops.map((s) => stopCoords.get(s.stop_id)).filter(Boolean);
       if (coords.length >= 2) {
         results[botKey] = { polyline: polyline.encode(coords), coordinateCount: coords.length };
       }
@@ -218,23 +249,10 @@ export async function fetchSNCFNightTrainPolylines() {
   // IC 3970 owns only Toulouse→Latour-de-Carol. We must prepend IC 3750's
   // polyline to IC 3970's to get the full Paris→Latour-de-Carol route.
   //
-  // Complication: "most stops" may pick a trip stored in the REVERSE direction
-  // (e.g. Toulouse→Paris for IC 3750), making its last point Paris instead of
-  // Toulouse. We normalise direction first (Paris-end always at index 0), then
-  // stitch any route that still doesn't start near Paris.
-
-  const PARIS = [48.8443, 2.3637]; // Paris Austerlitz
-  const PARIS_KM  = 30;  // within 30 km → "starts near Paris"
-  const STITCH_KM = 25;  // within 25 km → "these segments connect"
-
-  function haversineKm([lat1, lon1], [lat2, lon2]) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
+  // Pass 1: normalise all polylines so index 0 = the Paris end (the end closer
+  //         to Paris Austerlitz). This makes the direction consistent for stitching.
+  // Pass 2: any route that still doesn't start near Paris gets a prefix prepended
+  //         from the neighbour whose last point is closest to its first point.
 
   // Decode all built polylines so we can measure distances
   const decodedCoords = new Map(); // botKey → [[lat, lon], ...]
@@ -242,9 +260,7 @@ export async function fetchSNCFNightTrainPolylines() {
     decodedCoords.set(key, polyline.decode(val.polyline));
   }
 
-  // Pass 1 — normalise direction: all IC Nuit routes start from Paris, so the
-  // end closer to Paris is always the Paris end. If the polyline is stored
-  // endpoint-first, reverse it so index 0 = Paris end.
+  // Pass 1 — normalise direction
   for (const [botKey, coords] of decodedCoords) {
     const startDist = haversineKm(coords[0], PARIS);
     const endDist   = haversineKm(coords[coords.length - 1], PARIS);
