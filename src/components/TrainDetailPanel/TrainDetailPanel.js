@@ -78,6 +78,10 @@ function extractTrainNumberDigits(value) {
   return match ? match[0] : "";
 }
 
+function isNightJetOrEuroNightTrainNumber(value) {
+  return /^\s*(NJ|EN)\s+\d+/i.test((value || "").toString());
+}
+
 function normalizeStationToken(value) {
   return (value || "")
     .toString()
@@ -110,15 +114,22 @@ const TrainDetailPanel = ({
   onClose,
   selectedRouteIds,
   tripsData,
+  viewMapData,
 }) => {
   const { agencies } = useAgencies();
-  const { routes, isLoading: routesLoading } = useRoutes();
+  const { routes: fetchedRoutes, isLoading: routesLoading } = useRoutes();
   const { trips: fetchedTrips, isLoading: tripsLoading } = useTrips();
   const trips = tripsData || fetchedTrips;
   const [gtfsTimetableData, setGtfsTimetableData] = useState(null);
   const [gtfsLoadFailed, setGtfsLoadFailed] = useState(false);
+  const [nightjetData, setNightjetData] = useState(null);
+  const [nightjetLoadFailed, setNightjetLoadFailed] = useState(false);
   const [cdTimetableData, setCdTimetableData] = useState(null);
   const [cdLoadFailed, setCdLoadFailed] = useState(false);
+
+  // IMPORTANT: `useRoutes()` fetches `/api/trains?type=view_ontd_map` which filters out NJ/EN.
+  // For NJ/EN fallback we must use unfiltered `viewMapData` from `/api/initial-data` when provided.
+  const routes = viewMapData || fetchedRoutes;
 
   // Handle ESC key press
   useEffect(() => {
@@ -146,6 +157,53 @@ const TrainDetailPanel = ({
     });
     return tripsList;
   }, [selectedRouteIds, trips, routes]);
+
+  /**
+   * NightJet/EuroNight: Back-on-Track often has route rows (view_ontd_map) but no trips rows.
+   * For that case, synthesize "trip-like" objects from the selected routes so the panel can
+   * still render useful details (train number + endpoints) and attach the official NJ timetable.
+   */
+  const fallbackTrips = useMemo(() => {
+    if (!selectedRouteIds?.length || !routes) return [];
+    if (relevantTrips.length > 0) return [];
+
+    const next = [];
+    selectedRouteIds.forEach((routeId) => {
+      const route = routes[routeId?.toString()];
+      if (!route) return;
+
+      const pushDirection = (suffix) => {
+        const shortName = route[`trip_short_name_${suffix}`];
+        const origin = route[`origin_trip_${suffix}`];
+        const dest = route[`destination_trip_${suffix}`];
+        const via = route[`via_${suffix}`];
+        if (!shortName || !origin || !dest) return;
+
+        next.push({
+          // Keep the same field names as Back-on-Track trips so the existing UI can render it.
+          trip_id: `synthetic-${routeId}-${suffix}-${shortName}`,
+          route_id: routeId?.toString(),
+          // Use ÖBB so operator color/logo work with existing agency data when present.
+          agency_id: "ÖBB",
+          trip_short_name: shortName,
+          trip_origin: origin,
+          trip_headsign: dest,
+          via: via || "",
+          // Times will be filled from official NJ timetable when available.
+          origin_departure_time: null,
+          destination_arrival_time: null,
+        });
+      };
+
+      pushDirection("0");
+      pushDirection("1");
+    });
+
+    // Only keep trains we can recognize as NJ/EN; otherwise fall back to empty-state.
+    return next.filter((t) => isNightJetOrEuroNightTrainNumber(t.trip_short_name));
+  }, [selectedRouteIds, routes, relevantTrips.length]);
+
+  const tripsToRender = relevantTrips.length > 0 ? relevantTrips : fallbackTrips;
 
   const gtfsRouteKind = useMemo(() => {
     const fromRoutes = detectGtfsRouteKindFromRoutes(selectedRouteIds, routes);
@@ -234,6 +292,84 @@ const TrainDetailPanel = ({
     };
   }, [isOpen, relevantTrips]);
 
+  useEffect(() => {
+    if (!isOpen || fallbackTrips.length === 0) {
+      setNightjetData(null);
+      setNightjetLoadFailed(false);
+      return;
+    }
+
+    let active = true;
+    const loadNightjet = async () => {
+      try {
+        setNightjetLoadFailed(false);
+        const response = await fetch("/api/nightjet-trains");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (active) setNightjetData(data);
+      } catch (_error) {
+        if (active) {
+          setNightjetData(null);
+          setNightjetLoadFailed(true);
+        }
+      }
+    };
+
+    loadNightjet();
+    return () => {
+      active = false;
+    };
+  }, [isOpen, fallbackTrips.length]);
+
+  const nightjetTrainByNumber = useMemo(() => {
+    const trains = nightjetData?.trains || {};
+    const next = new Map();
+    Object.entries(trains).forEach(([key, train]) => {
+      next.set(normalizeTrainNumber(key), train);
+    });
+    return next;
+  }, [nightjetData]);
+
+  // Format time from ISO string (NightJet API uses ISO timestamps)
+  function formatTime(isoString) {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  }
+
+  /**
+   * RegioJet-style: build trainNumber -> schedule map so the existing `schedule` accordion
+   * can render NightJet / EuroNight stops without special-case UI.
+   */
+  const nightjetScheduleByTrainNumber = useMemo(() => {
+    const next = new Map();
+    nightjetTrainByNumber.forEach((train, key) => {
+      const stations = Array.isArray(train?.stations) ? train.stations : [];
+      if (stations.length === 0) return;
+      next.set(key, {
+        tripId: key,
+        // Keep shape compatible with GTFS timetable stops.
+        // Note: schedule accordion expects arrival/departure as strings, not ISO.
+        stops: stations.map((s, i) => ({
+          stopId: s.id || s.name || String(i),
+          sequence: i + 1,
+          name: s.name || s.id || "Station",
+          arrival: formatTime(s.arrival),
+          departure: formatTime(s.departure),
+        })),
+        // NightJet data is date-based; we intentionally omit validity window.
+        validFrom: null,
+        validUntil: null,
+        source: "nightjet",
+      });
+    });
+    return next;
+  }, [nightjetTrainByNumber]);
+
   const cdScheduleByTrainNumber = useMemo(() => {
     if (!cdTimetableData?.trains) return new Map();
     const next = new Map();
@@ -244,17 +380,6 @@ const TrainDetailPanel = ({
     });
     return next;
   }, [cdTimetableData]);
-
-  // Format time from ISO string
-  const formatTime = (isoString) => {
-    if (!isoString) return "";
-    const date = new Date(isoString);
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  };
 
   if (!isOpen) {
     return null;
@@ -282,7 +407,7 @@ const TrainDetailPanel = ({
 
       {/* Content */}
       <div className="p-4 space-y-4 mb-10">
-        {relevantTrips.length === 0 ? (
+        {tripsToRender.length === 0 ? (
           <div className="text-gray-500 text-sm">
             {routesLoading || tripsLoading
               ? "Loading train information..."
@@ -295,13 +420,18 @@ const TrainDetailPanel = ({
                 Detailed stop schedule is currently unavailable.
               </div>
             )}
+            {nightjetLoadFailed && fallbackTrips.length > 0 && (
+              <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                NightJet timetable is currently unavailable.
+              </div>
+            )}
             {cdLoadFailed && isECTrip(relevantTrips) && (
               <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
                 Czech Railways timetable is currently unavailable.
               </div>
             )}
 
-            {relevantTrips.map((trip, index) => {
+            {tripsToRender.map((trip, index) => {
               // Trip list uses trip fields; route rows from useRoutes are only for GTFS-kind detection.
               const agency = agencies[trip.agency_id];
               // Operator brand color for accent styling
@@ -312,6 +442,30 @@ const TrainDetailPanel = ({
               const numericTrainNumber = extractTrainNumberDigits(
                 trip.trip_short_name,
               );
+              const nightjetTrain =
+                nightjetTrainByNumber.get(normalizedTrainNumber) || null;
+              const operatorName =
+                nightjetTrain?.operator ||
+                agency?.agency_name ||
+                "Operator";
+              // Synthetic NJ/EN trips use agency_id="ÖBB" for styling, but the actual
+              // operator can be different (e.g. partner EuroNight trains).
+              // Avoid showing a misleading ÖBB logo when we have a better operator label.
+              const shouldShowAgencyLogo =
+                !!agency?.agency_logo_url &&
+                (!!agency?.agency_name &&
+                  (!nightjetTrain?.operator ||
+                    nightjetTrain.operator === agency.agency_name));
+              const nightjetStations = Array.isArray(nightjetTrain?.stations)
+                ? nightjetTrain.stations
+                : [];
+              const nightjetOriginDeparture =
+                nightjetStations?.[0]?.departure || nightjetStations?.[0]?.arrival || null;
+              const nightjetDestinationArrival =
+                nightjetStations?.[nightjetStations.length - 1]?.arrival ||
+                nightjetStations?.[nightjetStations.length - 1]?.departure ||
+                null;
+
               const detailedSchedule =
                 timetableByTrainNumber.get(normalizedTrainNumber) ||
                 timetableByTrainNumber.get(numericTrainNumber) ||
@@ -333,7 +487,10 @@ const TrainDetailPanel = ({
                       );
                     }) || null
                   : null;
-              const schedule = detailedSchedule || endpointMatchedSchedule;
+              const nightjetSchedule =
+                nightjetScheduleByTrainNumber.get(normalizedTrainNumber) || null;
+              const schedule =
+                detailedSchedule || endpointMatchedSchedule || nightjetSchedule;
               const validFrom = formatCalendarDate(schedule?.validFrom);
               const validUntil = formatCalendarDate(schedule?.validUntil);
 
@@ -346,7 +503,7 @@ const TrainDetailPanel = ({
                   {/* Header: operator + train number */}
                   <div className="flex items-center justify-between gap-3">
                     <div className="space-y-2 min-w-0">
-                      {agency?.agency_logo_url && (
+                      {shouldShowAgencyLogo && (
                         <img
                           src={agency.agency_logo_url}
                           alt={agency.agency_name}
@@ -357,7 +514,7 @@ const TrainDetailPanel = ({
                         />
                       )}
                       <div className="text-sm font-medium text-gray-900 truncate">
-                        {agency?.agency_name || "Operator"}
+                        {operatorName}
                       </div>
                     </div>
                     {trip.trip_short_name && (
@@ -393,7 +550,7 @@ const TrainDetailPanel = ({
                         Departure
                       </div>
                       <div className="font-semibold text-gray-900">
-                        {formatTime(trip.origin_departure_time)}
+                        {formatTime(trip.origin_departure_time || nightjetOriginDeparture)}
                       </div>
                     </div>
                     <div className="rounded-md bg-gray-50 p-2">
@@ -401,7 +558,7 @@ const TrainDetailPanel = ({
                         Arrival
                       </div>
                       <div className="font-semibold text-gray-900">
-                        {formatTime(trip.destination_arrival_time)}
+                        {formatTime(trip.destination_arrival_time || nightjetDestinationArrival)}
                       </div>
                     </div>
                   </div>
