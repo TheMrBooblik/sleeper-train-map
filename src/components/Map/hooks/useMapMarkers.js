@@ -80,7 +80,9 @@ export function useMapMarkers({
         if (!stop?.stop_id) return false;
         const n = normalizeStationNameForLookup(stop.stop_id);
         const cityInfo = cities[n] || cities[stop.stop_id];
-        return !!(cityInfo?.stop_route_ids);
+        if (!cityInfo?.stop_route_ids) return false;
+        const routeIds = cityInfo.stop_route_ids.split(",").map((id) => id.trim()).filter(Boolean);
+        return routeIds.some((routeId) => !shouldHideRouteDueToFutureDate(routeId, trips));
       });
     }
 
