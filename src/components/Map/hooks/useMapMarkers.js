@@ -43,18 +43,6 @@ export function useMapMarkers({
   const getStopKey = (stop) =>
     `${stop?.stop_id || ""}|${stop?.stop_lat || ""}|${stop?.stop_lon || ""}`;
 
-  const hiddenStationLineIcon = useMemo(
-    () =>
-      new Leaflet.DivIcon({
-        className: "hidden-station-line-marker",
-        // Small green/white dot, matching the general via-station color language.
-        html: '<div style="width: 6px; height: 6px; background: linear-gradient(135deg, #4CAF50, #388E3C); border-radius: 9999px; border: 1px solid white; box-shadow: 0 1px 3px rgba(76, 175, 80, 0.25); z-index: 50;"></div>',
-        iconSize: [6, 6],
-        iconAnchor: [3, 3],
-      }),
-    [],
-  );
-
   return useMemo(() => {
     let stopsToShow = [];
     let hiddenStops = [];
@@ -199,7 +187,7 @@ export function useMapMarkers({
     previousZoomRef.current = mapZoom;
     previousVisibleStopKeysRef.current = new Set(stopsToShow.map(getStopKey));
 
-    if (!stopsToShow.length && !hiddenStops.length) return [];
+    if (!stopsToShow.length) return [];
 
     // GTFS route-filter markers may not exist in Back-on-Track city metadata.
     // Keep them visible by disabling city-grouping in this mode.
@@ -339,27 +327,9 @@ export function useMapMarkers({
       })
       .filter(Boolean);
 
-    const hiddenLineMarkers = hiddenStops
-      .map((hiddenStop, index) => {
-        const lat = hiddenStop?.stop_lat;
-        const lon = hiddenStop?.stop_lon;
-        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-
-        return (
-          <Marker
-            key={`hidden-line-${hiddenStop?.stop_id || "station"}-${index}`}
-            position={[lat, lon]}
-            icon={hiddenStationLineIcon}
-            // Force hidden dots below regular station markers.
-            zIndexOffset={-1000}
-            interactive={false}
-          />
-        );
-      })
-      .filter(Boolean);
-
-    // Render hidden dots first so full-size markers stay on top.
-    return [...hiddenLineMarkers, ...visibleMarkers];
+    // We no longer render one Leaflet Marker per "thinned away" station (small green
+    // dots). At low zoom that was hundreds of extra markers and noticeably slowed pan/zoom.
+    return visibleMarkers;
   }, [
     filteredStops,
     stops,
@@ -381,6 +351,5 @@ export function useMapMarkers({
     defaultIcon,
     selectedIcon,
     viaIcon,
-    hiddenStationLineIcon,
   ]);
 }

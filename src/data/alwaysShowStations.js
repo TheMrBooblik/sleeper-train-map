@@ -22,6 +22,7 @@ export const alwaysShowStations = [
   "Budapest Keleti",
   "București Nord",
   "Düsseldorf Hbf",
+  "Eindhoven Centraal",
   "Frankfurt*",
   "Frankfurt(Main)Süd",
   "Hamburg Hbf",
