@@ -208,11 +208,16 @@ const TrainMap = ({
         });
       }
 
-      // 3. Find other city entries with the same display city name.
+      // 3. Find other city entries with the same display city name or fuzzy-matching name.
+      // The fuzzy match covers diacritic variants (e.g. "Przemysl Gl." vs "Przemyśl Gł.")
+      // where NightJet API uses ASCII station names but BoT uses local diacritics.
       if (filterName) {
         Object.entries(cities).forEach(([key, city]) => {
           if (!city?.stop_route_ids) return;
-          if (normalizeStationNameForDisplay(key) === filterName) {
+          if (
+            normalizeStationNameForDisplay(key) === filterName ||
+            matchStationNamesBound(stop_id, key)
+          ) {
             city.stop_route_ids.split(",").forEach((id) => {
               const t = id.trim();
               if (t) allRouteIds.add(t);

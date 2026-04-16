@@ -42,3 +42,6 @@ gtfs-data/obb/shapes.txt
 gtfs-data/polish_trains.zip
 gtfs-data/polish-trains-unpacked/
 .env*.local
+
+# Playwright
+.playwright-mcp/

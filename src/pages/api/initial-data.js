@@ -4,7 +4,7 @@
 // Vercel CDN caches this for 1 hour so only ~1 serverless invocation per hour worldwide.
 
 import { isTrain4you } from "../../lib/trainOperatorsFilter";
-import { getBlobData, isFresh } from "./lib/blob-store";
+import { getBlobData, getNJTrains, isFresh } from "./lib/blob-store";
 import {
   keepViewMapRowForTripActivity,
   routeIdsFromFilteredTrips,
@@ -93,10 +93,11 @@ export default async function handler(req, res) {
     let source = "github";
 
     // Try Vercel Blob first (daily scrape — view_ontd_map already has nj_positions merged in)
-    const [blobStops, blobViewMap, blobTrips] = await Promise.all([
+    const [blobStops, blobViewMap, blobTrips, njBlob] = await Promise.all([
       getBlobData("stops"),
       getBlobData("view_ontd_map"),
       getBlobData("trips"),
+      getNJTrains(),
     ]);
 
     if (
@@ -123,15 +124,10 @@ export default async function handler(req, res) {
     const filteredTrips = filterTrips(rawTrips);
     const filteredViewMap = filterViewMap(rawViewMap, rawTrips, filteredTrips);
 
-    // CDN caches for 1 hour; serve stale while revalidating for up to 1 day
-    res.setHeader(
-      "Cache-Control",
-      "public, s-maxage=3600, stale-while-revalidate=86400",
-    );
-    res.setHeader("Content-Type", "application/json");
-
-    // Strip stops to only the fields the client needs (name + coords) — raw BoT stops
-    // have 17 fields and 28k+ entries which bloats the response to 11MB+.
+    // Normalize stops shape early so we can use them for NJ station → BoT stop matching.
+    // This is important for synthetic NJ-only routes: NightJet API sometimes provides
+    // only English station names (e.g. "Vienna Central Station"), which won't match
+    // Back-on-Track stop names ("Wien Hbf") on the client.
     const stopsArray = Array.isArray(rawStops)
       ? rawStops
       : Object.values(rawStops || {});
@@ -141,6 +137,103 @@ export default async function handler(req, res) {
       stop_lat: s.stop_lat,
       stop_lon: s.stop_lon,
     }));
+    const parseCoord = (v) => {
+      const n = typeof v === "number" ? v : parseFloat(String(v ?? "").trim());
+      return Number.isFinite(n) ? n : null;
+    };
+    const stopPoints = trimmedStops
+      .map((s) => ({
+        name: s.stop_name || s.stop_id,
+        lat: parseCoord(s.stop_lat),
+        lon: parseCoord(s.stop_lon),
+      }))
+      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon) && p.name);
+    const resolveBotStopName = (station) => {
+      const lat = station?.location?.latitude;
+      const lon = station?.location?.longitude;
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return station?.name;
+      let best = null;
+      let bestD2 = Infinity;
+      for (const p of stopPoints) {
+        const dLat = p.lat - lat;
+        const dLon = p.lon - lon;
+        const d2 = dLat * dLat + dLon * dLon;
+        if (d2 < bestD2) {
+          bestD2 = d2;
+          best = p;
+        }
+      }
+      // Rough threshold: ~0.03 degrees ≈ 3km-ish (varies by latitude). Keeps us from
+      // accidentally snapping to a different city when data is imperfect.
+      return best && bestD2 <= 0.03 * 0.03 ? best.name : station?.name;
+    };
+
+    // Synthetic routes for NJ partner trains with no Back-on-Track entry (e.g. EN 40416/40417)
+    const njTrains = njBlob?.data?.trains ?? {};
+    const botMatchedNJNumbers = new Set();
+    Object.values(filteredViewMap).forEach((route) => {
+      [route.trip_short_name_0, route.trip_short_name_1]
+        .filter(Boolean)
+        .forEach((n) => botMatchedNJNumbers.add(n.trim()));
+    });
+    const unmatchedNJ = Object.entries(njTrains).filter(
+      ([lineName, data]) =>
+        !botMatchedNJNumbers.has(lineName) &&
+        data.polyline &&
+        data.stations?.length >= 2,
+    );
+    const syntheticPaired = new Set();
+    unmatchedNJ.forEach(([lineName, data]) => {
+      if (syntheticPaired.has(lineName)) return;
+      const origin = resolveBotStopName(data.stations[0]);
+      const dest = resolveBotStopName(data.stations[data.stations.length - 1]);
+      const reversePair = unmatchedNJ.find(
+        ([k, v]) =>
+          k !== lineName &&
+          !syntheticPaired.has(k) &&
+          resolveBotStopName(v.stations?.[0]) === dest &&
+          resolveBotStopName(v.stations?.[v.stations.length - 1]) === origin,
+      );
+      const safeId = lineName.replace(/\s+/g, "_");
+      const entry = {
+        route_id: `nj_standalone_${safeId}`,
+        agency_id: "",
+        trip_short_name_0: lineName,
+        origin_trip_0: origin,
+        destination_trip_0: dest,
+        via_0: data.stations
+          .slice(1, -1)
+          .map((s) => resolveBotStopName(s))
+          .filter(Boolean)
+          .join(" - "),
+        route_long_name: `${origin} – ${dest}`,
+        nj_polyline: data.polyline,
+        is_active: "Y",
+      };
+      if (reversePair) {
+        const [revName, revData] = reversePair;
+        entry.trip_short_name_1 = revName;
+        entry.origin_trip_1 = resolveBotStopName(revData.stations[0]);
+        entry.destination_trip_1 = resolveBotStopName(
+          revData.stations[revData.stations.length - 1],
+        );
+        entry.via_1 = revData.stations
+          .slice(1, -1)
+          .map((s) => resolveBotStopName(s))
+          .filter(Boolean)
+          .join(" - ");
+        syntheticPaired.add(revName);
+      }
+      syntheticPaired.add(lineName);
+      filteredViewMap[entry.route_id] = entry;
+    });
+
+    // CDN caches for 1 hour; serve stale while revalidating for up to 1 day
+    res.setHeader(
+      "Cache-Control",
+      "public, s-maxage=3600, stale-while-revalidate=86400",
+    );
+    res.setHeader("Content-Type", "application/json");
 
     res.status(200).json({
       stops: trimmedStops,
