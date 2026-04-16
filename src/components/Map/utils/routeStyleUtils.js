@@ -56,9 +56,19 @@ export function isRouteOutsideServiceIdSeason(routeId, trips) {
   return !inAny;
 }
 
+// Thin dashed style for seasonal routes and for calendar routes outside their BoT window (map polylines).
+// Must run before the "daily" branch in getRouteStyleFromFrequency — service_id like "…/…/…-…/…/…: Daily"
+// would otherwise match isDaily and draw a thick solid line off-season.
+const SEASONAL_POLYLINE_STYLE = {
+  weight: 2.5,
+  dashArray: "6,6",
+  opacity: 0.45,
+};
+
 /**
  * Get polyline style (weight, dashArray, opacity) from route frequency in trips.
  * Matches legend: 6-7 days = solid, 3-5 = medium dash, seasonal = dashed + lighter.
+ * Off-calendar routes (today outside every BoT YYYY/MM/DD-… window on all trips) use the same thin dashed style.
  * @param {string} routeId - Route ID
  * @param {Object} trips - Trips data keyed by trip id
  * @returns {{ weight: number, dashArray: string|null, opacity?: number }}
@@ -74,6 +84,11 @@ export function getRouteStyleFromFrequency(routeId, trips) {
 
   if (routeTrips.length === 0) {
     return { weight: 4.5, dashArray: null };
+  }
+
+  // Outside BoT calendar window: same thin dashed look as in-season seasonal (see plan).
+  if (isRouteOutsideServiceIdSeason(routeId, trips)) {
+    return SEASONAL_POLYLINE_STYLE;
   }
 
   let isSeasonal = false;
@@ -130,11 +145,7 @@ export function getRouteStyleFromFrequency(routeId, trips) {
     return { weight: 4.5, dashArray: "6,9" };
   }
   if (isSeasonal) {
-    return {
-      weight: 2.5,
-      dashArray: "6,6",
-      opacity: 0.45,
-    };
+    return SEASONAL_POLYLINE_STYLE;
   }
 
   const uniqueTrips = new Set(
@@ -439,17 +450,16 @@ export function isRegioJetRoute(route) {
 export const REGIOJET_COLOR = "#F0AB00";
 
 /**
- * Hide route in lists/markers when: (1) irregularities have a future "From YYYY-MM-DD", or
- * (2) every trip uses a service_id calendar range (YYYY/MM/DD-YYYY/MM/DD) and today is outside all ranges.
- * Map polylines: future "From" still draw as ghost lines; seasonal-outside routes are omitted (see useRoutePaths).
+ * Hide route in lists/markers only when irregularities have a future "From YYYY-MM-DD".
+ * Off-calendar routes (today outside every BoT service_id window) stay visible in the bottom bar,
+ * markers, and train detail panel — trip rows still exist — while the map draws them thin via
+ * getRouteStyleFromFrequency. Future "From" routes still draw as ghost polylines on the map.
  * @param {string} routeId - Route ID
  * @param {Object} trips - Trips data
  * @returns {boolean}
  */
 export function shouldHideRouteDueToFutureDate(routeId, trips) {
-  if (getFutureRouteStartDate(routeId, trips) !== null) return true;
-  if (isRouteOutsideServiceIdSeason(routeId, trips)) return true;
-  return false;
+  return getFutureRouteStartDate(routeId, trips) !== null;
 }
 
 /**
