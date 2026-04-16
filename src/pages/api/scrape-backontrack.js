@@ -5,7 +5,7 @@
 import polyline from "@mapbox/polyline";
 import { putBlobData, putOsmRelation, putNJTrains, putCDTrains } from "./lib/blob-store";
 import { fetchSingleTrain, fetchNJTrainNumbers, fetchPartnerTrainNumbers } from "./lib/train-fetcher";
-import { fetchCDTrain, extractECNumbers } from "./lib/cd-fetcher";
+import { fetchCDTrain, extractECNumbers, extractENNumbers } from "./lib/cd-fetcher";
 
 const BASE_URL =
   "https://raw.githubusercontent.com/Back-on-Track-eu/night-train-data/main/data/latest";
@@ -16,7 +16,7 @@ const OVERPASS_ENDPOINTS = [
 ];
 
 // OSM relation IDs used by the frontend (hardcoded in useRoutePaths.js)
-const OSM_RELATION_IDS = ["18616102"]; // European Sleeper 453
+const OSM_RELATION_IDS = ["18616102", "3779843", "8737075"]; // European Sleeper 453 + Warszawa↔Budapest + Praha↔Warszawa (EN 443)
 
 async function fetchBackontrack(type) {
   const response = await fetch(`${BASE_URL}/${type}.json`, {
@@ -141,19 +141,86 @@ export default async function handler(req, res) {
     console.error("[scrape-backontrack] NightJet scrape failed:", err.message);
   }
 
-  // Store view_ontd_map now — enriched with nj_positions where available
+  // Synthetic routes for NJ partner trains not in BoT (e.g. EN 40416/40417 München↔Przemyśl)
+  const botMatchedNJNumbers = new Set();
+  Object.values(view_ontd_map).forEach((route) => {
+    [route.trip_short_name_0, route.trip_short_name_1]
+      .filter(Boolean)
+      .forEach((n) => botMatchedNJNumbers.add(n.trim()));
+  });
+
+  const unmatchedNJ = Object.entries(results).filter(
+    ([lineName, data]) =>
+      !botMatchedNJNumbers.has(lineName) &&
+      data.polyline &&
+      data.stations?.length >= 2,
+  );
+
+  const syntheticPaired = new Set();
+  unmatchedNJ.forEach(([lineName, data]) => {
+    if (syntheticPaired.has(lineName)) return;
+
+    const origin = data.stations[0].name;
+    const dest = data.stations[data.stations.length - 1].name;
+
+    const reversePair = unmatchedNJ.find(
+      ([k, v]) =>
+        k !== lineName &&
+        !syntheticPaired.has(k) &&
+        v.stations?.[0]?.name === dest &&
+        v.stations?.[v.stations.length - 1]?.name === origin,
+    );
+
+    const safeId = lineName.replace(/\s+/g, "_");
+    const entry = {
+      route_id: `nj_standalone_${safeId}`,
+      agency_id: "",
+      trip_short_name_0: lineName,
+      origin_trip_0: origin,
+      destination_trip_0: dest,
+      via_0: data.stations.slice(1, -1).map((s) => s.name).join(" - "),
+      route_long_name: `${origin} – ${dest}`,
+      nj_polyline: data.polyline,
+      is_active: "Y",
+    };
+
+    if (reversePair) {
+      const [revName, revData] = reversePair;
+      entry.trip_short_name_1 = revName;
+      entry.origin_trip_1 = revData.stations[0].name;
+      entry.destination_trip_1 = revData.stations[revData.stations.length - 1].name;
+      entry.via_1 = revData.stations.slice(1, -1).map((s) => s.name).join(" - ");
+      syntheticPaired.add(revName);
+    }
+
+    syntheticPaired.add(lineName);
+    view_ontd_map[entry.route_id] = entry;
+    console.log(`[scrape-backontrack] Synthetic route: ${entry.route_id} (${origin} – ${dest})`);
+  });
+
+  // Store view_ontd_map now — enriched with nj_positions and synthetic partner routes
   await putBlobData("view_ontd_map", view_ontd_map);
 
   // Scrape Czech Railways (cd.cz) EC train timetables
   let cdCount = 0;
   try {
     const ecNumbers = extractECNumbers(trips);
+    const enNumbers = extractENNumbers(trips);
     const CONCURRENCY = 6;
     const cdResults = {};
 
     for (let i = 0; i < ecNumbers.length; i += CONCURRENCY) {
       const batch = ecNumbers.slice(i, i + CONCURRENCY);
-      const fetched = await Promise.all(batch.map((n) => fetchCDTrain(n)));
+      const fetched = await Promise.all(batch.map((n) => fetchCDTrain(n, "EC")));
+      fetched.forEach((train) => {
+        if (!train) return;
+        cdResults[train.trainNumber] = train;
+      });
+    }
+
+    for (let i = 0; i < enNumbers.length; i += CONCURRENCY) {
+      const batch = enNumbers.slice(i, i + CONCURRENCY);
+      const fetched = await Promise.all(batch.map((n) => fetchCDTrain(n, "EN")));
       fetched.forEach((train) => {
         if (!train) return;
         cdResults[train.trainNumber] = train;

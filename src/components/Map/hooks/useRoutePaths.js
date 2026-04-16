@@ -4,13 +4,22 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import {
   getRouteStyleFromFrequency,
   checkEuropeanSleeper453,
+  checkPrahaWarszawaChopin,
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
   checkZemplinBratislavaHumenne,
+  isRegioJetRoute,
+  REGIOJET_COLOR,
+  ZEMPLIN_COLOR,
+  PKP_COLOR,
+  isPkpAgencyRoute,
   checkENHumennePraha,
-  shouldHideRouteDueToFutureDate,
+  checkPrzemyslSwinoujscie,
+  checkWarszawaBudapestRoute,
   getFutureRouteStartDate,
+  isRouteOutsideServiceIdSeason,
 } from "../utils/routeStyleUtils";
+import { parseCoord } from "../../../helpers/enrichStationsWithCoordinates";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../utils/operatorColors";
 import { buildAllRoutesPaths } from "../utils/buildAllRoutesPaths";
 import polyline from "@mapbox/polyline";
@@ -19,7 +28,7 @@ import polyline from "@mapbox/polyline";
 // Some OSM relations have station approach segments at the start
 // that cause visual backtracking on the map.
 const OSM_TRIM_OFFSETS = {
-  "18616102": 328,           // European Sleeper 453
+  18616102: 328, // European Sleeper 453
 };
 
 function isInactiveRoute(route) {
@@ -93,7 +102,12 @@ export function useRoutePaths({
     if (routesToShow.length === 0) return [];
 
     // Use precomputed "all routes" paths only when showing all routes (no station and no route filter).
-    if (showRoutes && !selected && selectedTrainRouteIds?.length === 0 && precomputedAllPathsRef.current != null) {
+    if (
+      showRoutes &&
+      !selected &&
+      selectedTrainRouteIds?.length === 0 &&
+      precomputedAllPathsRef.current != null
+    ) {
       const basePaths = precomputedAllPathsRef.current;
       return basePaths.map((path) => {
         if (path.osmRelationId && osmPolylines.has(path.osmRelationId)) {
@@ -115,11 +129,12 @@ export function useRoutePaths({
     }
 
     const routeMap = new Map();
-    const stationKey = selectedTrainRouteIds?.length > 0
-      ? "selected-route"
-      : selected
-        ? stopId || "none"
-        : "all-routes";
+    const stationKey =
+      selectedTrainRouteIds?.length > 0
+        ? "selected-route"
+        : selected
+          ? stopId || "none"
+          : "all-routes";
     Object.values(viewMapData).forEach((route) => {
       if (route?.route_id && !isInactiveRoute(route)) {
         routeMap.set(route.route_id.toString(), route);
@@ -136,13 +151,16 @@ export function useRoutePaths({
     };
 
     stops.forEach((stop) => {
-      if (!stop.stop_id || !stop.stop_lat || !stop.stop_lon) return;
+      if (!stop.stop_id) return;
+      const lat = parseCoord(stop.stop_lat);
+      const lon = parseCoord(stop.stop_lon);
+      if (lat == null || lon == null) return;
       const n = getCachedNormalizedName(stop.stop_id);
       if (!stationCoordsMap.has(n)) {
-        stationCoordsMap.set(n, [stop.stop_lat, stop.stop_lon]);
+        stationCoordsMap.set(n, [lat, lon]);
       }
       if (!stationCoordsMap.has(stop.stop_id)) {
-        stationCoordsMap.set(stop.stop_id, [stop.stop_lat, stop.stop_lon]);
+        stationCoordsMap.set(stop.stop_id, [lat, lon]);
       }
     });
 
@@ -150,9 +168,7 @@ export function useRoutePaths({
       if (!stationName) return null;
       const n = getCachedNormalizedName(stationName);
       return (
-        stationCoordsMap.get(n) ||
-        stationCoordsMap.get(stationName) ||
-        null
+        stationCoordsMap.get(n) || stationCoordsMap.get(stationName) || null
       );
     };
 
@@ -192,6 +208,11 @@ export function useRoutePaths({
       const route = routeMap.get(routeId);
       if (!route) return;
 
+      // Calendar service_id (e.g. summer-only): omit lines entirely outside BoT window.
+      if (isRouteOutsideServiceIdSeason(routeId, trips)) {
+        return;
+      }
+
       const futureStartDate = getFutureRouteStartDate(routeId, trips);
       const isFuture = futureStartDate !== null;
 
@@ -213,9 +234,12 @@ export function useRoutePaths({
       // European Sleeper 453: single OSM relation.
       // RegioJet routes and Zemplín: pre-computed static polylines (avoids
       // double-track / scattered-approach issues in raw OSM relations).
+      // PKP polylines: pkp_gtfs_positions_* from GTFS bundle (merged in useInitialData).
       let osmRelationId = null;
       if (checkEuropeanSleeper453(route)) {
         osmRelationId = "18616102";
+      } else if (checkPrahaWarszawaChopin(route)) {
+        osmRelationId = "8737075";
       } else if (checkRegioJetPrahaChop(route)) {
         osmRelationId = "static:rjChop";
       } else if (checkRegioJetPrahaPrzemysl(route)) {
@@ -224,6 +248,23 @@ export function useRoutePaths({
         osmRelationId = "static:zemplin";
       } else if (checkENHumennePraha(route)) {
         osmRelationId = "static:enHumenne";
+      } else if (checkPrzemyslSwinoujscie(route)) {
+        osmRelationId = "static:przemyslSwinoujscie";
+      } else if (checkWarszawaBudapestRoute(route)) {
+        osmRelationId = "3779843";
+      }
+
+      // RegioJet routes use their brand color instead of the default palette
+      if (isRegioJetRoute(route)) {
+        pathOptions.color = REGIOJET_COLOR;
+      }
+      // Zemplín route uses red
+      if (checkZemplinBratislavaHumenne(route)) {
+        pathOptions.color = ZEMPLIN_COLOR;
+      }
+      // PKP / PKP-ČD routes use navy blue (IC/TLK branding)
+      if (isPkpAgencyRoute(route)) {
+        pathOptions.color = PKP_COLOR;
       }
 
       // Official NJ/EN polyline takes precedence over station-name-based coords
@@ -239,38 +280,52 @@ export function useRoutePaths({
           source: "nightjet",
         });
       } else {
+        const gtfs0 =
+          route.pkp_gtfs_positions_0?.length >= 2
+            ? route.pkp_gtfs_positions_0
+            : null;
         const path0 = buildPathForDirection(
           route.origin_trip_0,
           route.destination_trip_0,
           route.via_0,
         );
-        if (path0) {
+        const path0ToUse =
+          gtfs0 ?? path0 ?? route.fallbackPositions ?? null;
+        if (path0ToUse && path0ToUse.length >= 2) {
           paths.push({
-            positions: path0,
+            positions: path0ToUse,
             routeId,
             key: `route-${stationKey}-${routeId}-0`,
             pathOptions,
-            osmRelationId,
+            osmRelationId: gtfs0 ? null : osmRelationId,
             isFuture,
             futureStartDate,
+            source: gtfs0 ? "pkp_gtfs" : undefined,
           });
         }
 
         if (route.origin_trip_1 && route.destination_trip_1) {
+          const gtfs1 =
+            route.pkp_gtfs_positions_1?.length >= 2
+              ? route.pkp_gtfs_positions_1
+              : null;
           const path1 = buildPathForDirection(
             route.origin_trip_1,
             route.destination_trip_1,
             route.via_1,
           );
-          if (path1) {
+          const path1ToUse =
+            gtfs1 ?? path1 ?? route.fallbackPositions ?? null;
+          if (path1ToUse && path1ToUse.length >= 2) {
             paths.push({
-              positions: path1,
+              positions: path1ToUse,
               routeId,
               key: `route-${stationKey}-${routeId}-1`,
               pathOptions,
-              osmRelationId,
+              osmRelationId: gtfs1 ? null : osmRelationId,
               isFuture,
               futureStartDate,
+              source: gtfs1 ? "pkp_gtfs" : undefined,
             });
           }
         }
@@ -278,7 +333,12 @@ export function useRoutePaths({
     });
 
     // Cache "all routes" paths so next time "Show all routes" is toggled we use it instantly (only when not in route-filter mode).
-    if (showRoutes && !selected && selectedTrainRouteIds?.length === 0 && paths.length > 0) {
+    if (
+      showRoutes &&
+      !selected &&
+      selectedTrainRouteIds?.length === 0 &&
+      paths.length > 0
+    ) {
       precomputedAllPathsRef.current = paths;
     }
 
@@ -323,6 +383,9 @@ export function useRoutePaths({
       if (checkEuropeanSleeper453(route)) {
         polylineKeysToFetch.add("18616102");
       }
+      if (checkPrahaWarszawaChopin(route)) {
+        polylineKeysToFetch.add("8737075");
+      }
       if (checkRegioJetPrahaChop(route)) {
         polylineKeysToFetch.add("static:rjChop");
       }
@@ -334,6 +397,12 @@ export function useRoutePaths({
       }
       if (checkENHumennePraha(route)) {
         polylineKeysToFetch.add("static:enHumenne");
+      }
+      if (checkPrzemyslSwinoujscie(route)) {
+        polylineKeysToFetch.add("static:przemyslSwinoujscie");
+      }
+      if (checkWarszawaBudapestRoute(route)) {
+        polylineKeysToFetch.add("3779843");
       }
     });
     polylineKeysToFetch.forEach(async (key) => {
@@ -347,8 +416,19 @@ export function useRoutePaths({
         if (res.ok) {
           const data = await res.json();
           // Static files are a plain coordinate array; API responses wrap in { coordinates }
-          const coords = Array.isArray(data) ? data : data.coordinates;
-          if (coords?.length > 0) {
+          const raw = Array.isArray(data) ? data : data.coordinates;
+          const coords = Array.isArray(raw)
+            ? raw
+                .filter(
+                  (p) =>
+                    Array.isArray(p) &&
+                    p.length >= 2 &&
+                    Number.isFinite(+p[0]) &&
+                    Number.isFinite(+p[1]),
+                )
+                .map((p) => [+p[0], +p[1]])
+            : [];
+          if (coords.length > 0) {
             setOsmPolylines((prev) => {
               const next = new Map(prev);
               next.set(key, coords);
@@ -357,10 +437,7 @@ export function useRoutePaths({
           }
         }
       } catch (error) {
-        console.error(
-          `[DynamicMap] Failed to fetch polyline ${key}:`,
-          error,
-        );
+        console.error(`[DynamicMap] Failed to fetch polyline ${key}:`, error);
       }
     });
   }, [viewMapData, osmPolylines]);

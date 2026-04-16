@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { enrichStationsWithCoordinates } from "../../helpers/enrichStationsWithCoordinates";
 import { stationCoordinates } from "../../data/stationCoordinates";
 import { normalizeStationNameForLookup } from "./useCities";
+import { attachPkpGtfsPolylinesToViewMap } from "../../lib/pkpGtfsMerge";
 
 // Module-level cache: shared across all component instances, 1 hour TTL
 const CACHE_DURATION = 60 * 60 * 1000;
@@ -109,9 +110,22 @@ export function useInitialData() {
 
       setIsLoading(true);
       try {
-        const res = await fetch("/api/initial-data");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const [dataRes, pkpRes] = await Promise.all([
+          fetch("/api/initial-data"),
+          fetch("/data/gtfs/pkpTrainShapes.json"),
+        ]);
+        if (!dataRes.ok) throw new Error(`HTTP ${dataRes.status}`);
+        const data = await dataRes.json();
+
+        let viewMapRaw = data.viewMap || {};
+        if (pkpRes.ok) {
+          try {
+            const pkpBundle = await pkpRes.json();
+            viewMapRaw = attachPkpGtfsPolylinesToViewMap(viewMapRaw, pkpBundle);
+          } catch (e) {
+            console.warn("[useInitialData] PKP GTFS bundle parse failed:", e);
+          }
+        }
 
         // Process stops: convert to array + enrich with coordinates (same as useStops)
         let stopsArray = Array.isArray(data.stops)
@@ -123,13 +137,13 @@ export function useInitialData() {
         );
 
         // Derive cities from viewMap (same logic as useCities)
-        const citiesMap = deriveCities(data.viewMap);
+        const citiesMap = deriveCities(viewMapRaw);
 
         // Store in module-level cache
         cache.data = {
           stops: stopsArray,
           cities: citiesMap,
-          viewMapData: data.viewMap || {},
+          viewMapData: viewMapRaw,
           trips: data.trips || {},
         };
         cache.timestamp = now;
@@ -137,7 +151,7 @@ export function useInitialData() {
         setStops(stopsArray);
         setFilteredStops(stopsArray);
         setCities(citiesMap);
-        setViewMapData(data.viewMap || {});
+        setViewMapData(viewMapRaw);
         setTrips(data.trips || {});
       } catch (err) {
         console.error("[useInitialData] Error:", err);
@@ -157,9 +171,22 @@ export function useInitialData() {
   const refreshData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/initial-data");
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const [dataRes, pkpRes] = await Promise.all([
+        fetch("/api/initial-data"),
+        fetch("/data/gtfs/pkpTrainShapes.json"),
+      ]);
+      if (!dataRes.ok) throw new Error(`HTTP ${dataRes.status}`);
+      const data = await dataRes.json();
+
+      let viewMapRaw = data.viewMap || {};
+      if (pkpRes.ok) {
+        try {
+          const pkpBundle = await pkpRes.json();
+          viewMapRaw = attachPkpGtfsPolylinesToViewMap(viewMapRaw, pkpBundle);
+        } catch (e) {
+          console.warn("[useInitialData] PKP GTFS bundle parse failed:", e);
+        }
+      }
 
       let stopsArray = Array.isArray(data.stops)
         ? data.stops
@@ -168,12 +195,12 @@ export function useInitialData() {
         stopsArray,
         stationCoordinates,
       );
-      const citiesMap = deriveCities(data.viewMap);
+      const citiesMap = deriveCities(viewMapRaw);
 
       cache.data = {
         stops: stopsArray,
         cities: citiesMap,
-        viewMapData: data.viewMap || {},
+        viewMapData: viewMapRaw,
         trips: data.trips || {},
       };
       cache.timestamp = Date.now();
@@ -181,7 +208,7 @@ export function useInitialData() {
       setStops(stopsArray);
       setFilteredStops(stopsArray);
       setCities(citiesMap);
-      setViewMapData(data.viewMap || {});
+      setViewMapData(viewMapRaw);
       setTrips(data.trips || {});
     } catch (err) {
       console.error("[useInitialData] Refresh error:", err);

@@ -3,6 +3,59 @@
  * Used to determine line weight, dash array, and special cases (e.g. European Sleeper 453).
  */
 
+// BoT calendar window in trip.service_id, e.g. "2026/06/26-2026/08/30: Daily"
+const SERVICE_ID_CALENDAR_RANGE_RE =
+  /(\d{4})\/(\d{1,2})\/(\d{1,2})\s*-\s*(\d{4})\/(\d{1,2})\/(\d{1,2})/;
+
+/**
+ * Parse YYYY/MM/DD-YYYY/MM/DD from Back-on-Track service_id (optional ": …" suffix).
+ * @param {string} [serviceId]
+ * @returns {{ start: Date, end: Date } | null} Local-date start/end (inclusive).
+ */
+export function parseBoTServiceIdDateRange(serviceId) {
+  if (!serviceId || typeof serviceId !== "string") return null;
+  const m = serviceId.match(SERVICE_ID_CALENDAR_RANGE_RE);
+  if (!m) return null;
+  const start = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const end = new Date(Number(m[4]), Number(m[5]) - 1, Number(m[6]));
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  return { start, end };
+}
+
+/**
+ * True when every trip on this route has a calendar service_id range and today is outside all of them.
+ * If any trip has no such range (e.g. "2026: Daily"), the route stays visible year-round.
+ * @param {string|number} routeId
+ * @param {Record<string, object>} trips
+ * @returns {boolean}
+ */
+export function isRouteOutsideServiceIdSeason(routeId, trips) {
+  if (!trips || routeId == null) return false;
+
+  const routeTrips = Object.values(trips).filter(
+    (trip) => trip.route_id?.toString() === routeId.toString(),
+  );
+  if (routeTrips.length === 0) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const ranges = [];
+  for (const trip of routeTrips) {
+    const range = parseBoTServiceIdDateRange(trip.service_id);
+    if (!range) {
+      return false;
+    }
+    ranges.push(range);
+  }
+
+  const inAny = ranges.some(
+    ({ start, end }) => today >= start && today <= end,
+  );
+  return !inAny;
+}
+
 /**
  * Get polyline style (weight, dashArray, opacity) from route frequency in trips.
  * Matches legend: 6-7 days = solid, 3-5 = medium dash, seasonal = dashed + lighter.
@@ -56,9 +109,7 @@ export function getRouteStyleFromFrequency(routeId, trips) {
       isSeasonal = true;
     }
 
-    if (
-      /\d{4}\/\d{1,2}\/\d{1,2}\s*-\s*\d{4}\/\d{1,2}\/\d{1,2}/.test(serviceId)
-    ) {
+    if (parseBoTServiceIdDateRange(trip.service_id || "")) {
       isSeasonal = true;
     }
 
@@ -135,6 +186,36 @@ export function checkEuropeanSleeper453(route) {
 }
 
 /**
+ * Whether the route is the Praha hl.n. ↔ Warszawa Wschodnia night train corridor
+ * (BoT route_id 9: "EN 443 / IC 406" + "IC 407 / EN 442").
+ *
+ * We intentionally skip PKP GTFS polylines for this route (see `src/lib/pkpGtfsMerge.js`)
+ * because train keys "406/407" collide with the München↔Warszawa NightJet GTFS shape.
+ * Without an alternative, the map falls back to station-to-station segments which can
+ * look like "direct lines". Using an OSM route relation gives us a dense, track-like polyline.
+ *
+ * @param {Object} route - View map route object
+ * @returns {boolean}
+ */
+export function checkPrahaWarszawaChopin(route) {
+  if (!route) return false;
+  const fields = [
+    route.origin_trip_0,
+    route.destination_trip_0,
+    route.origin_trip_1,
+    route.destination_trip_1,
+  ].map((f) => (f || "").toString().toLowerCase());
+  const hasPraha = fields.some((f) => f.includes("praha"));
+  const hasWarszawa = fields.some((f) => f.includes("warszawa"));
+  if (!hasPraha || !hasWarszawa) return false;
+
+  const t0 = (route.trip_short_name_0 || "").toString().toUpperCase();
+  const t1 = (route.trip_short_name_1 || "").toString().toUpperCase();
+  const blob = `${t0} ${t1}`;
+  return /\bEN\s*443\b/.test(blob) || /\bIC\s*40[67]\b/.test(blob);
+}
+
+/**
  * Whether the route is RegioJet 1020/1021 (Praha – Chop).
  * Detected by agency_id "RJ" and trip names 1020/1021, or by origin/destination matching.
  * Uses combined OSM relations for accurate geometry along the railway tracks.
@@ -148,14 +229,22 @@ export function checkRegioJetPrahaChop(route) {
   const trip0 = (route.trip_short_name_0 || "").toString().trim();
   const trip1 = (route.trip_short_name_1 || "").toString().trim();
   const agency = (route.agency_id || "").toUpperCase();
-  if (agency === "RJ" && (trip0 === "1020" || trip0 === "1021" || trip1 === "1020" || trip1 === "1021")) {
+  if (
+    agency === "RJ" &&
+    (trip0 === "1020" ||
+      trip0 === "1021" ||
+      trip1 === "1020" ||
+      trip1 === "1021")
+  ) {
     return true;
   }
 
   // Fallback: match origin/destination pair (Praha + Chop/Čop)
   const fields = [
-    route.origin_trip_0, route.destination_trip_0,
-    route.origin_trip_1, route.destination_trip_1,
+    route.origin_trip_0,
+    route.destination_trip_0,
+    route.origin_trip_1,
+    route.destination_trip_1,
   ].map((f) => (f || "").toLowerCase());
 
   const hasPraha = fields.some((f) => f.includes("praha"));
@@ -175,14 +264,22 @@ export function checkRegioJetPrahaPrzemysl(route) {
   const trip0 = (route.trip_short_name_0 || "").toString().trim();
   const trip1 = (route.trip_short_name_1 || "").toString().trim();
   const agency = (route.agency_id || "").toUpperCase();
-  if (agency === "RJ" && (trip0 === "1038" || trip0 === "1039" || trip1 === "1038" || trip1 === "1039")) {
+  if (
+    agency === "RJ" &&
+    (trip0 === "1038" ||
+      trip0 === "1039" ||
+      trip1 === "1038" ||
+      trip1 === "1039")
+  ) {
     return true;
   }
 
   // Fallback: Praha + Przemyśl with RJ agency
   const fields = [
-    route.origin_trip_0, route.destination_trip_0,
-    route.origin_trip_1, route.destination_trip_1,
+    route.origin_trip_0,
+    route.destination_trip_0,
+    route.origin_trip_1,
+    route.destination_trip_1,
   ].map((f) => (f || "").toLowerCase());
 
   const hasPraha = fields.some((f) => f.includes("praha"));
@@ -211,8 +308,10 @@ export function checkENHumennePraha(route) {
   // Distinguish from the Praha–Warszawa EN 443 (route 9, agency PKP/ČD)
   // by checking for Humenné in origin/destination
   const fields = [
-    route.origin_trip_0, route.destination_trip_0,
-    route.origin_trip_1, route.destination_trip_1,
+    route.origin_trip_0,
+    route.destination_trip_0,
+    route.origin_trip_1,
+    route.destination_trip_1,
   ].map((f) => (f || "").toLowerCase());
 
   return fields.some((f) => f.includes("humen"));
@@ -236,8 +335,10 @@ export function checkZemplinBratislavaHumenne(route) {
   const agency = (route.agency_id || "").toUpperCase();
   if (agency !== "ZSSK") return false;
   const fields = [
-    route.origin_trip_0, route.destination_trip_0,
-    route.origin_trip_1, route.destination_trip_1,
+    route.origin_trip_0,
+    route.destination_trip_0,
+    route.origin_trip_1,
+    route.destination_trip_1,
   ].map((f) => (f || "").toLowerCase());
   return (
     fields.some((f) => f.includes("bratislava")) &&
@@ -245,8 +346,84 @@ export function checkZemplinBratislavaHumenne(route) {
   );
 }
 
+/**
+ * Whether the route is the Przemyśl Gł. ↔ Świnoujście PKP overnight train.
+ * BoT trip label "EN 430 / IC 28170" causes the wrong GTFS shape (Chełm corridor) to be
+ * picked — use a pre-computed static polyline instead.
+ * @param {Object} route
+ * @returns {boolean}
+ */
+export function checkPrzemyslSwinoujscie(route) {
+  if (!route) return false;
+  const fields = [
+    route.origin_trip_0,
+    route.destination_trip_0,
+    route.origin_trip_1,
+    route.destination_trip_1,
+  ].map((f) => (f || "").toLowerCase());
+  return (
+    fields.some((f) => f.includes("przemyśl") || f.includes("przemysl")) &&
+    fields.some((f) => f.includes("winouj"))
+  );
+}
+
+/**
+ * Whether the route is Warszawa Wschodnia ↔ Budapest Nyugati (Báthory corridor).
+ *
+ * We match primarily by train numbers in Back-on-Track `trip_short_name_*`.
+ * In the current BoT dataset this corridor appears as:
+ * - "IC 407 / EN 477" and "EN 476 / IC 406" (route_id 127, agency MÁV/PKP)
+ *
+ * The user also requested applying the same geometry to EC 131 / EN 407 variants,
+ * so we accept those too. To avoid accidental matches on unrelated plain "406/407/131"
+ * labels, we additionally require Warszawa + Budapest to appear in origin/destination.
+ *
+ * @param {Object} route - View map route object
+ * @returns {boolean}
+ */
+export function checkWarszawaBudapestRoute(route) {
+  if (!route) return false;
+
+  const t0 = (route.trip_short_name_0 || "").toString();
+  const t1 = (route.trip_short_name_1 || "").toString();
+  const tripBlob = `${t0} ${t1}`.toUpperCase();
+
+  // Accept these train-number signatures (string may include multiple labels like "IC 407 / EN 477").
+  const hasWantedTrip =
+    /\bIC\s*40[67]\b/.test(tripBlob) ||
+    /\bEN\s*40[67]\b/.test(tripBlob) ||
+    /\bEN\s*47[67]\b/.test(tripBlob) ||
+    /\bEC\s*131\b/.test(tripBlob);
+  if (!hasWantedTrip) return false;
+
+  const fields = [
+    route.origin_trip_0,
+    route.destination_trip_0,
+    route.origin_trip_1,
+    route.destination_trip_1,
+  ].map((f) => (f || "").toString().toLowerCase());
+
+  const hasWarszawa = fields.some((f) => f.includes("warszawa"));
+  const hasBudapest = fields.some((f) => f.includes("budapest"));
+
+  return hasWarszawa && hasBudapest;
+}
+
 // Color for the Zemplín Bratislava–Humenné route
 export const ZEMPLIN_COLOR = "#D32F2F";
+
+// Color for PKP Intercity routes — navy blue matching PKP IC branding
+export const PKP_COLOR = "#003580";
+
+/**
+ * PKP / PKP-ČD rows from Back-on-Track; polylines come from GTFS (see useInitialData merge).
+ * @param {object} route - viewMap route row
+ * @returns {boolean}
+ */
+export function isPkpAgencyRoute(route) {
+  const a = (route?.agency_id || "").toUpperCase();
+  return a === "PKP" || a === "PKP/ČD";
+}
 
 /**
  * Whether the route belongs to RegioJet (agency_id === "RJ").
@@ -262,13 +439,17 @@ export function isRegioJetRoute(route) {
 export const REGIOJET_COLOR = "#F0AB00";
 
 /**
- * Whether to hide a route because it has a future "From <Date>" note in irregularities.
+ * Hide route in lists/markers when: (1) irregularities have a future "From YYYY-MM-DD", or
+ * (2) every trip uses a service_id calendar range (YYYY/MM/DD-YYYY/MM/DD) and today is outside all ranges.
+ * Map polylines: future "From" still draw as ghost lines; seasonal-outside routes are omitted (see useRoutePaths).
  * @param {string} routeId - Route ID
  * @param {Object} trips - Trips data
  * @returns {boolean}
  */
 export function shouldHideRouteDueToFutureDate(routeId, trips) {
-  return getFutureRouteStartDate(routeId, trips) !== null;
+  if (getFutureRouteStartDate(routeId, trips) !== null) return true;
+  if (isRouteOutsideServiceIdSeason(routeId, trips)) return true;
+  return false;
 }
 
 /**

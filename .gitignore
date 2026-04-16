@@ -19,6 +19,7 @@
 # misc
 .DS_Store
 *.pem
+showtrack-*.json
 
 # debug
 npm-debug.log*
@@ -38,4 +39,9 @@ yarn-error.log*
 .idea
 # Large GTFS raw files
 gtfs-data/obb/shapes.txt
+gtfs-data/polish_trains.zip
+gtfs-data/polish-trains-unpacked/
 .env*.local
+
+# Playwright
+.playwright-mcp/

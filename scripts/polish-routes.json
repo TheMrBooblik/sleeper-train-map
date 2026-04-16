@@ -1,0 +1,49 @@
+{
+  "routes": [
+    {
+      "name": "pkpKarpaty",
+      "comment": "Route 129: Karpaty — Zakopane→Gdynia via Kraków, Warszawa, Gdańsk",
+      "relations": [318907, 1175377, 318914, 319222]
+    },
+    {
+      "name": "pkpKarkonosze",
+      "comment": "Route 121: Karkonosze — Warszawa→Szklarska Poręba via Wrocław, Jelenia Góra",
+      "relations": [318914, 1277042, 76134]
+    },
+    {
+      "name": "pkpUznam",
+      "comment": "Route 128: Uznam — Warszawa→Świnoujście via Szczecin",
+      "relations": [318905, 1086614, 303296]
+    },
+    {
+      "name": "pkpPodhalanin",
+      "comment": "Route 122: Podhalanin — Zakopane→Szczecin via Katowice, Poznań",
+      "relations": [318907, 318906, 318917, 1086614]
+    },
+    {
+      "name": "pkpBalticExpress",
+      "comment": "Route 124: Baltic Express — Praha→Gdynia via Wrocław, Poznań, Gdańsk",
+      "relations": [1277042, 4669199, 1086614, 2345694]
+    },
+    {
+      "name": "pkpPirat",
+      "comment": "Route 136: Pirat — Bielsko-Biała→Kołobrzeg via Rybnik, Opole",
+      "relations": [318907, 5424984, 4850111, 318917, 2345694]
+    },
+    {
+      "name": "pkpWolin",
+      "comment": "Route 137: Wolin — Bielsko-Biała→Świnoujście via Rybnik, Opole, Szczecin",
+      "relations": [318907, 5424984, 4850111, 318917, 300649, 1086614, 303296]
+    },
+    {
+      "name": "pkpUstronie",
+      "comment": "Route 138: Gdynia — Kraków→Kołobrzeg via Kielce, Radom, Gdańsk",
+      "relations": [318914, 318925, 2345694]
+    },
+    {
+      "name": "pkpUrsa",
+      "comment": "Ursa route",
+      "relations": [176889, 1175377, 319218, 318917, 1086614, 303296, 303296]
+    }
+  ]
+}

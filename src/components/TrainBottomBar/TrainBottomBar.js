@@ -3,6 +3,7 @@
 import React, { useCallback } from "react";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../Map/utils/operatorColors";
 import { normalizeStationNameForDisplay } from "../Map/utils/stationNameUtils";
+import { shouldHideRouteDueToFutureDate } from "../Map/utils/routeStyleUtils";
 
 /**
  * Bottom bar showing routes (Back-on-Track + NightJet/EuroNight) for the selected station.
@@ -21,57 +22,16 @@ const TrainBottomBar = ({
   viewMapData,
   trips,
 }) => {
-
-  // Helper function to check if a route should be filtered out due to future "From <Date>" note
-  const shouldHideRouteDueToFutureDate = useCallback(
-    (routeId) => {
-      if (!trips || !routeId) return false;
-
-      // Find all trips for this route
-      const routeTrips = Object.values(trips).filter(
-        (trip) => trip.route_id?.toString() === routeId.toString(),
-      );
-
-      if (routeTrips.length === 0) return false;
-
-      // Check if any trip has a "From <Date>" note with a future date
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Reset to start of day for comparison
-
-      for (const trip of routeTrips) {
-        const irregularities = trip.irregularities;
-        if (!irregularities || typeof irregularities !== "string") continue;
-
-        // Match "From YYYY-MM-DD" pattern (case-insensitive, flexible spacing)
-        const fromDateMatch = irregularities.match(
-          /From\s+(\d{4}-\d{2}-\d{2})/i,
-        );
-        if (fromDateMatch) {
-          const fromDateStr = fromDateMatch[1];
-          const fromDate = new Date(fromDateStr);
-          fromDate.setHours(0, 0, 0, 0);
-
-          // If the "From" date is in the future, hide this route
-          if (fromDate > today) {
-            return true;
-          }
-        }
-      }
-
-      return false;
-    },
+  const hideRoute = useCallback(
+    (routeId) => shouldHideRouteDueToFutureDate(routeId, trips),
     [trips],
   );
 
-  // Guard against undefined viewMapData and use optional chaining for route_id
-  // Also filter out routes with future "From <Date>" notes
+  // Guard against undefined viewMapData; hide future "From …" and outside service_id seasons.
   const filteredViewMapData = viewMapData
     ? Object.values(viewMapData).filter((el) => {
         const routeId = el?.route_id?.toString();
-        return (
-          stopRouteIds?.includes(routeId) &&
-          !shouldHideRouteDueToFutureDate(routeId)
-        );
+        return stopRouteIds?.includes(routeId) && !hideRoute(routeId);
       })
     : [];
 

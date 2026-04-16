@@ -10,6 +10,8 @@
     "export": "next export",
     "start": "next start",
     "parse-gtfs": "node scripts/parse-regiojet-gtfs.js",
+    "parse-pkp-gtfs": "node scripts/parse-pkp-gtfs.js",
+    "verify-pkp-bundle": "node tests/verify-pkp-train-shapes.mjs",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",

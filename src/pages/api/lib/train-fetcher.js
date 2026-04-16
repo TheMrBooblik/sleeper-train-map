@@ -21,7 +21,7 @@ export function normalize(data, date, operator = "Nightjet", source = "nightjet-
       const [lat, lon] = s?.station?.coords || [];
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
       const name =
-        s?.station?.name?.en || s?.station?.name?.int || s?.station?.name?.de;
+        s?.station?.name?.de || s?.station?.name?.int || s?.station?.name?.en;
       return {
         id: s?.station?.eva || s?.station?.evaMeta || null,
         name,

@@ -36,6 +36,7 @@ import { useRoutePaths } from "./hooks/useRoutePaths";
 import { useMapMarkers } from "./hooks/useMapMarkers";
 import LoadingOverlay from "./components/LoadingOverlay";
 import MapClickHandler from "./components/MapClickHandler";
+import MapViewportTracker from "./components/MapViewportTracker";
 
 /** Format "YYYY-MM-DD" → "15 January 2026" for the future-route popup. */
 function formatFutureDate(dateStr) {
@@ -85,6 +86,8 @@ const TrainMap = ({
   const gtfsStopsCacheRef = useRef(new Map());
   const [cdRouteFilterStops, setCdRouteFilterStops] = useState(null);
   const cdTrainsCacheRef = useRef(null);
+  const [mapZoom, setMapZoom] = useState(null);
+  const [mapBounds, setMapBounds] = useState(null);
 
   const { routePaths } = useRoutePaths({
     viewMapData,
@@ -130,6 +133,11 @@ const TrainMap = ({
 
   const handleRouteLeave = useCallback(() => {
     setHoveredRouteId(null);
+  }, []);
+
+  const handleViewportChange = useCallback(({ zoom, bounds }) => {
+    setMapZoom(zoom);
+    setMapBounds(bounds);
   }, []);
 
   // Guard against stale hover state. If the bottom bar is not in the
@@ -208,11 +216,16 @@ const TrainMap = ({
         });
       }
 
-      // 3. Find other city entries with the same display city name.
+      // 3. Find other city entries with the same display city name or fuzzy-matching name.
+      // The fuzzy match covers diacritic variants (e.g. "Przemysl Gl." vs "Przemyśl Gł.")
+      // where NightJet API uses ASCII station names but BoT uses local diacritics.
       if (filterName) {
         Object.entries(cities).forEach(([key, city]) => {
           if (!city?.stop_route_ids) return;
-          if (normalizeStationNameForDisplay(key) === filterName) {
+          if (
+            normalizeStationNameForDisplay(key) === filterName ||
+            matchStationNamesBound(stop_id, key)
+          ) {
             city.stop_route_ids.split(",").forEach((id) => {
               const t = id.trim();
               if (t) allRouteIds.add(t);
@@ -396,7 +409,7 @@ const TrainMap = ({
     };
   }, [hasRouteFilter, selectedTrainRouteIds, viewMapData]);
 
-  // For selected EC routes, use CD timetable stops as marker source.
+  // For selected EC/EN routes, use CD timetable stops as marker source.
   // Station names from cd.cz are matched against BoT stops data for coordinates.
   useEffect(() => {
     if (!hasRouteFilter || !stops?.length) {
@@ -404,17 +417,17 @@ const TrainMap = ({
       return;
     }
 
-    // Check if the selected route is an EC train
+    // Check if the selected route is an EC or EN train (both served by cd.cz timetables)
     const activeId = String(selectedTrainRouteIds[0]);
-    let ecTrainNumber = null;
+    let cdTrainNumber = null;
     Object.values(trips || {}).forEach((trip) => {
       if (trip?.route_id?.toString() === activeId) {
-        const m = (trip.trip_short_name || "").match(/^\s*EC\s+(\d+)/i);
-        if (m) ecTrainNumber = m[1];
+        const m = (trip.trip_short_name || "").match(/^\s*(?:EC|EN)\s+(\d+)/i);
+        if (m) cdTrainNumber = m[1];
       }
     });
 
-    if (!ecTrainNumber) {
+    if (!cdTrainNumber) {
       setCdRouteFilterStops(null);
       return;
     }
@@ -422,7 +435,7 @@ const TrainMap = ({
     let cancelled = false;
 
     const buildStopsFromCD = (cdData) => {
-      const trainData = cdData?.trains?.[ecTrainNumber];
+      const trainData = cdData?.trains?.[cdTrainNumber];
       if (!trainData?.stops?.length) return null;
 
       const stopLookup = new Map();
@@ -486,6 +499,8 @@ const TrainMap = ({
     handleMarkerClick,
     trips,
     routeFilteredMode: hasRouteFilter,
+    mapZoom,
+    mapBounds,
   });
 
   const overallLoading = initialDataLoading;
@@ -576,6 +591,7 @@ const TrainMap = ({
           hasSelection={hasSelection}
           onClearFilter={handleFilterClose}
         />
+        <MapViewportTracker onViewportChange={handleViewportChange} />
         <Filter
           selected={hasSelection}
           filterName={filterName}
@@ -673,6 +689,7 @@ const TrainMap = ({
         isOpen={isTrainDetailPanelOpen}
         onClose={closeTrainDetailPanel}
         tripsData={trips}
+        viewMapData={viewMapData}
         selectedRouteIds={
           selectedTrainRouteIds?.filter(
             (id) => !shouldHideRouteDueToFutureDate(id, trips),

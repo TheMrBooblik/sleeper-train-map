@@ -239,79 +239,108 @@ export default function DataPage() {
         {s && (
           <>
             {/* NightJet — official operator, highest priority */}
-            <SourceCard
-              title="NightJet / EuroNight"
-              description="Official ÖBB NightJet API — accurate polylines and timetables"
-              priority
-            >
-              <DataRow
-                label="Trains"
-                count={s.nightjet.count}
-                status={s.nightjet.status}
-                hoursAgo={s.nightjet.hoursAgo}
-                items={s.nightjet.items}
-                itemLabel="trains"
-              />
-            </SourceCard>
+            {s.nightjet && (
+              <SourceCard
+                title="NightJet / EuroNight"
+                description="Official ÖBB NightJet API — accurate polylines and timetables"
+                priority
+              >
+                <DataRow
+                  label="Trains"
+                  count={s.nightjet.count}
+                  status={s.nightjet.status}
+                  hoursAgo={s.nightjet.hoursAgo}
+                  items={s.nightjet.items}
+                  itemLabel="trains"
+                />
+              </SourceCard>
+            )}
 
             {/* Czech Railways — official operator */}
-            <SourceCard
-              title="Czech Railways (ČD)"
-              description="Official cd.cz EC train timetables"
-              priority
-            >
-              <DataRow
-                label="EC trains"
-                count={s.cdRailways.count}
-                status={s.cdRailways.status}
-                hoursAgo={s.cdRailways.hoursAgo}
-                items={s.cdRailways.items}
-                itemLabel="trains"
-              />
-            </SourceCard>
+            {s.cdRailways && (
+              <SourceCard
+                title="Czech Railways (ČD)"
+                description="Official cd.cz EC train timetables"
+                priority
+              >
+                <DataRow
+                  label="EC trains"
+                  count={s.cdRailways.count}
+                  status={s.cdRailways.status}
+                  hoursAgo={s.cdRailways.hoursAgo}
+                  items={s.cdRailways.items}
+                  itemLabel="trains"
+                />
+              </SourceCard>
+            )}
 
             {/* Back-on-Track — community GTFS dataset */}
-            <SourceCard
-              title="Back-on-Track"
-              description="Community night train dataset scraped from GitHub (back-on-track.eu)"
-            >
-              <DataRow
-                label="Stops"
-                count={s.backontrack.stops.count}
-                status={s.backontrack.stops.status}
-                hoursAgo={s.backontrack.stops.hoursAgo}
-              />
-              <DataRow
-                label="Routes"
-                count={s.backontrack.routes.count}
-                status={s.backontrack.routes.status}
-                hoursAgo={s.backontrack.routes.hoursAgo}
-                items={s.backontrack.routes.items}
-                itemLabel="routes"
-              />
-              <DataRow
-                label="Trips"
-                count={s.backontrack.trips.count}
-                status={s.backontrack.trips.status}
-                hoursAgo={s.backontrack.trips.hoursAgo}
-              />
-            </SourceCard>
+            {s.backontrack && (
+              <SourceCard
+                title="Back-on-Track"
+                description="Community night train dataset scraped from GitHub (back-on-track.eu)"
+              >
+                <DataRow
+                  label="Stops"
+                  count={s.backontrack.stops.count}
+                  status={s.backontrack.stops.status}
+                  hoursAgo={s.backontrack.stops.hoursAgo}
+                />
+                <DataRow
+                  label="Routes"
+                  count={s.backontrack.routes.count}
+                  status={s.backontrack.routes.status}
+                  hoursAgo={s.backontrack.routes.hoursAgo}
+                  items={s.backontrack.routes.items}
+                  itemLabel="routes"
+                />
+                <DataRow
+                  label="Trips"
+                  count={s.backontrack.trips.count}
+                  status={s.backontrack.trips.status}
+                  hoursAgo={s.backontrack.trips.hoursAgo}
+                />
+              </SourceCard>
+            )}
+
+            {/* PKP — checked-in GTFS shapes (same model as RegioJet files under /data/gtfs) */}
+            {s.pkpGtfs && (
+              <SourceCard
+                title="PKP Intercity (Polish GTFS shapes)"
+                description={
+                  s.pkpGtfs.sourceUrl
+                    ? `Committed as public/data/gtfs/pkpTrainShapes.json. Regenerate: npm run parse-pkp-gtfs. Feed: ${s.pkpGtfs.sourceUrl}`
+                    : "Committed as public/data/gtfs/pkpTrainShapes.json. Regenerate: npm run parse-pkp-gtfs (polish_trains.zip, scoped by BoT PKP trips)."
+                }
+              >
+                <DataRow
+                  label="Train keys (map polylines)"
+                  count={s.pkpGtfs.count}
+                  status={s.pkpGtfs.status}
+                  hoursAgo={s.pkpGtfs.hoursAgo}
+                  items={s.pkpGtfs.items}
+                  itemLabel="trains"
+                />
+              </SourceCard>
+            )}
 
             {/* OSM Relations — route geometries */}
-            <SourceCard
-              title="OpenStreetMap Relations"
-              description="Route geometries (polylines) cached from Overpass API"
-            >
-              {s.osmRelations.map((rel) => (
-                <DataRow
-                  key={rel.id}
-                  label={rel.name || `Relation ${rel.id}`}
-                  count={rel.coordinateCount}
-                  status={rel.status}
-                  hoursAgo={rel.hoursAgo}
-                />
-              ))}
-            </SourceCard>
+            {s.osmRelations?.length > 0 && (
+              <SourceCard
+                title="OpenStreetMap Relations"
+                description="Route geometries (polylines) cached from Overpass API"
+              >
+                {s.osmRelations.map((rel) => (
+                  <DataRow
+                    key={rel.id}
+                    label={rel.name || `Relation ${rel.id}`}
+                    count={rel.coordinateCount}
+                    status={rel.status}
+                    hoursAgo={rel.hoursAgo}
+                  />
+                ))}
+              </SourceCard>
+            )}
 
             {/* Legend */}
             <div className="grid grid-cols-2 min-[480px]:flex min-[480px]:flex-row gap-x-4 gap-y-1.5 min-[480px]:gap-4 pt-1 pb-4 text-xs text-gray-400">
