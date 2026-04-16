@@ -316,6 +316,27 @@ export function checkZemplinBratislavaHumenne(route) {
   );
 }
 
+/**
+ * Whether the route is the Przemyśl Gł. ↔ Świnoujście PKP overnight train.
+ * BoT trip label "EN 430 / IC 28170" causes the wrong GTFS shape (Chełm corridor) to be
+ * picked — use a pre-computed static polyline instead.
+ * @param {Object} route
+ * @returns {boolean}
+ */
+export function checkPrzemyslSwinoujscie(route) {
+  if (!route) return false;
+  const fields = [
+    route.origin_trip_0,
+    route.destination_trip_0,
+    route.origin_trip_1,
+    route.destination_trip_1,
+  ].map((f) => (f || "").toLowerCase());
+  return (
+    fields.some((f) => f.includes("przemyśl") || f.includes("przemysl")) &&
+    fields.some((f) => f.includes("winouj"))
+  );
+}
+
 // Color for the Zemplín Bratislava–Humenné route
 export const ZEMPLIN_COLOR = "#D32F2F";
 

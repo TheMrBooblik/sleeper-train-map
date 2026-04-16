@@ -14,6 +14,7 @@ import {
   PKP_COLOR,
   isPkpAgencyRoute,
   checkENHumennePraha,
+  checkPrzemyslSwinoujscie,
   getFutureRouteStartDate,
   isRouteOutsideServiceIdSeason,
 } from "./routeStyleUtils";
@@ -170,6 +171,8 @@ export function buildAllRoutesPaths({
       osmRelationId = "static:zemplin";
     } else if (checkENHumennePraha(route)) {
       osmRelationId = "static:enHumenne";
+    } else if (checkPrzemyslSwinoujscie(route)) {
+      osmRelationId = "static:przemyslSwinoujscie";
     }
 
     // RegioJet routes use their brand color instead of the default palette

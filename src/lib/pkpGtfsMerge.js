@@ -4,6 +4,30 @@
 import { positionsForBoTTripLabel } from "./pkpTrainKeyExtract";
 
 /**
+ * Returns true for the Przemyśl Gł. ↔ Świnoujście PKP route.
+ * Its trip label "EN 430 / IC 28170" causes key "28170" to be extracted, which maps to
+ * the Chełm → Świnoujście GTFS shape (wrong corridor: via Warsaw/Łódź instead of Kraków/Wrocław).
+ * Skipping GTFS lets the station-coord fallback show the correct route.
+ * @param {object} route
+ * @returns {boolean}
+ */
+function isPrzemyslSwinoujscieRoute(route) {
+  const o0 = (route.origin_trip_0 || "").toLowerCase();
+  const d0 = (route.destination_trip_0 || "").toLowerCase();
+  const o1 = (route.origin_trip_1 || "").toLowerCase();
+  const d1 = (route.destination_trip_1 || "").toLowerCase();
+  const hasPrzemysl =
+    o0.includes("przemyśl") || o0.includes("przemysl") ||
+    d0.includes("przemyśl") || d0.includes("przemysl") ||
+    o1.includes("przemyśl") || o1.includes("przemysl") ||
+    d1.includes("przemyśl") || d1.includes("przemysl");
+  const hasSwinoujscie =
+    o0.includes("winouj") || d0.includes("winouj") ||
+    o1.includes("winouj") || d1.includes("winouj");
+  return hasPrzemysl && hasSwinoujscie;
+}
+
+/**
  * @param {Record<string, object>} viewMap
  * @param {{ byTrainKey?: Record<string, { positions?: number[][] }> } | null} bundle
  * @returns {Record<string, object>}
@@ -18,6 +42,11 @@ export function attachPkpGtfsPolylinesToViewMap(viewMap, bundle) {
     const route = viewMap[key];
     const agency = route?.agency_id;
     if (agency !== "PKP" && agency !== "PKP/ČD") {
+      out[key] = route;
+      continue;
+    }
+
+    if (isPrzemyslSwinoujscieRoute(route)) {
       out[key] = route;
       continue;
     }
