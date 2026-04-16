@@ -56,9 +56,150 @@ export function isRouteOutsideServiceIdSeason(routeId, trips) {
   return !inAny;
 }
 
+/** @typedef {0|1|2} FrequencyRank 0=daily, 1=subdaily, 2=rare */
+
+/**
+ * Infer one trip's cadence rank from BoT `service_id` + `irregularities`.
+ * Returns null when neither field gives a usable signal (caller may substitute a fallback).
+ * @param {object} trip
+ * @returns {FrequencyRank|null}
+ */
+export function inferTripFrequencyRank(trip) {
+  if (!trip || typeof trip !== "object") return null;
+
+  const irr = (trip.irregularities || "").toString().toLowerCase();
+  const sid = (trip.service_id || "").toString().toLowerCase();
+  const blob = `${sid} ${irr}`;
+
+  // Irregularities that explicitly mean "not every day" — at least sub-daily.
+  // Use \blimited\b so "unlimited" is not treated as limited service.
+  const explicitNonDailyNote =
+    irr.includes("non-daily") ||
+    irr.includes("non daily") ||
+    irr.includes("few times") ||
+    /\blimited\b/.test(irr);
+
+  // Rare: about 1–2 runs per week (tight phrases to avoid false positives in long irr text).
+  const rareWeek =
+    /\bonce\s+(a\s+)?week\b/.test(blob) ||
+    /\bonce\s+per\s+week\b/.test(blob) ||
+    /\btwice\s+(a\s+)?week\b/.test(blob) ||
+    /\btwice\s+per\s+week\b/.test(blob) ||
+    /\b1\s*[x×]\s*(\/|\s)?\s*(per\s*)?(week|wk)\b/.test(blob) ||
+    /\b2\s*[x×]\s*(\/|\s)?\s*(per\s*)?(week|wk)\b/.test(blob) ||
+    /\b1\s*\/\s*week\b/.test(blob) ||
+    /\b2\s*\/\s*week\b/.test(blob) ||
+    /\b1x\s*\/\s*week\b/.test(blob) ||
+    /\b2x\s*\/\s*week\b/.test(blob) ||
+    /\bfortnight/.test(blob) ||
+    /\bbi-?weekly\b/.test(blob);
+
+  if (rareWeek) return 2;
+
+  // Fewer than seven calendar days per week (not the rare tier above).
+  const subDailyText =
+    sid.includes("3-5") ||
+    sid.includes("3–5") ||
+    sid.includes("weekdays") ||
+    sid.includes("mon-fri") ||
+    sid.includes("mon–fri") ||
+    sid.includes("weekend") ||
+    sid.includes("weekends") ||
+    /\bsat(\.|urday)?\b/.test(sid) ||
+    /\bsun(\.|day)?\b/.test(sid) ||
+    sid.includes("6 days");
+
+  if (subDailyText || explicitNonDailyNote) return 1;
+
+  // Daily: explicit seven-day style service in service_id (not irregularities alone).
+  const dailyService =
+    sid.includes("daily") ||
+    sid.includes("6-7") ||
+    sid.includes("every day") ||
+    /\b7\s*days?\b/.test(sid);
+
+  if (dailyService) return 0;
+
+  return null;
+}
+
+/**
+ * When all trips are text-unknown, use distinct (origin, headsign) count as a weak signal.
+ * Never returns 0 (solid): ambiguous rows default to dashed per product rules.
+ * @param {object[]} routeTrips
+ * @returns {FrequencyRank}
+ */
+function fallbackRankFromUniqueTripPatterns(routeTrips) {
+  const uniqueTrips = new Set(
+    routeTrips.map((t) => `${t.trip_origin}-${t.trip_headsign}`),
+  ).size;
+  if (uniqueTrips <= 2) return 2;
+  return 1;
+}
+
+/**
+ * Route-level rank: worst (highest) cadence among trips. Unknown trips count as at least
+ * sub-daily so a single "Daily" label cannot mask another row with no text.
+ * @param {object[]} routeTrips
+ * @returns {{ rank: FrequencyRank, isSeasonal: boolean }}
+ */
+function inferRouteFrequencyRank(routeTrips) {
+  let isSeasonal = false;
+  for (const trip of routeTrips) {
+    const irr = (trip.irregularities || "").toString().toLowerCase();
+    const sid = (trip.service_id || "").toString().toLowerCase();
+    if (
+      irr.includes("seasonal") ||
+      irr.includes("summer") ||
+      irr.includes("winter") ||
+      irr.includes("only") ||
+      sid.includes("seasonal")
+    ) {
+      isSeasonal = true;
+    }
+    if (parseBoTServiceIdDateRange(trip.service_id || "")) {
+      isSeasonal = true;
+    }
+  }
+
+  const perTrip = routeTrips.map((t) => inferTripFrequencyRank(t));
+  const fallback = fallbackRankFromUniqueTripPatterns(routeTrips);
+  const effective = perTrip.map((r) => (r === null ? Math.max(1, fallback) : r));
+  const rank = /** @type {FrequencyRank} */ (Math.max(0, ...effective));
+
+  return { rank, isSeasonal };
+}
+
+/**
+ * Map frequency rank (+ seasonal hint) to Leaflet polyline options.
+ * Cadence wins over "seasonal ghost": daily-in-window stays solid; seasonal + sub-daily adds slight fade.
+ * @param {FrequencyRank} rank
+ * @param {boolean} isSeasonal
+ * @returns {{ weight: number, dashArray: string|null, opacity?: number }}
+ */
+function styleFromFrequencyRank(rank, isSeasonal) {
+  if (rank === 0) {
+    return { weight: 4.5, dashArray: null };
+  }
+  if (rank === 1) {
+    return {
+      weight: 4.2,
+      // Tight gap so dashes read as a continuous “broken” line at low zoom.
+      dashArray: "10,5",
+      ...(isSeasonal ? { opacity: 0.78 } : {}),
+    };
+  }
+  // rank === 2 rare — shorter gap than before; still thinner stroke than sub-daily.
+  return {
+    weight: 2.75,
+    dashArray: "8,5",
+    ...(isSeasonal ? { opacity: 0.55 } : {}),
+  };
+}
+
 /**
  * Get polyline style (weight, dashArray, opacity) from route frequency in trips.
- * Matches legend: 6-7 days = solid, 3-5 = medium dash, seasonal = dashed + lighter.
+ * Solid only when every trip resolves to daily; any rarer trip forces dashes (worst wins).
  * @param {string} routeId - Route ID
  * @param {Object} trips - Trips data keyed by trip id
  * @returns {{ weight: number, dashArray: string|null, opacity?: number }}
@@ -76,78 +217,13 @@ export function getRouteStyleFromFrequency(routeId, trips) {
     return { weight: 4.5, dashArray: null };
   }
 
-  let isSeasonal = false;
-  let hasNonDailyNote = false;
-  let isDaily = false;
-  let isWeekly = false;
-
-  for (const trip of routeTrips) {
-    const irr = (trip.irregularities || "").toLowerCase();
-    const serviceId = (trip.service_id || "").toLowerCase();
-
-    if (
-      serviceId.includes("daily") ||
-      serviceId.includes("6-7") ||
-      serviceId.includes("every day")
-    ) {
-      isDaily = true;
-    } else if (
-      serviceId.includes("3-5") ||
-      serviceId.includes("weekdays") ||
-      serviceId.includes("mon-fri")
-    ) {
-      isWeekly = true;
-    }
-
-    if (
-      irr.includes("seasonal") ||
-      irr.includes("summer") ||
-      irr.includes("winter") ||
-      irr.includes("only") ||
-      serviceId.includes("seasonal")
-    ) {
-      isSeasonal = true;
-    }
-
-    if (parseBoTServiceIdDateRange(trip.service_id || "")) {
-      isSeasonal = true;
-    }
-
-    if (
-      irr.includes("non-daily") ||
-      irr.includes("non daily") ||
-      irr.includes("few times") ||
-      irr.includes("limited")
-    ) {
-      hasNonDailyNote = true;
-    }
-  }
-
-  if (isDaily && !hasNonDailyNote) {
-    return { weight: 4.5, dashArray: null };
-  }
-  if (isWeekly) {
-    return { weight: 4.5, dashArray: "6,9" };
-  }
-  if (isSeasonal) {
-    return {
-      weight: 2.5,
-      dashArray: "6,6",
-      opacity: 0.45,
-    };
-  }
-
-  const uniqueTrips = new Set(
-    routeTrips.map((t) => `${t.trip_origin}-${t.trip_headsign}`),
-  ).size;
-
-  if (uniqueTrips >= 6) {
-    return { weight: 4.5, dashArray: null };
-  }
-  if (uniqueTrips >= 3) {
-    return { weight: 4.5, dashArray: "6,9" };
-  }
-  return { weight: 4.5, dashArray: "6,6" };
+  const { rank, isSeasonal } = inferRouteFrequencyRank(routeTrips);
+  const style = styleFromFrequencyRank(rank, isSeasonal);
+  return {
+    weight: style.weight,
+    dashArray: style.dashArray,
+    opacity: style.opacity ?? 0.92,
+  };
 }
 
 /**

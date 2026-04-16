@@ -614,9 +614,13 @@ const TrainMap = ({
                     ? 0.95
                     : 0.2
                   : path.pathOptions.opacity,
+                // Emphasize hovered route without snapping rare (thin) lines up to 4px.
                 weight: shouldApplyHoverPreview
                   ? String(path.routeId) === hoveredRouteId
-                    ? Math.max(path.pathOptions.weight || 1, 4)
+                    ? Math.max(
+                        path.pathOptions.weight || 1,
+                        (path.pathOptions.weight || 4) + 1.5,
+                      )
                     : path.pathOptions.weight
                   : path.pathOptions.weight,
               }}

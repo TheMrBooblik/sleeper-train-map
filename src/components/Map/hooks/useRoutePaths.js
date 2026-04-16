@@ -219,7 +219,7 @@ export function useRoutePaths({
       const routeColor = routeColorMap.get(routeId) || NEUTRAL_FALLBACK_COLOR;
       // Future routes: thin dashed ghost line so they're visible but clearly distinct
       const style = isFuture
-        ? { weight: 1.5, dashArray: "4,8", opacity: 0.35 }
+        ? { weight: 1.5, dashArray: "6,4", opacity: 0.35 }
         : getRouteStyleFromFrequency(routeId, trips);
       const pathOptions = {
         color: routeColor,
