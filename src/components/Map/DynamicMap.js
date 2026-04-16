@@ -396,7 +396,7 @@ const TrainMap = ({
     };
   }, [hasRouteFilter, selectedTrainRouteIds, viewMapData]);
 
-  // For selected EC routes, use CD timetable stops as marker source.
+  // For selected EC/EN routes, use CD timetable stops as marker source.
   // Station names from cd.cz are matched against BoT stops data for coordinates.
   useEffect(() => {
     if (!hasRouteFilter || !stops?.length) {
@@ -404,17 +404,17 @@ const TrainMap = ({
       return;
     }
 
-    // Check if the selected route is an EC train
+    // Check if the selected route is an EC or EN train (both served by cd.cz timetables)
     const activeId = String(selectedTrainRouteIds[0]);
-    let ecTrainNumber = null;
+    let cdTrainNumber = null;
     Object.values(trips || {}).forEach((trip) => {
       if (trip?.route_id?.toString() === activeId) {
-        const m = (trip.trip_short_name || "").match(/^\s*EC\s+(\d+)/i);
-        if (m) ecTrainNumber = m[1];
+        const m = (trip.trip_short_name || "").match(/^\s*(?:EC|EN)\s+(\d+)/i);
+        if (m) cdTrainNumber = m[1];
       }
     });
 
-    if (!ecTrainNumber) {
+    if (!cdTrainNumber) {
       setCdRouteFilterStops(null);
       return;
     }
@@ -422,7 +422,7 @@ const TrainMap = ({
     let cancelled = false;
 
     const buildStopsFromCD = (cdData) => {
-      const trainData = cdData?.trains?.[ecTrainNumber];
+      const trainData = cdData?.trains?.[cdTrainNumber];
       if (!trainData?.stops?.length) return null;
 
       const stopLookup = new Map();

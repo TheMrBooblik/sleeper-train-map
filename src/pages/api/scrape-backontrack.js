@@ -5,7 +5,7 @@
 import polyline from "@mapbox/polyline";
 import { putBlobData, putOsmRelation, putNJTrains, putCDTrains } from "./lib/blob-store";
 import { fetchSingleTrain, fetchNJTrainNumbers, fetchPartnerTrainNumbers } from "./lib/train-fetcher";
-import { fetchCDTrain, extractECNumbers } from "./lib/cd-fetcher";
+import { fetchCDTrain, extractECNumbers, extractENNumbers } from "./lib/cd-fetcher";
 
 const BASE_URL =
   "https://raw.githubusercontent.com/Back-on-Track-eu/night-train-data/main/data/latest";
@@ -148,12 +148,22 @@ export default async function handler(req, res) {
   let cdCount = 0;
   try {
     const ecNumbers = extractECNumbers(trips);
+    const enNumbers = extractENNumbers(trips);
     const CONCURRENCY = 6;
     const cdResults = {};
 
     for (let i = 0; i < ecNumbers.length; i += CONCURRENCY) {
       const batch = ecNumbers.slice(i, i + CONCURRENCY);
-      const fetched = await Promise.all(batch.map((n) => fetchCDTrain(n)));
+      const fetched = await Promise.all(batch.map((n) => fetchCDTrain(n, "EC")));
+      fetched.forEach((train) => {
+        if (!train) return;
+        cdResults[train.trainNumber] = train;
+      });
+    }
+
+    for (let i = 0; i < enNumbers.length; i += CONCURRENCY) {
+      const batch = enNumbers.slice(i, i + CONCURRENCY);
+      const fetched = await Promise.all(batch.map((n) => fetchCDTrain(n, "EN")));
       fetched.forEach((train) => {
         if (!train) return;
         cdResults[train.trainNumber] = train;

@@ -28,6 +28,27 @@ function isPrzemyslSwinoujscieRoute(route) {
 }
 
 /**
+ * Returns true for the Praha hl.n. ↔ Warszawa Wschodnia EN 443 / IC 406 route.
+ * Trip labels "EN 443 / IC 406" and "IC 407 / EN 442" cause key "406"/"407" to be
+ * extracted first, which maps to the München↔Warszawa NightJet GTFS shape (wrong corridor).
+ * Skipping GTFS lets the station-coord fallback (via BoT via_0) show the correct route.
+ * @param {object} route
+ * @returns {boolean}
+ */
+function isPrahaWarszawaRoute(route) {
+  const fields = [
+    route.origin_trip_0,
+    route.destination_trip_0,
+    route.origin_trip_1,
+    route.destination_trip_1,
+  ].map((f) => (f || "").toLowerCase());
+  return (
+    fields.some((f) => f.includes("praha")) &&
+    fields.some((f) => f.includes("warszawa"))
+  );
+}
+
+/**
  * @param {Record<string, object>} viewMap
  * @param {{ byTrainKey?: Record<string, { positions?: number[][] }> } | null} bundle
  * @returns {Record<string, object>}
@@ -47,6 +68,11 @@ export function attachPkpGtfsPolylinesToViewMap(viewMap, bundle) {
     }
 
     if (isPrzemyslSwinoujscieRoute(route)) {
+      out[key] = route;
+      continue;
+    }
+
+    if (isPrahaWarszawaRoute(route)) {
       out[key] = route;
       continue;
     }

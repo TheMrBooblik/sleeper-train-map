@@ -39,7 +39,7 @@ export function extractECNumbers(trips) {
  * @param {string|number} trainNumber
  * @returns {{ trainNumber, trainLabel, fetchedAt, stops }|null}
  */
-function parseCDTrainHTML(html, trainNumber) {
+function parseCDTrainHTML(html, trainNumber, trainType = "EC") {
   // Strategy 1: extract `var model = {...}` up to `new TrainDetail` and JSON.parse
   try {
     const match = html.match(/var\s+model\s*=\s*([\s\S]+?);\s*new\s+TrainDetail/);
@@ -47,7 +47,7 @@ function parseCDTrainHTML(html, trainNumber) {
       const model = JSON.parse(match[1]);
       const route = model?.trainDetailTimetable?.route;
       if (Array.isArray(route) && route.length > 0) {
-        return buildResult(trainNumber, route);
+        return buildResult(trainNumber, route, trainType);
       }
     }
   } catch {
@@ -60,7 +60,7 @@ function parseCDTrainHTML(html, trainNumber) {
     if (match) {
       const route = JSON.parse(match[1]);
       if (Array.isArray(route) && route.length > 0) {
-        return buildResult(trainNumber, route);
+        return buildResult(trainNumber, route, trainType);
       }
     }
   } catch {
@@ -73,7 +73,7 @@ function parseCDTrainHTML(html, trainNumber) {
     if (match) {
       const route = JSON.parse(match[1]);
       if (Array.isArray(route) && route.length > 0) {
-        return buildResult(trainNumber, route);
+        return buildResult(trainNumber, route, trainType);
       }
     }
   } catch {
@@ -83,7 +83,7 @@ function parseCDTrainHTML(html, trainNumber) {
   return null;
 }
 
-function buildResult(trainNumber, route) {
+function buildResult(trainNumber, route, trainType = "EC") {
   const stops = route
     .map((stop) => ({
       name: stop.name || stop.stationName || null,
@@ -96,19 +96,39 @@ function buildResult(trainNumber, route) {
 
   return {
     trainNumber: String(trainNumber),
-    trainLabel: `EC ${trainNumber}`,
+    trainLabel: `${trainType} ${trainNumber}`,
     fetchedAt: new Date().toISOString(),
     stops,
   };
 }
 
 /**
- * Fetch and parse an EC train timetable from cd.cz.
+ * Extract EC train numeric IDs from Back-on-Track trips data for EN trains.
+ * Filters trip_short_name values matching "EN NNN" and deduplicates.
  *
- * @param {string|number} trainNumber - EC train number (e.g. 460)
+ * @param {Object} trips - Back-on-Track trips object keyed by trip_id
+ * @returns {string[]} Array of numeric EN train IDs (e.g. ["443"])
+ */
+export function extractENNumbers(trips) {
+  if (!trips || typeof trips !== "object") return [];
+
+  const seen = new Set();
+  for (const trip of Object.values(trips)) {
+    const name = (trip.trip_short_name || "").toString().trim();
+    const match = name.match(/^\s*EN\s+(\d+)/i);
+    if (match) seen.add(match[1]);
+  }
+  return Array.from(seen);
+}
+
+/**
+ * Fetch and parse an EC or EN train timetable from cd.cz.
+ *
+ * @param {string|number} trainNumber - train number (e.g. 460, 443)
+ * @param {string} [trainType="EC"] - train type prefix for the label ("EC" or "EN")
  * @returns {Promise<{ trainNumber, trainLabel, fetchedAt, stops }|null>}
  */
-export async function fetchCDTrain(trainNumber) {
+export async function fetchCDTrain(trainNumber, trainType = "EC") {
   const url = `https://www.cd.cz/en/vlak/${trainNumber}`;
   try {
     const res = await fetchWithTimeout(url, {
@@ -118,17 +138,17 @@ export async function fetchCDTrain(trainNumber) {
       },
     });
     if (!res.ok) {
-      console.warn(`[cd-fetcher] HTTP ${res.status} for EC ${trainNumber}`);
+      console.warn(`[cd-fetcher] HTTP ${res.status} for ${trainType} ${trainNumber}`);
       return null;
     }
     const html = await res.text();
-    const result = parseCDTrainHTML(html, trainNumber);
+    const result = parseCDTrainHTML(html, trainNumber, trainType);
     if (!result) {
-      console.warn(`[cd-fetcher] parse failed for EC ${trainNumber}`);
+      console.warn(`[cd-fetcher] parse failed for ${trainType} ${trainNumber}`);
     }
     return result;
   } catch (e) {
-    console.warn(`[cd-fetcher] fetch failed for EC ${trainNumber}: ${e.message}`);
+    console.warn(`[cd-fetcher] fetch failed for ${trainType} ${trainNumber}: ${e.message}`);
     return null;
   }
 }
