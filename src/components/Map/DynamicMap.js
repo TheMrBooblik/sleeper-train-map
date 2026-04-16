@@ -36,6 +36,7 @@ import { useRoutePaths } from "./hooks/useRoutePaths";
 import { useMapMarkers } from "./hooks/useMapMarkers";
 import LoadingOverlay from "./components/LoadingOverlay";
 import MapClickHandler from "./components/MapClickHandler";
+import MapViewportTracker from "./components/MapViewportTracker";
 
 /** Format "YYYY-MM-DD" → "15 January 2026" for the future-route popup. */
 function formatFutureDate(dateStr) {
@@ -85,6 +86,8 @@ const TrainMap = ({
   const gtfsStopsCacheRef = useRef(new Map());
   const [cdRouteFilterStops, setCdRouteFilterStops] = useState(null);
   const cdTrainsCacheRef = useRef(null);
+  const [mapZoom, setMapZoom] = useState(null);
+  const [mapBounds, setMapBounds] = useState(null);
 
   const { routePaths } = useRoutePaths({
     viewMapData,
@@ -130,6 +133,11 @@ const TrainMap = ({
 
   const handleRouteLeave = useCallback(() => {
     setHoveredRouteId(null);
+  }, []);
+
+  const handleViewportChange = useCallback(({ zoom, bounds }) => {
+    setMapZoom(zoom);
+    setMapBounds(bounds);
   }, []);
 
   // Guard against stale hover state. If the bottom bar is not in the
@@ -491,6 +499,8 @@ const TrainMap = ({
     handleMarkerClick,
     trips,
     routeFilteredMode: hasRouteFilter,
+    mapZoom,
+    mapBounds,
   });
 
   const overallLoading = initialDataLoading;
@@ -581,6 +591,7 @@ const TrainMap = ({
           hasSelection={hasSelection}
           onClearFilter={handleFilterClose}
         />
+        <MapViewportTracker onViewportChange={handleViewportChange} />
         <Filter
           selected={hasSelection}
           filterName={filterName}

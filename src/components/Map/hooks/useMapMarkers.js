@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import Leaflet from "leaflet";
 import { Marker, Tooltip } from "react-leaflet";
 import { groupCityMarkers } from "../utils/groupCityMarkers";
 import { StationTooltipContent } from "../utils/stationTooltip";
 import { shouldHideRouteDueToFutureDate } from "../utils/routeStyleUtils";
 import { createMapIcons } from "../utils/mapIcons";
+import { thinStationsByViewport } from "../utils/thinStationsByViewport";
+import { alwaysShowStations } from "../../../data/alwaysShowStations";
 
 /**
  * Hook: builds Back-on-Track station markers (grouped or not, with correct icons).
@@ -28,14 +30,34 @@ export function useMapMarkers({
   handleMarkerClick,
   trips,
   routeFilteredMode = false,
+  mapZoom = null,
+  mapBounds = null,
 }) {
   const { defaultIcon, selectedIcon, viaIcon } = useMemo(
     () => createMapIcons(Leaflet),
     [],
   );
+  const previousZoomRef = useRef(null);
+  const previousVisibleStopKeysRef = useRef(new Set());
+
+  const getStopKey = (stop) =>
+    `${stop?.stop_id || ""}|${stop?.stop_lat || ""}|${stop?.stop_lon || ""}`;
+
+  const hiddenStationLineIcon = useMemo(
+    () =>
+      new Leaflet.DivIcon({
+        className: "hidden-station-line-marker",
+        // Small green/white dot, matching the general via-station color language.
+        html: '<div style="width: 6px; height: 6px; background: linear-gradient(135deg, #4CAF50, #388E3C); border-radius: 9999px; border: 1px solid white; box-shadow: 0 1px 3px rgba(76, 175, 80, 0.25); z-index: 50;"></div>',
+        iconSize: [6, 6],
+        iconAnchor: [3, 3],
+      }),
+    [],
+  );
 
   return useMemo(() => {
     let stopsToShow = [];
+    let hiddenStops = [];
 
     if (hideIntermediateStations && viewMapData) {
       if (!filteredStops?.length) return [];
@@ -66,7 +88,9 @@ export function useMapMarkers({
       stopsToShow = filteredStops.filter((stop) => {
         if (!stop?.stop_id) return false;
         const n = normalizeStationNameForLookup(stop.stop_id);
-        return nightTrainStationIds.has(stop.stop_id) || nightTrainStationIds.has(n);
+        return (
+          nightTrainStationIds.has(stop.stop_id) || nightTrainStationIds.has(n)
+        );
       });
     } else {
       if (!filteredStops?.length) return [];
@@ -81,8 +105,13 @@ export function useMapMarkers({
         const n = normalizeStationNameForLookup(stop.stop_id);
         const cityInfo = cities[n] || cities[stop.stop_id];
         if (!cityInfo?.stop_route_ids) return false;
-        const routeIds = cityInfo.stop_route_ids.split(",").map((id) => id.trim()).filter(Boolean);
-        return routeIds.some((routeId) => !shouldHideRouteDueToFutureDate(routeId, trips));
+        const routeIds = cityInfo.stop_route_ids
+          .split(",")
+          .map((id) => id.trim())
+          .filter(Boolean);
+        return routeIds.some(
+          (routeId) => !shouldHideRouteDueToFutureDate(routeId, trips),
+        );
       });
     }
 
@@ -97,7 +126,80 @@ export function useMapMarkers({
       return !skipSet.has(stop.stop_id) && !skipSet.has(n);
     });
 
-    if (!stopsToShow.length) return [];
+    // Keep zoom-thinning narrowly scoped:
+    // - only in normal station mode
+    // - only when intermediate stations are not already hidden
+    if (!routeFilteredMode && !hideIntermediateStations) {
+      // Start/end stations of visible routes should never disappear on zoomed-out views.
+      const routeEndpointStations = [];
+      if (viewMapData) {
+        Object.values(viewMapData).forEach((route) => {
+          if (
+            route?.route_id &&
+            shouldHideRouteDueToFutureDate(route.route_id.toString(), trips)
+          ) {
+            return;
+          }
+          [
+            route?.origin_trip_0,
+            route?.destination_trip_0,
+            route?.origin_trip_1,
+            route?.destination_trip_1,
+          ]
+            .filter(Boolean)
+            .forEach((name) => routeEndpointStations.push(name));
+        });
+      }
+
+      const thinningResult = thinStationsByViewport({
+        stops: stopsToShow,
+        cities,
+        mapZoom,
+        mapBounds,
+        normalizeStationNameForLookup,
+        alwaysShowStations: [...alwaysShowStations, ...routeEndpointStations],
+        selectedStopId: stopId,
+      });
+      let nextVisibleStops = thinningResult.visibleStops;
+      let nextHiddenStops = thinningResult.hiddenStops;
+
+      // On zoom-in, preserve previously visible "big" stations.
+      // This avoids swapping one big station for another.
+      const previousZoom = previousZoomRef.current;
+      const isZoomingIn =
+        typeof mapZoom === "number" &&
+        typeof previousZoom === "number" &&
+        mapZoom > previousZoom;
+
+      if (isZoomingIn && previousVisibleStopKeysRef.current.size > 0) {
+        const visibleByKey = new Map(
+          nextVisibleStops.map((stop) => [getStopKey(stop), stop]),
+        );
+        const hiddenByKey = new Map(
+          nextHiddenStops.map((stop) => [getStopKey(stop), stop]),
+        );
+
+        previousVisibleStopKeysRef.current.forEach((key) => {
+          if (visibleByKey.has(key)) return;
+          const previouslyVisibleStop = hiddenByKey.get(key);
+          if (previouslyVisibleStop) {
+            visibleByKey.set(key, previouslyVisibleStop);
+            hiddenByKey.delete(key);
+          }
+        });
+
+        nextVisibleStops = Array.from(visibleByKey.values());
+        nextHiddenStops = Array.from(hiddenByKey.values());
+      }
+
+      stopsToShow = nextVisibleStops;
+      hiddenStops = nextHiddenStops;
+    }
+
+    previousZoomRef.current = mapZoom;
+    previousVisibleStopKeysRef.current = new Set(stopsToShow.map(getStopKey));
+
+    if (!stopsToShow.length && !hiddenStops.length) return [];
 
     // GTFS route-filter markers may not exist in Back-on-Track city metadata.
     // Keep them visible by disabling city-grouping in this mode.
@@ -125,7 +227,7 @@ export function useMapMarkers({
       return normalizedNameCache.get(name);
     };
 
-    return groupedStops
+    const visibleMarkers = groupedStops
       .map((filteredStop, index) => {
         const isSelected = filteredStop.isGrouped
           ? filteredStop.groupedStations?.some((s) => s.stop_id === stopId)
@@ -154,11 +256,7 @@ export function useMapMarkers({
         }
 
         let isViaStationForFilteredRoutes = !!cityInfo?.isViaStation;
-        if (
-          selected &&
-          stopRouteIds?.length > 0 &&
-          !isSelected
-        ) {
+        if (selected && stopRouteIds?.length > 0 && !isSelected) {
           const stationsToCheck =
             filteredStop.isGrouped && filteredStop.groupedStations
               ? filteredStop.groupedStations.map((s) => s.stop_id)
@@ -197,7 +295,9 @@ export function useMapMarkers({
             ? "linear-gradient(135deg, #FF9800, #F57C00)"
             : "linear-gradient(135deg, #2196F3, #1976D2)";
           const groupIcon = new Leaflet.DivIcon({
-            className: isSelected ? "grouped-station-dot selected" : "grouped-station-dot",
+            className: isSelected
+              ? "grouped-station-dot selected"
+              : "grouped-station-dot",
             html: `<div style="width: 20px; height: 20px; background: ${bgGradient}; border-radius: 50%; border: 3px solid white; box-shadow: ${isSelected ? "0 3px 8px rgba(255, 152, 0, 0.6)" : "0 3px 8px rgba(33, 150, 243, 0.4)"}, 0 0 0 1px rgba(33, 150, 243, 0.2); transition: all 0.3s ease; cursor: pointer; z-index: 1000; position: relative;">
               <div style="position: absolute; top: -8px; left: -8px; background: linear-gradient(135deg, #FF9800, #F57C00); color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(255, 152, 0, 0.5); z-index: 2000;">
                 ${filteredStop.groupSize}
@@ -238,6 +338,28 @@ export function useMapMarkers({
         );
       })
       .filter(Boolean);
+
+    const hiddenLineMarkers = hiddenStops
+      .map((hiddenStop, index) => {
+        const lat = hiddenStop?.stop_lat;
+        const lon = hiddenStop?.stop_lon;
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+        return (
+          <Marker
+            key={`hidden-line-${hiddenStop?.stop_id || "station"}-${index}`}
+            position={[lat, lon]}
+            icon={hiddenStationLineIcon}
+            // Force hidden dots below regular station markers.
+            zIndexOffset={-1000}
+            interactive={false}
+          />
+        );
+      })
+      .filter(Boolean);
+
+    // Render hidden dots first so full-size markers stay on top.
+    return [...hiddenLineMarkers, ...visibleMarkers];
   }, [
     filteredStops,
     stops,
@@ -254,8 +376,11 @@ export function useMapMarkers({
     handleMarkerClick,
     trips,
     routeFilteredMode,
+    mapZoom,
+    mapBounds,
     defaultIcon,
     selectedIcon,
     viaIcon,
+    hiddenStationLineIcon,
   ]);
 }
