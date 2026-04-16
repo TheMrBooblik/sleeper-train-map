@@ -1,0 +1,15 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_phone,agency_lang
+AR,Arriva RP,https://arriva.pl/,Europe/Warsaw,+48 56 661 20 33,pl
+IC,PKP Intercity,https://intercity.pl/,Europe/Warsaw,+48 22 322 22 22,pl
+KD,Koleje Dolnośląskie,https://kolejedolnoslaskie.pl/,Europe/Warsaw,+48 76 742 11 12,pl
+KM,Koleje Mazowieckie,https://mazowieckie.com.pl/,Europe/Warsaw,+48 22 364 44 44,pl
+KML,Koleje Małopolskie,https://kolejemalopolskie.com.pl/,Europe/Warsaw,+48 12 288 82 00,pl
+KS,Koleje Śląskie,https://www.kolejeslaskie.pl/,Europe/Warsaw,+48 32 428 88 88,pl
+KW,Koleje Wielkopolskie,https://koleje-wielkopolskie.com.pl/,Europe/Warsaw,+48 616 500 106,pl
+LEO,Leo Express,https://www.leoexpress.com/,Europe/Warsaw,+48 22 263 02 97,pl
+LKA,Łódzka Kolej Aglomeracyjna,https://lka.lodzkie.pl/,Europe/Warsaw,+48 887 879 980,pl
+ODEG,Ostdeutsche Eisenbahn,https://www.odeg.de/,Europe/Warsaw,+49 03581 764 89 10,pl
+PR,PolRegio,https://polregio.pl/,Europe/Warsaw,+48 22 474 00 44,pl
+RJ,RegioJet,https://regiojet.pl/,Europe/Warsaw,+48 22 688 78 85,pl
+SKM,SKM Warszawa,https://www.skm.warszawa.pl/,Europe/Warsaw,+48 22 19 115,pl
+SKMT,PKP SKM Trójmiasto,https://www.skm.pkp.pl/,Europe/Warsaw,+48 58 721 21 70,pl
