@@ -5,6 +5,7 @@
 import {
   getRouteStyleFromFrequency,
   checkEuropeanSleeper453,
+  checkPrahaWarszawaChopin,
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
   checkZemplinBratislavaHumenne,
@@ -15,6 +16,7 @@ import {
   isPkpAgencyRoute,
   checkENHumennePraha,
   checkPrzemyslSwinoujscie,
+  checkWarszawaBudapestRoute,
   getFutureRouteStartDate,
   isRouteOutsideServiceIdSeason,
 } from "./routeStyleUtils";
@@ -163,6 +165,8 @@ export function buildAllRoutesPaths({
     let osmRelationId = null;
     if (checkEuropeanSleeper453(route)) {
       osmRelationId = "18616102";
+    } else if (checkPrahaWarszawaChopin(route)) {
+      osmRelationId = "8737075";
     } else if (checkRegioJetPrahaChop(route)) {
       osmRelationId = "static:rjChop";
     } else if (checkRegioJetPrahaPrzemysl(route)) {
@@ -173,6 +177,8 @@ export function buildAllRoutesPaths({
       osmRelationId = "static:enHumenne";
     } else if (checkPrzemyslSwinoujscie(route)) {
       osmRelationId = "static:przemyslSwinoujscie";
+    } else if (checkWarszawaBudapestRoute(route)) {
+      osmRelationId = "3779843";
     }
 
     // RegioJet routes use their brand color instead of the default palette

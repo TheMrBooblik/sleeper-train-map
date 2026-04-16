@@ -16,7 +16,7 @@ const OVERPASS_ENDPOINTS = [
 ];
 
 // OSM relation IDs used by the frontend (hardcoded in useRoutePaths.js)
-const OSM_RELATION_IDS = ["18616102"]; // European Sleeper 453
+const OSM_RELATION_IDS = ["18616102", "3779843", "8737075"]; // European Sleeper 453 + Warszawa↔Budapest + Praha↔Warszawa (EN 443)
 
 async function fetchBackontrack(type) {
   const response = await fetch(`${BASE_URL}/${type}.json`, {
