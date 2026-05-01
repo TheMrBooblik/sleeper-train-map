@@ -1,6 +1,5 @@
 import Head from "next/head";
 import Header from "@components/Header";
-import ThankYouModal from "@components/ThankYouModal";
 import { useState, useCallback, startTransition, useEffect } from "react";
 import Container from "@components/Container";
 import Map from "@components/Map";
@@ -13,7 +12,6 @@ const STORAGE_KEY_SHOW_ROUTES = "train-map:showRoutes";
 const STORAGE_KEY_HIDE_INTERMEDIATE = "train-map:hideIntermediateStations";
 
 const Layout = ({ children }) => {
-  const [isModalOpen, setModalIsOpen] = useState(false);
   const [layerType, setLayerType] = useState("thunderforest");
   const [isGrouped, setIsGrouped] = useState(true);
   const [showRoutes, setShowRoutes] = useState(false); // Toggle for showing route paths
@@ -78,7 +76,6 @@ const Layout = ({ children }) => {
         />
       </Head>
       <Header
-        setModalIsOpen={setModalIsOpen}
         setLayerType={setLayerType}
         layerType={layerType}
         isGrouped={isGrouped}
@@ -88,7 +85,7 @@ const Layout = ({ children }) => {
         hideIntermediateStations={hideIntermediateStations}
         setHideIntermediateStations={setHideIntermediateStations}
       />
-      <main>
+      <main className="relative">
         {children}
         <Container>
           <Map
@@ -103,10 +100,6 @@ const Layout = ({ children }) => {
           />
         </Container>
       </main>
-      <ThankYouModal
-        isModalOpen={isModalOpen}
-        setModalIsOpen={setModalIsOpen}
-      />
     </div>
   );
 };
