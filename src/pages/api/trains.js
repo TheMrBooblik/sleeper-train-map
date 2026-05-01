@@ -3,7 +3,7 @@
 // Reads from Vercel Blob (daily scrape) when fresh; falls back to GitHub.
 
 import { isTrain4you } from "../../lib/trainOperatorsFilter";
-import { getBlobData, isFresh } from "./lib/blob-store";
+import { getBlobData, isFresh } from "./lib/file-store";
 
 const BLOB_SUPPORTED_TYPES = ["stops", "view_ontd_map", "trips"];
 

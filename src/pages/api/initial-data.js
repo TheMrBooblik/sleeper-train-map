@@ -4,7 +4,7 @@
 // Vercel CDN caches this for 1 hour so only ~1 serverless invocation per hour worldwide.
 
 import { isTrain4you } from "../../lib/trainOperatorsFilter";
-import { getBlobData, getNJTrains, isFresh } from "./lib/blob-store";
+import { getBlobData, getNJTrains, isFresh } from "./lib/file-store";
 import {
   keepViewMapRowForTripActivity,
   routeIdsFromFilteredTrips,

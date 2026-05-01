@@ -7,7 +7,7 @@
 // The frontend uses this endpoint as a fallback when Back-on-Track trips.json
 // has no trip rows for an NJ/EN route selection.
 
-import { getNJTrains, isFresh } from "./lib/blob-store";
+import { getNJTrains, isFresh } from "./lib/file-store";
 
 export default async function handler(_req, res) {
   try {

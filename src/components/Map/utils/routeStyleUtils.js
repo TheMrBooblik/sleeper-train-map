@@ -50,13 +50,30 @@ export function isRouteOutsideServiceIdSeason(routeId, trips) {
     ranges.push(range);
   }
 
-  const inAny = ranges.some(
-    ({ start, end }) => today >= start && today <= end,
-  );
+  const inAny = ranges.some(({ start, end }) => today >= start && today <= end);
   return !inAny;
 }
 
 /** @typedef {0|1|2} FrequencyRank 0=daily, 1=subdaily, 2=rare */
+
+/**
+ * Base polyline visuals for map legend — must match `styleFromFrequencyRank`
+ * (non-seasonal) and the future-route ghost style in `useRoutePaths` / `buildAllRoutesPaths`.
+ * If you change dash/weight on the map, update these so the legend stays accurate.
+ */
+export const MAP_LEGEND_LINE_BASE_STYLES = {
+  /** FrequencyRank 0 — daily service */
+  rank0: { weight: 4.5, dashArray: null },
+  /** FrequencyRank 1 — less than daily */
+  rank1: { weight: 4.2, dashArray: "10,5" },
+  /** FrequencyRank 2 — infrequent (~weekly patterns in BoT text) */
+  rank2: { weight: 2.75, dashArray: "8,5" },
+  /**
+   * Routes with a future "From YYYY-MM-DD" — thin dashed ghost until they start.
+   * Opacity here is for legend sample only; Leaflet uses the same dash + low opacity on the map.
+   */
+  futureGhost: { weight: 1.5, dashArray: "6,4", opacity: 0.35 },
+};
 
 /**
  * Infer one trip's cadence rank from BoT `service_id` + `irregularities`.
@@ -164,7 +181,9 @@ function inferRouteFrequencyRank(routeTrips) {
 
   const perTrip = routeTrips.map((t) => inferTripFrequencyRank(t));
   const fallback = fallbackRankFromUniqueTripPatterns(routeTrips);
-  const effective = perTrip.map((r) => (r === null ? Math.max(1, fallback) : r));
+  const effective = perTrip.map((r) =>
+    r === null ? Math.max(1, fallback) : r,
+  );
   const rank = /** @type {FrequencyRank} */ (Math.max(0, ...effective));
 
   return { rank, isSeasonal };
@@ -179,20 +198,21 @@ function inferRouteFrequencyRank(routeTrips) {
  */
 function styleFromFrequencyRank(rank, isSeasonal) {
   if (rank === 0) {
-    return { weight: 4.5, dashArray: null };
+    const base = MAP_LEGEND_LINE_BASE_STYLES.rank0;
+    return { weight: base.weight, dashArray: base.dashArray };
   }
   if (rank === 1) {
+    const base = MAP_LEGEND_LINE_BASE_STYLES.rank1;
     return {
-      weight: 4.2,
-      // Tight gap so dashes read as a continuous “broken” line at low zoom.
-      dashArray: "10,5",
+      weight: base.weight,
+      dashArray: base.dashArray,
       ...(isSeasonal ? { opacity: 0.78 } : {}),
     };
   }
-  // rank === 2 rare — shorter gap than before; still thinner stroke than sub-daily.
+  const base = MAP_LEGEND_LINE_BASE_STYLES.rank2;
   return {
-    weight: 2.75,
-    dashArray: "8,5",
+    weight: base.weight,
+    dashArray: base.dashArray,
     ...(isSeasonal ? { opacity: 0.55 } : {}),
   };
 }

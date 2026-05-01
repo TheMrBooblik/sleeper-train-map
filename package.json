@@ -9,6 +9,7 @@
     "build": "next build",
     "export": "next export",
     "start": "next start",
+    "scrape": "node scripts/scrape-data.mjs",
     "parse-gtfs": "node scripts/parse-regiojet-gtfs.js",
     "parse-pkp-gtfs": "node scripts/parse-pkp-gtfs.js",
     "verify-pkp-bundle": "node tests/verify-pkp-train-shapes.mjs",
@@ -30,7 +31,6 @@
   "dependencies": {
     "@mapbox/polyline": "^1.2.1",
     "@tailwindcss/postcss": "^4.0.8",
-    "@vercel/blob": "^2.3.2",
     "copy-webpack-plugin": "^11.0.0",
     "hafas-client": "^6.3.6",
     "leaflet": "^1.9.4",

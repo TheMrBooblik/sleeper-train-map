@@ -10,7 +10,5 @@
     "src/pages/api/nj-train.js": { "maxDuration": 30 },
     "src/pages/api/nj-route.js": { "maxDuration": 30 }
   },
-  "crons": [
-    { "path": "/api/scrape-backontrack", "schedule": "0 3 * * *" }
-  ]
+  "crons": []
 }

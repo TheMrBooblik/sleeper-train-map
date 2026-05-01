@@ -10,7 +10,7 @@ import {
   getNJTrains,
   getCDTrains,
   getOsmRelation,
-} from "./lib/blob-store";
+} from "./lib/file-store";
 
 const OSM_RELATION_IDS = ["18616102"]; // European Sleeper 453
 
@@ -76,16 +76,7 @@ function loadPkpGtfsBundleStatus() {
 export default async function handler(req, res) {
   const pkpGtfs = loadPkpGtfsBundleStatus();
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return res.status(200).json({
-      error: "BLOB_READ_WRITE_TOKEN not configured",
-      sources: {
-        pkpGtfs,
-      },
-    });
-  }
-
-  // Fetch all blob data in parallel
+  // Fetch all scraped data in parallel
   const [stopsBlob, routesBlob, tripsBlob, njBlob, cdBlob, ...osmBlobs] =
     await Promise.all([
       getBlobData("stops"),

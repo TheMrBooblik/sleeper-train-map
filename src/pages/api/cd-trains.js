@@ -2,7 +2,7 @@
 // Serves Czech Railways (cd.cz) EC train timetable data from Vercel Blob.
 // Data is scraped daily by scrape-backontrack.js.
 
-import { getCDTrains, isFresh } from "./lib/blob-store";
+import { getCDTrains, isFresh } from "./lib/file-store";
 
 export default async function handler(req, res) {
   try {
