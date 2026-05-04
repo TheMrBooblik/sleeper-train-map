@@ -43,7 +43,7 @@ function extractCoordsFromRelation(relation) {
   const coords = [];
   if (!relation.members) return coords;
   relation.members
-    .filter((m) => m.type === "way")
+    .filter((m) => m.type === "way" && !m.role)
     .forEach((member) => {
       if (Array.isArray(member.geometry)) {
         member.geometry.forEach((point) => {

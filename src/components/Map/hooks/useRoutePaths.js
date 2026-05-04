@@ -28,9 +28,7 @@ import polyline from "@mapbox/polyline";
 // Number of leading coordinates to skip per OSM relation key.
 // Some OSM relations have station approach segments at the start
 // that cause visual backtracking on the map.
-const OSM_TRIM_OFFSETS = {
-  18616102: 328, // European Sleeper 453
-};
+const OSM_TRIM_OFFSETS = {};
 
 function isInactiveRoute(route) {
   return (route?.is_active || "Y").toString().toUpperCase() === "N";
@@ -412,7 +410,7 @@ export function useRoutePaths({
         // Static polylines are stored as pre-computed JSON files in /data/
         const url = key.startsWith("static:")
           ? `/data/${key.replace("static:", "")}Polyline.json`
-          : `/api/osm-relation?relationId=${key}`;
+          : `/api/osm-relation?relationId=${key}&v=2`;
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
