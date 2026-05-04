@@ -352,7 +352,7 @@ async function main() {
     const safeId = lineName.replace(/\s+/g, "_");
     const entry = {
       route_id: `nj_standalone_${safeId}`,
-      agency_id: "",
+      agency_id: "ÖBB",
       trip_short_name_0: lineName,
       origin_trip_0: origin,
       destination_trip_0: dest,

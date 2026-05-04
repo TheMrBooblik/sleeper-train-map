@@ -206,7 +206,8 @@ export default async function handler(req, res) {
       const safeId = lineName.replace(/\s+/g, "_");
       const entry = {
         route_id: `nj_standalone_${safeId}`,
-        agency_id: "",
+        // Empty agency_id was mapped to gray on the map; ÖBB matches BoT NightJet rows and TrainDetailPanel.
+        agency_id: "ÖBB",
         trip_short_name_0: lineName,
         origin_trip_0: origin,
         destination_trip_0: dest,
