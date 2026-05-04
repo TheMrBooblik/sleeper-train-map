@@ -124,10 +124,7 @@ export default async function handler(req, res) {
     const filteredTrips = filterTrips(rawTrips);
     const filteredViewMap = filterViewMap(rawViewMap, rawTrips, filteredTrips);
 
-    // Normalize stops shape early so we can use them for NJ station → BoT stop matching.
-    // This is important for synthetic NJ-only routes: NightJet API sometimes provides
-    // only English station names (e.g. "Vienna Central Station"), which won't match
-    // Back-on-Track stop names ("Wien Hbf") on the client.
+    // Normalize stops shape early.
     const stopsArray = Array.isArray(rawStops)
       ? rawStops
       : Object.values(rawStops || {});
@@ -137,39 +134,51 @@ export default async function handler(req, res) {
       stop_lat: s.stop_lat,
       stop_lon: s.stop_lon,
     }));
-    const parseCoord = (v) => {
-      const n = typeof v === "number" ? v : parseFloat(String(v ?? "").trim());
-      return Number.isFinite(n) ? n : null;
-    };
-    const stopPoints = trimmedStops
-      .map((s) => ({
-        name: s.stop_name || s.stop_id,
-        lat: parseCoord(s.stop_lat),
-        lon: parseCoord(s.stop_lon),
-      }))
-      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon) && p.name);
-    const resolveBotStopName = (station) => {
-      const lat = station?.location?.latitude;
-      const lon = station?.location?.longitude;
-      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return station?.name;
-      let best = null;
-      let bestD2 = Infinity;
-      for (const p of stopPoints) {
-        const dLat = p.lat - lat;
-        const dLon = p.lon - lon;
-        const d2 = dLat * dLat + dLon * dLon;
-        if (d2 < bestD2) {
-          bestD2 = d2;
-          best = p;
-        }
-      }
-      // Rough threshold: ~0.03 degrees ≈ 3km-ish (varies by latitude). Keeps us from
-      // accidentally snapping to a different city when data is imperfect.
-      return best && bestD2 <= 0.03 * 0.03 ? best.name : station?.name;
-    };
 
-    // Synthetic routes for NJ partner trains with no Back-on-Track entry (e.g. EN 40416/40417)
+    // Add NJ stations to stops (by exact name) so synthetic routes reference NJ names
+    // backed by NJ coordinates.
     const njTrains = njBlob?.data?.trains ?? {};
+    const njStationsByName = new Map();
+    Object.values(njTrains).forEach((train) => {
+      (train.stations ?? []).forEach((s) => {
+        if (
+          s?.name &&
+          Number.isFinite(s?.location?.latitude) &&
+          Number.isFinite(s?.location?.longitude) &&
+          !njStationsByName.has(s.name)
+        ) {
+          njStationsByName.set(s.name, s);
+        }
+      });
+    });
+    const botStopNameSet = new Set(
+      trimmedStops.map((s) => (s.stop_id || "").toLowerCase()),
+    );
+    njStationsByName.forEach((njStation) => {
+      if (botStopNameSet.has(njStation.name.toLowerCase())) return;
+      trimmedStops.push({
+        stop_id: njStation.name,
+        stop_name: njStation.name,
+        stop_lat: njStation.location.latitude,
+        stop_lon: njStation.location.longitude,
+      });
+      botStopNameSet.add(njStation.name.toLowerCase());
+    });
+
+    // Remove BoT entries for any NJ/EN train that has NJ API data.
+    // BoT's station lists are stale (wrong routing, wrong stop names for current timetables).
+    // Synthetic routes built below use accurate NJ API station names directly.
+    const njApiTrainNumbers = new Set(Object.keys(njTrains));
+    Object.keys(filteredViewMap).forEach((key) => {
+      const route = filteredViewMap[key];
+      const t0 = (route?.trip_short_name_0 || "").trim();
+      const t1 = (route?.trip_short_name_1 || "").trim();
+      if (njApiTrainNumbers.has(t0) || njApiTrainNumbers.has(t1)) {
+        delete filteredViewMap[key];
+      }
+    });
+
+    // Synthetic routes for all NJ/EN trains (BoT entries for them were removed above)
     const botMatchedNJNumbers = new Set();
     Object.values(filteredViewMap).forEach((route) => {
       [route.trip_short_name_0, route.trip_short_name_1]
@@ -185,14 +194,14 @@ export default async function handler(req, res) {
     const syntheticPaired = new Set();
     unmatchedNJ.forEach(([lineName, data]) => {
       if (syntheticPaired.has(lineName)) return;
-      const origin = resolveBotStopName(data.stations[0]);
-      const dest = resolveBotStopName(data.stations[data.stations.length - 1]);
+      const origin = data.stations[0].name;
+      const dest = data.stations[data.stations.length - 1].name;
       const reversePair = unmatchedNJ.find(
         ([k, v]) =>
           k !== lineName &&
           !syntheticPaired.has(k) &&
-          resolveBotStopName(v.stations?.[0]) === dest &&
-          resolveBotStopName(v.stations?.[v.stations.length - 1]) === origin,
+          v.stations?.[0]?.name === dest &&
+          v.stations?.[v.stations.length - 1]?.name === origin,
       );
       const safeId = lineName.replace(/\s+/g, "_");
       const entry = {
@@ -203,7 +212,7 @@ export default async function handler(req, res) {
         destination_trip_0: dest,
         via_0: data.stations
           .slice(1, -1)
-          .map((s) => resolveBotStopName(s))
+          .map((s) => s.name)
           .filter(Boolean)
           .join(" - "),
         route_long_name: `${origin} – ${dest}`,
@@ -213,13 +222,12 @@ export default async function handler(req, res) {
       if (reversePair) {
         const [revName, revData] = reversePair;
         entry.trip_short_name_1 = revName;
-        entry.origin_trip_1 = resolveBotStopName(revData.stations[0]);
-        entry.destination_trip_1 = resolveBotStopName(
-          revData.stations[revData.stations.length - 1],
-        );
+        entry.origin_trip_1 = revData.stations[0].name;
+        entry.destination_trip_1 =
+          revData.stations[revData.stations.length - 1].name;
         entry.via_1 = revData.stations
           .slice(1, -1)
-          .map((s) => resolveBotStopName(s))
+          .map((s) => s.name)
           .filter(Boolean)
           .join(" - ");
         syntheticPaired.add(revName);
