@@ -19,16 +19,10 @@ export function normalizeStationNameForDisplay(stationName) {
   }
 
   if (stationName.includes("Paris")) return "Paris";
-  if (
-    stationName.includes("Bruxelles") ||
-    stationName.includes("Brussels")
-  ) {
+  if (stationName.includes("Bruxelles") || stationName.includes("Brussels")) {
     return "Brussels";
   }
-  if (
-    stationName.includes("Antwerpen") ||
-    stationName.includes("Antwerp")
-  ) {
+  if (stationName.includes("Antwerpen") || stationName.includes("Antwerp")) {
     return "Antwerpen";
   }
   if (
@@ -42,16 +36,10 @@ export function normalizeStationNameForDisplay(stationName) {
   if (/\bWien\b/.test(stationName) || stationName.includes("Vienna")) {
     return "Vienna";
   }
-  if (
-    stationName.includes("Milano") ||
-    stationName.includes("Milan")
-  ) {
+  if (stationName.includes("Milano") || stationName.includes("Milan")) {
     return "Milan";
   }
-  if (
-    stationName.includes("Torino") ||
-    stationName.includes("Turin")
-  ) {
+  if (stationName.includes("Torino") || stationName.includes("Turin")) {
     return "Torino";
   }
   if (
@@ -64,72 +52,46 @@ export function normalizeStationNameForDisplay(stationName) {
     return "Rome";
   }
   if (stationName.includes("Berlin")) return "Berlin";
-  if (
-    stationName.includes("München") ||
-    stationName.includes("Munich")
-  ) {
+  if (stationName.includes("München") || stationName.includes("Munich")) {
     return "Munich";
   }
   if (stationName.includes("Hamburg")) return "Hamburg";
-  if (
-    stationName.includes("Köln") ||
-    stationName.includes("Cologne")
-  ) {
+  if (stationName.includes("Köln") || stationName.includes("Cologne")) {
     return "Cologne";
   }
   if (stationName.includes("Frankfurt")) return "Frankfurt";
   if (stationName.includes("Amsterdam")) return "Amsterdam";
-  if (
-    stationName.includes("Zürich") ||
-    stationName.includes("Zurich")
-  ) {
+  if (stationName.includes("Zürich") || stationName.includes("Zurich")) {
     return "Zurich";
   }
   if (stationName.includes("Barcelona")) return "Barcelona";
   if (stationName.includes("Madrid")) return "Madrid";
-  if (
-    stationName.includes("Lisboa") ||
-    stationName.includes("Lisbon")
-  ) {
+  if (stationName.includes("Lisboa") || stationName.includes("Lisbon")) {
     return "Lisbon";
   }
   if (stationName.includes("Stockholm")) return "Stockholm";
   if (stationName.includes("Oslo")) return "Oslo";
-  if (
-    stationName.includes("København") ||
-    stationName.includes("Copenhagen")
-  ) {
+  if (stationName.includes("København") || stationName.includes("Copenhagen")) {
     return "Copenhagen";
   }
-  if (
-    stationName.includes("Helsinki") ||
-    stationName.includes("Helsingfors")
-  ) {
+  if (stationName.includes("Helsinki") || stationName.includes("Helsingfors")) {
     return "Helsinki";
   }
-  if (
-    stationName.includes("Warszawa") ||
-    stationName.includes("Warsaw")
-  ) {
+  if (stationName.includes("Warszawa") || stationName.includes("Warsaw")) {
     return "Warsaw";
   }
-  if (
-    stationName.includes("Kraków") ||
-    stationName.includes("Krakow")
-  ) {
+  if (stationName.includes("Kraków") || stationName.includes("Krakow")) {
     return "Krakow";
   }
   if (stationName.includes("Budapest")) return "Budapest";
   if (
     stationName.includes("Praha") ||
+    stationName.includes("Prag") ||
     stationName.includes("Prague")
   ) {
     return "Prague";
   }
-  if (
-    stationName.includes("București") ||
-    stationName.includes("Bucharest")
-  ) {
+  if (stationName.includes("București") || stationName.includes("Bucharest")) {
     return "Bucharest";
   }
   if (stationName.includes("Sofia")) return "Sofia";
@@ -145,10 +107,7 @@ export function normalizeStationNameForDisplay(stationName) {
   if (stationName.includes("Minsk")) return "Minsk";
   if (stationName.includes("Ankara")) return "Ankara";
   if (stationName.includes("London")) return "London";
-  if (
-    stationName.includes("İstanbul") ||
-    stationName.includes("Istanbul")
-  ) {
+  if (stationName.includes("İstanbul") || stationName.includes("Istanbul")) {
     return "Istanbul";
   }
   if (stationName.includes("İzmir") || stationName.includes("Izmir")) {
