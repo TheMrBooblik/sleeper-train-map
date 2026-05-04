@@ -1,4 +1,17 @@
-const ZOOM_SHOW_ALL_THRESHOLD = 8;
+export const ZOOM_SHOW_ALL_THRESHOLD = 8;
+
+/**
+ * Returns the grid cell size in degrees for a given zoom level.
+ *
+ * Sized so that two stations in the same cell would render within ~20 screen
+ * pixels of each other — i.e. we only hide a station when there is a
+ * higher-priority neighbour close enough to cause actual visual crowding.
+ * The formula is zoom-level-dependent but viewport-position-independent, so
+ * panning never changes which stations are shown.
+ */
+function getCellSizeDeg(zoom) {
+  return (20 * 360) / (256 * Math.pow(2, zoom));
+}
 
 function countRouteIds(stopRouteIds) {
   if (!stopRouteIds) return 0;
@@ -8,26 +21,8 @@ function countRouteIds(stopRouteIds) {
     .filter(Boolean).length;
 }
 
-function getGridDimensions(zoom) {
-  // Lower zoom means wider view, so we keep fewer markers.
-  // Slightly denser than before, as requested:
-  // - zoom 0-3: from 10x10 -> 12x12
-  // - zoom 4-5: from 16x16 -> 20x20
-  if (zoom <= 3) return { rows: 12, cols: 12 };
-  return { rows: 20, cols: 20 };
-}
-
 function isFiniteCoordinate(value) {
   return typeof value === "number" && Number.isFinite(value);
-}
-
-function isInBounds(lat, lon, bounds) {
-  return (
-    lat >= bounds.south &&
-    lat <= bounds.north &&
-    lon >= bounds.west &&
-    lon <= bounds.east
-  );
 }
 
 function getStationScore(stop, cities, normalizeStationNameForLookup) {
@@ -36,9 +31,6 @@ function getStationScore(stop, cities, normalizeStationNameForLookup) {
   const routeCount = countRouteIds(cityInfo?.stop_route_ids);
   const nonViaBonus = cityInfo?.isViaStation ? 0 : 1000;
 
-  // Keep scoring simple and predictable:
-  // - prefer non-via stations
-  // - then prefer stations serving more routes
   return nonViaBonus + routeCount;
 }
 
@@ -48,7 +40,9 @@ function getStopKey(stop) {
 
 function splitVisibleAndHiddenStops(stops, visibleStops) {
   const visibleKeys = new Set(visibleStops.map(getStopKey));
-  const hiddenStops = stops.filter((stop) => !visibleKeys.has(getStopKey(stop)));
+  const hiddenStops = stops.filter(
+    (stop) => !visibleKeys.has(getStopKey(stop)),
+  );
   return { visibleStops, hiddenStops };
 }
 
@@ -61,13 +55,16 @@ function normalizeForAllowlistMatch(value, normalizeStationNameForLookup) {
  * Reduce marker density for zoomed-out views by keeping:
  * - always-show stations (manual allowlist)
  * - currently selected station
- * - one "best" station per grid cell for remaining candidates
+ * - one "best" station per fixed world-coordinate grid cell
+ *
+ * Grid cells are fixed in world coordinates (not viewport-relative), so
+ * panning never causes stations to appear or disappear. A station is only
+ * hidden when a higher-priority station would render within ~30px of it.
  */
 export function thinStationsByViewport({
   stops,
   cities,
   mapZoom,
-  mapBounds,
   normalizeStationNameForLookup,
   alwaysShowStations,
   selectedStopId,
@@ -87,10 +84,14 @@ export function thinStationsByViewport({
       const ruleValue = isPrefixRule ? rawRule.slice(0, -1) : rawRule;
       return {
         isPrefixRule,
-        value: normalizeForAllowlistMatch(ruleValue, normalizeStationNameForLookup),
+        value: normalizeForAllowlistMatch(
+          ruleValue,
+          normalizeStationNameForLookup,
+        ),
       };
     })
     .filter((rule) => rule.value);
+
   const selectedNormalizedId = selectedStopId
     ? normalizeForAllowlistMatch(selectedStopId, normalizeStationNameForLookup)
     : null;
@@ -106,38 +107,12 @@ export function thinStationsByViewport({
         ? normalizedStopId.startsWith(rule.value)
         : normalizedStopId === rule.value,
     );
-    return (
-      normalizedStopId === selectedNormalizedId ||
-      matchesAllowlist
-    );
+    return normalizedStopId === selectedNormalizedId || matchesAllowlist;
   };
 
-  // On first render we may not have bounds yet. Keep only forced markers
-  // to avoid dense "flash" at low zoom.
-  if (!mapBounds) {
-    return splitVisibleAndHiddenStops(stops, stops.filter(shouldAlwaysKeep));
-  }
-
-  const { north, south, east, west } = mapBounds;
-  const validBounds =
-    [north, south, east, west].every(isFiniteCoordinate) &&
-    north > south &&
-    east > west;
-
-  if (!validBounds) {
-    return splitVisibleAndHiddenStops(stops, stops.filter(shouldAlwaysKeep));
-  }
-
-  const latSpan = north - south;
-  const lonSpan = east - west;
-  const { rows, cols } = getGridDimensions(mapZoom);
-  const cellLat = latSpan / rows;
-  const cellLon = lonSpan / cols;
-
-  if (cellLat <= 0 || cellLon <= 0) {
-    return splitVisibleAndHiddenStops(stops, stops.filter(shouldAlwaysKeep));
-  }
-
+  // Fixed world-coordinate grid: cell boundaries never shift with the viewport,
+  // so panning does not change which station wins each cell.
+  const cellSizeDeg = getCellSizeDeg(mapZoom);
   const forcedStopsByName = new Map();
   const winnersByCell = new Map();
 
@@ -152,24 +127,16 @@ export function thinStationsByViewport({
       return;
     }
 
-    const normalizedStopId = normalizeStationNameForLookup(stop.stop_id);
     if (shouldAlwaysKeep(stop)) {
+      const normalizedStopId = normalizeStationNameForLookup(stop.stop_id);
       if (!forcedStopsByName.has(normalizedStopId)) {
         forcedStopsByName.set(normalizedStopId, stop);
       }
       return;
     }
 
-    if (!isInBounds(lat, lon, mapBounds)) return;
-
-    const row = Math.max(
-      0,
-      Math.min(rows - 1, Math.floor((lat - south) / cellLat)),
-    );
-    const col = Math.max(
-      0,
-      Math.min(cols - 1, Math.floor((lon - west) / cellLon)),
-    );
+    const row = Math.floor(lat / cellSizeDeg);
+    const col = Math.floor(lon / cellSizeDeg);
     const cellKey = `${row}:${col}`;
     const candidateScore = getStationScore(
       stop,

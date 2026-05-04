@@ -34,6 +34,7 @@ import {
 } from "./utils/routeStyleUtils";
 import { useRoutePaths } from "./hooks/useRoutePaths";
 import { useMapMarkers } from "./hooks/useMapMarkers";
+import { ZOOM_SHOW_ALL_THRESHOLD } from "./utils/thinStationsByViewport";
 import LoadingOverlay from "./components/LoadingOverlay";
 import MapClickHandler from "./components/MapClickHandler";
 import MapViewportTracker from "./components/MapViewportTracker";
@@ -87,7 +88,7 @@ const TrainMap = ({
   const [cdRouteFilterStops, setCdRouteFilterStops] = useState(null);
   const cdTrainsCacheRef = useRef(null);
   const [mapZoom, setMapZoom] = useState(null);
-  const [mapBounds, setMapBounds] = useState(null);
+  const zoomDebounceRef = useRef(null);
 
   const { routePaths } = useRoutePaths({
     viewMapData,
@@ -135,9 +136,16 @@ const TrainMap = ({
     setHoveredRouteId(null);
   }, []);
 
-  const handleViewportChange = useCallback(({ zoom, bounds }) => {
-    setMapZoom(zoom);
-    setMapBounds(bounds);
+  const handleViewportChange = useCallback(({ zoom }) => {
+    clearTimeout(zoomDebounceRef.current);
+    zoomDebounceRef.current = setTimeout(() => {
+      setMapZoom((prev) => {
+        if (prev === zoom) return prev;
+        // Both values above threshold → thinning is a no-op at both → skip re-render
+        if (prev !== null && prev >= ZOOM_SHOW_ALL_THRESHOLD && zoom >= ZOOM_SHOW_ALL_THRESHOLD) return prev;
+        return zoom;
+      });
+    }, 150);
   }, []);
 
   // Guard against stale hover state. If the bottom bar is not in the
@@ -500,7 +508,6 @@ const TrainMap = ({
     trips,
     routeFilteredMode: hasRouteFilter,
     mapZoom,
-    mapBounds,
   });
 
   const overallLoading = initialDataLoading;

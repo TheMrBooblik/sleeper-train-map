@@ -37,6 +37,7 @@ export const alwaysShowStations = [
   "Praha hl.n.",
   "Roma Termini",
   "Sofia",
+  "Utrecht",
   "Warszawa Centralna",
   "Wien Hbf",
   "Zagreb Glavni kolodvor",

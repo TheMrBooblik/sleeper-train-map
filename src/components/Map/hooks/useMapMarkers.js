@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef } from "react";
+import React, { useMemo } from "react";
 import Leaflet from "leaflet";
 import { Marker, Tooltip } from "react-leaflet";
 import { groupCityMarkers } from "../utils/groupCityMarkers";
@@ -31,17 +31,11 @@ export function useMapMarkers({
   trips,
   routeFilteredMode = false,
   mapZoom = null,
-  mapBounds = null,
 }) {
   const { defaultIcon, selectedIcon, viaIcon } = useMemo(
     () => createMapIcons(Leaflet),
     [],
   );
-  const previousZoomRef = useRef(null);
-  const previousVisibleStopKeysRef = useRef(new Set());
-
-  const getStopKey = (stop) =>
-    `${stop?.stop_id || ""}|${stop?.stop_lat || ""}|${stop?.stop_lon || ""}`;
 
   return useMemo(() => {
     let stopsToShow = [];
@@ -118,74 +112,17 @@ export function useMapMarkers({
     // - only in normal station mode
     // - only when intermediate stations are not already hidden
     if (!routeFilteredMode && !hideIntermediateStations) {
-      // Start/end stations of visible routes should never disappear on zoomed-out views.
-      const routeEndpointStations = [];
-      if (viewMapData) {
-        Object.values(viewMapData).forEach((route) => {
-          if (
-            route?.route_id &&
-            shouldHideRouteDueToFutureDate(route.route_id.toString(), trips)
-          ) {
-            return;
-          }
-          [
-            route?.origin_trip_0,
-            route?.destination_trip_0,
-            route?.origin_trip_1,
-            route?.destination_trip_1,
-          ]
-            .filter(Boolean)
-            .forEach((name) => routeEndpointStations.push(name));
-        });
-      }
-
       const thinningResult = thinStationsByViewport({
         stops: stopsToShow,
         cities,
         mapZoom,
-        mapBounds,
         normalizeStationNameForLookup,
-        alwaysShowStations: [...alwaysShowStations, ...routeEndpointStations],
+        alwaysShowStations,
         selectedStopId: stopId,
       });
-      let nextVisibleStops = thinningResult.visibleStops;
-      let nextHiddenStops = thinningResult.hiddenStops;
-
-      // On zoom-in, preserve previously visible "big" stations.
-      // This avoids swapping one big station for another.
-      const previousZoom = previousZoomRef.current;
-      const isZoomingIn =
-        typeof mapZoom === "number" &&
-        typeof previousZoom === "number" &&
-        mapZoom > previousZoom;
-
-      if (isZoomingIn && previousVisibleStopKeysRef.current.size > 0) {
-        const visibleByKey = new Map(
-          nextVisibleStops.map((stop) => [getStopKey(stop), stop]),
-        );
-        const hiddenByKey = new Map(
-          nextHiddenStops.map((stop) => [getStopKey(stop), stop]),
-        );
-
-        previousVisibleStopKeysRef.current.forEach((key) => {
-          if (visibleByKey.has(key)) return;
-          const previouslyVisibleStop = hiddenByKey.get(key);
-          if (previouslyVisibleStop) {
-            visibleByKey.set(key, previouslyVisibleStop);
-            hiddenByKey.delete(key);
-          }
-        });
-
-        nextVisibleStops = Array.from(visibleByKey.values());
-        nextHiddenStops = Array.from(hiddenByKey.values());
-      }
-
-      stopsToShow = nextVisibleStops;
-      hiddenStops = nextHiddenStops;
+      stopsToShow = thinningResult.visibleStops;
+      hiddenStops = thinningResult.hiddenStops;
     }
-
-    previousZoomRef.current = mapZoom;
-    previousVisibleStopKeysRef.current = new Set(stopsToShow.map(getStopKey));
 
     if (!stopsToShow.length) return [];
 
@@ -347,7 +284,6 @@ export function useMapMarkers({
     trips,
     routeFilteredMode,
     mapZoom,
-    mapBounds,
     defaultIcon,
     selectedIcon,
     viaIcon,
