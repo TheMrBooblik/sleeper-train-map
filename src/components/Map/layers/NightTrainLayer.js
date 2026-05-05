@@ -233,14 +233,15 @@ export const NightTrainPolylines = memo(function NightTrainPolylines({
     <>
       {list.map((ov) => (
         <React.Fragment key={`poly-${ov.key}`}>
+          {/* Invisible wide hit trap — large touch/click target */}
           <Polyline
             positions={ov.coords}
             pathOptions={{
-              color: ov.color,
-              weight: 4.5,
-              opacity: 0.8,
-              lineCap: "round",
-              lineJoin: "round",
+              color: "transparent",
+              weight: 24,
+              opacity: 0,
+              fillOpacity: 0,
+              interactive: true,
               cursor: "pointer",
             }}
             eventHandlers={{
@@ -252,8 +253,6 @@ export const NightTrainPolylines = memo(function NightTrainPolylines({
           >
             {!selectedOverlay && (
               <Tooltip
-                // Keep route tooltip hover-only so it does not remain together
-                // with a station tooltip when the cursor moves between elements.
                 sticky={false}
                 permanent={false}
                 interactive={false}
@@ -263,6 +262,19 @@ export const NightTrainPolylines = memo(function NightTrainPolylines({
               </Tooltip>
             )}
           </Polyline>
+          {/* Visual polyline — non-interactive, purely decorative */}
+          <Polyline
+            positions={ov.coords}
+            pathOptions={{
+              color: ov.color,
+              weight: 4.5,
+              opacity: 0.8,
+              lineCap: "round",
+              lineJoin: "round",
+              cursor: "pointer",
+              interactive: false,
+            }}
+          />
           {(ov.stations || []).map((s, idx) => {
             if (hideIntermediateStations) {
               const isEnd = idx === 0 || idx === (ov.stations?.length ?? 0) - 1;

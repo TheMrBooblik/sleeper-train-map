@@ -601,74 +601,91 @@ const TrainMap = ({
         <LocationControl />
 
         {visibleRoutePaths.length > 0 &&
-          visibleRoutePaths.map((path) => (
-            <Polyline
-              key={path.key}
-              positions={path.positions}
-              pathOptions={{
-                ...path.pathOptions,
-                cursor: "pointer",
-                // When hovering a bottom-bar route, preview focus by dimming others.
-                opacity: shouldApplyHoverPreview
-                  ? String(path.routeId) === hoveredRouteId
-                    ? 0.95
-                    : 0.2
-                  : path.pathOptions.opacity,
-                // Emphasize hovered route without snapping rare (thin) lines up to 4px.
-                weight: shouldApplyHoverPreview
-                  ? String(path.routeId) === hoveredRouteId
-                    ? Math.max(
-                        path.pathOptions.weight || 1,
-                        (path.pathOptions.weight || 4) + 1.5,
-                      )
-                    : path.pathOptions.weight
-                  : path.pathOptions.weight,
-              }}
-              eventHandlers={{
-                click: (e) => {
-                  e.originalEvent.stopPropagation();
-                  if (path.isFuture) {
-                    // Future route: tooltip already shows "opens …"; no panel
-                    return;
-                  }
-                  handlePolylineClick(path.routeId);
-                },
-              }}
-            >
-              <Tooltip sticky>
-                {(() => {
-                  const route = viewMapData
-                    ? Object.values(viewMapData).find(
-                        (r) =>
-                          r?.route_id &&
-                          r.route_id.toString() === String(path.routeId),
-                      )
-                    : null;
-                  if (!route) return `Route ${path.routeId}`;
+          visibleRoutePaths.map((path) => {
+            const resolvedOpacity = shouldApplyHoverPreview
+              ? String(path.routeId) === hoveredRouteId
+                ? 0.95
+                : 0.2
+              : path.pathOptions.opacity;
+            const resolvedWeight = shouldApplyHoverPreview
+              ? String(path.routeId) === hoveredRouteId
+                ? Math.max(
+                    path.pathOptions.weight || 1,
+                    (path.pathOptions.weight || 4) + 1.5,
+                  )
+                : path.pathOptions.weight
+              : path.pathOptions.weight;
+            return (
+              <React.Fragment key={path.key}>
+                {/* Invisible wide hit trap — large touch/click target without altering visual weight */}
+                <Polyline
+                  key={`${path.key}-hit`}
+                  positions={path.positions}
+                  pathOptions={{
+                    color: "transparent",
+                    weight: 24,
+                    opacity: 0,
+                    fillOpacity: 0,
+                    interactive: true,
+                    cursor: "pointer",
+                  }}
+                  eventHandlers={{
+                    click: (e) => {
+                      e.originalEvent.stopPropagation();
+                      if (path.isFuture) {
+                        return;
+                      }
+                      handlePolylineClick(path.routeId);
+                    },
+                  }}
+                >
+                  <Tooltip sticky>
+                    {(() => {
+                      const route = viewMapData
+                        ? Object.values(viewMapData).find(
+                            (r) =>
+                              r?.route_id &&
+                              r.route_id.toString() === String(path.routeId),
+                          )
+                        : null;
+                      if (!route) return `Route ${path.routeId}`;
 
-                  const isDirectionOne = path.key.endsWith("-1");
-                  const origin = isDirectionOne
-                    ? route.origin_trip_1 || route.origin_trip_0
-                    : route.origin_trip_0 || route.origin_trip_1;
-                  const destination = isDirectionOne
-                    ? route.destination_trip_1 || route.destination_trip_0
-                    : route.destination_trip_0 || route.destination_trip_1;
-                  const trainNumber = isDirectionOne
-                    ? route.trip_short_name_1 || route.trip_short_name_0
-                    : route.trip_short_name_0 || route.trip_short_name_1;
+                      const isDirectionOne = path.key.endsWith("-1");
+                      const origin = isDirectionOne
+                        ? route.origin_trip_1 || route.origin_trip_0
+                        : route.origin_trip_0 || route.origin_trip_1;
+                      const destination = isDirectionOne
+                        ? route.destination_trip_1 || route.destination_trip_0
+                        : route.destination_trip_0 || route.destination_trip_1;
+                      const trainNumber = isDirectionOne
+                        ? route.trip_short_name_1 || route.trip_short_name_0
+                        : route.trip_short_name_0 || route.trip_short_name_1;
 
-                  const segment = `${origin || "?"} → ${destination || "?"}`;
-                  const label = trainNumber
-                    ? `${trainNumber}: ${segment}`
-                    : `Route: ${segment}`;
-                  // Hint for future routes directly in the tooltip
-                  return path.isFuture
-                    ? `${label} · opens ${formatFutureDate(path.futureStartDate)}`
-                    : label;
-                })()}
-              </Tooltip>
-            </Polyline>
-          ))}
+                      const segment = `${origin || "?"} → ${destination || "?"}`;
+                      const label = trainNumber
+                        ? `${trainNumber}: ${segment}`
+                        : `Route: ${segment}`;
+                      return path.isFuture
+                        ? `${label} · opens ${formatFutureDate(path.futureStartDate)}`
+                        : label;
+                    })()}
+                  </Tooltip>
+                </Polyline>
+                {/* Visual polyline — non-interactive, purely decorative */}
+                <Polyline
+                  key={`${path.key}-vis`}
+                  positions={path.positions}
+                  pathOptions={{
+                    ...path.pathOptions,
+                    cursor: "pointer",
+                    opacity: resolvedOpacity,
+                    weight: resolvedWeight,
+                    interactive: false,
+                  }}
+                />
+              </React.Fragment>
+            );
+          })}
         {markers}
       </MapContainer>
 

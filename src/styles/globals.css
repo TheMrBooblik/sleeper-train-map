@@ -58,14 +58,27 @@ img {
   color: #007aff !important;
 }
 
+/* Bottom bar scroll fade — gradient hint that more route pills exist to the right */
+.bottom-bar-scroll-fade::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  background: linear-gradient(to left, white 40%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
 /* Header icon toggle styles */
 .icon-toggle-button {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 9999px;
   background: transparent;

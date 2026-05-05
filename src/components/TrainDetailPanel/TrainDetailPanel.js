@@ -386,24 +386,37 @@ const TrainDetailPanel = ({
   }
 
   return (
-    <div
-      className={`fixed top-12 right-0 h-full bg-white shadow-lg transition-transform duration-300 z-[1000] overflow-y-auto overscroll-y-none ${
-        isOpen ? "translate-x-0" : "translate-x-full"
-      }`}
-      style={{ width: "300px" }}
-    >
-      {/* Header */}
-      <div className="sticky bg-white border-b border-gray-200 pl-5 py-1 flex items-center justify-between z-10">
-        <h2 className="text-base font-semibold text-gray-900">Train Details</h2>
-        <button
+    <>
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-[999] md:hidden"
           onClick={onClose}
-          className="text-xl leading-none text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded w-5 h-5 p-5 cursor-pointer flex items-center justify-center transition-colors"
-          aria-label="Close panel"
-          title="Close (ESC)"
-        >
-          ✖
-        </button>
-      </div>
+          aria-hidden="true"
+        />
+      )}
+      <div
+        className={`fixed z-[1000] bg-white shadow-lg transition-transform duration-300 overflow-y-auto overscroll-y-none bottom-0 left-0 right-0 rounded-t-2xl h-[80vh] md:top-12 md:right-0 md:bottom-auto md:left-auto md:rounded-none md:h-[calc(100vh-3rem)] md:w-[300px] md:translate-y-0 ${
+          isOpen
+            ? "translate-y-0 md:translate-x-0"
+            : "translate-y-full md:translate-x-full"
+        }`}
+      >
+        {/* Mobile drag handle */}
+        <div className="md:hidden flex justify-center pt-2 pb-1 shrink-0">
+          <div className="w-10 h-1 rounded-full bg-gray-300" />
+        </div>
+        {/* Header */}
+        <div className="sticky bg-white border-b border-gray-200 pl-5 py-1 flex items-center justify-between z-10">
+          <h2 className="text-base font-semibold text-gray-900">Train Details</h2>
+          <button
+            onClick={onClose}
+            className="text-xl leading-none text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded w-5 h-5 p-5 cursor-pointer flex items-center justify-center transition-colors"
+            aria-label="Close panel"
+            title="Close (ESC)"
+          >
+            ✖
+          </button>
+        </div>
 
       {/* Content */}
       <div className="p-4 space-y-4 mb-10">
@@ -731,7 +744,8 @@ const TrainDetailPanel = ({
           </>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

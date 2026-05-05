@@ -110,7 +110,7 @@ const TrainBottomBar = ({
 
   return (
     <div
-      className={`absolute ${isOpen ? "bottom-0" : "-bottom-[100px]"} w-full max-h-7 bg-white shadow-[-2px_0_8px_rgba(0,0,0,0.1)] z-[1000] overflow-y-none overflow-x-scroll transition-[right] duration-300 p-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
+      className={`absolute bottom-bar-scroll-fade ${isOpen ? "bottom-0" : "-bottom-[100px]"} w-full h-12 bg-white shadow-[-2px_0_8px_rgba(0,0,0,0.1)] z-[1000] overflow-y-hidden overflow-x-scroll transition-[bottom] duration-300 p-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
     >
       <div className="flex p-1">
         {/* Back-on-Track routes */}
@@ -121,7 +121,7 @@ const TrainBottomBar = ({
 
           return (
             <div
-              className="relative flex items-center pl-2 pr-3 whitespace-nowrap text-sm cursor-pointer hover:bg-gray-100 transition-colors"
+              className="relative flex items-center h-10 pl-2 pr-3 whitespace-nowrap text-sm cursor-pointer hover:bg-gray-100 active:bg-gray-100 transition-colors"
               key={`route-info-${index}`}
               role="button"
               tabIndex={0}
