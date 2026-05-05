@@ -24,3 +24,5 @@ jobs:
         with:
           commit_message: "chore: daily data scrape [skip ci]"
           file_pattern: "public/data/scraped/*.json"
+        env:
+          HUSKY: "0"
