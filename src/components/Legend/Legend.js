@@ -11,6 +11,9 @@ import {
 const BACK_ON_TRACK_NIGHT_TRAIN_MAP =
   "https://back-on-track.eu/night-train-map/";
 
+/** Buy Me a Coffee — Pingwi supporter page */
+const BUY_ME_A_COFFEE_URL = "https://buymeacoffee.com/pingwi";
+
 /**
  * Mini polyline for legend — stroke matches map weights/dash from MAP_LEGEND_LINE_BASE_STYLES.
  */
@@ -65,6 +68,10 @@ const Legend = ({ variant = "inline" }) => {
   // Standalone footer link: reads clearly as a hyperlink (weight, underline, external-tab cue).
   const nightTrainMapLinkClass =
     "inline-flex w-fit max-w-full items-center gap-1 rounded-sm py-0.5 text-xs font-semibold text-sky-400 underline decoration-2 underline-offset-[3px] decoration-sky-400/90 outline-offset-2 hover:bg-sky-400/10 hover:text-sky-300 hover:decoration-sky-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400/70";
+
+  /** Buy Me a Coffee — full-width yellow pill (use !text-black: global `a{color:inherit}` is unlayered and wins over layered utilities). */
+  const buyMeACoffeeLinkClass =
+    "flex w-full min-w-0 max-w-full items-center justify-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold !text-black no-underline bg-[#ffdd00] shadow-sm outline-offset-2 transition-colors hover:bg-[#ffcc33] focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400/90";
 
   return (
     <div className={"flex flex-col gap-4 text-left"}>
@@ -197,18 +204,9 @@ const Legend = ({ variant = "inline" }) => {
             Intermediate stop
           </span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div
-            className="h-3 w-3 shrink-0 rounded-full border border-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] bg-gradient-to-br from-[#FF5722] to-[#E64A19] min-[1280px]:h-3.5 min-[1280px]:w-3.5"
-            aria-hidden
-          />
-          <span className="text-[11px] font-medium text-white min-[1280px]:text-xs">
-            Selected
-          </span>
-        </div>
       </div>
 
-      <div className="flex flex-col gap-2 border-t border-white/15 pt-3">
+      <div className="flex flex-col gap-4 border-t border-white/15 pt-3">
         <p className="text-[10px] leading-snug text-white/65">
           Huge thanks to{" "}
           <a
@@ -221,20 +219,32 @@ const Legend = ({ variant = "inline" }) => {
           </a>{" "}
           for providing the data for this visualization!
         </p>
-        <a
-          href={BACK_ON_TRACK_NIGHT_TRAIN_MAP}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={nightTrainMapLinkClass}
-        >
-          <span>Back-on-Track map</span>
-          <span
-            className="select-none text-[0.65rem] font-normal leading-none opacity-80"
-            aria-hidden
+        <div className="flex w-full min-w-0 flex-col gap-2">
+          <a
+            href={BUY_ME_A_COFFEE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buyMeACoffeeLinkClass}
           >
-            ↗
-          </span>
-        </a>
+            {/* Buy Me a Coffee mark from public/coffee.svg (served from site root) */}
+            <img
+              src="/coffee.svg"
+              alt=""
+              width={20}
+              height={29}
+              decoding="async"
+              className="h-5 w-auto max-h-5 shrink-0 object-contain object-left"
+              aria-hidden
+            />
+            <span>Buy me a coffee</span>
+            <span
+              className="select-none text-[0.65rem] font-normal leading-none text-black"
+              aria-hidden
+            >
+              ↗
+            </span>
+          </a>
+        </div>
       </div>
     </div>
   );
