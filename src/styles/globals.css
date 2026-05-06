@@ -77,8 +77,8 @@ img {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border: 0;
   border-radius: 9999px;
   background: transparent;
@@ -118,6 +118,11 @@ img {
  * This modifier grows the button into a horizontal pill only from 1280px up.
  */
 @media (min-width: 1280px) {
+  .icon-toggle-button {
+    width: 44px;
+    height: 44px;
+  }
+
   .icon-toggle-button[data-tooltip]::after {
     content: none;
   }

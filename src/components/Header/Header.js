@@ -1,11 +1,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  FaEyeSlash,
-  FaInfo,
-  FaLayerGroup,
-  FaRoute,
-} from "react-icons/fa";
+import { FaEyeSlash, FaInfo, FaLayerGroup, FaRoute } from "react-icons/fa";
 
 import Container from "@components/Container";
 import Legend from "@components/Legend";
@@ -26,9 +21,7 @@ const IconToggleButton = ({
     onClick={onClick}
     className={`icon-toggle-button icon-toggle-button--labeled whitespace-nowrap ${
       showMobileTooltip ? "icon-toggle-button--show-tooltip-mobile" : ""
-    } ${
-      isActive ? "is-active" : ""
-    }`}
+    } ${isActive ? "is-active" : ""}`}
     aria-label={ariaLabel || label}
     data-tooltip={ariaLabel || label}
   >
