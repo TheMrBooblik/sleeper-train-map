@@ -159,8 +159,8 @@ const Header = ({
               <div
                 ref={legendPanelRef}
                 id="map-legend-popover"
-                className="fixed bottom-2 right-2 z-[1003] w-[min(calc(100vw-1rem),22rem)] overflow-y-auto overscroll-contain rounded-lg border border-white/15 bg-zinc-900 p-4 shadow-xl"
-                style={{ top: HEADER_HEIGHT + 8 }}
+                className="fixed bottom-2 right-2 min-[640px]:bottom-4 min-[640px]:right-4 z-[1003] w-[min(calc(100vw-1rem),22rem)] overflow-y-auto overscroll-contain rounded-lg border border-white/15 bg-zinc-900 p-4 shadow-xl"
+                style={{ top: HEADER_HEIGHT + 16 }}
                 role="dialog"
                 aria-label="Map legend"
               >
