@@ -44,25 +44,45 @@ export default function AboutPage() {
   return (
     <>
       <Head>
-        <title>About | Pingwi Sleeper Train Map - European Night Train Routes</title>
+        <title>
+          About | Pingwi Sleeper Train Map - European Night Train Routes
+        </title>
         <meta
           name="description"
           content="Discover Europe by night train. Interactive map of all European sleeper train routes - click any station to see departures. Covering 24+ countries from Portugal to Ukraine."
         />
-        <meta name="keywords" content="sleeper train map, night train Europe, European sleeper trains, overnight train routes, train travel Europe" />
-        <link rel="canonical" href="https://sleeper-train-map.pingwi.com/about" />
-        
+        <meta
+          name="keywords"
+          content="sleeper train map, night train Europe, European sleeper trains, overnight train routes, train travel Europe"
+        />
+        <link
+          rel="canonical"
+          href="https://sleeper-train-map.pingwi.com/about"
+        />
+
         {/* Open Graph */}
-        <meta property="og:title" content="Pingwi Sleeper Train Map - European Night Train Routes" />
-        <meta property="og:description" content="Interactive map of all European sleeper train routes. Click any station to discover overnight connections across 24+ countries." />
+        <meta
+          property="og:title"
+          content="Pingwi Sleeper Train Map - European Night Train Routes"
+        />
+        <meta
+          property="og:description"
+          content="Interactive map of all European sleeper train routes. Click any station to discover overnight connections across 24+ countries."
+        />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://sleeper-train-map.pingwi.com/about" />
-        
+        <meta
+          property="og:url"
+          content="https://sleeper-train-map.pingwi.com/about"
+        />
+
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Pingwi Sleeper Train Map" />
-        <meta name="twitter:description" content="Interactive map of all European sleeper train routes. Discover overnight connections across 24+ countries." />
-        
+        <meta
+          name="twitter:description"
+          content="Interactive map of all European sleeper train routes. Discover overnight connections across 24+ countries."
+        />
+
         <link
           rel="icon"
           href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚂</text></svg>"
@@ -74,8 +94,13 @@ export default function AboutPage() {
         <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
-              <Link href="/" className="text-white font-medium hover:text-primary-green transition-colors">
-                Pingwi <span className="italic text-white/60">sleeper train</span> map
+              <Link
+                href="/about"
+                className="text-white font-medium hover:text-primary-green transition-colors"
+              >
+                Pingwi{" "}
+                <span className="italic text-primary-green">sleeper train</span>{" "}
+                map
               </Link>
               <Link
                 href="/"
@@ -96,7 +121,9 @@ export default function AboutPage() {
               <span className="text-primary-green"> Night Train</span>
             </h1>
             <p className="mt-6 text-lg sm:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed text-pretty">
-              The interactive map for spontaneous travel. Click any station - from major cities to small towns - and see every sleeper train departure at a glance.
+              The interactive map for spontaneous travel. Click any station -
+              from major cities to small towns - and see every sleeper train
+              departure at a glance.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
@@ -124,7 +151,8 @@ export default function AboutPage() {
                 Travel spontaneously
               </h2>
               <p className="mt-4 text-white/60 max-w-xl mx-auto">
-                No more searching through multiple booking sites. See all your options in one place.
+                No more searching through multiple booking sites. See all your
+                options in one place.
               </p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -176,7 +204,10 @@ export default function AboutPage() {
         </section>
 
         {/* Countries Grid */}
-        <section id="countries" className="py-20 px-4 sm:px-6 lg:px-8 border-t border-white/10">
+        <section
+          id="countries"
+          className="py-20 px-4 sm:px-6 lg:px-8 border-t border-white/10"
+        >
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-2xl sm:text-3xl font-bold text-white">
@@ -216,14 +247,18 @@ export default function AboutPage() {
         {/* Footer */}
         <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t border-white/10">
           <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-white/40">
-              Pingwi Sleeper Train Map
-            </p>
+            <p className="text-sm text-white/40">Pingwi Sleeper Train Map</p>
             <nav className="flex items-center gap-6">
-              <Link href="/" className="text-sm text-white/40 hover:text-white/70 transition-colors">
+              <Link
+                href="/"
+                className="text-sm text-white/40 hover:text-white/70 transition-colors"
+              >
                 Map
               </Link>
-              <Link href="/about" className="text-sm text-white/40 hover:text-white/70 transition-colors">
+              <Link
+                href="/about"
+                className="text-sm text-white/40 hover:text-white/70 transition-colors"
+              >
                 About
               </Link>
             </nav>
@@ -238,22 +273,23 @@ export default function AboutPage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "WebApplication",
-            "name": "Pingwi Sleeper Train Map",
-            "description": "Interactive map of European sleeper train routes. Click any station to discover overnight train connections across 24+ countries.",
-            "url": "https://sleeper-train-map.pingwi.com",
-            "applicationCategory": "TravelApplication",
-            "operatingSystem": "Web Browser",
-            "offers": {
+            name: "Pingwi Sleeper Train Map",
+            description:
+              "Interactive map of European sleeper train routes. Click any station to discover overnight train connections across 24+ countries.",
+            url: "https://sleeper-train-map.pingwi.com",
+            applicationCategory: "TravelApplication",
+            operatingSystem: "Web Browser",
+            offers: {
               "@type": "Offer",
-              "price": "0",
-              "priceCurrency": "EUR"
+              price: "0",
+              priceCurrency: "EUR",
             },
-            "aggregateRating": {
+            aggregateRating: {
               "@type": "AggregateRating",
-              "ratingValue": "4.8",
-              "ratingCount": "150"
-            }
-          })
+              ratingValue: "4.8",
+              ratingCount: "150",
+            },
+          }),
         }}
       />
     </>
