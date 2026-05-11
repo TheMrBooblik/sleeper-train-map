@@ -28,6 +28,8 @@ const CountryCard = ({ code, name }) => (
   </Link>
 );
 
+const ASIA_COUNTRY_CODES = new Set(["CN"]);
+
 const StepCard = ({ number, title, description }) => (
   <div className="flex gap-4 items-start">
     <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-green/20 flex items-center justify-center">
@@ -41,6 +43,13 @@ const StepCard = ({ number, title, description }) => (
 );
 
 export default function AboutPage() {
+  const europeCountries = COUNTRIES.filter(
+    (country) => !ASIA_COUNTRY_CODES.has(country.code),
+  );
+  const asiaCountries = COUNTRIES.filter((country) =>
+    ASIA_COUNTRY_CODES.has(country.code),
+  );
+
   return (
     <>
       <Head>
@@ -89,7 +98,7 @@ export default function AboutPage() {
         />
       </Head>
 
-      <div className="min-h-screen bg-black">
+      <div className="h-screen overflow-y-auto bg-black">
         {/* Navigation */}
         <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -211,17 +220,30 @@ export default function AboutPage() {
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-2xl sm:text-3xl font-bold text-white">
-                Covering {COUNTRIES.length}+ European countries
+                Covering {COUNTRIES.length}+ countries
               </h2>
               <p className="mt-4 text-white/60 max-w-xl mx-auto">
                 Click any country to jump directly to that region on the map
               </p>
             </div>
+            <h3 className="text-lg font-semibold text-white mb-4">Europe</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {COUNTRIES.map((country) => (
+              {europeCountries.map((country) => (
                 <CountryCard key={country.code} {...country} />
               ))}
             </div>
+            {asiaCountries.length > 0 && (
+              <>
+                <h3 className="text-lg font-semibold text-white mt-10 mb-4">
+                  Asia
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {asiaCountries.map((country) => (
+                    <CountryCard key={country.code} {...country} />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </section>
 

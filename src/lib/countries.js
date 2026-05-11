@@ -4,6 +4,7 @@ export const COUNTRIES = [
   { code: "BE", name: "Belgium", center: [50.8, 4.4], zoom: 8 },
   { code: "BG", name: "Bulgaria", center: [42.7, 25.5], zoom: 7 },
   { code: "CH", name: "Switzerland", center: [46.8, 8.2], zoom: 8 },
+  { code: "CN", name: "China", center: [35.9, 104.2], zoom: 4 },
   { code: "CZ", name: "Czechia", center: [49.8, 15.5], zoom: 7 },
   { code: "DE", name: "Germany", center: [51.2, 10.5], zoom: 6 },
   { code: "DK", name: "Denmark", center: [56.3, 9.5], zoom: 7 },
