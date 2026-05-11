@@ -52,3 +52,45 @@ export function positionsForBoTTripLabel(label, byTrainKey) {
   }
   return null;
 }
+
+/**
+ * @param {string} label
+ * @param {Record<string, { stops?: string[] }>} byTrainKey
+ * @returns {string[] | null}
+ */
+export function stopsForBoTTripLabel(label, byTrainKey) {
+  if (!byTrainKey) return null;
+  for (const k of extractKeysFromTripLabel(label)) {
+    const entry = byTrainKey[k];
+    if (entry?.stops?.length >= 2) return entry.stops;
+  }
+  return null;
+}
+
+/**
+ * @param {string} label
+ * @param {Record<string, { rail_segments?: {positions: number[][]}[] }>} byTrainKey
+ * @returns {{positions: number[][]}[] | null}
+ */
+export function railSegmentsForBoTTripLabel(label, byTrainKey) {
+  if (!byTrainKey) return null;
+  for (const k of extractKeysFromTripLabel(label)) {
+    const entry = byTrainKey[k];
+    if (entry?.rail_segments?.length >= 1) return entry.rail_segments;
+  }
+  return null;
+}
+
+/**
+ * @param {string} label
+ * @param {Record<string, { bus_segments?: {positions: number[][]}[] }>} byTrainKey
+ * @returns {{positions: number[][]}[] | null}
+ */
+export function busSegmentsForBoTTripLabel(label, byTrainKey) {
+  if (!byTrainKey) return null;
+  for (const k of extractKeysFromTripLabel(label)) {
+    const entry = byTrainKey[k];
+    if (entry?.bus_segments?.length >= 1) return entry.bus_segments;
+  }
+  return null;
+}

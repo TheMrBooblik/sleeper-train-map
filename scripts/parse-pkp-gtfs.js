@@ -139,19 +139,53 @@ function readCsv(filePath) {
   });
 }
 
+function haversineKm([lat1, lon1], [lat2, lon2]) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+
+// Legs connected by a bus relay > this threshold km are part of the same
+// through-service (e.g. TLK 38170 Kraków↔Kołobrzeg, gap ~25.7 km).
+// Legs separated by < this threshold are local connectors to a different
+// service (e.g. IC 16170 terminates at Jelenia Góra; the LEG2 Szklarska
+// branch is a separate local train, gap ~15 km).
+const BUS_RELAY_MIN_KM = 20;
+
 /**
- * Returns the combined positions for all rail legs of a given train key.
- * Handles multi-leg trips (e.g. RAIL_442 LEG0 + RAIL_443 LEG2) by grouping
- * trips that share the same parent trip_id prefix and concatenating shapes in
- * leg order. Returns the group combination that yields the most points.
+ * Returns positions, stop names, rail segments and bus-connector segments for a
+ * train key.  Multi-leg trips (e.g. RAIL_442 LEG0 + RAIL_443 LEG2) are combined
+ * when the bus transfer between legs is ≥ BUS_RELAY_MIN_KM (same through-service).
+ * Legs separated by a shorter gap are local connectors and excluded from the rail
+ * shape; a bus_segment is recorded for the excluded section instead.
+ *
+ * For included long-relay legs the bus gap between the two rail shapes is also
+ * stored as a bus_segment, and the two rail shapes are stored as separate
+ * rail_segments so rendering can colour them individually.
  *
  * @param {string} key
  * @param {object[]} icTrips
  * @param {Map<string, object>} routesById
  * @param {Map<string, object[]>} shapePoints
- * @returns {number[][] | null}
+ * @param {Map<string, Array<{seq: number, stop_id: string}>>} stopTimesByTripId
+ * @param {Map<string, string>} stopsById
+ * @returns {{ positions: number[][], stops: string[], rail_segments: {positions: number[][]}[], bus_segments: {positions: number[][]}[] } | null}
  */
-function findPositionsForTrainKey(key, icTrips, routesById, shapePoints) {
+function findTrainDataForKey(
+  key,
+  icTrips,
+  routesById,
+  shapePoints,
+  stopTimesByTripId,
+  stopsById,
+  busLegsByParent,
+) {
   const candidates = [];
   for (const t of icTrips) {
     const route = routesById.get(t.route_id);
@@ -177,10 +211,10 @@ function findPositionsForTrainKey(key, icTrips, routesById, shapePoints) {
     groups.get(prefix).push(t);
   }
 
-  let bestPositions = null;
+  let bestResult = null;
   let bestCount = 0;
 
-  for (const trips of groups.values()) {
+  for (const [groupPrefix, trips] of groups.entries()) {
     // Sort legs in ascending order so shapes are concatenated start → end.
     trips.sort((a, b) => {
       const legA = Number((a.trip_id.match(/_LEG(\d+)$/) || [, "0"])[1]);
@@ -188,20 +222,119 @@ function findPositionsForTrainKey(key, icTrips, routesById, shapePoints) {
       return legA - legB;
     });
 
-    const combined = [];
+    // Look up bus stop names from the explicit BUS leg for this group.
+    // Falls back to inferring from RAIL endpoints if no BUS leg is found.
+    const busLegsForGroup = (busLegsByParent && busLegsByParent.get(groupPrefix)) || [];
+    const getBusLegStopNames = (prevLegNum, nextLegNum) => {
+      for (const bl of busLegsForGroup) {
+        const legNum = Number((bl.trip_id.match(/_LEG(\d+)$/) || [, "-1"])[1]);
+        if (legNum > prevLegNum && legNum < nextLegNum) {
+          const sts = (stopTimesByTripId.get(bl.trip_id) || [])
+            .slice().sort((a, b) => a.seq - b.seq);
+          if (sts.length >= 2) {
+            return {
+              from: stopsById.get(sts[0].stop_id) || null,
+              to: stopsById.get(sts[sts.length - 1].stop_id) || null,
+            };
+          }
+        }
+      }
+      return null;
+    };
+
+    const getLastStop = (tripId) => {
+      const sts = (stopTimesByTripId.get(tripId) || []).slice().sort((a, b) => a.seq - b.seq);
+      return sts.length > 0 ? stopsById.get(sts[sts.length - 1].stop_id) || null : null;
+    };
+    const getFirstStop = (tripId) => {
+      const sts = (stopTimesByTripId.get(tripId) || []).slice().sort((a, b) => a.seq - b.seq);
+      return sts.length > 0 ? stopsById.get(sts[0].stop_id) || null : null;
+    };
+
+    const railSegments = [];
+    const busSegments = [];
+    const includedTripIds = [];
+    let currentSeg = [];
+    let lastIncludedTripId = null;
+    let lastIncludedLegNum = -1;
+
     for (const t of trips) {
       const raw = shapePoints.get(t.shape_id);
       if (!raw || raw.length < 2) continue;
-      raw.forEach((p) => combined.push([p.lat, p.lon]));
+
+      const thisLegNum = Number((t.trip_id.match(/_LEG(\d+)$/) || [, "0"])[1]);
+
+      if (currentSeg.length > 0) {
+        const prevLast = currentSeg[currentSeg.length - 1];
+        const currFirst = [raw[0].lat, raw[0].lon];
+        const gapKm = haversineKm(prevLast, currFirst);
+
+        // Try to get from/to from the explicit BUS leg between these two RAIL legs.
+        const busNames = getBusLegStopNames(lastIncludedLegNum, thisLegNum);
+
+        if (gapKm < BUS_RELAY_MIN_KM) {
+          // Local connector — skip this leg. Record bus segment from rail
+          // endpoint to the end of the excluded RAIL leg (the actual terminus
+          // reached via bus+local, e.g. Szklarska Poręba Górna).
+          // Use the excluded RAIL leg's last stop for `to` because the official
+          // replacement service is advertised as running to that station, even
+          // though the BUS leg itself may terminate at an intermediate stop.
+          const legLast = [raw[raw.length - 1].lat, raw[raw.length - 1].lon];
+          busSegments.push({
+            positions: [prevLast, legLast],
+            from: busNames?.from ?? getLastStop(lastIncludedTripId),
+            to: getLastStop(t.trip_id),
+          });
+          continue;
+        }
+
+        // Long bus relay — save current rail segment, record the relay gap.
+        railSegments.push({ positions: [...currentSeg] });
+        busSegments.push({
+          positions: [prevLast, currFirst],
+          from: busNames?.from ?? getLastStop(lastIncludedTripId),
+          to: busNames?.to ?? getFirstStop(t.trip_id),
+        });
+        currentSeg = [];
+      }
+
+      raw.forEach((p) => currentSeg.push([p.lat, p.lon]));
+      includedTripIds.push(t.trip_id);
+      lastIncludedTripId = t.trip_id;
+      lastIncludedLegNum = thisLegNum;
     }
 
-    if (combined.length > bestCount) {
-      bestCount = combined.length;
-      bestPositions = combined;
+    if (currentSeg.length > 0) railSegments.push({ positions: [...currentSeg] });
+
+    const combined = railSegments.flatMap((s) => s.positions);
+    if (combined.length <= bestCount) continue;
+
+    // Collect ordered stop names for included legs.
+    const combinedStops = [];
+    const seenStops = new Set();
+    for (const tripId of includedTripIds) {
+      const stopTimes = stopTimesByTripId.get(tripId) || [];
+      stopTimes.sort((a, b) => a.seq - b.seq);
+      for (const st of stopTimes) {
+        const name = stopsById.get(st.stop_id) || st.stop_id;
+        if (!seenStops.has(name)) {
+          seenStops.add(name);
+          combinedStops.push(name);
+        }
+      }
     }
+
+    bestCount = combined.length;
+    bestResult = { positions: combined, stops: combinedStops, railSegments, busSegments };
   }
 
-  return bestPositions && bestPositions.length >= 2 ? bestPositions : null;
+  if (!bestResult || bestResult.positions.length < 2) return null;
+  return {
+    positions: bestResult.positions,
+    stops: bestResult.stops,
+    rail_segments: bestResult.railSegments,
+    bus_segments: bestResult.busSegments,
+  };
 }
 
 async function main() {
@@ -243,6 +376,8 @@ async function main() {
   const routes = readCsv(path.join(gtfsDir, "routes.txt"));
   const trips = readCsv(path.join(gtfsDir, "trips.txt"));
   const shapes = readCsv(path.join(gtfsDir, "shapes.txt"));
+  const stopsCsv = readCsv(path.join(gtfsDir, "stops.txt"));
+  const stopTimesCsv = readCsv(path.join(gtfsDir, "stop_times.txt"));
 
   const routesById = new Map();
   routes.forEach((r) => routesById.set(r.route_id, r));
@@ -268,18 +403,56 @@ async function main() {
     pts.sort((a, b) => a.seq - b.seq);
   }
 
-  /** @type {Record<string, { shapeId: string, pointCount: number, positions: number[][] }>} */
+  const stopsById = new Map();
+  stopsCsv.forEach((row) => {
+    if (row.stop_id) stopsById.set(row.stop_id, row.stop_name || row.stop_id);
+  });
+
+  // Build stop-times index for IC trips (RAIL + BUS legs) to keep memory usage reasonable.
+  const icTripIdSet = new Set(icTrips.map((t) => t.trip_id));
+  const stopTimesByTripId = new Map();
+  stopTimesCsv.forEach((row) => {
+    if (!icTripIdSet.has(row.trip_id)) return;
+    if (!stopTimesByTripId.has(row.trip_id))
+      stopTimesByTripId.set(row.trip_id, []);
+    stopTimesByTripId
+      .get(row.trip_id)
+      .push({ seq: Number.parseInt(row.stop_sequence || "0", 10), stop_id: row.stop_id });
+  });
+
+  // Index BUS legs by parent trip prefix so findTrainDataForKey can look up
+  // authoritative stop names from the explicit bus leg rather than inferring them.
+  const busLegsByParent = new Map();
+  icTrips.forEach((t) => {
+    if (!String(t.route_id).includes("_BUS")) return;
+    const prefix = t.trip_id.replace(/_LEG\d+$/, "");
+    if (!busLegsByParent.has(prefix)) busLegsByParent.set(prefix, []);
+    busLegsByParent.get(prefix).push(t);
+  });
+
+  /** @type {Record<string, { pointCount: number, positions: number[][], stops: string[] }>} */
   const byTrainKey = {};
 
   for (const key of neededKeys) {
-    const positions = findPositionsForTrainKey(key, icTrips, routesById, shapePoints);
-    if (!positions) {
+    const result = findTrainDataForKey(
+      key,
+      icTrips,
+      routesById,
+      shapePoints,
+      stopTimesByTripId,
+      stopsById,
+      busLegsByParent,
+    );
+    if (!result) {
       console.warn("No GTFS rail trip for BoT key:", key);
       continue;
     }
     byTrainKey[key] = {
-      pointCount: positions.length,
-      positions,
+      pointCount: result.positions.length,
+      positions: result.positions,
+      stops: result.stops,
+      rail_segments: result.rail_segments,
+      bus_segments: result.bus_segments.length > 0 ? result.bus_segments : undefined,
     };
   }
 

@@ -1,7 +1,12 @@
 // Merges GTFS-derived polylines into Back-on-Track viewMap rows (PKP / PKP/ČD only).
 // Bundle: public/data/gtfs/pkpTrainShapes.json from scripts/parse-pkp-gtfs.js
 
-import { positionsForBoTTripLabel } from "./pkpTrainKeyExtract";
+import {
+  positionsForBoTTripLabel,
+  stopsForBoTTripLabel,
+  railSegmentsForBoTTripLabel,
+  busSegmentsForBoTTripLabel,
+} from "./pkpTrainKeyExtract";
 
 /**
  * Returns true for the Przemyśl Gł. ↔ Świnoujście PKP route.
@@ -79,6 +84,19 @@ export function attachPkpGtfsPolylinesToViewMap(viewMap, bundle) {
 
     const p0 = positionsForBoTTripLabel(route.trip_short_name_0, byTrainKey);
     const p1 = positionsForBoTTripLabel(route.trip_short_name_1, byTrainKey);
+    const stops0 = stopsForBoTTripLabel(route.trip_short_name_0, byTrainKey);
+    const stops1 = stopsForBoTTripLabel(route.trip_short_name_1, byTrainKey);
+    const railSegs0 = railSegmentsForBoTTripLabel(route.trip_short_name_0, byTrainKey);
+    const railSegs1 = railSegmentsForBoTTripLabel(route.trip_short_name_1, byTrainKey);
+    const busSegs0 = busSegmentsForBoTTripLabel(route.trip_short_name_0, byTrainKey);
+    const busSegs1Raw = busSegmentsForBoTTripLabel(route.trip_short_name_1, byTrainKey);
+    // If the return direction has no bus segments but the forward direction does,
+    // derive them by reversing the forward segments (e.g. IC 61170 return of IC 16170).
+    const busSegs1 =
+      busSegs1Raw ||
+      (busSegs0
+        ? busSegs0.map((s) => ({ positions: [...s.positions].reverse(), from: s.to, to: s.from }))
+        : null);
 
     if (!p0 && !p1) {
       out[key] = route;
@@ -88,6 +106,29 @@ export function attachPkpGtfsPolylinesToViewMap(viewMap, bundle) {
     out[key] = { ...route };
     if (p0) out[key].pkp_gtfs_positions_0 = p0;
     if (p1) out[key].pkp_gtfs_positions_1 = p1;
+    if (railSegs0) out[key].pkp_rail_segments_0 = railSegs0.map((s) => s.positions);
+    if (railSegs1) out[key].pkp_rail_segments_1 = railSegs1.map((s) => s.positions);
+    if (busSegs0) out[key].pkp_bus_segments_0 = busSegs0;
+    if (busSegs1) out[key].pkp_bus_segments_1 = busSegs1;
+
+    // Override via_0 / via_1 with the full GTFS stop list so intermediate
+    // stations appear when a route is selected on the map. The first stop
+    // is excluded when it matches the BoT origin (avoid duplication); the
+    // last stop is excluded when it matches the BoT destination.
+    const buildVia = (stops, origin, destination) => {
+      if (!stops || stops.length < 2) return null;
+      let result = [...stops];
+      const norm = (s) => (s || "").toLowerCase().trim();
+      if (norm(result[0]) === norm(origin)) result = result.slice(1);
+      if (result.length > 0 && norm(result[result.length - 1]) === norm(destination))
+        result = result.slice(0, -1);
+      return result.length > 0 ? result.join(" - ") : null;
+    };
+
+    const via0 = buildVia(stops0, route.origin_trip_0, route.destination_trip_0);
+    const via1 = buildVia(stops1, route.origin_trip_1, route.destination_trip_1);
+    if (via0) out[key].via_0 = via0;
+    if (via1) out[key].via_1 = via1;
   }
 
   return out;

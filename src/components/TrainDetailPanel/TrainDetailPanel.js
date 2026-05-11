@@ -507,6 +507,20 @@ const TrainDetailPanel = ({
               const validFrom = formatCalendarDate(schedule?.validFrom);
               const validUntil = formatCalendarDate(schedule?.validUntil);
 
+              const tripRoute = routes?.[trip.route_id?.toString()];
+              const isDir1 =
+                tripRoute &&
+                trip.trip_origin &&
+                (tripRoute.origin_trip_1 || "").toLowerCase().includes(
+                  (trip.trip_origin || "").toLowerCase().split(" ")[0],
+                );
+              const busSeg = isDir1
+                ? tripRoute?.pkp_bus_segments_1
+                : tripRoute?.pkp_bus_segments_0;
+              const busConnectors = (busSeg || []).filter(
+                (s) => s?.positions?.length >= 2 || (Array.isArray(s) && s.length >= 2),
+              );
+
               return (
                 <div
                   key={`${trip.trip_id}-${index}`}
@@ -555,6 +569,31 @@ const TrainDetailPanel = ({
                       </div>
                     )}
                   </div>
+
+                  {/* Bus replacement notice */}
+                  {busConnectors.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="text-xs text-gray-500 uppercase">Connections</div>
+                      {busConnectors.map((seg, i) => {
+                        const from = seg?.from;
+                        const to = seg?.to;
+                        return (
+                          <div
+                            key={i}
+                            className="flex items-start gap-2 text-xs rounded p-2"
+                            style={{ background: "#fff4ec", border: "1px solid #f5c09a", color: "#a3450c" }}
+                          >
+                            <span style={{ fontSize: "0.9em" }}>🚌</span>
+                            <span>
+                              {from && to
+                                ? `Bus replacement: ${from} → ${to}`
+                                : "Bus replacement (shown as orange dashed line on map)"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {/* Main times */}
                   <div className="grid grid-cols-2 gap-2 text-sm">

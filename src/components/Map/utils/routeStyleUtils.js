@@ -511,6 +511,9 @@ export const ZEMPLIN_COLOR = "#D32F2F";
 // Color for PKP Intercity routes — navy blue matching PKP IC branding
 export const PKP_COLOR = "#003580";
 
+// Bus/local-train replacement segments on PKP routes — orange, matches common bus indicator convention
+export const PKP_BUS_COLOR = "#E87722";
+
 /**
  * PKP / PKP-ČD rows from Back-on-Track; polylines come from GTFS (see useInitialData merge).
  * @param {object} route - viewMap route row

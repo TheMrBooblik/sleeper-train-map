@@ -13,6 +13,7 @@ import {
   REGIOJET_COLOR,
   ZEMPLIN_COLOR,
   PKP_COLOR,
+  PKP_BUS_COLOR,
   isPkpAgencyRoute,
   checkENHumennePraha,
   checkPrzemyslSwinoujscie,
@@ -217,17 +218,47 @@ export function buildAllRoutesPaths({
         route.via_0,
       );
       const path0ToUse = gtfs0 ?? path0 ?? route.fallbackPositions ?? null;
-      if (path0ToUse && path0ToUse.length >= 2) {
+
+      const railSegs0 = route.pkp_rail_segments_0;
+      const segsToRender0 =
+        railSegs0?.length >= 1 ? railSegs0 : path0ToUse ? [path0ToUse] : [];
+      segsToRender0.forEach((seg, i) => {
+        if (!seg || seg.length < 2) return;
         paths.push({
-          positions: path0ToUse,
+          positions: seg,
           routeId,
-          key: `route-${stationKey}-${routeId}-0`,
+          key: `route-${stationKey}-${routeId}-0-rail-${i}`,
           pathOptions,
           osmRelationId: gtfs0 ? null : osmRelationId,
           isFuture,
           futureStartDate,
         });
-      }
+      });
+
+      const busPathOptions = {
+        color: PKP_BUS_COLOR,
+        weight: 3,
+        opacity: 0.85,
+        dashArray: "8 6",
+        lineCap: "round",
+        lineJoin: "round",
+      };
+      (route.pkp_bus_segments_0 || []).forEach((seg, i) => {
+        const segPos = seg?.positions ?? seg;
+        if (!segPos || segPos.length < 2) return;
+        paths.push({
+          positions: segPos,
+          routeId,
+          key: `route-${stationKey}-${routeId}-0-bus-${i}`,
+          pathOptions: busPathOptions,
+          osmRelationId: null,
+          isFuture,
+          futureStartDate,
+          isBusConnector: true,
+          busFrom: seg?.from ?? null,
+          busTo: seg?.to ?? null,
+        });
+      });
 
       if (route.origin_trip_1 && route.destination_trip_1) {
         const gtfs1 =
@@ -240,17 +271,39 @@ export function buildAllRoutesPaths({
           route.via_1,
         );
         const path1ToUse = gtfs1 ?? path1 ?? route.fallbackPositions ?? null;
-        if (path1ToUse && path1ToUse.length >= 2) {
+
+        const railSegs1 = route.pkp_rail_segments_1;
+        const segsToRender1 =
+          railSegs1?.length >= 1 ? railSegs1 : path1ToUse ? [path1ToUse] : [];
+        segsToRender1.forEach((seg, i) => {
+          if (!seg || seg.length < 2) return;
           paths.push({
-            positions: path1ToUse,
+            positions: seg,
             routeId,
-            key: `route-${stationKey}-${routeId}-1`,
+            key: `route-${stationKey}-${routeId}-1-rail-${i}`,
             pathOptions,
             osmRelationId: gtfs1 ? null : osmRelationId,
             isFuture,
             futureStartDate,
           });
-        }
+        });
+
+        (route.pkp_bus_segments_1 || []).forEach((seg, i) => {
+          const segPos = seg?.positions ?? seg;
+          if (!segPos || segPos.length < 2) return;
+          paths.push({
+            positions: segPos,
+            routeId,
+            key: `route-${stationKey}-${routeId}-1-bus-${i}`,
+            pathOptions: busPathOptions,
+            osmRelationId: null,
+            isFuture,
+            futureStartDate,
+            isBusConnector: true,
+            busFrom: seg?.from ?? null,
+            busTo: seg?.to ?? null,
+          });
+        });
       }
     }
   });

@@ -641,6 +641,11 @@ const TrainMap = ({
                 >
                   <Tooltip sticky>
                     {(() => {
+                      if (path.isBusConnector) {
+                        return path.busFrom && path.busTo
+                          ? `Bus replacement: ${path.busFrom} → ${path.busTo}`
+                          : "Bus replacement";
+                      }
                       const route = viewMapData
                         ? Object.values(viewMapData).find(
                             (r) =>
@@ -650,7 +655,7 @@ const TrainMap = ({
                         : null;
                       if (!route) return `Route ${path.routeId}`;
 
-                      const isDirectionOne = path.key.endsWith("-1");
+                      const isDirectionOne = path.key.includes("-1-");
                       const origin = isDirectionOne
                         ? route.origin_trip_1 || route.origin_trip_0
                         : route.origin_trip_0 || route.origin_trip_1;
