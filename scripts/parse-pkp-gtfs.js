@@ -140,11 +140,19 @@ function readCsv(filePath) {
 }
 
 /**
+ * Returns the combined positions for all rail legs of a given train key.
+ * Handles multi-leg trips (e.g. RAIL_442 LEG0 + RAIL_443 LEG2) by grouping
+ * trips that share the same parent trip_id prefix and concatenating shapes in
+ * leg order. Returns the group combination that yields the most points.
+ *
  * @param {string} key
  * @param {object[]} icTrips
  * @param {Map<string, object>} routesById
+ * @param {Map<string, object[]>} shapePoints
+ * @returns {number[][] | null}
  */
-function findTripForTrainKey(key, icTrips, routesById) {
+function findPositionsForTrainKey(key, icTrips, routesById, shapePoints) {
+  const candidates = [];
   for (const t of icTrips) {
     const route = routesById.get(t.route_id);
     if (!route || route.agency_id !== "IC") continue;
@@ -153,12 +161,47 @@ function findTripForTrainKey(key, icTrips, routesById) {
     if (!sid.startsWith("RAIL_")) continue;
 
     const plk = (t.plk_train_number || "").split("/")[0];
-    if (plk === key) return t;
-
     const ts = t.trip_short_name || "";
-    if (ts.startsWith(`${key}/`) || ts.startsWith(`${key} `)) return t;
+    if (plk === key || ts.startsWith(`${key}/`) || ts.startsWith(`${key} `)) {
+      candidates.push(t);
+    }
   }
-  return null;
+  if (candidates.length === 0) return null;
+
+  // Group trips by parent trip_id (strip _LEG\d+ suffix so legs of the same
+  // service run are combined rather than competing with each other).
+  const groups = new Map();
+  for (const t of candidates) {
+    const prefix = t.trip_id.replace(/_LEG\d+$/, "");
+    if (!groups.has(prefix)) groups.set(prefix, []);
+    groups.get(prefix).push(t);
+  }
+
+  let bestPositions = null;
+  let bestCount = 0;
+
+  for (const trips of groups.values()) {
+    // Sort legs in ascending order so shapes are concatenated start → end.
+    trips.sort((a, b) => {
+      const legA = Number((a.trip_id.match(/_LEG(\d+)$/) || [, "0"])[1]);
+      const legB = Number((b.trip_id.match(/_LEG(\d+)$/) || [, "0"])[1]);
+      return legA - legB;
+    });
+
+    const combined = [];
+    for (const t of trips) {
+      const raw = shapePoints.get(t.shape_id);
+      if (!raw || raw.length < 2) continue;
+      raw.forEach((p) => combined.push([p.lat, p.lon]));
+    }
+
+    if (combined.length > bestCount) {
+      bestCount = combined.length;
+      bestPositions = combined;
+    }
+  }
+
+  return bestPositions && bestPositions.length >= 2 ? bestPositions : null;
 }
 
 async function main() {
@@ -229,20 +272,12 @@ async function main() {
   const byTrainKey = {};
 
   for (const key of neededKeys) {
-    const trip = findTripForTrainKey(key, icTrips, routesById);
-    if (!trip) {
+    const positions = findPositionsForTrainKey(key, icTrips, routesById, shapePoints);
+    if (!positions) {
       console.warn("No GTFS rail trip for BoT key:", key);
       continue;
     }
-    const sid = trip.shape_id;
-    const raw = shapePoints.get(sid);
-    if (!raw || raw.length < 2) {
-      console.warn("Missing shape points for", key, sid);
-      continue;
-    }
-    const positions = raw.map((p) => [p.lat, p.lon]);
     byTrainKey[key] = {
-      shapeId: sid,
       pointCount: positions.length,
       positions,
     };
