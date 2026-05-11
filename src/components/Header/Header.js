@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaEyeSlash, FaInfo, FaLayerGroup, FaRoute } from "react-icons/fa";
+import { FaEyeSlash, FaInfo, FaLayerGroup, FaRoute, FaExternalLinkAlt } from "react-icons/fa";
 
 import Container from "@components/Container";
 import Legend from "@components/Legend";
@@ -95,7 +95,7 @@ const Header = ({
       <Container className="flex flex-wrap justify-between items-center gap-y-2 gap-x-2">
         <p className="text-sm leading-none whitespace-nowrap min-[640px]:text-base">
           <Link href="/">
-            Pingwi <i>night trains</i> map
+            Pingwi <i>sleeper train</i> map
           </Link>
         </p>
         <div className="ml-auto flex min-w-0 flex-1 flex-wrap items-center justify-end list-none gap-2 min-[640px]:gap-3">
@@ -168,6 +168,16 @@ const Header = ({
               </div>
             ) : null}
           </div>
+
+          {/* About link */}
+          <Link
+            href="/about"
+            className="icon-toggle-button shrink-0"
+            aria-label="About this map"
+            data-tooltip="About this map"
+          >
+            <FaExternalLinkAlt size={12} />
+          </Link>
         </div>
       </Container>
     </header>

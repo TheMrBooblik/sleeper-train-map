@@ -1,0 +1,14 @@
+# Crawlers
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://sleeper-train-map.pingwi.com/sitemap.xml
+
+# Block API routes
+Disallow: /api/
+
+# Allow all static assets
+Allow: /_next/static/
+Allow: /images/
+Allow: /data/
