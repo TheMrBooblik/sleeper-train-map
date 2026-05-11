@@ -4,7 +4,7 @@
 // Vercel CDN caches this for 1 hour so only ~1 serverless invocation per hour worldwide.
 
 import { isTrain4you } from "../../lib/trainOperatorsFilter";
-import { getBlobData, getNJTrains, isFresh } from "./lib/file-store";
+import { getBlobData, getNJTrains, getChineseTrains, isFresh } from "./lib/file-store";
 import {
   keepViewMapRowForTripActivity,
   routeIdsFromFilteredTrips,
@@ -93,11 +93,12 @@ export default async function handler(req, res) {
     let source = "github";
 
     // Try Vercel Blob first (daily scrape — view_ontd_map already has nj_positions merged in)
-    const [blobStops, blobViewMap, blobTrips, njBlob] = await Promise.all([
+    const [blobStops, blobViewMap, blobTrips, njBlob, crBlob] = await Promise.all([
       getBlobData("stops"),
       getBlobData("view_ontd_map"),
       getBlobData("trips"),
       getNJTrains(),
+      getChineseTrains(),
     ]);
 
     if (
@@ -234,6 +235,79 @@ export default async function handler(req, res) {
         syntheticPaired.add(revName);
       }
       syntheticPaired.add(lineName);
+      filteredViewMap[entry.route_id] = entry;
+    });
+
+    // ── Chinese Railway (CR) ──────────────────────────────────────────────
+    const crTrains = crBlob?.data?.trains ?? {};
+
+    // Add CR stations to stops so markers appear on the map
+    const crStopNameSet = new Set(botStopNameSet);
+    Object.values(crTrains).forEach((train) => {
+      (train.stations ?? []).forEach((s) => {
+        if (
+          !s?.name ||
+          !Number.isFinite(s?.location?.latitude) ||
+          !Number.isFinite(s?.location?.longitude)
+        ) return;
+        if (crStopNameSet.has(s.name.toLowerCase())) return;
+        trimmedStops.push({
+          stop_id: s.name,
+          stop_name: s.name,
+          stop_lat: s.location.latitude,
+          stop_lon: s.location.longitude,
+        });
+        crStopNameSet.add(s.name.toLowerCase());
+        botStopNameSet.add(s.name.toLowerCase());
+      });
+    });
+
+    // Synthetic viewMap entries for CR trains (same pairing logic as NJ)
+    const crTrainList = Object.entries(crTrains).filter(
+      ([, data]) => data.polyline && data.stations?.length >= 2,
+    );
+    const crPaired = new Set();
+    crTrainList.forEach(([lineName, data]) => {
+      if (crPaired.has(lineName)) return;
+      const origin = data.stations[0].name;
+      const dest = data.stations[data.stations.length - 1].name;
+      const reversePair = crTrainList.find(
+        ([k, v]) =>
+          k !== lineName &&
+          !crPaired.has(k) &&
+          v.stations?.[0]?.name === dest &&
+          v.stations?.[v.stations.length - 1]?.name === origin,
+      );
+      const safeId = lineName.replace(/\s+/g, "_");
+      const entry = {
+        route_id: `cr_${safeId}`,
+        agency_id: "CR",
+        trip_short_name_0: lineName,
+        origin_trip_0: origin,
+        destination_trip_0: dest,
+        via_0: data.stations
+          .slice(1, -1)
+          .map((s) => s.name)
+          .filter(Boolean)
+          .join(" - "),
+        route_long_name: `${origin} – ${dest}`,
+        nj_polyline: data.polyline,
+        is_active: "Y",
+      };
+      if (reversePair) {
+        const [revName, revData] = reversePair;
+        entry.trip_short_name_1 = revName;
+        entry.origin_trip_1 = revData.stations[0].name;
+        entry.destination_trip_1 =
+          revData.stations[revData.stations.length - 1].name;
+        entry.via_1 = revData.stations
+          .slice(1, -1)
+          .map((s) => s.name)
+          .filter(Boolean)
+          .join(" - ");
+        crPaired.add(revName);
+      }
+      crPaired.add(lineName);
       filteredViewMap[entry.route_id] = entry;
     });
 

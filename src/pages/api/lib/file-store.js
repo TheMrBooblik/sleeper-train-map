@@ -87,6 +87,17 @@ export function putCDTrains(data) {
   return Promise.resolve();
 }
 
+// ─── Chinese Railways ──────────────────────────────────────────────────────
+
+export function getChineseTrains() {
+  return Promise.resolve(readEnvelope("chinese-trains.json"));
+}
+
+export function putChineseTrains(data) {
+  writeEnvelope("chinese-trains.json", data);
+  return Promise.resolve();
+}
+
 // ─── Shared ────────────────────────────────────────────────────────────────
 
 export function isFresh(uploadedAt) {

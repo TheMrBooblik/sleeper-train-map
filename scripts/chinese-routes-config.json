@@ -1,0 +1,124 @@
+[
+  {
+    "lineName": "Z 21",
+    "returnLineName": "Z 22",
+    "operator": "China Railway",
+    "stations": [
+      { "name": "Beijing West", "lat": 39.8972, "lon": 116.3221 },
+      { "name": "Shijiazhuang", "lat": 38.0454, "lon": 114.5022 },
+      { "name": "Zhengzhou", "lat": 34.7522, "lon": 113.6487 },
+      { "name": "Xi'an", "lat": 34.2601, "lon": 108.9478 },
+      { "name": "Lanzhou", "lat": 36.0595, "lon": 103.8343 },
+      { "name": "Xining", "lat": 36.6176, "lon": 101.7761 },
+      { "name": "Golmud", "lat": 36.4070, "lon": 94.9030 },
+      { "name": "Wudaoliang", "lat": 35.2167, "lon": 93.0667 },
+      { "name": "Tuotuoheyan", "lat": 34.2167, "lon": 92.4167 },
+      { "name": "Amdo", "lat": 32.2667, "lon": 91.8500 },
+      { "name": "Nagqu", "lat": 31.4820, "lon": 92.0581 },
+      { "name": "Lhasa", "lat": 29.6466, "lon": 91.1038 }
+    ]
+  },
+  {
+    "lineName": "Z 264",
+    "returnLineName": "Z 265",
+    "operator": "China Railway",
+    "stations": [
+      { "name": "Guangzhou", "lat": 23.1254, "lon": 113.2601 },
+      { "name": "Changsha", "lat": 28.2008, "lon": 113.0134 },
+      { "name": "Wuhan", "lat": 30.5928, "lon": 114.3050 },
+      { "name": "Zhengzhou", "lat": 34.7522, "lon": 113.6487 },
+      { "name": "Xi'an", "lat": 34.2601, "lon": 108.9478 },
+      { "name": "Lanzhou", "lat": 36.0595, "lon": 103.8343 },
+      { "name": "Xining", "lat": 36.6176, "lon": 101.7761 },
+      { "name": "Golmud", "lat": 36.4070, "lon": 94.9030 },
+      { "name": "Wudaoliang", "lat": 35.2167, "lon": 93.0667 },
+      { "name": "Tuotuoheyan", "lat": 34.2167, "lon": 92.4167 },
+      { "name": "Amdo", "lat": 32.2667, "lon": 91.8500 },
+      { "name": "Nagqu", "lat": 31.4820, "lon": 92.0581 },
+      { "name": "Lhasa", "lat": 29.6466, "lon": 91.1038 }
+    ]
+  },
+  {
+    "lineName": "Z 13",
+    "returnLineName": "Z 14",
+    "operator": "China Railway",
+    "stations": [
+      { "name": "Beijing West", "lat": 39.8972, "lon": 116.3221 },
+      { "name": "Shijiazhuang", "lat": 38.0454, "lon": 114.5022 },
+      { "name": "Zhengzhou", "lat": 34.7522, "lon": 113.6487 },
+      { "name": "Wuhan", "lat": 30.5928, "lon": 114.3050 },
+      { "name": "Changsha", "lat": 28.2008, "lon": 113.0134 },
+      { "name": "Guangzhou", "lat": 23.1254, "lon": 113.2601 }
+    ]
+  },
+  {
+    "lineName": "Z 1",
+    "returnLineName": "Z 2",
+    "operator": "China Railway",
+    "stations": [
+      { "name": "Beijing", "lat": 39.9027, "lon": 116.4279 },
+      { "name": "Tianjin", "lat": 39.1423, "lon": 117.1769 },
+      { "name": "Jinan", "lat": 36.6697, "lon": 116.9970 },
+      { "name": "Nanjing", "lat": 32.0863, "lon": 118.8041 },
+      { "name": "Shanghai", "lat": 31.2495, "lon": 121.4557 }
+    ]
+  },
+  {
+    "lineName": "Z 69",
+    "returnLineName": "Z 70",
+    "operator": "China Railway",
+    "stations": [
+      { "name": "Beijing", "lat": 39.9027, "lon": 116.4279 },
+      { "name": "Datong", "lat": 40.0774, "lon": 113.3001 },
+      { "name": "Hohhot", "lat": 40.8158, "lon": 111.6517 },
+      { "name": "Baotou", "lat": 40.6527, "lon": 109.8399 },
+      { "name": "Yinchuan", "lat": 38.4873, "lon": 106.2309 },
+      { "name": "Lanzhou", "lat": 36.0595, "lon": 103.8343 },
+      { "name": "Jiayuguan", "lat": 39.7861, "lon": 98.2993 },
+      { "name": "Hami", "lat": 42.8342, "lon": 93.5184 },
+      { "name": "Turpan", "lat": 42.9406, "lon": 89.1575 },
+      { "name": "Urumqi", "lat": 43.8063, "lon": 87.6183 }
+    ]
+  },
+  {
+    "lineName": "Z 53",
+    "returnLineName": "Z 54",
+    "operator": "China Railway",
+    "stations": [
+      { "name": "Shanghai", "lat": 31.2495, "lon": 121.4557 },
+      { "name": "Hangzhou", "lat": 30.2741, "lon": 120.1551 },
+      { "name": "Yingtan", "lat": 28.2642, "lon": 116.9542 },
+      { "name": "Zhuzhou", "lat": 27.8322, "lon": 113.1517 },
+      { "name": "Guiyang", "lat": 26.5803, "lon": 106.7210 },
+      { "name": "Kunming", "lat": 25.0472, "lon": 102.7280 }
+    ]
+  },
+  {
+    "lineName": "Z 5",
+    "returnLineName": "Z 6",
+    "operator": "China Railway",
+    "stations": [
+      { "name": "Beijing", "lat": 39.9027, "lon": 116.4279 },
+      { "name": "Zhengzhou", "lat": 34.7522, "lon": 113.6487 },
+      { "name": "Wuhan", "lat": 30.5928, "lon": 114.3050 },
+      { "name": "Changsha", "lat": 28.2008, "lon": 113.0134 },
+      { "name": "Guangzhou", "lat": 23.1254, "lon": 113.2601 },
+      { "name": "Nanning", "lat": 22.8089, "lon": 108.3664 },
+      { "name": "Pingxiang", "lat": 22.0992, "lon": 106.7532 },
+      { "name": "Đồng Đăng", "lat": 21.9294, "lon": 106.7722 },
+      { "name": "Hanoi", "lat": 21.0270, "lon": 105.8786 }
+    ]
+  },
+  {
+    "lineName": "K 9795",
+    "returnLineName": "K 9796",
+    "operator": "China Railway",
+    "stations": [
+      { "name": "Urumqi", "lat": 43.8063, "lon": 87.6183 },
+      { "name": "Alashankou", "lat": 45.1866, "lon": 82.5607 },
+      { "name": "Dostyk", "lat": 45.2633, "lon": 82.0283 },
+      { "name": "Aktogay", "lat": 46.9500, "lon": 79.6333 },
+      { "name": "Almaty", "lat": 43.2567, "lon": 76.9286 }
+    ]
+  }
+]

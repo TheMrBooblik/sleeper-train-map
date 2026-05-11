@@ -242,6 +242,43 @@ async function fetchCDTrain(trainNumber, trainType = "EC") {
   }
 }
 
+// ─── Chinese Railways ─────────────────────────────────────────────────────
+
+function buildChineseTrains() {
+  const configPath = path.join(__dirname, "chinese-routes-config.json");
+  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  const trains = {};
+
+  for (const route of config) {
+    const stations = route.stations.map((s) => ({
+      name: s.name,
+      location: { latitude: s.lat, longitude: s.lon },
+      arrival: null,
+      departure: null,
+      pickup: true,
+      dropoff: true,
+    }));
+    const positions = stations.map((s) => [s.location.latitude, s.location.longitude]);
+    if (positions.length < 2) continue;
+
+    const encoded = polyline.encode(positions);
+    trains[route.lineName] = { lineName: route.lineName, operator: route.operator, polyline: encoded, stations };
+
+    if (route.returnLineName) {
+      const reversed = [...stations].reverse();
+      const revPositions = reversed.map((s) => [s.location.latitude, s.location.longitude]);
+      trains[route.returnLineName] = {
+        lineName: route.returnLineName,
+        operator: route.operator,
+        polyline: polyline.encode(revPositions),
+        stations: reversed,
+      };
+    }
+  }
+
+  return trains;
+}
+
 // ─── Main ──────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -401,6 +438,16 @@ async function main() {
   } catch (err) {
     errors.push({ source: "cd", error: err.message });
     console.error("[scrape] CD scrape failed:", err.message);
+  }
+
+  // Chinese Railways (static curated config — no network request needed)
+  try {
+    const crResults = buildChineseTrains();
+    write("chinese-trains.json", { uploadedAt: today, trains: crResults });
+    console.log(`[scrape] stored ${Object.keys(crResults).length} CR trains`);
+  } catch (err) {
+    errors.push({ source: "chinese", error: err.message });
+    console.error("[scrape] Chinese Railways build failed:", err.message);
   }
 
   console.log(`[scrape] done. errors: ${errors.length}`);

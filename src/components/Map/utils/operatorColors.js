@@ -52,6 +52,9 @@ export const OPERATOR_BRAND_COLORS = {
   MT: "#1A1A2E", // Midnight Trains – dark navy
   OTE: "#4CAF50", // Optima Tours – green
   UEX: "#E53935", // Urlaubs-Express – red
+
+  // China
+  CR: "#C8102E", // China Railway – China red
 };
 
 // Optional secondary accent colors for operators with many routes.

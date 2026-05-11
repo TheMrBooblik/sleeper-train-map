@@ -1,0 +1,25 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - paragraph [ref=e6]:
+          - link "Pingwi sleeper train map" [ref=e7] [cursor=pointer]:
+            - /url: /
+        - generic [ref=e8]:
+          - generic [ref=e9]:
+            - button "Show all routes" [ref=e10] [cursor=pointer]:
+              - img [ref=e11]
+              - generic [ref=e13]: All routes
+            - button "Hide intermediate stations" [ref=e14] [cursor=pointer]:
+              - img [ref=e15]
+              - generic [ref=e17]: Hide via stations
+            - button "Group stations" [ref=e18] [cursor=pointer]:
+              - img [ref=e19]
+              - generic [ref=e21]: Group stations
+          - button "Map legend" [ref=e23] [cursor=pointer]:
+            - img [ref=e24]
+          - link "About this map" [ref=e26] [cursor=pointer]:
+            - /url: /about
+            - img [ref=e27]
+    - main [ref=e29]
+  - alert [ref=e32]
