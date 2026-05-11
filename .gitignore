@@ -45,3 +45,4 @@ gtfs-data/polish-trains-unpacked/
 
 # Playwright
 .playwright-mcp/
+.playwright-cli/
