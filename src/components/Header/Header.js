@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaEyeSlash, FaInfo, FaLayerGroup, FaRoute, FaQuestionCircle } from "react-icons/fa";
+import { FaEyeSlash, FaInfo, FaLayerGroup, FaRoute, FaExternalLinkAlt } from "react-icons/fa";
 
 import Container from "@components/Container";
 import Legend from "@components/Legend";
@@ -173,10 +173,10 @@ const Header = ({
           <Link
             href="/about"
             className="icon-toggle-button shrink-0"
-            aria-label="About"
-            data-tooltip="About"
+            aria-label="About this map"
+            data-tooltip="About this map"
           >
-            <FaQuestionCircle size={14} />
+            <FaExternalLinkAlt size={12} />
           </Link>
         </div>
       </Container>
