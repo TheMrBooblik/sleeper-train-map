@@ -552,7 +552,10 @@ export function shouldHideRouteDueToFutureDate(routeId, trips) {
 }
 
 /**
- * If a route has a future "From YYYY-MM-DD" irregularity, returns that date string.
+ * If a route has a future irregularity date, returns that date string.
+ * Supports:
+ * - "From YYYY-MM-DD"
+ * - postponed notes with year, e.g. "postponed to 2027" (normalized to YYYY-01-01)
  * Returns null when the route is already running (or date cannot be determined).
  * @param {string} routeId - Route ID
  * @param {Object} trips - Trips data
@@ -568,17 +571,44 @@ export function getFutureRouteStartDate(routeId, trips) {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  let earliestFutureDate = null;
+  let earliestFutureDateText = null;
 
   for (const trip of routeTrips) {
     const irregularities = trip.irregularities;
     if (!irregularities || typeof irregularities !== "string") continue;
 
-    const match = irregularities.match(/From\s+(\d{4}-\d{2}-\d{2})/i);
-    if (match) {
+    const fromDateMatches = irregularities.matchAll(
+      /From\s+(\d{4}-\d{2}-\d{2})/gi,
+    );
+    for (const match of fromDateMatches) {
       const fromDate = new Date(match[1]);
       fromDate.setHours(0, 0, 0, 0);
-      if (fromDate > today) return match[1]; // "YYYY-MM-DD"
+      if (
+        fromDate > today &&
+        (earliestFutureDate === null || fromDate < earliestFutureDate)
+      ) {
+        earliestFutureDate = fromDate;
+        earliestFutureDateText = match[1]; // "YYYY-MM-DD"
+      }
+    }
+
+    const postponedYearMatch = irregularities.match(
+      /postpon\w*[^0-9]{0,40}(20\d{2})/i,
+    );
+    if (postponedYearMatch) {
+      const postponedDateText = `${postponedYearMatch[1]}-01-01`;
+      const postponedDate = new Date(postponedDateText);
+      postponedDate.setHours(0, 0, 0, 0);
+      if (
+        postponedDate > today &&
+        (earliestFutureDate === null || postponedDate < earliestFutureDate)
+      ) {
+        earliestFutureDate = postponedDate;
+        earliestFutureDateText = postponedDateText;
+      }
     }
   }
-  return null;
+
+  return earliestFutureDateText;
 }
