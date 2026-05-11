@@ -6,7 +6,7 @@ const structuredData = {
   "@type": "WebApplication",
   "name": "Pingwi Sleeper Train Map",
   "description": "Interactive map of European sleeper train routes. Click any station to discover overnight train connections across 24+ countries.",
-  "url": "https://pingwi.eu",
+  "url": "https://sleeper-train-map.pingwi.com",
   "applicationCategory": "TravelApplication",
   "operatingSystem": "Web Browser",
   "offers": {
@@ -26,13 +26,13 @@ export default function Home() {
           content="Interactive sleeper train map of Europe. Click any station to discover all night train routes and overnight connections across 24+ countries. Plan your spontaneous train travel."
         />
         <meta name="keywords" content="sleeper train map, night train Europe, European sleeper trains, overnight train routes, train travel Europe, night train map" />
-        <link rel="canonical" href="https://pingwi.eu" />
+        <link rel="canonical" href="https://sleeper-train-map.pingwi.com" />
         
         {/* Open Graph */}
         <meta property="og:title" content="Pingwi Sleeper Train Map - European Night Train Routes" />
         <meta property="og:description" content="Interactive map of all European sleeper train routes. Click any station to discover overnight connections across 24+ countries." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://pingwi.eu" />
+        <meta property="og:url" content="https://sleeper-train-map.pingwi.com" />
         
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />

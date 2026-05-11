@@ -50,13 +50,13 @@ export default function AboutPage() {
           content="Discover Europe by night train. Interactive map of all European sleeper train routes - click any station to see departures. Covering 24+ countries from Portugal to Ukraine."
         />
         <meta name="keywords" content="sleeper train map, night train Europe, European sleeper trains, overnight train routes, train travel Europe" />
-        <link rel="canonical" href="https://pingwi.eu/about" />
+        <link rel="canonical" href="https://sleeper-train-map.pingwi.com/about" />
         
         {/* Open Graph */}
         <meta property="og:title" content="Pingwi Sleeper Train Map - European Night Train Routes" />
         <meta property="og:description" content="Interactive map of all European sleeper train routes. Click any station to discover overnight connections across 24+ countries." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://pingwi.eu/about" />
+        <meta property="og:url" content="https://sleeper-train-map.pingwi.com/about" />
         
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
@@ -240,7 +240,7 @@ export default function AboutPage() {
             "@type": "WebApplication",
             "name": "Pingwi Sleeper Train Map",
             "description": "Interactive map of European sleeper train routes. Click any station to discover overnight train connections across 24+ countries.",
-            "url": "https://pingwi.eu",
+            "url": "https://sleeper-train-map.pingwi.com",
             "applicationCategory": "TravelApplication",
             "operatingSystem": "Web Browser",
             "offers": {

@@ -1,6 +1,6 @@
 import { COUNTRIES } from "../lib/countries";
 
-const SITE_URL = "https://pingwi.eu";
+const SITE_URL = "https://sleeper-train-map.pingwi.com";
 
 function generateSiteMap() {
   const now = new Date().toISOString();

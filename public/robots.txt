@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://pingwi.eu/sitemap.xml
+Sitemap: https://sleeper-train-map.pingwi.com/sitemap.xml
 
 # Block API routes
 Disallow: /api/
