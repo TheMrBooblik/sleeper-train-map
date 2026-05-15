@@ -165,19 +165,30 @@ const Header = ({
                 aria-label="Map legend"
               >
                 <Legend variant="panel" />
+                <div className="mt-3 border-t border-white/15 pt-3 min-[640px]:hidden">
+                  <Link
+                    href="/about"
+                    className="inline-flex items-center gap-1.5 rounded-sm text-xs font-medium text-sky-400 underline decoration-sky-400 underline-offset-2 hover:text-sky-300"
+                  >
+                    <FaExternalLinkAlt size={10} />
+                    About this map
+                  </Link>
+                </div>
               </div>
             ) : null}
           </div>
 
-          {/* About link */}
-          <Link
-            href="/about"
-            className="icon-toggle-button shrink-0"
-            aria-label="About this map"
-            data-tooltip="About this map"
-          >
-            <FaExternalLinkAlt size={12} />
-          </Link>
+          {/* About link — hidden on mobile (surfaced in legend popover instead) */}
+          <div className="hidden min-[640px]:flex shrink-0">
+            <Link
+              href="/about"
+              className="icon-toggle-button"
+              aria-label="About this map"
+              data-tooltip="About this map"
+            >
+              <FaExternalLinkAlt size={12} />
+            </Link>
+          </div>
         </div>
       </Container>
     </header>
