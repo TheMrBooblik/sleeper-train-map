@@ -4,6 +4,7 @@ import { FaBars, FaEyeSlash, FaInfo, FaLayerGroup, FaRoute, FaExternalLinkAlt } 
 
 import Container from "@components/Container";
 import Legend from "@components/Legend";
+import StationSearchBar from "../Map/components/StationSearchBar";
 
 import { HEADER_HEIGHT } from "../../constants/header";
 
@@ -88,6 +89,9 @@ const Header = ({
   setShowRoutes,
   hideIntermediateStations,
   setHideIntermediateStations,
+  stops,
+  stopsLoading,
+  onSearchSelect,
 }) => {
   const [mobileTooltipId, setMobileTooltipId] = useState(null);
   const [mobileTooltipSession, setMobileTooltipSession] = useState(0);
@@ -112,13 +116,22 @@ const Header = ({
       className={`h-[${HEADER_HEIGHT}px] bg-black px-2 py-2 min-[640px]:px-4 text-white`}
       style={{ position: "relative", zIndex: 1002 }}
     >
-      <Container className="flex flex-nowrap justify-between items-center gap-x-2">
-        <p className="text-sm leading-none whitespace-nowrap min-[640px]:text-base">
+      <Container className="flex flex-wrap justify-between items-center gap-y-2 gap-x-2">
+        <p className="text-sm leading-none whitespace-nowrap min-[640px]:text-base shrink-0">
           <Link href="/">
             Pingwi <i>sleeper train</i> map
           </Link>
         </p>
-        <div className="ml-auto flex min-w-0 shrink-0 items-center justify-end list-none gap-2 min-[640px]:gap-3">
+        {onSearchSelect && (
+          <div className="flex-1 min-w-0 max-w-xs mx-2 hidden sm:block">
+            <StationSearchBar
+              stops={stops}
+              isLoading={stopsLoading}
+              onSelect={onSearchSelect}
+            />
+          </div>
+        )}
+        <div className="ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end list-none gap-2 min-[640px]:gap-3">
 
           {/* Mobile: single ≡ button opening controls + about — hidden on sm+ */}
           <div className="relative shrink-0 min-[640px]:hidden">

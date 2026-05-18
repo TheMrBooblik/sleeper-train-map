@@ -36,12 +36,11 @@ const TrainBottomBar = ({
     : [];
 
   if (sidebarDisabled) return null;
-  // Hide when train detail panel is open
   if (isDetailPanelOpen) return null;
-  // Show bar when we have Back-on-Track routes for this station
+  if (!isOpen) return null;
+
   const hasBackOnTrackRoutes =
     !!stopRouteIds?.length && filteredViewMapData?.length > 0;
-  if (!hasBackOnTrackRoutes) return null;
 
   // Build operator-based color map for these routes (brand colors with shade variation)
   const routeIds = filteredViewMapData.map((el) => el?.route_id?.toString()).filter(Boolean);
@@ -65,31 +64,17 @@ const TrainBottomBar = ({
       // Get the via stations
       const viaStationsRaw = stationArr[1] === stopId ? el?.via_1 : el?.via_0;
 
-      // Filter via stations to only show stations in the selected city (e.g., Milan)
+      // Filter via stations to only show stations in the selected city.
+      // normalizeStationNameForDisplay handles local↔English equivalences (Wien→Vienna, etc.),
+      // with a substring fallback for cities not in the known list.
       let viaText = "";
       if (viaStationsRaw && selectedNormalizedName) {
         const viaList = viaStationsRaw.split(" - ");
-
-        // Create a set of all possible name variations for the selected city
-        const cityVariations = new Set(
-          [
-            selectedNormalizedName.toLowerCase(),
-            selectedNormalizedName === "Milan" ? "milano" : null,
-            selectedNormalizedName === "Torino" ? "turin" : null,
-            selectedNormalizedName === "Vienna" ? "wien" : null,
-            selectedNormalizedName === "Rome" ? "roma" : null,
-            selectedNormalizedName === "Munich" ? "münchen" : null,
-            selectedNormalizedName === "Cologne" ? "köln" : null,
-            selectedNormalizedName === "Zurich" ? "zürich" : null,
-            selectedNormalizedName === "Brussels" ? "bruxelles" : null,
-            selectedNormalizedName === "Antwerpen" ? "antwerpen" : null,
-          ].filter(Boolean),
-        );
-
         const filteredVia = viaList.filter((station) => {
-          const stationLower = station.toLowerCase();
-          return Array.from(cityVariations).some((cityName) =>
-            stationLower.includes(cityName),
+          const normalizedVia = normalizeStationNameForDisplay(station.trim());
+          return (
+            normalizedVia === selectedNormalizedName ||
+            station.toLowerCase().includes(selectedNormalizedName.toLowerCase())
           );
         });
 
@@ -110,11 +95,15 @@ const TrainBottomBar = ({
 
   return (
     <div
-      className={`absolute bottom-bar-scroll-fade ${isOpen ? "bottom-0" : "-bottom-[100px]"} w-full h-12 md:h-auto md:max-h-7 bg-white shadow-[-2px_0_8px_rgba(0,0,0,0.1)] z-[1000] overflow-y-hidden overflow-x-scroll transition-[bottom] duration-300 p-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}
+      className="absolute bottom-bar-scroll-fade bottom-0 w-full h-12 md:h-auto md:max-h-7 bg-white shadow-[-2px_0_8px_rgba(0,0,0,0.1)] z-[1000] overflow-y-hidden overflow-x-scroll p-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
     >
       <div className="flex p-1">
-        {/* Back-on-Track routes */}
-        {Array.from(routeMap.values()).map((route, index) => {
+        {!hasBackOnTrackRoutes ? (
+          <div className="flex items-center h-10 px-4 text-sm text-gray-500 italic">
+            No night train routes found for this station.
+          </div>
+        ) : (
+        Array.from(routeMap.values()).map((route, index) => {
           // Operator brand color (with shade variation for same-operator routes)
           const routeColor =
             routeColorMap.get(route.routeId) || NEUTRAL_FALLBACK_COLOR;
@@ -151,7 +140,8 @@ const TrainBottomBar = ({
               </div>
             </div>
           );
-        })}
+        })
+        )}
       </div>
     </div>
   );

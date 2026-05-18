@@ -11,7 +11,7 @@ import React, {
 import Leaflet from "leaflet";
 import * as ReactLeaflet from "react-leaflet";
 
-const { MapContainer, Marker, TileLayer, Polyline, Tooltip } = ReactLeaflet;
+const { MapContainer, Marker, TileLayer, Polyline, Tooltip, useMap } = ReactLeaflet;
 import "leaflet/dist/leaflet.css";
 
 import Filter from "src/components/Filter";
@@ -53,11 +53,23 @@ function formatFutureDate(dateStr) {
   }
 }
 
+function MapFlyController({ target, onDone }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!target) return;
+    map.flyTo([target.lat, target.lon], target.zoom ?? 8, { duration: 1.2 });
+    onDone();
+  }, [target, map, onDone]);
+  return null;
+}
+
 const TrainMap = ({
   className,
   isGrouped,
   showRoutes = true,
   hideIntermediateStations = false,
+  searchTarget,
+  onSearchProcessed,
   ...rest
 }) => {
   const [sidebarDisabled, setSidebarDisabled] = useState(false);
@@ -273,6 +285,16 @@ const TrainMap = ({
       normalizeStationNameForDisplay,
     ],
   );
+
+  const [flyToTarget, setFlyToTarget] = useState(null);
+
+  // When the header search selects a station, fly the map there and select it.
+  useEffect(() => {
+    if (!searchTarget) return;
+    setFlyToTarget({ lat: searchTarget.flyTo.lat, lon: searchTarget.flyTo.lon, zoom: searchTarget.zoom });
+    handleMarkerClick(searchTarget.stop);
+    onSearchProcessed?.();
+  }, [searchTarget]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Back-on-Track route filter (same UX as NightJet: one route on map, filter bar, and only this route's stations).
   const hasRouteFilter = selectedTrainRouteIds?.length > 0;
@@ -592,6 +614,10 @@ const TrainMap = ({
           onClearFilter={handleFilterClose}
         />
         <MapViewportTracker onViewportChange={handleViewportChange} />
+        <MapFlyController
+          target={flyToTarget}
+          onDone={() => setFlyToTarget(null)}
+        />
         <Filter
           selected={hasSelection}
           filterName={filterName}

@@ -7,6 +7,7 @@ import Map from "@components/Map";
 import Section from "@components/Section";
 import { useWindowSize } from "../../hooks/useWindowSize";
 import { getCountryByCode } from "../../lib/countries";
+import { useInitialData } from "../../hooks/requests/useInitialData";
 
 const DEFAULT_CENTER = [49.385541, 12.765493];
 const DEFAULT_ZOOM = 5;
@@ -16,6 +17,8 @@ const STORAGE_KEY_HIDE_INTERMEDIATE = "train-map:hideIntermediateStations";
 
 const Layout = ({ children }) => {
   const router = useRouter();
+  const { stops, isLoading: stopsLoading } = useInitialData();
+  const [searchTarget, setSearchTarget] = useState(null);
   const [layerType, setLayerType] = useState("thunderforest");
   const [isGrouped, setIsGrouped] = useState(true);
   const [showRoutes, setShowRoutes] = useState(false); // Toggle for showing route paths
@@ -128,6 +131,9 @@ const Layout = ({ children }) => {
         setShowRoutes={setShowRoutesStable}
         hideIntermediateStations={hideIntermediateStations}
         setHideIntermediateStations={setHideIntermediateStations}
+        stops={stops}
+        stopsLoading={stopsLoading}
+        onSearchSelect={setSearchTarget}
       />
       <main className="relative">
         {children}
@@ -141,6 +147,8 @@ const Layout = ({ children }) => {
             setIsGrouped={setIsGrouped}
             showRoutes={showRoutes}
             hideIntermediateStations={hideIntermediateStations}
+            searchTarget={searchTarget}
+            onSearchProcessed={() => setSearchTarget(null)}
           />
         </Container>
       </main>

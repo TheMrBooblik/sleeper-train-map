@@ -5,6 +5,7 @@
 
 import { isTrain4you } from "../../lib/trainOperatorsFilter";
 import { getBlobData, getNJTrains, getChineseTrains, isFresh } from "./lib/file-store";
+import { resolveCanonicalStationName } from "../../data/stationAliases";
 import {
   keepViewMapRowForTripActivity,
   routeIdsFromFilteredTrips,
@@ -156,14 +157,15 @@ export default async function handler(req, res) {
       trimmedStops.map((s) => (s.stop_id || "").toLowerCase()),
     );
     njStationsByName.forEach((njStation) => {
-      if (botStopNameSet.has(njStation.name.toLowerCase())) return;
+      const canonicalName = resolveCanonicalStationName(njStation.name);
+      if (botStopNameSet.has(canonicalName.toLowerCase())) return;
       trimmedStops.push({
-        stop_id: njStation.name,
-        stop_name: njStation.name,
+        stop_id: canonicalName,
+        stop_name: canonicalName,
         stop_lat: njStation.location.latitude,
         stop_lon: njStation.location.longitude,
       });
-      botStopNameSet.add(njStation.name.toLowerCase());
+      botStopNameSet.add(canonicalName.toLowerCase());
     });
 
     // Remove BoT entries for any NJ/EN train that has NJ API data.
@@ -195,14 +197,14 @@ export default async function handler(req, res) {
     const syntheticPaired = new Set();
     unmatchedNJ.forEach(([lineName, data]) => {
       if (syntheticPaired.has(lineName)) return;
-      const origin = data.stations[0].name;
-      const dest = data.stations[data.stations.length - 1].name;
+      const origin = resolveCanonicalStationName(data.stations[0].name);
+      const dest = resolveCanonicalStationName(data.stations[data.stations.length - 1].name);
       const reversePair = unmatchedNJ.find(
         ([k, v]) =>
           k !== lineName &&
           !syntheticPaired.has(k) &&
-          v.stations?.[0]?.name === dest &&
-          v.stations?.[v.stations.length - 1]?.name === origin,
+          resolveCanonicalStationName(v.stations?.[0]?.name) === dest &&
+          resolveCanonicalStationName(v.stations?.[v.stations.length - 1]?.name) === origin,
       );
       const safeId = lineName.replace(/\s+/g, "_");
       const entry = {
@@ -214,7 +216,7 @@ export default async function handler(req, res) {
         destination_trip_0: dest,
         via_0: data.stations
           .slice(1, -1)
-          .map((s) => s.name)
+          .map((s) => resolveCanonicalStationName(s.name))
           .filter(Boolean)
           .join(" - "),
         route_long_name: `${origin} – ${dest}`,
@@ -224,12 +226,12 @@ export default async function handler(req, res) {
       if (reversePair) {
         const [revName, revData] = reversePair;
         entry.trip_short_name_1 = revName;
-        entry.origin_trip_1 = revData.stations[0].name;
+        entry.origin_trip_1 = resolveCanonicalStationName(revData.stations[0].name);
         entry.destination_trip_1 =
-          revData.stations[revData.stations.length - 1].name;
+          resolveCanonicalStationName(revData.stations[revData.stations.length - 1].name);
         entry.via_1 = revData.stations
           .slice(1, -1)
-          .map((s) => s.name)
+          .map((s) => resolveCanonicalStationName(s.name))
           .filter(Boolean)
           .join(" - ");
         syntheticPaired.add(revName);

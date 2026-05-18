@@ -131,12 +131,16 @@ const TrainDetailPanel = ({
   const trips = tripsData || fetchedTrips;
   const [gtfsTimetableData, setGtfsTimetableData] = useState(null);
   const [gtfsLoadFailed, setGtfsLoadFailed] = useState(false);
+  const [gtfsLoading, setGtfsLoading] = useState(false);
   const [nightjetData, setNightjetData] = useState(null);
   const [nightjetLoadFailed, setNightjetLoadFailed] = useState(false);
+  const [nightjetLoading, setNightjetLoading] = useState(false);
   const [cdTimetableData, setCdTimetableData] = useState(null);
   const [cdLoadFailed, setCdLoadFailed] = useState(false);
+  const [cdLoading, setCdLoading] = useState(false);
   const [chineseTrainData, setChineseTrainData] = useState(null);
   const [chineseLoadFailed, setChineseLoadFailed] = useState(false);
+  const [chineseLoading, setChineseLoading] = useState(false);
 
   // IMPORTANT: `useRoutes()` fetches `/api/trains?type=view_ontd_map` which filters out NJ/EN.
   // For NJ/EN fallback we must use unfiltered `viewMapData` from `/api/initial-data` when provided.
@@ -247,11 +251,13 @@ const TrainDetailPanel = ({
     if (!isOpen || !gtfsRouteKind) {
       setGtfsTimetableData(null);
       setGtfsLoadFailed(false);
+      setGtfsLoading(false);
       return;
     }
 
     let active = true;
     const loadGtfsTimetable = async () => {
+      setGtfsLoading(true);
       try {
         setGtfsLoadFailed(false);
         const url = GTFS_TIMETABLE_FILE_BY_KIND[gtfsRouteKind];
@@ -265,10 +271,11 @@ const TrainDetailPanel = ({
         }
       } catch (_error) {
         if (active) {
-          // Fallback is intentional: keep showing Back-on-Track details.
           setGtfsTimetableData(null);
           setGtfsLoadFailed(true);
         }
+      } finally {
+        if (active) setGtfsLoading(false);
       }
     };
 
@@ -282,11 +289,13 @@ const TrainDetailPanel = ({
     if (!isOpen || !isECTrip(relevantTrips)) {
       setCdTimetableData(null);
       setCdLoadFailed(false);
+      setCdLoading(false);
       return;
     }
 
     let active = true;
     const loadCDTimetable = async () => {
+      setCdLoading(true);
       try {
         setCdLoadFailed(false);
         const response = await fetch("/api/cd-trains");
@@ -298,6 +307,8 @@ const TrainDetailPanel = ({
           setCdTimetableData(null);
           setCdLoadFailed(true);
         }
+      } finally {
+        if (active) setCdLoading(false);
       }
     };
 
@@ -318,11 +329,13 @@ const TrainDetailPanel = ({
     if (!isOpen || !hasNJFallback) {
       setNightjetData(null);
       setNightjetLoadFailed(false);
+      setNightjetLoading(false);
       return;
     }
 
     let active = true;
     const loadNightjet = async () => {
+      setNightjetLoading(true);
       try {
         setNightjetLoadFailed(false);
         const response = await fetch("/api/nightjet-trains");
@@ -334,6 +347,8 @@ const TrainDetailPanel = ({
           setNightjetData(null);
           setNightjetLoadFailed(true);
         }
+      } finally {
+        if (active) setNightjetLoading(false);
       }
     };
 
@@ -347,11 +362,13 @@ const TrainDetailPanel = ({
     if (!isOpen || !hasCRFallback) {
       setChineseTrainData(null);
       setChineseLoadFailed(false);
+      setChineseLoading(false);
       return;
     }
 
     let active = true;
     const loadChineseTrains = async () => {
+      setChineseLoading(true);
       try {
         setChineseLoadFailed(false);
         const response = await fetch("/api/chinese-trains");
@@ -363,6 +380,8 @@ const TrainDetailPanel = ({
           setChineseTrainData(null);
           setChineseLoadFailed(true);
         }
+      } finally {
+        if (active) setChineseLoading(false);
       }
     };
 
@@ -498,8 +517,13 @@ const TrainDetailPanel = ({
         <div className="p-4 space-y-4 mb-10">
           {tripsToRender.length === 0 ? (
             <div className="text-gray-500 text-sm">
-              {routesLoading || tripsLoading
-                ? "Loading train information..."
+              {routesLoading || tripsLoading || nightjetLoading || cdLoading || gtfsLoading || chineseLoading
+                ? (
+                  <span className="flex items-center gap-2">
+                    <span className="inline-block w-3.5 h-3.5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" aria-hidden />
+                    Loading train details...
+                  </span>
+                )
                 : "No Back on Track trip data for this selection."}
             </div>
           ) : (

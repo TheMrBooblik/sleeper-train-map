@@ -42,15 +42,28 @@ export const stationCoordinates = {
   "Rīga Airport (Rail Baltica)": { lat: 56.92235, lon: 23.97085 },
 
   // Italy - Rome stations
-  // Add both "Roma" and "Rome" variants to handle different naming conventions
+  // Add both "Roma" and "Rome" variants to handle different naming conventions.
+  // BoT GTFS assigns wildly wrong coordinates (pointing to Germany/Belgium) to Rome's
+  // suburban commuter stations — override all of them here.
   "Roma Termini": { lat: 41.9005, lon: 12.5012 },
   "Rome Termini": { lat: 41.9005, lon: 12.5012 },
   "Roma Tiburtina": { lat: 41.9103, lon: 12.5308 },
   "Rome Tiburtina": { lat: 41.9103, lon: 12.5308 },
   "Roma Ostiense": { lat: 41.8704, lon: 12.4842 },
   "Rome Ostiense": { lat: 41.8704, lon: 12.4842 },
-  "Roma Trastevere": { lat: 41.8703, lon: 12.4597 },
-  "Rome Trastevere": { lat: 41.8703, lon: 12.4597 },
+  "Roma Trastevere": { lat: 41.8630, lon: 12.4621 },
+  "Rome Trastevere": { lat: 41.8630, lon: 12.4621 },
+  // Suburban/commuter stations — BoT coordinates are completely wrong for these
+  "Roma Aurelia": { lat: 41.8882, lon: 12.4302 },
+  "Roma Balduina": { lat: 41.9206, lon: 12.4441 },
+  "Roma Laziali": { lat: 41.8903, lon: 12.5195 },
+  "Roma Monte Mario": { lat: 41.9316, lon: 12.4430 },
+  "Roma Nomentana": { lat: 41.9002, lon: 12.5340 },
+  "Roma Porta San Paolo": { lat: 41.8660, lon: 12.4746 },
+  "Roma Prenestina": { lat: 41.8871, lon: 12.5534 },
+  "Roma San Filippo Neri": { lat: 41.8964, lon: 12.4697 },
+  "Roma San Pietro": { lat: 41.8991, lon: 12.4574 },
+  "Roma Tuscolana": { lat: 41.8869, lon: 12.5355 },
 
   // Germany
   "Siegen Hbf": { lat: 50.8711, lon: 8.0264 },

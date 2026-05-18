@@ -36,25 +36,32 @@ export function normalizeStationNameForDisplay(stationName) {
   if (/\bWien\b/.test(stationName) || stationName.includes("Vienna")) {
     return "Vienna";
   }
-  if (stationName.includes("Milano") || stationName.includes("Milan")) {
-    return "Milan";
-  }
-  if (stationName.includes("Torino") || stationName.includes("Turin")) {
-    return "Torino";
-  }
+  // "Roma Areeiro" is a Lisbon neighbourhood station, not Rome, Italy.
+  if (stationName === "Roma Areeiro") return "Lisbon";
   if (
-    (stationName.startsWith("Roma") ||
-      stationName.startsWith("Rome") ||
+    (stationName.startsWith("Roma ") ||
+      stationName.startsWith("Rome ") ||
+      stationName.startsWith("Rom ") ||
       stationName.includes(" Roma ") ||
       stationName.includes(" Rome ")) &&
     !stationName.startsWith("Roman")
   ) {
     return "Rome";
   }
+  if (stationName.includes("Venezia") || stationName.includes("Venice") || stationName.startsWith("Venedig")) return "Venice";
+  if (stationName.includes("Firenze") || stationName.includes("Florence") || stationName.startsWith("Florenz")) return "Florence";
+  if (stationName.includes("Napoli")  || stationName.includes("Naples")  || stationName.startsWith("Neapel"))  return "Naples";
+  if (stationName.includes("Genova")  || stationName.includes("Genoa")   || stationName.startsWith("Genua"))   return "Genoa";
+  if (stationName.includes("Trieste") || stationName.startsWith("Triest ")) return "Trieste";
+  if (stationName.includes("Bologna")) return "Bologna";
+  if (stationName.includes("Verona"))  return "Verona";
+  if (stationName.includes("Torino")  || stationName.includes("Turin"))  return "Torino";
+  if (stationName.includes("Mailand") || stationName.includes("Milano") || stationName.includes("Milan")) return "Milan";
   if (stationName.includes("Berlin")) return "Berlin";
   if (stationName.includes("München") || stationName.includes("Munich")) {
     return "Munich";
   }
+  if (stationName.includes("Nürnberg") || stationName.includes("Nuremberg")) return "Nuremberg";
   if (stationName.includes("Hamburg")) return "Hamburg";
   if (stationName.includes("Köln") || stationName.includes("Cologne")) {
     return "Cologne";
@@ -64,23 +71,24 @@ export function normalizeStationNameForDisplay(stationName) {
   if (stationName.includes("Zürich") || stationName.includes("Zurich")) {
     return "Zurich";
   }
+  if (stationName.includes("Genève") || stationName.includes("Genf") || stationName.includes("Geneva")) return "Geneva";
   if (stationName.includes("Barcelona")) return "Barcelona";
   if (stationName.includes("Madrid")) return "Madrid";
-  if (stationName.includes("Lisboa") || stationName.includes("Lisbon")) {
+  if (stationName.includes("Lisboa") || stationName.includes("Lisbon") || stationName.includes("Lissabon")) {
     return "Lisbon";
   }
   if (stationName.includes("Stockholm")) return "Stockholm";
   if (stationName.includes("Oslo")) return "Oslo";
-  if (stationName.includes("København") || stationName.includes("Copenhagen")) {
+  if (stationName.includes("København") || stationName.includes("Copenhagen") || stationName.includes("Kopenhagen")) {
     return "Copenhagen";
   }
   if (stationName.includes("Helsinki") || stationName.includes("Helsingfors")) {
     return "Helsinki";
   }
-  if (stationName.includes("Warszawa") || stationName.includes("Warsaw")) {
+  if (stationName.includes("Warszawa") || stationName.includes("Warsaw") || stationName.includes("Warschau")) {
     return "Warsaw";
   }
-  if (stationName.includes("Kraków") || stationName.includes("Krakow")) {
+  if (stationName.includes("Kraków") || stationName.includes("Krakow") || stationName.includes("Krakau")) {
     return "Krakow";
   }
   if (stationName.includes("Budapest")) return "Budapest";
@@ -91,9 +99,11 @@ export function normalizeStationNameForDisplay(stationName) {
   ) {
     return "Prague";
   }
-  if (stationName.includes("București") || stationName.includes("Bucharest")) {
+  if (stationName.includes("București") || stationName.includes("Bucharest") || stationName.includes("Bukarest")) {
     return "Bucharest";
   }
+  if (stationName.includes("Belgrad") || stationName.includes("Beograd") || stationName.includes("Belgrade")) return "Belgrade";
+  if (stationName.includes("Brüssel")) return "Brussels";
   if (stationName.includes("Sofia")) return "Sofia";
   if (stationName.includes("Zagreb")) return "Zagreb";
   if (stationName.includes("Ljubljana")) return "Ljubljana";
@@ -113,6 +123,10 @@ export function normalizeStationNameForDisplay(stationName) {
   if (stationName.includes("İzmir") || stationName.includes("Izmir")) {
     return "Izmir";
   }
+
+  // Strip common station-type suffixes so "City" and "City Centraal" / "City Hbf" group together.
+  const stripped = stationName.replace(/\s+(centraal|hbf|hauptbahnhof|central|hb)$/i, "").trim();
+  if (stripped && stripped !== stationName) return stripped;
 
   return stationName;
 }
