@@ -473,10 +473,16 @@ async function buildItalianTrains(trips, today) {
   const dateMs = new Date(today).getTime();
   console.log(`[it] fetching ${numbers.length} IC Notte trains from Viaggiatreno`);
 
-  console.log("[it] fetching Italian railway network from Overpass...");
-  const networkElements = await fetchItalianRailwayNetwork();
-  console.log(`[it] building railway graph from ${networkElements.elements?.length ?? 0} elements`);
-  const graph = buildRailwayGraph(networkElements.elements ?? []);
+  // Overpass is optional — if unavailable, polylines fall back to straight lines between Viaggiatreno stops
+  let graph = null;
+  try {
+    console.log("[it] fetching Italian railway network from Overpass...");
+    const networkElements = await fetchItalianRailwayNetwork();
+    console.log(`[it] building railway graph from ${networkElements.elements?.length ?? 0} elements`);
+    graph = buildRailwayGraph(networkElements.elements ?? []);
+  } catch (e) {
+    console.warn(`[it] Overpass unavailable, using straight-line fallback: ${e.message}`);
+  }
 
   const trains = {};
   const CONCURRENCY = 4;
@@ -486,7 +492,7 @@ async function buildItalianTrains(trips, today) {
     results.forEach((train) => {
       if (!train) return;
       const coords = train.stations.map((s) => [s.location.latitude, s.location.longitude]);
-      const trackCoords = buildTrackPolyline(graph, coords);
+      const trackCoords = graph ? buildTrackPolyline(graph, coords) : coords;
       trains[train.lineName] = {
         lineName: train.lineName,
         operator: "FS",
