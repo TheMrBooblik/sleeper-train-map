@@ -279,6 +279,225 @@ function buildChineseTrains() {
   return trains;
 }
 
+// ─── Italian Railways ─────────────────────────────────────────────────────
+
+function extractFSTrainNumbers(trips) {
+  const seen = new Set();
+  const re = /\bIC\s+Notte\s+(\d+)/i;
+  for (const trip of Object.values(trips ?? {})) {
+    if (trip?.agency_id !== "FS") continue;
+    const m = (trip.trip_short_name || "").match(re);
+    if (m) seen.add(m[1]);
+  }
+  return Array.from(seen);
+}
+
+async function fetchViaggiatrenoTrain(trainNumber, dateMs) {
+  try {
+    const autoUrl = `https://www.viaggiatreno.it/viaggiatreno/rest/cercaNumeroTrenoTrenoAutocomplete/${trainNumber}`;
+    const autoRes = await fetchWithTimeout(autoUrl, {
+      headers: { "User-Agent": "train-map/1.0", Accept: "text/plain" },
+    });
+    if (!autoRes.ok) {
+      console.warn(`[it] autocomplete ${autoRes.status} for ${trainNumber}`);
+      return null;
+    }
+    const text = await autoRes.text();
+    const firstLine = text.trim().split("\n")[0];
+    const originId = firstLine.split("|")[1]?.trim();
+    if (!originId) {
+      console.warn(`[it] no origin ID for ${trainNumber}`);
+      return null;
+    }
+
+    const trainUrl = `https://www.viaggiatreno.it/viaggiatreno/rest/andamentoTreno/${originId}/${trainNumber}/${dateMs}`;
+    const trainRes = await fetchWithTimeout(trainUrl, {
+      headers: { "User-Agent": "train-map/1.0", Accept: "application/json" },
+    });
+    if (!trainRes.ok) {
+      console.warn(`[it] train ${trainRes.status} for IC Notte ${trainNumber}`);
+      return null;
+    }
+    const data = await trainRes.json();
+    const fermate = Array.isArray(data?.fermate) ? data.fermate : [];
+    const stations = fermate
+      .filter((f) => f.lat && f.lng && f.lat !== 0 && f.lng !== 0)
+      .map((f) => ({
+        name: f.stazione,
+        location: { latitude: f.lat, longitude: f.lng },
+        arrival: f.programmataArrivo ?? null,
+        departure: f.programmataPartenza ?? null,
+        pickup: true,
+        dropoff: true,
+      }));
+    if (stations.length < 2) {
+      console.warn(`[it] too few stops for IC Notte ${trainNumber}`);
+      return null;
+    }
+    return { lineName: `IC Notte ${trainNumber}`, stations };
+  } catch (e) {
+    console.warn(`[it] fetch failed for IC Notte ${trainNumber}: ${e.message}`);
+    return null;
+  }
+}
+
+async function fetchItalianRailwayNetwork() {
+  const query = `
+    [out:json][timeout:90];
+    (way["railway"="rail"](35.5,6.7,47.1,18.5););
+    (._;>);
+    out;
+  `;
+  let response = null;
+  for (const url of OVERPASS_ENDPOINTS) {
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain", "User-Agent": "train-map/1.0" },
+        body: query,
+      });
+      if (response.ok) break;
+    } catch {
+      // try next endpoint
+    }
+  }
+  if (!response?.ok) throw new Error("All Overpass endpoints failed for Italian railway network");
+  return response.json();
+}
+
+function buildRailwayGraph(elements) {
+  const nodes = new Map();
+  const adj = new Map();
+  const grid = new Map();
+
+  for (const el of elements) {
+    if (el.type === "node") {
+      nodes.set(el.id, { lat: el.lat, lon: el.lon });
+      adj.set(el.id, new Set());
+      const cellKey = `${(el.lat / 0.05) | 0},${(el.lon / 0.05) | 0}`;
+      if (!grid.has(cellKey)) grid.set(cellKey, []);
+      grid.get(cellKey).push(el.id);
+    }
+  }
+  for (const el of elements) {
+    if (el.type === "way" && Array.isArray(el.nodes)) {
+      for (let i = 0; i < el.nodes.length - 1; i++) {
+        const a = el.nodes[i];
+        const b = el.nodes[i + 1];
+        if (adj.has(a) && adj.has(b)) {
+          adj.get(a).add(b);
+          adj.get(b).add(a);
+        }
+      }
+    }
+  }
+  return { nodes, adj, grid };
+}
+
+function nearestNode(graph, lat, lon) {
+  const { nodes, grid } = graph;
+  const baseR = (lat / 0.05) | 0;
+  const baseC = (lon / 0.05) | 0;
+  let best = null;
+  let bestDist = Infinity;
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      const cell = grid.get(`${baseR + dr},${baseC + dc}`);
+      if (!cell) continue;
+      for (const id of cell) {
+        const n = nodes.get(id);
+        const d = (n.lat - lat) ** 2 + (n.lon - lon) ** 2;
+        if (d < bestDist) { bestDist = d; best = id; }
+      }
+    }
+  }
+  return best;
+}
+
+function routeSegment(graph, fromCoord, toCoord) {
+  const { nodes, adj } = graph;
+  const startId = nearestNode(graph, fromCoord[0], fromCoord[1]);
+  const endId = nearestNode(graph, toCoord[0], toCoord[1]);
+  if (!startId || !endId || startId === endId) return null;
+
+  const prev = new Map([[startId, null]]);
+  const queue = [startId];
+  let found = false;
+  let visited = 0;
+  const MAX_VISITED = 5000;
+
+  outer: while (queue.length > 0) {
+    const curr = queue.shift();
+    for (const nb of (adj.get(curr) || [])) {
+      if (!prev.has(nb)) {
+        prev.set(nb, curr);
+        if (nb === endId) { found = true; break outer; }
+        if (++visited >= MAX_VISITED) break outer;
+        queue.push(nb);
+      }
+    }
+  }
+  if (!found) return null;
+
+  const path = [];
+  let cur = endId;
+  while (cur !== null) {
+    const n = nodes.get(cur);
+    path.push([n.lat, n.lon]);
+    cur = prev.get(cur);
+  }
+  path.reverse();
+  return path;
+}
+
+function buildTrackPolyline(graph, stationCoords) {
+  const result = [];
+  for (let i = 0; i < stationCoords.length - 1; i++) {
+    const seg = routeSegment(graph, stationCoords[i], stationCoords[i + 1]);
+    const points = seg ?? [stationCoords[i], stationCoords[i + 1]];
+    for (const pt of points) {
+      if (
+        result.length === 0 ||
+        result[result.length - 1][0] !== pt[0] ||
+        result[result.length - 1][1] !== pt[1]
+      ) {
+        result.push(pt);
+      }
+    }
+  }
+  return result;
+}
+
+async function buildItalianTrains(trips, today) {
+  const numbers = extractFSTrainNumbers(trips);
+  const dateMs = new Date(today).getTime();
+  console.log(`[it] fetching ${numbers.length} IC Notte trains from Viaggiatreno`);
+
+  console.log("[it] fetching Italian railway network from Overpass...");
+  const networkElements = await fetchItalianRailwayNetwork();
+  console.log(`[it] building railway graph from ${networkElements.elements?.length ?? 0} elements`);
+  const graph = buildRailwayGraph(networkElements.elements ?? []);
+
+  const trains = {};
+  const CONCURRENCY = 4;
+  for (let i = 0; i < numbers.length; i += CONCURRENCY) {
+    const batch = numbers.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(batch.map((n) => fetchViaggiatrenoTrain(n, dateMs)));
+    results.forEach((train) => {
+      if (!train) return;
+      const coords = train.stations.map((s) => [s.location.latitude, s.location.longitude]);
+      const trackCoords = buildTrackPolyline(graph, coords);
+      trains[train.lineName] = {
+        lineName: train.lineName,
+        operator: "FS",
+        polyline: polyline.encode(trackCoords),
+        stations: train.stations,
+      };
+    });
+  }
+  return { uploadedAt: today, trains };
+}
+
 // ─── Main ──────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -448,6 +667,16 @@ async function main() {
   } catch (err) {
     errors.push({ source: "chinese", error: err.message });
     console.error("[scrape] Chinese Railways build failed:", err.message);
+  }
+
+  // Italian Railways (IC Notte via Viaggiatreno + Overpass graph routing)
+  try {
+    const itResults = await buildItalianTrains(trips, today);
+    write("italian-trains.json", itResults);
+    console.log(`[scrape] stored ${Object.keys(itResults.trains).length} IT trains`);
+  } catch (err) {
+    errors.push({ source: "italian", error: err.message });
+    console.error("[scrape] Italian Railways build failed:", err.message);
   }
 
   console.log(`[scrape] done. errors: ${errors.length}`);

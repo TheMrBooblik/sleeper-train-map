@@ -4,7 +4,7 @@
 // Vercel CDN caches this for 1 hour so only ~1 serverless invocation per hour worldwide.
 
 import { isTrain4you } from "../../lib/trainOperatorsFilter";
-import { getBlobData, getNJTrains, getChineseTrains, isFresh } from "./lib/file-store";
+import { getBlobData, getNJTrains, getChineseTrains, getItalianTrains, isFresh } from "./lib/file-store";
 import { resolveCanonicalStationName } from "../../data/stationAliases";
 import {
   keepViewMapRowForTripActivity,
@@ -94,12 +94,13 @@ export default async function handler(req, res) {
     let source = "github";
 
     // Try Vercel Blob first (daily scrape — view_ontd_map already has nj_positions merged in)
-    const [blobStops, blobViewMap, blobTrips, njBlob, crBlob] = await Promise.all([
+    const [blobStops, blobViewMap, blobTrips, njBlob, crBlob, itBlob] = await Promise.all([
       getBlobData("stops"),
       getBlobData("view_ontd_map"),
       getBlobData("trips"),
       getNJTrains(),
       getChineseTrains(),
+      getItalianTrains(),
     ]);
 
     if (
@@ -310,6 +311,88 @@ export default async function handler(req, res) {
         crPaired.add(revName);
       }
       crPaired.add(lineName);
+      filteredViewMap[entry.route_id] = entry;
+    });
+
+    // ── Italian Railways (IT) ─────────────────────────────────────────────
+    const itTrains = itBlob?.data?.trains ?? {};
+
+    // Add IT stations to stops (those not already present)
+    const itStopNameSet = new Set(botStopNameSet);
+    Object.values(itTrains).forEach((train) => {
+      (train.stations ?? []).forEach((s) => {
+        if (
+          !s?.name ||
+          !Number.isFinite(s?.location?.latitude) ||
+          !Number.isFinite(s?.location?.longitude)
+        ) return;
+        if (itStopNameSet.has(s.name.toLowerCase())) return;
+        trimmedStops.push({
+          stop_id: s.name,
+          stop_name: s.name,
+          stop_lat: s.location.latitude,
+          stop_lon: s.location.longitude,
+        });
+        itStopNameSet.add(s.name.toLowerCase());
+        botStopNameSet.add(s.name.toLowerCase());
+      });
+    });
+
+    // Remove BoT FS routes for trains covered by Italian data
+    const itTrainKeys = new Set(Object.keys(itTrains));
+    Object.keys(filteredViewMap).forEach((key) => {
+      const route = filteredViewMap[key];
+      const t0 = (route?.trip_short_name_0 || "").trim();
+      const t1 = (route?.trip_short_name_1 || "").trim();
+      if (itTrainKeys.has(t0) || itTrainKeys.has(t1)) delete filteredViewMap[key];
+    });
+
+    // Synthetic viewMap entries for IT trains (same pairing logic as NJ/CR)
+    const itTrainList = Object.entries(itTrains).filter(
+      ([, data]) => data.polyline && data.stations?.length >= 2,
+    );
+    const itPaired = new Set();
+    itTrainList.forEach(([lineName, data]) => {
+      if (itPaired.has(lineName)) return;
+      const origin = data.stations[0].name;
+      const dest = data.stations[data.stations.length - 1].name;
+      const reversePair = itTrainList.find(
+        ([k, v]) =>
+          k !== lineName &&
+          !itPaired.has(k) &&
+          v.stations?.[0]?.name === dest &&
+          v.stations?.[v.stations.length - 1]?.name === origin,
+      );
+      const safeId = lineName.replace(/\s+/g, "_");
+      const entry = {
+        route_id: `it_${safeId}`,
+        agency_id: "FS",
+        trip_short_name_0: lineName,
+        origin_trip_0: origin,
+        destination_trip_0: dest,
+        via_0: data.stations
+          .slice(1, -1)
+          .map((s) => s.name)
+          .filter(Boolean)
+          .join(" - "),
+        route_long_name: `${origin} – ${dest}`,
+        nj_polyline: data.polyline,
+        is_active: "Y",
+      };
+      if (reversePair) {
+        const [revName, revData] = reversePair;
+        entry.trip_short_name_1 = revName;
+        entry.origin_trip_1 = revData.stations[0].name;
+        entry.destination_trip_1 =
+          revData.stations[revData.stations.length - 1].name;
+        entry.via_1 = revData.stations
+          .slice(1, -1)
+          .map((s) => s.name)
+          .filter(Boolean)
+          .join(" - ");
+        itPaired.add(revName);
+      }
+      itPaired.add(lineName);
       filteredViewMap[entry.route_id] = entry;
     });
 

@@ -98,6 +98,17 @@ export function putChineseTrains(data) {
   return Promise.resolve();
 }
 
+// ─── Italian Railways (Trenitalia IC Notte) ───────────────────────────────
+
+export function getItalianTrains() {
+  return Promise.resolve(readEnvelope("italian-trains.json"));
+}
+
+export function putItalianTrains(data) {
+  writeEnvelope("italian-trains.json", data);
+  return Promise.resolve();
+}
+
 // ─── Shared ────────────────────────────────────────────────────────────────
 
 export function isFresh(uploadedAt) {
