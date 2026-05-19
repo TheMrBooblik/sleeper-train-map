@@ -89,6 +89,10 @@ function isChinaRailwayTrainNumber(value) {
   return /^\s*(Z|K)\s+\d+/i.test((value || "").toString());
 }
 
+function isItalianICNTrainNumber(value) {
+  return /^\s*ICN\s+\d+/i.test((value || "").toString());
+}
+
 function normalizeStationToken(value) {
   return (
     (value || "")
@@ -141,6 +145,9 @@ const TrainDetailPanel = ({
   const [chineseTrainData, setChineseTrainData] = useState(null);
   const [chineseLoadFailed, setChineseLoadFailed] = useState(false);
   const [chineseLoading, setChineseLoading] = useState(false);
+  const [italianTrainData, setItalianTrainData] = useState(null);
+  const [italianLoadFailed, setItalianLoadFailed] = useState(false);
+  const [italianLoading, setItalianLoading] = useState(false);
 
   // IMPORTANT: `useRoutes()` fetches `/api/trains?type=view_ontd_map` which filters out NJ/EN.
   // For NJ/EN fallback we must use unfiltered `viewMapData` from `/api/initial-data` when provided.
@@ -213,11 +220,12 @@ const TrainDetailPanel = ({
       pushDirection("1");
     });
 
-    // Only keep trains we can recognize as NJ/EN or CR; otherwise fall back to empty-state.
+    // Only keep trains we can recognize as NJ/EN, CR, or Italian ICN; otherwise fall back to empty-state.
     return next.filter(
       (t) =>
         isNightJetOrEuroNightTrainNumber(t.trip_short_name) ||
-        isChinaRailwayTrainNumber(t.trip_short_name),
+        isChinaRailwayTrainNumber(t.trip_short_name) ||
+        isItalianICNTrainNumber(t.trip_short_name),
     );
   }, [selectedRouteIds, routes, relevantTrips.length]);
 
@@ -324,6 +332,9 @@ const TrainDetailPanel = ({
   const hasCRFallback = fallbackTrips.some((t) =>
     isChinaRailwayTrainNumber(t.trip_short_name),
   );
+  const hasFSFallback = fallbackTrips.some((t) =>
+    isItalianICNTrainNumber(t.trip_short_name),
+  );
 
   useEffect(() => {
     if (!isOpen || !hasNJFallback) {
@@ -390,6 +401,39 @@ const TrainDetailPanel = ({
       active = false;
     };
   }, [isOpen, hasCRFallback]);
+
+  useEffect(() => {
+    if (!isOpen || !hasFSFallback) {
+      setItalianTrainData(null);
+      setItalianLoadFailed(false);
+      setItalianLoading(false);
+      return;
+    }
+
+    let active = true;
+    const loadItalianTrains = async () => {
+      setItalianLoading(true);
+      try {
+        setItalianLoadFailed(false);
+        const response = await fetch("/api/italian-trains");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (active) setItalianTrainData(data);
+      } catch {
+        if (active) {
+          setItalianTrainData(null);
+          setItalianLoadFailed(true);
+        }
+      } finally {
+        if (active) setItalianLoading(false);
+      }
+    };
+
+    loadItalianTrains();
+    return () => {
+      active = false;
+    };
+  }, [isOpen, hasFSFallback]);
 
   const nightjetTrainByNumber = useMemo(() => {
     const trains = nightjetData?.trains || {};
@@ -474,6 +518,29 @@ const TrainDetailPanel = ({
     return next;
   }, [chineseTrainData]);
 
+  const itScheduleByTrainNumber = useMemo(() => {
+    if (!italianTrainData?.trains) return new Map();
+    const next = new Map();
+    Object.entries(italianTrainData.trains).forEach(([key, train]) => {
+      const stations = Array.isArray(train?.stations) ? train.stations : [];
+      if (stations.length === 0) return;
+      next.set(normalizeTrainNumber(key), {
+        tripId: key,
+        stops: stations.map((s, i) => ({
+          stopId: s.name || String(i),
+          sequence: i + 1,
+          name: s.name || "Station",
+          arrival: s.arrival ? formatTime(s.arrival) : null,
+          departure: s.departure ? formatTime(s.departure) : null,
+        })),
+        validFrom: null,
+        validUntil: null,
+        source: "it",
+      });
+    });
+    return next;
+  }, [italianTrainData]);
+
   if (!isOpen) {
     return null;
   }
@@ -517,7 +584,7 @@ const TrainDetailPanel = ({
         <div className="p-4 space-y-4 mb-10">
           {tripsToRender.length === 0 ? (
             <div className="text-gray-500 text-sm">
-              {routesLoading || tripsLoading || nightjetLoading || cdLoading || gtfsLoading || chineseLoading
+              {routesLoading || tripsLoading || nightjetLoading || cdLoading || gtfsLoading || chineseLoading || italianLoading
                 ? (
                   <span className="flex items-center gap-2">
                     <span className="inline-block w-3.5 h-3.5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" aria-hidden />
@@ -548,6 +615,11 @@ const TrainDetailPanel = ({
                   China Railway station list is currently unavailable.
                 </div>
               )}
+              {italianLoadFailed && hasFSFallback && (
+                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                  Italian Railways timetable is currently unavailable.
+                </div>
+              )}
 
               {tripsToRender.map((trip, index) => {
                 // Trip list uses trip fields; route rows from useRoutes are only for GTFS-kind detection.
@@ -564,6 +636,8 @@ const TrainDetailPanel = ({
                   nightjetTrainByNumber.get(normalizedTrainNumber) || null;
                 const crTrain =
                   chineseTrainData?.trains?.[normalizedTrainNumber] || null;
+                const itTrain =
+                  italianTrainData?.trains?.[normalizedTrainNumber] || null;
                 const operatorName =
                   nightjetTrain?.operator ||
                   crTrain?.operator ||
@@ -587,6 +661,15 @@ const TrainDetailPanel = ({
                 const nightjetDestinationArrival =
                   nightjetStations?.[nightjetStations.length - 1]?.arrival ||
                   nightjetStations?.[nightjetStations.length - 1]?.departure ||
+                  null;
+                const itStations = Array.isArray(itTrain?.stations)
+                  ? itTrain.stations
+                  : [];
+                const itOriginDeparture =
+                  itStations?.[0]?.departure || itStations?.[0]?.arrival || null;
+                const itDestinationArrival =
+                  itStations?.[itStations.length - 1]?.arrival ||
+                  itStations?.[itStations.length - 1]?.departure ||
                   null;
 
                 const detailedSchedule =
@@ -615,11 +698,14 @@ const TrainDetailPanel = ({
                   null;
                 const crSchedule =
                   crScheduleByTrainNumber.get(normalizedTrainNumber) || null;
+                const itSchedule =
+                  itScheduleByTrainNumber.get(normalizedTrainNumber) || null;
                 const schedule =
                   detailedSchedule ||
                   endpointMatchedSchedule ||
                   nightjetSchedule ||
-                  crSchedule;
+                  crSchedule ||
+                  itSchedule;
                 const validFrom = formatCalendarDate(schedule?.validFrom);
                 const validUntil = formatCalendarDate(schedule?.validUntil);
 
@@ -728,11 +814,12 @@ const TrainDetailPanel = ({
 
                     {/* Main times — hidden when neither endpoint has a time */}
                     {(formatTime(
-                      trip.origin_departure_time || nightjetOriginDeparture,
+                      trip.origin_departure_time || nightjetOriginDeparture || itOriginDeparture,
                     ) ||
                       formatTime(
                         trip.destination_arrival_time ||
-                          nightjetDestinationArrival,
+                          nightjetDestinationArrival ||
+                          itDestinationArrival,
                       )) && (
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div className="rounded-md bg-gray-50 p-2">
@@ -742,7 +829,8 @@ const TrainDetailPanel = ({
                           <div className="font-semibold text-gray-900">
                             {formatTime(
                               trip.origin_departure_time ||
-                                nightjetOriginDeparture,
+                                nightjetOriginDeparture ||
+                                itOriginDeparture,
                             )}
                           </div>
                         </div>
@@ -753,7 +841,8 @@ const TrainDetailPanel = ({
                           <div className="font-semibold text-gray-900">
                             {formatTime(
                               trip.destination_arrival_time ||
-                                nightjetDestinationArrival,
+                                nightjetDestinationArrival ||
+                                itDestinationArrival,
                             )}
                           </div>
                         </div>
