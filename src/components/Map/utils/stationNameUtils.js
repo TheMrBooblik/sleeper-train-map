@@ -135,9 +135,16 @@ export function normalizeStationNameForDisplay(stationName) {
   if (stationName.startsWith("Sosnowiec")) return "Sosnowiec";
   // "Brünn" is the German name for Brno; group them so NJ and BoT routes merge.
   if (stationName.startsWith("Brno") || stationName.startsWith("Brünn")) return "Brno";
+  // Czech/Slovak cities: group variants like "Ostrava hl.n." and "Ostrava Svinov" → "Ostrava".
+  if (stationName.startsWith("Ostrava"))   return "Ostrava";
+  if (stationName.startsWith("Pardubice")) return "Pardubice";
+  if (stationName.startsWith("Olomouc"))   return "Olomouc";
+  if (stationName.includes("Košice"))      return "Košice";
+  if (stationName.includes("Žilina"))      return "Žilina";
 
   // Strip common station-type suffixes so "City" and "City Centraal" / "City Hbf" group together.
-  const stripped = stationName.replace(/\s+(centraal|hbf|hauptbahnhof|central|hb)$/i, "").trim();
+  // "hl.n." = Czech "hlavní nádraží" (main station), equivalent to German "Hbf".
+  const stripped = stationName.replace(/\s+(centraal|hbf|hauptbahnhof|central|hb|hl\.n\.)$/i, "").trim();
   if (stripped && stripped !== stationName) return stripped;
 
   return stationName;

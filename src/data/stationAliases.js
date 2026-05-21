@@ -57,6 +57,12 @@ export const STATION_ALIASES = {
   "rybnik(pl)":                       "Rybnik",
   "breclav":                          "Břeclav",
   "bohumin":                          "Bohumín",
+  // ── RegioJet (Czech/Slovak GTFS names) ──────────────────────────────────────
+  // Applied after normalizeRjGtfsName() strips ", žst." / ", Hlavní nádraží" etc.
+  "čop":                              "Chop",
+  "krakov hlavní nádraží":            "Kraków Gł.",
+  "řešov hlavní nádraží":             "Rzeszow Gł.",
+  "přemyšl hlavní nádraží":           "Przemyśl Gł.",
   // Via-only stations on the same routes (no double-marker, but wrong display name)
   "myslowice":                        "Mysłowice",
   "przemysl zasanie":                 "Przemyśl Zasanie",

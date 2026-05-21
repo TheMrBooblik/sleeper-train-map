@@ -3,6 +3,7 @@ import { enrichStationsWithCoordinates } from "../../helpers/enrichStationsWithC
 import { stationCoordinates } from "../../data/stationCoordinates";
 import { normalizeStationNameForLookup } from "./useCities";
 import { attachPkpGtfsPolylinesToViewMap } from "../../lib/pkpGtfsMerge";
+import { attachRjGtfsToViewMap } from "../../lib/rjGtfsMerge";
 
 // Module-level cache: shared across all component instances, 1 hour TTL
 const CACHE_DURATION = 60 * 60 * 1000;
@@ -110,9 +111,11 @@ export function useInitialData() {
 
       setIsLoading(true);
       try {
-        const [dataRes, pkpRes] = await Promise.all([
+        const [dataRes, pkpRes, rjChopRes, rjPremyslRes] = await Promise.all([
           fetch("/api/initial-data"),
           fetch("/data/gtfs/pkpTrainShapes.json"),
+          fetch("/data/gtfs/rjChopTimetable.json"),
+          fetch("/data/gtfs/rjPremyslTimetable.json"),
         ]);
         if (!dataRes.ok) throw new Error(`HTTP ${dataRes.status}`);
         const data = await dataRes.json();
@@ -135,6 +138,21 @@ export function useInitialData() {
           stopsArray,
           stationCoordinates,
         );
+
+        // Merge RJ GTFS into viewMap: enriches via lists and adds missing stop records.
+        if (rjChopRes.ok && rjPremyslRes.ok) {
+          try {
+            const rjChopData = await rjChopRes.json();
+            const rjPremyslData = await rjPremyslRes.json();
+            const existingIds = new Set(stopsArray.map((s) => (s.stop_id || "").toLowerCase()));
+            const { viewMap: rjViewMap, extraStops } =
+              attachRjGtfsToViewMap(viewMapRaw, rjChopData, rjPremyslData, existingIds);
+            viewMapRaw = rjViewMap;
+            stopsArray = [...stopsArray, ...extraStops];
+          } catch (e) {
+            console.warn("[useInitialData] RJ GTFS merge failed:", e);
+          }
+        }
 
         // Derive cities from viewMap (same logic as useCities)
         const citiesMap = deriveCities(viewMapRaw);
@@ -171,9 +189,11 @@ export function useInitialData() {
   const refreshData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [dataRes, pkpRes] = await Promise.all([
+      const [dataRes, pkpRes, rjChopRes, rjPremyslRes] = await Promise.all([
         fetch("/api/initial-data"),
         fetch("/data/gtfs/pkpTrainShapes.json"),
+        fetch("/data/gtfs/rjChopTimetable.json"),
+        fetch("/data/gtfs/rjPremyslTimetable.json"),
       ]);
       if (!dataRes.ok) throw new Error(`HTTP ${dataRes.status}`);
       const data = await dataRes.json();
@@ -195,6 +215,21 @@ export function useInitialData() {
         stopsArray,
         stationCoordinates,
       );
+
+      if (rjChopRes.ok && rjPremyslRes.ok) {
+        try {
+          const rjChopData = await rjChopRes.json();
+          const rjPremyslData = await rjPremyslRes.json();
+          const existingIds = new Set(stopsArray.map((s) => (s.stop_id || "").toLowerCase()));
+          const { viewMap: rjViewMap, extraStops } =
+            attachRjGtfsToViewMap(viewMapRaw, rjChopData, rjPremyslData, existingIds);
+          viewMapRaw = rjViewMap;
+          stopsArray = [...stopsArray, ...extraStops];
+        } catch (e) {
+          console.warn("[useInitialData] RJ GTFS merge failed:", e);
+        }
+      }
+
       const citiesMap = deriveCities(viewMapRaw);
 
       cache.data = {

@@ -38,5 +38,14 @@ export const normalizeStationNameForLookup = (stationName) => {
     .replace(/Liège-Longdoz/g, "Liège Longdoz")
     .replace(/Liège-Saint-Lambert/g, "Liège Saint Lambert");
 
+  // Step 3: Strip Czech/Slovak GTFS station-type suffixes so raw GTFS names
+  // resolve to the same key as canonical BoT names.
+  normalized = normalized
+    .replace(/,\s*žst\.\s*$/i, "")           // "Košice, žst."      → "Košice"
+    .replace(/,\s*žel\.\s*st\.\s*$/i, "")    // "Margecany, žel. st." → "Margecany"
+    .replace(/,\s*hl\.n\.\s*$/i, " hl.n.")   // "Ostrava, hl.n."    → "Ostrava hl.n."
+    .replace(/,\s+/g, " ")                   // "Poprad, Tatry"     → "Poprad Tatry"
+    .trim();
+
   return normalized;
 };
