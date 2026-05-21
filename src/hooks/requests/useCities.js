@@ -45,6 +45,8 @@ export const normalizeStationNameForLookup = (stationName) => {
     .replace(/,\s*žel\.\s*st\.\s*$/i, "")    // "Margecany, žel. st." → "Margecany"
     .replace(/,\s*hl\.n\.\s*$/i, " hl.n.")   // "Ostrava, hl.n."    → "Ostrava hl.n."
     .replace(/,\s+/g, " ")                   // "Poprad, Tatry"     → "Poprad Tatry"
+    .replace(/\s+hlavní\s+nádraží\s*$/i, " hl.n.")  // "Pardubice hlavní nádraží" → "Pardubice hl.n."
+    .replace(/\s+hlavni\s+nadrazi\s*$/i, " hl.n.")   // ASCII diacritic-free variant
     .trim();
 
   return normalized;

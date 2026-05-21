@@ -151,6 +151,19 @@ export function normalizeStationNameForDisplay(stationName) {
 }
 
 /**
+ * Abbreviate verbose station-type suffixes for display.
+ * Add a new .replace() here when a language uses a long-form suffix that should be shortened.
+ * @param {string} name - Station name as stored in data
+ * @returns {string} Display-ready station name
+ */
+export function abbreviateStationName(name) {
+  if (!name) return name;
+  return name
+    .replace(/\s+hlavní\s+nádraží/gi, " hl.n.")  // Czech: "Pardubice hlavní nádraží" → "Pardubice hl.n."
+    .replace(/\s+hlavni\s+nadrazi/gi, " hl.n.");  // ASCII variant
+}
+
+/**
  * Heuristic matcher for station names (handles Centraal, Hbf, brackets, diacritics).
  * Uses normalizeForLookup for both sides before comparing.
  * @param {string} a - First station name

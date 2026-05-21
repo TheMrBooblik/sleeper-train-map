@@ -14,6 +14,7 @@ import {
   getOperatorBaseColor,
   hexWithAlpha,
 } from "../Map/utils/operatorColors";
+import { abbreviateStationName } from "../Map/utils/stationNameUtils";
 
 const GTFS_ROUTE_KIND = {
   chop: "chop",
@@ -772,11 +773,11 @@ const TrainDetailPanel = ({
                         Route
                       </div>
                       <div className="text-sm font-medium text-gray-900">
-                        {trip.trip_origin} {"->"} {trip.trip_headsign}
+                        {abbreviateStationName(trip.trip_origin)} {"->"} {abbreviateStationName(trip.trip_headsign)}
                       </div>
                       {trip.via && (
                         <div className="text-xs text-gray-600">
-                          via {trip.via}
+                          via {abbreviateStationName(trip.via)}
                         </div>
                       )}
                     </div>

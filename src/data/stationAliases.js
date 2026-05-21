@@ -57,6 +57,13 @@ export const STATION_ALIASES = {
   "rybnik(pl)":                       "Rybnik",
   "breclav":                          "Břeclav",
   "bohumin":                          "Bohumín",
+  // ── Czech cities: NightJet uses German names ──────────────────────────────────
+  // "Hbf" = Hauptbahnhof = Czech "hl.n." (hlavní nádraží) = main station.
+  // Map to canonical BoT forms so NJ and BoT stops share one city dict entry.
+  "pardubice hbf":                        "Pardubice hl.n.",
+  "brünn hbf":                            "Brno hl.n.",
+  "prag hbf":                             "Praha hl.n.",
+  "prag-holesovice":                      "Praha-Holešovice",
   // ── RegioJet (Czech/Slovak GTFS names) ──────────────────────────────────────
   // Applied after normalizeRjGtfsName() strips ", žst." / ", Hlavní nádraží" etc.
   "čop":                              "Chop",

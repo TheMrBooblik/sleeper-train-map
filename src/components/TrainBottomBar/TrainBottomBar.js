@@ -2,7 +2,7 @@
 
 import React, { useCallback } from "react";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../Map/utils/operatorColors";
-import { normalizeStationNameForDisplay } from "../Map/utils/stationNameUtils";
+import { normalizeStationNameForDisplay, abbreviateStationName } from "../Map/utils/stationNameUtils";
 import { shouldHideRouteDueToFutureDate } from "../Map/utils/routeStyleUtils";
 
 /**
@@ -132,11 +132,11 @@ const TrainBottomBar = ({
                 style={{ backgroundColor: routeColor }}
               />
               <div className="flex items-center">
-                <strong>{route.origin}</strong>
+                <strong>{abbreviateStationName(route.origin)}</strong>
                 &nbsp;-&nbsp;
-                {route.viaText ? <span>({route.viaText})</span> : null}
+                {route.viaText ? <span>({abbreviateStationName(route.viaText)})</span> : null}
                 {route.viaText && <>&nbsp;-&nbsp;</>}
-                <strong>{route.destination}</strong>
+                <strong>{abbreviateStationName(route.destination)}</strong>
               </div>
             </div>
           );
