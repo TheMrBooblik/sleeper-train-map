@@ -123,6 +123,18 @@ export function normalizeStationNameForDisplay(stationName) {
   if (stationName.includes("İzmir") || stationName.includes("Izmir")) {
     return "Izmir";
   }
+  // Polish/Czech cities: handle BoT diacritic forms, NJ ASCII forms, and Czech name variants.
+  // "Katovice" (Czech, used in BoT TLK routes) and "Kattowitz" (German, NJ) both mean Katowice.
+  if (
+    stationName.includes("Katowice") ||
+    stationName.includes("Katovice") ||
+    stationName.includes("Kattowitz")
+  ) {
+    return "Katowice";
+  }
+  if (stationName.startsWith("Sosnowiec")) return "Sosnowiec";
+  // "Brünn" is the German name for Brno; group them so NJ and BoT routes merge.
+  if (stationName.startsWith("Brno") || stationName.startsWith("Brünn")) return "Brno";
 
   // Strip common station-type suffixes so "City" and "City Centraal" / "City Hbf" group together.
   const stripped = stationName.replace(/\s+(centraal|hbf|hauptbahnhof|central|hb)$/i, "").trim();

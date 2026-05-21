@@ -46,6 +46,28 @@ export const STATION_ALIASES = {
   "triest":                           "Trieste",
   "rom":                              "Roma",
   "turin":                            "Torino",
+  // ── Polish/Czech: NJ uses ASCII/unaccented names, BoT uses local diacritics ──
+  // Bug-causing: both NJ and BoT have non-deleted routes through these stations
+  // with different names → duplicate city entries + duplicate overlapping markers.
+  "kattowitz":                        "Katowice",
+  "sosnowiec glowny":                 "Sosnowiec Główny",
+  "przemysl gl.":                     "Przemyśl Gł.",
+  "rzeszow gl.":                      "Rzeszow Gł.",
+  "opoczno poludniowe":               "Opoczno Południe",
+  "rybnik(pl)":                       "Rybnik",
+  "breclav":                          "Břeclav",
+  "bohumin":                          "Bohumín",
+  // Via-only stations on the same routes (no double-marker, but wrong display name)
+  "myslowice":                        "Mysłowice",
+  "przemysl zasanie":                 "Przemyśl Zasanie",
+  "krakow plaszow":                   "Kraków Płaszów",
+  "jaroslaw":                         "Jarosław",
+  "lancut":                           "Łańcut",
+  "dabrowa gornicza":                 "Dąbrowa Górnicza",
+  "wloszczowa polnoc":                "Włoszczowa Północ",
+  "sedziszow malopolski":             "Sędziszów Małopolski",
+  "debica":                           "Dębica",
+  "raciborz":                         "Racibórz",
 };
 
 /**
