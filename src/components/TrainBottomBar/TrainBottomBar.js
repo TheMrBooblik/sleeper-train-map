@@ -97,7 +97,7 @@ const TrainBottomBar = ({
     <div
       className="absolute bottom-bar-scroll-fade bottom-0 w-full h-12 md:h-auto md:max-h-7 bg-white shadow-[-2px_0_8px_rgba(0,0,0,0.1)] z-[1000] overflow-y-hidden overflow-x-scroll p-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
     >
-      <div className="flex p-1">
+      <div className="flex min-w-max p-1">
         {!hasBackOnTrackRoutes ? (
           <div className="flex items-center h-10 px-4 text-sm text-gray-500 italic">
             No night train routes found for this station.

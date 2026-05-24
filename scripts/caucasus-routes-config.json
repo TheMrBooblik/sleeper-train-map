@@ -1,0 +1,54 @@
+[
+  {
+    "comment": "Georgian Railway — Tbilisi to Batumi overnight (couchette/sleeper service)",
+    "lineName": "GR 1",
+    "returnLineName": "GR 2",
+    "operator": "Georgian Railway",
+    "agency_id": "GR",
+    "frequency": "Daily",
+    "stations": [
+      { "name": "Tbilisi Centraluri", "lat": 41.6941, "lon": 44.8333 },
+      { "name": "Gori",               "lat": 41.9847, "lon": 44.1122 },
+      { "name": "Khashuri",           "lat": 41.9945, "lon": 43.5997 },
+      { "name": "Zestaponi",          "lat": 42.1703, "lon": 43.0505 },
+      { "name": "Kutaisi",            "lat": 42.2717, "lon": 42.6983 },
+      { "name": "Samtredia",          "lat": 42.1503, "lon": 42.3470 },
+      { "name": "Kobuleti",           "lat": 41.8219, "lon": 41.7755 },
+      { "name": "Batumi Centraluri",  "lat": 41.6481, "lon": 41.6423 }
+    ]
+  },
+  {
+    "comment": "Georgian Railway — Tbilisi to Zugdidi overnight (couchette/sleeper service)",
+    "lineName": "GR 53",
+    "returnLineName": "GR 54",
+    "operator": "Georgian Railway",
+    "agency_id": "GR",
+    "frequency": "Daily",
+    "stations": [
+      { "name": "Tbilisi Centraluri", "lat": 41.6941, "lon": 44.8333 },
+      { "name": "Gori",               "lat": 41.9847, "lon": 44.1122 },
+      { "name": "Khashuri",           "lat": 41.9945, "lon": 43.5997 },
+      { "name": "Zestaponi",          "lat": 42.1703, "lon": 43.0505 },
+      { "name": "Kutaisi",            "lat": 42.2717, "lon": 42.6983 },
+      { "name": "Samtredia",          "lat": 42.1503, "lon": 42.3470 },
+      { "name": "Senaki",             "lat": 42.2722, "lon": 42.0682 },
+      { "name": "Zugdidi",            "lat": 42.5083, "lon": 41.8710 }
+    ]
+  },
+  {
+    "comment": "ADY / Georgian Railway — Baku–Tbilisi international overnight train",
+    "lineName": "ADY 101",
+    "returnLineName": "ADY 102",
+    "operator": "ADY",
+    "agency_id": "ADY",
+    "frequency": "Daily",
+    "stations": [
+      { "name": "Baku",               "lat": 40.3814, "lon": 49.8403 },
+      { "name": "Yevlakh",            "lat": 40.6195, "lon": 47.1498 },
+      { "name": "Ganja",              "lat": 40.6828, "lon": 46.3606 },
+      { "name": "Agstafa",            "lat": 41.1139, "lon": 45.4571 },
+      { "name": "Marneuli",           "lat": 41.4817, "lon": 44.8118 },
+      { "name": "Tbilisi Centraluri", "lat": 41.6941, "lon": 44.8333 }
+    ]
+  }
+]

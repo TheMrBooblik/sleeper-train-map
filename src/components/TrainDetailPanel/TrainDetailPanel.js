@@ -94,6 +94,10 @@ function isItalianICNTrainNumber(value) {
   return /^\s*ICN\s+\d+/i.test((value || "").toString());
 }
 
+function isCaucasusTrainNumber(value) {
+  return /^\s*(GR|ADY|SCR)\s+\d+/i.test((value || "").toString());
+}
+
 function normalizeStationToken(value) {
   return (
     (value || "")
@@ -149,6 +153,9 @@ const TrainDetailPanel = ({
   const [italianTrainData, setItalianTrainData] = useState(null);
   const [italianLoadFailed, setItalianLoadFailed] = useState(false);
   const [italianLoading, setItalianLoading] = useState(false);
+  const [caucasusTrainData, setCaucasusTrainData] = useState(null);
+  const [caucasusLoadFailed, setCaucasusLoadFailed] = useState(false);
+  const [caucasusLoading, setCaucasusLoading] = useState(false);
 
   // IMPORTANT: `useRoutes()` fetches `/api/trains?type=view_ontd_map` which filters out NJ/EN.
   // For NJ/EN fallback we must use unfiltered `viewMapData` from `/api/initial-data` when provided.
@@ -221,12 +228,13 @@ const TrainDetailPanel = ({
       pushDirection("1");
     });
 
-    // Only keep trains we can recognize as NJ/EN, CR, or Italian ICN; otherwise fall back to empty-state.
+    // Only keep trains we can recognize as NJ/EN, CR, Italian ICN, or Caucasus; otherwise fall back to empty-state.
     return next.filter(
       (t) =>
         isNightJetOrEuroNightTrainNumber(t.trip_short_name) ||
         isChinaRailwayTrainNumber(t.trip_short_name) ||
-        isItalianICNTrainNumber(t.trip_short_name),
+        isItalianICNTrainNumber(t.trip_short_name) ||
+        isCaucasusTrainNumber(t.trip_short_name),
     );
   }, [selectedRouteIds, routes, relevantTrips.length]);
 
@@ -336,6 +344,9 @@ const TrainDetailPanel = ({
   const hasFSFallback = fallbackTrips.some((t) =>
     isItalianICNTrainNumber(t.trip_short_name),
   );
+  const hasCaucasusFallback = fallbackTrips.some((t) =>
+    isCaucasusTrainNumber(t.trip_short_name),
+  );
 
   useEffect(() => {
     if (!isOpen || !hasNJFallback) {
@@ -435,6 +446,39 @@ const TrainDetailPanel = ({
       active = false;
     };
   }, [isOpen, hasFSFallback]);
+
+  useEffect(() => {
+    if (!isOpen || !hasCaucasusFallback) {
+      setCaucasusTrainData(null);
+      setCaucasusLoadFailed(false);
+      setCaucasusLoading(false);
+      return;
+    }
+
+    let active = true;
+    const loadCaucasusTrains = async () => {
+      setCaucasusLoading(true);
+      try {
+        setCaucasusLoadFailed(false);
+        const response = await fetch("/api/caucasus-trains");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (active) setCaucasusTrainData(data);
+      } catch {
+        if (active) {
+          setCaucasusTrainData(null);
+          setCaucasusLoadFailed(true);
+        }
+      } finally {
+        if (active) setCaucasusLoading(false);
+      }
+    };
+
+    loadCaucasusTrains();
+    return () => {
+      active = false;
+    };
+  }, [isOpen, hasCaucasusFallback]);
 
   const nightjetTrainByNumber = useMemo(() => {
     const trains = nightjetData?.trains || {};
@@ -542,6 +586,29 @@ const TrainDetailPanel = ({
     return next;
   }, [italianTrainData]);
 
+  const caucasusScheduleByTrainNumber = useMemo(() => {
+    if (!caucasusTrainData?.trains) return new Map();
+    const next = new Map();
+    Object.entries(caucasusTrainData.trains).forEach(([key, train]) => {
+      const stations = Array.isArray(train?.stations) ? train.stations : [];
+      if (stations.length === 0) return;
+      next.set(normalizeTrainNumber(key), {
+        tripId: key,
+        stops: stations.map((s, i) => ({
+          stopId: s.name || String(i),
+          sequence: i + 1,
+          name: s.name || "Station",
+          arrival: null,
+          departure: null,
+        })),
+        validFrom: null,
+        validUntil: null,
+        source: "caucasus",
+      });
+    });
+    return next;
+  }, [caucasusTrainData]);
+
   if (!isOpen) {
     return null;
   }
@@ -585,7 +652,7 @@ const TrainDetailPanel = ({
         <div className="p-4 space-y-4 mb-10">
           {tripsToRender.length === 0 ? (
             <div className="text-gray-500 text-sm">
-              {routesLoading || tripsLoading || nightjetLoading || cdLoading || gtfsLoading || chineseLoading || italianLoading
+              {routesLoading || tripsLoading || nightjetLoading || cdLoading || gtfsLoading || chineseLoading || italianLoading || caucasusLoading
                 ? (
                   <span className="flex items-center gap-2">
                     <span className="inline-block w-3.5 h-3.5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" aria-hidden />
@@ -621,6 +688,11 @@ const TrainDetailPanel = ({
                   Italian Railways timetable is currently unavailable.
                 </div>
               )}
+              {caucasusLoadFailed && hasCaucasusFallback && (
+                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                  Caucasus Railways station list is currently unavailable.
+                </div>
+              )}
 
               {tripsToRender.map((trip, index) => {
                 // Trip list uses trip fields; route rows from useRoutes are only for GTFS-kind detection.
@@ -639,9 +711,12 @@ const TrainDetailPanel = ({
                   chineseTrainData?.trains?.[normalizedTrainNumber] || null;
                 const itTrain =
                   italianTrainData?.trains?.[normalizedTrainNumber] || null;
+                const caucasusTrain =
+                  caucasusTrainData?.trains?.[normalizedTrainNumber] || null;
                 const operatorName =
                   nightjetTrain?.operator ||
                   crTrain?.operator ||
+                  caucasusTrain?.operator ||
                   agency?.agency_name ||
                   "Operator";
                 // Synthetic NJ/EN trips use agency_id="ÖBB" for styling, but the actual
@@ -701,12 +776,15 @@ const TrainDetailPanel = ({
                   crScheduleByTrainNumber.get(normalizedTrainNumber) || null;
                 const itSchedule =
                   itScheduleByTrainNumber.get(normalizedTrainNumber) || null;
+                const caucasusSchedule =
+                  caucasusScheduleByTrainNumber.get(normalizedTrainNumber) || null;
                 const schedule =
                   detailedSchedule ||
                   endpointMatchedSchedule ||
                   nightjetSchedule ||
                   crSchedule ||
-                  itSchedule;
+                  itSchedule ||
+                  caucasusSchedule;
                 const validFrom = formatCalendarDate(schedule?.validFrom);
                 const validUntil = formatCalendarDate(schedule?.validUntil);
 

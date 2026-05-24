@@ -109,6 +109,17 @@ export function putItalianTrains(data) {
   return Promise.resolve();
 }
 
+// ─── Caucasus Railways (Georgian Railway, ADY, South Caucasus Railway) ────
+
+export function getCaucasusTrains() {
+  return Promise.resolve(readEnvelope("caucasus-trains.json"));
+}
+
+export function putCaucasusTrains(data) {
+  writeEnvelope("caucasus-trains.json", data);
+  return Promise.resolve();
+}
+
 // ─── Shared ────────────────────────────────────────────────────────────────
 
 export function isFresh(uploadedAt) {

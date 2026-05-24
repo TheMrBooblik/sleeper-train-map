@@ -23,6 +23,27 @@ const OSM_RELATION_IDS = ["18616102", "3779843", "8737075"];
 
 const FETCH_TIMEOUT_MS = 15_000;
 
+// Station coordinates for Georgian Railway international route (Tbilisi ↔ Yerevan).
+// Keyed by lowercase station name as it appears on railway.ge.
+const GR_CAUCASUS_STATION_COORDS = {
+  "tbilisi – passenger station": { lat: 41.6941, lon: 44.8333 },
+  "tbilisi-junction station":         { lat: 41.7148, lon: 44.8070 },
+  "ponichala":                        { lat: 41.6250, lon: 44.8167 },
+  "marabda":                          { lat: 41.4303, lon: 44.7458 },
+  "marneuli":                         { lat: 41.4817, lon: 44.8118 },
+  "shulaveri":                        { lat: 41.3670, lon: 44.5919 },
+  "sadakhlo":                         { lat: 41.1715, lon: 44.9850 },
+  "airum":                            { lat: 41.1095, lon: 44.8736 },
+  "sanain":                           { lat: 41.1780, lon: 44.6993 },
+  "shagal":                           { lat: 41.0860, lon: 44.5537 },
+  "pampak":                           { lat: 40.9943, lon: 44.6219 },
+  "vanadzor":                         { lat: 40.8093, lon: 44.4884 },
+  "giumr":                            { lat: 40.7921, lon: 43.8487 },
+  "gyumri":                           { lat: 40.7921, lon: 43.8487 },
+  "armavir":                          { lat: 40.1542, lon: 44.0382 },
+  "yerevan":                          { lat: 40.1792, lon: 44.5197 },
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 function fetchWithTimeout(url, options = {}) {
@@ -419,6 +440,172 @@ function titleCase(str) {
   return str.toLowerCase().replace(/(?:^|\s|[-'(])(\p{L})/gu, (_, c) => _.slice(0, -1) + c.toUpperCase());
 }
 
+// ─── Georgian Railway international trains (scraped from railway.ge) ──────
+
+async function fetchGRInternationalTrains() {
+  const url = "https://www.railway.ge/en/passenger-traffic/international-trains/";
+  let html;
+  try {
+    const res = await fetchWithTimeout(url, {
+      headers: { "User-Agent": "train-map/1.0 (timetable-display)", Accept: "text/html" },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    html = await res.text();
+  } catch (e) {
+    console.warn(`[gr] fetch failed: ${e.message}`);
+    return {};
+  }
+
+  // Strip scripts/styles, decode common HTML entities, tokenise by line
+  const text = html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, "\n")
+    .replace(/&#8211;/g, "-")
+    .replace(/&ndash;/g, "-")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&");
+
+  const tokens = text.split("\n").map((s) => s.trim()).filter(Boolean);
+  const trains = {};
+
+  // Table header pattern: Arrival / Stopping time / Departure (repeated twice)
+  const headerIdx = tokens.findIndex(
+    (t, i) =>
+      t === "Arrival" &&
+      tokens[i + 1] === "Stopping time" &&
+      tokens[i + 2] === "Departure",
+  );
+  if (headerIdx === -1) {
+    console.warn("[gr] timetable header not found — skipping international scrape");
+    return trains;
+  }
+
+  // Skip 6 header tokens (Arrival Stop Dep | Arrival Stop Dep)
+  let i = headerIdx + 6;
+  const stationsFwd = []; // #371 Tbilisi → Yerevan
+  const stationsRev = []; // #372 Yerevan → Tbilisi
+
+  // Row format: arr371, stopTime371, dep371, stationName, arr372, stopTime372, dep372
+  // Terminus values are "_" (no arrival at origin, no departure at destination)
+  while (i + 6 < tokens.length) {
+    const t0 = tokens[i];
+    // Detect section dividers (e.g. "Armenian Railway") — not a time-like token
+    if (!/^[\d:_–\-]+$/.test(t0)) { i++; continue; }
+
+    const arr371 = tokens[i];
+    const dep371 = tokens[i + 2];
+    const stationName = tokens[i + 3];
+    const arr372 = tokens[i + 4];
+    const dep372 = tokens[i + 6];
+    i += 7;
+
+    if (!stationName) continue;
+    const key = stationName.toLowerCase().replace(/\s+/g, " ").trim();
+    const coords = GR_CAUCASUS_STATION_COORDS[key];
+    if (!coords) {
+      console.warn(`[gr] no coords for: "${stationName}"`);
+      continue;
+    }
+
+    const toTime = (t) => (t && t !== "_" && t !== "-" && t !== "–" ? t : null);
+    const a371 = toTime(arr371);
+    const d371 = toTime(dep371);
+    const a372 = toTime(arr372);
+    const d372 = toTime(dep372);
+
+    stationsFwd.push({
+      name: stationName,
+      location: { latitude: coords.lat, longitude: coords.lon },
+      arrival: a371 !== d371 ? a371 : null,
+      departure: d371,
+      pickup: true,
+      dropoff: true,
+    });
+    stationsRev.push({
+      name: stationName,
+      location: { latitude: coords.lat, longitude: coords.lon },
+      arrival: a372 !== d372 ? a372 : null,
+      departure: d372,
+      pickup: true,
+      dropoff: true,
+    });
+  }
+
+  if (stationsFwd.length >= 2) {
+    const fwdPos = stationsFwd.map((s) => [s.location.latitude, s.location.longitude]);
+    trains["GR 371"] = {
+      lineName: "GR 371",
+      operator: "Georgian Railway / South Caucasus Railway",
+      agency_id: "SCR",
+      frequency: "Mon, Wed, Fri, Sun",
+      polyline: polyline.encode(fwdPos),
+      stations: stationsFwd,
+    };
+  }
+  if (stationsRev.length >= 2) {
+    const revStations = [...stationsRev].reverse();
+    const revPos = revStations.map((s) => [s.location.latitude, s.location.longitude]);
+    trains["GR 372"] = {
+      lineName: "GR 372",
+      operator: "Georgian Railway / South Caucasus Railway",
+      agency_id: "SCR",
+      frequency: "Mon, Wed, Fri, Sun",
+      polyline: polyline.encode(revPos),
+      stations: revStations,
+    };
+  }
+
+  console.log(`[gr] scraped ${Object.keys(trains).length} international trains from railway.ge`);
+  return trains;
+}
+
+// ─── Caucasus Railways (Georgian Railway, ADY, South Caucasus Railway) ───
+
+function buildCaucasusTrains() {
+  const configPath = path.join(__dirname, "caucasus-routes-config.json");
+  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  const trains = {};
+
+  for (const route of config) {
+    const stations = route.stations.map((s) => ({
+      name: s.name,
+      location: { latitude: s.lat, longitude: s.lon },
+      arrival: null,
+      departure: null,
+      pickup: true,
+      dropoff: true,
+    }));
+    const positions = stations.map((s) => [s.location.latitude, s.location.longitude]);
+    if (positions.length < 2) continue;
+
+    const encoded = polyline.encode(positions);
+    trains[route.lineName] = {
+      lineName: route.lineName,
+      operator: route.operator,
+      agency_id: route.agency_id,
+      frequency: route.frequency || null,
+      polyline: encoded,
+      stations,
+    };
+
+    if (route.returnLineName) {
+      const reversed = [...stations].reverse();
+      const revPositions = reversed.map((s) => [s.location.latitude, s.location.longitude]);
+      trains[route.returnLineName] = {
+        lineName: route.returnLineName,
+        operator: route.operator,
+        agency_id: route.agency_id,
+        frequency: route.frequency || null,
+        polyline: polyline.encode(revPositions),
+        stations: reversed,
+      };
+    }
+  }
+
+  return trains;
+}
+
 // ─── Main ──────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -598,6 +785,18 @@ async function main() {
   } catch (err) {
     errors.push({ source: "italian", error: err.message });
     console.error("[scrape] Italian ICN scrape failed:", err.message);
+  }
+
+  // Caucasus Railways — static config merged with live data from railway.ge
+  try {
+    const staticTrains = buildCaucasusTrains();
+    const grScraped = await fetchGRInternationalTrains();
+    const caucasusResults = { ...staticTrains, ...grScraped };
+    write("caucasus-trains.json", { uploadedAt: today, trains: caucasusResults });
+    console.log(`[scrape] stored ${Object.keys(caucasusResults).length} Caucasus trains`);
+  } catch (err) {
+    errors.push({ source: "caucasus", error: err.message });
+    console.error("[scrape] Caucasus build failed:", err.message);
   }
 
   console.log(`[scrape] done. errors: ${errors.length}`);

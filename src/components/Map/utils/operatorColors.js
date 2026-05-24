@@ -55,6 +55,11 @@ export const OPERATOR_BRAND_COLORS = {
 
   // China
   CR: "#C8102E", // China Railway – China red
+
+  // Caucasus
+  GR: "#D4380D",  // Georgian Railway – Georgian red-orange
+  ADY: "#0080C8", // ADY (Azerbaijan Railways) – ADY blue
+  SCR: "#7B2D8B", // South Caucasus Railway (Armenia) – violet
 };
 
 // Optional secondary accent colors for operators with many routes.
