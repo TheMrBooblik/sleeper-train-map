@@ -23,25 +23,25 @@ const OSM_RELATION_IDS = ["18616102", "3779843", "8737075"];
 
 const FETCH_TIMEOUT_MS = 15_000;
 
-// Station coordinates for Georgian Railway international route (Tbilisi ↔ Yerevan).
+// Fallback coords for stations the Overpass query may miss.
 // Keyed by lowercase station name as it appears on railway.ge.
-const GR_CAUCASUS_STATION_COORDS = {
+const GR_STATION_COORDS_FALLBACK = {
   "tbilisi – passenger station": { lat: 41.6941, lon: 44.8333 },
-  "tbilisi-junction station":         { lat: 41.7148, lon: 44.8070 },
-  "ponichala":                        { lat: 41.6250, lon: 44.8167 },
-  "marabda":                          { lat: 41.4303, lon: 44.7458 },
-  "marneuli":                         { lat: 41.4817, lon: 44.8118 },
-  "shulaveri":                        { lat: 41.3670, lon: 44.5919 },
-  "sadakhlo":                         { lat: 41.1715, lon: 44.9850 },
-  "airum":                            { lat: 41.1095, lon: 44.8736 },
-  "sanain":                           { lat: 41.1780, lon: 44.6993 },
-  "shagal":                           { lat: 41.0860, lon: 44.5537 },
-  "pampak":                           { lat: 40.9943, lon: 44.6219 },
-  "vanadzor":                         { lat: 40.8093, lon: 44.4884 },
-  "giumr":                            { lat: 40.7921, lon: 43.8487 },
-  "gyumri":                           { lat: 40.7921, lon: 43.8487 },
-  "armavir":                          { lat: 40.1542, lon: 44.0382 },
-  "yerevan":                          { lat: 40.1792, lon: 44.5197 },
+  "tbilisi-junction station":    { lat: 41.7148, lon: 44.8070 },
+  "ponichala":                   { lat: 41.6250, lon: 44.8167 },
+  "marabda":                     { lat: 41.4303, lon: 44.7458 },
+  "marneuli":                    { lat: 41.4817, lon: 44.8118 },
+  "shulaveri":                   { lat: 41.3670, lon: 44.5919 },
+  "sadakhlo":                    { lat: 41.1715, lon: 44.9850 },
+  "airum":                       { lat: 41.1095, lon: 44.8736 },
+  "sanain":                      { lat: 41.1780, lon: 44.6993 },
+  "shagal":                      { lat: 41.0860, lon: 44.5537 },
+  "pampak":                      { lat: 40.9943, lon: 44.6219 },
+  "vanadzor":                    { lat: 40.8093, lon: 44.4884 },
+  "giumr":                       { lat: 40.7921, lon: 43.8487 },
+  "gyumri":                      { lat: 40.7921, lon: 43.8487 },
+  "armavir":                     { lat: 40.1542, lon: 44.0382 },
+  "yerevan":                     { lat: 40.1792, lon: 44.5197 },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -442,6 +442,73 @@ function titleCase(str) {
 
 // ─── Georgian Railway international trains (scraped from railway.ge) ──────
 
+// Resolve station coordinates from OSM Overpass for the Georgia/Armenia/Azerbaijan region.
+// Falls back to GR_STATION_COORDS_FALLBACK per-station when OSM has no match.
+async function resolveGRStationCoords(stationNames) {
+  const overpassQuery = `
+    [out:json][timeout:30];
+    (
+      node["railway"="station"](38,40,44,51);
+      node["railway"="halt"](38,40,44,51);
+      node["railway"="stop"](38,40,44,51);
+    );
+    out body;
+  `;
+
+  let osmNodes = null;
+  for (const url of OVERPASS_ENDPOINTS) {
+    try {
+      const res = await fetchWithTimeout(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain", "User-Agent": "train-map/1.0" },
+        body: overpassQuery,
+      });
+      if (res.ok) {
+        osmNodes = (await res.json()).elements;
+        break;
+      }
+    } catch { /* try next endpoint */ }
+  }
+
+  if (!osmNodes) {
+    console.warn("[gr] Overpass failed — using hardcoded station coords");
+    return { ...GR_STATION_COORDS_FALLBACK };
+  }
+
+  // Build index: normalised name → {lat, lon}
+  const index = new Map();
+  for (const node of osmNodes) {
+    const tags = node.tags || {};
+    for (const tag of ["name:en", "name", "alt_name"]) {
+      if (tags[tag]) index.set(tags[tag].toLowerCase().trim(), { lat: node.lat, lon: node.lon });
+    }
+  }
+
+  const result = {};
+  for (const rawName of stationNames) {
+    const key = rawName.toLowerCase().replace(/\s+/g, " ").trim();
+    if (index.has(key)) {
+      result[key] = index.get(key);
+      continue;
+    }
+    // Partial match: OSM name contains the key or key contains OSM name
+    let found = null;
+    for (const [osmKey, coords] of index) {
+      if (osmKey.includes(key) || key.includes(osmKey)) { found = coords; break; }
+    }
+    if (found) {
+      result[key] = found;
+    } else {
+      const fallback = GR_STATION_COORDS_FALLBACK[key];
+      if (fallback) result[key] = fallback;
+      else console.warn(`[gr] no coords found for station: "${rawName}"`);
+    }
+  }
+
+  console.log(`[gr] resolved ${Object.keys(result).length}/${stationNames.length} station coords from OSM`);
+  return result;
+}
+
 async function fetchGRInternationalTrains() {
   const url = "https://www.railway.ge/en/passenger-traffic/international-trains/";
   let html;
@@ -481,13 +548,27 @@ async function fetchGRInternationalTrains() {
     return trains;
   }
 
-  // Skip 6 header tokens (Arrival Stop Dep | Arrival Stop Dep)
+  // Pass 1: collect raw station names so we can batch-resolve coords via OSM
+  const rawStationNames = [];
+  {
+    let j = headerIdx + 6;
+    while (j + 6 < tokens.length) {
+      if (!/^[\d:_–\-]+$/.test(tokens[j])) { j++; continue; }
+      const name = tokens[j + 3];
+      if (name) rawStationNames.push(name);
+      j += 7;
+    }
+  }
+
+  const coordMap = await resolveGRStationCoords(rawStationNames);
+
+  // Pass 2: build station objects using the resolved coord map
+  // Row format: arr371, stopTime371, dep371, stationName, arr372, stopTime372, dep372
+  // Terminus values are "_" (no arrival at origin, no departure at destination)
   let i = headerIdx + 6;
   const stationsFwd = []; // #371 Tbilisi → Yerevan
   const stationsRev = []; // #372 Yerevan → Tbilisi
 
-  // Row format: arr371, stopTime371, dep371, stationName, arr372, stopTime372, dep372
-  // Terminus values are "_" (no arrival at origin, no departure at destination)
   while (i + 6 < tokens.length) {
     const t0 = tokens[i];
     // Detect section dividers (e.g. "Armenian Railway") — not a time-like token
@@ -502,7 +583,7 @@ async function fetchGRInternationalTrains() {
 
     if (!stationName) continue;
     const key = stationName.toLowerCase().replace(/\s+/g, " ").trim();
-    const coords = GR_CAUCASUS_STATION_COORDS[key];
+    const coords = coordMap[key];
     if (!coords) {
       console.warn(`[gr] no coords for: "${stationName}"`);
       continue;
