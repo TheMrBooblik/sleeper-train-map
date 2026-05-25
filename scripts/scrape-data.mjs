@@ -27,13 +27,13 @@ const FETCH_TIMEOUT_MS = 15_000;
 // Fallback coords for stations the Overpass query may miss.
 // Keyed by lowercase station name as it appears on railway.ge.
 const GR_STATION_COORDS_FALLBACK = {
-  "tbilisi - passenger station": { lat: 41.6941, lon: 44.8333 },
+  "tbilisi - passenger station": { lat: 41.7211, lon: 44.7997 },
   "tbilisi-junction station":    { lat: 41.7148, lon: 44.8070 },
-  "ponichala":                   { lat: 41.6250, lon: 44.8167 },
-  "marabda":                     { lat: 41.4303, lon: 44.7458 },
+  "ponichala":                   { lat: 41.6461, lon: 44.9071 },
+  "marabda":                     { lat: 41.5463, lon: 44.8032 },
   "marneuli":                    { lat: 41.4817, lon: 44.8118 },
-  "shulaveri":                   { lat: 41.3670, lon: 44.5919 },
-  "sadakhlo":                    { lat: 41.1715, lon: 44.9850 },
+  "shulaveri":                   { lat: 41.3692, lon: 44.8420 },
+  "sadakhlo":                    { lat: 41.2453, lon: 44.8078 },
   "airum":                       { lat: 41.1095, lon: 44.8736 },
   "sanain":                      { lat: 41.1780, lon: 44.6993 },
   "shagal":                      { lat: 41.0860, lon: 44.5537 },
@@ -42,7 +42,7 @@ const GR_STATION_COORDS_FALLBACK = {
   "giumr":                       { lat: 40.7921, lon: 43.8487 },
   "gyumri":                      { lat: 40.7921, lon: 43.8487 },
   "armavir":                     { lat: 40.1542, lon: 44.0382 },
-  "yerevan":                     { lat: 40.1792, lon: 44.5197 },
+  "yerevan":                     { lat: 40.1554, lon: 44.5078 },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
