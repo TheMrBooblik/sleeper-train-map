@@ -582,11 +582,14 @@ async function fetchGRInternationalTrains() {
 
     if (!stationName) continue;
     const key = stationName.toLowerCase().replace(/\s+/g, " ").trim();
+    if (key.includes("junction")) continue; // skip technical junction stop near Tbilisi
     const coords = coordMap[key];
     if (!coords) {
       console.warn(`[gr] no coords for: "${stationName}"`);
       continue;
     }
+
+    const displayName = key === "tbilisi - passenger station" ? "Tbilisi" : stationName;
 
     const toTime = (t) => (t && t !== "_" && t !== "-" && t !== "–" ? t : null);
     const a371 = toTime(arr371);
@@ -595,7 +598,7 @@ async function fetchGRInternationalTrains() {
     const d372 = toTime(dep372);
 
     stationsFwd.push({
-      name: stationName,
+      name: displayName,
       location: { latitude: coords.lat, longitude: coords.lon },
       arrival: a371 !== d371 ? a371 : null,
       departure: d371,
@@ -603,7 +606,7 @@ async function fetchGRInternationalTrains() {
       dropoff: true,
     });
     stationsRev.push({
-      name: stationName,
+      name: displayName,
       location: { latitude: coords.lat, longitude: coords.lon },
       arrival: a372 !== d372 ? a372 : null,
       departure: d372,
