@@ -43,12 +43,14 @@
     "agency_id": "ADY",
     "frequency": "Daily",
     "stations": [
-      { "name": "Baku",               "lat": 40.3814, "lon": 49.8403 },
-      { "name": "Yevlakh",            "lat": 40.6195, "lon": 47.1498 },
-      { "name": "Ganja",              "lat": 40.7143, "lon": 46.3671 },
-      { "name": "Agstafa",            "lat": 41.1139, "lon": 45.4571 },
-      { "name": "Marneuli",           "lat": 41.4817, "lon": 44.8118 },
-      { "name": "Tbilisi Centraluri", "lat": 41.7211, "lon": 44.7997 }
+      { "name": "Baku",         "lat": 40.3814, "lon": 49.8403 },
+      { "name": "Bilajari",     "lat": 40.4269, "lon": 49.8097 },
+      { "name": "Yevlakh",      "lat": 40.6195, "lon": 47.1498 },
+      { "name": "Ganja",        "lat": 40.7143, "lon": 46.3671 },
+      { "name": "Agstafa",      "lat": 41.1139, "lon": 45.4571 },
+      { "name": "Boyuk Kasik",  "lat": 41.2267, "lon": 45.3461 },
+      { "name": "Gardabani",    "lat": 41.4579, "lon": 45.0836 },
+      { "name": "Tbilisi",      "lat": 41.7211, "lon": 44.7997 }
     ]
   }
 ]

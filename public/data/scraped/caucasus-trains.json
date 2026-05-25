@@ -12,7 +12,10 @@
         "stations": [
           {
             "name": "Tbilisi Centraluri",
-            "location": { "latitude": 41.7211, "longitude": 44.7997 },
+            "location": {
+              "latitude": 41.7211,
+              "longitude": 44.7997
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -20,7 +23,10 @@
           },
           {
             "name": "Gori",
-            "location": { "latitude": 41.9847, "longitude": 44.1122 },
+            "location": {
+              "latitude": 41.9847,
+              "longitude": 44.1122
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -28,7 +34,10 @@
           },
           {
             "name": "Khashuri",
-            "location": { "latitude": 41.9945, "longitude": 43.5997 },
+            "location": {
+              "latitude": 41.9945,
+              "longitude": 43.5997
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -36,7 +45,10 @@
           },
           {
             "name": "Zestaponi",
-            "location": { "latitude": 42.108, "longitude": 43.0391 },
+            "location": {
+              "latitude": 42.108,
+              "longitude": 43.0391
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -44,7 +56,10 @@
           },
           {
             "name": "Kutaisi",
-            "location": { "latitude": 42.2614, "longitude": 42.7131 },
+            "location": {
+              "latitude": 42.2614,
+              "longitude": 42.7131
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -52,7 +67,10 @@
           },
           {
             "name": "Samtredia",
-            "location": { "latitude": 42.1503, "longitude": 42.347 },
+            "location": {
+              "latitude": 42.1503,
+              "longitude": 42.347
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -60,7 +78,10 @@
           },
           {
             "name": "Kobuleti",
-            "location": { "latitude": 41.8219, "longitude": 41.7755 },
+            "location": {
+              "latitude": 41.8219,
+              "longitude": 41.7755
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -68,7 +89,10 @@
           },
           {
             "name": "Batumi Centraluri",
-            "location": { "latitude": 41.6584, "longitude": 41.6778 },
+            "location": {
+              "latitude": 41.6584,
+              "longitude": 41.6778
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -85,7 +109,10 @@
         "stations": [
           {
             "name": "Batumi Centraluri",
-            "location": { "latitude": 41.6584, "longitude": 41.6778 },
+            "location": {
+              "latitude": 41.6584,
+              "longitude": 41.6778
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -93,7 +120,10 @@
           },
           {
             "name": "Kobuleti",
-            "location": { "latitude": 41.8219, "longitude": 41.7755 },
+            "location": {
+              "latitude": 41.8219,
+              "longitude": 41.7755
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -101,7 +131,10 @@
           },
           {
             "name": "Samtredia",
-            "location": { "latitude": 42.1503, "longitude": 42.347 },
+            "location": {
+              "latitude": 42.1503,
+              "longitude": 42.347
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -109,7 +142,10 @@
           },
           {
             "name": "Kutaisi",
-            "location": { "latitude": 42.2614, "longitude": 42.7131 },
+            "location": {
+              "latitude": 42.2614,
+              "longitude": 42.7131
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -117,7 +153,10 @@
           },
           {
             "name": "Zestaponi",
-            "location": { "latitude": 42.108, "longitude": 43.0391 },
+            "location": {
+              "latitude": 42.108,
+              "longitude": 43.0391
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -125,7 +164,10 @@
           },
           {
             "name": "Khashuri",
-            "location": { "latitude": 41.9945, "longitude": 43.5997 },
+            "location": {
+              "latitude": 41.9945,
+              "longitude": 43.5997
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -133,7 +175,10 @@
           },
           {
             "name": "Gori",
-            "location": { "latitude": 41.9847, "longitude": 44.1122 },
+            "location": {
+              "latitude": 41.9847,
+              "longitude": 44.1122
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -141,7 +186,10 @@
           },
           {
             "name": "Tbilisi Centraluri",
-            "location": { "latitude": 41.7211, "longitude": 44.7997 },
+            "location": {
+              "latitude": 41.7211,
+              "longitude": 44.7997
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -158,7 +206,10 @@
         "stations": [
           {
             "name": "Tbilisi Centraluri",
-            "location": { "latitude": 41.7211, "longitude": 44.7997 },
+            "location": {
+              "latitude": 41.7211,
+              "longitude": 44.7997
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -166,7 +217,10 @@
           },
           {
             "name": "Gori",
-            "location": { "latitude": 41.9847, "longitude": 44.1122 },
+            "location": {
+              "latitude": 41.9847,
+              "longitude": 44.1122
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -174,7 +228,10 @@
           },
           {
             "name": "Khashuri",
-            "location": { "latitude": 41.9945, "longitude": 43.5997 },
+            "location": {
+              "latitude": 41.9945,
+              "longitude": 43.5997
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -182,7 +239,10 @@
           },
           {
             "name": "Zestaponi",
-            "location": { "latitude": 42.108, "longitude": 43.0391 },
+            "location": {
+              "latitude": 42.108,
+              "longitude": 43.0391
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -190,7 +250,10 @@
           },
           {
             "name": "Kutaisi",
-            "location": { "latitude": 42.2614, "longitude": 42.7131 },
+            "location": {
+              "latitude": 42.2614,
+              "longitude": 42.7131
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -198,7 +261,10 @@
           },
           {
             "name": "Samtredia",
-            "location": { "latitude": 42.1503, "longitude": 42.347 },
+            "location": {
+              "latitude": 42.1503,
+              "longitude": 42.347
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -206,7 +272,10 @@
           },
           {
             "name": "Senaki",
-            "location": { "latitude": 42.2722, "longitude": 42.0682 },
+            "location": {
+              "latitude": 42.2722,
+              "longitude": 42.0682
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -214,7 +283,10 @@
           },
           {
             "name": "Zugdidi",
-            "location": { "latitude": 42.5083, "longitude": 41.871 },
+            "location": {
+              "latitude": 42.5083,
+              "longitude": 41.871
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -231,7 +303,10 @@
         "stations": [
           {
             "name": "Zugdidi",
-            "location": { "latitude": 42.5083, "longitude": 41.871 },
+            "location": {
+              "latitude": 42.5083,
+              "longitude": 41.871
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -239,7 +314,10 @@
           },
           {
             "name": "Senaki",
-            "location": { "latitude": 42.2722, "longitude": 42.0682 },
+            "location": {
+              "latitude": 42.2722,
+              "longitude": 42.0682
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -247,7 +325,10 @@
           },
           {
             "name": "Samtredia",
-            "location": { "latitude": 42.1503, "longitude": 42.347 },
+            "location": {
+              "latitude": 42.1503,
+              "longitude": 42.347
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -255,7 +336,10 @@
           },
           {
             "name": "Kutaisi",
-            "location": { "latitude": 42.2614, "longitude": 42.7131 },
+            "location": {
+              "latitude": 42.2614,
+              "longitude": 42.7131
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -263,7 +347,10 @@
           },
           {
             "name": "Zestaponi",
-            "location": { "latitude": 42.108, "longitude": 43.0391 },
+            "location": {
+              "latitude": 42.108,
+              "longitude": 43.0391
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -271,7 +358,10 @@
           },
           {
             "name": "Khashuri",
-            "location": { "latitude": 41.9945, "longitude": 43.5997 },
+            "location": {
+              "latitude": 41.9945,
+              "longitude": 43.5997
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -279,7 +369,10 @@
           },
           {
             "name": "Gori",
-            "location": { "latitude": 41.9847, "longitude": 44.1122 },
+            "location": {
+              "latitude": 41.9847,
+              "longitude": 44.1122
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -287,7 +380,10 @@
           },
           {
             "name": "Tbilisi Centraluri",
-            "location": { "latitude": 41.7211, "longitude": 44.7997 },
+            "location": {
+              "latitude": 41.7211,
+              "longitude": 44.7997
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -300,11 +396,25 @@
         "operator": "ADY",
         "agency_id": "ADY",
         "frequency": "Daily",
-        "polyline": "w~muF{leoHcom@rnlOooQzzwCo`mAnvpDwyfAb`}Bgwm@rjA",
+        "polyline": "w~muF{leoHk{Gf~Dwrd@jofOooQzzwCo`mAnvpD_`UvtT_dl@rgr@_lr@jmv@",
         "stations": [
           {
             "name": "Baku",
-            "location": { "latitude": 40.3814, "longitude": 49.8403 },
+            "location": {
+              "latitude": 40.3814,
+              "longitude": 49.8403
+            },
+            "arrival": null,
+            "departure": null,
+            "pickup": true,
+            "dropoff": true
+          },
+          {
+            "name": "Bilajari",
+            "location": {
+              "latitude": 40.4269,
+              "longitude": 49.8097
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -312,7 +422,10 @@
           },
           {
             "name": "Yevlakh",
-            "location": { "latitude": 40.6195, "longitude": 47.1498 },
+            "location": {
+              "latitude": 40.6195,
+              "longitude": 47.1498
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -320,7 +433,10 @@
           },
           {
             "name": "Ganja",
-            "location": { "latitude": 40.7143, "longitude": 46.3671 },
+            "location": {
+              "latitude": 40.7143,
+              "longitude": 46.3671
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -328,23 +444,43 @@
           },
           {
             "name": "Agstafa",
-            "location": { "latitude": 41.1139, "longitude": 45.4571 },
+            "location": {
+              "latitude": 41.1139,
+              "longitude": 45.4571
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
             "dropoff": true
           },
           {
-            "name": "Marneuli",
-            "location": { "latitude": 41.4817, "longitude": 44.8118 },
+            "name": "Boyuk Kasik",
+            "location": {
+              "latitude": 41.2267,
+              "longitude": 45.3461
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
             "dropoff": true
           },
           {
-            "name": "Tbilisi Centraluri",
-            "location": { "latitude": 41.7211, "longitude": 44.7997 },
+            "name": "Gardabani",
+            "location": {
+              "latitude": 41.4579,
+              "longitude": 45.0836
+            },
+            "arrival": null,
+            "departure": null,
+            "pickup": true,
+            "dropoff": true
+          },
+          {
+            "name": "Tbilisi",
+            "location": {
+              "latitude": 41.7211,
+              "longitude": 44.7997
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -357,19 +493,36 @@
         "operator": "ADY",
         "agency_id": "ADY",
         "frequency": "Daily",
-        "polyline": "{ss}Fc}lpGfwm@sjAvyfAc`}Bn`mAovpDnoQ{zwCbom@snlO",
+        "polyline": "{ss}Fc}lpG~kr@kmv@~cl@sgr@~_UwtTn`mAovpDnoQ{zwCvrd@kofOj{Gg~D",
         "stations": [
           {
-            "name": "Tbilisi Centraluri",
-            "location": { "latitude": 41.7211, "longitude": 44.7997 },
+            "name": "Tbilisi",
+            "location": {
+              "latitude": 41.7211,
+              "longitude": 44.7997
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
             "dropoff": true
           },
           {
-            "name": "Marneuli",
-            "location": { "latitude": 41.4817, "longitude": 44.8118 },
+            "name": "Gardabani",
+            "location": {
+              "latitude": 41.4579,
+              "longitude": 45.0836
+            },
+            "arrival": null,
+            "departure": null,
+            "pickup": true,
+            "dropoff": true
+          },
+          {
+            "name": "Boyuk Kasik",
+            "location": {
+              "latitude": 41.2267,
+              "longitude": 45.3461
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -377,7 +530,10 @@
           },
           {
             "name": "Agstafa",
-            "location": { "latitude": 41.1139, "longitude": 45.4571 },
+            "location": {
+              "latitude": 41.1139,
+              "longitude": 45.4571
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -385,7 +541,10 @@
           },
           {
             "name": "Ganja",
-            "location": { "latitude": 40.7143, "longitude": 46.3671 },
+            "location": {
+              "latitude": 40.7143,
+              "longitude": 46.3671
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -393,7 +552,21 @@
           },
           {
             "name": "Yevlakh",
-            "location": { "latitude": 40.6195, "longitude": 47.1498 },
+            "location": {
+              "latitude": 40.6195,
+              "longitude": 47.1498
+            },
+            "arrival": null,
+            "departure": null,
+            "pickup": true,
+            "dropoff": true
+          },
+          {
+            "name": "Bilajari",
+            "location": {
+              "latitude": 40.4269,
+              "longitude": 49.8097
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -401,7 +574,10 @@
           },
           {
             "name": "Baku",
-            "location": { "latitude": 40.3814, "longitude": 49.8403 },
+            "location": {
+              "latitude": 40.3814,
+              "longitude": 49.8403
+            },
             "arrival": null,
             "departure": null,
             "pickup": true,
@@ -418,7 +594,10 @@
         "stations": [
           {
             "name": "Tbilisi",
-            "location": { "latitude": 41.7211, "longitude": 44.7997 },
+            "location": {
+              "latitude": 41.7211,
+              "longitude": 44.7997
+            },
             "arrival": null,
             "departure": "20:20",
             "pickup": true,
@@ -426,7 +605,10 @@
           },
           {
             "name": "Ponichala",
-            "location": { "latitude": 41.6460506, "longitude": 44.9071053 },
+            "location": {
+              "latitude": 41.6460506,
+              "longitude": 44.9071053
+            },
             "arrival": null,
             "departure": "20:38",
             "pickup": true,
@@ -434,7 +616,10 @@
           },
           {
             "name": "Marabda",
-            "location": { "latitude": 41.5464014, "longitude": 44.8031903 },
+            "location": {
+              "latitude": 41.5464014,
+              "longitude": 44.8031903
+            },
             "arrival": null,
             "departure": "21:03",
             "pickup": true,
@@ -442,7 +627,10 @@
           },
           {
             "name": "Marneuli",
-            "location": { "latitude": 41.4878836, "longitude": 44.8068504 },
+            "location": {
+              "latitude": 41.4878836,
+              "longitude": 44.8068504
+            },
             "arrival": null,
             "departure": "21:16",
             "pickup": true,
@@ -450,7 +638,10 @@
           },
           {
             "name": "Shulaveri",
-            "location": { "latitude": 41.3691651, "longitude": 44.8420457 },
+            "location": {
+              "latitude": 41.3691651,
+              "longitude": 44.8420457
+            },
             "arrival": null,
             "departure": "21:33",
             "pickup": true,
@@ -458,7 +649,10 @@
           },
           {
             "name": "Sadakhlo",
-            "location": { "latitude": 41.2453317, "longitude": 44.8078289 },
+            "location": {
+              "latitude": 41.2453317,
+              "longitude": 44.8078289
+            },
             "arrival": "22:10",
             "departure": "23:15",
             "pickup": true,
@@ -466,7 +660,10 @@
           },
           {
             "name": "Airum",
-            "location": { "latitude": 41.1095, "longitude": 44.8736 },
+            "location": {
+              "latitude": 41.1095,
+              "longitude": 44.8736
+            },
             "arrival": "23:40",
             "departure": "0:40",
             "pickup": true,
@@ -474,7 +671,10 @@
           },
           {
             "name": "Sanain",
-            "location": { "latitude": 41.178, "longitude": 44.6993 },
+            "location": {
+              "latitude": 41.178,
+              "longitude": 44.6993
+            },
             "arrival": "1:22",
             "departure": "1:23",
             "pickup": true,
@@ -482,7 +682,10 @@
           },
           {
             "name": "Shagal",
-            "location": { "latitude": 41.086, "longitude": 44.5537 },
+            "location": {
+              "latitude": 41.086,
+              "longitude": 44.5537
+            },
             "arrival": null,
             "departure": "1:57",
             "pickup": true,
@@ -490,7 +693,10 @@
           },
           {
             "name": "Pampak",
-            "location": { "latitude": 40.9943, "longitude": 44.6219 },
+            "location": {
+              "latitude": 40.9943,
+              "longitude": 44.6219
+            },
             "arrival": null,
             "departure": "2:09",
             "pickup": true,
@@ -498,7 +704,10 @@
           },
           {
             "name": "Vanadzor",
-            "location": { "latitude": 40.8162479, "longitude": 44.486681 },
+            "location": {
+              "latitude": 40.8162479,
+              "longitude": 44.486681
+            },
             "arrival": "2:20",
             "departure": "2:25",
             "pickup": true,
@@ -506,7 +715,10 @@
           },
           {
             "name": "Giumr",
-            "location": { "latitude": 40.7921, "longitude": 43.8487 },
+            "location": {
+              "latitude": 40.7921,
+              "longitude": 43.8487
+            },
             "arrival": "3:50",
             "departure": "4:10",
             "pickup": true,
@@ -514,7 +726,10 @@
           },
           {
             "name": "Armavir",
-            "location": { "latitude": 40.1461009, "longitude": 44.0320455 },
+            "location": {
+              "latitude": 40.1461009,
+              "longitude": 44.0320455
+            },
             "arrival": "6:03",
             "departure": "6:06",
             "pickup": true,
@@ -522,7 +737,10 @@
           },
           {
             "name": "Yerevan",
-            "location": { "latitude": 40.1553818, "longitude": 44.5078362 },
+            "location": {
+              "latitude": 40.1553818,
+              "longitude": 44.5078362
+            },
             "arrival": "6:55",
             "departure": null,
             "pickup": true,
@@ -539,7 +757,10 @@
         "stations": [
           {
             "name": "Yerevan",
-            "location": { "latitude": 40.1553818, "longitude": 44.5078362 },
+            "location": {
+              "latitude": 40.1553818,
+              "longitude": 44.5078362
+            },
             "arrival": null,
             "departure": "21:30",
             "pickup": true,
@@ -547,7 +768,10 @@
           },
           {
             "name": "Armavir",
-            "location": { "latitude": 40.1461009, "longitude": 44.0320455 },
+            "location": {
+              "latitude": 40.1461009,
+              "longitude": 44.0320455
+            },
             "arrival": "22:16",
             "departure": "22:18",
             "pickup": true,
@@ -555,7 +779,10 @@
           },
           {
             "name": "Giumr",
-            "location": { "latitude": 40.7921, "longitude": 43.8487 },
+            "location": {
+              "latitude": 40.7921,
+              "longitude": 43.8487
+            },
             "arrival": "23:59",
             "departure": "00:13",
             "pickup": true,
@@ -563,7 +790,10 @@
           },
           {
             "name": "Vanadzor",
-            "location": { "latitude": 40.8162479, "longitude": 44.486681 },
+            "location": {
+              "latitude": 40.8162479,
+              "longitude": 44.486681
+            },
             "arrival": "1:33",
             "departure": "1:38",
             "pickup": true,
@@ -571,7 +801,10 @@
           },
           {
             "name": "Pampak",
-            "location": { "latitude": 40.9943, "longitude": 44.6219 },
+            "location": {
+              "latitude": 40.9943,
+              "longitude": 44.6219
+            },
             "arrival": "1:48",
             "departure": "1:53",
             "pickup": true,
@@ -579,7 +812,10 @@
           },
           {
             "name": "Shagal",
-            "location": { "latitude": 41.086, "longitude": 44.5537 },
+            "location": {
+              "latitude": 41.086,
+              "longitude": 44.5537
+            },
             "arrival": "2:05",
             "departure": "2:10",
             "pickup": true,
@@ -587,7 +823,10 @@
           },
           {
             "name": "Sanain",
-            "location": { "latitude": 41.178, "longitude": 44.6993 },
+            "location": {
+              "latitude": 41.178,
+              "longitude": 44.6993
+            },
             "arrival": "2:42",
             "departure": "2:43",
             "pickup": true,
@@ -595,7 +834,10 @@
           },
           {
             "name": "Airum",
-            "location": { "latitude": 41.1095, "longitude": 44.8736 },
+            "location": {
+              "latitude": 41.1095,
+              "longitude": 44.8736
+            },
             "arrival": "3:24",
             "departure": "4:15",
             "pickup": true,
@@ -603,7 +845,10 @@
           },
           {
             "name": "Sadakhlo",
-            "location": { "latitude": 41.2453317, "longitude": 44.8078289 },
+            "location": {
+              "latitude": 41.2453317,
+              "longitude": 44.8078289
+            },
             "arrival": "4:40",
             "departure": "5:40",
             "pickup": true,
@@ -611,7 +856,10 @@
           },
           {
             "name": "Shulaveri",
-            "location": { "latitude": 41.3691651, "longitude": 44.8420457 },
+            "location": {
+              "latitude": 41.3691651,
+              "longitude": 44.8420457
+            },
             "arrival": null,
             "departure": "6:21",
             "pickup": true,
@@ -619,7 +867,10 @@
           },
           {
             "name": "Marneuli",
-            "location": { "latitude": 41.4878836, "longitude": 44.8068504 },
+            "location": {
+              "latitude": 41.4878836,
+              "longitude": 44.8068504
+            },
             "arrival": null,
             "departure": "6:38",
             "pickup": true,
@@ -627,7 +878,10 @@
           },
           {
             "name": "Marabda",
-            "location": { "latitude": 41.5464014, "longitude": 44.8031903 },
+            "location": {
+              "latitude": 41.5464014,
+              "longitude": 44.8031903
+            },
             "arrival": null,
             "departure": "6:51",
             "pickup": true,
@@ -635,7 +889,10 @@
           },
           {
             "name": "Ponichala",
-            "location": { "latitude": 41.6460506, "longitude": 44.9071053 },
+            "location": {
+              "latitude": 41.6460506,
+              "longitude": 44.9071053
+            },
             "arrival": null,
             "departure": "7:16",
             "pickup": true,
@@ -643,7 +900,10 @@
           },
           {
             "name": "Tbilisi",
-            "location": { "latitude": 41.7211, "longitude": 44.7997 },
+            "location": {
+              "latitude": 41.7211,
+              "longitude": 44.7997
+            },
             "arrival": "7:35",
             "departure": null,
             "pickup": true,
