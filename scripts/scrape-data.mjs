@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
 import polyline from "@mapbox/polyline";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -26,7 +27,7 @@ const FETCH_TIMEOUT_MS = 15_000;
 // Fallback coords for stations the Overpass query may miss.
 // Keyed by lowercase station name as it appears on railway.ge.
 const GR_STATION_COORDS_FALLBACK = {
-  "tbilisi – passenger station": { lat: 41.6941, lon: 44.8333 },
+  "tbilisi - passenger station": { lat: 41.6941, lon: 44.8333 },
   "tbilisi-junction station":    { lat: 41.7148, lon: 44.8070 },
   "ponichala":                   { lat: 41.6250, lon: 44.8167 },
   "marabda":                     { lat: 41.4303, lon: 44.7458 },
@@ -513,11 +514,9 @@ async function fetchGRInternationalTrains() {
   const url = "https://www.railway.ge/en/passenger-traffic/international-trains/";
   let html;
   try {
-    const res = await fetchWithTimeout(url, {
-      headers: { "User-Agent": "train-map/1.0 (timetable-display)", Accept: "text/html" },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    html = await res.text();
+    // Use curl — Node.js TLS rejects railway.ge's cert chain; curl uses system CA bundle
+    html = execSync(`curl -sL --max-time 20 "${url}"`, { timeout: 25000 }).toString();
+    if (!html || html.length < 1000) throw new Error("empty or truncated response");
   } catch (e) {
     console.warn(`[gr] fetch failed: ${e.message}`);
     return {};
