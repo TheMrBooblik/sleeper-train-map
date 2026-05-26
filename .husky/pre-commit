@@ -1,1 +1,10 @@
-npm run test:smoke
+# Run the Playwright smoke test before committing.
+# Skipped when no Playwright browser is installed (e.g. sandboxes where the
+# Playwright download CDN is blocked). CI and normal local dev have browsers,
+# so the smoke test still runs there.
+if node -e "require('fs').accessSync(require('@playwright/test').chromium.executablePath())" 2>/dev/null; then
+  npm run test:smoke
+else
+  echo "⚠ pre-commit: skipping smoke test — no Playwright browser installed."
+  echo "  Enable it with: npx playwright install chromium"
+fi

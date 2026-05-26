@@ -10,6 +10,7 @@
     "export": "next export",
     "start": "next start",
     "scrape": "node scripts/scrape-data.mjs",
+    "canonicalize": "node scripts/canonicalize.mjs",
     "parse-gtfs": "node scripts/parse-regiojet-gtfs.js",
     "parse-pkp-gtfs": "node scripts/parse-pkp-gtfs.js",
     "verify-pkp-bundle": "node tests/verify-pkp-train-shapes.mjs",
