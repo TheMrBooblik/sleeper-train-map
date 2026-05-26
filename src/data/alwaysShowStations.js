@@ -1,54 +1,11 @@
 /**
- * Stations that stay visible when zoomed out.
+ * Stations that stay visible when the map is zoomed out (grid thinning skips
+ * them) so major cities don't disappear.
  *
- * Why this list exists:
- * - The zoomed-out map uses grid thinning to reduce marker density.
- * - Some major cities should still be visible even when thinning is active.
- * - This list is intentionally manual so we can tune it quickly over time.
- *
- * Notes:
- * - Keep names in the same form as station ids where possible.
- * - Name matching is normalized later with normalizeStationNameForLookup().
+ * The list lives in data/overrides/always-show-stations.json so it can be
+ * edited through the admin panel and committed as a structured override.
+ * Name matching is normalized later with normalizeStationNameForLookup().
  */
-export const alwaysShowStations = [
-  "Amsterdam Centraal",
-  "Athina",
-  "Barcelona Sants",
-  "Beograd Centar",
-  "Berlin Hbf",
-  "Bratislava hl.st.",
-  "Bremen Hbf",
-  "Brno hl.n.",
-  "Bruxelles-Midi",
-  "Budapest Keleti",
-  "București Nord",
-  "Düsseldorf Hbf",
-  "Eindhoven Centraal",
-  "Frankfurt*",
-  "Frankfurt(Main)Süd",
-  "Hannover Hbf",
-  "Hamburg Hbf",
-  "Köbenhavn H",
-  "Köln Hbf",
-  "Kraków Główny",
-  "Kyiv Pasazhyrskyi",
-  "Leipzig Hbf",
-  "Lviv",
-  "Ljubljana",
-  "Madrid Chamartín",
-  "Milano Centrale",
-  "München Hbf",
-  "Paris Gare de l'Est",
-  "Praha hl.n.",
-  "Napoli Centrale",
-  "Palermo Centrale",
-  "Reggio Di Calabria Centrale",
-  "Roma Termini",
-  "Siracusa",
-  "Sofia",
-  "Warszawa Centralna",
-  "Wrocław Gł.",
-  "Wien Hbf",
-  "Zagreb Glavni kolodvor",
-  "Zürich HB",
-];
+import alwaysShowStations from "../../data/overrides/always-show-stations.json";
+
+export { alwaysShowStations };

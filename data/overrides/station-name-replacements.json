@@ -1,0 +1,13 @@
+{
+  "routeReplacements": {
+    "Baqël": {
+      "newName": "Oborishte",
+      "routeIds": [
+        142
+      ]
+    }
+  },
+  "stopReplacements": {
+    "Baqël": "Oborishte"
+  }
+}

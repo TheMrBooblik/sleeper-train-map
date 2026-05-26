@@ -1,34 +1,15 @@
 /**
- * Station name replacements for routes
+ * Station name corrections applied to route data (viewMap) and stops.
  *
- * This file contains mappings to replace incorrect station names in route data
- * Format: { "old name": "new name" }
- *
- * These replacements are applied to route data (viewMap) to fix incorrect station names
+ * The data lives in data/overrides/station-name-replacements.json so it can be
+ * edited through the admin panel and committed as a structured override:
+ *   routeReplacements: { "old name": { newName, routeIds? } | "new name" }
+ *   stopReplacements:   { "old name": "new name" }
  */
+import replacements from "../../data/overrides/station-name-replacements.json";
 
-/**
- * Station name replacements with route restrictions
- * Format: { "old name": { newName: "new name", routeIds: [142, 143] } }
- * If routeIds array is empty or not specified, replacement applies to all routes
- */
-export const stationNameReplacements = {
-  // BDŽ 2636 Dobrich-Sofia: Replace Baqël with Oborishte (only for route_id 142)
-  Baqël: {
-    newName: "Oborishte",
-    routeIds: [142], // Only apply to route_id 142
-  },
-};
-
-/**
- * Station name replacements for stops data (applies to all stations, not route-specific)
- * Format: { "old name": "new name" }
- * These replacements are applied to stops data to fix incorrect station names
- */
-export const stopNameReplacements = {
-  // Replace Baqël with Oborishte in stops data
-  Baqël: "Oborishte",
-};
+export const stationNameReplacements = replacements.routeReplacements;
+export const stopNameReplacements = replacements.stopReplacements;
 
 /**
  * Check if replacement should be applied based on agency_id
