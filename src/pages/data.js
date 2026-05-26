@@ -1,12 +1,17 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { HEADER_HEIGHT } from "../constants/header";
-import OverridesAdmin from "../components/DataAdmin/OverridesAdmin";
+import TimetablesTab from "../components/Admin/TimetablesTab";
+import RoutesTab from "../components/Admin/RoutesTab";
+import OverridesTab from "../components/Admin/OverridesTab";
 
-// ─── Simple header (black, logo links to map, no map controls) ────────────────
+const TABS = ["Data Sources", "Timetables", "Routes", "Overrides"];
 
-function SimpleHeader() {
+// ─── Header ───────────────────────────────────────────────────────────────────
+
+function AdminHeader({ onLogout }) {
   return (
     <header
       className={`h-[${HEADER_HEIGHT}px] bg-black px-2 py-2 min-[640px]:px-4 text-white flex items-center justify-between`}
@@ -17,12 +22,20 @@ function SimpleHeader() {
           Pingwi <i>night trains</i> map
         </Link>
       </p>
-      <Link
-        href="/"
-        className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap"
-      >
-        ← Map
-      </Link>
+      <div className="flex items-center gap-3">
+        <Link
+          href="/"
+          className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap"
+        >
+          ← Map
+        </Link>
+        <button
+          onClick={onLogout}
+          className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap"
+        >
+          Log out
+        </button>
+      </div>
     </header>
   );
 }
@@ -181,9 +194,9 @@ function Skeleton() {
   );
 }
 
-// ─── Main page ────────────────────────────────────────────────────────────────
+// ─── Data Sources tab ────────────────────────────────────────────────────────
 
-export default function DataPage() {
+function DataSourcesTab() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -204,156 +217,191 @@ export default function DataPage() {
   const s = data?.sources;
 
   return (
+    <div className="space-y-3">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-sm font-medium text-gray-600">Data freshness</h2>
+        {data?.generatedAt && (
+          <span className="text-xs text-gray-400">
+            {new Date(data.generatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </span>
+        )}
+      </div>
+
+      {loading && <Skeleton />}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+          Failed to load data status: {error}
+        </div>
+      )}
+
+      {data?.error && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700">
+          {data.error}
+        </div>
+      )}
+
+      {s && (
+        <>
+          {s.nightjet && (
+            <SourceCard
+              title="NightJet / EuroNight"
+              description="Official ÖBB NightJet API — accurate polylines and timetables"
+              priority
+            >
+              <DataRow
+                label="Trains"
+                count={s.nightjet.count}
+                status={s.nightjet.status}
+                hoursAgo={s.nightjet.hoursAgo}
+                items={s.nightjet.items}
+                itemLabel="trains"
+              />
+            </SourceCard>
+          )}
+
+          {s.cdRailways && (
+            <SourceCard
+              title="Czech Railways (ČD)"
+              description="Official cd.cz EC train timetables"
+              priority
+            >
+              <DataRow
+                label="EC trains"
+                count={s.cdRailways.count}
+                status={s.cdRailways.status}
+                hoursAgo={s.cdRailways.hoursAgo}
+                items={s.cdRailways.items}
+                itemLabel="trains"
+              />
+            </SourceCard>
+          )}
+
+          {s.backontrack && (
+            <SourceCard
+              title="Back-on-Track"
+              description="Community night train dataset scraped from GitHub (back-on-track.eu)"
+            >
+              <DataRow
+                label="Stops"
+                count={s.backontrack.stops.count}
+                status={s.backontrack.stops.status}
+                hoursAgo={s.backontrack.stops.hoursAgo}
+              />
+              <DataRow
+                label="Routes"
+                count={s.backontrack.routes.count}
+                status={s.backontrack.routes.status}
+                hoursAgo={s.backontrack.routes.hoursAgo}
+                items={s.backontrack.routes.items}
+                itemLabel="routes"
+              />
+              <DataRow
+                label="Trips"
+                count={s.backontrack.trips.count}
+                status={s.backontrack.trips.status}
+                hoursAgo={s.backontrack.trips.hoursAgo}
+              />
+            </SourceCard>
+          )}
+
+          {s.pkpGtfs && (
+            <SourceCard
+              title="PKP Intercity (Polish GTFS shapes)"
+              description={
+                s.pkpGtfs.sourceUrl
+                  ? `Committed as public/data/gtfs/pkpTrainShapes.json. Regenerate: npm run parse-pkp-gtfs. Feed: ${s.pkpGtfs.sourceUrl}`
+                  : "Committed as public/data/gtfs/pkpTrainShapes.json. Regenerate: npm run parse-pkp-gtfs (polish_trains.zip, scoped by BoT PKP trips)."
+              }
+            >
+              <DataRow
+                label="Train keys (map polylines)"
+                count={s.pkpGtfs.count}
+                status={s.pkpGtfs.status}
+                hoursAgo={s.pkpGtfs.hoursAgo}
+                items={s.pkpGtfs.items}
+                itemLabel="trains"
+              />
+            </SourceCard>
+          )}
+
+          {s.osmRelations?.length > 0 && (
+            <SourceCard
+              title="OpenStreetMap Relations"
+              description="Route geometries (polylines) cached from Overpass API"
+            >
+              {s.osmRelations.map((rel) => (
+                <DataRow
+                  key={rel.id}
+                  label={rel.name || `Relation ${rel.id}`}
+                  count={rel.coordinateCount}
+                  status={rel.status}
+                  hoursAgo={rel.hoursAgo}
+                />
+              ))}
+            </SourceCard>
+          )}
+
+          <div className="grid grid-cols-2 min-[480px]:flex min-[480px]:flex-row gap-x-4 gap-y-1.5 min-[480px]:gap-4 pt-1 pb-4 text-xs text-gray-400">
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500 inline-block shrink-0" /> Fresh (&lt;25h)</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block shrink-0" /> Stale (25–50h)</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500 inline-block shrink-0" /> Old (&gt;50h)</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-gray-300 inline-block shrink-0" /> Missing</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+export default function DataPage() {
+  const [activeTab, setActiveTab] = useState(TABS[0]);
+  const router = useRouter();
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/login');
+  }
+
+  return (
     <div className="min-h-screen bg-gray-50" style={{ overflowY: "auto", height: "100vh" }}>
       <Head>
-        <title>Data status – Pingwi</title>
+        <title>Admin – Pingwi</title>
         <link
           rel="icon"
           href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚂</text></svg>"
         />
       </Head>
-      <SimpleHeader />
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h1 className="text-lg font-semibold text-gray-900">Data status</h1>
-          {data?.generatedAt && (
-            <span className="text-xs text-gray-400">
-              {new Date(data.generatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-            </span>
-          )}
+      <AdminHeader onLogout={handleLogout} />
+
+      {/* Tab strip */}
+      <div className="border-b border-gray-200 bg-white sticky top-[var(--header-height,48px)] z-50">
+        <div className="max-w-2xl mx-auto px-4">
+          <nav className="flex gap-0" aria-label="Tabs">
+            {TABS.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  activeTab === tab
+                    ? "border-black text-gray-900"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </nav>
         </div>
+      </div>
 
-        {loading && <Skeleton />}
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
-            Failed to load data status: {error}
-          </div>
-        )}
-
-        {data?.error && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700">
-            {data.error}
-          </div>
-        )}
-
-        {s && (
-          <>
-            {/* NightJet — official operator, highest priority */}
-            {s.nightjet && (
-              <SourceCard
-                title="NightJet / EuroNight"
-                description="Official ÖBB NightJet API — accurate polylines and timetables"
-                priority
-              >
-                <DataRow
-                  label="Trains"
-                  count={s.nightjet.count}
-                  status={s.nightjet.status}
-                  hoursAgo={s.nightjet.hoursAgo}
-                  items={s.nightjet.items}
-                  itemLabel="trains"
-                />
-              </SourceCard>
-            )}
-
-            {/* Czech Railways — official operator */}
-            {s.cdRailways && (
-              <SourceCard
-                title="Czech Railways (ČD)"
-                description="Official cd.cz EC train timetables"
-                priority
-              >
-                <DataRow
-                  label="EC trains"
-                  count={s.cdRailways.count}
-                  status={s.cdRailways.status}
-                  hoursAgo={s.cdRailways.hoursAgo}
-                  items={s.cdRailways.items}
-                  itemLabel="trains"
-                />
-              </SourceCard>
-            )}
-
-            {/* Back-on-Track — community GTFS dataset */}
-            {s.backontrack && (
-              <SourceCard
-                title="Back-on-Track"
-                description="Community night train dataset scraped from GitHub (back-on-track.eu)"
-              >
-                <DataRow
-                  label="Stops"
-                  count={s.backontrack.stops.count}
-                  status={s.backontrack.stops.status}
-                  hoursAgo={s.backontrack.stops.hoursAgo}
-                />
-                <DataRow
-                  label="Routes"
-                  count={s.backontrack.routes.count}
-                  status={s.backontrack.routes.status}
-                  hoursAgo={s.backontrack.routes.hoursAgo}
-                  items={s.backontrack.routes.items}
-                  itemLabel="routes"
-                />
-                <DataRow
-                  label="Trips"
-                  count={s.backontrack.trips.count}
-                  status={s.backontrack.trips.status}
-                  hoursAgo={s.backontrack.trips.hoursAgo}
-                />
-              </SourceCard>
-            )}
-
-            {/* PKP — checked-in GTFS shapes (same model as RegioJet files under /data/gtfs) */}
-            {s.pkpGtfs && (
-              <SourceCard
-                title="PKP Intercity (Polish GTFS shapes)"
-                description={
-                  s.pkpGtfs.sourceUrl
-                    ? `Committed as public/data/gtfs/pkpTrainShapes.json. Regenerate: npm run parse-pkp-gtfs. Feed: ${s.pkpGtfs.sourceUrl}`
-                    : "Committed as public/data/gtfs/pkpTrainShapes.json. Regenerate: npm run parse-pkp-gtfs (polish_trains.zip, scoped by BoT PKP trips)."
-                }
-              >
-                <DataRow
-                  label="Train keys (map polylines)"
-                  count={s.pkpGtfs.count}
-                  status={s.pkpGtfs.status}
-                  hoursAgo={s.pkpGtfs.hoursAgo}
-                  items={s.pkpGtfs.items}
-                  itemLabel="trains"
-                />
-              </SourceCard>
-            )}
-
-            {/* OSM Relations — route geometries */}
-            {s.osmRelations?.length > 0 && (
-              <SourceCard
-                title="OpenStreetMap Relations"
-                description="Route geometries (polylines) cached from Overpass API"
-              >
-                {s.osmRelations.map((rel) => (
-                  <DataRow
-                    key={rel.id}
-                    label={rel.name || `Relation ${rel.id}`}
-                    count={rel.coordinateCount}
-                    status={rel.status}
-                    hoursAgo={rel.hoursAgo}
-                  />
-                ))}
-              </SourceCard>
-            )}
-
-            {/* Legend */}
-            <div className="grid grid-cols-2 min-[480px]:flex min-[480px]:flex-row gap-x-4 gap-y-1.5 min-[480px]:gap-4 pt-1 pb-4 text-xs text-gray-400">
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500 inline-block shrink-0" /> Fresh (&lt;25h)</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block shrink-0" /> Stale (25–50h)</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500 inline-block shrink-0" /> Old (&gt;50h)</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-gray-300 inline-block shrink-0" /> Missing</span>
-            </div>
-          </>
-        )}
-
-        <OverridesAdmin />
+      <main className="max-w-2xl mx-auto px-4 py-6">
+        {activeTab === "Data Sources" && <DataSourcesTab />}
+        {activeTab === "Timetables" && <TimetablesTab />}
+        {activeTab === "Routes" && <RoutesTab />}
+        {activeTab === "Overrides" && <OverridesTab />}
       </main>
     </div>
   );

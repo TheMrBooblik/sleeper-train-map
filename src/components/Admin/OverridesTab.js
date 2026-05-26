@@ -1,17 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 
-// Admin editor for the data/overrides/* store, rendered (collapsed) at the
-// bottom of /data. "Login" is entering ADMIN_API_SECRET, which is sent as a
-// bearer to /api/admin/override and verified server-side on every request —
-// the controls are inert without it. Each save is a real git commit, so
-// removes are confirmed.
-
-const SECRET_KEY = "stm-admin-secret";
+// "Overrides" tab on /data: edits the data/overrides/* store and saves each
+// change via /api/admin/override. The page is already gated by the admin
+// session (middleware) and the same admin_session cookie rides along with
+// these same-origin requests, so there is no separate login here. Each save is
+// a real git commit, so removes are confirmed.
 
 const inputCls =
   "border border-gray-300 rounded px-2 py-1 text-sm min-w-0 focus:outline-none focus:ring-1 focus:ring-gray-400";
-const btnCls =
-  "text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap";
 const primaryBtnCls =
   "text-xs px-2.5 py-1 rounded bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap";
 const dangerBtnCls =
@@ -569,64 +565,47 @@ function NameReplacementsEditor({ value, mutate, busy }) {
   );
 }
 
-// ─── Top-level ────────────────────────────────────────────────────────────────
+// ─── Tab ────────────────────────────────────────────────────────────────────
 
-export default function OverridesAdmin() {
-  const [expanded, setExpanded] = useState(false);
-  const [secret, setSecret] = useState("");
-  const [authed, setAuthed] = useState(false);
+export default function OverridesTab() {
   const [overrides, setOverrides] = useState(null);
-  const [target, setTarget] = useState(null); // { repo, branch }
-  const [loading, setLoading] = useState(false);
+  const [target, setTarget] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
-  const [notice, setNotice] = useState(null); // { text, href }
+  const [notice, setNotice] = useState(null);
+  const [expired, setExpired] = useState(false);
 
-  const load = useCallback(async (useSecret) => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/override", {
-        headers: { Authorization: `Bearer ${useSecret}` },
-      });
-      const json = await res.json().catch(() => ({}));
+      const res = await fetch("/api/admin/override");
       if (res.status === 401) {
-        setAuthed(false);
-        setError("Incorrect secret.");
-        return false;
+        setExpired(true);
+        return;
       }
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setAuthed(false);
         setError(json.error || `Failed to load (${res.status}).`);
-        return false;
+        return;
       }
       setOverrides(json.overrides || {});
       setTarget({ repo: json.repo, branch: json.branch });
-      setAuthed(true);
-      if (typeof window !== "undefined") sessionStorage.setItem(SECRET_KEY, useSecret);
       if (json.errors) {
         setError(
           `Could not read ${Object.keys(json.errors).join(", ")} from GitHub — check ADMIN_GITHUB_TOKEN.`,
         );
       }
-      return true;
     } catch (e) {
       setError(e.message);
-      return false;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Restore an unlocked session within the same tab.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = sessionStorage.getItem(SECRET_KEY);
-    if (saved) {
-      setSecret(saved);
-      setExpanded(true);
-      load(saved);
-    }
+    load();
   }, [load]);
 
   const mutate = useCallback(
@@ -637,16 +616,20 @@ export default function OverridesAdmin() {
       try {
         const res = await fetch("/api/admin/override", {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${secret}` },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ resource, action, payload, message }),
         });
+        if (res.status === 401) {
+          setExpired(true);
+          return false;
+        }
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
           setError(json.error || `Save failed (${res.status}).`);
           return false;
         }
         setNotice({ text: `Saved: ${resource} ${action}.`, href: json.commit || null });
-        await load(secret);
+        await load();
         return true;
       } catch (e) {
         setError(e.message);
@@ -655,114 +638,79 @@ export default function OverridesAdmin() {
         setBusy(null);
       }
     },
-    [secret, load],
+    [load],
   );
 
-  const lock = () => {
-    if (typeof window !== "undefined") sessionStorage.removeItem(SECRET_KEY);
-    setAuthed(false);
-    setOverrides(null);
-    setSecret("");
-    setNotice(null);
-    setError(null);
-  };
+  if (expired) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-sm text-gray-700">
+        Your session expired.{" "}
+        <a href="/login" className="underline">
+          Log in again
+        </a>
+        .
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mt-3">
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="w-full px-4 py-3 flex items-center justify-between gap-2 text-left hover:bg-gray-50"
-      >
-        <span className="text-sm font-semibold text-gray-900">Admin · data overrides</span>
-        <span className={`text-gray-400 transition-transform ${expanded ? "rotate-90" : ""}`}>▶</span>
-      </button>
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-medium text-gray-600">Data overrides</h2>
+        {target?.repo && (
+          <span className="text-xs text-gray-400 font-mono truncate">
+            {target.repo}@{target.branch}
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-gray-400 mt-0.5">
+        Each save commits directly to the deploy branch; changes go live on the next deploy.
+      </p>
 
-      {expanded && (
-        <div className="px-4 pb-4 border-t border-gray-100 pt-3">
-          {!authed ? (
-            <form
-              className="flex flex-col gap-2 max-w-sm"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (secret) load(secret);
-              }}
-            >
-              <p className="text-xs text-gray-400">
-                Enter the admin secret to edit override data. Each save commits directly to the deploy branch.
-              </p>
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  className={`${inputCls} flex-1`}
-                  value={secret}
-                  onChange={(e) => setSecret(e.target.value)}
-                  placeholder="ADMIN_API_SECRET"
-                  autoComplete="off"
-                />
-                <button type="submit" className={primaryBtnCls} disabled={loading || !secret}>
-                  {loading ? "…" : "Unlock"}
-                </button>
-              </div>
-              {error && <p className="text-xs text-red-600">{error}</p>}
-            </form>
-          ) : (
-            <>
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <p className="text-xs text-gray-400">
-                  Committing to{" "}
-                  <span className="font-mono text-gray-600">
-                    {target?.repo}@{target?.branch}
-                  </span>
-                  . Changes go live on the next deploy.
-                </p>
-                <button type="button" className={btnCls} onClick={lock}>
-                  Lock
-                </button>
-              </div>
-
-              {notice && (
-                <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-700 mb-2 flex items-center justify-between gap-2">
-                  <span>{notice.text}</span>
-                  {notice.href && (
-                    <a href={notice.href} target="_blank" rel="noreferrer" className="underline shrink-0">
-                      View commit
-                    </a>
-                  )}
-                </div>
-              )}
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700 mb-2">
-                  {error}
-                </div>
-              )}
-
-              <PricingEditor pricing={overrides?.["operator-pricing"]} mutate={mutate} busy={busy} />
-              <CoordsEditor coords={overrides?.["station-coordinates"]} mutate={mutate} busy={busy} />
-              <ListResourceEditor
-                title="Stations to skip"
-                description="Hidden from the map and route stop lists."
-                resource="stations-to-skip"
-                items={overrides?.["stations-to-skip"]}
-                mutate={mutate}
-                busy={busy}
-              />
-              <ListResourceEditor
-                title="Always-show stations"
-                description="Kept visible even when intermediate stations are hidden."
-                resource="always-show-stations"
-                items={overrides?.["always-show-stations"]}
-                mutate={mutate}
-                busy={busy}
-              />
-              <NameReplacementsEditor
-                value={overrides?.["station-name-replacements"]}
-                mutate={mutate}
-                busy={busy}
-              />
-            </>
+      {notice && (
+        <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-700 mt-3 flex items-center justify-between gap-2">
+          <span>{notice.text}</span>
+          {notice.href && (
+            <a href={notice.href} target="_blank" rel="noreferrer" className="underline shrink-0">
+              View commit
+            </a>
           )}
         </div>
+      )}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700 mt-3">
+          {error}
+        </div>
+      )}
+
+      {loading && !overrides ? (
+        <p className="text-sm text-gray-400 mt-3">Loading…</p>
+      ) : (
+        <>
+          <PricingEditor pricing={overrides?.["operator-pricing"]} mutate={mutate} busy={busy} />
+          <CoordsEditor coords={overrides?.["station-coordinates"]} mutate={mutate} busy={busy} />
+          <ListResourceEditor
+            title="Stations to skip"
+            description="Hidden from the map and route stop lists."
+            resource="stations-to-skip"
+            items={overrides?.["stations-to-skip"]}
+            mutate={mutate}
+            busy={busy}
+          />
+          <ListResourceEditor
+            title="Always-show stations"
+            description="Kept visible even when intermediate stations are hidden."
+            resource="always-show-stations"
+            items={overrides?.["always-show-stations"]}
+            mutate={mutate}
+            busy={busy}
+          />
+          <NameReplacementsEditor
+            value={overrides?.["station-name-replacements"]}
+            mutate={mutate}
+            busy={busy}
+          />
+        </>
       )}
     </div>
   );

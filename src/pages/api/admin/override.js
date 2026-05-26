@@ -5,16 +5,19 @@
 // redeploy, which makes the corrected data live — git is the audit log.
 //
 // Configuration (env):
-//   ADMIN_API_SECRET    required — bearer secret callers must present
-//   ADMIN_GITHUB_TOKEN  required — token with contents:write on the repo
-//                       (falls back to GITHUB_TOKEN)
-//   ADMIN_REPO          "owner/repo"  (falls back to GITHUB_REPOSITORY)
-//   ADMIN_COMMIT_BRANCH branch to commit to (default "main")
+//   ADMIN_SESSION_SECRET required — HMAC key for the admin_session cookie
+//                        (shared with the /login flow and middleware)
+//   ADMIN_GITHUB_TOKEN   required — token with contents:write on the repo
+//                        (falls back to GITHUB_TOKEN)
+//   ADMIN_REPO           "owner/repo"  (falls back to GITHUB_REPOSITORY)
+//   ADMIN_COMMIT_BRANCH  branch to commit to (default "main")
 //
-// Auth model: the /data page login gates the UI; this endpoint independently
-// requires the bearer secret so it can never be called unauthenticated.
+// Auth model: the /data page login (middleware) gates the UI; this endpoint is
+// an /api route, which the middleware matcher does not cover, so it verifies
+// the same admin_session cookie itself before doing anything.
 
 import { OVERRIDE_FILES, applyOverrideMutation } from "../lib/overrides-mutate.mjs";
+import { SESSION_COOKIE, verifySessionToken } from "../../../lib/adminAuth";
 
 const GH_API = "https://api.github.com";
 
@@ -23,7 +26,6 @@ const repoSlug = () =>
 const commitBranch = () => process.env.ADMIN_COMMIT_BRANCH || "main";
 const githubToken = () =>
   process.env.ADMIN_GITHUB_TOKEN || process.env.GITHUB_TOKEN || "";
-const adminSecret = () => process.env.ADMIN_API_SECRET || "";
 
 function ghHeaders() {
   return {
@@ -35,11 +37,7 @@ function ghHeaders() {
 }
 
 function isAuthorized(req) {
-  const secret = adminSecret();
-  if (!secret) return false;
-  const header = req.headers.authorization || "";
-  const bearer = header.startsWith("Bearer ") ? header.slice(7) : "";
-  return bearer.length > 0 && bearer === secret;
+  return verifySessionToken(req.cookies?.[SESSION_COOKIE]);
 }
 
 function contentsUrlFor(slug, filePath) {
@@ -96,19 +94,14 @@ export default async function handler(req, res) {
     res.setHeader("Allow", "GET, POST");
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!adminSecret()) {
-    return res
-      .status(503)
-      .json({ error: "Admin endpoint not configured (set ADMIN_API_SECRET)" });
+  if (!isAuthorized(req)) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
   if (!githubToken() || !repoSlug()) {
     return res.status(503).json({
       error:
         "GitHub write access not configured (set ADMIN_GITHUB_TOKEN and ADMIN_REPO)",
     });
-  }
-  if (!isAuthorized(req)) {
-    return res.status(401).json({ error: "Unauthorized" });
   }
 
   const slug = repoSlug();
