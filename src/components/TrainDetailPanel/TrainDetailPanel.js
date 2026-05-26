@@ -15,6 +15,7 @@ import {
   hexWithAlpha,
 } from "../Map/utils/operatorColors";
 import { abbreviateStationName } from "../Map/utils/stationNameUtils";
+import { getOperatorPricing, formatPricingLabel } from "../../lib/operatorPricing";
 
 const GTFS_ROUTE_KIND = {
   chop: "chop",
@@ -806,6 +807,10 @@ const TrainDetailPanel = ({
                     (Array.isArray(s) && s.length >= 2),
                 );
 
+                const pricingLabel = formatPricingLabel(
+                  getOperatorPricing(trip),
+                );
+
                 return (
                   <div
                     key={`${trip.trip_id}-${index}`}
@@ -844,6 +849,24 @@ const TrainDetailPanel = ({
                         </div>
                       )}
                     </div>
+
+                    {/* Pricing */}
+                    {pricingLabel && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500 uppercase">
+                          Price
+                        </span>
+                        <span
+                          className="rounded-md px-2 py-0.5 text-xs font-medium"
+                          style={{
+                            backgroundColor: hexWithAlpha(operatorColor, 0.1),
+                            color: operatorColor,
+                          }}
+                        >
+                          {pricingLabel}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Route */}
                     <div className="space-y-1">
