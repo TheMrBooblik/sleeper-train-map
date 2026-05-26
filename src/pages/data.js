@@ -2,6 +2,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { HEADER_HEIGHT } from "../constants/header";
+import OverridesAdmin from "../components/DataAdmin/OverridesAdmin";
 
 // ─── Simple header (black, logo links to map, no map controls) ────────────────
 
@@ -351,6 +352,8 @@ export default function DataPage() {
             </div>
           </>
         )}
+
+        <OverridesAdmin />
       </main>
     </div>
   );

@@ -42,9 +42,58 @@ function isAuthorized(req) {
   return bearer.length > 0 && bearer === secret;
 }
 
+function contentsUrlFor(slug, filePath) {
+  return `${GH_API}/repos/${slug}/contents/${filePath
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/")}`;
+}
+
+// Read a JSON override file from the commit branch. Returns { json, sha } or
+// { error } (404 → file missing, treated as empty by the caller).
+async function readOverrideFile(slug, branch, filePath) {
+  const res = await fetch(
+    `${contentsUrlFor(slug, filePath)}?ref=${encodeURIComponent(branch)}`,
+    { headers: ghHeaders() },
+  );
+  if (res.status === 404) return { json: null, sha: null };
+  if (!res.ok) return { error: `read ${filePath} (${res.status})` };
+  const file = await res.json();
+  try {
+    return {
+      json: JSON.parse(Buffer.from(file.content, "base64").toString("utf8")),
+      sha: file.sha,
+    };
+  } catch {
+    return { error: `${filePath} is not valid JSON` };
+  }
+}
+
+// GET: return current content of every override file (also validates the
+// secret, so the UI uses it as a login + initial-load step). A missing file
+// (404) is reported as null; any other read failure is surfaced in `errors`
+// so the UI never silently presents real data as empty.
+async function handleGet(res, slug, branch) {
+  const overrides = {};
+  const errors = {};
+  await Promise.all(
+    Object.entries(OVERRIDE_FILES).map(async ([resource, filePath]) => {
+      const result = await readOverrideFile(slug, branch, filePath);
+      if (result.error) errors[resource] = result.error;
+      overrides[resource] = result.error ? null : result.json;
+    }),
+  );
+  return res.status(200).json({
+    repo: slug,
+    branch,
+    overrides,
+    ...(Object.keys(errors).length ? { errors } : {}),
+  });
+}
+
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
+  if (req.method !== "POST" && req.method !== "GET") {
+    res.setHeader("Allow", "GET, POST");
     return res.status(405).json({ error: "Method not allowed" });
   }
   if (!adminSecret()) {
@@ -62,37 +111,29 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
+  const slug = repoSlug();
+  const branch = commitBranch();
+
+  if (req.method === "GET") {
+    return handleGet(res, slug, branch);
+  }
+
   const { resource, action, payload, message } = req.body || {};
   const filePath = OVERRIDE_FILES[resource];
   if (!filePath) {
     return res.status(400).json({ error: `Unknown resource: ${resource}` });
   }
 
-  const slug = repoSlug();
-  const branch = commitBranch();
-  const contentsUrl = `${GH_API}/repos/${slug}/contents/${filePath
-    .split("/")
-    .map(encodeURIComponent)
-    .join("/")}`;
+  const contentsUrl = contentsUrlFor(slug, filePath);
 
   try {
     // Read current file (need its sha to update).
-    const getRes = await fetch(
-      `${contentsUrl}?ref=${encodeURIComponent(branch)}`,
-      { headers: ghHeaders() },
-    );
-    if (!getRes.ok) {
-      return res
-        .status(502)
-        .json({ error: `Failed to read ${filePath} (${getRes.status})` });
+    const existing = await readOverrideFile(slug, branch, filePath);
+    if (existing.error) {
+      return res.status(502).json({ error: `Failed to ${existing.error}` });
     }
-    const file = await getRes.json();
-    let current;
-    try {
-      current = JSON.parse(Buffer.from(file.content, "base64").toString("utf8"));
-    } catch {
-      return res.status(500).json({ error: `Current ${filePath} is not valid JSON` });
-    }
+    const current = existing.json;
+    const fileSha = existing.sha;
 
     // Apply the mutation (pure; validates input).
     const updated = applyOverrideMutation(resource, action, payload, current);
@@ -105,7 +146,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         message: message || `chore(override): ${resource} ${action}`,
         content: Buffer.from(newContent, "utf8").toString("base64"),
-        sha: file.sha,
+        ...(fileSha ? { sha: fileSha } : {}),
         branch,
       }),
     });
