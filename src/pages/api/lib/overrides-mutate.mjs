@@ -11,6 +11,7 @@ export const OVERRIDE_FILES = {
   "always-show-stations": "data/overrides/always-show-stations.json",
   "station-name-replacements": "data/overrides/station-name-replacements.json",
   "operator-pricing": "data/overrides/operator-pricing.json",
+  "station-aliases": "data/overrides/station-aliases.json",
 };
 
 function invalid(message) {
@@ -141,6 +142,24 @@ export function applyOverrideMutation(resource, action, payload, current) {
         default:
           throw invalid(`unknown action "${action}" for ${resource}`);
       }
+    }
+
+    // Station aliases: flat { "lowercase alias": "Canonical Name" } object.
+    // Keys must be lowercase (the resolver does .toLowerCase() at lookup time).
+    case "station-aliases": {
+      const obj = next && typeof next === "object" ? next : {};
+      if (action === "set") {
+        const alias = requireString(p.alias, "alias").toLowerCase().trim();
+        const canonical = requireString(p.canonical, "canonical");
+        obj[alias] = canonical;
+        return obj;
+      }
+      if (action === "remove") {
+        const alias = requireString(p.alias, "alias").toLowerCase().trim();
+        delete obj[alias];
+        return obj;
+      }
+      throw invalid(`unknown action "${action}" for ${resource}`);
     }
 
     default:

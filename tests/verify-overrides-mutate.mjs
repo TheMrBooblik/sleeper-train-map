@@ -154,6 +154,55 @@ check("name setRoute without routeIds stores string", () => {
   assert.strictEqual(out.routeReplacements.A, "B");
 });
 
+// station-aliases
+check("alias set", () => {
+  const out = applyOverrideMutation(
+    "station-aliases",
+    "set",
+    { alias: "Venedig Santa Lucia", canonical: "Venezia Santa Lucia" },
+    { "rom termini": "Roma Termini" },
+  );
+  // key should be lowercased
+  assert.strictEqual(out["venedig santa lucia"], "Venezia Santa Lucia");
+  // existing entries preserved
+  assert.strictEqual(out["rom termini"], "Roma Termini");
+});
+check("alias set lowercases the key", () => {
+  const out = applyOverrideMutation(
+    "station-aliases",
+    "set",
+    { alias: "BRÜSSEL MIDI", canonical: "Bruxelles Midi" },
+    {},
+  );
+  assert.strictEqual(out["brüssel midi"], "Bruxelles Midi");
+  assert.ok(!("BRÜSSEL MIDI" in out));
+});
+check("alias remove", () => {
+  const out = applyOverrideMutation(
+    "station-aliases",
+    "remove",
+    { alias: "rom termini" },
+    { "rom termini": "Roma Termini", "venedig": "Venezia" },
+  );
+  assert.ok(!("rom termini" in out));
+  assert.strictEqual(out["venedig"], "Venezia");
+});
+check("alias set on null current", () => {
+  const out = applyOverrideMutation(
+    "station-aliases",
+    "set",
+    { alias: "prag hbf", canonical: "Praha hl.n." },
+    null,
+  );
+  assert.strictEqual(out["prag hbf"], "Praha hl.n.");
+});
+throws("alias set rejects empty alias", () =>
+  applyOverrideMutation("station-aliases", "set", { alias: "", canonical: "Foo" }, {}),
+);
+throws("alias set rejects empty canonical", () =>
+  applyOverrideMutation("station-aliases", "set", { alias: "foo", canonical: "" }, {}),
+);
+
 // immutability: input must not be mutated
 check("input is not mutated", () => {
   const input = { Bar: { lat: 0, lon: 0 } };

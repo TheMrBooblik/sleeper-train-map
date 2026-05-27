@@ -43,84 +43,16 @@ export function isTrain4you(item = {}, tripName = "") {
 }
 
 // ─── Station name aliases (NightJet German names → canonical BoT names) ──────
+// Data now lives in data/overrides/station-aliases.json (editable through the
+// admin panel). Keys are lowercase alias names; values are canonical BoT names.
 
-export const STATION_ALIASES = {
-  // ── Italy: NightJet uses German city names ────────────────────────────────
-  "venedig santa lucia":              "Venezia Santa Lucia",
-  "venedig mestre":                   "Venezia Mestre",
-  "rom termini":                      "Roma Termini",
-  "rom tiburtina":                    "Roma Tiburtina",
-  "rom ostiense":                     "Roma Ostiense",
-  "rom trastevere":                   "Roma Trastevere",
-  "mailand centrale":                 "Milano Centrale",
-  "mailand porta garibaldi":          "Milano Porta Garibaldi",
-  "mailand rogoredo":                 "Milano Rogoredo",
-  "florenz santa maria novella":      "Firenze Santa Maria Novella",
-  "florenz rifredi":                  "Firenze Rifredi",
-  "neapel centrale":                  "Napoli Centrale",
-  "genua piazza principe":            "Genova Piazza Principe",
-  "genua sampierdarena":              "Genova Sampierdarena",
-  "triest centrale":                  "Trieste Centrale",
-  "turin porta nuova":                "Torino Porta Nuova",
-  "turin porta susa":                 "Torino Porta Susa",
-  "florenz campo di marte":            "Firenze Campo di Marte",
-  // ── Belgium: NightJet uses German "Brüssel" ────────────────────────────────
-  "brüssel midi":                     "Bruxelles Midi",
-  "brüssel nord":                     "Bruxelles Nord",
-  "brüssel central":                  "Bruxelles Central",
-  "brüssel zentral":                  "Bruxelles Central",
-  // ── Poland: NightJet uses German "Warschau"/"Krakau" ─────────────────────
-  "warschau hbf":                     "Warszawa Centralna",
-  "warschau wschodnia":               "Warszawa Wschodnia",
-  "warschau zachodnia":               "Warszawa Zachodnia",
-  "warschau centralna":               "Warszawa Centralna",
-  "krakau glowny":                    "Kraków Główny",
-  "krakau hauptbahnhof":              "Kraków Główny",
-  // ── Short German city forms used when NightJet API only has a city-level name
-  "venedig":                          "Venezia",
-  "mailand":                          "Milano",
-  "florenz":                          "Firenze",
-  "neapel":                           "Napoli",
-  "genua":                            "Genova",
-  "triest":                           "Trieste",
-  "rom":                              "Roma",
-  "turin":                            "Torino",
-  // ── Polish/Czech: NJ uses ASCII/unaccented names, BoT uses local diacritics ──
-  // Bug-causing: both NJ and BoT have non-deleted routes through these stations
-  // with different names → duplicate city entries + duplicate overlapping markers.
-  "kattowitz":                        "Katowice",
-  "sosnowiec glowny":                 "Sosnowiec Główny",
-  "przemysl gl.":                     "Przemyśl Gł.",
-  "rzeszow gl.":                      "Rzeszow Gł.",
-  "opoczno poludniowe":               "Opoczno Południe",
-  "rybnik(pl)":                       "Rybnik",
-  "breclav":                          "Břeclav",
-  "bohumin":                          "Bohumín",
-  // ── Czech cities: NightJet uses German names ──────────────────────────────────
-  // "Hbf" = Hauptbahnhof = Czech "hl.n." (hlavní nádraží) = main station.
-  // Map to canonical BoT forms so NJ and BoT stops share one city dict entry.
-  "pardubice hbf":                        "Pardubice hl.n.",
-  "brünn hbf":                            "Brno hl.n.",
-  "prag hbf":                             "Praha hl.n.",
-  "prag-holesovice":                      "Praha-Holešovice",
-  // ── RegioJet (Czech/Slovak GTFS names) ──────────────────────────────────────
-  // Applied after normalizeRjGtfsName() strips ", žst." / ", Hlavní nádraží" etc.
-  "čop":                              "Chop",
-  "krakov hlavní nádraží":            "Kraków Gł.",
-  "řešov hlavní nádraží":             "Rzeszow Gł.",
-  "přemyšl hlavní nádraží":           "Przemyśl Gł.",
-  // Via-only stations on the same routes (no double-marker, but wrong display name)
-  "myslowice":                        "Mysłowice",
-  "przemysl zasanie":                 "Przemyśl Zasanie",
-  "krakow plaszow":                   "Kraków Płaszów",
-  "jaroslaw":                         "Jarosław",
-  "lancut":                           "Łańcut",
-  "dabrowa gornicza":                 "Dąbrowa Górnicza",
-  "wloszczowa polnoc":                "Włoszczowa Północ",
-  "sedziszow malopolski":             "Sędziszów Małopolski",
-  "debica":                           "Dębica",
-  "raciborz":                         "Racibórz",
-};
+import { readFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const _aliasPath = resolve(__dirname, "../../../../data/overrides/station-aliases.json");
+export const STATION_ALIASES = JSON.parse(readFileSync(_aliasPath, "utf8"));
 
 export function resolveCanonicalStationName(name) {
   if (!name) return name;

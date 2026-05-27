@@ -6,8 +6,10 @@ import { HEADER_HEIGHT } from "../constants/header";
 import TimetablesTab from "../components/Admin/TimetablesTab";
 import RoutesTab from "../components/Admin/RoutesTab";
 import OverridesTab from "../components/Admin/OverridesTab";
+import OperatorsTab from "../components/Admin/OperatorsTab";
+import StationsTab from "../components/Admin/StationsTab";
 
-const TABS = ["Data Sources", "Timetables", "Routes", "Overrides"];
+const TABS = ["Data Sources", "Timetables", "Routes", "Operators", "Stations", "Overrides"];
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 
@@ -401,6 +403,8 @@ export default function DataPage() {
         {activeTab === "Data Sources" && <DataSourcesTab />}
         {activeTab === "Timetables" && <TimetablesTab />}
         {activeTab === "Routes" && <RoutesTab />}
+        {activeTab === "Operators" && <OperatorsTab />}
+        {activeTab === "Stations" && <StationsTab />}
         {activeTab === "Overrides" && <OverridesTab />}
       </main>
     </div>
