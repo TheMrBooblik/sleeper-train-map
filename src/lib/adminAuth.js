@@ -22,3 +22,23 @@ export function createSessionToken() {
     .digest('hex');
   return `${hmac}.${timestamp}`;
 }
+
+// Node-runtime verification of a session token (the middleware has its own
+// Edge/WebCrypto copy). Used by API routes, which the middleware matcher does
+// not cover, to gate writes behind the same admin_session cookie.
+export function verifySessionToken(token, secret = process.env.ADMIN_SESSION_SECRET) {
+  if (!token || !secret) return false;
+  const dot = token.lastIndexOf('.');
+  if (dot === -1) return false;
+  const hmacHex = token.slice(0, dot);
+  const timestamp = token.slice(dot + 1);
+
+  const ts = parseInt(timestamp, 10);
+  if (Number.isNaN(ts) || Date.now() - ts > SESSION_MAX_AGE * 1000) return false;
+
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(timestamp)
+    .digest('hex');
+  return timingSafeCompare(hmacHex, expected);
+}

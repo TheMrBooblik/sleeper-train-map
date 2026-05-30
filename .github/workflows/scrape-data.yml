@@ -22,9 +22,13 @@ jobs:
 
       - run: npm run scrape
 
+      # Pre-merge the scraped sources into the published dataset that
+      # /api/initial-data serves directly (falls back to on-the-fly merge if absent).
+      - run: npm run canonicalize
+
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: daily data scrape [skip ci]"
-          file_pattern: "public/data/scraped/*.json"
+          file_pattern: "public/data/scraped/*.json public/data/published/*.json"
         env:
           HUSKY: "0"

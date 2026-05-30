@@ -1,53 +1,24 @@
 // pages/api/trains.js
 // Proxies Back-on-Track data by type.
-// Reads from Vercel Blob (daily scrape) when fresh; falls back to GitHub.
+// Reads from the daily-scrape file store when fresh; falls back to GitHub.
 
-import { isTrain4you } from "../../lib/trainOperatorsFilter";
 import { getBlobData, isFresh } from "./lib/file-store";
+import {
+  isActiveRecord,
+  isTrain4you,
+  routeIdsReferencedInTrips,
+  routeIdsFromFilteredTrips,
+  keepViewMapRowForTripActivity,
+} from "./lib/primitives.mjs";
+
+// Re-exported to preserve the existing import path for these helpers.
+export {
+  routeIdsReferencedInTrips,
+  routeIdsFromFilteredTrips,
+  keepViewMapRowForTripActivity,
+};
 
 const BLOB_SUPPORTED_TYPES = ["stops", "view_ontd_map", "trips"];
-
-function isActiveRecord(record) {
-  return (record?.is_active || "Y").toString().toUpperCase() !== "N";
-}
-
-// trips.json is per-trip is_active; view_ontd_map rows often omit it.
-// Hide a map row when trips reference its route_id but no trip survives filtering (all inactive, etc.).
-
-/** @param {Record<string, object>} trips */
-export function routeIdsReferencedInTrips(trips) {
-  const ids = new Set();
-  for (const t of Object.values(trips || {})) {
-    if (t?.route_id != null) ids.add(String(t.route_id));
-  }
-  return ids;
-}
-
-/** @param {Record<string, object>} filteredTrips — already filtered (active, operators, …) */
-export function routeIdsFromFilteredTrips(filteredTrips) {
-  const ids = new Set();
-  for (const t of Object.values(filteredTrips || {})) {
-    if (t?.route_id != null) ids.add(String(t.route_id));
-  }
-  return ids;
-}
-
-/**
- * Drop map rows for routes that still appear in raw trips but have zero trips left after filtering.
- * Orphan routes (no trip row with that route_id) stay visible.
- */
-export function keepViewMapRowForTripActivity(
-  routeRowAllowed,
-  routeId,
-  referencedIds,
-  visibleIds,
-) {
-  if (!routeRowAllowed) return false;
-  if (routeId == null) return true;
-  const rid = String(routeId);
-  if (!referencedIds.has(rid)) return true;
-  return visibleIds.has(rid);
-}
 
 /** Same rules as the trips response: inactive + NJ/EN/T4y removed. */
 function filterTripsTrainsResponse(data) {

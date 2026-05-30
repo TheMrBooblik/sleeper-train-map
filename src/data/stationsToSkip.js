@@ -1,10 +1,10 @@
 /**
- * List of stations that should be skipped and not displayed on the map
+ * Stations that should be hidden from the map.
  *
- * These stations will be filtered out from the map display.
- * Station names should match exactly as they appear in the API data.
- *
- * Format: Array of station name strings
+ * The list lives in data/overrides/stations-to-skip.json so it can be edited
+ * through the admin panel and committed as a structured override.
+ * Names must match exactly as they appear in the API data.
  */
+import stationsToSkip from "../../data/overrides/stations-to-skip.json";
 
-export const stationsToSkip = ["Baqël", "Roman", "Jarosław"];
+export { stationsToSkip };

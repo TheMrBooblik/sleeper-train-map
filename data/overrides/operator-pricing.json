@@ -1,0 +1,20 @@
+{
+  "ÖBB": { "type": "dynamic", "currency": "EUR", "fromPrice": null, "source": "draft", "note": "NightJet / EuroNight yield-managed pricing" },
+  "RJ": { "type": "dynamic", "currency": "EUR", "fromPrice": null, "source": "draft", "note": "RegioJet yield pricing" },
+  "ES": { "type": "dynamic", "currency": "EUR", "fromPrice": null, "source": "draft", "note": "European Sleeper tiered/advance fares" },
+  "CS": { "type": "dynamic", "currency": "GBP", "fromPrice": null, "source": "draft", "note": "Caledonian Sleeper advance fares" },
+  "ST": { "type": "dynamic", "currency": "SEK", "fromPrice": null, "source": "draft", "note": "Snälltåget" },
+  "SJ": { "type": "dynamic", "currency": "SEK", "fromPrice": null, "source": "draft" },
+  "ČD": { "type": "fixed", "currency": "CZK", "fromPrice": null, "source": "draft", "note": "State tariff by distance/class" },
+  "ZSSK": { "type": "fixed", "currency": "EUR", "fromPrice": null, "source": "draft" },
+  "MÁV": { "type": "fixed", "currency": "HUF", "fromPrice": null, "source": "draft" },
+  "CFR": { "type": "fixed", "currency": "RON", "fromPrice": null, "source": "draft" },
+  "BDŽ": { "type": "fixed", "currency": "BGN", "fromPrice": null, "source": "draft" },
+  "PKP": { "type": "fixed", "currency": "PLN", "fromPrice": null, "source": "draft", "note": "Domestic tariff" },
+  "UZ": { "type": "fixed", "currency": "UAH", "fromPrice": null, "source": "draft" },
+  "TCDD": { "type": "fixed", "currency": "TRY", "fromPrice": null, "source": "draft" },
+  "CR": { "type": "fixed", "currency": "CNY", "fromPrice": null, "source": "draft", "note": "China Railway government tariff" },
+  "GR": { "type": "fixed", "currency": "GEL", "fromPrice": null, "source": "draft" },
+  "ADY": { "type": "fixed", "currency": "AZN", "fromPrice": null, "source": "draft" },
+  "SCR": { "type": "fixed", "currency": "AMD", "fromPrice": null, "source": "draft" }
+}

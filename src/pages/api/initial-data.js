@@ -1,16 +1,22 @@
 // pages/api/initial-data.js
 // Combined endpoint: returns stops + viewMap + trips in one response.
-// Reads from Vercel Blob (daily scrape) when fresh; falls back to GitHub.
-// Vercel CDN caches this for 1 hour so only ~1 serverless invocation per hour worldwide.
+//
+// Fast path: serves the pre-merged dataset written by scripts/canonicalize.mjs
+// (public/data/published/initial-data.json) when fresh.
+// Fallback: loads raw sources (daily-scrape file store, then GitHub) and merges
+// them on the fly via the shared buildInitialData() — identical output.
+// Vercel CDN caches this for 1 hour so only ~1 serverless invocation per hour.
 
-import { isTrain4you } from "../../lib/trainOperatorsFilter";
-import { getBlobData, getNJTrains, getChineseTrains, getItalianTrains, getCaucasusTrains, isFresh } from "./lib/file-store";
-import { resolveCanonicalStationName } from "../../data/stationAliases";
 import {
-  keepViewMapRowForTripActivity,
-  routeIdsFromFilteredTrips,
-  routeIdsReferencedInTrips,
-} from "./trains";
+  getBlobData,
+  getNJTrains,
+  getChineseTrains,
+  getItalianTrains,
+  getCaucasusTrains,
+  getPublishedInitialData,
+  isFresh,
+} from "./lib/file-store";
+import { buildInitialData } from "./lib/build-initial-data.mjs";
 
 const BASE_URL =
   "https://raw.githubusercontent.com/Back-on-Track-eu/night-train-data/main/data/latest";
@@ -28,81 +34,40 @@ async function fetchType(type) {
   return response.json();
 }
 
-function isActiveRecord(record) {
-  return (record?.is_active || "Y").toString().toUpperCase() !== "N";
-}
-
-/**
- * Filter out Train4you from trips data.
- * NJ/EN are kept here so they render as Back-on-Track routes initially;
- * the client filters them out once official NightJet/EuroNight data loads.
- */
-function filterTrips(data) {
-  const filtered = {};
-  Object.entries(data || {}).forEach(([key, trip]) => {
-    if (!isActiveRecord(trip)) return;
-    const tripName = (
-      trip?.trip_short_name ||
-      trip?.route_short_name ||
-      ""
-    ).toString();
-    const isT4y = isTrain4you(trip, tripName);
-    if (!isT4y) {
-      filtered[key] = trip;
-    }
-  });
-  return filtered;
-}
-
-/**
- * Filter out Train4you from view_ontd_map data.
- * NJ/EN are kept here so they render as Back-on-Track routes initially;
- * the client filters them out once official NightJet/EuroNight data loads.
- */
-/**
- * view_ontd_map rows often lack is_active; trips.json is authoritative per service.
- * If every trip for route_id is inactive (filtered out), hide the map row.
- */
-function filterViewMap(data, rawTrips, filteredTrips) {
-  const referencedIds = routeIdsReferencedInTrips(rawTrips);
-  const visibleIds = routeIdsFromFilteredTrips(filteredTrips);
-  const filtered = {};
-  Object.entries(data || {}).forEach(([key, route]) => {
-    if (!isActiveRecord(route)) return;
-    const trip0 = (route?.trip_short_name_0 || "").toString();
-    const trip1 = (route?.trip_short_name_1 || "").toString();
-    const isT4y = isTrain4you(route, trip0) || isTrain4you(route, trip1);
-    const rowOk = !isT4y;
-    if (
-      !keepViewMapRowForTripActivity(
-        rowOk,
-        route?.route_id,
-        referencedIds,
-        visibleIds,
-      )
-    ) {
-      return;
-    }
-    filtered[key] = route;
-  });
-  return filtered;
+function setCacheHeaders(res) {
+  // CDN caches for 1 hour; serve stale while revalidating for up to 1 day.
+  res.setHeader(
+    "Cache-Control",
+    "public, s-maxage=3600, stale-while-revalidate=86400",
+  );
+  res.setHeader("Content-Type", "application/json");
 }
 
 export default async function handler(req, res) {
   try {
+    // Fast path: pre-merged dataset committed by the daily canonicalize step.
+    const published = await getPublishedInitialData();
+    if (published && isFresh(published.uploadedAt)) {
+      console.log("[initial-data] source: published");
+      setCacheHeaders(res);
+      res.status(200).json(published.data);
+      return;
+    }
+
     let rawStops, rawViewMap, rawTrips;
     let source = "github";
 
-    // Try Vercel Blob first (daily scrape — view_ontd_map already has nj_positions merged in)
-    const [blobStops, blobViewMap, blobTrips, njBlob, crBlob, itBlob, caucasusBlob] = await Promise.all([
-      getBlobData("stops"),
-      getBlobData("view_ontd_map"),
-      getBlobData("trips"),
-      getNJTrains(),
-      getChineseTrains(),
-      getItalianTrains(),
-      getCaucasusTrains(),
-    ]);
+    // Daily-scrape file store first (view_ontd_map already has nj_positions merged).
+    const [blobStops, blobViewMap, blobTrips, njBlob, crBlob, itBlob, caucasusBlob] =
+      await Promise.all([
+        getBlobData("stops"),
+        getBlobData("view_ontd_map"),
+        getBlobData("trips"),
+        getNJTrains(),
+        getChineseTrains(),
+        getItalianTrains(),
+        getCaucasusTrains(),
+      ]);
 
     if (
       blobStops && isFresh(blobStops.uploadedAt) &&
@@ -112,7 +77,7 @@ export default async function handler(req, res) {
       rawStops = blobStops.data;
       rawViewMap = blobViewMap.data;
       rawTrips = blobTrips.data;
-      source = "blob";
+      source = "file-store";
     } else {
       // Fall back to GitHub (no NJ positions — scrape hasn't run yet)
       [rawStops, rawViewMap, rawTrips] = await Promise.all([
@@ -124,373 +89,18 @@ export default async function handler(req, res) {
 
     console.log(`[initial-data] source: ${source}`);
 
-    // Apply operator filtering
-    const filteredTrips = filterTrips(rawTrips);
-    const filteredViewMap = filterViewMap(rawViewMap, rawTrips, filteredTrips);
-
-    // Normalize stops shape early.
-    const stopsArray = Array.isArray(rawStops)
-      ? rawStops
-      : Object.values(rawStops || {});
-    const trimmedStops = stopsArray.map((s) => ({
-      stop_id: s.stop_id,
-      stop_name: s.stop_name,
-      stop_lat: s.stop_lat,
-      stop_lon: s.stop_lon,
-    }));
-
-    // Add NJ stations to stops (by exact name) so synthetic routes reference NJ names
-    // backed by NJ coordinates.
-    const njTrains = njBlob?.data?.trains ?? {};
-    const njStationsByName = new Map();
-    Object.values(njTrains).forEach((train) => {
-      (train.stations ?? []).forEach((s) => {
-        if (
-          s?.name &&
-          Number.isFinite(s?.location?.latitude) &&
-          Number.isFinite(s?.location?.longitude) &&
-          !njStationsByName.has(s.name)
-        ) {
-          njStationsByName.set(s.name, s);
-        }
-      });
-    });
-    const botStopNameSet = new Set(
-      trimmedStops.map((s) => (s.stop_id || "").toLowerCase()),
-    );
-    njStationsByName.forEach((njStation) => {
-      const canonicalName = resolveCanonicalStationName(njStation.name);
-      if (botStopNameSet.has(canonicalName.toLowerCase())) return;
-      trimmedStops.push({
-        stop_id: canonicalName,
-        stop_name: canonicalName,
-        stop_lat: njStation.location.latitude,
-        stop_lon: njStation.location.longitude,
-      });
-      botStopNameSet.add(canonicalName.toLowerCase());
+    const payload = buildInitialData({
+      stops: rawStops,
+      viewMap: rawViewMap,
+      trips: rawTrips,
+      njTrains: njBlob?.data?.trains ?? {},
+      crTrains: crBlob?.data?.trains ?? {},
+      itTrains: itBlob?.data?.trains ?? {},
+      caucasusTrains: caucasusBlob?.data?.trains ?? {},
     });
 
-    // Remove BoT entries for any NJ/EN train that has NJ API data.
-    // BoT's station lists are stale (wrong routing, wrong stop names for current timetables).
-    // Synthetic routes built below use accurate NJ API station names directly.
-    const njApiTrainNumbers = new Set(Object.keys(njTrains));
-    Object.keys(filteredViewMap).forEach((key) => {
-      const route = filteredViewMap[key];
-      const t0 = (route?.trip_short_name_0 || "").trim();
-      const t1 = (route?.trip_short_name_1 || "").trim();
-      if (njApiTrainNumbers.has(t0) || njApiTrainNumbers.has(t1)) {
-        delete filteredViewMap[key];
-      }
-    });
-
-    // Synthetic routes for all NJ/EN trains (BoT entries for them were removed above)
-    const botMatchedNJNumbers = new Set();
-    Object.values(filteredViewMap).forEach((route) => {
-      [route.trip_short_name_0, route.trip_short_name_1]
-        .filter(Boolean)
-        .forEach((n) => botMatchedNJNumbers.add(n.trim()));
-    });
-    const unmatchedNJ = Object.entries(njTrains).filter(
-      ([lineName, data]) =>
-        !botMatchedNJNumbers.has(lineName) &&
-        data.polyline &&
-        data.stations?.length >= 2,
-    );
-    const syntheticPaired = new Set();
-    unmatchedNJ.forEach(([lineName, data]) => {
-      if (syntheticPaired.has(lineName)) return;
-      const origin = resolveCanonicalStationName(data.stations[0].name);
-      const dest = resolveCanonicalStationName(data.stations[data.stations.length - 1].name);
-      const reversePair = unmatchedNJ.find(
-        ([k, v]) =>
-          k !== lineName &&
-          !syntheticPaired.has(k) &&
-          resolveCanonicalStationName(v.stations?.[0]?.name) === dest &&
-          resolveCanonicalStationName(v.stations?.[v.stations.length - 1]?.name) === origin,
-      );
-      const safeId = lineName.replace(/\s+/g, "_");
-      const entry = {
-        route_id: `nj_standalone_${safeId}`,
-        // Empty agency_id was mapped to gray on the map; ÖBB matches BoT NightJet rows and TrainDetailPanel.
-        agency_id: "ÖBB",
-        trip_short_name_0: lineName,
-        origin_trip_0: origin,
-        destination_trip_0: dest,
-        via_0: data.stations
-          .slice(1, -1)
-          .map((s) => resolveCanonicalStationName(s.name))
-          .filter(Boolean)
-          .join(" - "),
-        route_long_name: `${origin} – ${dest}`,
-        nj_polyline: data.polyline,
-        is_active: "Y",
-      };
-      if (reversePair) {
-        const [revName, revData] = reversePair;
-        entry.trip_short_name_1 = revName;
-        entry.origin_trip_1 = resolveCanonicalStationName(revData.stations[0].name);
-        entry.destination_trip_1 =
-          resolveCanonicalStationName(revData.stations[revData.stations.length - 1].name);
-        entry.via_1 = revData.stations
-          .slice(1, -1)
-          .map((s) => resolveCanonicalStationName(s.name))
-          .filter(Boolean)
-          .join(" - ");
-        syntheticPaired.add(revName);
-      }
-      syntheticPaired.add(lineName);
-      filteredViewMap[entry.route_id] = entry;
-    });
-
-    // ── Chinese Railway (CR) ──────────────────────────────────────────────
-    const crTrains = crBlob?.data?.trains ?? {};
-
-    // Add CR stations to stops so markers appear on the map
-    const crStopNameSet = new Set(botStopNameSet);
-    Object.values(crTrains).forEach((train) => {
-      (train.stations ?? []).forEach((s) => {
-        if (
-          !s?.name ||
-          !Number.isFinite(s?.location?.latitude) ||
-          !Number.isFinite(s?.location?.longitude)
-        ) return;
-        if (crStopNameSet.has(s.name.toLowerCase())) return;
-        trimmedStops.push({
-          stop_id: s.name,
-          stop_name: s.name,
-          stop_lat: s.location.latitude,
-          stop_lon: s.location.longitude,
-        });
-        crStopNameSet.add(s.name.toLowerCase());
-        botStopNameSet.add(s.name.toLowerCase());
-      });
-    });
-
-    // Synthetic viewMap entries for CR trains (same pairing logic as NJ)
-    const crTrainList = Object.entries(crTrains).filter(
-      ([, data]) => data.polyline && data.stations?.length >= 2,
-    );
-    const crPaired = new Set();
-    crTrainList.forEach(([lineName, data]) => {
-      if (crPaired.has(lineName)) return;
-      const origin = data.stations[0].name;
-      const dest = data.stations[data.stations.length - 1].name;
-      const reversePair = crTrainList.find(
-        ([k, v]) =>
-          k !== lineName &&
-          !crPaired.has(k) &&
-          v.stations?.[0]?.name === dest &&
-          v.stations?.[v.stations.length - 1]?.name === origin,
-      );
-      const safeId = lineName.replace(/\s+/g, "_");
-      const entry = {
-        route_id: `cr_${safeId}`,
-        agency_id: "CR",
-        trip_short_name_0: lineName,
-        origin_trip_0: origin,
-        destination_trip_0: dest,
-        via_0: data.stations
-          .slice(1, -1)
-          .map((s) => s.name)
-          .filter(Boolean)
-          .join(" - "),
-        route_long_name: `${origin} – ${dest}`,
-        nj_polyline: data.polyline,
-        is_active: "Y",
-      };
-      if (reversePair) {
-        const [revName, revData] = reversePair;
-        entry.trip_short_name_1 = revName;
-        entry.origin_trip_1 = revData.stations[0].name;
-        entry.destination_trip_1 =
-          revData.stations[revData.stations.length - 1].name;
-        entry.via_1 = revData.stations
-          .slice(1, -1)
-          .map((s) => s.name)
-          .filter(Boolean)
-          .join(" - ");
-        crPaired.add(revName);
-      }
-      crPaired.add(lineName);
-      filteredViewMap[entry.route_id] = entry;
-    });
-
-    // ── Italian Railways (Trenitalia ICN) ────────────────────────────────────
-    const itTrains = itBlob?.data?.trains ?? {};
-
-    // Remove BoT entries for any ICN train that has Italian API data.
-    // BoT uses "IC Notte 770"; our data uses "ICN 770" — normalise to bare number.
-    const icnApiTrainNumbers = new Set(
-      Object.keys(itTrains).map((n) => n.replace(/^ICN\s+/i, "").trim()),
-    );
-    Object.keys(filteredViewMap).forEach((key) => {
-      if (key.startsWith("icn_")) return;
-      const route = filteredViewMap[key];
-      const t0 = (route?.trip_short_name_0 || "")
-        .replace(/^IC\s+Notte\s+/i, "")
-        .replace(/\s*\([^)]*\)$/, "")
-        .trim();
-      const t1 = (route?.trip_short_name_1 || "")
-        .replace(/^IC\s+Notte\s+/i, "")
-        .replace(/\s*\([^)]*\)$/, "")
-        .trim();
-      if (icnApiTrainNumbers.has(t0) || icnApiTrainNumbers.has(t1)) {
-        delete filteredViewMap[key];
-      }
-    });
-
-    const itStopNameSet = new Set(botStopNameSet);
-    Object.values(itTrains).forEach((train) => {
-      (train.stations ?? []).forEach((s) => {
-        if (
-          !s?.name ||
-          !Number.isFinite(s?.location?.latitude) ||
-          !Number.isFinite(s?.location?.longitude)
-        ) return;
-        if (itStopNameSet.has(s.name.toLowerCase())) return;
-        trimmedStops.push({
-          stop_id: s.name,
-          stop_name: s.name,
-          stop_lat: s.location.latitude,
-          stop_lon: s.location.longitude,
-        });
-        itStopNameSet.add(s.name.toLowerCase());
-        botStopNameSet.add(s.name.toLowerCase());
-      });
-    });
-
-    const itTrainList = Object.entries(itTrains).filter(
-      ([, data]) => data.polyline && data.stations?.length >= 2,
-    );
-    const itPaired = new Set();
-    itTrainList.forEach(([lineName, data]) => {
-      if (itPaired.has(lineName)) return;
-      const origin = data.stations[0].name;
-      const dest = data.stations[data.stations.length - 1].name;
-      const reversePair = itTrainList.find(
-        ([k, v]) =>
-          k !== lineName &&
-          !itPaired.has(k) &&
-          v.stations?.[0]?.name === dest &&
-          v.stations?.[v.stations.length - 1]?.name === origin,
-      );
-      const safeId = lineName.replace(/\s+/g, "_");
-      const entry = {
-        route_id: `icn_${safeId}`,
-        agency_id: "FS",
-        trip_short_name_0: lineName,
-        origin_trip_0: origin,
-        destination_trip_0: dest,
-        via_0: data.stations
-          .slice(1, -1)
-          .map((s) => s.name)
-          .filter(Boolean)
-          .join(" - "),
-        route_long_name: `${origin} – ${dest}`,
-        nj_polyline: data.polyline,
-        is_active: "Y",
-      };
-      if (reversePair) {
-        const [revName, revData] = reversePair;
-        entry.trip_short_name_1 = revName;
-        entry.origin_trip_1 = revData.stations[0].name;
-        entry.destination_trip_1 =
-          revData.stations[revData.stations.length - 1].name;
-        entry.via_1 = revData.stations
-          .slice(1, -1)
-          .map((s) => s.name)
-          .filter(Boolean)
-          .join(" - ");
-        itPaired.add(revName);
-      }
-      itPaired.add(lineName);
-      filteredViewMap[entry.route_id] = entry;
-    });
-
-    // ── Caucasus Railways (GR, ADY, SCR) ────────────────────────────────────
-    const caucasusTrains = caucasusBlob?.data?.trains ?? {};
-
-    const caucasusStopNameSet = new Set(botStopNameSet);
-    Object.values(caucasusTrains).forEach((train) => {
-      (train.stations ?? []).forEach((s) => {
-        if (
-          !s?.name ||
-          !Number.isFinite(s?.location?.latitude) ||
-          !Number.isFinite(s?.location?.longitude)
-        ) return;
-        if (caucasusStopNameSet.has(s.name.toLowerCase())) return;
-        trimmedStops.push({
-          stop_id: s.name,
-          stop_name: s.name,
-          stop_lat: s.location.latitude,
-          stop_lon: s.location.longitude,
-        });
-        caucasusStopNameSet.add(s.name.toLowerCase());
-        botStopNameSet.add(s.name.toLowerCase());
-      });
-    });
-
-    const caucasusTrainList = Object.entries(caucasusTrains).filter(
-      ([, data]) => data.polyline && data.stations?.length >= 2,
-    );
-    const caucasusPaired = new Set();
-    caucasusTrainList.forEach(([lineName, data]) => {
-      if (caucasusPaired.has(lineName)) return;
-      const origin = data.stations[0].name;
-      const dest = data.stations[data.stations.length - 1].name;
-      const reversePair = caucasusTrainList.find(
-        ([k, v]) =>
-          k !== lineName &&
-          !caucasusPaired.has(k) &&
-          v.stations?.[0]?.name === dest &&
-          v.stations?.[v.stations.length - 1]?.name === origin,
-      );
-      const safeId = lineName.replace(/\s+/g, "_");
-      const entry = {
-        route_id: `caucasus_${safeId}`,
-        agency_id: data.agency_id || "GR",
-        trip_short_name_0: lineName,
-        origin_trip_0: origin,
-        destination_trip_0: dest,
-        via_0: data.stations
-          .slice(1, -1)
-          .map((s) => s.name)
-          .filter(Boolean)
-          .join(" - "),
-        route_long_name: `${origin} – ${dest}`,
-        service_id_0: data.frequency || null,
-        nj_polyline: data.polyline,
-        is_active: "Y",
-      };
-      if (reversePair) {
-        const [revName, revData] = reversePair;
-        entry.trip_short_name_1 = revName;
-        entry.origin_trip_1 = revData.stations[0].name;
-        entry.destination_trip_1 = revData.stations[revData.stations.length - 1].name;
-        entry.via_1 = revData.stations
-          .slice(1, -1)
-          .map((s) => s.name)
-          .filter(Boolean)
-          .join(" - ");
-        entry.service_id_1 = revData.frequency || null;
-        caucasusPaired.add(revName);
-      }
-      caucasusPaired.add(lineName);
-      filteredViewMap[entry.route_id] = entry;
-    });
-
-    // CDN caches for 1 hour; serve stale while revalidating for up to 1 day
-    res.setHeader(
-      "Cache-Control",
-      "public, s-maxage=3600, stale-while-revalidate=86400",
-    );
-    res.setHeader("Content-Type", "application/json");
-
-    res.status(200).json({
-      stops: trimmedStops,
-      viewMap: filteredViewMap,
-      trips: filteredTrips,
-    });
+    setCacheHeaders(res);
+    res.status(200).json(payload);
   } catch (error) {
     console.error("[initial-data] Error:", error);
     res.status(500).json({ error: "Error fetching initial data" });

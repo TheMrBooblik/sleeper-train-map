@@ -11,21 +11,26 @@ import fs from "node:fs";
 import path from "node:path";
 
 const DATA_DIR = path.join(process.cwd(), "public", "data", "scraped");
+const PUBLISHED_DIR = path.join(process.cwd(), "public", "data", "published");
 const CACHE_TTL_MS = 25 * 60 * 60 * 1000; // 25 hours
 
 function filePath(name) {
   return path.join(DATA_DIR, name);
 }
 
-function readEnvelope(name) {
+function readEnvelopeAtPath(fullPath) {
   try {
-    const raw = fs.readFileSync(filePath(name), "utf8");
+    const raw = fs.readFileSync(fullPath, "utf8");
     const envelope = JSON.parse(raw);
     if (!envelope?.uploadedAt) return null;
     return { data: envelope.data, uploadedAt: new Date(envelope.uploadedAt) };
   } catch {
     return null;
   }
+}
+
+function readEnvelope(name) {
+  return readEnvelopeAtPath(filePath(name));
 }
 
 function writeEnvelope(name, data) {
@@ -118,6 +123,18 @@ export function getCaucasusTrains() {
 export function putCaucasusTrains(data) {
   writeEnvelope("caucasus-trains.json", data);
   return Promise.resolve();
+}
+
+// ─── Published canonical dataset (build-time merge) ──────────────────────────
+
+// Pre-merged { stops, viewMap, trips } payload written by
+// scripts/canonicalize.mjs and committed alongside the scraped files. Served
+// directly by /api/initial-data when fresh; the route falls back to merging on
+// the fly when this file is missing or stale.
+export function getPublishedInitialData() {
+  return Promise.resolve(
+    readEnvelopeAtPath(path.join(PUBLISHED_DIR, "initial-data.json")),
+  );
 }
 
 // ─── Shared ────────────────────────────────────────────────────────────────

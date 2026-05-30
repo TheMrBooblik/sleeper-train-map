@@ -5,8 +5,9 @@ import { useRouter } from "next/router";
 import { HEADER_HEIGHT } from "../constants/header";
 import TimetablesTab from "../components/Admin/TimetablesTab";
 import RoutesTab from "../components/Admin/RoutesTab";
+import OverridesTab from "../components/Admin/OverridesTab";
 
-const TABS = ["Data Sources", "Timetables", "Routes"];
+const TABS = ["Data Sources", "Timetables", "Routes", "Overrides"];
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 
@@ -400,6 +401,7 @@ export default function DataPage() {
         {activeTab === "Data Sources" && <DataSourcesTab />}
         {activeTab === "Timetables" && <TimetablesTab />}
         {activeTab === "Routes" && <RoutesTab />}
+        {activeTab === "Overrides" && <OverridesTab />}
       </main>
     </div>
   );
