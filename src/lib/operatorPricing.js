@@ -64,6 +64,19 @@ export function formatPricingLabel(pricing) {
 }
 
 /**
+ * Just the "from <price>" part of a fixed fare (no type prefix), e.g.
+ * "from €39". Returns null when there's no concrete price. Used near the
+ * booking button where the pricing-model badge already shows the type.
+ */
+export function formatFromPrice(pricing) {
+  if (!pricing || pricing.fromPrice == null) return null;
+  const symbol =
+    CURRENCY_SYMBOLS[pricing.currency] ||
+    (pricing.currency ? `${pricing.currency} ` : "");
+  return `from ${symbol}${pricing.fromPrice}`;
+}
+
+/**
  * Style (foreground/background) for the pricing badge.
  *
  * Intention: pricing type should have its own semantic color, independent of

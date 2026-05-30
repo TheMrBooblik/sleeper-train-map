@@ -113,10 +113,151 @@ function PricingFields({ agencyId, value, mutate, busy }) {
   );
 }
 
+// ─── Editable booking config (per operator) ──────────────────────────────────
+
+function BookingFields({ agencyId, value, mutate, busy }) {
+  const [urlTemplate, setUrlTemplate] = useState(value?.urlTemplate || "");
+  const [dealsUrl, setDealsUrl] = useState(value?.dealsUrl || "");
+  const [dealsLabel, setDealsLabel] = useState(value?.dealsLabel || "");
+  // Local fields for adding a new station-name mapping (our name -> their name).
+  const [stationName, setStationName] = useState("");
+  const [bookingName, setBookingName] = useState("");
+  const key = `booking:${agencyId}`;
+
+  // Re-sync when the override value changes (e.g. after reload).
+  const serialized = JSON.stringify(value);
+  useEffect(() => {
+    setUrlTemplate(value?.urlTemplate || "");
+    setDealsUrl(value?.dealsUrl || "");
+    setDealsLabel(value?.dealsLabel || "");
+  }, [serialized]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const stationNames = value?.stationNames || {};
+
+  return (
+    <div className="mt-1 space-y-2 rounded bg-gray-50 p-2">
+      {/* URL template + deals link */}
+      <input
+        className={`${inputCls} w-full`}
+        value={urlTemplate}
+        onChange={(e) => setUrlTemplate(e.target.value)}
+        placeholder="URL template, e.g. https://…?orig={origin}&dest={dest}"
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          className={`${inputCls} flex-1 min-w-[8rem]`}
+          value={dealsUrl}
+          onChange={(e) => setDealsUrl(e.target.value)}
+          placeholder="deals URL (optional)"
+        />
+        <input
+          className={`${inputCls} w-32`}
+          value={dealsLabel}
+          onChange={(e) => setDealsLabel(e.target.value)}
+          placeholder="deals label"
+        />
+        <button
+          type="button"
+          className={primaryBtnCls}
+          disabled={busy === key}
+          onClick={() =>
+            mutate(
+              "operator-booking",
+              "set",
+              {
+                agencyId,
+                urlTemplate: urlTemplate.trim() || null,
+                dealsUrl: dealsUrl.trim() || null,
+                dealsLabel: dealsLabel.trim() || null,
+              },
+              `chore(override): booking ${agencyId}`,
+              key,
+            )
+          }
+        >
+          Save
+        </button>
+      </div>
+
+      {/* Station-name mapping: our name -> the booking site's name */}
+      <div className="space-y-1">
+        <div className="text-xs font-medium text-gray-500">Station names</div>
+        {Object.entries(stationNames).map(([ourName, theirName]) => (
+          <div key={ourName} className="flex items-center gap-2 text-xs">
+            <span className="flex-1 truncate text-gray-700">
+              {ourName} {"->"} {theirName}
+            </span>
+            <button
+              type="button"
+              className={dangerBtnCls}
+              disabled={!!busy}
+              onClick={() =>
+                mutate(
+                  "operator-booking",
+                  "removeStationName",
+                  { agencyId, stationName: ourName },
+                  `chore(override): booking ${agencyId} drop ${ourName}`,
+                  `booking:rm:${agencyId}:${ourName}`,
+                )
+              }
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            className={`${inputCls} flex-1 min-w-[6rem]`}
+            value={stationName}
+            onChange={(e) => setStationName(e.target.value)}
+            placeholder="our station name"
+          />
+          <input
+            className={`${inputCls} flex-1 min-w-[6rem]`}
+            value={bookingName}
+            onChange={(e) => setBookingName(e.target.value)}
+            placeholder="booking site name"
+          />
+          <button
+            type="button"
+            className={primaryBtnCls}
+            disabled={
+              busy === `booking:add:${agencyId}` ||
+              !stationName.trim() ||
+              !bookingName.trim()
+            }
+            onClick={() =>
+              mutate(
+                "operator-booking",
+                "setStationName",
+                {
+                  agencyId,
+                  stationName: stationName.trim(),
+                  bookingName: bookingName.trim(),
+                },
+                `chore(override): booking ${agencyId} map ${stationName.trim()}`,
+                `booking:add:${agencyId}`,
+              ).then((ok) => {
+                if (ok) {
+                  setStationName("");
+                  setBookingName("");
+                }
+              })
+            }
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Single operator card ───────────────────────────────────────────────────
 
-function OperatorCard({ agencyId, color, routeCount, pricing, mutate, busy }) {
+function OperatorCard({ agencyId, color, routeCount, pricing, booking, mutate, busy }) {
   const [open, setOpen] = useState(false);
+  const [bookingOpen, setBookingOpen] = useState(false);
 
   return (
     <div className="border-b border-gray-100 last:border-b-0 py-2.5">
@@ -133,18 +274,35 @@ function OperatorCard({ agencyId, color, routeCount, pricing, mutate, busy }) {
             {pricing.type}{pricing.currency ? ` · ${pricing.currency}` : ""}
           </span>
         )}
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="text-xs text-gray-400 hover:text-gray-700 ml-auto min-[480px]:ml-0"
-        >
-          {open ? "Hide pricing" : "Edit pricing"}
-        </button>
+        <div className="flex items-center gap-3 ml-auto min-[480px]:ml-0">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="text-xs text-gray-400 hover:text-gray-700"
+          >
+            {open ? "Hide pricing" : "Edit pricing"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setBookingOpen((v) => !v)}
+            className="text-xs text-gray-400 hover:text-gray-700"
+          >
+            {bookingOpen ? "Hide booking" : "Edit booking"}
+          </button>
+        </div>
       </div>
       {open && (
         <PricingFields
           agencyId={agencyId}
           value={pricing}
+          mutate={mutate}
+          busy={busy}
+        />
+      )}
+      {bookingOpen && (
+        <BookingFields
+          agencyId={agencyId}
+          value={booking}
           mutate={mutate}
           busy={busy}
         />
@@ -181,12 +339,14 @@ export default function OperatorsTab() {
       .finally(() => setRouteLoading(false));
   }, []);
 
-  // Build a merged list: all operators that have routes OR have pricing OR have brand colors
+  // Build a merged list: all operators that have routes OR pricing OR booking OR brand colors
   const pricing = overrides?.["operator-pricing"] || {};
+  const booking = overrides?.["operator-booking"] || {};
   const allIds = new Set([
     ...Object.keys(OPERATOR_BRAND_COLORS),
     ...Object.keys(routeData || {}),
     ...Object.keys(pricing),
+    ...Object.keys(booking),
   ]);
   const operators = [...allIds]
     .sort((a, b) => a.localeCompare(b))
@@ -195,6 +355,7 @@ export default function OperatorsTab() {
       color: OPERATOR_BRAND_COLORS[id] || NEUTRAL_FALLBACK_COLOR,
       routeCount: routeData?.[id] || 0,
       pricing: pricing[id] || null,
+      booking: booking[id] || null,
     }));
 
   const q = deferredQuery.toLowerCase().trim();
@@ -263,6 +424,7 @@ export default function OperatorsTab() {
                   color={op.color}
                   routeCount={op.routeCount}
                   pricing={op.pricing}
+                  booking={op.booking}
                   mutate={mutate}
                   busy={busy}
                 />

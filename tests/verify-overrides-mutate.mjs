@@ -122,6 +122,85 @@ check("pricing remove", () => {
   assert.ok("SJ" in out);
 });
 
+// operator-booking
+check("booking set creates record with empty stationNames", () => {
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "set",
+    { agencyId: "ÖBB", urlTemplate: "https://x?o={origin}&d={dest}" },
+    {},
+  );
+  assert.deepStrictEqual(out["ÖBB"], {
+    urlTemplate: "https://x?o={origin}&d={dest}",
+    dealsUrl: null,
+    dealsLabel: null,
+    stationNames: {},
+  });
+});
+check("booking set preserves existing stationNames", () => {
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "set",
+    { agencyId: "ÖBB", urlTemplate: "https://new" },
+    { "ÖBB": { urlTemplate: "old", stationNames: { A: "a" } } },
+  );
+  assert.strictEqual(out["ÖBB"].urlTemplate, "https://new");
+  assert.deepStrictEqual(out["ÖBB"].stationNames, { A: "a" });
+});
+check("booking set with deals link", () => {
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "set",
+    { agencyId: "ES", dealsUrl: "https://deals", dealsLabel: "Deals" },
+    {},
+  );
+  assert.strictEqual(out.ES.dealsUrl, "https://deals");
+  assert.strictEqual(out.ES.dealsLabel, "Deals");
+  assert.strictEqual(out.ES.urlTemplate, null);
+});
+check("booking setStationName adds a mapping", () => {
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "setStationName",
+    { agencyId: "ÖBB", stationName: "Amsterdam Centraal", bookingName: "Amsterdam" },
+    { "ÖBB": { urlTemplate: "u", stationNames: {} } },
+  );
+  assert.strictEqual(out["ÖBB"].stationNames["Amsterdam Centraal"], "Amsterdam");
+  // existing config preserved
+  assert.strictEqual(out["ÖBB"].urlTemplate, "u");
+});
+check("booking removeStationName drops a mapping", () => {
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "removeStationName",
+    { agencyId: "ÖBB", stationName: "Amsterdam Centraal" },
+    { "ÖBB": { stationNames: { "Amsterdam Centraal": "Amsterdam", "Basel SBB": "Basel" } } },
+  );
+  assert.ok(!("Amsterdam Centraal" in out["ÖBB"].stationNames));
+  assert.strictEqual(out["ÖBB"].stationNames["Basel SBB"], "Basel");
+});
+check("booking remove deletes the operator", () => {
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "remove",
+    { agencyId: "ÖBB" },
+    { "ÖBB": { urlTemplate: "u" }, ES: { dealsUrl: "d" } },
+  );
+  assert.ok(!("ÖBB" in out));
+  assert.ok("ES" in out);
+});
+throws("booking setStationName rejects empty bookingName", () =>
+  applyOverrideMutation(
+    "operator-booking",
+    "setStationName",
+    { agencyId: "ÖBB", stationName: "X", bookingName: "" },
+    {},
+  ),
+);
+throws("booking set rejects empty agencyId", () =>
+  applyOverrideMutation("operator-booking", "set", { agencyId: "" }, {}),
+);
+
 // station-name-replacements
 check("name setStop", () => {
   const out = applyOverrideMutation(

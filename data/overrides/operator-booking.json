@@ -1,0 +1,59 @@
+{
+  "ÖBB": {
+    "urlTemplate": "https://shop.oebbtickets.at/en/ticket?stationOrigName={origin}&stationDestName={dest}&cref=pingwi",
+    "dealsUrl": null,
+    "dealsLabel": null,
+    "stationNames": {
+      "Amsterdam Centraal": "Amsterdam",
+      "Basel SBB": "Basel"
+    }
+  },
+  "ES": {
+    "urlTemplate": "https://booking.europeansleeper.eu/en?departureStation={origin}&arrivalStation={dest}",
+    "dealsUrl": "https://www.europeansleeper.eu/last-minutes-berlin-prague",
+    "dealsLabel": "Last-minute deals",
+    "requireStationMapping": true,
+    "stationNames": {
+      "Amsterdam Centraal": "8400058",
+      "Amersfoort Centraal": "8400055",
+      "Deventer": "8400173",
+      "Den Haag": "8400280",
+      "Den Haag HS": "8400280",
+      "Rotterdam Centraal": "8400530",
+      "Roosendaal": "8400526",
+      "Antwerpen Centraal / Anvers Central": "8800210",
+      "Antwerpen Centraal": "8800210",
+      "Antwerpen-Centraal": "8800210",
+      "Bruxelles Midi / Brussel Zuid": "8800104",
+      "Bruxelles Midi": "8800104",
+      "Bruxelles-Midi": "8800104",
+      "Berlin Hbf": "8010100",
+      "Berlin Ostbahnhof": "8010110",
+      "Dresden Hbf": "8001305",
+      "Bad Schandau": "8001311",
+      "Děčín hl.n.": "5455659",
+      "Ústí nad Labem hl.n.": "5453179",
+      "Usti nad Labem hl.n.": "5453179",
+      "Praha hl.n.": "5457076",
+      "Paris Gare du Nord": "8700015",
+      "Hamburg Harburg": "8020401",
+      "Köln Hbf": "8050500",
+      "Liège Guillemins / Luik Guillemins": "8800410",
+      "Liège-Guillemins": "8800410",
+      "Liège Guillemins": "8800410",
+      "Aachen Hbf": "8052101",
+      "Mons / Bergen": "8800810",
+      "Mons": "8800810",
+      "Aulnoye-Aymeries": "8700021",
+      "Zürich HB": "8500200",
+      "Milano Centrale": "8300112",
+      "Milano Porta Garibaldi": "8300112",
+      "Como San Giovanni": "8300133",
+      "Chiasso": "8500360",
+      "Bellinzona": "8500521",
+      "Lugano": "8500011",
+      "Göschenen": "8500689",
+      "Arth-Goldau": "8505004"
+    }
+  }
+}
