@@ -122,6 +122,85 @@ check("pricing remove", () => {
   assert.ok("SJ" in out);
 });
 
+// operator-booking
+check("booking set creates record with empty stationNames", () => {
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "set",
+    { agencyId: "ÖBB", urlTemplate: "https://x?o={origin}&d={dest}" },
+    {},
+  );
+  assert.deepStrictEqual(out["ÖBB"], {
+    urlTemplate: "https://x?o={origin}&d={dest}",
+    dealsUrl: null,
+    dealsLabel: null,
+    stationNames: {},
+  });
+});
+check("booking set preserves existing stationNames", () => {
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "set",
+    { agencyId: "ÖBB", urlTemplate: "https://new" },
+    { "ÖBB": { urlTemplate: "old", stationNames: { A: "a" } } },
+  );
+  assert.strictEqual(out["ÖBB"].urlTemplate, "https://new");
+  assert.deepStrictEqual(out["ÖBB"].stationNames, { A: "a" });
+});
+check("booking set with deals link", () => {
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "set",
+    { agencyId: "ES", dealsUrl: "https://deals", dealsLabel: "Deals" },
+    {},
+  );
+  assert.strictEqual(out.ES.dealsUrl, "https://deals");
+  assert.strictEqual(out.ES.dealsLabel, "Deals");
+  assert.strictEqual(out.ES.urlTemplate, null);
+});
+check("booking setStationName adds a mapping", () => {
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "setStationName",
+    { agencyId: "ÖBB", stationName: "Amsterdam Centraal", bookingName: "Amsterdam" },
+    { "ÖBB": { urlTemplate: "u", stationNames: {} } },
+  );
+  assert.strictEqual(out["ÖBB"].stationNames["Amsterdam Centraal"], "Amsterdam");
+  // existing config preserved
+  assert.strictEqual(out["ÖBB"].urlTemplate, "u");
+});
+check("booking removeStationName drops a mapping", () => {
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "removeStationName",
+    { agencyId: "ÖBB", stationName: "Amsterdam Centraal" },
+    { "ÖBB": { stationNames: { "Amsterdam Centraal": "Amsterdam", "Basel SBB": "Basel" } } },
+  );
+  assert.ok(!("Amsterdam Centraal" in out["ÖBB"].stationNames));
+  assert.strictEqual(out["ÖBB"].stationNames["Basel SBB"], "Basel");
+});
+check("booking remove deletes the operator", () => {
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "remove",
+    { agencyId: "ÖBB" },
+    { "ÖBB": { urlTemplate: "u" }, ES: { dealsUrl: "d" } },
+  );
+  assert.ok(!("ÖBB" in out));
+  assert.ok("ES" in out);
+});
+throws("booking setStationName rejects empty bookingName", () =>
+  applyOverrideMutation(
+    "operator-booking",
+    "setStationName",
+    { agencyId: "ÖBB", stationName: "X", bookingName: "" },
+    {},
+  ),
+);
+throws("booking set rejects empty agencyId", () =>
+  applyOverrideMutation("operator-booking", "set", { agencyId: "" }, {}),
+);
+
 // station-name-replacements
 check("name setStop", () => {
   const out = applyOverrideMutation(
@@ -153,6 +232,55 @@ check("name setRoute without routeIds stores string", () => {
   );
   assert.strictEqual(out.routeReplacements.A, "B");
 });
+
+// station-aliases
+check("alias set", () => {
+  const out = applyOverrideMutation(
+    "station-aliases",
+    "set",
+    { alias: "Venedig Santa Lucia", canonical: "Venezia Santa Lucia" },
+    { "rom termini": "Roma Termini" },
+  );
+  // key should be lowercased
+  assert.strictEqual(out["venedig santa lucia"], "Venezia Santa Lucia");
+  // existing entries preserved
+  assert.strictEqual(out["rom termini"], "Roma Termini");
+});
+check("alias set lowercases the key", () => {
+  const out = applyOverrideMutation(
+    "station-aliases",
+    "set",
+    { alias: "BRÜSSEL MIDI", canonical: "Bruxelles Midi" },
+    {},
+  );
+  assert.strictEqual(out["brüssel midi"], "Bruxelles Midi");
+  assert.ok(!("BRÜSSEL MIDI" in out));
+});
+check("alias remove", () => {
+  const out = applyOverrideMutation(
+    "station-aliases",
+    "remove",
+    { alias: "rom termini" },
+    { "rom termini": "Roma Termini", "venedig": "Venezia" },
+  );
+  assert.ok(!("rom termini" in out));
+  assert.strictEqual(out["venedig"], "Venezia");
+});
+check("alias set on null current", () => {
+  const out = applyOverrideMutation(
+    "station-aliases",
+    "set",
+    { alias: "prag hbf", canonical: "Praha hl.n." },
+    null,
+  );
+  assert.strictEqual(out["prag hbf"], "Praha hl.n.");
+});
+throws("alias set rejects empty alias", () =>
+  applyOverrideMutation("station-aliases", "set", { alias: "", canonical: "Foo" }, {}),
+);
+throws("alias set rejects empty canonical", () =>
+  applyOverrideMutation("station-aliases", "set", { alias: "foo", canonical: "" }, {}),
+);
 
 // immutability: input must not be mutated
 check("input is not mutated", () => {

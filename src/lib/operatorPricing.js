@@ -62,3 +62,44 @@ export function formatPricingLabel(pricing) {
   }
   return typeLabel;
 }
+
+/**
+ * Just the "from <price>" part of a fixed fare (no type prefix), e.g.
+ * "from €39". Returns null when there's no concrete price. Used near the
+ * booking button where the pricing-model badge already shows the type.
+ */
+export function formatFromPrice(pricing) {
+  if (!pricing || pricing.fromPrice == null) return null;
+  const symbol =
+    CURRENCY_SYMBOLS[pricing.currency] ||
+    (pricing.currency ? `${pricing.currency} ` : "");
+  return `from ${symbol}${pricing.fromPrice}`;
+}
+
+/**
+ * Style (foreground/background) for the pricing badge.
+ *
+ * Intention: pricing type should have its own semantic color, independent of
+ * route/operator color. This avoids confusing "pricing model" with "operator".
+ */
+export function getPricingBadgeStyle(pricing) {
+  if (!pricing?.type) return null;
+
+  // Chosen to be readable on white and lightly tinted backgrounds.
+  // Keep these explicit (not Tailwind classes) so callers can use them in inline style.
+  if (pricing.type === "dynamic") {
+    return {
+      color: "#6D28D9",
+      backgroundColor: "rgba(109, 40, 217, 0.12)",
+    };
+  }
+
+  if (pricing.type === "fixed") {
+    return {
+      color: "#1D4ED8",
+      backgroundColor: "rgba(29, 78, 216, 0.12)",
+    };
+  }
+
+  return null;
+}

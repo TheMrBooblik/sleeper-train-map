@@ -742,6 +742,7 @@ const TrainMap = ({
         onClose={closeTrainDetailPanel}
         tripsData={trips}
         viewMapData={viewMapData}
+        selectedStation={selectedStationName}
         selectedRouteIds={
           selectedTrainRouteIds?.filter(
             (id) => !shouldHideRouteDueToFutureDate(id, trips),

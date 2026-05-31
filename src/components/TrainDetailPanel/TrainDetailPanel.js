@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useEffect, useState } from "react";
-import { FiChevronDown, FiExternalLink } from "react-icons/fi";
+import { FiChevronDown } from "react-icons/fi";
 import { useAgencies } from "../../hooks/requests/useAgencies";
 import { useRoutes } from "../../hooks/requests/useRoutes";
 import { useTrips } from "../../hooks/requests/useTrips";
@@ -15,7 +15,12 @@ import {
   hexWithAlpha,
 } from "../Map/utils/operatorColors";
 import { abbreviateStationName } from "../Map/utils/stationNameUtils";
-import { getOperatorPricing, formatPricingLabel } from "../../lib/operatorPricing";
+import {
+  getOperatorPricing,
+  formatPricingLabel,
+  getPricingBadgeStyle,
+} from "../../lib/operatorPricing";
+import BookingActions from "./BookingActions";
 
 const GTFS_ROUTE_KIND = {
   chop: "chop",
@@ -134,6 +139,7 @@ const TrainDetailPanel = ({
   selectedRouteIds,
   tripsData,
   viewMapData,
+  selectedStation,
 }) => {
   const { agencies } = useAgencies();
   const { routes: fetchedRoutes, isLoading: routesLoading } = useRoutes();
@@ -241,6 +247,34 @@ const TrainDetailPanel = ({
 
   const tripsToRender =
     relevantTrips.length > 0 ? relevantTrips : fallbackTrips;
+
+  // When a station is selected, show the direction with the bigger onward
+  // journey from that station first. A route has two directions; the more
+  // useful one to the traveller is usually the one with more of the trip still
+  // ahead of the selected station (i.e. they board here and ride onward).
+  const orderedTrips = useMemo(() => {
+    if (!selectedStation || tripsToRender.length < 2) return tripsToRender;
+
+    // Stations remaining toward the destination after the selected station.
+    const onwardCount = (trip) => {
+      const sequence = [
+        trip.trip_origin,
+        ...String(trip.via || "").split(" - "),
+        trip.trip_headsign,
+      ]
+        .map((s) => (s || "").trim())
+        .filter(Boolean);
+      const idx = sequence.findIndex((s) => matchesEndpoint(s, selectedStation));
+      if (idx < 0) return -1; // selected station not on this direction → keep last
+      return sequence.length - 1 - idx;
+    };
+
+    // Stable sort (preserve original order on ties): bigger onward part first.
+    return tripsToRender
+      .map((trip, i) => ({ trip, i, n: onwardCount(trip) }))
+      .sort((a, b) => b.n - a.n || a.i - b.i)
+      .map((x) => x.trip);
+  }, [tripsToRender, selectedStation]);
 
   const gtfsRouteKind = useMemo(() => {
     const fromRoutes = detectGtfsRouteKindFromRoutes(selectedRouteIds, routes);
@@ -695,7 +729,7 @@ const TrainDetailPanel = ({
                 </div>
               )}
 
-              {tripsToRender.map((trip, index) => {
+              {orderedTrips.map((trip, index) => {
                 // Trip list uses trip fields; route rows from useRoutes are only for GTFS-kind detection.
                 const agency = agencies[trip.agency_id];
                 // Operator brand color for accent styling
@@ -807,9 +841,17 @@ const TrainDetailPanel = ({
                     (Array.isArray(s) && s.length >= 2),
                 );
 
-                const pricingLabel = formatPricingLabel(
-                  getOperatorPricing(trip),
-                );
+                const pricing = getOperatorPricing(trip);
+                const pricingLabel = formatPricingLabel(pricing);
+                const pricingBadgeStyle = getPricingBadgeStyle(pricing);
+
+                // Booking origin: prefer the station the user clicked on the map
+                // (so the deep link starts from where they are), but only when it
+                // isn't the destination. Otherwise use the train's own origin.
+                const bookingOrigin =
+                  selectedStation && selectedStation !== trip.trip_headsign
+                    ? selectedStation
+                    : trip.trip_origin;
 
                 return (
                   <div
@@ -851,7 +893,7 @@ const TrainDetailPanel = ({
                     </div>
 
                     {/* Pricing */}
-                    {pricingLabel && (
+                    {pricingLabel && pricingBadgeStyle && (
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-500 uppercase">
                           Price
@@ -859,8 +901,7 @@ const TrainDetailPanel = ({
                         <span
                           className="rounded-md px-2 py-0.5 text-xs font-medium"
                           style={{
-                            backgroundColor: hexWithAlpha(operatorColor, 0.1),
-                            color: operatorColor,
+                            ...pricingBadgeStyle,
                           }}
                         >
                           {pricingLabel}
@@ -1100,23 +1141,14 @@ const TrainDetailPanel = ({
                       </details>
                     )}
 
-                    {/* Operator Website Link */}
-                    {agency?.agency_url && (
-                      <a
-                        href={agency.agency_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group block w-full text-center bg-slate-100 text-slate-800 py-2.5 px-3 rounded-md border border-slate-200 hover:bg-slate-200 hover:border-slate-300 active:translate-y-px transition-all duration-150 text-sm font-semibold"
-                      >
-                        <span className="inline-flex items-center gap-1">
-                          Book / view details&nbsp;
-                          <FiExternalLink
-                            className="h-4 w-4 shrink-0 text-slate-500 transition-all duration-300 ease-out group-hover:text-slate-800 translate-x-0.5 -translate-y-px group-hover:translate-x-1 group-hover:-translate-y-0.5"
-                            aria-hidden
-                          />
-                        </span>
-                      </a>
-                    )}
+                    {/* Booking: deep link with preselected stations + fare */}
+                    <BookingActions
+                      agencyId={trip.agency_id}
+                      agencyUrl={agency?.agency_url}
+                      origin={bookingOrigin}
+                      dest={trip.trip_headsign}
+                      pricing={pricing}
+                    />
                   </div>
                 );
               })}

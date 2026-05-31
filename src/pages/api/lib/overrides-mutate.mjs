@@ -11,6 +11,8 @@ export const OVERRIDE_FILES = {
   "always-show-stations": "data/overrides/always-show-stations.json",
   "station-name-replacements": "data/overrides/station-name-replacements.json",
   "operator-pricing": "data/overrides/operator-pricing.json",
+  "operator-booking": "data/overrides/operator-booking.json",
+  "station-aliases": "data/overrides/station-aliases.json",
 };
 
 function invalid(message) {
@@ -112,6 +114,52 @@ export function applyOverrideMutation(resource, action, payload, current) {
       throw invalid(`unknown action "${action}" for ${resource}`);
     }
 
+    // Per-operator booking config keyed by agency_id. Holds the deep-link URL
+    // template (with {origin}/{dest} placeholders), an optional "deals" link,
+    // and a station-name map (our name -> the booking site's expected name).
+    case "operator-booking": {
+      const obj = next && typeof next === "object" ? next : {};
+      const agencyId = requireString(p.agencyId, "agencyId");
+      // Existing record (so we don't clobber stationNames when editing URLs).
+      const existing =
+        obj[agencyId] && typeof obj[agencyId] === "object" ? obj[agencyId] : {};
+
+      if (action === "set") {
+        obj[agencyId] = {
+          // Empty strings are normalized to null so the UI can fall back cleanly.
+          urlTemplate: p.urlTemplate ? String(p.urlTemplate) : null,
+          dealsUrl: p.dealsUrl ? String(p.dealsUrl) : null,
+          dealsLabel: p.dealsLabel ? String(p.dealsLabel) : null,
+          // Preserve the curated station-name map across URL edits.
+          stationNames:
+            existing.stationNames && typeof existing.stationNames === "object"
+              ? existing.stationNames
+              : {},
+        };
+        return obj;
+      }
+      if (action === "setStationName") {
+        const stationName = requireString(p.stationName, "stationName");
+        const bookingName = requireString(p.bookingName, "bookingName");
+        const stationNames = { ...(existing.stationNames || {}) };
+        stationNames[stationName] = bookingName;
+        obj[agencyId] = { ...existing, stationNames };
+        return obj;
+      }
+      if (action === "removeStationName") {
+        const stationName = requireString(p.stationName, "stationName");
+        const stationNames = { ...(existing.stationNames || {}) };
+        delete stationNames[stationName];
+        obj[agencyId] = { ...existing, stationNames };
+        return obj;
+      }
+      if (action === "remove") {
+        delete obj[agencyId];
+        return obj;
+      }
+      throw invalid(`unknown action "${action}" for ${resource}`);
+    }
+
     case "station-name-replacements": {
       const obj =
         next && typeof next === "object"
@@ -141,6 +189,24 @@ export function applyOverrideMutation(resource, action, payload, current) {
         default:
           throw invalid(`unknown action "${action}" for ${resource}`);
       }
+    }
+
+    // Station aliases: flat { "lowercase alias": "Canonical Name" } object.
+    // Keys must be lowercase (the resolver does .toLowerCase() at lookup time).
+    case "station-aliases": {
+      const obj = next && typeof next === "object" ? next : {};
+      if (action === "set") {
+        const alias = requireString(p.alias, "alias").toLowerCase().trim();
+        const canonical = requireString(p.canonical, "canonical");
+        obj[alias] = canonical;
+        return obj;
+      }
+      if (action === "remove") {
+        const alias = requireString(p.alias, "alias").toLowerCase().trim();
+        delete obj[alias];
+        return obj;
+      }
+      throw invalid(`unknown action "${action}" for ${resource}`);
     }
 
     default:

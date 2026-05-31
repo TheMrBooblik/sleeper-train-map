@@ -20,7 +20,7 @@
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:smoke": "playwright test --config=playwright.smoke.config.js",
-    "prepare": "husky"
+    "prepare": "husky && git config merge.ours.driver true || true"
   },
   "packageManager": "npm@10",
   "repository": {

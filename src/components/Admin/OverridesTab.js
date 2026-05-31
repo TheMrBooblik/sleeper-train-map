@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
+import useAdminOverrides from "../../hooks/useAdminOverrides";
 
 // "Overrides" tab on /data: edits the data/overrides/* store and saves each
 // change via /api/admin/override. The page is already gated by the admin
@@ -84,153 +85,6 @@ function ListResourceEditor({ title, description, resource, items, mutate, busy 
         />
         <button type="submit" className={primaryBtnCls} disabled={busy === addKey || !name.trim()}>
           Add
-        </button>
-      </form>
-    </Section>
-  );
-}
-
-// ─── Operator pricing ─────────────────────────────────────────────────────────
-
-function PricingRow({ id, value, mutate, busy, onRemove }) {
-  const [type, setType] = useState(value.type || "dynamic");
-  const [currency, setCurrency] = useState(value.currency || "");
-  const [fromPrice, setFromPrice] = useState(value.fromPrice ?? "");
-  const [note, setNote] = useState(value.note || "");
-  const key = `pricing:${id}`;
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 py-1.5 border-b border-gray-50 last:border-b-0">
-      <span className="font-mono text-sm font-medium text-gray-800 w-14 shrink-0">{id}</span>
-      <select className={inputCls} value={type} onChange={(e) => setType(e.target.value)}>
-        <option value="dynamic">dynamic</option>
-        <option value="fixed">fixed</option>
-      </select>
-      <input
-        className={`${inputCls} w-16`}
-        value={currency}
-        onChange={(e) => setCurrency(e.target.value)}
-        placeholder="EUR"
-      />
-      <input
-        className={`${inputCls} w-20`}
-        value={fromPrice}
-        onChange={(e) => setFromPrice(e.target.value)}
-        placeholder="from"
-        inputMode="decimal"
-      />
-      <input
-        className={`${inputCls} flex-1 min-w-[8rem]`}
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="note"
-      />
-      <button
-        type="button"
-        className={primaryBtnCls}
-        disabled={busy === key}
-        onClick={() =>
-          mutate(
-            "operator-pricing",
-            "set",
-            {
-              agencyId: id,
-              type,
-              currency: currency.trim() || null,
-              fromPrice: fromPrice === "" ? null : Number(fromPrice),
-              note: note.trim() || undefined,
-            },
-            `chore(override): pricing ${id}`,
-            key,
-          )
-        }
-      >
-        Save
-      </button>
-      <button type="button" className={dangerBtnCls} disabled={!!busy} onClick={() => onRemove(id)}>
-        Remove
-      </button>
-    </div>
-  );
-}
-
-function PricingEditor({ pricing, mutate, busy }) {
-  const [agencyId, setAgencyId] = useState("");
-  const [type, setType] = useState("dynamic");
-  const [currency, setCurrency] = useState("");
-  const entries = Object.entries(pricing || {}).sort(([a], [b]) => a.localeCompare(b));
-
-  const onRemove = (id) => {
-    if (window.confirm(`Remove pricing for "${id}"?`)) {
-      mutate(
-        "operator-pricing",
-        "remove",
-        { agencyId: id },
-        `chore(override): pricing remove ${id}`,
-        `pricing:remove:${id}`,
-      );
-    }
-  };
-
-  return (
-    <Section
-      title="Operator pricing"
-      description="Fare model per GTFS agency id (fixed vs dynamic). Shown as a badge in the train detail panel."
-    >
-      <div className="text-[11px] text-gray-400 flex flex-wrap gap-x-3 px-0.5 pb-1">
-        <span className="w-14">id</span>
-        <span>type</span>
-        <span>currency</span>
-        <span>from price</span>
-      </div>
-      {entries.map(([id, value]) => (
-        <PricingRow
-          key={`${id}:${JSON.stringify(value)}`}
-          id={id}
-          value={value || {}}
-          mutate={mutate}
-          busy={busy}
-          onRemove={onRemove}
-        />
-      ))}
-      <form
-        className="flex flex-wrap items-center gap-2 mt-3 pt-2 border-t border-gray-100"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const v = agencyId.trim();
-          if (!v) return;
-          mutate(
-            "operator-pricing",
-            "set",
-            { agencyId: v, type, currency: currency.trim() || null },
-            `chore(override): pricing ${v}`,
-            "pricing:add",
-          ).then((ok) => {
-            if (ok) {
-              setAgencyId("");
-              setCurrency("");
-            }
-          });
-        }}
-      >
-        <input
-          className={`${inputCls} w-20`}
-          value={agencyId}
-          onChange={(e) => setAgencyId(e.target.value)}
-          placeholder="agency id"
-        />
-        <select className={inputCls} value={type} onChange={(e) => setType(e.target.value)}>
-          <option value="dynamic">dynamic</option>
-          <option value="fixed">fixed</option>
-        </select>
-        <input
-          className={`${inputCls} w-16`}
-          value={currency}
-          onChange={(e) => setCurrency(e.target.value)}
-          placeholder="EUR"
-        />
-        <button type="submit" className={primaryBtnCls} disabled={busy === "pricing:add" || !agencyId.trim()}>
-          Add operator
         </button>
       </form>
     </Section>
@@ -568,78 +422,8 @@ function NameReplacementsEditor({ value, mutate, busy }) {
 // ─── Tab ────────────────────────────────────────────────────────────────────
 
 export default function OverridesTab() {
-  const [overrides, setOverrides] = useState(null);
-  const [target, setTarget] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(null);
-  const [error, setError] = useState(null);
-  const [notice, setNotice] = useState(null);
-  const [expired, setExpired] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/admin/override");
-      if (res.status === 401) {
-        setExpired(true);
-        return;
-      }
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || `Failed to load (${res.status}).`);
-        return;
-      }
-      setOverrides(json.overrides || {});
-      setTarget({ repo: json.repo, branch: json.branch });
-      if (json.errors) {
-        setError(
-          `Could not read ${Object.keys(json.errors).join(", ")} from GitHub — check ADMIN_GITHUB_TOKEN.`,
-        );
-      }
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const mutate = useCallback(
-    async (resource, action, payload, message, busyKey) => {
-      setBusy(busyKey || `${resource}:${action}`);
-      setError(null);
-      setNotice(null);
-      try {
-        const res = await fetch("/api/admin/override", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resource, action, payload, message }),
-        });
-        if (res.status === 401) {
-          setExpired(true);
-          return false;
-        }
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          setError(json.error || `Save failed (${res.status}).`);
-          return false;
-        }
-        setNotice({ text: `Saved: ${resource} ${action}.`, href: json.commit || null });
-        await load();
-        return true;
-      } catch (e) {
-        setError(e.message);
-        return false;
-      } finally {
-        setBusy(null);
-      }
-    },
-    [load],
-  );
+  const { overrides, target, loading, busy, error, notice, expired, mutate } =
+    useAdminOverrides();
 
   if (expired) {
     return (
@@ -687,7 +471,6 @@ export default function OverridesTab() {
         <p className="text-sm text-gray-400 mt-3">Loading…</p>
       ) : (
         <>
-          <PricingEditor pricing={overrides?.["operator-pricing"]} mutate={mutate} busy={busy} />
           <CoordsEditor coords={overrides?.["station-coordinates"]} mutate={mutate} busy={busy} />
           <ListResourceEditor
             title="Stations to skip"
