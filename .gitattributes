@@ -1,0 +1,15 @@
+# Generated data files are rewritten every night by the daily scrape GitHub
+# Action (.github/workflows/scrape-data.yml). They are not hand-edited, so any
+# long-lived branch collides with main's nightly commits.
+#
+# `merge=ours` makes git auto-resolve these on merge/rebase instead of raising a
+# conflict: it keeps the current branch's version and lets the next scrape
+# overwrite it with fresh data. This needs the one-time driver registration
+# below (done automatically by the npm "prepare" script):
+#
+#   git config merge.ours.driver true
+#
+# Note: this is a *local* git driver. GitHub's web "Merge" button does not run
+# it, so always merge/rebase main into your branch locally before merging a PR.
+public/data/scraped/*.json   merge=ours
+public/data/published/*.json merge=ours
