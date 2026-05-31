@@ -28,11 +28,50 @@
     }
   },
   "SNCF": { "bookingPageUrl": "https://www.sncf-connect.com/en-en/train-ticket" },
-  "MÁV":  { "bookingPageUrl": "https://jegy.mav.hu/" },
+  "MÁV": {
+    "urlTemplate": "https://jegy.mav.hu/?honnan={origin}&hova={dest}",
+    "stationNames": {
+      "Koper": "Koper/Capodistria"
+    }
+  },
   "GWR":  { "bookingPageUrl": "https://www.gwr.com/travelling-with-us/night-riviera-sleeper" },
   "CR":   { "bookingPageUrl": "https://www.12306.cn/en/" },
   "GR":   { "bookingPageUrl": "https://tre.ge/en" },
   "ADY":  { "bookingPageUrl": "https://biletonline.ady.az/en" },
+  "SJN": {
+    "urlTemplate": "https://entur.no/travel-result?startId=NSR:StopPlace:{origin}&stopId=NSR:StopPlace:{dest}",
+    "requireStationMapping": true,
+    "stationNames": {
+      "Oslo S":      "59872",
+      "Trondheim S": "59977",
+      "Bodø":        "58952"
+    }
+  },
+  "VY": {
+    "urlTemplate": "https://entur.no/travel-result?startId=NSR:StopPlace:{origin}&stopId=NSR:StopPlace:{dest}",
+    "requireStationMapping": true,
+    "stationNames": {
+      "Oslo S":  "59872",
+      "Bergen":  "59983"
+    }
+  },
+  "GA": {
+    "urlTemplate": "https://entur.no/travel-result?startId=NSR:StopPlace:{origin}&stopId=NSR:StopPlace:{dest}",
+    "requireStationMapping": true,
+    "stationNames": {
+      "Oslo S":    "59872",
+      "Stavanger": "61291"
+    }
+  },
+  "ATC": {
+    "urlTemplate": "https://online.astratranscarpatic.ro/en-GB/Itineraries/?DepartureStationName={origin}&ArrivalStationName={dest}"
+  },
+  "CFR": {
+    "urlTemplate": "https://bilete.cfrcalatori.ro/ro-RO/Itineraries?tip-calatorie=on&DepartureStationName={origin}&ArrivalStationName={dest}&ora=20&lng=en",
+    "stationNames": {
+      "București Nord": "București (toate stațiile)"
+    }
+  },
   "ES": {
     "urlTemplate": "https://booking.europeansleeper.eu/en?departureStation={origin}&arrivalStation={dest}",
     "dealsUrl": "https://www.europeansleeper.eu/last-minutes-berlin-prague",
