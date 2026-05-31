@@ -2,7 +2,7 @@
 
 import React from "react";
 import { FiExternalLink } from "react-icons/fi";
-import { buildBookingUrl, getDealsLink } from "../../lib/operatorBooking";
+import { buildBookingUrl, getDealsLink, getBookingPageUrl } from "../../lib/operatorBooking";
 import { formatFromPrice } from "../../lib/operatorPricing";
 import { abbreviateStationName } from "../Map/utils/stationNameUtils";
 
@@ -30,7 +30,8 @@ export default function BookingActions({
 }) {
   // Deep link with preselected stations (null when no template for operator).
   const deepLink = buildBookingUrl({ agencyId, origin, dest });
-  const href = deepLink || agencyUrl || null;
+  const bookingPageUrl = getBookingPageUrl(agencyId);
+  const href = deepLink || bookingPageUrl || agencyUrl || null;
 
   const dealsLink = getDealsLink(agencyId);
 

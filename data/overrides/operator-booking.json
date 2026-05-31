@@ -8,6 +8,31 @@
       "Basel SBB": "Basel"
     }
   },
+  "VR": {
+    "urlTemplate": "https://www.vr.fi/en/single-ticket-outbound-search-results?from={origin}&to={dest}",
+    "requireStationMapping": true,
+    "stationNames": {
+      "Helsinki / Helsingfors":  "HKI",
+      "Rovaniemi":               "ROI",
+      "Kemijärvi":               "KJÄ",
+      "Turku satama / Åbo hamn": "TUS",
+      "Kolari":                  "KLI"
+    }
+  },
+  "RJ": {
+    "urlTemplate": "https://regiojet.com/?fromLocationId={origin}&fromLocationType=CITY&toLocationId={dest}&toLocationType=CITY",
+    "requireStationMapping": true,
+    "stationNames": {
+      "Praha hl.n.": "10202003",
+      "Chop":        "7122881001"
+    }
+  },
+  "SNCF": { "bookingPageUrl": "https://www.sncf-connect.com/en-en/train-ticket" },
+  "MÁV":  { "bookingPageUrl": "https://jegy.mav.hu/" },
+  "GWR":  { "bookingPageUrl": "https://www.gwr.com/travelling-with-us/night-riviera-sleeper" },
+  "CR":   { "bookingPageUrl": "https://www.12306.cn/en/" },
+  "GR":   { "bookingPageUrl": "https://tre.ge/en" },
+  "ADY":  { "bookingPageUrl": "https://biletonline.ady.az/en" },
   "ES": {
     "urlTemplate": "https://booking.europeansleeper.eu/en?departureStation={origin}&arrivalStation={dest}",
     "dealsUrl": "https://www.europeansleeper.eu/last-minutes-berlin-prague",

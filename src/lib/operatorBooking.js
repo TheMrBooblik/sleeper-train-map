@@ -74,3 +74,14 @@ export function getDealsLink(agencyId) {
     label: booking.dealsLabel || "View deals",
   };
 }
+
+/**
+ * Returns a curated booking-page URL for operators that lack a deep-link
+ * template but have a better entry point than their generic agency homepage
+ * (e.g. SNCF booking is sncf-connect.com, not sncf.com; MÁV is jegy.mav.hu).
+ * Returns null when nothing is configured so callers fall back to agencyUrl.
+ */
+export function getBookingPageUrl(agencyId) {
+  const booking = getOperatorBooking(agencyId);
+  return booking?.bookingPageUrl ?? null;
+}
