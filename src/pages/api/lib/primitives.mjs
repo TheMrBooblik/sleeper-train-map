@@ -43,16 +43,16 @@ export function isTrain4you(item = {}, tripName = "") {
 }
 
 // ─── Station name aliases (NightJet German names → canonical BoT names) ──────
-// Data now lives in data/overrides/station-aliases.json (editable through the
-// admin panel). Keys are lowercase alias names; values are canonical BoT names.
+// Data lives in data/overrides/station-aliases.json (editable through the admin
+// panel). Keys are lowercase alias names; values are canonical BoT names.
+//
+// Imported via ESM JSON import attribute so the bundler inlines the file into
+// the lambda — avoids the Vercel "ENOENT" trap where data/ is outside public/
+// and isn't traced into the function bundle. Works equally in raw Node 20.6+
+// (used by scripts/canonicalize.mjs).
+import STATION_ALIASES from "../../../../data/overrides/station-aliases.json" with { type: "json" };
 
-import { readFileSync } from "fs";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const _aliasPath = resolve(__dirname, "../../../../data/overrides/station-aliases.json");
-export const STATION_ALIASES = JSON.parse(readFileSync(_aliasPath, "utf8"));
+export { STATION_ALIASES };
 
 export function resolveCanonicalStationName(name) {
   if (!name) return name;
