@@ -22,6 +22,10 @@ jobs:
 
       - run: npm run scrape
 
+      # Refresh PKP GTFS-derived polylines from mkuran.pl, intersected with the
+      # PKP / PKP-ČD train numbers that the BoT scrape above just pulled.
+      - run: npm run parse-pkp-gtfs
+
       # Pre-merge the scraped sources into the published dataset that
       # /api/initial-data serves directly (falls back to on-the-fly merge if absent).
       - run: npm run canonicalize
@@ -29,6 +33,6 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: daily data scrape [skip ci]"
-          file_pattern: "public/data/scraped/*.json public/data/published/*.json"
+          file_pattern: "public/data/scraped/*.json public/data/published/*.json public/data/gtfs/*.json"
         env:
           HUSKY: "0"
