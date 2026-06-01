@@ -47,6 +47,9 @@ export const normalizeStationNameForLookup = (stationName) => {
     .replace(/,\s+/g, " ")                   // "Poprad, Tatry"     → "Poprad Tatry"
     .replace(/\s+hlavní\s+nádraží\s*$/i, " hl.n.")  // "Pardubice hlavní nádraží" → "Pardubice hl.n."
     .replace(/\s+hlavni\s+nadrazi\s*$/i, " hl.n.")   // ASCII diacritic-free variant
+    // BoT misspells Katowice (Poland) as "Katovice" in Bohumín-route via fields.
+    // The stops list has a Czech village "Katovice" near Písek — wrong coordinates.
+    .replace(/\bKatovice\b/g, "Katowice")
     .trim();
 
   return normalized;
