@@ -37,6 +37,14 @@ function filterTrips(data) {
   return filtered;
 }
 
+// BoT source data misspells the Polish city "Katowice" as "Katovice" in some
+// via fields. "Katovice" (Czech village near Písek) resolves to wrong coordinates
+// and wrong display text. Fix both by substituting at the data level.
+function sanitizeVia(str) {
+  if (!str) return str;
+  return str.replace(/\bKatovice\b/g, "Katowice");
+}
+
 // view_ontd_map rows often lack is_active; trips.json is authoritative per
 // service. If every trip for a route_id is inactive (filtered out), hide the row.
 function filterViewMap(data, rawTrips, filteredTrips) {
@@ -59,7 +67,11 @@ function filterViewMap(data, rawTrips, filteredTrips) {
     ) {
       return;
     }
-    filtered[key] = route;
+    filtered[key] = {
+      ...route,
+      via_0: sanitizeVia(route.via_0),
+      via_1: sanitizeVia(route.via_1),
+    };
   });
   return filtered;
 }

@@ -32,7 +32,7 @@ async function verifyToken(token, secret) {
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith('/data')) {
+  if (pathname === '/data') {
     const token = request.cookies.get(COOKIE)?.value;
     const valid = await verifyToken(token, process.env.ADMIN_SESSION_SECRET);
     if (!valid) {
@@ -44,5 +44,6 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/data/:path*'],
+  // Only protect the /data admin page, not the public static files under /data/*
+  matcher: ['/data'],
 };
