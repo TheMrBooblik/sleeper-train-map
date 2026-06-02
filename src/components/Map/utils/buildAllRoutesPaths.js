@@ -93,7 +93,10 @@ export function buildAllRoutesPaths({
     const lon = parseCoord(stop.stop_lon);
     if (lat == null || lon == null) return;
     const n = getCachedNormalizedName(stop.stop_id);
-    if (!stationCoordsMap.has(n)) {
+    // Prefer stops whose stop_id exactly equals the normalized key so that a
+    // canonical stop (e.g. "Katowice", Poland) is not shadowed by an earlier
+    // stop that merely normalises to the same key (e.g. "Katovice", Czech village).
+    if (!stationCoordsMap.has(n) || stop.stop_id === n) {
       stationCoordsMap.set(n, [lat, lon]);
     }
     if (!stationCoordsMap.has(stop.stop_id)) {
