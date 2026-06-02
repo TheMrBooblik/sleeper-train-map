@@ -31,7 +31,7 @@ function filterTrips(data) {
     ).toString();
     const isT4y = isTrain4you(trip, tripName);
     if (!isT4y) {
-      filtered[key] = trip;
+      filtered[key] = trip.via ? { ...trip, via: sanitizeVia(trip.via) } : trip;
     }
   });
   return filtered;

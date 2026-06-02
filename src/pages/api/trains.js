@@ -20,6 +20,13 @@ export {
 
 const BLOB_SUPPORTED_TYPES = ["stops", "view_ontd_map", "trips"];
 
+// BoT source data misspells the Polish city "Katowice" as "Katovice" in some
+// via fields. Fix at the API layer so every consumer sees the corrected name.
+function sanitizeVia(str) {
+  if (!str) return str;
+  return str.replace(/\bKatovice\b/g, "Katowice");
+}
+
 /** Same rules as the trips response: inactive + NJ/EN/T4y removed. */
 function filterTripsTrainsResponse(data) {
   const filtered = {};
@@ -103,7 +110,11 @@ export default async function handler(req, res) {
         ) {
           return;
         }
-        filtered[key] = route;
+        filtered[key] = {
+          ...route,
+          via_0: sanitizeVia(route.via_0),
+          via_1: sanitizeVia(route.via_1),
+        };
       });
       jsonData = filtered;
     } else {
@@ -114,6 +125,12 @@ export default async function handler(req, res) {
       // Train4you: don't show stations only with Train4you or its routes
       if (type === "trips") {
         jsonData = filterTripsTrainsResponse(jsonData);
+        // Fix BoT misspelling in trip via fields (e.g. "Katovice" → "Katowice").
+        const sanitized = {};
+        Object.entries(jsonData).forEach(([k, trip]) => {
+          sanitized[k] = trip.via ? { ...trip, via: sanitizeVia(trip.via) } : trip;
+        });
+        jsonData = sanitized;
       }
     }
 
