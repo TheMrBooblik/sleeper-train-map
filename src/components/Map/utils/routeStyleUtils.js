@@ -538,15 +538,15 @@ export function isRegioJetRoute(route) {
 export const REGIOJET_COLOR = "#F0AB00";
 
 /**
- * Hide route in lists/markers when: (1) irregularities have a future "From YYYY-MM-DD", or
- * (2) every trip uses a service_id calendar range (YYYY/MM/DD-YYYY/MM/DD) and today is outside all ranges.
- * Map polylines: future "From" still draw as ghost lines; seasonal-outside routes are omitted (see useRoutePaths).
+ * Hide route in lists/markers when every trip uses a service_id calendar range
+ * (YYYY/MM/DD-YYYY/MM/DD) and today is outside all ranges.
+ * Future routes (those with a "From YYYY-MM-DD" or "Postponed to YYYY" date) are
+ * shown as normal lines; the tooltip carries the "opens [date]" text.
  * @param {string} routeId - Route ID
  * @param {Object} trips - Trips data
  * @returns {boolean}
  */
 export function shouldHideRouteDueToFutureDate(routeId, trips) {
-  if (getFutureRouteStartDate(routeId, trips) !== null) return true;
   if (isRouteOutsideServiceIdSeason(routeId, trips)) return true;
   return false;
 }

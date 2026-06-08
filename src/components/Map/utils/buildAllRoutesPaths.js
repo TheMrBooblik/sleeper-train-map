@@ -20,7 +20,6 @@ import {
   checkWarszawaBudapestRoute,
   getFutureRouteStartDate,
   isRouteOutsideServiceIdSeason,
-  MAP_LEGEND_LINE_BASE_STYLES,
 } from "./routeStyleUtils";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "./operatorColors";
 import { parseCoord } from "../../../helpers/enrichStationsWithCoordinates";
@@ -153,10 +152,7 @@ export function buildAllRoutesPaths({
     const isFuture = futureStartDate !== null;
 
     const routeColor = routeColorMap.get(routeId) || NEUTRAL_FALLBACK_COLOR;
-    // Future routes: thin dashed ghost line so they're visible but clearly distinct
-    const style = isFuture
-      ? { ...MAP_LEGEND_LINE_BASE_STYLES.futureGhost }
-      : getRouteStyleFromFrequency(routeId, trips);
+    const style = getRouteStyleFromFrequency(routeId, trips);
     const pathOptions = {
       color: routeColor,
       weight: style.weight,

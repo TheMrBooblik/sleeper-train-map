@@ -658,9 +658,6 @@ const TrainMap = ({
                   eventHandlers={{
                     click: (e) => {
                       e.originalEvent.stopPropagation();
-                      if (path.isFuture) {
-                        return;
-                      }
                       handlePolylineClick(path.routeId);
                     },
                   }}
