@@ -177,7 +177,7 @@ function appendSyntheticRoutes(
         .join(" - "),
       route_long_name: `${origin} – ${dest}`,
       ...(withService ? { service_id_0: data.frequency || null } : {}),
-      nj_polyline: data.polyline,
+      nj_polyline_0: data.polyline || null,
       is_active: "Y",
     };
     if (reversePair) {
@@ -193,6 +193,7 @@ function appendSyntheticRoutes(
         .filter(Boolean)
         .join(" - ");
       if (withService) entry.service_id_1 = revData.frequency || null;
+      entry.nj_polyline_1 = revData.polyline || null;
       paired.add(revName);
     }
     paired.add(lineName);

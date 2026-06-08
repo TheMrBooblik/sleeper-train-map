@@ -194,10 +194,14 @@ export function buildAllRoutesPaths({
       pathOptions.color = PKP_COLOR;
     }
 
-    // Official NJ/EN polyline takes precedence over station-name-based coords
-    if (route.nj_polyline) {
+    // Official NJ/EN polyline takes precedence over station-name-based coords.
+    // nj_polyline_0/1 store per-direction paths (trains that take different
+    // physical routes in each direction). Fall back to legacy nj_polyline for
+    // old published files.
+    const njPoly0 = route.nj_polyline_0 ?? route.nj_polyline;
+    if (njPoly0) {
       paths.push({
-        positions: polyline.decode(route.nj_polyline),
+        positions: polyline.decode(njPoly0),
         routeId,
         key: `route-${stationKey}-${routeId}-0`,
         pathOptions,
@@ -206,6 +210,18 @@ export function buildAllRoutesPaths({
         futureStartDate,
         source: "nightjet",
       });
+      if (route.nj_polyline_1) {
+        paths.push({
+          positions: polyline.decode(route.nj_polyline_1),
+          routeId,
+          key: `route-${stationKey}-${routeId}-1`,
+          pathOptions,
+          osmRelationId: null,
+          isFuture,
+          futureStartDate,
+          source: "nightjet",
+        });
+      }
     } else {
       const gtfs0 =
         route.pkp_gtfs_positions_0?.length >= 2
