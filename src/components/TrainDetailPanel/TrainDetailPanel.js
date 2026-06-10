@@ -21,6 +21,7 @@ import {
   getPricingBadgeStyle,
 } from "../../lib/operatorPricing";
 import BookingActions from "./BookingActions";
+import SuggestEditModal from "../SuggestEdit/SuggestEditModal";
 
 const GTFS_ROUTE_KIND = {
   chop: "chop",
@@ -163,6 +164,7 @@ const TrainDetailPanel = ({
   const [caucasusTrainData, setCaucasusTrainData] = useState(null);
   const [caucasusLoadFailed, setCaucasusLoadFailed] = useState(false);
   const [caucasusLoading, setCaucasusLoading] = useState(false);
+  const [suggestContext, setSuggestContext] = useState(null);
 
   // IMPORTANT: `useRoutes()` fetches `/api/trains?type=view_ontd_map` which filters out NJ/EN.
   // For NJ/EN fallback we must use unfiltered `viewMapData` from `/api/initial-data` when provided.
@@ -1149,6 +1151,21 @@ const TrainDetailPanel = ({
                       dest={trip.trip_headsign}
                       pricing={pricing}
                     />
+
+                    {/* Community corrections feed the admin review queue */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSuggestContext({
+                          routeKey: trip.route_id != null ? String(trip.route_id) : null,
+                          trainName: trip.trip_short_name || null,
+                          agencyId: trip.agency_id || null,
+                        })
+                      }
+                      className="w-full text-center text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2 pt-1"
+                    >
+                      Suggest an edit / report wrong data
+                    </button>
                   </div>
                 );
               })}
@@ -1156,6 +1173,13 @@ const TrainDetailPanel = ({
           )}
         </div>
       </div>
+
+      {suggestContext && (
+        <SuggestEditModal
+          context={suggestContext}
+          onClose={() => setSuggestContext(null)}
+        />
+      )}
     </>
   );
 };

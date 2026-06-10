@@ -8,8 +8,9 @@ import RoutesTab from "../components/Admin/RoutesTab";
 import OverridesTab from "../components/Admin/OverridesTab";
 import OperatorsTab from "../components/Admin/OperatorsTab";
 import StationsTab from "../components/Admin/StationsTab";
+import ReviewTab from "../components/Admin/ReviewTab";
 
-const TABS = ["Data Sources", "Timetables", "Routes", "Operators", "Stations", "Overrides"];
+const TABS = ["Review", "Data Sources", "Timetables", "Routes", "Operators", "Stations", "Overrides"];
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 
@@ -291,7 +292,18 @@ function DataSourcesTab() {
 
 export default function DataPage() {
   const [activeTab, setActiveTab] = useState(TABS[0]);
+  const [pendingCount, setPendingCount] = useState(null);
   const router = useRouter();
+
+  // Badge count for the Review tab (refreshed by the tab itself once open).
+  useEffect(() => {
+    fetch("/api/admin/proposals")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (json?.proposals) setPendingCount(json.proposals.length);
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -312,7 +324,7 @@ export default function DataPage() {
       {/* Tab strip */}
       <div className="border-b border-gray-200 bg-white sticky top-[var(--header-height,48px)] z-50">
         <div className="max-w-2xl mx-auto px-4">
-          <nav className="flex gap-0" aria-label="Tabs">
+          <nav className="flex gap-0 overflow-x-auto" aria-label="Tabs">
             {TABS.map((tab) => (
               <button
                 key={tab}
@@ -324,6 +336,11 @@ export default function DataPage() {
                 }`}
               >
                 {tab}
+                {tab === "Review" && pendingCount > 0 && (
+                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] font-semibold rounded-full bg-red-500 text-white align-middle">
+                    {pendingCount}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
@@ -331,6 +348,7 @@ export default function DataPage() {
       </div>
 
       <main className="max-w-2xl mx-auto px-4 py-6">
+        {activeTab === "Review" && <ReviewTab onPendingCount={setPendingCount} />}
         {activeTab === "Data Sources" && <DataSourcesTab />}
         {activeTab === "Timetables" && <TimetablesTab />}
         {activeTab === "Routes" && <RoutesTab />}

@@ -263,6 +263,10 @@ export default function AboutPage() {
               Open the Map
               <FaArrowRight className="w-4 h-4" />
             </Link>
+            <p className="mt-6 text-sm text-white/40">
+              Spotted wrong data or a missing train? Open it on the map and use
+              “Suggest an edit” — every suggestion is reviewed before it goes live.
+            </p>
           </div>
         </section>
 
