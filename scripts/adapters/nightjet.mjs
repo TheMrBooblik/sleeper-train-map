@@ -130,5 +130,6 @@ export async function run(entry, ctx) {
 
   ctx.write(entry.output, { uploadedAt: ctx.today, trains: results });
   console.log(`[scrape] stored ${Object.keys(results).length} NJ/EN trains`);
-  ctx.shared.njTrains = results;
+  // Use what was actually persisted (sticky merge may retain extra trains).
+  ctx.shared.njTrains = ctx.writtenTrains?.[entry.output] ?? results;
 }

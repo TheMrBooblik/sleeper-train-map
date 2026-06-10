@@ -24,7 +24,18 @@ jobs:
 
       # Pre-merge the scraped sources into the published dataset that
       # /api/initial-data serves directly (falls back to on-the-fly merge if absent).
+      # Routes/stations not yet approved in data/canonical/state/seen.json are
+      # withheld here (review gate).
       - run: npm run canonicalize
+
+      # Classify tonight's changes: new trains/stations file proposals on the
+      # `proposals` branch (reviewed in /data) and update the seen index.
+      # Best-effort — a classify failure must not block the data refresh.
+      - name: Classify changes → review queue
+        run: node scripts/classify-changes.mjs
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Refresh PKP GTFS shapes on Mondays so seasonal summer trains get picked
       # up when PKP Intercity adds them to the live GTFS feed (mkuran.pl).
@@ -37,6 +48,6 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: daily data scrape [skip ci]"
-          file_pattern: "public/data/scraped/*.json public/data/published/*.json public/data/gtfs/pkpTrainShapes.json"
+          file_pattern: "public/data/scraped/*.json public/data/published/*.json public/data/gtfs/pkpTrainShapes.json data/canonical/state/*.json"
         env:
           HUSKY: "0"

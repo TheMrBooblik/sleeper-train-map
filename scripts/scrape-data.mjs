@@ -26,6 +26,56 @@ function write(filename, data) {
   console.log(`[scrape] wrote ${filename}`);
 }
 
+// ─── Sticky trains merge ────────────────────────────────────────────────────
+// Operator APIs are flaky: a train missing from one night's fetch is usually
+// an upstream hiccup, not a discontinued service. For per-source trains files
+// we retain yesterday's entries for up to 7 days (stamped lastSeenAt) before
+// letting them drop — the classifier files an FYI when one really goes away.
+
+const STICKY_RETAIN_MS = 7 * 24 * 60 * 60 * 1000;
+
+function stickyMergeTrains(filename, data) {
+  if (!data || typeof data !== "object" || !data.trains) return data;
+
+  let previous = null;
+  try {
+    previous = JSON.parse(fs.readFileSync(path.join(DATA_DIR, filename), "utf8"));
+  } catch {
+    return stampLastSeen(data);
+  }
+
+  const prevTrains = previous?.data?.trains ?? {};
+  const prevUploadedAt = previous?.uploadedAt ?? null;
+  const nowIso = new Date().toISOString();
+  const merged = {};
+
+  for (const [key, train] of Object.entries(data.trains)) {
+    merged[key] = { ...train, lastSeenAt: nowIso };
+  }
+  let retained = 0;
+  for (const [key, train] of Object.entries(prevTrains)) {
+    if (key in merged) continue;
+    const lastSeen = train.lastSeenAt || prevUploadedAt;
+    if (lastSeen && Date.now() - Date.parse(lastSeen) <= STICKY_RETAIN_MS) {
+      merged[key] = { ...train, lastSeenAt: lastSeen };
+      retained++;
+    }
+  }
+  if (retained > 0) {
+    console.log(`[scrape] ${filename}: retained ${retained} train(s) missing from tonight's fetch`);
+  }
+  return { ...data, trains: merged };
+}
+
+function stampLastSeen(data) {
+  const nowIso = new Date().toISOString();
+  const trains = {};
+  for (const [key, train] of Object.entries(data.trains)) {
+    trains[key] = { ...train, lastSeenAt: nowIso };
+  }
+  return { ...data, trains };
+}
+
 // ─── Post-step: NightJet ⇄ Back-on-Track view map merge ────────────────────
 // Runs after all adapters: merges official NJ polylines into the BoT view map
 // and adds synthetic rows for NJ/EN trains BoT doesn't know about, then writes
@@ -121,7 +171,30 @@ async function main() {
 
   const errors = [];
   const today = new Date().toISOString().slice(0, 10);
-  const ctx = { today, write, errors, shared: {}, rootDir: ROOT_DIR };
+
+  // Per-source trains files get the sticky merge; raw datasets write as-is.
+  // The merged result is exposed on ctx.writtenTrains so adapters/post-steps
+  // operate on exactly what was persisted (including retained trains).
+  const stickyFiles = new Set(
+    registry.filter((e) => e.enabled && e.output).map((e) => e.output),
+  );
+  const writtenTrains = {};
+  const writeWithSticky = (filename, data) => {
+    const finalData = stickyFiles.has(filename)
+      ? stickyMergeTrains(filename, data)
+      : data;
+    if (finalData?.trains) writtenTrains[filename] = finalData.trains;
+    write(filename, finalData);
+  };
+
+  const ctx = {
+    today,
+    write: writeWithSticky,
+    writtenTrains,
+    errors,
+    shared: {},
+    rootDir: ROOT_DIR,
+  };
 
   console.log(`[scrape] starting — date: ${today}`);
 

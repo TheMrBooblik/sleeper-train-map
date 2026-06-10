@@ -15,6 +15,9 @@ import {
 } from "./lib/file-store";
 import { buildInitialData } from "./lib/build-initial-data.mjs";
 import SOURCE_REGISTRY from "../../../data/sources/registry.json" with { type: "json" };
+// Review-gate approval index, bundled at build time. The published fast path
+// is already gated by canonicalize; this covers the on-the-fly fallback merge.
+import SEEN_INDEX from "../../../data/canonical/state/seen.json" with { type: "json" };
 
 // Operator train sources that feed the merge (declared in the registry).
 const TRAIN_SOURCE_ENTRIES = SOURCE_REGISTRY.filter(
@@ -99,6 +102,7 @@ export default async function handler(req, res) {
       viewMap: rawViewMap,
       trips: rawTrips,
       operatorTrains,
+      seenIndex: SEEN_INDEX,
     });
 
     setCacheHeaders(res);

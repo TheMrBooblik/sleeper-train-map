@@ -30,6 +30,17 @@ function readEnvelope(name) {
   }
 }
 
+// Approval index for the review gate (null = gate off, everything flows).
+function readSeenIndex() {
+  try {
+    return JSON.parse(
+      fs.readFileSync(path.join(ROOT, "data", "canonical", "state", "seen.json"), "utf8"),
+    );
+  } catch {
+    return null;
+  }
+}
+
 function trainsOf(envelope) {
   return envelope?.data?.trains ?? {};
 }
@@ -73,22 +84,40 @@ function main() {
     operatorTrains[entry.id] = trainsOf(env);
   }
 
+  const seenIndex = readSeenIndex();
+  const stats = {};
   const payload = buildInitialData({
     stops: stopsEnv.data,
     viewMap: viewMapEnv.data,
     trips: tripsEnv.data,
     operatorTrains,
     registry,
+    seenIndex,
+    stats,
   });
 
   const stopCount = payload.stops.length;
   const routeCount = Object.keys(payload.viewMap).length;
   const tripCount = Object.keys(payload.trips).length;
+  const gatedCount = stats.gatedRouteKeys?.length ?? 0;
 
   // ── Sanity / parity guards ─────────────────────────────────────────────────
   assert(stopCount > 1000, `expected >1000 stops, got ${stopCount}`);
   assert(routeCount > 50, `expected >50 routes, got ${routeCount}`);
   assert(tripCount > 50, `expected >50 trips, got ${tripCount}`);
+
+  // A corrupt/missing approval index must never blank the map: if more than
+  // 10% of routes are gated something is wrong — fail and keep the previous
+  // published file (the site keeps serving yesterday's data).
+  assert(
+    gatedCount <= (routeCount + gatedCount) * 0.1,
+    `review gate withheld ${gatedCount}/${routeCount + gatedCount} routes — suspicious seen.json, refusing to publish`,
+  );
+  if (gatedCount > 0) {
+    console.log(
+      `[canonicalize] review gate withholding ${gatedCount} unapproved route(s): ${stats.gatedRouteKeys.slice(0, 10).join(", ")}`,
+    );
+  }
 
   const syntheticCounts = [];
   for (const entry of trainSourceEntries) {
