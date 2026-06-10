@@ -15,6 +15,8 @@
     "parse-pkp-gtfs": "node scripts/parse-pkp-gtfs.js",
     "verify-pkp-bundle": "node tests/verify-pkp-train-shapes.mjs",
     "verify-overrides": "node tests/verify-overrides-mutate.mjs",
+    "verify-registry": "node tests/verify-registry.mjs",
+    "verify-build-parity": "node tests/verify-build-parity.mjs",
     "verify:route-styles": "node tests/verify-route-style-utils.mjs",
     "test": "playwright test",
     "test:ui": "playwright test --ui",

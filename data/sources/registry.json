@@ -1,0 +1,227 @@
+[
+  {
+    "v": 1,
+    "id": "backontrack",
+    "label": "Back-on-Track",
+    "description": "Community night train dataset scraped from GitHub (back-on-track.eu)",
+    "kind": "backontrack",
+    "adapter": "backontrack",
+    "enabled": true,
+    "official": false,
+    "critical": true,
+    "schedule": "daily",
+    "homepage": "https://back-on-track.eu",
+    "output": null,
+    "outputs": [
+      "backontrack-stops.json",
+      "backontrack-view_ontd_map.json",
+      "backontrack-trips.json"
+    ],
+    "synthetic": null,
+    "params": {
+      "baseUrl": "https://raw.githubusercontent.com/Back-on-Track-eu/night-train-data/main/data/latest"
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
+    "id": "osm",
+    "label": "OpenStreetMap Relations",
+    "description": "Route geometries (polylines) cached from Overpass API",
+    "kind": "osm",
+    "adapter": "osm",
+    "enabled": true,
+    "official": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.openstreetmap.org",
+    "output": null,
+    "synthetic": null,
+    "params": {
+      "relationIds": ["18616102", "3779843", "8737075"]
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
+    "id": "nightjet",
+    "label": "NightJet / EuroNight",
+    "description": "Official ÖBB NightJet API — accurate polylines and timetables",
+    "kind": "json-api",
+    "adapter": "nightjet",
+    "enabled": true,
+    "official": true,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.nightjet.com",
+    "output": "nightjet-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "ÖBB", "operatorName": "Nightjet" },
+    "synthetic": {
+      "idPrefix": "nj_standalone_",
+      "agency": { "from": "fixed", "value": "ÖBB" },
+      "resolveAliases": true,
+      "withService": false,
+      "excludeBotMatched": true,
+      "dedupStrategy": "exact"
+    },
+    "params": {
+      "countryCodes": [80, 81, 83, 84, 85, 88],
+      "concurrency": 6,
+      "maxPartnerTrains": 25
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
+    "id": "cd",
+    "label": "Czech Railways (ČD)",
+    "description": "Official cd.cz EC train timetables",
+    "kind": "html",
+    "adapter": "cd",
+    "enabled": true,
+    "official": true,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.cd.cz",
+    "output": "cd-trains.json",
+    "missingResponse": "404",
+    "agencyDefaults": { "agencyId": "ČD", "operatorName": "Czech Railways" },
+    "synthetic": null,
+    "params": {
+      "trainNumberPrefixes": ["EC", "EN"],
+      "concurrency": 6
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
+    "id": "chinese",
+    "label": "China Railway",
+    "description": "Curated overnight routes (static config — no live API)",
+    "kind": "static-config",
+    "adapter": "static-config",
+    "enabled": true,
+    "official": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.12306.cn",
+    "output": "chinese-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "CR", "operatorName": "China Railway" },
+    "synthetic": {
+      "idPrefix": "cr_",
+      "agency": { "from": "fixed", "value": "CR" },
+      "resolveAliases": false,
+      "withService": false,
+      "excludeBotMatched": false,
+      "dedupStrategy": null
+    },
+    "params": {
+      "configPath": "scripts/chinese-routes-config.json"
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
+    "id": "italian",
+    "label": "Trenitalia ICN",
+    "description": "Official Viaggiatreno API — Intercity Notte timetables",
+    "kind": "json-api",
+    "adapter": "viaggiatreno",
+    "enabled": true,
+    "official": true,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.trenitalia.com",
+    "output": "italian-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "FS", "operatorName": "Trenitalia" },
+    "synthetic": {
+      "idPrefix": "icn_",
+      "agency": { "from": "fixed", "value": "FS" },
+      "resolveAliases": false,
+      "withService": false,
+      "excludeBotMatched": false,
+      "dedupStrategy": "icn"
+    },
+    "params": {
+      "trainNumbers": [
+        719, 752, 754, 755, 757, 758, 763, 764, 765, 770, 771, 774, 775, 788,
+        789, 794, 795, 796, 797, 798, 799, 1930, 1954, 1955, 1956, 1957, 1958,
+        1959, 1960, 1961, 1962, 1963, 1964, 1965
+      ],
+      "concurrency": 4
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
+    "id": "caucasus",
+    "label": "Caucasus Railways",
+    "description": "Georgian Railway, ADY, South Caucasus Railway — static config merged with railway.ge scrape",
+    "kind": "static-config",
+    "adapter": "caucasus",
+    "enabled": true,
+    "official": true,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.railway.ge",
+    "output": "caucasus-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "GR", "operatorName": "Georgian Railway" },
+    "synthetic": {
+      "idPrefix": "caucasus_",
+      "agency": { "from": "data", "fallback": "GR" },
+      "resolveAliases": false,
+      "withService": true,
+      "excludeBotMatched": false,
+      "dedupStrategy": null
+    },
+    "params": {
+      "configPath": "scripts/caucasus-routes-config.json",
+      "scrapeRailwayGe": true
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
+    "id": "pkp-gtfs",
+    "label": "PKP Intercity (Polish GTFS shapes)",
+    "description": "Committed as public/data/gtfs/pkpTrainShapes.json. Regenerate: npm run parse-pkp-gtfs (polish_trains.zip, scoped by BoT PKP trips).",
+    "kind": "gtfs",
+    "adapter": null,
+    "runner": "external",
+    "command": "npm run parse-pkp-gtfs",
+    "enabled": true,
+    "official": false,
+    "critical": false,
+    "schedule": "weekly",
+    "homepage": "https://mkuran.pl/gtfs/",
+    "output": null,
+    "synthetic": null,
+    "params": {
+      "statusFile": "public/data/gtfs/pkpTrainShapes.json"
+    },
+    "freshness": { "ttlHours": 192 }
+  },
+  {
+    "v": 1,
+    "id": "regiojet-gtfs",
+    "label": "RegioJet (GTFS timetables)",
+    "description": "Checked-in artifacts public/data/gtfs/rj*.json. Regenerate manually: npm run parse-gtfs.",
+    "kind": "gtfs",
+    "adapter": null,
+    "runner": "external",
+    "command": "npm run parse-gtfs",
+    "enabled": false,
+    "official": false,
+    "critical": false,
+    "schedule": "manual",
+    "homepage": "https://mkuran.pl/gtfs/",
+    "output": null,
+    "synthetic": null,
+    "params": {},
+    "freshness": null
+  }
+]

@@ -9,14 +9,17 @@
 
 import {
   getBlobData,
-  getNJTrains,
-  getChineseTrains,
-  getItalianTrains,
-  getCaucasusTrains,
+  getTrainsBySource,
   getPublishedInitialData,
   isFresh,
 } from "./lib/file-store";
 import { buildInitialData } from "./lib/build-initial-data.mjs";
+import SOURCE_REGISTRY from "../../../data/sources/registry.json" with { type: "json" };
+
+// Operator train sources that feed the merge (declared in the registry).
+const TRAIN_SOURCE_ENTRIES = SOURCE_REGISTRY.filter(
+  (e) => e.enabled && e.synthetic && e.output,
+);
 
 const BASE_URL =
   "https://raw.githubusercontent.com/Back-on-Track-eu/night-train-data/main/data/latest";
@@ -58,16 +61,18 @@ export default async function handler(req, res) {
     let source = "github";
 
     // Daily-scrape file store first (view_ontd_map already has nj_positions merged).
-    const [blobStops, blobViewMap, blobTrips, njBlob, crBlob, itBlob, caucasusBlob] =
+    const [blobStops, blobViewMap, blobTrips, ...trainBlobs] =
       await Promise.all([
         getBlobData("stops"),
         getBlobData("view_ontd_map"),
         getBlobData("trips"),
-        getNJTrains(),
-        getChineseTrains(),
-        getItalianTrains(),
-        getCaucasusTrains(),
+        ...TRAIN_SOURCE_ENTRIES.map((e) => getTrainsBySource(e.output)),
       ]);
+
+    const operatorTrains = {};
+    TRAIN_SOURCE_ENTRIES.forEach((e, i) => {
+      operatorTrains[e.id] = trainBlobs[i]?.data?.trains ?? {};
+    });
 
     if (
       blobStops && isFresh(blobStops.uploadedAt) &&
@@ -93,10 +98,7 @@ export default async function handler(req, res) {
       stops: rawStops,
       viewMap: rawViewMap,
       trips: rawTrips,
-      njTrains: njBlob?.data?.trains ?? {},
-      crTrains: crBlob?.data?.trains ?? {},
-      itTrains: itBlob?.data?.trains ?? {},
-      caucasusTrains: caucasusBlob?.data?.trains ?? {},
+      operatorTrains,
     });
 
     setCacheHeaders(res);

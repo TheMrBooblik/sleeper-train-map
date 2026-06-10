@@ -5,12 +5,14 @@
 // directly when fresh, so the per-request merge only runs as a fallback.
 //
 // Uses the same buildInitialData() as the live route, so output is identical.
+// Which operator sources feed the merge comes from data/sources/registry.json.
 // Run with: node scripts/canonicalize.mjs  (or: npm run canonicalize)
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildInitialData } from "../src/pages/api/lib/build-initial-data.mjs";
+import { loadRegistry, validateRegistry } from "./lib/registry.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -44,26 +46,39 @@ function countByPrefix(viewMap, prefix) {
 }
 
 function main() {
+  const registry = loadRegistry();
+  const registryProblems = validateRegistry(registry);
+  assert(
+    registryProblems.length === 0,
+    `invalid source registry:\n  ${registryProblems.join("\n  ")}`,
+  );
+
   const stopsEnv = readEnvelope("backontrack-stops.json");
   const viewMapEnv = readEnvelope("backontrack-view_ontd_map.json");
   const tripsEnv = readEnvelope("backontrack-trips.json");
-  const njEnv = readEnvelope("nightjet-trains.json");
-  const crEnv = readEnvelope("chinese-trains.json");
-  const itEnv = readEnvelope("italian-trains.json");
-  const caucasusEnv = readEnvelope("caucasus-trains.json");
 
   assert(stopsEnv, "backontrack-stops.json missing or malformed");
   assert(viewMapEnv, "backontrack-view_ontd_map.json missing or malformed");
   assert(tripsEnv, "backontrack-trips.json missing or malformed");
 
+  // Operator train sources come from the registry (entries with synthetic config)
+  const trainSourceEntries = registry.filter(
+    (e) => e.enabled && e.synthetic && e.output,
+  );
+  const sourceEnvelopes = {};
+  const operatorTrains = {};
+  for (const entry of trainSourceEntries) {
+    const env = readEnvelope(entry.output);
+    sourceEnvelopes[entry.id] = env;
+    operatorTrains[entry.id] = trainsOf(env);
+  }
+
   const payload = buildInitialData({
     stops: stopsEnv.data,
     viewMap: viewMapEnv.data,
     trips: tripsEnv.data,
-    njTrains: trainsOf(njEnv),
-    crTrains: trainsOf(crEnv),
-    itTrains: trainsOf(itEnv),
-    caucasusTrains: trainsOf(caucasusEnv),
+    operatorTrains,
+    registry,
   });
 
   const stopCount = payload.stops.length;
@@ -75,22 +90,17 @@ function main() {
   assert(routeCount > 50, `expected >50 routes, got ${routeCount}`);
   assert(tripCount > 50, `expected >50 trips, got ${tripCount}`);
 
-  const njRoutes = countByPrefix(payload.viewMap, "nj_standalone_");
-  const crRoutes = countByPrefix(payload.viewMap, "cr_");
-  const itRoutes = countByPrefix(payload.viewMap, "icn_");
-  const caucasusRoutes = countByPrefix(payload.viewMap, "caucasus_");
-
-  if (Object.keys(trainsOf(njEnv)).length > 0) {
-    assert(njRoutes > 0, "NJ trains present but no nj_standalone_ routes built");
-  }
-  if (Object.keys(trainsOf(crEnv)).length > 0) {
-    assert(crRoutes > 0, "CR trains present but no cr_ routes built");
-  }
-  if (Object.keys(trainsOf(itEnv)).length > 0) {
-    assert(itRoutes > 0, "Italian trains present but no icn_ routes built");
-  }
-  if (Object.keys(trainsOf(caucasusEnv)).length > 0) {
-    assert(caucasusRoutes > 0, "Caucasus trains present but no caucasus_ routes built");
+  const syntheticCounts = [];
+  for (const entry of trainSourceEntries) {
+    const prefix = entry.synthetic.idPrefix;
+    const count = countByPrefix(payload.viewMap, prefix);
+    syntheticCounts.push(`${entry.id} ${count}`);
+    if (Object.keys(operatorTrains[entry.id]).length > 0) {
+      assert(
+        count > 0,
+        `${entry.id} trains present but no ${prefix} routes built`,
+      );
+    }
   }
 
   // No Train4you should survive the merge.
@@ -110,10 +120,12 @@ function main() {
         stops: stopsEnv?.uploadedAt ?? null,
         viewMap: viewMapEnv?.uploadedAt ?? null,
         trips: tripsEnv?.uploadedAt ?? null,
-        nightjet: njEnv?.uploadedAt ?? null,
-        chinese: crEnv?.uploadedAt ?? null,
-        italian: itEnv?.uploadedAt ?? null,
-        caucasus: caucasusEnv?.uploadedAt ?? null,
+        ...Object.fromEntries(
+          trainSourceEntries.map((e) => [
+            e.id,
+            sourceEnvelopes[e.id]?.uploadedAt ?? null,
+          ]),
+        ),
       },
       data: payload,
     }),
@@ -122,7 +134,7 @@ function main() {
   console.log(
     `[canonicalize] wrote published/initial-data.json — ` +
       `${stopCount} stops, ${routeCount} routes, ${tripCount} trips ` +
-      `(synthetic: NJ ${njRoutes}, CR ${crRoutes}, ICN ${itRoutes}, Caucasus ${caucasusRoutes})`,
+      `(synthetic: ${syntheticCounts.join(", ")})`,
   );
 }
 
