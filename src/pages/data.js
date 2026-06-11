@@ -13,6 +13,10 @@ import SourcesTab from "../components/Admin/SourcesTab";
 
 const TABS = ["Review", "Data Sources", "Registry", "Timetables", "Routes", "Operators", "Stations", "Overrides"];
 
+// Pointer on every interactive control; disabled buttons keep not-allowed from their own classes.
+const ADMIN_INTERACTIVE =
+  "[&_button:not(:disabled)]:cursor-pointer [&_a]:cursor-pointer [&_select]:cursor-pointer [&_label:has(input)]:cursor-pointer";
+
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 function AdminHeader({ onLogout }) {
@@ -312,7 +316,7 @@ export default function DataPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
+    <div className={`h-screen flex flex-col overflow-hidden bg-gray-50 ${ADMIN_INTERACTIVE}`}>
       <Head>
         <title>Admin – Pingwi</title>
         <link
