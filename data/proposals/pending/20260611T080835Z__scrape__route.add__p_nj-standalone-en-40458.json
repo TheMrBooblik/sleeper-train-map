@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-40458",
+  "createdAt": "2026-06-11T08:08:35.142Z",
+  "source": "scrape",
+  "sourceDetail": "nj",
+  "kind": "route.add",
+  "title": "New train: EN 40458 (Praha hl.n. – Zürich HB)",
+  "summary": "Route \"nj_standalone_EN_40458\" appeared in tonight's scrape and is withheld from the map until approved. Via: Praha-Holešovice - Usti nad Labem hl.n. - Decín Hauptbahnhof - Schöna Staatsgrenze - Bad Schandau - Dresden Hbf - Dresden-Neustadt - Riesa - Leipzig Hbf - Fulda - Frankfurt (Main) Süd - Mannheim Hbf - Karlsruhe Hbf - Baden-Baden - Offenburg - Freiburg (Breisgau) Hbf - Basel Bad Bf - Basel SBB",
+  "target": {
+    "routeKey": "nj_standalone_EN_40458",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "EN 40458",
+    "returnTrain": "EN 40459",
+    "origin": "Praha hl.n.",
+    "destination": "Zürich HB",
+    "operator": "ÖBB",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "nj_standalone_EN_40458"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
