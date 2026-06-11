@@ -297,10 +297,69 @@ throws("unknown action rejected", () =>
   applyOverrideMutation("station-coordinates", "frobnicate", { name: "X" }, {}),
 );
 
+// source-registry (array of entries keyed by id)
+const REGISTRY_FIXTURE = [
+  { id: "nightjet", enabled: true, params: { countryCodes: [80] } },
+  { id: "cd", enabled: true, params: {} },
+];
+check("registry setEnabled toggles one entry", () => {
+  const out = applyOverrideMutation(
+    "source-registry",
+    "setEnabled",
+    { id: "cd", enabled: false },
+    REGISTRY_FIXTURE,
+  );
+  assert.strictEqual(out.find((e) => e.id === "cd").enabled, false);
+  assert.strictEqual(out.find((e) => e.id === "nightjet").enabled, true);
+});
+check("registry setParams replaces params", () => {
+  const out = applyOverrideMutation(
+    "source-registry",
+    "setParams",
+    { id: "nightjet", params: { countryCodes: [80, 81] } },
+    REGISTRY_FIXTURE,
+  );
+  assert.deepStrictEqual(out.find((e) => e.id === "nightjet").params, {
+    countryCodes: [80, 81],
+  });
+});
+check("registry set upserts an entry", () => {
+  const entry = { id: "new-src", enabled: false, params: {} };
+  const out = applyOverrideMutation(
+    "source-registry",
+    "set",
+    { id: "new-src", entry },
+    REGISTRY_FIXTURE,
+  );
+  assert.strictEqual(out.length, 3);
+  assert.deepStrictEqual(out[2], entry);
+});
+check("registry remove deletes an entry", () => {
+  const out = applyOverrideMutation(
+    "source-registry",
+    "remove",
+    { id: "cd" },
+    REGISTRY_FIXTURE,
+  );
+  assert.deepStrictEqual(out.map((e) => e.id), ["nightjet"]);
+});
+throws("registry setEnabled rejects unknown id", () =>
+  applyOverrideMutation("source-registry", "setEnabled", { id: "nope", enabled: true }, REGISTRY_FIXTURE),
+);
+throws("registry setEnabled rejects non-boolean", () =>
+  applyOverrideMutation("source-registry", "setEnabled", { id: "cd", enabled: "yes" }, REGISTRY_FIXTURE),
+);
+throws("registry setParams rejects non-object params", () =>
+  applyOverrideMutation("source-registry", "setParams", { id: "cd", params: [1] }, REGISTRY_FIXTURE),
+);
+throws("registry set rejects id mismatch", () =>
+  applyOverrideMutation("source-registry", "set", { id: "cd", entry: { id: "other" } }, REGISTRY_FIXTURE),
+);
+
 // every declared file path looks sane
-check("OVERRIDE_FILES paths are under data/overrides/", () => {
+check("OVERRIDE_FILES paths live under data/ and are JSON", () => {
   for (const p of Object.values(OVERRIDE_FILES)) {
-    assert.ok(p.startsWith("data/overrides/") && p.endsWith(".json"), p);
+    assert.ok(p.startsWith("data/") && p.endsWith(".json"), p);
   }
 });
 

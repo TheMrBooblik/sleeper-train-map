@@ -9,8 +9,9 @@ import OverridesTab from "../components/Admin/OverridesTab";
 import OperatorsTab from "../components/Admin/OperatorsTab";
 import StationsTab from "../components/Admin/StationsTab";
 import ReviewTab from "../components/Admin/ReviewTab";
+import SourcesTab from "../components/Admin/SourcesTab";
 
-const TABS = ["Review", "Data Sources", "Timetables", "Routes", "Operators", "Stations", "Overrides"];
+const TABS = ["Review", "Data Sources", "Registry", "Timetables", "Routes", "Operators", "Stations", "Overrides"];
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 
@@ -350,6 +351,7 @@ export default function DataPage() {
       <main className="max-w-2xl mx-auto px-4 py-6">
         {activeTab === "Review" && <ReviewTab onPendingCount={setPendingCount} />}
         {activeTab === "Data Sources" && <DataSourcesTab />}
+        {activeTab === "Registry" && <SourcesTab />}
         {activeTab === "Timetables" && <TimetablesTab />}
         {activeTab === "Routes" && <RoutesTab />}
         {activeTab === "Operators" && <OperatorsTab />}

@@ -13,6 +13,9 @@ export const OVERRIDE_FILES = {
   "operator-pricing": "data/overrides/operator-pricing.json",
   "operator-booking": "data/overrides/operator-booking.json",
   "station-aliases": "data/overrides/station-aliases.json",
+  // The source registry rides the same admin write path (array of entries,
+  // mutated by entry id). Scrapes pick changes up on the next nightly run.
+  "source-registry": "data/sources/registry.json",
 };
 
 function invalid(message) {
@@ -189,6 +192,44 @@ export function applyOverrideMutation(resource, action, payload, current) {
         default:
           throw invalid(`unknown action "${action}" for ${resource}`);
       }
+    }
+
+    // Source registry: array of source entries keyed by `id` (see
+    // scripts/lib/registry.mjs for the schema; the endpoint re-validates the
+    // result with validateRegistry before committing).
+    case "source-registry": {
+      const arr = Array.isArray(next) ? next : [];
+      const id = requireString(p.id, "id");
+      const index = arr.findIndex((e) => e?.id === id);
+
+      if (action === "setEnabled") {
+        if (index === -1) throw invalid(`unknown source: ${id}`);
+        if (typeof p.enabled !== "boolean") throw invalid('"enabled" must be boolean');
+        arr[index] = { ...arr[index], enabled: p.enabled };
+        return arr;
+      }
+      if (action === "setParams") {
+        if (index === -1) throw invalid(`unknown source: ${id}`);
+        if (p.params == null || typeof p.params !== "object" || Array.isArray(p.params)) {
+          throw invalid('"params" must be an object');
+        }
+        arr[index] = { ...arr[index], params: p.params };
+        return arr;
+      }
+      if (action === "set") {
+        if (p.entry == null || typeof p.entry !== "object" || p.entry.id !== id) {
+          throw invalid('"entry" must be an object with a matching id');
+        }
+        if (index === -1) arr.push(p.entry);
+        else arr[index] = p.entry;
+        return arr;
+      }
+      if (action === "remove") {
+        if (index === -1) throw invalid(`unknown source: ${id}`);
+        arr.splice(index, 1);
+        return arr;
+      }
+      throw invalid(`unknown action "${action}" for ${resource}`);
     }
 
     // Station aliases: flat { "lowercase alias": "Canonical Name" } object.

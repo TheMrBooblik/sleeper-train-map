@@ -12,6 +12,7 @@
 // the same admin_session cookie itself before doing anything.
 
 import { OVERRIDE_FILES, applyOverrideMutation } from "../lib/overrides-mutate.mjs";
+import { validateRegistry } from "../../../../scripts/lib/registry.mjs";
 import { SESSION_COOKIE, verifySessionToken } from "../../../lib/adminAuth";
 import {
   commitBranch,
@@ -84,6 +85,17 @@ export default async function handler(req, res) {
 
     // Apply the mutation (pure; validates input).
     const updated = applyOverrideMutation(resource, action, payload, existing.json);
+
+    // A broken registry would take down the nightly scrape — re-validate the
+    // whole document before committing, not just the mutated entry.
+    if (resource === "source-registry") {
+      const problems = validateRegistry(updated);
+      if (problems.length) {
+        return res
+          .status(400)
+          .json({ error: `Invalid registry: ${problems.join("; ")}` });
+      }
+    }
 
     // Commit the result.
     const put = await putJsonFile(

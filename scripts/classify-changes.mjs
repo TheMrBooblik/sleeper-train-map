@@ -18,10 +18,12 @@ import { fileURLToPath } from "node:url";
 import { buildInitialData } from "../src/pages/api/lib/build-initial-data.mjs";
 import {
   PENDING_DIR,
+  RESOLVED_DIR,
   encodeProposalFilename,
   parseProposalFilename,
 } from "../src/pages/api/lib/proposals.mjs";
 import {
+  deleteFile,
   ensureBranch,
   isGithubWriteConfigured,
   listDir,
@@ -184,6 +186,35 @@ async function main() {
     `[classify] seen index updated — ${Object.keys(result.nextSeen.routes).length} routes, ` +
       `${Object.keys(result.nextSeen.injectedStations).length} injected stations tracked`,
   );
+
+  if (githubReady) await pruneResolved(slug, branch);
+}
+
+// Queue hygiene: resolved proposals older than 30 days are deleted (the
+// decision itself lives on in the apply commits on main). Capped per run.
+const PRUNE_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
+const PRUNE_BATCH = 20;
+
+async function pruneResolved(slug, branch) {
+  const listing = await listDir(slug, branch, RESOLVED_DIR);
+  if (listing.error) return;
+  const stale = listing.entries
+    .filter((entry) => {
+      const meta = parseProposalFilename(entry.name);
+      return meta && Date.now() - Date.parse(meta.createdAt) > PRUNE_AFTER_MS;
+    })
+    .slice(0, PRUNE_BATCH);
+  for (const entry of stale) {
+    const removed = await deleteFile(
+      slug,
+      branch,
+      entry.path,
+      `chore(proposals): prune ${entry.name}`,
+      entry.sha,
+    );
+    if (removed.error) console.warn(`[classify] prune: failed to ${removed.error}`);
+  }
+  if (stale.length) console.log(`[classify] pruned ${stale.length} resolved proposal(s)`);
 }
 
 main().catch((err) => {
