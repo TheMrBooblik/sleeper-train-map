@@ -139,6 +139,70 @@ function readCsv(filePath) {
   });
 }
 
+/**
+ * Format a GTFS time string ("HH:MM:SS", possibly >= 24h for after-midnight)
+ * into a short "HH:MM" wall-clock string. GTFS uses 24:00+ to mean "next day",
+ * so we wrap the hour back into 0-23 for display.
+ * @param {string} t
+ * @returns {string|null}
+ */
+function fmtTime(t) {
+  if (!t) return null;
+  const parts = String(t).split(":");
+  if (parts.length < 2) return null;
+  let h = Number.parseInt(parts[0], 10);
+  if (!Number.isFinite(h)) return null;
+  h %= 24; // 25:30 -> 01:30
+  return `${String(h).padStart(2, "0")}:${parts[1].padStart(2, "0")}`;
+}
+
+const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/**
+ * Summarise the service calendar for a GTFS service_id into a human display.
+ * The Polish feed ships only calendar_dates.txt (explicit run-dates, no weekly
+ * calendar.txt), so we derive the date window and which weekdays the train runs.
+ *
+ * @param {string[]} serviceIds  all service_ids the train runs under
+ * @param {Map<string, string[]>} datesByService  service_id -> ["YYYYMMDD", ...]
+ * @returns {{ validFrom: string|null, validUntil: string|null, days: string|null }}
+ */
+function summariseCalendar(serviceIds, datesByService) {
+  // Union run-dates across every service the train uses so "days" reflects the
+  // full weekly pattern, not just one instance.
+  const dates = [];
+  for (const sid of serviceIds || []) {
+    for (const d of datesByService.get(sid) || []) dates.push(d);
+  }
+  if (dates.length === 0) return { validFrom: null, validUntil: null, days: null };
+  const sorted = [...dates].sort();
+  const validFrom = sorted[0];
+  const validUntil = sorted[sorted.length - 1];
+
+  // Which weekdays does it run on? (Sun=0 .. Sat=6)
+  const weekdays = new Set();
+  for (const d of sorted) {
+    const dt = new Date(
+      Number(d.slice(0, 4)),
+      Number(d.slice(4, 6)) - 1,
+      Number(d.slice(6, 8)),
+    );
+    weekdays.add(dt.getDay());
+  }
+  let days;
+  if (weekdays.size === 7) {
+    days = "Daily";
+  } else {
+    // List in Mon..Sun order so it reads naturally.
+    const order = [1, 2, 3, 4, 5, 6, 0];
+    days = order
+      .filter((d) => weekdays.has(d))
+      .map((d) => WEEKDAY_SHORT[d])
+      .join(", ");
+  }
+  return { validFrom, validUntil, days };
+}
+
 function haversineKm([lat1, lon1], [lat2, lon2]) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -173,9 +237,9 @@ const BUS_RELAY_MIN_KM = 20;
  * @param {object[]} icTrips
  * @param {Map<string, object>} routesById
  * @param {Map<string, object[]>} shapePoints
- * @param {Map<string, Array<{seq: number, stop_id: string}>>} stopTimesByTripId
+ * @param {Map<string, Array<{seq: number, stop_id: string, arrival: string, departure: string}>>} stopTimesByTripId
  * @param {Map<string, string>} stopsById
- * @returns {{ positions: number[][], stops: string[], rail_segments: {positions: number[][]}[], bus_segments: {positions: number[][]}[] } | null}
+ * @returns {{ positions: number[][], stops: {name: string, arr: string|null, dep: string|null}[], rail_segments: {positions: number[][]}[], bus_segments: {positions: number[][]}[], serviceIds: string[] } | null}
  */
 function findTrainDataForKey(
   key,
@@ -201,6 +265,12 @@ function findTrainDataForKey(
     }
   }
   if (candidates.length === 0) return null;
+
+  // Every distinct service this train runs under (across all date-instances),
+  // so the calendar summary captures the full weekly pattern.
+  const serviceIds = [
+    ...new Set(candidates.map((c) => c.service_id).filter(Boolean)),
+  ];
 
   // Group trips by parent trip_id (strip _LEG\d+ suffix so legs of the same
   // service run are combined rather than competing with each other).
@@ -309,7 +379,8 @@ function findTrainDataForKey(
     const combined = railSegments.flatMap((s) => s.positions);
     if (combined.length <= bestCount) continue;
 
-    // Collect ordered stop names for included legs.
+    // Collect ordered stops (name + arrival/departure times) for included legs.
+    // Each stop is an object so the map detail panel can show a full timetable.
     const combinedStops = [];
     const seenStops = new Set();
     for (const tripId of includedTripIds) {
@@ -319,13 +390,22 @@ function findTrainDataForKey(
         const name = stopsById.get(st.stop_id) || st.stop_id;
         if (!seenStops.has(name)) {
           seenStops.add(name);
-          combinedStops.push(name);
+          combinedStops.push({
+            name,
+            arr: fmtTime(st.arrival),
+            dep: fmtTime(st.departure),
+          });
         }
       }
     }
 
     bestCount = combined.length;
-    bestResult = { positions: combined, stops: combinedStops, railSegments, busSegments };
+    bestResult = {
+      positions: combined,
+      stops: combinedStops,
+      railSegments,
+      busSegments,
+    };
   }
 
   if (!bestResult || bestResult.positions.length < 2) return null;
@@ -334,6 +414,7 @@ function findTrainDataForKey(
     stops: bestResult.stops,
     rail_segments: bestResult.railSegments,
     bus_segments: bestResult.busSegments,
+    serviceIds,
   };
 }
 
@@ -378,6 +459,16 @@ async function main() {
   const shapes = readCsv(path.join(gtfsDir, "shapes.txt"));
   const stopsCsv = readCsv(path.join(gtfsDir, "stops.txt"));
   const stopTimesCsv = readCsv(path.join(gtfsDir, "stop_times.txt"));
+  // calendar_dates.txt lists the explicit run-dates per service_id (the Polish
+  // feed has no weekly calendar.txt). exception_type 1 = service added on a date.
+  const calendarDatesCsv = readCsv(path.join(gtfsDir, "calendar_dates.txt"));
+  const datesByService = new Map();
+  calendarDatesCsv.forEach((row) => {
+    if (row.exception_type !== "1") return;
+    if (!datesByService.has(row.service_id))
+      datesByService.set(row.service_id, []);
+    datesByService.get(row.service_id).push(row.date);
+  });
 
   const routesById = new Map();
   routes.forEach((r) => routesById.set(r.route_id, r));
@@ -415,9 +506,12 @@ async function main() {
     if (!icTripIdSet.has(row.trip_id)) return;
     if (!stopTimesByTripId.has(row.trip_id))
       stopTimesByTripId.set(row.trip_id, []);
-    stopTimesByTripId
-      .get(row.trip_id)
-      .push({ seq: Number.parseInt(row.stop_sequence || "0", 10), stop_id: row.stop_id });
+    stopTimesByTripId.get(row.trip_id).push({
+      seq: Number.parseInt(row.stop_sequence || "0", 10),
+      stop_id: row.stop_id,
+      arrival: row.arrival_time,
+      departure: row.departure_time,
+    });
   });
 
   // Index BUS legs by parent trip prefix so findTrainDataForKey can look up
@@ -430,7 +524,7 @@ async function main() {
     busLegsByParent.get(prefix).push(t);
   });
 
-  /** @type {Record<string, { pointCount: number, positions: number[][], stops: string[] }>} */
+  /** @type {Record<string, { pointCount: number, positions: number[][], stops: {name: string, arr: string|null, dep: string|null}[] }>} */
   const byTrainKey = {};
 
   for (const key of neededKeys) {
@@ -447,12 +541,18 @@ async function main() {
       console.warn("No GTFS rail trip for BoT key:", key);
       continue;
     }
+    const cal = summariseCalendar(result.serviceIds, datesByService);
     byTrainKey[key] = {
       pointCount: result.positions.length,
       positions: result.positions,
       stops: result.stops,
       rail_segments: result.rail_segments,
       bus_segments: result.bus_segments.length > 0 ? result.bus_segments : undefined,
+      // Service calendar derived from GTFS calendar_dates.txt (run-dates window
+      // + which weekdays the train runs). Drives the detail-panel validity line.
+      validFrom: cal.validFrom || undefined,
+      validUntil: cal.validUntil || undefined,
+      days: cal.days || undefined,
     };
   }
 

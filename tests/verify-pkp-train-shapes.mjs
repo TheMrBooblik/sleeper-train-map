@@ -1,21 +1,76 @@
 #!/usr/bin/env node
 /**
- * Validates public/data/gtfs/pkpTrainShapes.json (no server).
- * Run: node tests/verify-pkp-train-shapes.mjs
+ * Validates public/data/gtfs/pkpTrainShapes.json + the automatic GTFS merge
+ * logic (no server, no browser). Run: node tests/verify-pkp-train-shapes.mjs
+ *
+ * Covers:
+ *  - bundle has geometry + per-station timetables + service calendar
+ *  - endpoint matching rejects wrong-corridor shapes from reused train numbers
+ *    (Przemyśl↔Świnoujście and Praha↔Warszawa collisions) while keeping the
+ *    legitimate routes — all without any hardcoded per-route exceptions.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { pkpEntryForRoute } from "../src/lib/pkpTrainKeyExtract.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 const p = path.join(root, "public", "data", "gtfs", "pkpTrainShapes.json");
 
-const raw = fs.readFileSync(p, "utf8");
-const data = JSON.parse(raw);
-const k16170 = data.byTrainKey?.["16170"]?.positions;
-if (!Array.isArray(k16170) || k16170.length < 50) {
-  console.error("Expected byTrainKey[16170].positions with 50+ points");
+const data = JSON.parse(fs.readFileSync(p, "utf8"));
+const byTrainKey = data.byTrainKey || {};
+
+function fail(msg) {
+  console.error("FAIL:", msg);
   process.exit(1);
 }
-console.log("pkpTrainShapes.json OK —", Object.keys(data.byTrainKey || {}).length, "train keys");
+
+// 1) Geometry: 16170 (Warszawa↔Szklarska Poręba) must have a real polyline.
+const k16170 = byTrainKey["16170"]?.positions;
+if (!Array.isArray(k16170) || k16170.length < 50) {
+  fail("byTrainKey[16170].positions should have 50+ points");
+}
+
+// 2) Stops are objects with names + the bundle carries timetable/calendar data.
+const sampleStops = byTrainKey["16170"]?.stops;
+if (!Array.isArray(sampleStops) || !sampleStops[0]?.name) {
+  fail("byTrainKey[16170].stops should be objects with a name");
+}
+const withCalendar = Object.values(byTrainKey).filter((e) => e.days).length;
+if (withCalendar < 1) {
+  fail("Expected at least one train with a derived service calendar (days)");
+}
+
+// 3) Endpoint matching: legitimate routes resolve, collisions are rejected.
+//    These mirror the real Back-on-Track route labels/endpoints.
+const cases = [
+  // label, origin, destination, expectedKeyOrNull
+  ["IC 16170", "Warszawa Wschodnia", "Szklarska Poręba Górna", "16170"],
+  ["IC 28170", "Chelm", "Świnoujście", "28170"],
+  ["EC 460", "Praha hl.n.", "Gdynia Gł.", "460"],
+  // Collisions: the reused number maps to a different corridor → must reject.
+  ["EN 430 / IC 28170", "Przemyśl Gł.", "Świnoujście", null], // 28170 = Chełm corridor
+  ["EN 443 / IC 406", "Praha hl.n.", "Warszawa Wschodnia", null], // 406 = München corridor
+];
+
+for (const [label, origin, dest, expected] of cases) {
+  const entry = pkpEntryForRoute(label, byTrainKey, origin, dest);
+  const got =
+    entry &&
+    Object.keys(byTrainKey).find((k) => byTrainKey[k] === entry);
+  if (expected === null) {
+    if (entry) fail(`"${label}" (${origin}→${dest}) should NOT match (got ${got})`);
+  } else {
+    if (got !== expected)
+      fail(`"${label}" (${origin}→${dest}) expected ${expected}, got ${got}`);
+  }
+}
+
+console.log(
+  "pkpTrainShapes.json OK —",
+  Object.keys(byTrainKey).length,
+  "train keys,",
+  withCalendar,
+  "with calendar; collision detection passed",
+);

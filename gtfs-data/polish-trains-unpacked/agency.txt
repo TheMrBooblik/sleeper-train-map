@@ -8,7 +8,6 @@ KS,Koleje Śląskie,https://www.kolejeslaskie.pl/,Europe/Warsaw,+48 32 428 88 88
 KW,Koleje Wielkopolskie,https://koleje-wielkopolskie.com.pl/,Europe/Warsaw,+48 616 500 106,pl
 LEO,Leo Express,https://www.leoexpress.com/,Europe/Warsaw,+48 22 263 02 97,pl
 LKA,Łódzka Kolej Aglomeracyjna,https://lka.lodzkie.pl/,Europe/Warsaw,+48 887 879 980,pl
-ODEG,Ostdeutsche Eisenbahn,https://www.odeg.de/,Europe/Warsaw,+49 03581 764 89 10,pl
 PR,PolRegio,https://polregio.pl/,Europe/Warsaw,+48 22 474 00 44,pl
 RJ,RegioJet,https://regiojet.pl/,Europe/Warsaw,+48 22 688 78 85,pl
 SKM,SKM Warszawa,https://www.skm.warszawa.pl/,Europe/Warsaw,+48 22 19 115,pl

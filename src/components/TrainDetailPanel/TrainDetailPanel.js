@@ -814,6 +814,42 @@ const TrainDetailPanel = ({
                 const numericTrainNumber = extractTrainNumberDigits(
                   trip.trip_short_name,
                 );
+
+                // PKP (Polish GTFS): per-station timetable + service calendar
+                // were merged onto the route in pkpGtfsMerge. Pick the direction
+                // whose origin matches this trip's origin.
+                const tripRoute = routes?.[trip.route_id?.toString()];
+                const isDir1 =
+                  tripRoute &&
+                  trip.trip_origin &&
+                  (tripRoute.origin_trip_1 || "")
+                    .toLowerCase()
+                    .includes(
+                      (trip.trip_origin || "").toLowerCase().split(" ")[0],
+                    );
+                const pkpStops = isDir1
+                  ? tripRoute?.pkp_schedule_1
+                  : tripRoute?.pkp_schedule_0;
+                const pkpValid = isDir1
+                  ? tripRoute?.pkp_valid_1
+                  : tripRoute?.pkp_valid_0;
+                const pkpSchedule = pkpStops?.length
+                  ? {
+                      tripId: `pkp-${trip.route_id}-${isDir1 ? 1 : 0}`,
+                      stops: pkpStops.map((s, i) => ({
+                        stopId: s.name || String(i),
+                        sequence: i + 1,
+                        name: s.name,
+                        arrival: s.arr || null,
+                        departure: s.dep || null,
+                      })),
+                      validFrom: pkpValid?.validFrom || null,
+                      validUntil: pkpValid?.validUntil || null,
+                      days: pkpValid?.days || null,
+                      source: "pkp",
+                    }
+                  : null;
+
                 const nightjetTrain =
                   nightjetTrainByNumber.get(normalizedTrainNumber) || null;
                 const crTrain =
@@ -899,19 +935,11 @@ const TrainDetailPanel = ({
                   crSchedule ||
                   itSchedule ||
                   caucasusSchedule ||
-                  curatedSchedule;
+                  curatedSchedule ||
+                  pkpSchedule;
                 const validFrom = formatCalendarDate(schedule?.validFrom);
                 const validUntil = formatCalendarDate(schedule?.validUntil);
 
-                const tripRoute = routes?.[trip.route_id?.toString()];
-                const isDir1 =
-                  tripRoute &&
-                  trip.trip_origin &&
-                  (tripRoute.origin_trip_1 || "")
-                    .toLowerCase()
-                    .includes(
-                      (trip.trip_origin || "").toLowerCase().split(" ")[0],
-                    );
                 const busSeg = isDir1
                   ? tripRoute?.pkp_bus_segments_1
                   : tripRoute?.pkp_bus_segments_0;
@@ -1156,6 +1184,11 @@ const TrainDetailPanel = ({
                           {(validFrom || validUntil) && (
                             <div className="text-xs text-gray-600">
                               Valid: {validFrom || "?"} - {validUntil || "?"}
+                            </div>
+                          )}
+                          {schedule?.days && (
+                            <div className="text-xs text-gray-600">
+                              Runs: {schedule.days}
                             </div>
                           )}
                           <div className="rounded bg-white">
