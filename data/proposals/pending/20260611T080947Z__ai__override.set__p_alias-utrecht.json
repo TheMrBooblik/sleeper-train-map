@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-utrecht",
+  "createdAt": "2026-06-11T08:09:47.894Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Utrecht\" → \"Utrecht Centraal\"",
+  "summary": "The operator-injected station \"Utrecht\" appears to be the same as Back-on-Track's \"Utrecht Centraal\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Utrecht"
+  },
+  "before": null,
+  "after": {
+    "alias": "utrecht",
+    "canonical": "Utrecht Centraal"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Utrecht",
+        "canonical": "Utrecht Centraal"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
