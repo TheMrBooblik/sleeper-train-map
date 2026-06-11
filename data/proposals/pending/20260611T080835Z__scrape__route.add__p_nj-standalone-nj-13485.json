@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-13485",
+  "createdAt": "2026-06-11T08:08:35.142Z",
+  "source": "scrape",
+  "sourceDetail": "nj",
+  "kind": "route.add",
+  "title": "New train: NJ 13485 (Zürich HB – Graz Hbf)",
+  "summary": "Route \"nj_standalone_NJ_13485\" appeared in tonight's scrape and is withheld from the map until approved. Via: Feldkirch Bahnhof - Bludenz Bahnhof - Landeck-Zams Bahnhof - Innsbruck Hbf - Schwarzach-St.Veit Bahnhof - Bad Hofgastein Bahnhof - Bad Gastein Bahnhof - Mallnitz-Obervellach Bahnhof - Spittal-Millstätter See Bahnhof - Villach Hbf - Klagenfurt Hbf",
+  "target": {
+    "routeKey": "nj_standalone_NJ_13485",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "NJ 13485",
+    "returnTrain": "NJ 13484",
+    "origin": "Zürich HB",
+    "destination": "Graz Hbf",
+    "operator": "ÖBB",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "nj_standalone_NJ_13485"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
