@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 469 (Bruxelles Midi – Wien Hbf)",
-  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 469|NJ 448\" → \"NJ 469|NJ 468\"",
+  "title": "Update: NJ 469 (Bruxelles Midi – Wien Hbf)",
+  "summary": "The train numbers for NJ 469 have been updated. The previous train numbers were NJ 469 and NJ 448, and they have now changed to NJ 469 and NJ 468. This is a material change on an already approved route.",
   "target": {
     "routeKey": "nj_standalone_NJ_469",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
