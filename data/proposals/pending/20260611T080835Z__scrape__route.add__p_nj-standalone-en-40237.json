@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-40237",
+  "createdAt": "2026-06-11T08:08:35.142Z",
+  "source": "scrape",
+  "sourceDetail": "nj",
+  "kind": "route.add",
+  "title": "New train: EN 40237 (Stuttgart Hbf – Zagreb Glavni Kolod.)",
+  "summary": "Route \"nj_standalone_EN_40237\" appeared in tonight's scrape and is withheld from the map until approved. Via: Göppingen - Ulm Hbf - Augsburg Hbf - München Ost - Rosenheim - Freilassing - Salzburg Hbf - Schwarzach-St.Veit Bahnhof - Bad Gastein Bahnhof - Mallnitz-Obervellach Bahnhof - Spittal-Millstätter See Bahnhof - Villach Hbf - Jesenice(Gr) - Jesenice(SL) - Lesce-Bled - Kranj - Ljubljana - Zidani Most - S",
+  "target": {
+    "routeKey": "nj_standalone_EN_40237",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "EN 40237",
+    "returnTrain": "EN 414",
+    "origin": "Stuttgart Hbf",
+    "destination": "Zagreb Glavni Kolod.",
+    "operator": "ÖBB",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "nj_standalone_EN_40237"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
