@@ -1,0 +1,42 @@
+{
+  "v": 1,
+  "id": "p_alias-hamburg-altona",
+  "createdAt": "2026-06-11T08:09:30.296Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Hamburg-Altona\" → \"Hamburg Altona\"",
+  "summary": "The operator-injected station \"Hamburg-Altona\" appears to be the same as Back-on-Track's \"Hamburg Altona\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Hamburg-Altona"
+  },
+  "before": null,
+  "after": {
+    "alias": "hamburg-altona",
+    "canonical": "Hamburg Altona"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Hamburg-Altona",
+        "canonical": "Hamburg Altona"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "approved",
+  "resolution": {
+    "decision": "approved",
+    "decidedAt": "2026-06-11T08:17:48.621Z",
+    "commit": "https://github.com/TheMrBooblik/sleeper-train-map/commit/a66da6498d8aea3e17037c80705fbe095d6705af",
+    "note": null,
+    "editedApply": null
+  }
+}
