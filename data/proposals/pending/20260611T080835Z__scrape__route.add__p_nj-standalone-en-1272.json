@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-1272",
+  "createdAt": "2026-06-11T08:08:35.142Z",
+  "source": "scrape",
+  "sourceDetail": "nj",
+  "kind": "route.add",
+  "title": "New train: EN 1272 (Split – Wien Hbf (Autoreisezuganlage))",
+  "summary": "Route \"nj_standalone_EN_1272\" appeared in tonight's scrape and is withheld from the map until approved. Via: Perkovic - Knin - Ostarije - Zagreb Zapadni kolodvor - Dobova - Celje - Maribor - Sentilj - Spielfeld-Straß Bahnhof - Graz Hbf - Bruck/Mur Bahnhof - Wiener Neustadt Hbf - Wien Meidling Bahnhof - Wien Hbf",
+  "target": {
+    "routeKey": "nj_standalone_EN_1272",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "EN 1272",
+    "returnTrain": "EN 1273",
+    "origin": "Split",
+    "destination": "Wien Hbf (Autoreisezuganlage)",
+    "operator": "ÖBB",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "nj_standalone_EN_1272"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
