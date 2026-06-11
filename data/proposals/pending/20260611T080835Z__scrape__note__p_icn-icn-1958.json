@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: ICN 1958 (Palermo Centrale – Messina Centrale)",
-  "summary": "Material change on an approved route (already live — FYI): train numbers: \"ICN 1958|ICN 1965\" → \"ICN 1958|ICN 1957\"",
+  "title": "Update on ICN 1958 Route (Palermo to Messina)",
+  "summary": "The train numbers for the route ICN 1958 (Palermo Centrale to Messina Centrale) have been updated. The previous train number ICN 1965 has been changed to ICN 1957. This change is already live and is for your information.",
   "target": {
     "routeKey": "icn_ICN_1958",
     "agencyId": "FS",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
