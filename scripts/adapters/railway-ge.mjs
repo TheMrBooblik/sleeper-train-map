@@ -7,6 +7,7 @@
 import { execSync } from "node:child_process";
 import polyline from "@mapbox/polyline";
 import { fetchWithTimeout, OVERPASS_ENDPOINTS } from "../lib/scrape-helpers.mjs";
+import { htmlToText } from "../lib/html-text.mjs";
 
 // Fallback coords for stations the Overpass query may miss.
 // Keyed by lowercase station name as it appears on railway.ge.
@@ -108,17 +109,8 @@ export async function fetchGRInternationalTrains() {
     return {};
   }
 
-  // Strip scripts/styles, decode common HTML entities, tokenise by line
-  const text = html
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, "\n")
-    .replace(/&#8211;/g, "-")
-    .replace(/&ndash;/g, "-")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&");
-
-  const tokens = text.split("\n").map((s) => s.trim()).filter(Boolean);
+  // Strip to readable text and tokenise by line (shared helper).
+  const tokens = htmlToText(html).split("\n");
   const trains = {};
 
   // Table header pattern: Arrival / Stopping time / Departure (repeated twice)

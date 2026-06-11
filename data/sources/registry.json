@@ -70,6 +70,7 @@
       "concurrency": 6,
       "maxPartnerTrains": 25
     },
+    "probe": { "pricing": { "adapter": "nightjet-offers", "sampleRoutes": 4 } },
     "freshness": { "ttlHours": 25 }
   },
   {
