@@ -19,6 +19,8 @@
     "verify-build-parity": "node tests/verify-build-parity.mjs",
     "verify-proposals": "node tests/verify-proposals-apply.mjs",
     "verify-classify": "node tests/verify-classify.mjs",
+    "verify-calendar": "node tests/verify-calendar.mjs",
+    "verify-canonical-routes": "node tests/verify-canonical-routes.mjs",
     "classify": "node scripts/classify-changes.mjs",
     "bootstrap-seen": "node scripts/bootstrap-seen.mjs",
     "verify:route-styles": "node tests/verify-route-style-utils.mjs",

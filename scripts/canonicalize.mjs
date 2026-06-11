@@ -123,10 +123,15 @@ function main() {
   for (const entry of trainSourceEntries) {
     const prefix = entry.synthetic.idPrefix;
     const count = countByPrefix(payload.viewMap, prefix);
+    // Routes withheld by the review gate still count as "built" — a source
+    // whose only routes are pending approval is healthy, not broken.
+    const gatedWithPrefix = (stats.gatedRouteKeys ?? []).filter((k) =>
+      k.startsWith(prefix),
+    ).length;
     syntheticCounts.push(`${entry.id} ${count}`);
     if (Object.keys(operatorTrains[entry.id]).length > 0) {
       assert(
-        count > 0,
+        count + gatedWithPrefix > 0,
         `${entry.id} trains present but no ${prefix} routes built`,
       );
     }

@@ -18,6 +18,13 @@ import {
 // agency, aliasing, dedup strategy). Bundled via ESM JSON import so the
 // lambda build traces it (same pattern as station-aliases in primitives.mjs).
 import SOURCE_REGISTRY from "../../../../data/sources/registry.json" with { type: "json" };
+// Per-route from-prices, curated through the review queue (price.update
+// proposals). Stamped onto viewMap rows + trips; getOperatorPricing() picks
+// the route-level record up before falling back to operator defaults.
+import ROUTE_PRICES from "../../../../data/canonical/prices.json" with { type: "json" };
+// Operator pricing defaults — provides the fixed/dynamic `type` half of the
+// stamped record so the existing badge keeps rendering.
+import OPERATOR_PRICING from "../../../../data/overrides/operator-pricing.json" with { type: "json" };
 
 const identity = (name) => name;
 
@@ -288,6 +295,7 @@ export function buildInitialData({
   operatorTrains = {},
   registry = SOURCE_REGISTRY,
   seenIndex = null,
+  routePrices = ROUTE_PRICES,
   stats = null,
 } = {}) {
   const filteredTrips = filterTrips(trips);
@@ -362,6 +370,28 @@ export function buildInitialData({
       if (seenIndex.routes?.[key]?.approved !== true) {
         gatedRouteKeys.push(key);
         delete filteredViewMap[key];
+      }
+    }
+  }
+
+  // Per-route from-prices (review-queue curated): stamp onto the route row and
+  // its trips so getOperatorPricing(routeOrTrip) resolves them route-first.
+  for (const [key, price] of Object.entries(routePrices ?? {})) {
+    const row = filteredViewMap[key];
+    if (!row || !Number.isFinite(price?.fromPrice)) continue;
+    const operatorDefault = OPERATOR_PRICING[(row.agency_id || "").trim()] ?? null;
+    const pricing = {
+      type: operatorDefault?.type ?? null,
+      currency: price.currency ?? operatorDefault?.currency ?? "EUR",
+      fromPrice: price.fromPrice,
+      source: price.source ?? null,
+    };
+    row.pricing = pricing;
+    for (const [tripKey, trip] of Object.entries(filteredTrips)) {
+      if (String(trip.route_id) === String(key)) {
+        // Copy — trips without a via pass through filterTrips unchanged, and
+        // mutating those would leak into the caller's raw input.
+        filteredTrips[tripKey] = { ...trip, pricing };
       }
     }
   }

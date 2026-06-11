@@ -186,6 +186,32 @@
   },
   {
     "v": 1,
+    "id": "curated",
+    "label": "Curated routes",
+    "description": "Admin-approved routes from data/canonical/routes/ (added via the review queue) — coverage beyond what any scraper provides",
+    "kind": "canonical-routes",
+    "adapter": "canonical-routes",
+    "enabled": true,
+    "official": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": null,
+    "output": "curated-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": null,
+    "synthetic": {
+      "idPrefix": "curated_",
+      "agency": { "from": "data", "fallback": "CURATED" },
+      "resolveAliases": false,
+      "withService": true,
+      "excludeBotMatched": false,
+      "dedupStrategy": null
+    },
+    "params": {},
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
     "id": "pkp-gtfs",
     "label": "PKP Intercity (Polish GTFS shapes)",
     "description": "Committed as public/data/gtfs/pkpTrainShapes.json. Regenerate: npm run parse-pkp-gtfs (polish_trains.zip, scoped by BoT PKP trips).",

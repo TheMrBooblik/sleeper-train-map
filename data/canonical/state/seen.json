@@ -3081,6 +3081,12 @@
         "trains": "ADY 101|ADY 102",
         "stopsHash": "06365ea5"
       }
+    },
+    "curated_TLJ_1920": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {}
     }
   },
   "injectedStations": {
@@ -3650,6 +3656,18 @@
     },
     "Tbilisi": {
       "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Ankara Gar": {
+      "firstSeen": "2026-06-11",
+      "approved": true
+    },
+    "Kayseri": {
+      "firstSeen": "2026-06-11",
+      "approved": true
+    },
+    "Kars": {
+      "firstSeen": "2026-06-11",
       "approved": true
     }
   }
