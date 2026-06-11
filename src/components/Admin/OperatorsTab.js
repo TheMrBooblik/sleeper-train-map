@@ -378,7 +378,7 @@ export default function OperatorsTab() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="h-full min-h-0 overflow-y-auto space-y-4">
       {notice && (
         <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-700 flex items-center justify-between gap-2">
           <span>{notice.text}</span>

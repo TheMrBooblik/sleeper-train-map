@@ -11,9 +11,8 @@ export const SNALLTAGET_AUSTRIA_FREQUENCY = {
   routeId: 73,
   label: "Seasonal (Snälltåget to the Alps)",
   periods: [
-    { season: "Autumn", dates: "23–28 September 2025" },
-    { season: "Winter", dates: "19 December 2025 – 15 March 2026" },
     { season: "Summer", dates: "3 July – 2 August 2026" },
+    { season: "Winter", dates: "18 Dec. 2026 – 14 March 2027" },
   ],
   sourceUrl: "https://www.snalltaget.se/en/austria",
 };
@@ -31,7 +30,7 @@ export function getRouteFrequencyOverride(routeId) {
       .map((p) => `${p.season}: ${p.dates}`)
       .join("; ");
     return {
-      text: `${label}: ${periodLines}`,
+      text: `${periodLines}`,
       sourceUrl,
     };
   }

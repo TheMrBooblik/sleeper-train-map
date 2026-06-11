@@ -407,3 +407,31 @@ export function buildInitialData({
     trips: filteredTrips,
   };
 }
+
+/**
+ * Remove admin-disabled routes from an already-built payload. Applied at
+ * /api/initial-data serve time (against both the published fast path and the
+ * fallback merge) so toggling a route off/on in the admin Routes tab takes
+ * effect on the next redeploy and is fully reversible — the published artifact
+ * still carries every row, this just withholds the disabled ones per request.
+ *
+ * @param {{stops:Array, viewMap:object, trips:object}} payload
+ * @param {string[]} disabledRouteIds  route_id keys to withhold
+ * @returns {{stops:Array, viewMap:object, trips:object}} a new payload
+ */
+export function stripDisabledRoutes(payload, disabledRouteIds) {
+  const disabled = new Set((disabledRouteIds ?? []).map(String));
+  if (disabled.size === 0 || !payload) return payload;
+
+  const viewMap = {};
+  for (const [key, row] of Object.entries(payload.viewMap ?? {})) {
+    if (!disabled.has(String(key))) viewMap[key] = row;
+  }
+
+  const trips = {};
+  for (const [tripKey, trip] of Object.entries(payload.trips ?? {})) {
+    if (!disabled.has(String(trip?.route_id))) trips[tripKey] = trip;
+  }
+
+  return { ...payload, viewMap, trips };
+}

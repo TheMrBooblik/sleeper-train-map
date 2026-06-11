@@ -13,6 +13,11 @@ export const OVERRIDE_FILES = {
   "operator-pricing": "data/overrides/operator-pricing.json",
   "operator-booking": "data/overrides/operator-booking.json",
   "station-aliases": "data/overrides/station-aliases.json",
+  // Routes the admin has turned off from the map. An array of route_id keys
+  // (the same keys used in viewMap / seen.json). Applied at /api/initial-data
+  // serve time, so a toggle here goes live on the next redeploy and is fully
+  // reversible — see stripDisabledRoutes() in build-initial-data.mjs.
+  "disabled-routes": "data/overrides/disabled-routes.json",
   // The source registry rides the same admin write path (array of entries,
   // mutated by entry id). Scrapes pick changes up on the next nightly run.
   "source-registry": "data/sources/registry.json",
@@ -88,6 +93,15 @@ export function applyOverrideMutation(resource, action, payload, current) {
       const name = requireString(p.name, "name");
       if (action === "add") return addToList(next, name);
       if (action === "remove") return removeFromList(next, name);
+      throw invalid(`unknown action "${action}" for ${resource}`);
+    }
+
+    // List of route_id keys turned off from the map (keyed on routeKey to
+    // match the proposal/seen.json vocabulary rather than the station "name").
+    case "disabled-routes": {
+      const routeKey = requireString(p.routeKey, "routeKey");
+      if (action === "add") return addToList(next, routeKey);
+      if (action === "remove") return removeFromList(next, routeKey);
       throw invalid(`unknown action "${action}" for ${resource}`);
     }
 

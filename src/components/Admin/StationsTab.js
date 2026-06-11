@@ -80,7 +80,7 @@ export default function StationsTab() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="h-full min-h-0 flex flex-col gap-2 overflow-hidden">
       {notice && (
         <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-700 flex items-center justify-between gap-2">
           <span>{notice.text}</span>
@@ -128,16 +128,16 @@ export default function StationsTab() {
             {filtered.length} of {allEntries.length} aliases
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div className="flex-1 min-h-0 flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm p-4 overflow-hidden">
             {/* Column headers */}
-            <div className="flex items-center gap-2 text-[11px] text-gray-400 font-medium pb-1 border-b border-gray-100 mb-1">
+            <div className="shrink-0 flex items-center gap-2 text-[11px] text-gray-400 font-medium pb-1 border-b border-gray-100 mb-1">
               <span className="flex-1">Alias (lowercase)</span>
               <span className="w-4" />
               <span className="flex-1">Canonical name</span>
               <span className="w-16" />
             </div>
 
-            <div className="max-h-[60vh] overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto">
               {shown.length === 0 ? (
                 <p className="text-xs text-gray-400 py-2">No matches.</p>
               ) : (
@@ -160,7 +160,7 @@ export default function StationsTab() {
           </div>
 
           {/* Add new alias */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div className="shrink-0 bg-white rounded-xl border border-gray-200 shadow-sm p-4">
             <h3 className="text-sm font-semibold text-gray-800 mb-2">Add alias</h3>
             <form
               className="flex flex-wrap items-center gap-2"

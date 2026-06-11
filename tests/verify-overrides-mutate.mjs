@@ -78,6 +78,23 @@ check("alwaysShow add", () => {
   assert.deepStrictEqual(out, ["Wien Hbf"]);
 });
 
+// disabled-routes (array, keyed on routeKey)
+check("disabled-routes add", () => {
+  const out = applyOverrideMutation("disabled-routes", "add", { routeKey: "142" }, ["7"]);
+  assert.deepStrictEqual(out, ["7", "142"]);
+});
+check("disabled-routes add is idempotent", () => {
+  const out = applyOverrideMutation("disabled-routes", "add", { routeKey: "7" }, ["7"]);
+  assert.deepStrictEqual(out, ["7"]);
+});
+check("disabled-routes remove", () => {
+  const out = applyOverrideMutation("disabled-routes", "remove", { routeKey: "7" }, ["7", "8"]);
+  assert.deepStrictEqual(out, ["8"]);
+});
+throws("disabled-routes add rejects empty routeKey", () =>
+  applyOverrideMutation("disabled-routes", "add", { routeKey: "" }, []),
+);
+
 // operator-pricing
 check("pricing set", () => {
   const out = applyOverrideMutation(

@@ -18,8 +18,8 @@ const TABS = ["Review", "Data Sources", "Registry", "Timetables", "Routes", "Ope
 function AdminHeader({ onLogout }) {
   return (
     <header
-      className={`h-[${HEADER_HEIGHT}px] bg-black px-2 py-2 min-[640px]:px-4 text-white flex items-center justify-between`}
-      style={{ position: "sticky", top: 0, zIndex: 100 }}
+      className="shrink-0 bg-black px-2 py-2 text-white flex items-center justify-between"
+      style={{ height: HEADER_HEIGHT }}
     >
       <p className="text-sm leading-none whitespace-nowrap min-[640px]:text-base">
         <Link href="/">
@@ -226,7 +226,7 @@ function DataSourcesTab() {
   const sources = Array.isArray(data?.sources) ? data.sources : null;
 
   return (
-    <div className="space-y-3">
+    <div className="h-full min-h-0 overflow-y-auto space-y-3">
       <div className="flex items-baseline justify-between">
         <h2 className="text-sm font-medium text-gray-600">Data freshness</h2>
         {data?.generatedAt && (
@@ -312,7 +312,7 @@ export default function DataPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ overflowY: "auto", height: "100vh" }}>
+    <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
       <Head>
         <title>Admin – Pingwi</title>
         <link
@@ -323,8 +323,8 @@ export default function DataPage() {
       <AdminHeader onLogout={handleLogout} />
 
       {/* Tab strip */}
-      <div className="border-b border-gray-200 bg-white sticky top-[var(--header-height,48px)] z-50">
-        <div className="max-w-2xl mx-auto px-4">
+      <div className="shrink-0 border-b border-gray-200 bg-white">
+        <div className="w-full px-2">
           <nav className="flex gap-0 overflow-x-auto" aria-label="Tabs">
             {TABS.map((tab) => (
               <button
@@ -348,7 +348,7 @@ export default function DataPage() {
         </div>
       </div>
 
-      <main className="max-w-2xl mx-auto px-4 py-6">
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden w-full px-2 py-2">
         {activeTab === "Review" && <ReviewTab onPendingCount={setPendingCount} />}
         {activeTab === "Data Sources" && <DataSourcesTab />}
         {activeTab === "Registry" && <SourcesTab />}

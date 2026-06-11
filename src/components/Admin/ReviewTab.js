@@ -251,7 +251,7 @@ export default function ReviewTab({ onPendingCount }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="h-full min-h-0 overflow-y-auto space-y-3">
       <div className="flex items-baseline justify-between">
         <h2 className="text-sm font-medium text-gray-600">
           Pending changes{proposals ? ` (${proposals.length})` : ""}

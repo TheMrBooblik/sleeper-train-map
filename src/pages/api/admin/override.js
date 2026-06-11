@@ -26,6 +26,12 @@ function isAuthorized(req) {
   return verifySessionToken(req.cookies?.[SESSION_COOKIE]);
 }
 
+// Read-only approval index, surfaced alongside the override files so the
+// Routes tab can label disabled routes (which no longer appear in
+// /api/initial-data) from their stored fingerprints. Not in OVERRIDE_FILES, so
+// it is never mutated by the POST path.
+const SEEN_PATH = "data/canonical/state/seen.json";
+
 // GET: return current content of every override file (also validates the
 // secret, so the UI uses it as a login + initial-load step). A missing file
 // (404) is reported as null; any other read failure is surfaced in `errors`
@@ -40,10 +46,15 @@ async function handleGet(res, slug, branch) {
       overrides[resource] = result.error ? null : result.json;
     }),
   );
+
+  const seen = await readJsonFile(slug, branch, SEEN_PATH);
+  if (seen.error) errors["seen-state"] = seen.error;
+
   return res.status(200).json({
     repo: slug,
     branch,
     overrides,
+    seenState: seen.error ? null : seen.json,
     ...(Object.keys(errors).length ? { errors } : {}),
   });
 }

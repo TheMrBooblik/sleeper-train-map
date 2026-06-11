@@ -43,8 +43,8 @@ export default function TimetablesTab() {
   const stops = selectedData ? selectedData[operator.stopsKey] ?? [] : [];
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-3 flex-wrap">
+    <div className="h-full min-h-0 flex flex-col gap-2">
+      <div className="shrink-0 flex gap-3 flex-wrap">
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Operator</label>
           <select
@@ -86,8 +86,8 @@ export default function TimetablesTab() {
       )}
 
       {selectedData && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100">
+        <div className="flex-1 min-h-0 flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="shrink-0 px-4 py-3 border-b border-gray-100">
             <h3 className="text-sm font-semibold text-gray-900">{selectedTrain}</h3>
             {selectedData.trainLabel && (
               <p className="text-xs text-gray-400 mt-0.5">{selectedData.trainLabel}</p>
@@ -96,7 +96,7 @@ export default function TimetablesTab() {
               <p className="text-xs text-gray-400 mt-0.5">{selectedData.lineName}</p>
             )}
           </div>
-          <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto">
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-gray-50 z-10">
                 <tr className="border-b border-gray-200">

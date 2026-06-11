@@ -271,7 +271,9 @@ const TrainDetailPanel = ({
       ]
         .map((s) => (s || "").trim())
         .filter(Boolean);
-      const idx = sequence.findIndex((s) => matchesEndpoint(s, selectedStation));
+      const idx = sequence.findIndex((s) =>
+        matchesEndpoint(s, selectedStation),
+      );
       if (idx < 0) return -1; // selected station not on this direction → keep last
       return sequence.length - 1 - idx;
     };
@@ -756,14 +758,25 @@ const TrainDetailPanel = ({
         <div className="p-4 space-y-4 mb-10">
           {tripsToRender.length === 0 ? (
             <div className="text-gray-500 text-sm">
-              {routesLoading || tripsLoading || nightjetLoading || cdLoading || gtfsLoading || chineseLoading || italianLoading || caucasusLoading || curatedLoading
-                ? (
-                  <span className="flex items-center gap-2">
-                    <span className="inline-block w-3.5 h-3.5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" aria-hidden />
-                    Loading train details...
-                  </span>
-                )
-                : "No Back on Track trip data for this selection."}
+              {routesLoading ||
+              tripsLoading ||
+              nightjetLoading ||
+              cdLoading ||
+              gtfsLoading ||
+              chineseLoading ||
+              italianLoading ||
+              caucasusLoading ||
+              curatedLoading ? (
+                <span className="flex items-center gap-2">
+                  <span
+                    className="inline-block w-3.5 h-3.5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"
+                    aria-hidden
+                  />
+                  Loading train details...
+                </span>
+              ) : (
+                "No Back on Track trip data for this selection."
+              )}
             </div>
           ) : (
             <>
@@ -897,7 +910,9 @@ const TrainDetailPanel = ({
                   ? itTrain.stations
                   : [];
                 const itOriginDeparture =
-                  itStations?.[0]?.departure || itStations?.[0]?.arrival || null;
+                  itStations?.[0]?.departure ||
+                  itStations?.[0]?.arrival ||
+                  null;
                 const itDestinationArrival =
                   itStations?.[itStations.length - 1]?.arrival ||
                   itStations?.[itStations.length - 1]?.departure ||
@@ -932,9 +947,11 @@ const TrainDetailPanel = ({
                 const itSchedule =
                   itScheduleByTrainNumber.get(normalizedTrainNumber) || null;
                 const caucasusSchedule =
-                  caucasusScheduleByTrainNumber.get(normalizedTrainNumber) || null;
+                  caucasusScheduleByTrainNumber.get(normalizedTrainNumber) ||
+                  null;
                 const curatedSchedule =
-                  curatedScheduleByTrainNumber.get(normalizedTrainNumber) || null;
+                  curatedScheduleByTrainNumber.get(normalizedTrainNumber) ||
+                  null;
                 const schedule =
                   // PKP GTFS is the source of truth for Polish trains.
                   pkpSchedule ||
@@ -1031,7 +1048,8 @@ const TrainDetailPanel = ({
                         Route
                       </div>
                       <div className="text-sm font-medium text-gray-900">
-                        {abbreviateStationName(trip.trip_origin)} {"->"} {abbreviateStationName(trip.trip_headsign)}
+                        {abbreviateStationName(trip.trip_origin)} {"->"}{" "}
+                        {abbreviateStationName(trip.trip_headsign)}
                       </div>
                       {trip.via && (
                         <div className="text-xs text-gray-600">
@@ -1076,7 +1094,9 @@ const TrainDetailPanel = ({
                     {(pkpOriginDeparture ||
                       pkpDestinationArrival ||
                       formatTime(
-                        trip.origin_departure_time || nightjetOriginDeparture || itOriginDeparture,
+                        trip.origin_departure_time ||
+                          nightjetOriginDeparture ||
+                          itOriginDeparture,
                       ) ||
                       formatTime(
                         trip.destination_arrival_time ||
@@ -1141,6 +1161,7 @@ const TrainDetailPanel = ({
                                   {override.sourceUrl && (
                                     <>
                                       {" "}
+                                      <br />
                                       <a
                                         href={override.sourceUrl}
                                         target="_blank"
@@ -1286,7 +1307,10 @@ const TrainDetailPanel = ({
                       type="button"
                       onClick={() =>
                         setSuggestContext({
-                          routeKey: trip.route_id != null ? String(trip.route_id) : null,
+                          routeKey:
+                            trip.route_id != null
+                              ? String(trip.route_id)
+                              : null,
                           trainName: trip.trip_short_name || null,
                           agencyId: trip.agency_id || null,
                         })

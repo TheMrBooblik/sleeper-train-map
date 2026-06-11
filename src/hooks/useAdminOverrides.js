@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export default function useAdminOverrides() {
   const [overrides, setOverrides] = useState(null);
+  const [seenState, setSeenState] = useState(null);
   const [target, setTarget] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(null);
@@ -29,6 +30,7 @@ export default function useAdminOverrides() {
         return;
       }
       setOverrides(json.overrides || {});
+      setSeenState(json.seenState || null);
       setTarget({ repo: json.repo, branch: json.branch });
       if (json.errors) {
         setError(
@@ -80,5 +82,5 @@ export default function useAdminOverrides() {
     [load],
   );
 
-  return { overrides, target, loading, busy, error, notice, expired, mutate };
+  return { overrides, seenState, target, loading, busy, error, notice, expired, mutate };
 }

@@ -13,11 +13,15 @@ import {
   getPublishedInitialData,
   isFresh,
 } from "./lib/file-store";
-import { buildInitialData } from "./lib/build-initial-data.mjs";
+import { buildInitialData, stripDisabledRoutes } from "./lib/build-initial-data.mjs";
 import SOURCE_REGISTRY from "../../../data/sources/registry.json" with { type: "json" };
 // Review-gate approval index, bundled at build time. The published fast path
 // is already gated by canonicalize; this covers the on-the-fly fallback merge.
 import SEEN_INDEX from "../../../data/canonical/state/seen.json" with { type: "json" };
+// Routes the admin turned off from the map. Applied here at serve time (over
+// both the published file and the fallback merge) so a toggle goes live on the
+// next redeploy and is reversible — see admin Routes tab.
+import DISABLED_ROUTES from "../../../data/overrides/disabled-routes.json" with { type: "json" };
 
 // Operator train sources that feed the merge (declared in the registry).
 const TRAIN_SOURCE_ENTRIES = SOURCE_REGISTRY.filter(
@@ -56,7 +60,7 @@ export default async function handler(req, res) {
     if (published && isFresh(published.uploadedAt)) {
       console.log("[initial-data] source: published");
       setCacheHeaders(res);
-      res.status(200).json(published.data);
+      res.status(200).json(stripDisabledRoutes(published.data, DISABLED_ROUTES));
       return;
     }
 
@@ -106,7 +110,7 @@ export default async function handler(req, res) {
     });
 
     setCacheHeaders(res);
-    res.status(200).json(payload);
+    res.status(200).json(stripDisabledRoutes(payload, DISABLED_ROUTES));
   } catch (error) {
     console.error("[initial-data] Error:", error);
     res.status(500).json({ error: "Error fetching initial data" });

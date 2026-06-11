@@ -438,7 +438,7 @@ export default function OverridesTab() {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    <div className="h-full min-h-0 overflow-y-auto bg-white rounded-xl border border-gray-200 shadow-sm p-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-medium text-gray-600">Data overrides</h2>
         {target?.repo && (
