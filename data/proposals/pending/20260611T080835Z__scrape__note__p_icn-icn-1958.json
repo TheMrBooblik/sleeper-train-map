@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-1958",
+  "createdAt": "2026-06-11T08:08:35.143Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: ICN 1958 (Palermo Centrale – Messina Centrale)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"ICN 1958|ICN 1965\" → \"ICN 1958|ICN 1957\"",
+  "target": {
+    "routeKey": "icn_ICN_1958",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "ICN 1958|ICN 1965"
+  },
+  "after": {
+    "train numbers": "ICN 1958|ICN 1957"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
