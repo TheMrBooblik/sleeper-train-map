@@ -1,0 +1,42 @@
+{
+  "v": 1,
+  "id": "p_alias-st-p-lten-hbf",
+  "createdAt": "2026-06-11T08:09:38.726Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"St.Pölten Hbf\" → \"St. Pölten Hbf\"",
+  "summary": "The operator-injected station \"St.Pölten Hbf\" appears to be the same as Back-on-Track's \"St. Pölten Hbf\" (AI confidence 1). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "St.Pölten Hbf"
+  },
+  "before": null,
+  "after": {
+    "alias": "st.pölten hbf",
+    "canonical": "St. Pölten Hbf"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "St.Pölten Hbf",
+        "canonical": "St. Pölten Hbf"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "approved",
+  "resolution": {
+    "decision": "approved",
+    "decidedAt": "2026-06-11T08:17:31.081Z",
+    "commit": "https://github.com/TheMrBooblik/sleeper-train-map/commit/1c13364bb8696f4fb35ed6e9e014e7af4a83395a",
+    "note": null,
+    "editedApply": null
+  }
+}
