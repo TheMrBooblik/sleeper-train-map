@@ -447,10 +447,15 @@ function findTrainDataForKey(
       const name = stopsById.get(st.stop_id) || st.stop_id;
       if (!name || seenStops.has(name)) return;
       seenStops.add(name);
+      // Coordinates let the compound-label stitcher truncate polylines precisely
+      // at junction stations (e.g. Gdynia) instead of by proportional index.
+      const coord = stopCoordsById.get(st.stop_id);
       combinedStops.push({
         name,
         arr: fmtTime(st.arrival),
         dep: fmtTime(st.departure),
+        lat: coord ? coord[0] : null,
+        lon: coord ? coord[1] : null,
       });
     };
     for (const st of leadingBusStopTimes) pushStop(st);

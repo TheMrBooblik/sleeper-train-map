@@ -83,11 +83,223 @@ function entryMatchesEndpoints(entry, origin, destination) {
   return (a === o && b === d) || (a === d && b === o);
 }
 
+/** City of a bundle stop object. @param {{name?: string}} stop */
+function stopCity(stop) {
+  return normalizeCity(stop?.name);
+}
+
+/**
+ * Index of the point in `positions` nearest a [lat, lon] coordinate. Squared
+ * degrees are enough to pick the closest vertex among the dense GTFS shape.
+ * @param {number[][]} positions
+ * @param {number} lat
+ * @param {number} lon
+ * @returns {number}
+ */
+function closestPositionIndex(positions, lat, lon) {
+  let best = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < positions.length; i += 1) {
+    const dLat = positions[i][0] - lat;
+    const dLon = positions[i][1] - lon;
+    const dist = dLat * dLat + dLon * dLon;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/**
+ * Truncate one leg to the portion between its start/end junction cities. The
+ * polyline is cut at the points nearest the junction stops' coordinates, so the
+ * geometry hands off cleanly to the adjacent leg (e.g. keep 35190 only up to
+ * Gdynia, not on to Łeba).
+ *
+ * @param {object} leg  bundle entry
+ * @param {string|null} startJunctionCity  null = keep from the real start
+ * @param {string|null} endJunctionCity  null = keep to the real end
+ * @returns {{ stops: object[], positions: number[][], bus_segments: object[] } | null}
+ */
+function truncateLeg(leg, startJunctionCity, endJunctionCity) {
+  let lo = 0;
+  let hi = leg.stops.length - 1;
+
+  if (startJunctionCity) {
+    const idx = leg.stops.findIndex((s) => stopCity(s) === startJunctionCity);
+    if (idx === -1) return null;
+    lo = idx;
+  }
+  if (endJunctionCity) {
+    let idx = -1;
+    for (let i = leg.stops.length - 1; i >= lo; i -= 1) {
+      if (stopCity(leg.stops[i]) === endJunctionCity) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx === -1) return null;
+    hi = idx;
+  }
+  if (hi < lo) return null;
+
+  const keptStops = leg.stops.slice(lo, hi + 1);
+  const loStop = leg.stops[lo];
+  const hiStop = leg.stops[hi];
+  let pLo = 0;
+  let pHi = leg.positions.length - 1;
+  if (startJunctionCity && loStop.lat != null && loStop.lon != null) {
+    pLo = closestPositionIndex(leg.positions, loStop.lat, loStop.lon);
+  }
+  if (endJunctionCity && hiStop.lat != null && hiStop.lon != null) {
+    pHi = closestPositionIndex(leg.positions, hiStop.lat, hiStop.lon);
+  }
+  if (pHi < pLo) return null;
+
+  const keptPositions = leg.positions.slice(pLo, pHi + 1);
+  if (keptPositions.length < 2) return null;
+
+  // Keep only bus connectors that stay within this truncated leg (drops the
+  // Lębork→Łeba replacement bus once the leg is cut back to Gdynia).
+  const keptCities = new Set(keptStops.map((s) => stopCity(s)));
+  const keptBus = (leg.bus_segments || []).filter(
+    (b) => keptCities.has(normalizeCity(b.from)) && keptCities.has(normalizeCity(b.to)),
+  );
+
+  return { stops: keptStops, positions: keptPositions, bus_segments: keptBus };
+}
+
+/**
+ * Stitch a compound trip label (e.g. "TLK 35190/50191") into one synthetic
+ * entry when no single GTFS shape spans the journey. Each train number is a
+ * leg; consecutive legs are joined at the city they share (the junction, e.g.
+ * Gdynia), truncating each leg's polyline + stops there. Returns null when the
+ * legs can't be chained from origin to destination (so the map falls back to
+ * station-coord geometry). No per-route hardcoding — the junction is discovered
+ * from the overlapping stop cities.
+ *
+ * @param {string} label
+ * @param {Record<string, object>} byTrainKey
+ * @param {string} origin
+ * @param {string} destination
+ * @returns {object | null}
+ */
+function stitchCompoundEntry(label, byTrainKey, origin, destination) {
+  const o = normalizeCity(origin);
+  const d = normalizeCity(destination);
+  if (!o || !d) return null;
+
+  // Candidate legs: dedup keys; require geometry + named stops.
+  const pool = [];
+  const seenKeys = new Set();
+  for (const k of extractKeysFromTripLabel(label)) {
+    if (seenKeys.has(k)) continue;
+    seenKeys.add(k);
+    const e = byTrainKey[k];
+    if (e?.positions?.length >= 2 && e?.stops?.length >= 2) pool.push(e);
+  }
+  if (pool.length < 2) return null;
+
+  // Build the journey chain: start with the leg that begins at the origin, then
+  // repeatedly attach a leg that passes through the chain tail (its junction).
+  const startLeg = pool.find((e) => stopCity(e.stops[0]) === o);
+  if (!startLeg) return null;
+
+  const legs = [startLeg];
+  const junctions = []; // junction city joining legs[i] and legs[i+1]
+  const remaining = pool.filter((e) => e !== startLeg);
+
+  let current = startLeg;
+  while (stopCity(current.stops[current.stops.length - 1]) !== d) {
+    let chosen = null;
+    let junction = null;
+    for (const cand of remaining) {
+      const candCities = new Set(cand.stops.map((s) => stopCity(s)));
+      // Hand-off city = the city closest to current's tail that the candidate
+      // also serves (current may overshoot the junction, e.g. on to Łeba).
+      let j = null;
+      for (let i = current.stops.length - 1; i >= 0; i -= 1) {
+        const c = stopCity(current.stops[i]);
+        if (candCities.has(c)) {
+          j = c;
+          break;
+        }
+      }
+      if (!j) continue;
+      // Require a clean hand-off: the junction must be a natural endpoint of one
+      // leg — either current ends there, or the candidate begins there. This is
+      // what makes a real through-service (a train splitting numbers at the
+      // junction, e.g. Gdynia) and rejects reused-number collisions that merely
+      // cross at a mid-corridor city (e.g. 430 + 28170 crossing at Poznań).
+      const currentEndsAtJunction =
+        stopCity(current.stops[current.stops.length - 1]) === j;
+      const candStartsAtJunction = stopCity(cand.stops[0]) === j;
+      if (!currentEndsAtJunction && !candStartsAtJunction) continue;
+      chosen = cand;
+      junction = j;
+      break;
+    }
+    if (!chosen || !junction) return null;
+    junctions.push(junction);
+    legs.push(chosen);
+    remaining.splice(remaining.indexOf(chosen), 1);
+    current = chosen;
+    if (legs.length > pool.length) return null; // safety against cycles
+  }
+  if (legs.length < 2) return null;
+
+  // Truncate each leg at its bounding junctions, then merge.
+  const railSegments = [];
+  const positions = [];
+  const busSegments = [];
+  const stops = [];
+  const seenStopCity = new Set();
+
+  for (let i = 0; i < legs.length; i += 1) {
+    const startJunction = i > 0 ? junctions[i - 1] : null;
+    const endJunction = i < legs.length - 1 ? junctions[i] : null;
+    const t = truncateLeg(legs[i], startJunction, endJunction);
+    if (!t) return null;
+
+    railSegments.push({ positions: t.positions });
+    positions.push(...t.positions);
+    busSegments.push(...t.bus_segments);
+    for (const s of t.stops) {
+      const c = stopCity(s);
+      if (seenStopCity.has(c)) continue; // dedupe the shared junction stop
+      seenStopCity.add(c);
+      stops.push(s);
+    }
+  }
+  if (positions.length < 2 || stops.length < 2) return null;
+
+  // Service calendar from the main corridor leg (the one with the most stops).
+  let mainLeg = legs[0];
+  for (const l of legs) {
+    if ((l.stops?.length || 0) > (mainLeg.stops?.length || 0)) mainLeg = l;
+  }
+
+  return {
+    positions,
+    stops,
+    rail_segments: railSegments,
+    bus_segments: busSegments,
+    validFrom: mainLeg.validFrom ?? null,
+    validUntil: mainLeg.validUntil ?? null,
+    days: mainLeg.days ?? null,
+    serviceIds: mainLeg.serviceIds,
+  };
+}
+
 /**
  * Resolve the single GTFS bundle entry for a BoT trip label, validated against
  * the route's endpoints. Tries each candidate key in priority order and returns
- * the first whose shape endpoints match the route corridor; returns null when
- * none match (so the map falls back to OSM / static / station-coord geometry).
+ * the first whose shape endpoints match the route corridor. When no single
+ * shape spans the journey, stitches a compound label's legs at their junction
+ * (e.g. "TLK 35190/50191" = main corridor + peninsula spur joined at Gdynia);
+ * returns null when neither works (so the map falls back to OSM / static /
+ * station-coord geometry).
  *
  * @param {string} label  e.g. "EN 430 / IC 28170"
  * @param {Record<string, object>} byTrainKey
@@ -102,5 +314,5 @@ export function pkpEntryForRoute(label, byTrainKey, origin, destination) {
     if (!(entry?.positions?.length >= 2)) continue;
     if (entryMatchesEndpoints(entry, origin, destination)) return entry;
   }
-  return null;
+  return stitchCompoundEntry(label, byTrainKey, origin, destination);
 }

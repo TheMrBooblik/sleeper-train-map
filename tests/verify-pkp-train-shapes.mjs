@@ -92,10 +92,62 @@ for (const [label, origin, dest, expected] of cases) {
   }
 }
 
+// 4) Compound labels (e.g. "TLK 35190/50191") stitch a main corridor leg and a
+//    peninsula spur leg at their shared junction (Gdynia), so the line reaches
+//    Hel along the coastal railway instead of as a straight chord. The result
+//    is a synthetic entry (not keyed in byTrainKey), so assert its shape.
+function haversineKm([lat1, lon1], [lat2, lon2]) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
+function pathKm(positions) {
+  let total = 0;
+  for (let i = 1; i < positions.length; i += 1) {
+    total += haversineKm(positions[i - 1], positions[i]);
+  }
+  return total;
+}
+
+const stitchCases = [
+  // label, origin, destination, expectedLastStop
+  ["TLK 35190/50191", "Kraków Gł.", "Hel", "Hel"],
+  ["TLK 55190/53190", "Hel", "Kraków Gł.", "Kraków Główny"],
+  ["TLK 403/50171", "Bohumín", "Hel", "Hel"],
+  ["TLK 55170/402", "Hel", "Bohumín", "Bohumín"],
+];
+
+for (const [label, origin, dest, expectedLast] of stitchCases) {
+  const e = pkpEntryForRoute(label, byTrainKey, origin, dest);
+  if (!e) fail(`"${label}" (${origin}→${dest}) should stitch, got null`);
+  const last = e.stops[e.stops.length - 1]?.name;
+  if (last !== expectedLast) {
+    fail(`"${label}" should end at ${expectedLast}, got ${last}`);
+  }
+  // Two rail legs (main corridor + spur), joined at the junction.
+  if (!(e.rail_segments?.length >= 2)) {
+    fail(`"${label}" should have >= 2 rail segments, got ${e.rail_segments?.length}`);
+  }
+  // The full stitched corridor must be real track, not a straight chord: lots of
+  // points and a long path (the Kraków/Bohumín → Hel run is ~750 km).
+  if (!(e.positions.length > 1000)) {
+    fail(`"${label}" too few points (${e.positions.length}) — chord fallback?`);
+  }
+  if (!(pathKm(e.positions) > 300)) {
+    fail(`"${label}" path only ${pathKm(e.positions).toFixed(0)} km — chord fallback?`);
+  }
+}
+
 console.log(
   "pkpTrainShapes.json OK —",
   Object.keys(byTrainKey).length,
   "train keys,",
   withCalendar,
-  "with calendar; collision detection passed",
+  "with calendar; collision detection + Hel compound stitch passed",
 );

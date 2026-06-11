@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { attachPkpGtfsPolylinesToViewMap } from "../src/lib/pkpGtfsMerge.js";
 
 function haversineKm([lat1, lon1], [lat2, lon2]) {
   const R = 6371;
@@ -246,9 +247,7 @@ test.describe("Polish train routes", () => {
       if (isPrahaWarszawaRoute(route)) continue;
 
       const p0 = positionsForLabel(route.trip_short_name_0, byTrainKey);
-      // Multi-leg coastal/cross-border routes (e.g. Hel) may have no single
-      // matching GTFS shape — station-coord fallback is acceptable — but any
-      // route whose key resolves to a shape should have >= 200 points.
+      // Any route whose key resolves to a shape should have >= 200 points.
       if (p0 !== null) {
         expect(
           p0.length,
@@ -265,6 +264,57 @@ test.describe("Polish train routes", () => {
             `Route ${route.route_id} (${route.trip_short_name_1}) trip1: only ${p1.length} pts`,
           ).toBeGreaterThanOrEqual(200);
         }
+      }
+    }
+  });
+
+  test("compound Hel routes stitch to peninsula geometry", async ({
+    request,
+  }) => {
+    // Routes whose trip labels carry two train numbers (a main corridor leg +
+    // the Gdynia→Hel spur, e.g. "TLK 35190/50191"). The client merge stitches
+    // them at Gdynia so the line follows the coastal railway to Hel instead of
+    // a straight chord across the bay.
+    const [dataRes, bundleRes] = await Promise.all([
+      request.get("/api/initial-data"),
+      request.get("/data/gtfs/pkpTrainShapes.json"),
+    ]);
+    expect(dataRes.ok()).toBeTruthy();
+    expect(bundleRes.ok()).toBeTruthy();
+
+    const data = await dataRes.json();
+    const bundle = await bundleRes.json();
+    const merged = attachPkpGtfsPolylinesToViewMap(data.viewMap || {}, bundle);
+
+    const helRoutes = Object.values(merged).filter((r) =>
+      [r?.origin_trip_0, r?.destination_trip_0].includes("Hel"),
+    );
+    expect(
+      helRoutes.length,
+      "expected at least 2 Hel routes (Kraków↔Hel, Bohumín↔Hel)",
+    ).toBeGreaterThanOrEqual(2);
+
+    for (const route of helRoutes) {
+      for (const dir of ["0", "1"]) {
+        if (!route[`origin_trip_${dir}`]) continue;
+        const positions = route[`pkp_gtfs_positions_${dir}`];
+        expect(
+          positions?.length,
+          `Route ${route.route_id} trip${dir} (${route[`trip_short_name_${dir}`]}) lacks stitched geometry`,
+        ).toBeGreaterThanOrEqual(200);
+
+        // Stitched legs render as separate rail segments (main corridor + spur).
+        expect(
+          route[`pkp_rail_segments_${dir}`]?.length,
+          `Route ${route.route_id} trip${dir} should have >= 2 rail segments`,
+        ).toBeGreaterThanOrEqual(2);
+
+        // The line must actually reach the Hel peninsula, not stop at Gdynia.
+        const gap = maxGapKm(positions);
+        expect(
+          gap,
+          `Route ${route.route_id} trip${dir}: ${gap.toFixed(1)} km gap (chord fallback?)`,
+        ).toBeLessThan(GAP_THRESHOLD_KM);
       }
     }
   });
