@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-40476",
+  "createdAt": "2026-06-11T08:08:35.142Z",
+  "source": "scrape",
+  "sourceDetail": "nj",
+  "kind": "route.add",
+  "title": "New train: EN 40476 (Budapest-Nyugati – Berlin Hbf (tief))",
+  "summary": "Route \"nj_standalone_EN_40476\" appeared in tonight's scrape and is withheld from the map until approved. Via: Vac - Sturovo státna hranica - Sturovo - Nove Zamky - Bratislava hl.st. - Kuty - Kuty státna hranica - Břeclav - Brno hl.n. - Pardubice hl.n. - Praha hl.n. - Praha-Holešovice - Usti nad Labem hl.n. - Decín Hauptbahnhof - Schöna Staatsgrenze - Bad Schandau - Dresden Hbf - Dresden-Neustadt - Berlin Sü",
+  "target": {
+    "routeKey": "nj_standalone_EN_40476",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "EN 40476",
+    "returnTrain": "EN 40457",
+    "origin": "Budapest-Nyugati",
+    "destination": "Berlin Hbf (tief)",
+    "operator": "ÖBB",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "nj_standalone_EN_40476"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
