@@ -8,8 +8,10 @@ import RoutesTab from "../components/Admin/RoutesTab";
 import OverridesTab from "../components/Admin/OverridesTab";
 import OperatorsTab from "../components/Admin/OperatorsTab";
 import StationsTab from "../components/Admin/StationsTab";
+import ReviewTab from "../components/Admin/ReviewTab";
+import SourcesTab from "../components/Admin/SourcesTab";
 
-const TABS = ["Data Sources", "Timetables", "Routes", "Operators", "Stations", "Overrides"];
+const TABS = ["Review", "Data Sources", "Registry", "Timetables", "Routes", "Operators", "Stations", "Overrides"];
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 
@@ -157,9 +159,9 @@ function DataRow({ label, count, status, hoursAgo, items, itemLabel }) {
 
 // ─── Source card ──────────────────────────────────────────────────────────────
 
-function SourceCard({ title, description, priority, children }) {
+function SourceCard({ title, description, priority, disabled, children }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden ${disabled ? "opacity-60" : ""}`}>
       <div className="px-4 py-3 border-b border-gray-100 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -167,6 +169,11 @@ function SourceCard({ title, description, priority, children }) {
             {priority && (
               <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                 ★ Official operator
+              </span>
+            )}
+            {disabled && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">
+                disabled
               </span>
             )}
           </div>
@@ -216,7 +223,7 @@ function DataSourcesTab() {
       });
   }, []);
 
-  const s = data?.sources;
+  const sources = Array.isArray(data?.sources) ? data.sources : null;
 
   return (
     <div className="space-y-3">
@@ -243,106 +250,32 @@ function DataSourcesTab() {
         </div>
       )}
 
-      {s && (
+      {sources && (
         <>
-          {s.nightjet && (
-            <SourceCard
-              title="NightJet / EuroNight"
-              description="Official ÖBB NightJet API — accurate polylines and timetables"
-              priority
-            >
-              <DataRow
-                label="Trains"
-                count={s.nightjet.count}
-                status={s.nightjet.status}
-                hoursAgo={s.nightjet.hoursAgo}
-                items={s.nightjet.items}
-                itemLabel="trains"
-              />
-            </SourceCard>
-          )}
-
-          {s.cdRailways && (
-            <SourceCard
-              title="Czech Railways (ČD)"
-              description="Official cd.cz EC train timetables"
-              priority
-            >
-              <DataRow
-                label="EC trains"
-                count={s.cdRailways.count}
-                status={s.cdRailways.status}
-                hoursAgo={s.cdRailways.hoursAgo}
-                items={s.cdRailways.items}
-                itemLabel="trains"
-              />
-            </SourceCard>
-          )}
-
-          {s.backontrack && (
-            <SourceCard
-              title="Back-on-Track"
-              description="Community night train dataset scraped from GitHub (back-on-track.eu)"
-            >
-              <DataRow
-                label="Stops"
-                count={s.backontrack.stops.count}
-                status={s.backontrack.stops.status}
-                hoursAgo={s.backontrack.stops.hoursAgo}
-              />
-              <DataRow
-                label="Routes"
-                count={s.backontrack.routes.count}
-                status={s.backontrack.routes.status}
-                hoursAgo={s.backontrack.routes.hoursAgo}
-                items={s.backontrack.routes.items}
-                itemLabel="routes"
-              />
-              <DataRow
-                label="Trips"
-                count={s.backontrack.trips.count}
-                status={s.backontrack.trips.status}
-                hoursAgo={s.backontrack.trips.hoursAgo}
-              />
-            </SourceCard>
-          )}
-
-          {s.pkpGtfs && (
-            <SourceCard
-              title="PKP Intercity (Polish GTFS shapes)"
-              description={
-                s.pkpGtfs.sourceUrl
-                  ? `Committed as public/data/gtfs/pkpTrainShapes.json. Regenerate: npm run parse-pkp-gtfs. Feed: ${s.pkpGtfs.sourceUrl}`
-                  : "Committed as public/data/gtfs/pkpTrainShapes.json. Regenerate: npm run parse-pkp-gtfs (polish_trains.zip, scoped by BoT PKP trips)."
-              }
-            >
-              <DataRow
-                label="Train keys (map polylines)"
-                count={s.pkpGtfs.count}
-                status={s.pkpGtfs.status}
-                hoursAgo={s.pkpGtfs.hoursAgo}
-                items={s.pkpGtfs.items}
-                itemLabel="trains"
-              />
-            </SourceCard>
-          )}
-
-          {s.osmRelations?.length > 0 && (
-            <SourceCard
-              title="OpenStreetMap Relations"
-              description="Route geometries (polylines) cached from Overpass API"
-            >
-              {s.osmRelations.map((rel) => (
-                <DataRow
-                  key={rel.id}
-                  label={rel.name || `Relation ${rel.id}`}
-                  count={rel.coordinateCount}
-                  status={rel.status}
-                  hoursAgo={rel.hoursAgo}
-                />
-              ))}
-            </SourceCard>
-          )}
+          {sources.map((source) => {
+            const feedUrl = source.datasets?.find((d) => d.sourceUrl)?.sourceUrl;
+            return (
+              <SourceCard
+                key={source.id}
+                title={source.label}
+                description={feedUrl ? `${source.description} Feed: ${feedUrl}` : source.description}
+                priority={source.official}
+                disabled={!source.enabled}
+              >
+                {(source.datasets ?? []).map((ds, i) => (
+                  <DataRow
+                    key={ds.label || i}
+                    label={ds.label}
+                    count={ds.count}
+                    status={ds.status}
+                    hoursAgo={ds.hoursAgo}
+                    items={ds.items}
+                    itemLabel={ds.itemLabel}
+                  />
+                ))}
+              </SourceCard>
+            );
+          })}
 
           <div className="grid grid-cols-2 min-[480px]:flex min-[480px]:flex-row gap-x-4 gap-y-1.5 min-[480px]:gap-4 pt-1 pb-4 text-xs text-gray-400">
             <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500 inline-block shrink-0" /> Fresh (&lt;25h)</span>
@@ -360,7 +293,18 @@ function DataSourcesTab() {
 
 export default function DataPage() {
   const [activeTab, setActiveTab] = useState(TABS[0]);
+  const [pendingCount, setPendingCount] = useState(null);
   const router = useRouter();
+
+  // Badge count for the Review tab (refreshed by the tab itself once open).
+  useEffect(() => {
+    fetch("/api/admin/proposals")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (json?.proposals) setPendingCount(json.proposals.length);
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -381,7 +325,7 @@ export default function DataPage() {
       {/* Tab strip */}
       <div className="border-b border-gray-200 bg-white sticky top-[var(--header-height,48px)] z-50">
         <div className="max-w-2xl mx-auto px-4">
-          <nav className="flex gap-0" aria-label="Tabs">
+          <nav className="flex gap-0 overflow-x-auto" aria-label="Tabs">
             {TABS.map((tab) => (
               <button
                 key={tab}
@@ -393,6 +337,11 @@ export default function DataPage() {
                 }`}
               >
                 {tab}
+                {tab === "Review" && pendingCount > 0 && (
+                  <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[11px] font-semibold rounded-full bg-red-500 text-white align-middle">
+                    {pendingCount}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
@@ -400,7 +349,9 @@ export default function DataPage() {
       </div>
 
       <main className="max-w-2xl mx-auto px-4 py-6">
+        {activeTab === "Review" && <ReviewTab onPendingCount={setPendingCount} />}
         {activeTab === "Data Sources" && <DataSourcesTab />}
+        {activeTab === "Registry" && <SourcesTab />}
         {activeTab === "Timetables" && <TimetablesTab />}
         {activeTab === "Routes" && <RoutesTab />}
         {activeTab === "Operators" && <OperatorsTab />}

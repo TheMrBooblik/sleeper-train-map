@@ -1,5 +1,5 @@
 // Shared train fetching logic for NightJet and EuroNight routes.
-// Data is stored in Vercel Blob via scrape-backontrack.js (daily cron).
+// Data is written to public/data/scraped/ by the daily GitHub Actions scrape.
 
 const FETCH_TIMEOUT_MS = 15_000;
 

@@ -1,14 +1,8 @@
 {
-  "functions": {
-    "src/pages/api/scrape-backontrack.js": { "maxDuration": 60 },
-    "src/pages/api/nj-all-stations.js": { "maxDuration": 60 },
-    "src/pages/api/nj-prewarm.js": { "maxDuration": 60 },
-    "src/pages/api/nj-list.js": { "maxDuration": 60 },
-    "src/pages/api/en-prewarm.js": { "maxDuration": 60 },
-    "src/pages/api/en-list.js": { "maxDuration": 60 },
-    "src/pages/api/nightjet.js": { "maxDuration": 30 },
-    "src/pages/api/nj-train.js": { "maxDuration": 30 },
-    "src/pages/api/nj-route.js": { "maxDuration": 30 }
+  "git": {
+    "deploymentEnabled": {
+      "proposals": false
+    }
   },
   "crons": []
 }

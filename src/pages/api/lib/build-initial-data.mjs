@@ -14,6 +14,18 @@ import {
   keepViewMapRowForTripActivity,
 } from "./primitives.mjs";
 
+// Source registry: declares per-source synthetic-route config (id prefix,
+// agency, aliasing, dedup strategy). Bundled via ESM JSON import so the
+// lambda build traces it (same pattern as station-aliases in primitives.mjs).
+import SOURCE_REGISTRY from "../../../../data/sources/registry.json" with { type: "json" };
+// Per-route from-prices, curated through the review queue (price.update
+// proposals). Stamped onto viewMap rows + trips; getOperatorPricing() picks
+// the route-level record up before falling back to operator defaults.
+import ROUTE_PRICES from "../../../../data/canonical/prices.json" with { type: "json" };
+// Operator pricing defaults — provides the fixed/dynamic `type` half of the
+// stamped record so the existing badge keeps rendering.
+import OPERATOR_PRICING from "../../../../data/overrides/operator-pricing.json" with { type: "json" };
+
 const identity = (name) => name;
 
 // ─── Operator filtering ──────────────────────────────────────────────────────
@@ -92,7 +104,9 @@ function normalizeStops(rawStops) {
 
 // NightJet stations: keyed by exact name (first occurrence), stored under their
 // canonical Back-on-Track name so synthetic routes reference NJ coordinates.
-function injectNJStations(trimmedStops, stopNameSet, njTrains) {
+// `gate` (optional) records every injected candidate and can veto unapproved
+// ones — the review-queue gate for brand-new station markers.
+function injectNJStations(trimmedStops, stopNameSet, njTrains, gate) {
   const njStationsByName = new Map();
   Object.values(njTrains).forEach((train) => {
     (train.stations ?? []).forEach((s) => {
@@ -109,6 +123,8 @@ function injectNJStations(trimmedStops, stopNameSet, njTrains) {
   njStationsByName.forEach((njStation) => {
     const canonicalName = resolveCanonicalStationName(njStation.name);
     if (stopNameSet.has(canonicalName.toLowerCase())) return;
+    gate?.record(canonicalName);
+    if (gate && !gate.isAllowed(canonicalName)) return;
     trimmedStops.push({
       stop_id: canonicalName,
       stop_name: canonicalName,
@@ -120,7 +136,7 @@ function injectNJStations(trimmedStops, stopNameSet, njTrains) {
 }
 
 // Generic station injection (raw names) for CR / Italian / Caucasus trains.
-function injectTrainStations(trimmedStops, stopNameSet, trains) {
+function injectTrainStations(trimmedStops, stopNameSet, trains, gate) {
   Object.values(trains).forEach((train) => {
     (train.stations ?? []).forEach((s) => {
       if (
@@ -129,6 +145,8 @@ function injectTrainStations(trimmedStops, stopNameSet, trains) {
         !Number.isFinite(s?.location?.longitude)
       ) return;
       if (stopNameSet.has(s.name.toLowerCase())) return;
+      gate?.record(s.name);
+      if (gate && !gate.isAllowed(s.name)) return;
       trimmedStops.push({
         stop_id: s.name,
         stop_name: s.name,
@@ -205,28 +223,80 @@ function withPolylineAndStations([, data]) {
   return data.polyline && data.stations?.length >= 2;
 }
 
+// ─── Per-source BoT-row dedup strategies ─────────────────────────────────────
+// When official operator data covers a train, the matching (stale) Back-on-Track
+// row is dropped in favour of the synthetic route built from the official data.
+
+// "exact": BoT trip_short_name matches the official train key verbatim (NJ/EN).
+function dropBotRowsExact(filteredViewMap, trains) {
+  const apiTrainNumbers = new Set(Object.keys(trains));
+  Object.keys(filteredViewMap).forEach((key) => {
+    const route = filteredViewMap[key];
+    const t0 = (route?.trip_short_name_0 || "").trim();
+    const t1 = (route?.trip_short_name_1 || "").trim();
+    if (apiTrainNumbers.has(t0) || apiTrainNumbers.has(t1)) {
+      delete filteredViewMap[key];
+    }
+  });
+}
+
+// "icn": BoT uses "IC Notte 770"; our data uses "ICN 770" — compare bare numbers.
+function dropBotRowsIcn(filteredViewMap, trains, idPrefix) {
+  const bareNumber = (n) =>
+    n.replace(/^IC\s+Notte\s+/i, "").replace(/\s*\([^)]*\)$/, "").trim();
+  const apiTrainNumbers = new Set(
+    Object.keys(trains).map((n) => n.replace(/^ICN\s+/i, "").trim()),
+  );
+  Object.keys(filteredViewMap).forEach((key) => {
+    if (key.startsWith(idPrefix)) return;
+    const route = filteredViewMap[key];
+    const t0 = bareNumber((route?.trip_short_name_0 || "").toString());
+    const t1 = bareNumber((route?.trip_short_name_1 || "").toString());
+    if (apiTrainNumbers.has(t0) || apiTrainNumbers.has(t1)) {
+      delete filteredViewMap[key];
+    }
+  });
+}
+
+const DEDUP_STRATEGIES = {
+  exact: (viewMap, trains) => dropBotRowsExact(viewMap, trains),
+  icn: (viewMap, trains, synthetic) =>
+    dropBotRowsIcn(viewMap, trains, synthetic.idPrefix),
+};
+
 // ─── Orchestrator ────────────────────────────────────────────────────────────
 
 /**
- * Merge all sources into the legacy serving payload.
+ * Merge all sources into the legacy serving payload. Per-source behaviour
+ * (id prefix, agency, station aliasing, BoT dedup) comes from the registry's
+ * `synthetic` config — adding an operator is a registry entry, not code here.
+ *
  * @param {object} inputs
  * @param {object|Array} inputs.stops    Raw Back-on-Track stops
  * @param {object} inputs.viewMap        Raw Back-on-Track view_ontd_map
  * @param {object} inputs.trips          Raw Back-on-Track trips
- * @param {object} [inputs.njTrains]     NightJet/EuroNight trains keyed by line
- * @param {object} [inputs.crTrains]     Chinese Railway trains
- * @param {object} [inputs.itTrains]     Italian (Trenitalia ICN) trains
- * @param {object} [inputs.caucasusTrains] Caucasus trains
+ * @param {object} [inputs.operatorTrains] Trains per source id, e.g.
+ *   { nightjet: { "NJ 237": {polyline, stations}, ... }, chinese: {...}, ... }
+ * @param {Array}  [inputs.registry]     Source registry (defaults to bundled)
+ * @param {object} [inputs.seenIndex]    Approval index (data/canonical/state/
+ *   seen.json). When provided, routes/stations not approved yet are withheld
+ *   from the payload — the "verify before it goes live" gate. When null
+ *   (default), everything flows: callers that can't load the index (or
+ *   pre-gate callers like the parity test) must never blank the map.
+ * @param {object} [inputs.stats]        Optional out-param; filled with
+ *   { injectedStations: string[], gatedRouteKeys: string[] } for the nightly
+ *   classifier.
  * @returns {{ stops: Array, viewMap: object, trips: object }}
  */
 export function buildInitialData({
   stops,
   viewMap,
   trips,
-  njTrains = {},
-  crTrains = {},
-  itTrains = {},
-  caucasusTrains = {},
+  operatorTrains = {},
+  registry = SOURCE_REGISTRY,
+  seenIndex = null,
+  routePrices = ROUTE_PRICES,
+  stats = null,
 } = {}) {
   const filteredTrips = filterTrips(trips);
   const filteredViewMap = filterViewMap(viewMap, trips, filteredTrips);
@@ -236,86 +306,100 @@ export function buildInitialData({
     trimmedStops.map((s) => (s.stop_id || "").toLowerCase()),
   );
 
-  // ── NightJet / EuroNight ────────────────────────────────────────────────
-  injectNJStations(trimmedStops, stopNameSet, njTrains);
-
-  // BoT station lists for NJ/EN are stale; drop them in favour of synthetic
-  // routes built from accurate NJ API data below.
-  const njApiTrainNumbers = new Set(Object.keys(njTrains));
-  Object.keys(filteredViewMap).forEach((key) => {
-    const route = filteredViewMap[key];
-    const t0 = (route?.trip_short_name_0 || "").trim();
-    const t1 = (route?.trip_short_name_1 || "").trim();
-    if (njApiTrainNumbers.has(t0) || njApiTrainNumbers.has(t1)) {
-      delete filteredViewMap[key];
-    }
-  });
-
-  const botMatchedNJNumbers = new Set();
-  Object.values(filteredViewMap).forEach((route) => {
-    [route.trip_short_name_0, route.trip_short_name_1]
-      .filter(Boolean)
-      .forEach((n) => botMatchedNJNumbers.add(n.trim()));
-  });
-  const unmatchedNJ = Object.entries(njTrains).filter(
-    ([lineName, data]) =>
-      !botMatchedNJNumbers.has(lineName) &&
-      data.polyline &&
-      data.stations?.length >= 2,
-  );
-  appendSyntheticRoutes(filteredViewMap, unmatchedNJ, {
-    idPrefix: "nj_standalone_",
-    agency: () => "ÖBB",
-    resolveName: resolveCanonicalStationName,
-  });
-
-  // ── Chinese Railway (CR) ──────────────────────────────────────────────────
-  injectTrainStations(trimmedStops, stopNameSet, crTrains);
-  appendSyntheticRoutes(
-    filteredViewMap,
-    Object.entries(crTrains).filter(withPolylineAndStations),
-    { idPrefix: "cr_", agency: () => "CR", resolveName: identity },
-  );
-
-  // ── Italian Railways (Trenitalia ICN) ─────────────────────────────────────
-  // BoT uses "IC Notte 770"; our data uses "ICN 770" — normalise to bare number.
-  const icnApiTrainNumbers = new Set(
-    Object.keys(itTrains).map((n) => n.replace(/^ICN\s+/i, "").trim()),
-  );
-  Object.keys(filteredViewMap).forEach((key) => {
-    if (key.startsWith("icn_")) return;
-    const route = filteredViewMap[key];
-    const t0 = (route?.trip_short_name_0 || "")
-      .replace(/^IC\s+Notte\s+/i, "")
-      .replace(/\s*\([^)]*\)$/, "")
-      .trim();
-    const t1 = (route?.trip_short_name_1 || "")
-      .replace(/^IC\s+Notte\s+/i, "")
-      .replace(/\s*\([^)]*\)$/, "")
-      .trim();
-    if (icnApiTrainNumbers.has(t0) || icnApiTrainNumbers.has(t1)) {
-      delete filteredViewMap[key];
-    }
-  });
-  injectTrainStations(trimmedStops, stopNameSet, itTrains);
-  appendSyntheticRoutes(
-    filteredViewMap,
-    Object.entries(itTrains).filter(withPolylineAndStations),
-    { idPrefix: "icn_", agency: () => "FS", resolveName: identity },
-  );
-
-  // ── Caucasus Railways (GR, ADY, SCR) ──────────────────────────────────────
-  injectTrainStations(trimmedStops, stopNameSet, caucasusTrains);
-  appendSyntheticRoutes(
-    filteredViewMap,
-    Object.entries(caucasusTrains).filter(withPolylineAndStations),
-    {
-      idPrefix: "caucasus_",
-      agency: (data) => data.agency_id || "GR",
-      resolveName: identity,
-      withService: true,
+  // Station gate: records every injected candidate (for the classifier) and
+  // withholds markers for stations the admin hasn't approved yet.
+  const injectedStations = [];
+  const injectedSeen = new Set();
+  const gate = {
+    record(name) {
+      if (!injectedSeen.has(name)) {
+        injectedSeen.add(name);
+        injectedStations.push(name);
+      }
     },
-  );
+    isAllowed(name) {
+      if (!seenIndex) return true;
+      return seenIndex.injectedStations?.[name]?.approved === true;
+    },
+  };
+
+  for (const entry of registry) {
+    const synthetic = entry?.synthetic;
+    if (!synthetic || !entry.enabled) continue;
+    const trains = operatorTrains[entry.id] ?? {};
+
+    const dedup = DEDUP_STRATEGIES[synthetic.dedupStrategy];
+    if (dedup) dedup(filteredViewMap, trains, synthetic);
+
+    if (synthetic.resolveAliases) {
+      injectNJStations(trimmedStops, stopNameSet, trains, gate);
+    } else {
+      injectTrainStations(trimmedStops, stopNameSet, trains, gate);
+    }
+
+    let trainList = Object.entries(trains).filter(withPolylineAndStations);
+    if (synthetic.excludeBotMatched) {
+      // Only add synthetic routes for trains BoT doesn't already cover
+      // (computed after dedup, so surviving BoT rows win).
+      const botMatched = new Set();
+      Object.values(filteredViewMap).forEach((route) => {
+        [route.trip_short_name_0, route.trip_short_name_1]
+          .filter(Boolean)
+          .forEach((n) => botMatched.add(n.trim()));
+      });
+      trainList = trainList.filter(([lineName]) => !botMatched.has(lineName));
+    }
+
+    appendSyntheticRoutes(filteredViewMap, trainList, {
+      idPrefix: synthetic.idPrefix,
+      agency:
+        synthetic.agency?.from === "data"
+          ? (data) => data.agency_id || synthetic.agency.fallback
+          : () => synthetic.agency?.value,
+      resolveName: synthetic.resolveAliases ? resolveCanonicalStationName : identity,
+      withService: !!synthetic.withService,
+    });
+  }
+
+  // Review gate: withhold routes the admin hasn't approved. Keys absent from
+  // the index are new tonight (the classifier runs after this and files a
+  // proposal) — default-deny so nothing unreviewed reaches the map.
+  const gatedRouteKeys = [];
+  if (seenIndex) {
+    for (const key of Object.keys(filteredViewMap)) {
+      if (seenIndex.routes?.[key]?.approved !== true) {
+        gatedRouteKeys.push(key);
+        delete filteredViewMap[key];
+      }
+    }
+  }
+
+  // Per-route from-prices (review-queue curated): stamp onto the route row and
+  // its trips so getOperatorPricing(routeOrTrip) resolves them route-first.
+  for (const [key, price] of Object.entries(routePrices ?? {})) {
+    const row = filteredViewMap[key];
+    if (!row || !Number.isFinite(price?.fromPrice)) continue;
+    const operatorDefault = OPERATOR_PRICING[(row.agency_id || "").trim()] ?? null;
+    const pricing = {
+      type: operatorDefault?.type ?? null,
+      currency: price.currency ?? operatorDefault?.currency ?? "EUR",
+      fromPrice: price.fromPrice,
+      source: price.source ?? null,
+    };
+    row.pricing = pricing;
+    for (const [tripKey, trip] of Object.entries(filteredTrips)) {
+      if (String(trip.route_id) === String(key)) {
+        // Copy — trips without a via pass through filterTrips unchanged, and
+        // mutating those would leak into the caller's raw input.
+        filteredTrips[tripKey] = { ...trip, pricing };
+      }
+    }
+  }
+
+  if (stats) {
+    stats.injectedStations = injectedStations;
+    stats.gatedRouteKeys = gatedRouteKeys;
+  }
 
   return {
     stops: trimmedStops,

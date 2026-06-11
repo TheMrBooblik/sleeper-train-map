@@ -1,0 +1,3816 @@
+{
+  "v": 1,
+  "updatedAt": "2026-06-11T08:08:35.137Z",
+  "routes": {
+    "3": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Split",
+        "d": "Zagreb Gl. K.",
+        "days0": "2026/06/22-08/30: Daily",
+        "days1": "2026/06/22-08/30: Daily",
+        "agency": "HŽPP",
+        "trains": "1820|1821",
+        "stopsHash": "954492af"
+      }
+    },
+    "6": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Humenné",
+        "d": "Praha hl.n.",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "ČD",
+        "trains": "EN 442|EN 443",
+        "stopsHash": "154595a9"
+      }
+    },
+    "7": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Chop",
+        "d": "Praha hl.n.",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "RJ",
+        "trains": "1020|1021",
+        "stopsHash": "939eb428"
+      }
+    },
+    "8": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Praha hl.n.",
+        "d": "Przemyśl Gł.",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "PKP/ČD",
+        "trains": "EN 50443|IC 417/EN 442",
+        "stopsHash": "29a22759"
+      }
+    },
+    "9": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Praha hl.n.",
+        "d": "Warszawa Wschodnia",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "PKP/ČD",
+        "trains": "EN 443 / IC 406|IC 407 / EN 442",
+        "stopsHash": "93a16373"
+      }
+    },
+    "10": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kraków Gł.",
+        "d": "Hel",
+        "days0": "2026/06/26-08/30: Daily",
+        "days1": "2026/06/27-08/31: Daily",
+        "agency": "PKP",
+        "trains": "TLK 35190/50191|TLK 55190/53190",
+        "stopsHash": "940eded7"
+      }
+    },
+    "11": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Iași",
+        "d": "Cluj-Napoca",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CFR",
+        "trains": "IRN 1837|IRN 1838",
+        "stopsHash": "6b982459"
+      }
+    },
+    "12": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "București Nord",
+        "d": "Budapest Keleti",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CFR",
+        "trains": "IC 472|IC 473",
+        "stopsHash": "a8697962"
+      }
+    },
+    "13": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Suceava Nord",
+        "d": "Mangalia",
+        "days0": "2024/06/14-2024/09/07: Daily",
+        "days1": "2026/06/13-2026/09/06: Daily",
+        "agency": "CFR",
+        "trains": "IRN 1952|IRN 1954/R 8824",
+        "stopsHash": "525e615a"
+      }
+    },
+    "14": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "București Nord",
+        "d": "Oradea",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CFR",
+        "trains": "IRN 472/IRN 1743|IRN 1744/IRN 79",
+        "stopsHash": "eef55f03"
+      }
+    },
+    "15": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Iași",
+        "d": "Timişoara Nord",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CFR",
+        "trains": "IRN 1763|IRN 1765",
+        "stopsHash": "9a93a280"
+      }
+    },
+    "16": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "București Nord",
+        "d": "Budapest Keleti",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CFR/MÁV",
+        "trains": "IRN / IC 78|IRN / IC 79",
+        "stopsHash": "1a09bf5f"
+      }
+    },
+    "19": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "București Nord",
+        "d": "Vatra Dornei Băi",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CFR",
+        "trains": "IRN 1659|IRN 1658",
+        "stopsHash": "b5a8088d"
+      }
+    },
+    "20": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "București Nord",
+        "d": "Satu Mare",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CFR",
+        "trains": "IRN 12641|IRN 12642",
+        "stopsHash": "01aa4213"
+      }
+    },
+    "21": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "București Nord",
+        "d": "Arad",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CFR",
+        "trains": "IRN 1821|IRN 1822",
+        "stopsHash": "57d0e917"
+      }
+    },
+    "22": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Chişinău",
+        "d": "București Nord",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CFM/CFR",
+        "trains": "401|402",
+        "stopsHash": "79d47c5c"
+      }
+    },
+    "23": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "București Nord",
+        "d": "Iași",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CFR",
+        "trains": "IRN 1669|IRN 1668",
+        "stopsHash": "0f09591c"
+      }
+    },
+    "24": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "București Nord",
+        "d": "Arad",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "ATC",
+        "trains": "IR 11501|IR 11500",
+        "stopsHash": "8d0a0615"
+      }
+    },
+    "25": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Satu Mare",
+        "d": "Mangalia",
+        "days0": "2024/06/14-2024/09/07: Daily",
+        "days1": "2026/06/13-2026/09/06: Daily",
+        "agency": "CFR",
+        "trains": "IRN 12941|IRN 12942/R 8810",
+        "stopsHash": "d0ae3b1f"
+      }
+    },
+    "26": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Constanța",
+        "d": "Oradea",
+        "days0": "2026/06/11-09/06: Daily",
+        "days1": "2026/06/11-09/06: Daily",
+        "agency": "CFR",
+        "trains": "IRN 1920|IRN 1922",
+        "stopsHash": "f38048ce"
+      }
+    },
+    "27": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "İstanbul Halkalı",
+        "d": "Sofia",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "TCDD/BDŽ",
+        "trains": "12503/492|493/12504",
+        "stopsHash": "db46b6f3"
+      }
+    },
+    "28": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "İstanbul Halkalı",
+        "d": "București Nord",
+        "days0": "2026/06/11-10/09: Daily",
+        "days1": "2026/06/13-10/12: Daily",
+        "agency": "TCDD/BDŽ/CFR",
+        "trains": "12503/460|461/12504",
+        "stopsHash": "c63b4b33"
+      }
+    },
+    "30": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Ankara",
+        "d": "İzmir Basmane",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "TCDD",
+        "trains": "22006|32005",
+        "stopsHash": "d4b86491"
+      }
+    },
+    "31": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Ankara",
+        "d": "İstanbul Halkalı",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "TCDD",
+        "trains": "22001|12002",
+        "stopsHash": "19062882"
+      }
+    },
+    "37": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "London Euston",
+        "d": "Glasgow Central",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CS",
+        "trains": "1003 (G)|1004 (G)",
+        "stopsHash": "46c4811d"
+      }
+    },
+    "38": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "London Euston",
+        "d": "Edinburgh Waverley",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CS",
+        "trains": "1003 (E)|1004 (E)",
+        "stopsHash": "5b598add"
+      }
+    },
+    "39": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "London Euston",
+        "d": "Aberdeen",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CS",
+        "trains": "1001 (A)|1002 (A)",
+        "stopsHash": "ae670ae9"
+      }
+    },
+    "40": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "London Euston",
+        "d": "Fort William / An Gearasdan",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CS",
+        "trains": "1001 (FW)|1002 (FW)",
+        "stopsHash": "c9a38d5f"
+      }
+    },
+    "41": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "London Euston",
+        "d": "Inverness / Inbhir Nis",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CS",
+        "trains": "1001 (I)|1002 (I)",
+        "stopsHash": "2fbc7769"
+      }
+    },
+    "42": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "London Paddington",
+        "d": "Penzance",
+        "days0": "2026: Daily, except Sat",
+        "days1": "2026: Daily, except Sat",
+        "agency": "GWR",
+        "trains": "Sleeper (Penzance)|Sleeper (London)",
+        "stopsHash": "345f8eb5"
+      }
+    },
+    "48": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Osijek",
+        "d": "Split",
+        "days0": "2026/06/22-08/30: Daily",
+        "days1": "2026/06/22-08/30: Daily",
+        "agency": "HŽPP",
+        "trains": "1880|1881",
+        "stopsHash": "fee5c4cb"
+      }
+    },
+    "59": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "București Nord",
+        "d": "Wien Hbf",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CFR/MÁV/ÖBB",
+        "trains": "D 346|D 347",
+        "stopsHash": "31d19703"
+      }
+    },
+    "60": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Wien Westbf",
+        "d": "Kyiv Pasazhyrskyi",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ/ÖBB",
+        "trains": "40149|40749",
+        "stopsHash": "3d12fbff"
+      }
+    },
+    "62": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Stockholm C",
+        "d": "Malmö C",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "SJ",
+        "trains": "1|2",
+        "stopsHash": "60b469dd"
+      }
+    },
+    "63": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Stockholm C",
+        "d": "Duved",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "SJ",
+        "trains": "70|71",
+        "stopsHash": "1fd19c10"
+      }
+    },
+    "65": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Oslo S",
+        "d": "Stavanger",
+        "days0": "2026: Daily, except Sat",
+        "days1": "2026: Daily, except Sat",
+        "agency": "GA",
+        "trains": "F5 725|F5 726",
+        "stopsHash": "790233bb"
+      }
+    },
+    "67": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Brașov",
+        "d": "Budapest Keleti",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CFR/MÁV",
+        "trains": "IC 406|IC 407",
+        "stopsHash": "fb724800"
+      }
+    },
+    "68": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Rovaniemi",
+        "d": "Helsinki / Helsingfors",
+        "days0": "2026: Sat",
+        "days1": "2026: Fri",
+        "agency": "VR",
+        "trains": "IC 264|IC 267",
+        "stopsHash": "1e4036e1"
+      }
+    },
+    "69": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Oslo S",
+        "d": "Bergen",
+        "days0": "2026: Daily, except Sat",
+        "days1": "2026: Daily, except Sat",
+        "agency": "VY",
+        "trains": "605|606",
+        "stopsHash": "7b6a0d27"
+      }
+    },
+    "71": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Trondheim S",
+        "d": "Bodø",
+        "days0": "2026: Daily, except Sat",
+        "days1": "2026: Daily, except Sat",
+        "agency": "SJN",
+        "trains": "475|476",
+        "stopsHash": "345efd6b"
+      }
+    },
+    "72": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Helsinki / Helsingfors",
+        "d": "Kemijärvi",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "VR",
+        "trains": "IC 265|IC 274",
+        "stopsHash": "d1ceb2ce"
+      }
+    },
+    "73": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Innsbruck Hbf",
+        "d": "Malmö C",
+        "days0": "2026/07/04-08/01: Sat",
+        "days1": "2026/07/03-07/31: Fri",
+        "agency": "ST",
+        "trains": "304|305",
+        "stopsHash": "c183312b"
+      }
+    },
+    "77": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Stockholm C",
+        "d": "Berlin Hbf",
+        "days0": "2026/03/27-11/01: Daily, except Saturday",
+        "days1": "2026/03/27-11/01: Daily, except Saturday",
+        "agency": "ST",
+        "trains": "300|301",
+        "stopsHash": "66958c55"
+      }
+    },
+    "78": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Stockholm C",
+        "d": "Berlin Hbf",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "RDC/SJ",
+        "trains": "EN 345|EN 346",
+        "stopsHash": "86a9ce99"
+      }
+    },
+    "79": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Malmö C",
+        "d": "Storlien",
+        "days0": "2026/06/25-09/27: Wed, Sat",
+        "days1": "2026/06/26-09/28: Thu, Sun",
+        "agency": "ST",
+        "trains": "3920|3921",
+        "stopsHash": "1dd16e05"
+      }
+    },
+    "80": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Malmö C",
+        "d": "Duved",
+        "days0": "2026/03/04-05/02: Wed, Sat",
+        "days1": "2026/03/05-05/03: Thu, Sun",
+        "agency": "ST",
+        "trains": "3904|3905",
+        "stopsHash": "e74ceeab"
+      }
+    },
+    "81": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Luleå C",
+        "d": "Stockholm C",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "SJ",
+        "trains": "91|92",
+        "stopsHash": "8f6730b4"
+      }
+    },
+    "90": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Rovaniemi",
+        "d": "Turku satama / Åbo hamn",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "VR",
+        "trains": "IC 266 (T)|IC 933",
+        "stopsHash": "aa18c53c"
+      }
+    },
+    "91": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Rovaniemi",
+        "d": "Helsinki / Helsingfors",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "VR",
+        "trains": "IC 266 (H)|IC 273",
+        "stopsHash": "c082e0e2"
+      }
+    },
+    "96": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Lecce",
+        "d": "Roma Termini",
+        "days0": "2026: Sun",
+        "days1": "2026: Fri",
+        "agency": "FS",
+        "trains": "IC Notte 788|IC Notte 789",
+        "stopsHash": "6f001abd"
+      }
+    },
+    "98": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Helsinki / Helsingfors",
+        "d": "Kolari",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "VR",
+        "trains": "P 269|P 276",
+        "stopsHash": "fef04019"
+      }
+    },
+    "106": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Bolzano / Bozen",
+        "d": "Roma Termini",
+        "days0": "2026: Sat, Sun",
+        "days1": "2026: Fri, Sat",
+        "agency": "FS",
+        "trains": "IC Notte 763|IC Notte 764",
+        "stopsHash": "5e740241"
+      }
+    },
+    "107": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Paris Austerlitz",
+        "d": "Briançon",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "SNCF",
+        "trains": "IC Nuit 5789|IC Nuit 5790",
+        "stopsHash": "fcf969af"
+      }
+    },
+    "108": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Paris Austerlitz",
+        "d": "Nice Ville",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "SNCF",
+        "trains": "IC Nuit 5781|IC Nuit 5772",
+        "stopsHash": "a6b54301"
+      }
+    },
+    "109": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Albi Ville",
+        "d": "Paris Austerlitz",
+        "days0": "2026: Daily",
+        "days1": "2026: Fri",
+        "agency": "SNCF",
+        "trains": "IC Nuit 3754 (Sun)|IC Nuit 3755 (Sun)",
+        "stopsHash": "6f022597"
+      }
+    },
+    "110": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Paris Austerlitz",
+        "d": "Cerbère",
+        "days0": "2026: Fri",
+        "days1": "2026: Sun",
+        "agency": "SNCF",
+        "trains": "IC Nuit 5737|IC Nuit 5738",
+        "stopsHash": "a2f26f71"
+      }
+    },
+    "111": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Tarbes",
+        "d": "Paris Austerlitz",
+        "days0": "2026: Mon, Tue, Wed, Thu, Fri",
+        "days1": "2026: Mon, Tue, Wed, Thu, Fri",
+        "agency": "SNCF",
+        "trains": "IC Nuit 3740|IC Nuit 3731",
+        "stopsHash": "099b764b"
+      }
+    },
+    "112": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Latour-de-Carol / La Tor de Querol",
+        "d": "Paris Austerlitz",
+        "days0": "2026: Sat, Sun",
+        "days1": "2026: Fri, Sat",
+        "agency": "SNCF",
+        "trains": "IC Nuit 3970|IC Nuit 3971",
+        "stopsHash": "24384189"
+      }
+    },
+    "114": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Villach Hbf",
+        "d": "Edirne",
+        "days0": "2026: Sat",
+        "days1": "2026: Tue",
+        "agency": "OTE",
+        "trains": "141|154",
+        "stopsHash": "1abb1bdf"
+      }
+    },
+    "119": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Rodez",
+        "d": "Paris Austerlitz",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily, except Sat",
+        "agency": "SNCF",
+        "trains": "IC Nuit 3754|IC Nuit 3755",
+        "stopsHash": "9135d735"
+      }
+    },
+    "121": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Warszawa Wschodnia",
+        "d": "Szklarska Poręba Górna",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "PKP",
+        "trains": "IC 16170|IC 61170",
+        "stopsHash": "88c4b025"
+      }
+    },
+    "122": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zakopane",
+        "d": "Świnoujście",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "PKP",
+        "trains": "IC 38172|IC 83172",
+        "stopsHash": "7d77d9d1"
+      }
+    },
+    "123": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Humenné",
+        "d": "Bratislava hl.st.",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "ZSSK",
+        "trains": "R 680|R 681",
+        "stopsHash": "efc3ff65"
+      }
+    },
+    "124": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Praha hl.n.",
+        "d": "Gdynia Gł.",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "PKP/ČD",
+        "trains": "EC 460|EC 461",
+        "stopsHash": "2e48baf2"
+      }
+    },
+    "125": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kraków Gł.",
+        "d": "Łeba",
+        "days0": "2026/06/26-2026/08/30: Daily",
+        "days1": "2026/06/27-2026/08/31: Daily",
+        "agency": "PKP",
+        "trains": "TLK 35190|TLK 53190",
+        "stopsHash": "0a4e6d86"
+      }
+    },
+    "126": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Przemyśl Gł.",
+        "d": "Świnoujście",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "PKP",
+        "trains": "EN 430 / IC 28170|IC 82170 / EC 431",
+        "stopsHash": "df2aa6cf"
+      }
+    },
+    "127": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Warszawa Wschodnia",
+        "d": "Budapest Nyugati",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "MÁV/PKP",
+        "trains": "IC 407 / EN 477|EN 476 / IC 406",
+        "stopsHash": "f8291abe"
+      }
+    },
+    "128": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Chelm",
+        "d": "Świnoujście",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "PKP",
+        "trains": "IC 28170|IC 82170",
+        "stopsHash": "5cabb565"
+      }
+    },
+    "129": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zakopane",
+        "d": "Gdynia Gł.",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "PKP",
+        "trains": "TLK 35170|TLK 53170",
+        "stopsHash": "99efb940"
+      }
+    },
+    "130": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zemun",
+        "d": "Bar",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "ŽS/ŽPCG",
+        "trains": "433|1130 / 432",
+        "stopsHash": "e037bf77"
+      }
+    },
+    "131": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Varna",
+        "d": "Sofia",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "BDŽ",
+        "trains": "ICF 8656|ICF 8657",
+        "stopsHash": "2e74c87f"
+      }
+    },
+    "133": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Varna",
+        "d": "Sofia",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "BDŽ",
+        "trains": "ICF 2626|ICF 2627",
+        "stopsHash": "c0e98d8a"
+      }
+    },
+    "134": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Burgas",
+        "d": "Sofia",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "BDŽ",
+        "trains": "ICF 8626|ICF 8627",
+        "stopsHash": "4c9bdb78"
+      }
+    },
+    "135": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Silistra",
+        "d": "Sofia",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "BDŽ",
+        "trains": "ICF 9646|ICF 9647",
+        "stopsHash": "055694e7"
+      }
+    },
+    "136": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Bielsko-Biała Główna",
+        "d": "Kołobrzeg",
+        "days0": "2026/06/26-2026/08/30: Daily",
+        "days1": "2026/06/27-2026/08/31: Daily",
+        "agency": "PKP",
+        "trains": "TLK 48190|TLK 84190",
+        "stopsHash": "add36c07"
+      }
+    },
+    "137": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Bielsko-Biała Gł.",
+        "d": "Świnoujście",
+        "days0": "2026/06/26-08/30: Daily",
+        "days1": "2026/06/27-08/31: Daily",
+        "agency": "PKP",
+        "trains": "TLK 48190/38194|TLK 83194/84190",
+        "stopsHash": "754326a3"
+      }
+    },
+    "138": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kraków Gł.",
+        "d": "Kołobrzeg",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "PKP",
+        "trains": "TLK 38170|TLK 83170",
+        "stopsHash": "92f1f8db"
+      }
+    },
+    "140": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Przemyśl Gł.",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "051|052 K",
+        "stopsHash": "1c5d9c45"
+      }
+    },
+    "141": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Lozova",
+        "d": "Mykolaiv",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "101|102",
+        "stopsHash": "109e42df"
+      }
+    },
+    "142": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Dobrich",
+        "d": "Sofia",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "BDŽ",
+        "trains": "ICF 2636|ICF 2637",
+        "stopsHash": "9f693f27"
+      }
+    },
+    "147": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Odesa Holovna",
+        "d": "Przemyśl Gł.",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "036 Š|036 L",
+        "stopsHash": "94ba08e3"
+      }
+    },
+    "149": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Dnipro Holovny",
+        "d": "Truskavets",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "041|042",
+        "stopsHash": "6c294af5"
+      }
+    },
+    "150": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kharkiv",
+        "d": "Vorokhta",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "015|016",
+        "stopsHash": "b2c2264d"
+      }
+    },
+    "151": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kharkiv",
+        "d": "Chernivtsi",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "123|124",
+        "stopsHash": "b2c2264d"
+      }
+    },
+    "152": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Chelm",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "023|024",
+        "stopsHash": "4a849265"
+      }
+    },
+    "153": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Chelm",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "019|020",
+        "stopsHash": "4a849265"
+      }
+    },
+    "154": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kharkiv",
+        "d": "Odesa Holovna",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "007 O/059 O|008 Š/060 Š",
+        "stopsHash": "af26a4df"
+      }
+    },
+    "155": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Przemyśl Gł.",
+        "d": "Zaporizhzhia 1",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "032 D|032 P",
+        "stopsHash": "9c27633b"
+      }
+    },
+    "156": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kharkiv",
+        "d": "Lviv",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "021|022",
+        "stopsHash": "d981c5bb"
+      }
+    },
+    "158": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Lozova",
+        "d": "Lviv",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "103|104",
+        "stopsHash": "f12f414d"
+      }
+    },
+    "161": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kharkiv",
+        "d": "Przemyśl Gł.",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "063|064",
+        "stopsHash": "ff173d53"
+      }
+    },
+    "162": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kharkiv",
+        "d": "Uzhhorod",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "017 O/045 D|017 L/045 L",
+        "stopsHash": "39fec3df"
+      }
+    },
+    "164": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kharkiv",
+        "d": "Ivano-Frankivsk",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "001 D|001 L",
+        "stopsHash": "c2e35e41"
+      }
+    },
+    "166": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Ivano-Frankivsk",
+        "d": "Chernihiv",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "141|142",
+        "stopsHash": "fc59f053"
+      }
+    },
+    "167": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Dnipro Holovny",
+        "d": "Chernivtsi",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "261|262",
+        "stopsHash": "9485497b"
+      }
+    },
+    "168": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Chernivtsi",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "007 K|008 L",
+        "stopsHash": "6b7b33d1"
+      }
+    },
+    "170": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Dnipro Holovny",
+        "d": "Lviv",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "079|080",
+        "stopsHash": "f84a23d3"
+      }
+    },
+    "172": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Kryvyi Rih",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "076 K|076 P",
+        "stopsHash": "3a727923"
+      }
+    },
+    "173": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Odesa Holovna",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "105|106",
+        "stopsHash": "98d645f9"
+      }
+    },
+    "174": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "București Nord",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "099|100",
+        "stopsHash": "7599e596"
+      }
+    },
+    "175": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Ivano-Frankivsk",
+        "d": "Kyiv Pasazhyrskyi",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "177 L|207 O",
+        "stopsHash": "55cca490"
+      }
+    },
+    "177": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Sumy",
+        "d": "Rakhiv",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "143|144",
+        "stopsHash": "6a18e419"
+      }
+    },
+    "178": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Ivano-Frankivsk",
+        "d": "Cherkasy",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "043 L|043 Š",
+        "stopsHash": "1aa1ebc5"
+      }
+    },
+    "180": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Kamianets-Podilskyi",
+        "days0": "2026: Tue, Fri, Sun",
+        "days1": "2026: Mon, Wed, Sat",
+        "agency": "UZ",
+        "trains": "139|140",
+        "stopsHash": "8f06a0ff"
+      }
+    },
+    "181": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Warszawa Zachodnia",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "067|068",
+        "stopsHash": "f186b55b"
+      }
+    },
+    "182": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Kovel",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "097|098",
+        "stopsHash": "d9c54f87"
+      }
+    },
+    "183": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Budapest Keleti",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "009|010",
+        "stopsHash": "935db75a"
+      }
+    },
+    "184": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kharkiv",
+        "d": "Uzhhorod",
+        "days0": "2026: 2-3 times per week",
+        "days1": "2026: 2-3 times per week",
+        "agency": "UZ",
+        "trains": "113|114",
+        "stopsHash": "d3b54ad0"
+      }
+    },
+    "185": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Truskavets",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "049|050",
+        "stopsHash": "1c5d9c45"
+      }
+    },
+    "186": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Uzhhorod",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "029 K|029 L",
+        "stopsHash": "572143d1"
+      }
+    },
+    "189": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Zaporizhzhia 1",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "038 K|038 P",
+        "stopsHash": "f97efad3"
+      }
+    },
+    "190": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Chop",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "059 K|060 L",
+        "stopsHash": "a8d7a739"
+      }
+    },
+    "191": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Lviv",
+        "d": "Odesa Holovna",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "012 L|012 Š",
+        "stopsHash": "8b3b8ff0"
+      }
+    },
+    "195": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Chişinău",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ/CFM",
+        "trains": "351 K|351 L",
+        "stopsHash": "3f2ba49f"
+      }
+    },
+    "196": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Mukacheve",
+        "d": "Kremenchuk",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "132 L|132 O",
+        "stopsHash": "2458a833"
+      }
+    },
+    "197": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Lviv",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "091|092",
+        "stopsHash": "13f0f14f"
+      }
+    },
+    "198": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Rakhiv",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "055|056",
+        "stopsHash": "2dfa8c51"
+      }
+    },
+    "199": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Rakhiv",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "095|096",
+        "stopsHash": "c0cd46bd"
+      }
+    },
+    "200": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Mykolaiv",
+        "d": "Kyiv Pasazhyrskyi",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "121|122",
+        "stopsHash": "3a727923"
+      }
+    },
+    "201": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Chernivtsi",
+        "d": "Kryvyi Rih",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "233|234",
+        "stopsHash": "e603db35"
+      }
+    },
+    "203": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Solotvyno",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "013 K|013 L",
+        "stopsHash": "e0b3326d"
+      }
+    },
+    "207": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Dnipro Holovny",
+        "d": "Odesa Holovna",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "052 P/053|052 Š/054",
+        "stopsHash": "00ec9e89"
+      }
+    },
+    "208": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kharkiv",
+        "d": "Chelm",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "093|094",
+        "stopsHash": "adcb6a31"
+      }
+    },
+    "209": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kovel",
+        "d": "Dnipro Holovny",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "088 L|088 P",
+        "stopsHash": "72ff3bff"
+      }
+    },
+    "210": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Odesa Holovna",
+        "d": "Kyiv Pasazhyrskyi",
+        "days0": "2026: Tue, Thu, Sun",
+        "days1": "2026: Mon, Wed, Fri",
+        "agency": "UZ",
+        "trains": "148 K|148 Š",
+        "stopsHash": "fc569985"
+      }
+    },
+    "211": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Lviv",
+        "d": "Zaporizhzhia 1",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "086 L|086 P",
+        "stopsHash": "04fba3a9"
+      }
+    },
+    "212": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Lviv",
+        "d": "Zaporizhzhia 1",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "128 L|128 P",
+        "stopsHash": "1b2af45d"
+      }
+    },
+    "213": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Mykolaiv",
+        "d": "Lviv",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "109|110",
+        "stopsHash": "76591ccd"
+      }
+    },
+    "218": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Uzhhorod",
+        "d": "Odesa Holovna",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "037|038 O/Š",
+        "stopsHash": "748207a9"
+      }
+    },
+    "219": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Chernivtsi",
+        "d": "Odesa Holovna",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "136 L|136 Š",
+        "stopsHash": "0397b169"
+      }
+    },
+    "220": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Uzhhorod",
+        "d": "Dnipro Holovny",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "003|004",
+        "stopsHash": "2e7dbbaa"
+      }
+    },
+    "221": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Yasinia",
+        "d": "Zaporizhzhia 1",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "006 L|006 P",
+        "stopsHash": "d1bd833e"
+      }
+    },
+    "222": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kovel",
+        "d": "Odesa Holovna",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "078 L|078 Š",
+        "stopsHash": "ef35c42b"
+      }
+    },
+    "223": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Budapest Keleti",
+        "d": "Koper",
+        "days0": "2026/06/26-08/29: Daily",
+        "days1": "2026/06/26-08/29: Daily",
+        "agency": "MÁV",
+        "trains": "1246 / 1605|1604 / 1247",
+        "stopsHash": "2c230269"
+      }
+    },
+    "224": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Budapest Keleti",
+        "d": "Rijeka",
+        "days0": "2026/06/26-08/29: Daily",
+        "days1": "2026/06/26-08/29: Daily",
+        "agency": "MÁV",
+        "trains": "1246 / 481|480 / 1247",
+        "stopsHash": "10ed30ff"
+      }
+    },
+    "225": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Budapest Keleti",
+        "d": "Split",
+        "days0": "2026: summer only, to be announced",
+        "days1": "2026: summer only, to be announced",
+        "agency": "MÁV",
+        "trains": "IC 1204|IC 1205",
+        "stopsHash": "94388473"
+      }
+    },
+    "227": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kyiv Pasazhyrskyi",
+        "d": "Uzhhorod",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "UZ",
+        "trains": "081 K|081 L",
+        "stopsHash": "ad9e5c1b"
+      }
+    },
+    "237": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Praha hl.n.",
+        "d": "Bruxelles Midi / Brussel Zuid",
+        "days0": "2026: Tue, Thu, Sun",
+        "days1": "2026: Mon, Wed, Fri",
+        "agency": "ES",
+        "trains": "452|453",
+        "stopsHash": "9751bbe2"
+      }
+    },
+    "238": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Berlin Hbf",
+        "d": "Paris Gare du Nord",
+        "days0": "2026: Mon, Wed, Fri",
+        "days1": "2026: Tue, Thu, Sun",
+        "agency": "ES",
+        "trains": "474|475",
+        "stopsHash": "8ff73f3b"
+      }
+    },
+    "239": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Amsterdam Centraal",
+        "d": "Milano Centrale",
+        "days0": "",
+        "days1": "",
+        "agency": "ES",
+        "trains": "454|455",
+        "stopsHash": "01ffc3cf"
+      }
+    },
+    "240": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Bruxelles Midi / Brussel Zuid",
+        "d": "Milano Porta Garibaldi",
+        "days0": "2026: Mon, Thu, Sat",
+        "days1": "2026: Wed, Fri, Sun",
+        "agency": "ES",
+        "trains": "456|457",
+        "stopsHash": "84176cf7"
+      }
+    },
+    "243": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Ankara",
+        "d": "Tatvan",
+        "days0": "2026: Thu, Sun",
+        "days1": "2026: Tue, Thu",
+        "agency": "TCDD",
+        "trains": "22012|52011",
+        "stopsHash": "ce384807"
+      }
+    },
+    "245": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Ankara",
+        "d": "Kurtalan",
+        "days0": "2026: Mon, Wed, Thu, Fri, Sat",
+        "days1": "2026: Mon, Wed, Fri, Sat, Son",
+        "agency": "TCDD",
+        "trains": "22014|52013",
+        "stopsHash": "11c73f6f"
+      }
+    },
+    "246": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Ankara",
+        "d": "Malatya",
+        "days0": "2026: Thu, Sat",
+        "days1": "2026: Fri, Sun",
+        "agency": "TCDD",
+        "trains": "22018|52019",
+        "stopsHash": "4debce1c"
+      }
+    },
+    "247": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Ankara",
+        "d": "Kars",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "TCDD",
+        "trains": "22010|42009",
+        "stopsHash": "7f55b6fd"
+      }
+    },
+    "248": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "İzmir Basmane",
+        "d": "Konya",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "TCDD",
+        "trains": "32007|72008",
+        "stopsHash": "38a609cb"
+      }
+    },
+    "249": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Bistrița Nord",
+        "d": "București Nord",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CFR",
+        "trains": "R-E 4007/IRN 12642|IRN 12641/R-E 4008",
+        "stopsHash": "d76cab6e"
+      }
+    },
+    "250": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "București Nord",
+        "d": "Cluj-Napoca",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "CFR",
+        "trains": "IRN 12641/IRN 1643|IRN 1644/IRN 12642",
+        "stopsHash": "8588cb46"
+      }
+    },
+    "258": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Przemyśl Gł.",
+        "d": "Kremenchuk",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "069|070",
+        "stopsHash": "60f08261"
+      }
+    },
+    "259": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kryvyi Rih",
+        "d": "Ivano-Frankivsk",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "033 P|033 L",
+        "stopsHash": "56e489a9"
+      }
+    },
+    "261": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Przemyśl Gł.",
+        "d": "Praha hl.n.",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "RJ",
+        "trains": "1022|1023",
+        "stopsHash": "49b9ca1b"
+      }
+    },
+    "262": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Paris Austerlitz",
+        "d": "Aurillac",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "SNCF",
+        "trains": "IC Nuit 3789|IC Nuit 3790",
+        "stopsHash": "7b7d5f29"
+      }
+    },
+    "263": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Solotvyno",
+        "d": "Zaporizhzhia 1",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "039 L|040 P",
+        "stopsHash": "88fad023"
+      }
+    },
+    "264": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Toulouse Matabiau",
+        "d": "Paris Austerlitz",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "SNCF",
+        "trains": "IC Nuit 3750|IC Nuit 3751",
+        "stopsHash": "8a38cb17"
+      }
+    },
+    "265": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Bohumín",
+        "d": "Hel",
+        "days0": "2026/06/26-08/30: Daily",
+        "days1": "2026/06/27-08/31: Daily",
+        "agency": "PKP/ČD",
+        "trains": "TLK 403/50171|TLK 55170/402",
+        "stopsHash": "01008dc7"
+      }
+    },
+    "266": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Bohumín",
+        "d": "Łeba",
+        "days0": "2026/06/26-08/30: Daily",
+        "days1": "2026/06/27-08/31: Daily",
+        "agency": "PKP/ČD",
+        "trains": "TLK 403|TLK 402",
+        "stopsHash": "01008dc7"
+      }
+    },
+    "267": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kraków Gł.",
+        "d": "Świnoujście",
+        "days0": "2026/06/26-08/30: Daily",
+        "days1": "2026/06/27-08/31: Daily",
+        "agency": "PKP",
+        "trains": "TLK 38194|TLK 83194",
+        "stopsHash": "a7df6508"
+      }
+    },
+    "268": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Kraków Gł.",
+        "d": "Kołobrzeg",
+        "days0": "2026/06/26-08/30: Daily",
+        "days1": "2026/06/27-08/31: Daily",
+        "agency": "PKP",
+        "trains": "TLK 38190|TLK 83190",
+        "stopsHash": "5831e289"
+      }
+    },
+    "269": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Dnipro Holovny",
+        "d": "Uzhhorod",
+        "days0": "2026: Every 2nd day",
+        "days1": "2026: Every 2nd day",
+        "agency": "UZ",
+        "trains": "083 P|083 L",
+        "stopsHash": "1cc03b00"
+      }
+    },
+    "#REF!": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "",
+        "d": "",
+        "days0": "",
+        "days1": "",
+        "agency": "#REF!",
+        "trains": "",
+        "stopsHash": "0002b623"
+      }
+    },
+    "nj_standalone_NJ_499": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Hamburg-Altona",
+        "d": "Wien Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 499|NJ 498",
+        "stopsHash": "ec6565e3"
+      }
+    },
+    "nj_standalone_NJ_421": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Amsterdam Centraal",
+        "d": "Innsbruck Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 421|NJ 420",
+        "stopsHash": "a434b6b1"
+      }
+    },
+    "nj_standalone_NJ_237": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Stuttgart Hbf",
+        "d": "Venezia Santa Lucia",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 237|NJ 236",
+        "stopsHash": "88cfe4f1"
+      }
+    },
+    "nj_standalone_NJ_457": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Berlin Hbf (tief)",
+        "d": "Graz Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 457|NJ 456",
+        "stopsHash": "74ec8927"
+      }
+    },
+    "nj_standalone_NJ_295": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "München Hbf",
+        "d": "Roma Tiburtina",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 295|NJ 294",
+        "stopsHash": "2d1c95f5"
+      }
+    },
+    "nj_standalone_NJ_40421": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Amsterdam Centraal",
+        "d": "Wien Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 40421|NJ 40490",
+        "stopsHash": "121305c3"
+      }
+    },
+    "nj_standalone_NJ_40491": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Hamburg-Altona",
+        "d": "Innsbruck Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 40491|NJ 40420",
+        "stopsHash": "9828dfb1"
+      }
+    },
+    "nj_standalone_NJ_493": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Hamburg-Altona",
+        "d": "Wien Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 493|NJ 492",
+        "stopsHash": "30692e88"
+      }
+    },
+    "nj_standalone_NJ_469": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Bruxelles Midi",
+        "d": "Wien Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 469|NJ 468",
+        "stopsHash": "ca546eaf"
+      }
+    },
+    "nj_standalone_NJ_470": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Hamburg-Altona",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 470|NJ 471",
+        "stopsHash": "e3b8022b"
+      }
+    },
+    "nj_standalone_NJ_402": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Amsterdam Centraal",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 402|NJ 403",
+        "stopsHash": "64169268"
+      }
+    },
+    "nj_standalone_NJ_409": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Berlin Hbf (tief)",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 409|NJ 408",
+        "stopsHash": "d7889637"
+      }
+    },
+    "nj_standalone_NJ_448": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-11",
+      "approved": false,
+      "fingerprint": {
+        "o": "Wien Hbf",
+        "d": "Bruxelles Midi",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 448",
+        "stopsHash": "f4e73f82"
+      }
+    },
+    "nj_standalone_NJ_40466": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-11",
+      "approved": false,
+      "fingerprint": {
+        "o": "Wien Hbf",
+        "d": "Venezia Santa Lucia",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 40466|NJ 40236",
+        "stopsHash": "1c0f51e5"
+      }
+    },
+    "nj_standalone_NJ_40233": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Wien Hbf",
+        "d": "Roma Tiburtina",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 40233|NJ 40294",
+        "stopsHash": "72f8b3a1"
+      }
+    },
+    "nj_standalone_NJ_447": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Bregenz Bahnhof",
+        "d": "Wien Hbf (Autoreisezuganlage)",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 447|NJ 446",
+        "stopsHash": "c69e9364"
+      }
+    },
+    "nj_standalone_NJ_13486": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Wien Hbf",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 13486|NJ 13487",
+        "stopsHash": "e1ddc0dd"
+      }
+    },
+    "nj_standalone_NJ_19946": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Wien Hbf (Autoreisezuganlage)",
+        "d": "Bregenz Bahnhof",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 19946|NJ 19947",
+        "stopsHash": "27517da4"
+      }
+    },
+    "nj_standalone_NJ_13485": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-11",
+      "approved": false,
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Graz Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 13485|NJ 13484",
+        "stopsHash": "f71bce25"
+      }
+    },
+    "nj_standalone_NJ_465": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-11",
+      "approved": false,
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Graz Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 465|NJ 464",
+        "stopsHash": "929591ce"
+      }
+    },
+    "nj_standalone_NJ_466": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Wien Hbf",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 466|NJ 467",
+        "stopsHash": "96db2521"
+      }
+    },
+    "nj_standalone_NJ_13466": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Feldkirch Bahnhof",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 13466",
+        "stopsHash": "32d875ce"
+      }
+    },
+    "nj_standalone_NJ_13464": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Feldkirch Bahnhof",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 13464",
+        "stopsHash": "32d875ce"
+      }
+    },
+    "nj_standalone_EN_40458": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-11",
+      "approved": false,
+      "fingerprint": {
+        "o": "Praha hl.n.",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40458|EN 40459",
+        "stopsHash": "38ad7715"
+      }
+    },
+    "nj_standalone_EN_40414": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-11",
+      "approved": false,
+      "fingerprint": {
+        "o": "Zagreb Glavni Kolod.",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40414|EN 40465",
+        "stopsHash": "b73d09bf"
+      }
+    },
+    "nj_standalone_EN_40462": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Budapest-Keleti",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40462|EN 40467",
+        "stopsHash": "0e177f61"
+      }
+    },
+    "nj_standalone_EN_40407": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Warszawa Wschodnia",
+        "d": "München Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40407|EN 40406",
+        "stopsHash": "d89b473d"
+      }
+    },
+    "nj_standalone_EN_40416": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "München Hbf",
+        "d": "Przemyśl Gł.",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40416|EN 40417",
+        "stopsHash": "c7a39377"
+      }
+    },
+    "nj_standalone_EN_50462": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Budapest-Keleti",
+        "d": "Stuttgart Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 50462|EN 50237",
+        "stopsHash": "a567b25f"
+      }
+    },
+    "nj_standalone_EN_40237": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-11",
+      "approved": false,
+      "fingerprint": {
+        "o": "Stuttgart Hbf",
+        "d": "Zagreb Glavni Kolod.",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40237|EN 414",
+        "stopsHash": "ee91f228"
+      }
+    },
+    "nj_standalone_EN_1272": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-11",
+      "approved": false,
+      "fingerprint": {
+        "o": "Split",
+        "d": "Wien Hbf (Autoreisezuganlage)",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 1272|EN 1273",
+        "stopsHash": "d1392485"
+      }
+    },
+    "nj_standalone_EN_40476": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-11",
+      "approved": false,
+      "fingerprint": {
+        "o": "Budapest-Nyugati",
+        "d": "Berlin Hbf (tief)",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40476|EN 40457",
+        "stopsHash": "2d03a97d"
+      }
+    },
+    "nj_standalone_NJ_13465": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Buchs SG",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 13465",
+        "stopsHash": "51475bb2"
+      }
+    },
+    "nj_standalone_NJ_13467": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Buchs SG",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 13467",
+        "stopsHash": "51475bb2"
+      }
+    },
+    "cr_Z_21": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Beijing West",
+        "d": "Lhasa",
+        "days0": null,
+        "days1": null,
+        "agency": "CR",
+        "trains": "Z 21|Z 22",
+        "stopsHash": "ec282dcf"
+      }
+    },
+    "cr_Z_264": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Guangzhou",
+        "d": "Lhasa",
+        "days0": null,
+        "days1": null,
+        "agency": "CR",
+        "trains": "Z 264|Z 265",
+        "stopsHash": "5058175f"
+      }
+    },
+    "cr_Z_13": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Beijing West",
+        "d": "Guangzhou",
+        "days0": null,
+        "days1": null,
+        "agency": "CR",
+        "trains": "Z 13|Z 14",
+        "stopsHash": "668ffd7f"
+      }
+    },
+    "cr_Z_1": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Beijing",
+        "d": "Shanghai",
+        "days0": null,
+        "days1": null,
+        "agency": "CR",
+        "trains": "Z 1|Z 2",
+        "stopsHash": "37f8451b"
+      }
+    },
+    "cr_Z_69": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Beijing",
+        "d": "Urumqi",
+        "days0": null,
+        "days1": null,
+        "agency": "CR",
+        "trains": "Z 69|Z 70",
+        "stopsHash": "a343e167"
+      }
+    },
+    "cr_Z_53": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Shanghai",
+        "d": "Kunming",
+        "days0": null,
+        "days1": null,
+        "agency": "CR",
+        "trains": "Z 53|Z 54",
+        "stopsHash": "82a9330f"
+      }
+    },
+    "cr_Z_5": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Beijing",
+        "d": "Hanoi",
+        "days0": null,
+        "days1": null,
+        "agency": "CR",
+        "trains": "Z 5|Z 6",
+        "stopsHash": "1628b1af"
+      }
+    },
+    "cr_K_9795": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Urumqi",
+        "d": "Almaty",
+        "days0": null,
+        "days1": null,
+        "agency": "CR",
+        "trains": "K 9795|K 9796",
+        "stopsHash": "4195d1a1"
+      }
+    },
+    "icn_ICN_752": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Lecce",
+        "d": "Milano Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 752|ICN 755",
+        "stopsHash": "bb9b12c8"
+      }
+    },
+    "icn_ICN_754": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Lecce",
+        "d": "Torino Porta Nuova",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 754|ICN 757",
+        "stopsHash": "231d507a"
+      }
+    },
+    "icn_ICN_758": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Lecce",
+        "d": "Milano Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 758|ICN 765",
+        "stopsHash": "dc71e956"
+      }
+    },
+    "icn_ICN_774": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-11",
+      "approved": false,
+      "fingerprint": {
+        "o": "Roma Termini",
+        "d": "Trieste Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 774|ICN 770",
+        "stopsHash": "5376d72e"
+      }
+    },
+    "icn_ICN_775": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-11",
+      "approved": false,
+      "fingerprint": {
+        "o": "Roma Termini",
+        "d": "Trieste Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 775|ICN 771",
+        "stopsHash": "5376d72e"
+      }
+    },
+    "icn_ICN_794": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Reggio Di Calabria Centrale",
+        "d": "Torino Porta Nuova",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 794|ICN 795",
+        "stopsHash": "cdd42aba"
+      }
+    },
+    "icn_ICN_796": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Salerno",
+        "d": "Torino Porta Nuova",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 796|ICN 797",
+        "stopsHash": "9a3a1b5c"
+      }
+    },
+    "icn_ICN_798": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Salerno",
+        "d": "Torino Porta Nuova",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 798|ICN 799",
+        "stopsHash": "91e8e6fc"
+      }
+    },
+    "icn_ICN_1930": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Palermo Centrale",
+        "d": "Messina Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 1930|ICN 1961",
+        "stopsHash": "afb24a6e"
+      }
+    },
+    "icn_ICN_1954": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Palermo Centrale",
+        "d": "Messina Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 1954|ICN 1965",
+        "stopsHash": "b144dbee"
+      }
+    },
+    "icn_ICN_1955": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Roma Termini",
+        "d": "Siracusa",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 1955|ICN 1960",
+        "stopsHash": "bad69590"
+      }
+    },
+    "icn_ICN_1958": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Palermo Centrale",
+        "d": "Messina Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 1958|ICN 1957",
+        "stopsHash": "2710e7ad"
+      }
+    },
+    "icn_ICN_1959": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Roma Termini",
+        "d": "Siracusa",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 1959",
+        "stopsHash": "e00f3d26"
+      }
+    },
+    "icn_ICN_1962": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Siracusa",
+        "d": "Milano Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 1962|ICN 1963",
+        "stopsHash": "aa066077"
+      }
+    },
+    "icn_ICN_1964": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Palermo Centrale",
+        "d": "Messina Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 1964",
+        "stopsHash": "f0f042c8"
+      }
+    },
+    "caucasus_GR_1": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Tbilisi Centraluri",
+        "d": "Batumi Centraluri",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "GR",
+        "trains": "GR 1|GR 2",
+        "stopsHash": "30263385"
+      }
+    },
+    "caucasus_GR_53": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Tbilisi Centraluri",
+        "d": "Zugdidi",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "GR",
+        "trains": "GR 53|GR 54",
+        "stopsHash": "73381c3d"
+      }
+    },
+    "caucasus_ADY_101": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {
+        "o": "Baku",
+        "d": "Tbilisi",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "ADY",
+        "trains": "ADY 101|ADY 102",
+        "stopsHash": "06365ea5"
+      }
+    },
+    "nj_standalone_NJ_468": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-10",
+      "approved": true,
+      "fingerprint": {
+        "o": "Wien Hbf",
+        "d": "Bruxelles Midi",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 468",
+        "stopsHash": "f4e73f82"
+      }
+    },
+    "nj_standalone_NJ_40236": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-10",
+      "approved": true,
+      "fingerprint": {
+        "o": "Venezia Santa Lucia",
+        "d": "Wien Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 40236|NJ 40466",
+        "stopsHash": "5d789025"
+      }
+    },
+    "nj_standalone_NJ_13484": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-10",
+      "approved": true,
+      "fingerprint": {
+        "o": "Graz Hbf",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 13484|NJ 13485",
+        "stopsHash": "f1f08665"
+      }
+    },
+    "nj_standalone_NJ_464": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-10",
+      "approved": true,
+      "fingerprint": {
+        "o": "Graz Hbf",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 464|NJ 465",
+        "stopsHash": "c3a7ac8e"
+      }
+    },
+    "nj_standalone_EN_40465": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-10",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Zagreb Glavni Kolod.",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40465|EN 40414",
+        "stopsHash": "052dd5ff"
+      }
+    },
+    "nj_standalone_EN_40459": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-10",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Praha hl.n.",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40459|EN 40458",
+        "stopsHash": "fed38e7f"
+      }
+    },
+    "nj_standalone_EN_40457": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-10",
+      "approved": true,
+      "fingerprint": {
+        "o": "Berlin Hbf (tief)",
+        "d": "Budapest-Nyugati",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40457|EN 40476",
+        "stopsHash": "d114417d"
+      }
+    },
+    "nj_standalone_EN_414": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-10",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zagreb Glavni Kolod.",
+        "d": "Stuttgart Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 414|EN 40237",
+        "stopsHash": "b1a42548"
+      }
+    },
+    "nj_standalone_EN_1273": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-10",
+      "approved": true,
+      "fingerprint": {
+        "o": "Wien Hbf (Autoreisezuganlage)",
+        "d": "Split",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 1273|EN 1272",
+        "stopsHash": "b0218485"
+      }
+    },
+    "icn_ICN_770": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-10",
+      "approved": true,
+      "fingerprint": {
+        "o": "Trieste Centrale",
+        "d": "Roma Termini",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 770|ICN 774",
+        "stopsHash": "e297708e"
+      }
+    },
+    "icn_ICN_771": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-10",
+      "approved": true,
+      "fingerprint": {
+        "o": "Trieste Centrale",
+        "d": "Roma Termini",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 771|ICN 775",
+        "stopsHash": "e297708e"
+      }
+    },
+    "curated_TLJ_1920": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-11",
+      "approved": true,
+      "fingerprint": {}
+    }
+  },
+  "injectedStations": {
+    "Hamburg-Altona": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Hamburg-Harburg": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Linz/Donau Hbf": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "St.Pölten Hbf": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Wien Meidling Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Utrecht": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Arnhem": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Kufstein Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Jenbach Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Treviso Hbf": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Berlin Hbf (tief)": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Dresden-Neustadt": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Schöna Staatsgrenze": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Decín Hauptbahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Usti nad Labem hl.n.": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Bruck/Mur Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Schwarzach-St.Veit Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Bruxelles Midi": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Bruxelles Nord": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Liège-Guillemins": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Aachen Süd Staatsgrenze": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Frankfurt(Main)Hbf": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Frankfurt(M) Flughafen Fernbf": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Amstetten": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Bregenz Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Dornbirn Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Hohenems Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Götzis Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Rankweil Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Feldkirch Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Bludenz Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Langen am Arlberg Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "St.Anton am Arlberg Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Landeck-Zams Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Imst-Pitztal Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Ötztal Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Vöcklabruck Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "St.Valentin Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Bad Hofgastein Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Bad Gastein Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Mallnitz-Obervellach Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Spittal-Millstätter See Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Buchs SG": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Tullnerfeld Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Zagreb Glavni Kolod.": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Dobova(Gr)": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Lesce-Bled": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Jesenice(SL)": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Jesenice(Gr)": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Kelenföld": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Tatabanya": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Györ": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Mosonmagyarovar": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Chalupki": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Chalupki Granica panstwa": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Krsko": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Perkovic": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Ostarije": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Sentilj": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Spielfeld-Straß Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Sturovo státna hranica": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Sturovo": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Nove Zamky": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Kuty": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Kuty státna hranica": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Beijing West": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Shijiazhuang": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Zhengzhou": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Xi'an": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Lanzhou": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Xining": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Golmud": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Wudaoliang": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Tuotuoheyan": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Amdo": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Nagqu": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Lhasa": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Guangzhou": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Changsha": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Wuhan": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Beijing": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Tianjin": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Jinan": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Nanjing": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Shanghai": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Datong": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Hohhot": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Baotou": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Yinchuan": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Jiayuguan": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Hami": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Turpan": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Urumqi": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Hangzhou": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Yingtan": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Zhuzhou": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Guiyang": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Kunming": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Nanning": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Pingxiang": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Đồng Đăng": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Hanoi": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Alashankou": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Dostyk": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Aktogay": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Almaty": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "S.severo": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Forli'": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Chiusi-Chianciano Terme": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Terontola Cortona": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Firenze Campo Marte": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Venezia S.lucia": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Reggio Di Calabria Centrale": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Reggio Di Calabria Lido": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Villa S.giovanni": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Ricadi-Capo Vaticano": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Scalea S.domenica Talao": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Cefalu'": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "S.agata Di Militello": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Patti-S.piero Patti": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "S.stefano Di Camastra-Mistretta": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Giarre Riposto": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Pisciotta Palinuro": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Agropoli Castellabate": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Tbilisi Centraluri": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Gori": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Khashuri": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Zestaponi": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Kutaisi": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Samtredia": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Kobuleti": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Batumi Centraluri": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Senaki": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Zugdidi": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Baku": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Bilajari": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Yevlakh": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Ganja": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Agstafa": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Boyuk Kasik": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Gardabani": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Tbilisi": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    }
+  }
+}
