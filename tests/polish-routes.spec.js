@@ -92,6 +92,11 @@ const EXPECTED_GTFS_KEYS = [
   "82170",
   "83170",
   "83172",
+  // Kraków/Bohumín ↔ Łeba (Korsarz/Wydmy): rail to Lębork, bus on to Łeba.
+  "35190",
+  "53190",
+  "403",
+  "402",
 ];
 
 const GAP_THRESHOLD_KM = 30;
@@ -120,6 +125,16 @@ test.describe("Polish train routes", () => {
         gap,
         `Key ${key}: gap of ${gap.toFixed(1)} km exceeds ${GAP_THRESHOLD_KM} km`,
       ).toBeLessThan(GAP_THRESHOLD_KM);
+    }
+
+    // Korsarz/Wydmy run by bus on the closed Lębork–Łeba section, so the rail
+    // shape ends at Lębork but the journey must reach Łeba via a bus segment.
+    for (const key of ["35190", "403"]) {
+      const shape = bundle.byTrainKey[key];
+      const lastStop = shape.stops[shape.stops.length - 1].name;
+      expect(lastStop, `Key ${key} should end at Łeba`).toBe("Łeba");
+      const reachesLeba = shape.bus_segments?.some((s) => s.to === "Łeba");
+      expect(reachesLeba, `Key ${key} missing bus segment to Łeba`).toBeTruthy();
     }
   });
 
@@ -231,8 +246,9 @@ test.describe("Polish train routes", () => {
       if (isPrahaWarszawaRoute(route)) continue;
 
       const p0 = positionsForLabel(route.trip_short_name_0, byTrainKey);
-      // Routes 10/125/136/137 have no GTFS shapes — station-coord fallback is acceptable
-      // but routes with a matching key should have >= 200 points
+      // Multi-leg coastal/cross-border routes (e.g. Hel) may have no single
+      // matching GTFS shape — station-coord fallback is acceptable — but any
+      // route whose key resolves to a shape should have >= 200 points.
       if (p0 !== null) {
         expect(
           p0.length,

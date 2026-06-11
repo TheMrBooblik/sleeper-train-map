@@ -42,6 +42,25 @@ if (withCalendar < 1) {
   fail("Expected at least one train with a derived service calendar (days)");
 }
 
+// 2b) Replacement-bus terminus extension: trains whose final leg runs by bus
+//     (e.g. Lębork↔Łeba while the line is closed for works) must reach the real
+//     terminus in `stops` and carry a bus segment, so the merge can match the
+//     Back-on-Track route to Łeba instead of stopping short at Lębork.
+for (const [key, expectedTerminus] of [
+  ["35190", "Łeba"], // Kraków → Łeba (Korsarz), bus on Lębork→Łeba
+  ["403", "Łeba"], // Bohumín → Łeba (Wydmy), bus on Lębork→Łeba
+]) {
+  const e = byTrainKey[key];
+  const last = e?.stops?.[e.stops.length - 1]?.name;
+  if (last !== expectedTerminus) {
+    fail(`byTrainKey[${key}] should end at ${expectedTerminus}, got ${last}`);
+  }
+  const reachesTerminus = e?.bus_segments?.some((s) => s.to === expectedTerminus);
+  if (!reachesTerminus) {
+    fail(`byTrainKey[${key}] should have a bus segment ending at ${expectedTerminus}`);
+  }
+}
+
 // 3) Endpoint matching: legitimate routes resolve, collisions are rejected.
 //    These mirror the real Back-on-Track route labels/endpoints.
 const cases = [
@@ -49,6 +68,12 @@ const cases = [
   ["IC 16170", "Warszawa Wschodnia", "Szklarska Poręba Górna", "16170"],
   ["IC 28170", "Chelm", "Świnoujście", "28170"],
   ["EC 460", "Praha hl.n.", "Gdynia Gł.", "460"],
+  // Replacement-bus terminus: the rail shape ends at Lębork but the train runs
+  // through to Łeba by bus, so endpoint matching must resolve against Łeba.
+  ["TLK 35190", "Kraków Gł.", "Łeba", "35190"],
+  ["TLK 53190", "Łeba", "Kraków Gł.", "53190"],
+  ["TLK 403", "Bohumín", "Łeba", "403"],
+  ["TLK 402", "Łeba", "Bohumín", "402"],
   // Collisions: the reused number maps to a different corridor → must reject.
   ["EN 430 / IC 28170", "Przemyśl Gł.", "Świnoujście", null], // 28170 = Chełm corridor
   ["EN 443 / IC 406", "Praha hl.n.", "Warszawa Wschodnia", null], // 406 = München corridor

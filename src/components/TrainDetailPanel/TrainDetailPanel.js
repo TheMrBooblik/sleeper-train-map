@@ -849,6 +849,13 @@ const TrainDetailPanel = ({
                       source: "pkp",
                     }
                   : null;
+                // PKP is the source of truth for Polish trains: its GTFS
+                // origin-departure / destination-arrival win over the BoT times.
+                const pkpOriginDeparture =
+                  pkpSchedule?.stops?.[0]?.departure || null;
+                const pkpDestinationArrival =
+                  pkpSchedule?.stops?.[pkpSchedule.stops.length - 1]?.arrival ||
+                  null;
 
                 const nightjetTrain =
                   nightjetTrainByNumber.get(normalizedTrainNumber) || null;
@@ -929,14 +936,15 @@ const TrainDetailPanel = ({
                 const curatedSchedule =
                   curatedScheduleByTrainNumber.get(normalizedTrainNumber) || null;
                 const schedule =
+                  // PKP GTFS is the source of truth for Polish trains.
+                  pkpSchedule ||
                   detailedSchedule ||
                   endpointMatchedSchedule ||
                   nightjetSchedule ||
                   crSchedule ||
                   itSchedule ||
                   caucasusSchedule ||
-                  curatedSchedule ||
-                  pkpSchedule;
+                  curatedSchedule;
                 const validFrom = formatCalendarDate(schedule?.validFrom);
                 const validUntil = formatCalendarDate(schedule?.validUntil);
 
@@ -1063,10 +1071,13 @@ const TrainDetailPanel = ({
                       </div>
                     )}
 
-                    {/* Main times — hidden when neither endpoint has a time */}
-                    {(formatTime(
-                      trip.origin_departure_time || nightjetOriginDeparture || itOriginDeparture,
-                    ) ||
+                    {/* Main times — hidden when neither endpoint has a time.
+                        PKP GTFS times take priority; BoT is the fallback. */}
+                    {(pkpOriginDeparture ||
+                      pkpDestinationArrival ||
+                      formatTime(
+                        trip.origin_departure_time || nightjetOriginDeparture || itOriginDeparture,
+                      ) ||
                       formatTime(
                         trip.destination_arrival_time ||
                           nightjetDestinationArrival ||
@@ -1078,11 +1089,12 @@ const TrainDetailPanel = ({
                             Departure
                           </div>
                           <div className="font-semibold text-gray-900">
-                            {formatTime(
-                              trip.origin_departure_time ||
-                                nightjetOriginDeparture ||
-                                itOriginDeparture,
-                            )}
+                            {pkpOriginDeparture ||
+                              formatTime(
+                                trip.origin_departure_time ||
+                                  nightjetOriginDeparture ||
+                                  itOriginDeparture,
+                              )}
                           </div>
                         </div>
                         <div className="rounded-md bg-gray-50 p-2">
@@ -1090,11 +1102,12 @@ const TrainDetailPanel = ({
                             Arrival
                           </div>
                           <div className="font-semibold text-gray-900">
-                            {formatTime(
-                              trip.destination_arrival_time ||
-                                nightjetDestinationArrival ||
-                                itDestinationArrival,
-                            )}
+                            {pkpDestinationArrival ||
+                              formatTime(
+                                trip.destination_arrival_time ||
+                                  nightjetDestinationArrival ||
+                                  itDestinationArrival,
+                              )}
                           </div>
                         </div>
                       </div>
@@ -1106,8 +1119,9 @@ const TrainDetailPanel = ({
                       </div>
                     )}
 
-                    {/* Frequency */}
-                    {(trip.service_id ||
+                    {/* Frequency — PKP GTFS run-days win; BoT/override fallback */}
+                    {(pkpSchedule?.days ||
+                      trip.service_id ||
                       getRouteFrequencyOverride(trip.route_id)) && (
                       <div className="space-y-1">
                         <div className="text-xs text-gray-500 uppercase">
@@ -1115,6 +1129,8 @@ const TrainDetailPanel = ({
                         </div>
                         <div className="text-sm">
                           {(() => {
+                            // PKP is the source of truth for Polish trains.
+                            if (pkpSchedule?.days) return pkpSchedule.days;
                             const override = getRouteFrequencyOverride(
                               trip.route_id,
                             );
@@ -1211,8 +1227,10 @@ const TrainDetailPanel = ({
                       </details>
                     )}
 
-                    {/* Accordion: Czech Railways station timetable */}
-                    {cdSchedule?.stops?.length > 0 && (
+                    {/* Accordion: Czech Railways station timetable.
+                        Hidden for PKP trains — the Polish GTFS feed already
+                        covers the full corridor and takes priority. */}
+                    {!pkpSchedule && cdSchedule?.stops?.length > 0 && (
                       <details className="rounded-md bg-gray-50">
                         <summary className="cursor-pointer list-none px-2 py-1.5 flex items-center justify-between gap-2">
                           <span className="text-xs font-medium text-gray-900">

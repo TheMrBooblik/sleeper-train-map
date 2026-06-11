@@ -249,6 +249,7 @@ function findTrainDataForKey(
   stopTimesByTripId,
   stopsById,
   busLegsByParent,
+  stopCoordsById,
 ) {
   const candidates = [];
   for (const t of icTrips) {
@@ -327,6 +328,7 @@ function findTrainDataForKey(
     let currentSeg = [];
     let lastIncludedTripId = null;
     let lastIncludedLegNum = -1;
+    let firstIncludedLegNum = Infinity;
 
     for (const t of trips) {
       const raw = shapePoints.get(t.shape_id);
@@ -372,6 +374,7 @@ function findTrainDataForKey(
       includedTripIds.push(t.trip_id);
       lastIncludedTripId = t.trip_id;
       lastIncludedLegNum = thisLegNum;
+      if (thisLegNum < firstIncludedLegNum) firstIncludedLegNum = thisLegNum;
     }
 
     if (currentSeg.length > 0) railSegments.push({ positions: [...currentSeg] });
@@ -379,25 +382,84 @@ function findTrainDataForKey(
     const combined = railSegments.flatMap((s) => s.positions);
     if (combined.length <= bestCount) continue;
 
-    // Collect ordered stops (name + arrival/departure times) for included legs.
-    // Each stop is an object so the map detail panel can show a full timetable.
+    // Replacement-bus legs that EXTEND the journey past the rail shape — a BUS
+    // leg before the first rail leg (leading) or after the last rail leg
+    // (trailing). The feed gives them stop_times but no shape (e.g.
+    // Lębork→Łeba while that section is closed for works, or Jelenia
+    // Góra→Szklarska Poręba). We append/prepend their stops so the bundle
+    // reaches the real terminus, and add a straight connector as a bus segment.
+    // Bus legs BETWEEN two rail legs are handled inside the loop above; the
+    // leg-number range check here skips them.
+    let leadingBusLeg = null;
+    let trailingBusLeg = null;
+    if (includedTripIds.length > 0) {
+      for (const bl of busLegsForGroup) {
+        const legNum = Number((bl.trip_id.match(/_LEG(\d+)$/) || [, "-1"])[1]);
+        if (legNum >= 0 && legNum < firstIncludedLegNum) leadingBusLeg = bl;
+        else if (legNum > lastIncludedLegNum) trailingBusLeg = bl;
+      }
+    }
+    const busLegStopTimes = (bl) =>
+      bl
+        ? (stopTimesByTripId.get(bl.trip_id) || [])
+            .slice()
+            .sort((a, b) => a.seq - b.seq)
+        : [];
+    const leadingBusStopTimes = busLegStopTimes(leadingBusLeg);
+    const trailingBusStopTimes = busLegStopTimes(trailingBusLeg);
+    const busLegCoords = (sts) =>
+      sts.map((s) => stopCoordsById.get(s.stop_id)).filter(Boolean);
+
+    if (leadingBusStopTimes.length >= 2 && railSegments.length > 0) {
+      const coords = busLegCoords(leadingBusStopTimes);
+      if (coords.length >= 2) {
+        busSegments.unshift({
+          positions: coords,
+          from: stopsById.get(leadingBusStopTimes[0].stop_id) || null,
+          to:
+            stopsById.get(
+              leadingBusStopTimes[leadingBusStopTimes.length - 1].stop_id,
+            ) || null,
+        });
+      }
+    }
+    if (trailingBusStopTimes.length >= 2 && railSegments.length > 0) {
+      const coords = busLegCoords(trailingBusStopTimes);
+      if (coords.length >= 2) {
+        busSegments.push({
+          positions: coords,
+          from: stopsById.get(trailingBusStopTimes[0].stop_id) || null,
+          to:
+            stopsById.get(
+              trailingBusStopTimes[trailingBusStopTimes.length - 1].stop_id,
+            ) || null,
+        });
+      }
+    }
+
+    // Collect ordered stops (name + arrival/departure times). A leading bus leg
+    // contributes the real origin (e.g. Łeba) before the rail stops; a trailing
+    // bus leg contributes the real terminus after them. This lets endpoint
+    // matching in the merge succeed against the Back-on-Track route.
     const combinedStops = [];
     const seenStops = new Set();
+    const pushStop = (st) => {
+      const name = stopsById.get(st.stop_id) || st.stop_id;
+      if (!name || seenStops.has(name)) return;
+      seenStops.add(name);
+      combinedStops.push({
+        name,
+        arr: fmtTime(st.arrival),
+        dep: fmtTime(st.departure),
+      });
+    };
+    for (const st of leadingBusStopTimes) pushStop(st);
     for (const tripId of includedTripIds) {
       const stopTimes = stopTimesByTripId.get(tripId) || [];
       stopTimes.sort((a, b) => a.seq - b.seq);
-      for (const st of stopTimes) {
-        const name = stopsById.get(st.stop_id) || st.stop_id;
-        if (!seenStops.has(name)) {
-          seenStops.add(name);
-          combinedStops.push({
-            name,
-            arr: fmtTime(st.arrival),
-            dep: fmtTime(st.departure),
-          });
-        }
-      }
+      for (const st of stopTimes) pushStop(st);
     }
+    for (const st of trailingBusStopTimes) pushStop(st);
 
     bestCount = combined.length;
     bestResult = {
@@ -495,8 +557,17 @@ async function main() {
   }
 
   const stopsById = new Map();
+  // stop_id -> [lat, lon]; needed to draw replacement-bus connector segments
+  // (leading/trailing BUS legs carry stop_times but no shape geometry).
+  const stopCoordsById = new Map();
   stopsCsv.forEach((row) => {
-    if (row.stop_id) stopsById.set(row.stop_id, row.stop_name || row.stop_id);
+    if (!row.stop_id) return;
+    stopsById.set(row.stop_id, row.stop_name || row.stop_id);
+    const lat = Number.parseFloat(row.stop_lat);
+    const lon = Number.parseFloat(row.stop_lon);
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      stopCoordsById.set(row.stop_id, [lat, lon]);
+    }
   });
 
   // Build stop-times index for IC trips (RAIL + BUS legs) to keep memory usage reasonable.
@@ -536,6 +607,7 @@ async function main() {
       stopTimesByTripId,
       stopsById,
       busLegsByParent,
+      stopCoordsById,
     );
     if (!result) {
       console.warn("No GTFS rail trip for BoT key:", key);

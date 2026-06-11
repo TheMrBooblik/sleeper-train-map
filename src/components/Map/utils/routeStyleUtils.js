@@ -51,7 +51,16 @@ export function isRouteOutsideServiceIdSeason(routeId, trips) {
   }
 
   const inAny = ranges.some(({ start, end }) => today >= start && today <= end);
-  return !inAny;
+  if (inAny) return false;
+
+  // Not running today. Only hide routes whose whole season has already PASSED.
+  // A route whose season is still upcoming (e.g. a summer-only train before its
+  // start date) stays visible as a "future" ghost with a start-date label —
+  // see getFutureRouteStartDate, which reads the same service_id range.
+  const anyUpcoming = ranges.some(({ start }) => today < start);
+  if (anyUpcoming) return false;
+
+  return true;
 }
 
 /** @typedef {0|1|2} FrequencyRank 0=daily, 1=subdaily, 2=rare */
@@ -606,6 +615,33 @@ export function getFutureRouteStartDate(routeId, trips) {
       ) {
         earliestFutureDate = postponedDate;
         earliestFutureDateText = postponedDateText;
+      }
+    }
+  }
+
+  // Fallback: seasonal routes encode their start in the service_id range
+  // (e.g. "2026/06/26-2026/08/30: Daily") rather than an "From …" note. If the
+  // route is not running yet and its whole season is upcoming, treat the
+  // earliest range start as the start date so it shows as a future ghost.
+  if (earliestFutureDateText === null) {
+    const ranges = routeTrips
+      .map((trip) => parseBoTServiceIdDateRange(trip.service_id))
+      .filter(Boolean);
+    const runningNow = ranges.some(
+      ({ start, end }) => today >= start && today <= end,
+    );
+    if (!runningNow) {
+      for (const { start } of ranges) {
+        if (
+          start > today &&
+          (earliestFutureDate === null || start < earliestFutureDate)
+        ) {
+          earliestFutureDate = start;
+          const y = start.getFullYear();
+          const m = String(start.getMonth() + 1).padStart(2, "0");
+          const d = String(start.getDate()).padStart(2, "0");
+          earliestFutureDateText = `${y}-${m}-${d}`;
+        }
       }
     }
   }
