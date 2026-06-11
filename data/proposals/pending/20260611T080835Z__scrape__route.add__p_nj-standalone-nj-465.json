@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-465",
+  "createdAt": "2026-06-11T08:08:35.142Z",
+  "source": "scrape",
+  "sourceDetail": "nj",
+  "kind": "route.add",
+  "title": "New train: NJ 465 (Zürich HB – Graz Hbf)",
+  "summary": "Route \"nj_standalone_NJ_465\" appeared in tonight's scrape and is withheld from the map until approved. Via: Sargans - Buchs SG - Feldkirch Bahnhof - Bludenz Bahnhof - Langen am Arlberg Bahnhof - St.Anton am Arlberg Bahnhof - Landeck-Zams Bahnhof - Innsbruck Hbf - Wörgl Hbf - Schwarzach-St.Veit Bahnhof - Bad Hofgastein Bahnhof - Bad Gastein Bahnhof - Mallnitz-Obervellach Bahnhof - Spittal-Millstätter See B",
+  "target": {
+    "routeKey": "nj_standalone_NJ_465",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "NJ 465",
+    "returnTrain": "NJ 464",
+    "origin": "Zürich HB",
+    "destination": "Graz Hbf",
+    "operator": "ÖBB",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "nj_standalone_NJ_465"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
