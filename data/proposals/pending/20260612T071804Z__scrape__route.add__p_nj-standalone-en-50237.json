@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-50237",
+  "createdAt": "2026-06-12T07:18:04.685Z",
+  "source": "scrape",
+  "sourceDetail": "nj",
+  "kind": "route.add",
+  "title": "New train: EN 50237 (Stuttgart Hbf – Budapest-Keleti)",
+  "summary": "Route \"nj_standalone_EN_50237\" appeared in tonight's scrape and is withheld from the map until approved. Via: Göppingen - Ulm Hbf - Augsburg Hbf - München Ost - Rosenheim - Freilassing - Salzburg Hbf - Linz/Donau Hbf - St. Pölten Hbf - Wien Meidling - Wien Hbf - Hegyeshalom - Mosonmagyarovar - Györ - Tatabanya - Kelenföld",
+  "target": {
+    "routeKey": "nj_standalone_EN_50237",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "EN 50237",
+    "returnTrain": "EN 50462",
+    "origin": "Stuttgart Hbf",
+    "destination": "Budapest-Keleti",
+    "operator": "ÖBB",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "nj_standalone_EN_50237"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
