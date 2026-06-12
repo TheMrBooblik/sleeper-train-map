@@ -61,13 +61,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Refresh PKP GTFS shapes on Mondays so seasonal summer trains get picked
-      # up when PKP Intercity adds them to the live GTFS feed (mkuran.pl).
-      - name: Refresh PKP GTFS shapes (weekly)
-        run: |
-          if [ "$(date -u +%u)" = "1" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            npm run parse-pkp-gtfs
-          fi
+      # PKP GTFS shapes are refreshed inside `npm run scrape` now: the pkp-gtfs
+      # registry entry is a daily external-runner step, so the bundle is fresh
+      # before the enrichment post-step stamps PKP rows.
 
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:

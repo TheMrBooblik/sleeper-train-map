@@ -20,6 +20,7 @@
     "verify-build-parity": "node tests/verify-build-parity.mjs",
     "verify-proposals": "node tests/verify-proposals-apply.mjs",
     "verify-classify": "node tests/verify-classify.mjs",
+    "verify-enrich": "node tests/verify-enrich-view-map.mjs",
     "verify-calendar": "node tests/verify-calendar.mjs",
     "verify-canonical-routes": "node tests/verify-canonical-routes.mjs",
     "verify-ai": "node tests/verify-ai-prompts.mjs",

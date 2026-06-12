@@ -71,6 +71,7 @@
       "concurrency": 6,
       "maxPartnerTrains": 25
     },
+    "enrich": { "strategy": "trainsByNumber", "setPolyline": true },
     "probe": { "pricing": { "adapter": "nightjet-offers", "sampleRoutes": 4 } },
     "freshness": { "ttlHours": 25 }
   },
@@ -215,23 +216,30 @@
   {
     "v": 1,
     "id": "pkp-gtfs",
-    "label": "PKP Intercity (Polish GTFS shapes)",
-    "description": "Committed as public/data/gtfs/pkpTrainShapes.json. Regenerate: npm run parse-pkp-gtfs (polish_trains.zip, scoped by BoT PKP trips).",
+    "label": "PKP Intercity (Polish GTFS)",
+    "description": "Official PKP Intercity timetable data (mkuran.pl is a mechanical daily conversion of the official NAP feed). Committed as public/data/gtfs/pkpTrainShapes.json; regenerated nightly inside the scrape (npm run parse-pkp-gtfs, scoped by BoT PKP trips). Enriches PKP rows with official stop lists and stamps them for trusted auto-approval.",
     "kind": "gtfs",
     "adapter": null,
     "runner": "external",
     "command": "npm run parse-pkp-gtfs",
     "enabled": true,
-    "official": false,
+    "official": true,
+    "trusted": true,
     "critical": false,
-    "schedule": "weekly",
+    "schedule": "daily",
     "homepage": "https://mkuran.pl/gtfs/",
     "output": null,
     "synthetic": null,
+    "enrich": {
+      "strategy": "gtfsBundle",
+      "agencyIds": ["PKP", "PKP/ČD"],
+      "updateVia": true,
+      "stamp": true
+    },
     "params": {
       "statusFile": "public/data/gtfs/pkpTrainShapes.json"
     },
-    "freshness": { "ttlHours": 192 }
+    "freshness": { "ttlHours": 25 }
   },
   {
     "v": 1,

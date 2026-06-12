@@ -8,7 +8,9 @@
 // map falls back to OSM / static / station-coord geometry. No per-route
 // hardcoding — new routes work automatically.
 
-import { pkpEntryForRoute } from "./pkpTrainKeyExtract";
+// Explicit extension so raw-node scripts (scripts/lib/enrich-view-map.mjs)
+// can import this module too, not just the webpack bundle.
+import { pkpEntryForRoute } from "./pkpTrainKeyExtract.js";
 
 /**
  * Build the "via" string from a GTFS stop list, dropping the endpoints when
@@ -18,7 +20,7 @@ import { pkpEntryForRoute } from "./pkpTrainKeyExtract";
  * @param {string} destination
  * @returns {string | null}
  */
-function buildVia(stops, origin, destination) {
+export function buildVia(stops, origin, destination) {
   if (!stops || stops.length < 2) return null;
   let result = stops.map((s) => s?.name).filter(Boolean);
   const norm = (s) => (s || "").toLowerCase().trim();
