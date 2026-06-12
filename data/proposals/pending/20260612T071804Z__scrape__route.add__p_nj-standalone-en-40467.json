@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-40467",
+  "createdAt": "2026-06-12T07:18:04.685Z",
+  "source": "scrape",
+  "sourceDetail": "nj",
+  "kind": "route.add",
+  "title": "New train: EN 40467 (Zürich HB – Budapest-Keleti)",
+  "summary": "Route \"nj_standalone_EN_40467\" appeared in tonight's scrape and is withheld from the map until approved. Via: Sargans - Buchs SG - Feldkirch Bahnhof - Bludenz Bahnhof - Landeck-Zams Bahnhof - Innsbruck Hbf - Salzburg Hbf - Linz/Donau Hbf - St. Pölten Hbf - Wien Meidling - Wien Hbf - Hegyeshalom - Mosonmagyarovar - Györ - Tatabanya - Kelenföld",
+  "target": {
+    "routeKey": "nj_standalone_EN_40467",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "EN 40467",
+    "returnTrain": "EN 40462",
+    "origin": "Zürich HB",
+    "destination": "Budapest-Keleti",
+    "operator": "ÖBB",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "nj_standalone_EN_40467"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
