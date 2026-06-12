@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-764",
+  "createdAt": "2026-06-12T07:18:04.685Z",
+  "source": "scrape",
+  "sourceDetail": "icn",
+  "kind": "route.add",
+  "title": "New train: ICN 764 (Roma Termini – Bolzano)",
+  "summary": "Route \"icn_ICN_764\" appeared in tonight's scrape and is withheld from the map until approved. Via: Orte - Orvieto - Verona Porta Nuova - Rovereto - Trento - Mezzocorona - Ora",
+  "target": {
+    "routeKey": "icn_ICN_764",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "ICN 764",
+    "returnTrain": null,
+    "origin": "Roma Termini",
+    "destination": "Bolzano",
+    "operator": "FS",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "icn_ICN_764"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
