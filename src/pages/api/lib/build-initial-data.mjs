@@ -284,8 +284,8 @@ const DEDUP_STRATEGIES = {
  *   (default), everything flows: callers that can't load the index (or
  *   pre-gate callers like the parity test) must never blank the map.
  * @param {object} [inputs.stats]        Optional out-param; filled with
- *   { injectedStations: string[], gatedRouteKeys: string[] } for the nightly
- *   classifier.
+ *   { injectedStations: string[], stationSources: {name: sourceId},
+ *   gatedRouteKeys: string[] } for the nightly classifier.
  * @returns {{ stops: Array, viewMap: object, trips: object }}
  */
 export function buildInitialData({
@@ -309,12 +309,14 @@ export function buildInitialData({
   // Station gate: records every injected candidate (for the classifier) and
   // withholds markers for stations the admin hasn't approved yet.
   const injectedStations = [];
+  const stationSources = {};
   const injectedSeen = new Set();
   const gate = {
-    record(name) {
+    record(name, sourceId) {
       if (!injectedSeen.has(name)) {
         injectedSeen.add(name);
         injectedStations.push(name);
+        if (sourceId) stationSources[name] = sourceId;
       }
     },
     isAllowed(name) {
@@ -331,10 +333,15 @@ export function buildInitialData({
     const dedup = DEDUP_STRATEGIES[synthetic.dedupStrategy];
     if (dedup) dedup(filteredViewMap, trains, synthetic);
 
+    // Source attribution for the classifier's trusted-station auto-approval.
+    const gateForEntry = {
+      record: (name) => gate.record(name, entry.id),
+      isAllowed: (name) => gate.isAllowed(name),
+    };
     if (synthetic.resolveAliases) {
-      injectNJStations(trimmedStops, stopNameSet, trains, gate);
+      injectNJStations(trimmedStops, stopNameSet, trains, gateForEntry);
     } else {
-      injectTrainStations(trimmedStops, stopNameSet, trains, gate);
+      injectTrainStations(trimmedStops, stopNameSet, trains, gateForEntry);
     }
 
     let trainList = Object.entries(trains).filter(withPolylineAndStations);
@@ -398,6 +405,7 @@ export function buildInitialData({
 
   if (stats) {
     stats.injectedStations = injectedStations;
+    stats.stationSources = stationSources;
     stats.gatedRouteKeys = gatedRouteKeys;
   }
 

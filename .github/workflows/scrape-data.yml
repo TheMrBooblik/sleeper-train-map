@@ -23,20 +23,22 @@ jobs:
 
       - run: npm run scrape
 
-      # Pre-merge the scraped sources into the published dataset that
-      # /api/initial-data serves directly (falls back to on-the-fly merge if absent).
-      # Routes/stations not yet approved in data/canonical/state/seen.json are
-      # withheld here (review gate).
-      - run: npm run canonicalize
-
-      # Classify tonight's changes: new trains/stations file proposals on the
-      # `proposals` branch (reviewed in /data) and update the seen index.
-      # Best-effort — a classify failure must not block the data refresh.
+      # Classify tonight's changes BEFORE canonicalize: new trains/stations
+      # file proposals on the `proposals` branch (reviewed in /data) and update
+      # the seen index — including auto-approvals from trusted sources, so they
+      # go live the same night. Best-effort — a classify failure must not block
+      # the data refresh (new routes just stay gated one extra night).
       - name: Classify changes → review queue
         run: node scripts/classify-changes.mjs
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Pre-merge the scraped sources into the published dataset that
+      # /api/initial-data serves directly (falls back to on-the-fly merge if absent).
+      # Routes/stations not yet approved in data/canonical/state/seen.json are
+      # withheld here (review gate).
+      - run: npm run canonicalize
 
       # AI assist (GitHub Models, free tier): enrich tonight's proposals,
       # suggest station aliases, extract prices from configured pages.

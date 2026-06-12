@@ -31,7 +31,7 @@ import {
   putJsonFile,
   repoSlug,
 } from "../src/pages/api/lib/github-content.mjs";
-import { loadRegistry } from "./lib/registry.mjs";
+import { loadRegistry, trustConfig } from "./lib/registry.mjs";
 import { classify } from "./lib/classify.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -122,6 +122,8 @@ async function main() {
     previousSeen,
     viewMap: payload.viewMap,
     injectedStations: stats.injectedStations ?? [],
+    stationSources: stats.stationSources ?? {},
+    trust: trustConfig(registry),
     // Dedup happens below on stable target-derived ids, not inside classify.
     openProposalKeys: new Set(),
   });

@@ -51,6 +51,7 @@
     "adapter": "nightjet",
     "enabled": true,
     "official": true,
+    "trusted": true,
     "critical": false,
     "schedule": "daily",
     "homepage": "https://www.nightjet.com",
