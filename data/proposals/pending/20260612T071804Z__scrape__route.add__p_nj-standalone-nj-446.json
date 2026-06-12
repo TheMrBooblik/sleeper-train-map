@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-446",
+  "createdAt": "2026-06-12T07:18:04.685Z",
+  "source": "scrape",
+  "sourceDetail": "nj",
+  "kind": "route.add",
+  "title": "New train: NJ 446 (Wien Hbf (Autoreisezuganlage) – Bregenz Bahnhof)",
+  "summary": "Route \"nj_standalone_NJ_446\" appeared in tonight's scrape and is withheld from the map until approved. Via: Wien Hbf - Wien Meidling - St. Pölten Hbf - Amstetten - Linz/Donau Hbf - Wels Hbf - Attnang-Puchheim - Vöcklabruck Bahnhof - Salzburg Hbf - Innsbruck Hbf - Ötztal Bahnhof - Imst-Pitztal Bahnhof - Landeck-Zams Bahnhof - St.Anton am Arlberg Bahnhof - Langen am Arlberg Bahnhof - Bludenz Bahnhof - Feldk",
+  "target": {
+    "routeKey": "nj_standalone_NJ_446",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "NJ 446",
+    "returnTrain": "NJ 447",
+    "origin": "Wien Hbf (Autoreisezuganlage)",
+    "destination": "Bregenz Bahnhof",
+    "operator": "ÖBB",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "nj_standalone_NJ_446"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
