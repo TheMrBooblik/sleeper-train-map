@@ -97,19 +97,53 @@ async function fetchPartnerTrainNumbers(date, max = 25) {
 }
 
 export async function run(entry, ctx) {
-  const { countryCodes = [], concurrency = 6, maxPartnerTrains = 25 } = entry.params ?? {};
+  const {
+    countryCodes = [],
+    concurrency = 6,
+    maxPartnerTrains = 25,
+    scanOffsets = [0],
+  } = entry.params ?? {};
   const results = {};
 
-  const [njNumbers, enNumbers] = await Promise.all([
-    fetchNJTrainNumbers(ctx.today, countryCodes),
-    fetchPartnerTrainNumbers(ctx.today, maxPartnerTrains),
-  ]);
-  const allNumbers = [...new Set([...njNumbers, ...enNumbers])];
-  console.log(`[scrape] fetching ${allNumbers.length} NJ/EN trains`);
+  // Scan several dates across the booking horizon, not just tonight: trains
+  // with planned future start dates (seasonal NightJets, December-timetable
+  // routes) are announced in the booking API months ahead and must appear on
+  // the map as soon as they're published. Each train number is remembered
+  // with the EARLIEST date it was seen running, so detail fetches reflect the
+  // soonest operation.
+  const scanDates = [...new Set(scanOffsets)]
+    .sort((a, b) => a - b)
+    .map((days) =>
+      new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    );
+
+  const firstDateByNumber = new Map();
+  for (const date of scanDates) {
+    const [njNumbers, enNumbers] = await Promise.all([
+      fetchNJTrainNumbers(date, countryCodes),
+      fetchPartnerTrainNumbers(date, maxPartnerTrains),
+    ]);
+    let added = 0;
+    for (const n of [...njNumbers, ...enNumbers]) {
+      if (!firstDateByNumber.has(n)) {
+        firstDateByNumber.set(n, date);
+        added++;
+      }
+    }
+    if (date !== scanDates[0] && added > 0) {
+      console.log(`[scrape] NJ horizon ${date}: ${added} train(s) not running tonight`);
+    }
+  }
+  const allNumbers = [...firstDateByNumber.keys()];
+  console.log(
+    `[scrape] fetching ${allNumbers.length} NJ/EN trains (${scanDates.length} horizon date(s))`,
+  );
 
   for (let i = 0; i < allNumbers.length; i += concurrency) {
     const batch = allNumbers.slice(i, i + concurrency);
-    const fetched = await Promise.all(batch.map((n) => fetchSingleTrain(n, ctx.today)));
+    const fetched = await Promise.all(
+      batch.map((n) => fetchSingleTrain(n, firstDateByNumber.get(n))),
+    );
     fetched.forEach((train) => {
       if (!train) return;
       const fallbackPositions = train.stations

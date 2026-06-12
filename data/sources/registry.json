@@ -69,7 +69,8 @@
     "params": {
       "countryCodes": [80, 81, 83, 84, 85, 88],
       "concurrency": 6,
-      "maxPartnerTrains": 25
+      "maxPartnerTrains": 25,
+      "scanOffsets": [0, 30, 90, 180]
     },
     "enrich": { "strategy": "trainsByNumber", "setPolyline": true },
     "probe": { "pricing": { "adapter": "nightjet-offers", "sampleRoutes": 4 } },
@@ -177,6 +178,7 @@
     "adapter": "viaggiatreno",
     "enabled": true,
     "official": true,
+    "trusted": true,
     "critical": false,
     "schedule": "daily",
     "homepage": "https://www.trenitalia.com",
