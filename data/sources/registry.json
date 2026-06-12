@@ -275,9 +275,17 @@
     "synthetic": null,
     "enrich": {
       "strategy": "gtfsBundle",
-      "agencyIds": ["PKP", "PKP/ČD"],
+      "agencyIds": ["PKP", "PKP/ČD", "MÁV/PKP"],
       "updateVia": true,
-      "stamp": true
+      "stamp": true,
+      "geometryFallback": {
+        "pinnedRelations": {
+          "406": ["8737075"],
+          "407": ["8737075"],
+          "442": ["8737075"],
+          "443": ["8737075"]
+        }
+      }
     },
     "params": {
       "statusFile": "public/data/gtfs/pkpTrainShapes.json"

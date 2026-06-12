@@ -14,6 +14,8 @@ import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { loadRegistry, validateRegistry } from "./lib/registry.mjs";
 import { enrichViewMap, appendSyntheticLeftovers } from "./lib/enrich-view-map.mjs";
+import { emptyGeometryCache, resolveRouteGeometry } from "./lib/route-geometry.mjs";
+import { relationCoordsFromOverpass } from "../src/pages/api/lib/osm-geo.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(__dirname, "..");
@@ -87,7 +89,7 @@ function stampLastSeen(data) {
 // from the trains files anyway; this keeps the committed raw file
 // self-contained for the GitHub-fallback serving path.)
 
-function finalizeViewMap(ctx, registry) {
+async function finalizeViewMap(ctx, registry) {
   const view_ontd_map = ctx.shared.viewMap;
   if (!view_ontd_map) return; // backontrack is critical — we never get here without it
 
@@ -111,7 +113,39 @@ function finalizeViewMap(ctx, registry) {
   };
   const log = (msg) => console.log(`[scrape] ${msg}`);
 
-  enrichViewMap({ registry, viewMap: view_ontd_map, getTrains, readJson, log });
+  // BoT station-name → coords, for geometry-fallback stop lists.
+  const coordIndex = new Map();
+  for (const stop of Object.values(ctx.shared.stops ?? {})) {
+    if (!stop?.stop_name || !Number.isFinite(stop?.stop_lat) || !Number.isFinite(stop?.stop_lon)) continue;
+    const k = stop.stop_name.toLowerCase().trim();
+    if (!coordIndex.has(k)) coordIndex.set(k, { lat: stop.stop_lat, lon: stop.stop_lon });
+  }
+  const stopCoords = (name) => coordIndex.get((name ?? "").toLowerCase().trim()) ?? null;
+
+  // OSM-backed geometry resolver over the shared hash-gated cache (committed
+  // as route-geometry.json — only regenerates when a stop list changed).
+  const cache = readJson("public/data/scraped/route-geometry.json")?.data ?? emptyGeometryCache();
+  const resolveGeometry = (args) =>
+    resolveRouteGeometry({
+      ...args,
+      cache,
+      readScrapedRelation: (id) => {
+        const raw = readJson(`public/data/scraped/osm-${id}.json`);
+        return raw ? relationCoordsFromOverpass(raw.data, id) : null;
+      },
+      log: (msg) => log(`route-geometry ${msg}`),
+    });
+
+  await enrichViewMap({
+    registry,
+    viewMap: view_ontd_map,
+    getTrains,
+    readJson,
+    stopCoords,
+    resolveGeometry,
+    log,
+  });
+  write("route-geometry.json", cache);
 
   for (const entry of registry) {
     if (!entry.enabled || entry.enrich?.strategy !== "trainsByNumber" || !entry.synthetic) continue;
@@ -202,7 +236,7 @@ async function main() {
     }
   }
 
-  finalizeViewMap(ctx, registry);
+  await finalizeViewMap(ctx, registry);
 
   console.log(`[scrape] done. errors: ${errors.length}`);
   if (errors.length) console.error("[scrape] errors:", errors);

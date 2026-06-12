@@ -16,7 +16,10 @@
 //     train numbers can't stamp wrong-corridor rows. Options: updateVia,
 //     stamp, agencyIds.
 
-import { pkpEntryForRoute } from "../../src/lib/pkpTrainKeyExtract.js";
+import {
+  pkpEntryForRoute,
+  extractKeysFromTripLabel,
+} from "../../src/lib/pkpTrainKeyExtract.js";
 import { buildVia } from "../../src/lib/pkpGtfsMerge.js";
 
 // "2026-06-11T18:13:00.000Z" → "18:13" (BoT rows carry plain HH:MM strings).
@@ -95,7 +98,7 @@ function trainsByNumber({ entry, viewMap, trains, log }) {
   if (opts.stamp) log(`${entry.id}: stamped ${touched} view-map row(s)`);
 }
 
-function gtfsBundle({ entry, viewMap, bundle, log }) {
+async function gtfsBundle({ entry, viewMap, bundle, stopCoords, resolveGeometry, log }) {
   const opts = entry.enrich;
   const byTrainKey = bundle?.byTrainKey;
   if (!byTrainKey) {
@@ -104,8 +107,8 @@ function gtfsBundle({ entry, viewMap, bundle, log }) {
   }
   let touched = 0;
 
-  Object.values(viewMap).forEach((route) => {
-    if (!inAgencyScope(route, opts.agencyIds)) return;
+  for (const [routeKey, route] of Object.entries(viewMap)) {
+    if (!inAgencyScope(route, opts.agencyIds)) continue;
 
     // Endpoint-validated per direction: a reused train number whose shape
     // serves a different corridor resolves to null and the row stays as-is.
@@ -121,19 +124,51 @@ function gtfsBundle({ entry, viewMap, bundle, log }) {
       route.origin_trip_1,
       route.destination_trip_1,
     );
-    if (!e0 && !e1) return;
 
-    if (opts.updateVia) {
-      const via0 = e0 ? buildVia(e0.stops, route.origin_trip_0, route.destination_trip_0) : null;
-      const via1 = e1 ? buildVia(e1.stops, route.origin_trip_1, route.destination_trip_1) : null;
-      if (via0) route.via_0 = via0;
-      if (via1) route.via_1 = via1;
+    if (e0 || e1) {
+      if (opts.updateVia) {
+        const via0 = e0 ? buildVia(e0.stops, route.origin_trip_0, route.destination_trip_0) : null;
+        const via1 = e1 ? buildVia(e1.stops, route.origin_trip_1, route.destination_trip_1) : null;
+        if (via0) route.via_0 = via0;
+        if (via1) route.via_1 = via1;
+      }
+      if (opts.stamp) {
+        stampOfficialSource(route, entry.id);
+        touched++;
+      }
     }
-    if (opts.stamp) {
-      stampOfficialSource(route, entry.id);
-      touched++;
+
+    // Geometry fallback for rows the bundle can't corroborate (e.g. the
+    // cross-border Carpathia, whose Czech leg isn't in the Polish feed):
+    // OSM-backed, endpoint-validated, hash-gated on the BoT stop list.
+    // Geometry only — never a stamp; OSM is not official corroboration.
+    if (opts.geometryFallback && resolveGeometry) {
+      for (const [d, matched] of [[0, e0], [1, e1]]) {
+        if (matched || route[`nj_polyline_${d}`] || route.nj_polyline) continue;
+        const label = route[`trip_short_name_${d}`];
+        if (!label) continue;
+        const names = [
+          route[`origin_trip_${d}`],
+          ...(route[`via_${d}`] ?? "").split(" - "),
+          route[`destination_trip_${d}`],
+        ].filter(Boolean);
+        const stops = names.map((name) => ({ name, ...(stopCoords?.(name) ?? {}) }));
+        const keys = extractKeysFromTripLabel(label);
+        const pinned = [
+          ...new Set(keys.flatMap((k) => opts.geometryFallback.pinnedRelations?.[k] ?? [])),
+        ];
+        const resolved = await resolveGeometry({
+          key: `${entry.id}:${routeKey}:${d}`,
+          stops,
+          pinnedRelationIds: pinned,
+          refCandidates: [...new Set([label, ...keys])],
+          operatorRegex: opts.geometryFallback.operatorRegex ?? null,
+          allowChain: false,
+        });
+        if (resolved?.polyline) route[`nj_polyline_${d}`] = resolved.polyline;
+      }
     }
-  });
+  }
 
   if (opts.stamp) log(`${entry.id}: stamped ${touched} view-map row(s)`);
 }
@@ -152,9 +187,22 @@ const STRATEGIES = { trainsByNumber, gtfsBundle };
  *   trains dict (runner: ctx.writtenTrains with disk fallback; tests: fixture)
  * @param {(relPath: string) => object|null} args.readJson  For gtfsBundle
  *   statusFile reads
+ * @param {(name: string) => {lat:number, lon:number}|null} [args.stopCoords]
+ *   Station-name → coords (BoT stops), for the geometry-fallback stop lists
+ * @param {(args: object) => Promise<{polyline: string|null}>} [args.resolveGeometry]
+ *   OSM-backed geometry resolver (scripts/lib/route-geometry.mjs, bound to the
+ *   shared cache by the runner); null disables the fallback
  * @param {(msg: string) => void} [args.log]
  */
-export function enrichViewMap({ registry, viewMap, getTrains, readJson, log = () => {} }) {
+export async function enrichViewMap({
+  registry,
+  viewMap,
+  getTrains,
+  readJson,
+  stopCoords = null,
+  resolveGeometry = null,
+  log = () => {},
+}) {
   for (const entry of registry ?? []) {
     const strategy = STRATEGIES[entry?.enrich?.strategy];
     if (!entry?.enabled || !strategy) continue;
@@ -163,7 +211,7 @@ export function enrichViewMap({ registry, viewMap, getTrains, readJson, log = ()
         strategy({ entry, viewMap, trains: getTrains?.(entry) ?? {}, log });
       } else {
         const bundle = entry.params?.statusFile ? readJson?.(entry.params.statusFile) : null;
-        strategy({ entry, viewMap, bundle, log });
+        await strategy({ entry, viewMap, bundle, stopCoords, resolveGeometry, log });
       }
     } catch (err) {
       log(`${entry.id}: enrichment failed — ${err.message}`);

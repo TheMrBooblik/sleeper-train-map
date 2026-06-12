@@ -89,6 +89,20 @@ function stopCity(stop) {
 }
 
 /**
+ * All corridor variants of a bundle entry: the entry itself plus any
+ * `variants` the parser recorded when several distinct trains share one
+ * number (e.g. "406" = München→Warszawa AND the Bohumín→Warszawa portion of
+ * the Chopin). Selection happens by endpoint validation, not rejection.
+ * @param {object|undefined} entry
+ * @returns {object[]}
+ */
+function entryVariants(entry) {
+  if (!entry) return [];
+  const all = [entry, ...(Array.isArray(entry.variants) ? entry.variants : [])];
+  return all.filter((e) => e?.positions?.length >= 2);
+}
+
+/**
  * Index of the point in `positions` nearest a [lat, lon] coordinate. Squared
  * degrees are enough to pick the closest vertex among the dense GTFS shape.
  * @param {number[][]} positions
@@ -190,14 +204,17 @@ function stitchCompoundEntry(label, byTrainKey, origin, destination) {
   const d = normalizeCity(destination);
   if (!o || !d) return null;
 
-  // Candidate legs: dedup keys; require geometry + named stops.
+  // Candidate legs: dedup keys; require geometry + named stops. Every corridor
+  // variant of a key is a candidate leg — endpoint/junction validation below
+  // decides which one actually belongs to this journey.
   const pool = [];
   const seenKeys = new Set();
   for (const k of extractKeysFromTripLabel(label)) {
     if (seenKeys.has(k)) continue;
     seenKeys.add(k);
-    const e = byTrainKey[k];
-    if (e?.positions?.length >= 2 && e?.stops?.length >= 2) pool.push(e);
+    for (const e of entryVariants(byTrainKey[k])) {
+      if (e?.stops?.length >= 2) pool.push(e);
+    }
   }
   if (pool.length < 2) return null;
 
@@ -212,26 +229,25 @@ function stitchCompoundEntry(label, byTrainKey, origin, destination) {
 
   let current = startLeg;
   while (stopCity(current.stops[current.stops.length - 1]) !== d) {
-    let chosen = null;
-    let junction = null;
-    for (const cand of remaining) {
+    // Hand-off city = the city closest to current's tail that the candidate
+    // also serves (current may overshoot the junction, e.g. on to Łeba).
+    const junctionWith = (cand) => {
       const candCities = new Set(cand.stops.map((s) => stopCity(s)));
-      // Hand-off city = the city closest to current's tail that the candidate
-      // also serves (current may overshoot the junction, e.g. on to Łeba).
-      let j = null;
       for (let i = current.stops.length - 1; i >= 0; i -= 1) {
         const c = stopCity(current.stops[i]);
-        if (candCities.has(c)) {
-          j = c;
-          break;
-        }
+        if (candCities.has(c)) return c;
       }
+      return null;
+    };
+
+    let chosen = null;
+    let junction = null;
+    // Pass 1 — clean hand-off: the junction is a natural endpoint of one leg
+    // (a train splitting numbers at the junction, e.g. Gdynia for the Hel
+    // spur). Preferred because it is unambiguous.
+    for (const cand of remaining) {
+      const j = junctionWith(cand);
       if (!j) continue;
-      // Require a clean hand-off: the junction must be a natural endpoint of one
-      // leg — either current ends there, or the candidate begins there. This is
-      // what makes a real through-service (a train splitting numbers at the
-      // junction, e.g. Gdynia) and rejects reused-number collisions that merely
-      // cross at a mid-corridor city (e.g. 430 + 28170 crossing at Poznań).
       const currentEndsAtJunction =
         stopCity(current.stops[current.stops.length - 1]) === j;
       const candStartsAtJunction = stopCity(cand.stops[0]) === j;
@@ -239,6 +255,21 @@ function stitchCompoundEntry(label, byTrainKey, origin, destination) {
       chosen = cand;
       junction = j;
       break;
+    }
+    // Pass 2 — mid-corridor hand-off: through cars switching between two
+    // trains that both continue past the junction (e.g. Przemyśl–Świnoujście
+    // cars riding the Berlin train to Poznań, then the Chełm–Świnoujście
+    // train onward — Back-on-Track encodes exactly this in compound labels).
+    // Safe because the legs come from the SAME label and the finished chain
+    // must still start at the route's origin and end at its destination.
+    if (!chosen) {
+      for (const cand of remaining) {
+        const j = junctionWith(cand);
+        if (!j) continue;
+        chosen = cand;
+        junction = j;
+        break;
+      }
     }
     if (!chosen || !junction) return null;
     junctions.push(junction);
@@ -310,9 +341,9 @@ function stitchCompoundEntry(label, byTrainKey, origin, destination) {
 export function pkpEntryForRoute(label, byTrainKey, origin, destination) {
   if (!byTrainKey) return null;
   for (const k of extractKeysFromTripLabel(label)) {
-    const entry = byTrainKey[k];
-    if (!(entry?.positions?.length >= 2)) continue;
-    if (entryMatchesEndpoints(entry, origin, destination)) return entry;
+    for (const variant of entryVariants(byTrainKey[k])) {
+      if (entryMatchesEndpoints(variant, origin, destination)) return variant;
+    }
   }
   return stitchCompoundEntry(label, byTrainKey, origin, destination);
 }

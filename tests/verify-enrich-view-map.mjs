@@ -12,8 +12,8 @@ import {
 } from "../scripts/lib/enrich-view-map.mjs";
 
 let passed = 0;
-function check(name, fn) {
-  fn();
+async function check(name, fn) {
+  await fn();
   passed++;
   console.log(`  ✓ ${name}`);
 }
@@ -34,11 +34,11 @@ const station = (name, time = null) => ({
   departure: time,
 });
 
-check("NJ legacy: polyline merged onto matched BoT row, first direction wins", () => {
+await check("NJ legacy: polyline merged onto matched BoT row, first direction wins", async () => {
   const viewMap = {
     1: { trip_short_name_0: "NJ 100", trip_short_name_1: "NJ 101" },
   };
-  enrichViewMap({
+  await enrichViewMap({
     registry: [njEntry()],
     viewMap,
     getTrains: () => ({
@@ -53,7 +53,7 @@ check("NJ legacy: polyline merged onto matched BoT row, first direction wins", (
   assert.strictEqual(viewMap[1].official_sources, undefined);
 });
 
-check("NJ leftovers: synthetic rows for unmatched trains, reverse paired", () => {
+await check("NJ leftovers: synthetic rows for unmatched trains, reverse paired", () => {
   const viewMap = {
     1: { trip_short_name_0: "NJ 100" },
   };
@@ -78,7 +78,7 @@ check("NJ leftovers: synthetic rows for unmatched trains, reverse paired", () =>
   assert.strictEqual(viewMap.nj_standalone_NJ_300, undefined);
 });
 
-check("trainsByNumber full options: via/times/per-direction polyline/stamp", () => {
+await check("trainsByNumber full options: via/times/per-direction polyline/stamp", async () => {
   const entry = {
     id: "europeansleeper",
     enabled: true,
@@ -102,7 +102,7 @@ check("trainsByNumber full options: via/times/per-direction polyline/stamp", () 
     },
     9: { agency_id: "PKP", trip_short_name_0: "452" }, // out of agency scope
   };
-  enrichViewMap({
+  await enrichViewMap({
     registry: [entry],
     viewMap,
     getTrains: () => ({
@@ -127,7 +127,7 @@ check("trainsByNumber full options: via/times/per-direction polyline/stamp", () 
   assert.strictEqual(viewMap[9].official_sources, undefined);
 });
 
-check("stamping is idempotent and sorted across sources", () => {
+await check("stamping is idempotent and sorted across sources", async () => {
   const entry = njEntry({
     id: "nightjet",
     enrich: { strategy: "trainsByNumber", stamp: true },
@@ -141,8 +141,8 @@ check("stamping is idempotent and sorted across sources", () => {
     getTrains: () => ({ "NJ 100": { polyline: "p", stations: [station("A"), station("B")] } }),
     readJson: () => null,
   };
-  enrichViewMap(args);
-  enrichViewMap(args);
+  await enrichViewMap(args);
+  await enrichViewMap(args);
   assert.deepStrictEqual(viewMap[1].official_sources, ["nightjet", "zz-other"]);
 });
 
@@ -170,7 +170,7 @@ const bundle = {
   },
 };
 
-check("gtfsBundle: endpoint-matched PKP row gets official via + stamp", () => {
+await check("gtfsBundle: endpoint-matched PKP row gets official via + stamp", async () => {
   const viewMap = {
     126: {
       agency_id: "PKP",
@@ -183,7 +183,7 @@ check("gtfsBundle: endpoint-matched PKP row gets official via + stamp", () => {
       via_0: "stale - bot - stops",
     },
   };
-  enrichViewMap({
+  await enrichViewMap({
     registry: [pkpEntry],
     viewMap,
     getTrains: () => ({}),
@@ -193,7 +193,7 @@ check("gtfsBundle: endpoint-matched PKP row gets official via + stamp", () => {
   assert.deepStrictEqual(viewMap[126].official_sources, ["pkp-gtfs"]);
 });
 
-check("gtfsBundle: wrong-corridor collision is not stamped", () => {
+await check("gtfsBundle: wrong-corridor collision is not stamped", async () => {
   const viewMap = {
     99: {
       agency_id: "PKP",
@@ -203,7 +203,7 @@ check("gtfsBundle: wrong-corridor collision is not stamped", () => {
       via_0: "untouched",
     },
   };
-  enrichViewMap({
+  await enrichViewMap({
     registry: [pkpEntry],
     viewMap,
     getTrains: () => ({}),
@@ -213,9 +213,9 @@ check("gtfsBundle: wrong-corridor collision is not stamped", () => {
   assert.strictEqual(viewMap[99].via_0, "untouched");
 });
 
-check("gtfsBundle: missing bundle file is a no-op", () => {
+await check("gtfsBundle: missing bundle file is a no-op", async () => {
   const viewMap = { 126: { agency_id: "PKP", trip_short_name_0: "EN 430" } };
-  enrichViewMap({
+  await enrichViewMap({
     registry: [pkpEntry],
     viewMap,
     getTrains: () => ({}),
@@ -224,10 +224,115 @@ check("gtfsBundle: missing bundle file is a no-op", () => {
   assert.deepStrictEqual(viewMap, { 126: { agency_id: "PKP", trip_short_name_0: "EN 430" } });
 });
 
-check("a failing source is isolated; later sources still enrich", () => {
+await check("gtfsBundle: corridor variants of a reused number are selected by endpoints", async () => {
+  const variantBundle = {
+    byTrainKey: {
+      406: {
+        // main entry = the longer München corridor…
+        positions: [
+          [48.14, 11.56],
+          [52.23, 21.0],
+        ],
+        stops: [{ name: "München Hbf" }, { name: "Warszawa Wschodnia" }],
+        // …but the Praha portion of the same number rides along as a variant.
+        variants: [
+          {
+            positions: [
+              [50.08, 14.44],
+              [52.23, 21.0],
+            ],
+            stops: [
+              { name: "Praha hl.n." },
+              { name: "Bohumín" },
+              { name: "Warszawa Wschodnia" },
+            ],
+          },
+        ],
+      },
+    },
+  };
+  const viewMap = {
+    9: {
+      agency_id: "PKP/ČD",
+      trip_short_name_0: "EN 443 / IC 406",
+      origin_trip_0: "Praha hl.n.",
+      destination_trip_0: "Warszawa Wschodnia",
+      via_0: "stale",
+    },
+  };
+  await enrichViewMap({
+    registry: [pkpEntry],
+    viewMap,
+    getTrains: () => ({}),
+    readJson: () => variantBundle,
+  });
+  assert.strictEqual(viewMap[9].via_0, "Bohumín");
+  assert.deepStrictEqual(viewMap[9].official_sources, ["pkp-gtfs"]);
+});
+
+await check("gtfsBundle: geometry fallback fills unmatched rows, OSM-only, no stamp", async () => {
+  const entry = {
+    ...pkpEntry,
+    enrich: {
+      ...pkpEntry.enrich,
+      geometryFallback: { pinnedRelations: { 443: ["8737075"] } },
+    },
+  };
+  const viewMap = {
+    9: {
+      agency_id: "PKP/ČD",
+      trip_short_name_0: "EN 443 / IC 406",
+      origin_trip_0: "Praha hl.n.",
+      destination_trip_0: "Warszawa Wschodnia",
+      via_0: "Bohumín",
+    },
+  };
+  const calls = [];
+  await enrichViewMap({
+    registry: [entry],
+    viewMap,
+    getTrains: () => ({}),
+    readJson: () => ({ byTrainKey: {} }), // bundle empty → nothing matches
+    stopCoords: (name) => (name === "Praha hl.n." ? { lat: 50.08, lon: 14.44 } : null),
+    resolveGeometry: async (args) => {
+      calls.push(args);
+      return { polyline: "osmPoly", method: "osm-pinned" };
+    },
+  });
+  assert.strictEqual(viewMap[9].nj_polyline_0, "osmPoly");
+  assert.strictEqual(viewMap[9].official_sources, undefined); // geometry ≠ corroboration
+  assert.strictEqual(calls.length, 1);
+  assert.deepStrictEqual(calls[0].pinnedRelationIds, ["8737075"]);
+  assert.strictEqual(calls[0].allowChain, false);
+  assert.deepStrictEqual(calls[0].stops[0], { name: "Praha hl.n.", lat: 50.08, lon: 14.44 });
+
+  // Already-matched directions must not hit the resolver.
+  const matchedMap = {
+    126: {
+      agency_id: "PKP",
+      trip_short_name_0: "EN 430",
+      origin_trip_0: "Przemyśl Główny",
+      destination_trip_0: "Świnoujście",
+    },
+  };
+  const calls2 = [];
+  await enrichViewMap({
+    registry: [entry],
+    viewMap: matchedMap,
+    getTrains: () => ({}),
+    readJson: () => bundle,
+    resolveGeometry: async (args) => {
+      calls2.push(args);
+      return { polyline: "x" };
+    },
+  });
+  assert.strictEqual(calls2.length, 0);
+});
+
+await check("a failing source is isolated; later sources still enrich", async () => {
   const viewMap = { 1: { trip_short_name_0: "NJ 100" } };
   const logs = [];
-  enrichViewMap({
+  await enrichViewMap({
     registry: [
       njEntry({ id: "broken", output: "broken.json" }),
       njEntry(),

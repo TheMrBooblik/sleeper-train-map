@@ -117,6 +117,10 @@ export async function resolveRouteGeometry({
   cache,
   readScrapedRelation = null,
   fetchImpl = globalThis.fetch,
+  // false = OSM-or-nothing: callers whose renderer already straight-lines
+  // missing geometry (BoT rows) gain nothing from a chained polyline, and a
+  // cached chain would block the weekly OSM retry.
+  allowChain = true,
   now = new Date(),
   log = () => {},
 }) {
@@ -194,7 +198,7 @@ export async function resolveRouteGeometry({
   }
 
   // 3. Straight-line chain through the official stop coordinates.
-  if (coordStops.length >= 2) {
+  if (allowChain && coordStops.length >= 2) {
     return finish({
       polyline: polyline.encode(coordStops.map((s) => [s.lat, s.lon])),
       method: "stops-chain",

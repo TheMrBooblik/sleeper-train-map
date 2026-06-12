@@ -74,9 +74,10 @@ const cases = [
   ["TLK 53190", "Łeba", "Kraków Gł.", "53190"],
   ["TLK 403", "Bohumín", "Łeba", "403"],
   ["TLK 402", "Łeba", "Bohumín", "402"],
-  // Collisions: the reused number maps to a different corridor → must reject.
-  ["EN 430 / IC 28170", "Przemyśl Gł.", "Świnoujście", null], // 28170 = Chełm corridor
-  ["EN 443 / IC 406", "Praha hl.n.", "Warszawa Wschodnia", null], // 406 = München corridor
+  // Collision: the reused number maps to a different corridor and the partner
+  // key is absent from the feed → must reject (the row falls back to pinned
+  // OSM geometry via the enrichment geometry fallback / client checks).
+  ["EN 443 / IC 406", "Praha hl.n.", "Warszawa Wschodnia", null], // 406 = München corridor, 443 absent
 ];
 
 for (const [label, origin, dest, expected] of cases) {
@@ -121,6 +122,14 @@ const stitchCases = [
   ["TLK 55190/53190", "Hel", "Kraków Gł.", "Kraków Główny"],
   ["TLK 403/50171", "Bohumín", "Hel", "Hel"],
   ["TLK 55170/402", "Hel", "Bohumín", "Bohumín"],
+  // Mid-corridor through-car switches (Back-on-Track's own route pages):
+  // Przemyśl–Świnoujście cars ride the Berlin train ("Ursa") to Poznań, then
+  // the Chełm–Świnoujście train ("Uznam") onward; the Bielsko-Biała cars ride
+  // the Kołobrzeg train to Wrocław, then the Kraków–Świnoujście train.
+  ["EN 430 / IC 28170", "Przemyśl Gł.", "Świnoujście", "Świnoujście"],
+  ["IC 82170 / EC 431", "Świnoujście", "Przemyśl Gł.", "Przemyśl Główny"],
+  ["TLK 48190/38194", "Bielsko-Biała Gł.", "Świnoujście", "Świnoujście"],
+  ["TLK 83194/84190", "Świnoujście", "Bielsko-Biała Gł.", "Bielsko-Biała Główna"],
 ];
 
 for (const [label, origin, dest, expectedLast] of stitchCases) {
