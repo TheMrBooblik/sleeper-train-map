@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 40491 (Hamburg Altona – Innsbruck Hbf)",
-  "summary": "Material change on an approved route (already live — FYI): origin: \"Hamburg-Altona\" → \"Hamburg Altona\"",
+  "title": "Updated: NJ 40491 (Hamburg Altona – Innsbruck Hbf)",
+  "summary": "The origin station for train NJ 40491 has been updated from \"Hamburg-Altona\" to \"Hamburg Altona\". This change is already live and is for your information.",
   "target": {
     "routeKey": "nj_standalone_NJ_40491",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
