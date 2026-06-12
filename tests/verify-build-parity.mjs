@@ -1,8 +1,11 @@
 // tests/verify-build-parity.mjs
 // Golden parity test for the registry-driven merge refactor: feeds the
-// committed scraped envelopes through buildInitialData() and asserts the
-// result matches the committed published/initial-data.json (which was built
-// from the same scrape run). Any semantic drift in the merge shows up here.
+// committed scraped envelopes through buildInitialData() — with the committed
+// seen index, exactly like scripts/canonicalize.mjs — and asserts the result
+// matches the committed published/initial-data.json (which was built from the
+// same scrape run). Any semantic drift in the merge shows up here.
+// Note: changes to merge inputs between scrape commits (e.g. approved alias
+// overrides) make this fail by design — regenerate via `npm run canonicalize`.
 // Run: npm run verify-build-parity
 
 import fs from "node:fs";
@@ -64,12 +67,25 @@ for (const entry of registry) {
   operatorTrains[entry.id] = readEnvelope(entry.output)?.data?.trains ?? {};
 }
 
+// Same gate as canonicalize: without it the test compares an un-gated build
+// against the gated published artifact and goes red whenever anything is
+// pending review.
+let seenIndex = null;
+try {
+  seenIndex = JSON.parse(
+    fs.readFileSync(path.join(ROOT, "data", "canonical", "state", "seen.json"), "utf8"),
+  );
+} catch {
+  seenIndex = null;
+}
+
 const payload = buildInitialData({
   stops: stopsEnv.data,
   viewMap: viewMapEnv.data,
   trips: tripsEnv.data,
   operatorTrains,
   registry,
+  seenIndex,
 });
 
 const expected = published.data;

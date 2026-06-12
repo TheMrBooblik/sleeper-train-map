@@ -9,6 +9,12 @@
 //   • route disappears         → remembered ≤30 days; FYI note once after 7
 // Mechanical refreshes (times/polylines, same fingerprint) produce nothing.
 //
+// Trusted sources (registry entries with trusted:true, see trustConfig in
+// scripts/lib/registry.mjs) bypass the gate: their new routes/stations are
+// auto-approved and reported in ONE aggregate FYI note per night. A route is
+// trusted when its key carries a trusted source's synthetic idPrefix, or when
+// the scrape post-step stamped its row with official_sources tonight.
+//
 // Returns { nextSeen, proposals, gatedRouteKeys }. No I/O — callers feed it
 // data and persist the results (see scripts/classify-changes.mjs).
 
@@ -80,6 +86,10 @@ function routeLabel(key, route) {
  * @param {object|null} args.previousSeen   Current data/canonical/state/seen.json
  * @param {object} args.viewMap             Un-gated merged viewMap (route key → row)
  * @param {string[]} args.injectedStations  All injected-station candidates (from build stats)
+ * @param {object} [args.stationSources]    name → registry source id that injected
+ *   the station (from build stats), for trusted-station auto-approval
+ * @param {{sourceIds: Set<string>, prefixes: string[]}} [args.trust]
+ *   Trusted-source config (trustConfig(registry)); empty = current gating for all
  * @param {Set<string>} [args.openProposalKeys] `${kind}:${target}` keys of open
  *   proposals, for dedup across runs
  * @param {Date} [args.now]
@@ -88,6 +98,8 @@ export function classify({
   previousSeen,
   viewMap,
   injectedStations,
+  stationSources = {},
+  trust = { sourceIds: new Set(), prefixes: [] },
   openProposalKeys = new Set(),
   now = new Date(),
 }) {
@@ -105,12 +117,42 @@ export function classify({
   const gatedRouteKeys = [];
   const dedup = (kind, target) => openProposalKeys.has(`${kind}:${target}`);
 
+  const trustedPrefixes = trust?.prefixes ?? [];
+  const trustedSourceIds = trust?.sourceIds ?? new Set();
+  const isTrustedRoute = (key, route) =>
+    trustedPrefixes.some((p) => key.startsWith(p)) ||
+    (Array.isArray(route?.official_sources) &&
+      route.official_sources.some((s) => trustedSourceIds.has(s)));
+  // Everything auto-approved tonight, reported as one aggregate FYI note.
+  const autoAdded = { routes: [], stations: [] };
+
+  // All train numbers running tonight — used to tell "key migrated to another
+  // row" apart from "service actually disappeared".
+  const currentTrainNumbers = new Set();
+  for (const route of Object.values(viewMap ?? {})) {
+    [route?.trip_short_name_0, route?.trip_short_name_1]
+      .filter(Boolean)
+      .forEach((n) => currentTrainNumbers.add(n.toString().trim()));
+  }
+
   // ── Routes present tonight ────────────────────────────────────────────────
   for (const [key, route] of Object.entries(viewMap ?? {})) {
     const fp = fingerprintRoute(route);
     const prev = prevRoutes[key];
 
     if (!prev) {
+      if (isTrustedRoute(key, route)) {
+        // Official data from a trusted source — live immediately, FYI only.
+        nextSeen.routes[key] = {
+          firstSeen: today,
+          lastSeen: today,
+          approved: true,
+          autoApproved: today,
+          fingerprint: fp,
+        };
+        autoAdded.routes.push({ key, route });
+        continue;
+      }
       // Brand new — gated until approved.
       gatedRouteKeys.push(key);
       nextSeen.routes[key] = {
@@ -147,7 +189,17 @@ export function classify({
 
     nextSeen.routes[key] = { ...prev, lastSeen: today, fingerprint: fp };
     delete nextSeen.routes[key].removalNoticed;
-    if (prev.approved !== true) gatedRouteKeys.push(key);
+    if (prev.approved !== true) {
+      if (isTrustedRoute(key, route)) {
+        // Trusted corroboration arrived after the key was first seen (e.g. the
+        // source was just marked trusted, or official data caught up) — self-heal.
+        nextSeen.routes[key].approved = true;
+        nextSeen.routes[key].autoApproved = today;
+        autoAdded.routes.push({ key, route });
+      } else {
+        gatedRouteKeys.push(key);
+      }
+    }
 
     if (prev.approved === true) {
       const changes = materialChanges(prev.fingerprint, fp);
@@ -183,6 +235,18 @@ export function classify({
       !dedup("note", key)
     ) {
       nextSeen.routes[key].removalNoticed = true;
+      // Key migration, not a service loss: every train of the vanished key
+      // still runs tonight under another row (e.g. a synthetic es_/nj_ row
+      // handed back to Back-on-Track or vice versa) — flag silently.
+      const prevTrains = (prev.fingerprint?.trains ?? "")
+        .split("|")
+        .filter(Boolean);
+      if (
+        prevTrains.length > 0 &&
+        prevTrains.every((t) => currentTrainNumbers.has(t))
+      ) {
+        continue;
+      }
       proposals.push(
         buildProposal({
           source: "scrape",
@@ -199,10 +263,28 @@ export function classify({
   }
 
   // ── Injected stations ─────────────────────────────────────────────────────
+  const trustedStation = (name) => trustedSourceIds.has(stationSources?.[name]);
   for (const name of injectedStations ?? []) {
     const prev = prevStations[name];
     if (prev) {
       nextSeen.injectedStations[name] = prev;
+      if (prev.approved !== true && trustedStation(name)) {
+        nextSeen.injectedStations[name] = {
+          ...prev,
+          approved: true,
+          autoApproved: today,
+        };
+        autoAdded.stations.push(name);
+      }
+      continue;
+    }
+    if (trustedStation(name)) {
+      nextSeen.injectedStations[name] = {
+        firstSeen: today,
+        approved: true,
+        autoApproved: today,
+      };
+      autoAdded.stations.push(name);
       continue;
     }
     nextSeen.injectedStations[name] = { firstSeen: today, approved: false };
@@ -217,6 +299,39 @@ export function classify({
             `Its marker is hidden until approved (routes through it still render).`,
           target: { stationName: name },
           apply: { type: "seen.approve", payload: { stationName: name } },
+        }),
+      );
+    }
+  }
+
+  // ── Aggregate FYI for everything auto-approved tonight ───────────────────
+  // One note per night regardless of volume (protects MAX_PROPOSALS_PER_RUN);
+  // the dated target keeps the stable proposal id unique per night (a
+  // target-less note would dedup-block all future nights as "p_general").
+  if (autoAdded.routes.length || autoAdded.stations.length) {
+    const aggregateKey = `trusted-${today}`;
+    if (!dedup("note", aggregateKey)) {
+      const lines = [
+        ...autoAdded.routes.map(
+          ({ key, route }) => `route ${key}: ${routeLabel(key, route)}`,
+        ),
+        ...autoAdded.stations.map(
+          (name) => `station ${name} (${stationSources?.[name] ?? "?"})`,
+        ),
+      ];
+      let summary =
+        "Auto-approved from trusted official sources (already live — FYI):\n" +
+        lines.join("\n");
+      if (summary.length > 1900) summary = `${summary.slice(0, 1900)}…`;
+      proposals.unshift(
+        buildProposal({
+          source: "scrape",
+          kind: "note",
+          title:
+            `Auto-added from trusted sources ` +
+            `(${autoAdded.routes.length} routes, ${autoAdded.stations.length} stations)`,
+          summary,
+          target: { routeKey: aggregateKey },
         }),
       );
     }

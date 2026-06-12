@@ -33,8 +33,24 @@ const KNOWN_KINDS = new Set([
 
 const KNOWN_DEDUP_STRATEGIES = new Set(["exact", "icn"]);
 
+const KNOWN_ENRICH_STRATEGIES = new Set(["trainsByNumber", "gtfsBundle"]);
+
+const KNOWN_SCHEDULES = new Set(["daily", "weekly", "manual"]);
+
 export function loadRegistry() {
   return JSON.parse(fs.readFileSync(REGISTRY_PATH, "utf8"));
+}
+
+// Trust config for the nightly classifier: routes from trusted sources are
+// auto-approved (no review-queue gate). A route is trusted when its key starts
+// with a trusted source's synthetic idPrefix, or when the scrape post-step
+// stamped its row with official_sources containing a trusted source id.
+export function trustConfig(registry) {
+  const trusted = (registry ?? []).filter((e) => e?.enabled && e.trusted === true);
+  return {
+    sourceIds: new Set(trusted.map((e) => e.id)),
+    prefixes: trusted.map((e) => e.synthetic?.idPrefix).filter(Boolean),
+  };
 }
 
 // Pure: returns an array of human-readable problems (empty = valid).
@@ -55,6 +71,28 @@ export function validateRegistryEntry(entry) {
   }
   if (entry?.output != null && !/^[\w.-]+\.json$/.test(entry.output)) {
     errors.push(`${tag} output must be a bare .json filename`);
+  }
+  if (entry?.trusted != null && typeof entry.trusted !== "boolean") {
+    errors.push(`${tag} trusted must be boolean`);
+  }
+  if (entry?.trusted === true && entry?.official !== true) {
+    errors.push(`${tag} trusted sources must be official (trusted implies official:true)`);
+  }
+  if (entry?.schedule != null && !KNOWN_SCHEDULES.has(entry.schedule)) {
+    errors.push(`${tag} unknown schedule "${entry.schedule}"`);
+  }
+  if (entry?.runner === "external" && !(typeof entry?.command === "string" && entry.command.trim())) {
+    errors.push(`${tag} runner:"external" requires a non-empty command`);
+  }
+
+  const enrich = entry?.enrich;
+  if (enrich != null) {
+    if (!KNOWN_ENRICH_STRATEGIES.has(enrich.strategy)) {
+      errors.push(`${tag} unknown enrich.strategy "${enrich?.strategy}"`);
+    }
+    if (enrich.agencyIds != null && !(Array.isArray(enrich.agencyIds) && enrich.agencyIds.every((a) => typeof a === "string" && a))) {
+      errors.push(`${tag} enrich.agencyIds must be an array of non-empty strings`);
+    }
   }
 
   const synthetic = entry?.synthetic;

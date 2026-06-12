@@ -201,6 +201,131 @@ check("openProposalKeys dedups", () => {
   assert.strictEqual(out.nextSeen.routes["142"].approved, false);
 });
 
+// ── Trusted sources (auto-approval) ──────────────────────────────────────────
+const TRUST = {
+  sourceIds: new Set(["nightjet", "pkp-gtfs"]),
+  prefixes: ["nj_standalone_"],
+};
+
+check("trusted-prefix new key auto-approved, one aggregate FYI note", () => {
+  const out = classify({
+    previousSeen: { v: 1, routes: {}, injectedStations: {} },
+    viewMap: { nj_standalone_NJ_999: route({ trip_short_name_0: "NJ 999" }) },
+    injectedStations: [],
+    trust: TRUST,
+    now: NOW,
+  });
+  assert.deepStrictEqual(out.gatedRouteKeys, []);
+  assert.strictEqual(out.nextSeen.routes.nj_standalone_NJ_999.approved, true);
+  assert.strictEqual(out.nextSeen.routes.nj_standalone_NJ_999.autoApproved, "2026-06-10");
+  assert.strictEqual(out.proposals.length, 1);
+  assert.strictEqual(out.proposals[0].kind, "note");
+  assert.strictEqual(out.proposals[0].apply, null);
+  assert.strictEqual(out.proposals[0].target.routeKey, "trusted-2026-06-10");
+  assert.ok(out.proposals[0].title.includes("1 routes, 0 stations"));
+});
+
+check("row stamped official_sources by a trusted source is auto-approved", () => {
+  const out = classify({
+    previousSeen: { v: 1, routes: {}, injectedStations: {} },
+    viewMap: { 9: route({ official_sources: ["pkp-gtfs"] }) },
+    injectedStations: [],
+    trust: TRUST,
+    now: NOW,
+  });
+  assert.deepStrictEqual(out.gatedRouteKeys, []);
+  assert.strictEqual(out.nextSeen.routes["9"].approved, true);
+});
+
+check("untrusted new key still gated alongside trusted ones", () => {
+  const out = classify({
+    previousSeen: { v: 1, routes: {}, injectedStations: {} },
+    viewMap: {
+      142: route(),
+      nj_standalone_NJ_999: route({ trip_short_name_0: "NJ 999" }),
+    },
+    injectedStations: [],
+    trust: TRUST,
+    now: NOW,
+  });
+  assert.deepStrictEqual(out.gatedRouteKeys, ["142"]);
+  assert.strictEqual(out.nextSeen.routes["142"].approved, false);
+  assert.ok(out.proposals.some((p) => p.kind === "route.add"));
+  assert.ok(out.proposals.some((p) => p.kind === "note"));
+});
+
+check("previously-gated key flips to approved when corroborated", () => {
+  const out = classify({
+    previousSeen: {
+      v: 1,
+      routes: { 9: seenEntry({ approved: false }) },
+      injectedStations: {},
+    },
+    viewMap: { 9: route({ official_sources: ["pkp-gtfs"] }) },
+    injectedStations: [],
+    trust: TRUST,
+    now: NOW,
+  });
+  assert.deepStrictEqual(out.gatedRouteKeys, []);
+  assert.strictEqual(out.nextSeen.routes["9"].approved, true);
+});
+
+check("station injected by a trusted source is auto-approved", () => {
+  const out = classify({
+    previousSeen: { v: 1, routes: {}, injectedStations: {} },
+    viewMap: {},
+    injectedStations: ["Wien Praterstern", "Yerevan"],
+    stationSources: { "Wien Praterstern": "nightjet", Yerevan: "caucasus" },
+    trust: TRUST,
+    now: NOW,
+  });
+  assert.strictEqual(
+    out.nextSeen.injectedStations["Wien Praterstern"].approved,
+    true,
+  );
+  assert.strictEqual(out.nextSeen.injectedStations.Yerevan.approved, false);
+  // one seen.approve for the untrusted station + one aggregate note
+  assert.strictEqual(out.proposals.length, 2);
+  assert.ok(out.proposals.some((p) => p.kind === "seen.approve"));
+  const note = out.proposals.find((p) => p.kind === "note");
+  assert.ok(note.title.includes("0 routes, 1 stations"));
+});
+
+check("aggregate note survives the proposal cap", () => {
+  const viewMap = { nj_standalone_NJ_999: route({ trip_short_name_0: "NJ 999" }) };
+  for (let i = 0; i < 50; i++) viewMap[`new_${i}`] = route({ route_id: `new_${i}` });
+  const out = classify({
+    previousSeen: { v: 1, routes: {}, injectedStations: {} },
+    viewMap,
+    injectedStations: [],
+    trust: TRUST,
+    now: NOW,
+  });
+  assert.strictEqual(out.proposals.length, 30);
+  assert.strictEqual(out.proposals[0].kind, "note");
+  assert.ok(out.proposals[0].title.startsWith("Auto-added from trusted sources"));
+});
+
+check("disappearance note suppressed when trains migrated to another key", () => {
+  const fp452 = fingerprintRoute(route({ trip_short_name_0: "452" }));
+  const out = classify({
+    previousSeen: {
+      v: 1,
+      routes: {
+        es_452: seenEntry({ lastSeen: "2026-06-01", fingerprint: fp452 }),
+        237: seenEntry({ fingerprint: fp452 }),
+      },
+      injectedStations: {},
+    },
+    viewMap: { 237: route({ trip_short_name_0: "452" }) },
+    injectedStations: [],
+    now: NOW,
+  });
+  assert.strictEqual(out.proposals.length, 0);
+  // flagged so it never fires later either
+  assert.strictEqual(out.nextSeen.routes.es_452.removalNoticed, true);
+});
+
 check("proposal cap respected", () => {
   const viewMap = {};
   for (let i = 0; i < 50; i++) viewMap[`new_${i}`] = route({ route_id: `new_${i}` });

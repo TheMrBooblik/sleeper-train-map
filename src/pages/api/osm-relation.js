@@ -4,6 +4,7 @@
 // Supports comma-separated IDs (e.g. "3347914,15014175") to combine segments.
 
 import { getOsmRelation, putOsmRelation, isFresh } from "./lib/file-store";
+import { extractCoordsFromRelation, deduplicateConsecutive } from "./lib/osm-geo.mjs";
 
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
@@ -37,33 +38,6 @@ async function queryOverpass(overpassQuery) {
   }
 
   return response.json();
-}
-
-function extractCoordsFromRelation(relation) {
-  const coords = [];
-  if (!relation.members) return coords;
-  relation.members
-    .filter((m) => m.type === "way" && !m.role)
-    .forEach((member) => {
-      if (Array.isArray(member.geometry)) {
-        member.geometry.forEach((point) => {
-          if (point.lat && point.lon) coords.push([point.lat, point.lon]);
-        });
-      }
-    });
-  return coords;
-}
-
-function deduplicateConsecutive(coords) {
-  const result = [];
-  let prev = null;
-  for (const coord of coords) {
-    if (!prev || prev[0] !== coord[0] || prev[1] !== coord[1]) {
-      result.push(coord);
-      prev = coord;
-    }
-  }
-  return result;
 }
 
 function buildResponse(relationIds, data) {

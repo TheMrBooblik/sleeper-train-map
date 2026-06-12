@@ -51,6 +51,7 @@
     "adapter": "nightjet",
     "enabled": true,
     "official": true,
+    "trusted": true,
     "critical": false,
     "schedule": "daily",
     "homepage": "https://www.nightjet.com",
@@ -70,7 +71,51 @@
       "concurrency": 6,
       "maxPartnerTrains": 25
     },
+    "enrich": { "strategy": "trainsByNumber", "setPolyline": true },
     "probe": { "pricing": { "adapter": "nightjet-offers", "sampleRoutes": 4 } },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
+    "id": "europeansleeper",
+    "label": "European Sleeper",
+    "description": "Official europeansleeper.eu timetable — authoritative stop lists for ES trains (discovery via BoT ES rows; geometry from the OSM-backed route-geometry cache, regenerated only when the stop list changes). DISABLED until the 'Probe European Sleeper source' workflow confirms the extraction strategy and parseTimetableHtml() is finalized — see scripts/adapters/europeansleeper.mjs.",
+    "kind": "html",
+    "adapter": "europeansleeper",
+    "enabled": false,
+    "official": true,
+    "trusted": true,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.europeansleeper.eu",
+    "output": "europeansleeper-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "ES", "operatorName": "European Sleeper" },
+    "synthetic": {
+      "idPrefix": "es_",
+      "agency": { "from": "fixed", "value": "ES" },
+      "resolveAliases": true,
+      "withService": true,
+      "excludeBotMatched": true,
+      "dedupStrategy": null
+    },
+    "enrich": {
+      "strategy": "trainsByNumber",
+      "agencyIds": ["ES"],
+      "setPolyline": true,
+      "polylineMode": "perDirection",
+      "updateVia": true,
+      "setTimes": true,
+      "stamp": true
+    },
+    "params": {
+      "timetableUrl": "https://www.europeansleeper.eu/timetable",
+      "bookingBase": "https://booking.europeansleeper.eu",
+      "pinnedRelations": {
+        "452": ["18616102"],
+        "453": ["18616102"]
+      }
+    },
     "freshness": { "ttlHours": 25 }
   },
   {
@@ -214,23 +259,38 @@
   {
     "v": 1,
     "id": "pkp-gtfs",
-    "label": "PKP Intercity (Polish GTFS shapes)",
-    "description": "Committed as public/data/gtfs/pkpTrainShapes.json. Regenerate: npm run parse-pkp-gtfs (polish_trains.zip, scoped by BoT PKP trips).",
+    "label": "PKP Intercity (Polish GTFS)",
+    "description": "Official PKP Intercity timetable data (mkuran.pl is a mechanical daily conversion of the official NAP feed). Committed as public/data/gtfs/pkpTrainShapes.json; regenerated nightly inside the scrape (npm run parse-pkp-gtfs, scoped by BoT PKP trips). Enriches PKP rows with official stop lists and stamps them for trusted auto-approval.",
     "kind": "gtfs",
     "adapter": null,
     "runner": "external",
     "command": "npm run parse-pkp-gtfs",
     "enabled": true,
-    "official": false,
+    "official": true,
+    "trusted": true,
     "critical": false,
-    "schedule": "weekly",
+    "schedule": "daily",
     "homepage": "https://mkuran.pl/gtfs/",
     "output": null,
     "synthetic": null,
+    "enrich": {
+      "strategy": "gtfsBundle",
+      "agencyIds": ["PKP", "PKP/ČD", "MÁV/PKP"],
+      "updateVia": true,
+      "stamp": true,
+      "geometryFallback": {
+        "pinnedRelations": {
+          "406": ["8737075"],
+          "407": ["8737075"],
+          "442": ["8737075"],
+          "443": ["8737075"]
+        }
+      }
+    },
     "params": {
       "statusFile": "public/data/gtfs/pkpTrainShapes.json"
     },
-    "freshness": { "ttlHours": 192 }
+    "freshness": { "ttlHours": 25 }
   },
   {
     "v": 1,

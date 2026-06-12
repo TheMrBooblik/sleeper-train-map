@@ -49,6 +49,19 @@ function extractKeysFromTripLabel(label) {
   return keys;
 }
 
+// Keep in sync with normalizeCity in src/lib/pkpTrainKeyExtract.js — used to
+// tell distinct corridors of a reused train number apart.
+function normalizeCityLocal(name) {
+  return String(name || "")
+    .toLowerCase()
+    .replace(/ł/g, "l")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .split(/\s+/)[0]
+    .replace(/[^\p{L}\p{N}-]/gu, "");
+}
+
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
     https
@@ -259,9 +272,16 @@ function findTrainDataForKey(
     const sid = t.shape_id || "";
     if (!sid.startsWith("RAIL_")) continue;
 
-    const plk = (t.plk_train_number || "").split("/")[0];
+    // A train number can sit in any slash-segment of plk_train_number (the
+    // Carpathia's Praha portion is "417/50443"), so match every segment.
+    const plkSegs = (t.plk_train_number || "").split("/");
     const ts = t.trip_short_name || "";
-    if (plk === key || ts.startsWith(`${key}/`) || ts.startsWith(`${key} `)) {
+    if (
+      plkSegs.includes(key) ||
+      ts === key ||
+      ts.startsWith(`${key}/`) ||
+      ts.startsWith(`${key} `)
+    ) {
       candidates.push(t);
     }
   }
@@ -282,8 +302,7 @@ function findTrainDataForKey(
     groups.get(prefix).push(t);
   }
 
-  let bestResult = null;
-  let bestCount = 0;
+  const groupResults = [];
 
   for (const [groupPrefix, trips] of groups.entries()) {
     // Sort legs in ascending order so shapes are concatenated start → end.
@@ -380,7 +399,7 @@ function findTrainDataForKey(
     if (currentSeg.length > 0) railSegments.push({ positions: [...currentSeg] });
 
     const combined = railSegments.flatMap((s) => s.positions);
-    if (combined.length <= bestCount) continue;
+    if (combined.length < 2) continue;
 
     // Replacement-bus legs that EXTEND the journey past the rail shape — a BUS
     // leg before the first rail leg (leading) or after the last rail leg
@@ -466,22 +485,47 @@ function findTrainDataForKey(
     }
     for (const st of trailingBusStopTimes) pushStop(st);
 
-    bestCount = combined.length;
-    bestResult = {
+    groupResults.push({
       positions: combined,
       stops: combinedStops,
       railSegments,
       busSegments,
-    };
+    });
   }
 
-  if (!bestResult || bestResult.positions.length < 2) return null;
+  if (groupResults.length === 0) return null;
+
+  // A reused train number can be several distinct trains (e.g. "406" is both
+  // the München→Warszawa sleeper and the Bohumín→Warszawa portion of the
+  // Chopin). Keep ONE entry per distinct corridor (endpoint signature):
+  // longest = the main entry (back-compat), the rest ride along as `variants`
+  // so pkpEntryForRoute can pick by endpoint validation instead of losing them.
+  groupResults.sort((a, b) => b.positions.length - a.positions.length);
+  const seenSig = new Set();
+  const distinct = [];
+  for (const r of groupResults) {
+    const sig = `${normalizeCityLocal(r.stops[0]?.name)}→${normalizeCityLocal(
+      r.stops[r.stops.length - 1]?.name,
+    )}`;
+    if (seenSig.has(sig)) continue;
+    seenSig.add(sig);
+    distinct.push(r);
+  }
+
+  const main = distinct[0];
+  const variants = distinct.slice(1, 4).map((v) => ({
+    positions: v.positions,
+    stops: v.stops,
+    rail_segments: v.railSegments,
+    bus_segments: v.busSegments.length > 0 ? v.busSegments : undefined,
+  }));
   return {
-    positions: bestResult.positions,
-    stops: bestResult.stops,
-    rail_segments: bestResult.railSegments,
-    bus_segments: bestResult.busSegments,
+    positions: main.positions,
+    stops: main.stops,
+    rail_segments: main.railSegments,
+    bus_segments: main.busSegments,
     serviceIds,
+    variants: variants.length > 0 ? variants : undefined,
   };
 }
 
@@ -513,8 +557,9 @@ async function main() {
   const botTrips = await fetchJson(BOT_TRIPS_URL);
   const neededKeys = new Set();
   for (const trip of Object.values(botTrips)) {
-    const ag = trip.agency_id;
-    if (ag !== "PKP" && ag !== "PKP/ČD") continue;
+    // Any operator combo involving PKP (PKP, PKP/ČD, MÁV/PKP, …) — their
+    // Polish legs are in this feed.
+    if (!String(trip.agency_id || "").includes("PKP")) continue;
     for (const k of extractKeysFromTripLabel(trip.trip_short_name)) {
       neededKeys.add(k);
     }

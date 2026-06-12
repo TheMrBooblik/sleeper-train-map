@@ -23,20 +23,22 @@ jobs:
 
       - run: npm run scrape
 
-      # Pre-merge the scraped sources into the published dataset that
-      # /api/initial-data serves directly (falls back to on-the-fly merge if absent).
-      # Routes/stations not yet approved in data/canonical/state/seen.json are
-      # withheld here (review gate).
-      - run: npm run canonicalize
-
-      # Classify tonight's changes: new trains/stations file proposals on the
-      # `proposals` branch (reviewed in /data) and update the seen index.
-      # Best-effort — a classify failure must not block the data refresh.
+      # Classify tonight's changes BEFORE canonicalize: new trains/stations
+      # file proposals on the `proposals` branch (reviewed in /data) and update
+      # the seen index — including auto-approvals from trusted sources, so they
+      # go live the same night. Best-effort — a classify failure must not block
+      # the data refresh (new routes just stay gated one extra night).
       - name: Classify changes → review queue
         run: node scripts/classify-changes.mjs
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Pre-merge the scraped sources into the published dataset that
+      # /api/initial-data serves directly (falls back to on-the-fly merge if absent).
+      # Routes/stations not yet approved in data/canonical/state/seen.json are
+      # withheld here (review gate).
+      - run: npm run canonicalize
 
       # AI assist (GitHub Models, free tier): enrich tonight's proposals,
       # suggest station aliases, extract prices from configured pages.
@@ -59,13 +61,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Refresh PKP GTFS shapes on Mondays so seasonal summer trains get picked
-      # up when PKP Intercity adds them to the live GTFS feed (mkuran.pl).
-      - name: Refresh PKP GTFS shapes (weekly)
-        run: |
-          if [ "$(date -u +%u)" = "1" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            npm run parse-pkp-gtfs
-          fi
+      # PKP GTFS shapes are refreshed inside `npm run scrape` now: the pkp-gtfs
+      # registry entry is a daily external-runner step, so the bundle is fresh
+      # before the enrichment post-step stamps PKP rows.
 
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
