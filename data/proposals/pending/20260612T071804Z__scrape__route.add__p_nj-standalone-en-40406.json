@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-40406",
+  "createdAt": "2026-06-12T07:18:04.685Z",
+  "source": "scrape",
+  "sourceDetail": "nj",
+  "kind": "route.add",
+  "title": "New train: EN 40406 (München Hbf – Warszawa Wschodnia)",
+  "summary": "Route \"nj_standalone_EN_40406\" appeared in tonight's scrape and is withheld from the map until approved. Via: München Ost - Rosenheim - Freilassing - Salzburg Hbf - Attnang-Puchheim - Linz/Donau Hbf - St. Pölten Hbf - Wien Meidling - Wien Hbf - Břeclav - Ostrava hl.n. - Bohumín - Chalupki Granica panstwa - Chalupki - Rybnik - Katowice - Sosnowiec Główny - Dąbrowa Górnicza - Zawiercie - Włoszczowa Północ - O",
+  "target": {
+    "routeKey": "nj_standalone_EN_40406",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "EN 40406",
+    "returnTrain": "EN 40407",
+    "origin": "München Hbf",
+    "destination": "Warszawa Wschodnia",
+    "operator": "ÖBB",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "nj_standalone_EN_40406"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
