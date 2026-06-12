@@ -49,6 +49,7 @@
     "@mapbox/polyline": "^1.2.1",
     "@tailwindcss/postcss": "^4.0.8",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "copy-webpack-plugin": "^11.0.0",
     "hafas-client": "^6.3.6",
     "leaflet": "^1.9.4",
