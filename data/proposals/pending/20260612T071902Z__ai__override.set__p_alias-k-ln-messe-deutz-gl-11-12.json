@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-k-ln-messe-deutz-gl-11-12",
+  "createdAt": "2026-06-12T07:19:02.288Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Köln Messe/Deutz Gl.11-12\" → \"Köln Messe/Deutz\"",
+  "summary": "The operator-injected station \"Köln Messe/Deutz Gl.11-12\" appears to be the same as Back-on-Track's \"Köln Messe/Deutz\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Köln Messe/Deutz Gl.11-12"
+  },
+  "before": null,
+  "after": {
+    "alias": "köln messe/deutz gl.11-12",
+    "canonical": "Köln Messe/Deutz"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Köln Messe/Deutz Gl.11-12",
+        "canonical": "Köln Messe/Deutz"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
