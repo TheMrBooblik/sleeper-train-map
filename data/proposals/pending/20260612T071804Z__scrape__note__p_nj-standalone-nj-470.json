@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-470",
+  "createdAt": "2026-06-12T07:18:04.684Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 470 (Zürich HB – Hamburg Altona)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Hamburg-Altona\" → \"Hamburg Altona\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_470",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Hamburg-Altona"
+  },
+  "after": {
+    "destination": "Hamburg Altona"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
