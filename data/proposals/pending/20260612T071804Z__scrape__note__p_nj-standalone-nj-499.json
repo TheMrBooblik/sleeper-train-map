@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 499 (Hamburg Altona – Wien Hbf)",
-  "summary": "Material change on an approved route (already live — FYI): origin: \"Hamburg-Altona\" → \"Hamburg Altona\"; train numbers: \"NJ 499|NJ 498\" → \"NJ 499|NJ 492\"",
+  "title": "Update: NJ 499 (Hamburg Altona – Wien Hbf)",
+  "summary": "The route for NJ 499 has been updated. The origin station name is now \"Hamburg Altona\" instead of \"Hamburg-Altona\". Additionally, the train numbers have changed from \"NJ 499|NJ 498\" to \"NJ 499|NJ 492\". This change is already live.",
   "target": {
     "routeKey": "nj_standalone_NJ_499",
     "agencyId": "ÖBB",
@@ -25,5 +25,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
