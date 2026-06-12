@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-466",
+  "createdAt": "2026-06-12T07:18:04.685Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 466 (Wien Hbf – Zürich HB)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 466|NJ 467\" → \"NJ 466|NJ 13487\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_466",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "NJ 466|NJ 467"
+  },
+  "after": {
+    "train numbers": "NJ 466|NJ 13487"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
