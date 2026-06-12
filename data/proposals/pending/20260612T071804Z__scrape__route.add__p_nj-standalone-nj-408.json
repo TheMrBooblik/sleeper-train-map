@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-408",
+  "createdAt": "2026-06-12T07:18:04.685Z",
+  "source": "scrape",
+  "sourceDetail": "nj",
+  "kind": "route.add",
+  "title": "New train: NJ 408 (Berlin Hbf (tief) – Zürich HB)",
+  "summary": "Route \"nj_standalone_NJ_408\" appeared in tonight's scrape and is withheld from the map until approved. Via: Berlin Südkreuz - Bitterfeld - Leipzig Hbf - Karlsruhe Hbf - Baden-Baden - Offenburg - Freiburg (Breisgau) Hbf - Basel Bad Bf - Basel SBB",
+  "target": {
+    "routeKey": "nj_standalone_NJ_408",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "NJ 408",
+    "returnTrain": "NJ 409",
+    "origin": "Berlin Hbf (tief)",
+    "destination": "Zürich HB",
+    "operator": "ÖBB",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "nj_standalone_NJ_408"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
