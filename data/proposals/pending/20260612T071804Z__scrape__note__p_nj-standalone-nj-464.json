@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-464",
+  "createdAt": "2026-06-12T07:18:04.685Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 464 (Graz Hbf – Zürich HB)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 464|NJ 465\" → \"NJ 464|NJ 13485\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_464",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "NJ 464|NJ 465"
+  },
+  "after": {
+    "train numbers": "NJ 464|NJ 13485"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
