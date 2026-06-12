@@ -13,7 +13,7 @@ npm run scrape       # Registry-driven scrape of all sources (scripts/scrape-dat
 npm run canonicalize # Merge scraped sources → public/data/published/initial-data.json (review-gated)
 npm run classify     # Diff tonight's data vs seen index → proposals on the proposals branch
 npm run parse-gtfs   # Parse RegioJet GTFS data (scripts/parse-regiojet-gtfs.js)
-npm run parse-pkp-gtfs # Parse Polish GTFS shapes (weekly in CI)
+npm run parse-pkp-gtfs # Parse Polish GTFS (runs nightly inside `npm run scrape` via the registry)
 npm run ai-tasks     # AI assist batch (GitHub Models; needs GITHUB_TOKEN with models:read)
 npm run probe-prices # Sample operator booking APIs → price.update proposals
 npm run bootstrap-seen # One-off: grandfather all current routes/stations as approved
@@ -23,7 +23,8 @@ npm run test:smoke   # Run smoke tests (separate config)
 # Pure-logic unit suites (raw node, no browser):
 npm run verify-registry && npm run verify-build-parity && npm run verify-overrides && \
 npm run verify-proposals && npm run verify-classify && npm run verify-calendar && \
-npm run verify-canonical-routes && npm run verify-ai
+npm run verify-canonical-routes && npm run verify-ai && npm run verify-enrich && \
+npm run verify-route-geometry && npm run verify-es
 ```
 
 ## Architecture Overview
@@ -44,6 +45,13 @@ npm run verify-canonical-routes && npm run verify-ai
 
 `data/sources/registry.json` declares every data source: which adapter scrapes it (`scripts/adapters/{adapter}.mjs`), what file it writes (`public/data/scraped/{output}`), and how its trains merge into the map payload (the `synthetic` config consumed by `build-initial-data.mjs`: id prefix, agency, station aliasing, BoT dedup strategy). **Adding an operator = adding a registry entry** (+ an adapter module only if no existing kind fits: `backontrack`, `json-api`, `html`, `gtfs`, `static-config`, `osm`, `canonical-routes`). The scrape runner, the merge, `/api/operator-trains`, `/api/data-status`, and the admin dashboard all iterate the registry. Schema + validation: `scripts/lib/registry.mjs`; editable in the admin "Registry" tab (server re-validates before committing).
 
+Additional per-entry capabilities (all optional, all registry-driven):
+
+- **`trusted: true`** (requires `official: true`) — the source's data bypasses the review queue: new routes/stations it corroborates are auto-approved by the nightly classifier (see below). `trustConfig(registry)` in `scripts/lib/registry.mjs` derives the trusted prefixes/source ids.
+- **`enrich`** — post-scrape view-map enrichment (`scripts/lib/enrich-view-map.mjs`, called from the runner's `finalizeViewMap`): updates matched BoT rows in place from official data. Strategies: `trainsByNumber` (match by `trip_short_name_0/1` against the source's trains file; options `setPolyline` + `polylineMode: legacy|perDirection`, `updateVia`, `setTimes`, `stamp`, `agencyIds`) and `gtfsBundle` (match via `pkpEntryForRoute` endpoint validation against `params.statusFile`; options `updateVia`, `stamp`). `stamp` writes `official_sources: [sourceId]` onto the row — the classifier's corroboration signal. Sources with `trainsByNumber` + `synthetic` also get raw-file synthetic leftover rows (the old NJ-only behavior, generalized).
+- **`runner: "external"` + `command` + `schedule`** — registry-scheduled script steps that run inside `npm run scrape` (e.g. `pkp-gtfs` runs `npm run parse-pkp-gtfs` daily so the bundle is fresh before enrichment). `schedule: weekly` = Mondays or any `workflow_dispatch`/`FORCE_ALL_SOURCES=1` run.
+- **`europeansleeper` is probe-gated** (`enabled: false`): the adapter's official-page parser must be finalized from real CI findings first — dispatch the "Probe European Sleeper source" workflow, download the artifact, implement `parseTimetableHtml()` in `scripts/adapters/europeansleeper.mjs`, then enable the entry. Its geometry comes from `scripts/lib/route-geometry.mjs`: an OSM-backed builder (pinned relations → Overpass discovery → straight-line chain) with a committed hash-gated cache (`public/data/scraped/route-geometry.json`) — polylines regenerate **only when the official stop list changes**.
+
 ### Review queue ("all new data verified first")
 
 Everything non-mechanical flows through a proposal queue the admin reviews in `/data` → Review tab:
@@ -51,6 +59,8 @@ Everything non-mechanical flows through a proposal queue the admin reviews in `/
 - **Proposals** are single JSON files on the **`proposals` git branch** (`data/proposals/{pending,resolved}/`), metadata encoded in filenames so listing the queue is one GitHub Contents call. Envelope schema/codec: `src/pages/api/lib/proposals.mjs`. The branch never deploys (`vercel.json` → `git.deploymentEnabled.proposals: false`).
 - **Producers:** nightly classifier (`scripts/classify-changes.mjs` + pure `scripts/lib/classify.mjs`), AI tasks (`scripts/ai-tasks.mjs`), price probes (`scripts/probe-prices.mjs`), and the public `/api/suggest` endpoint (honeypot + rate-limited; "Suggest an edit" in the detail panel).
 - **The gate:** `data/canonical/state/seen.json` is the approval index. `buildInitialData({ seenIndex })` withholds viewMap rows / injected station markers not yet approved (default-allow when the index is absent so the map can never blank; canonicalize hard-fails if >10% of routes would be withheld). New route keys and stations are gated; updates to approved routes auto-apply, with FYI notes for material changes (days/endpoints/operator); vanished trains are retained 7 days (sticky merge in the scrape runner) then noticed once.
+- **Trusted sources skip the gate:** routes whose key carries a trusted source's synthetic `idPrefix`, or whose row was stamped `official_sources` by the enrichment post-step, are auto-approved by `classify()` (`approved: true, autoApproved: <date>` in seen.json) — including previously-gated keys once corroborated. Stations injected by trusted sources auto-approve the same way (`stats.stationSources` from the build). Everything auto-added lands in ONE aggregate FYI `note` per night (dated `target.routeKey` so dedup can't block future nights). Disappearance notes are suppressed when a vanished key's trains all still run under another key (route-key migration). The workflow runs classify BEFORE canonicalize so auto-approvals go live the same night; a classify failure just gates new keys one extra night.
+- **verify-build-parity** gates its build with the committed seen.json exactly like canonicalize. Any PR that changes merge inputs (registry, overrides, build code) must re-run `npm run canonicalize` to regenerate the published artifact, or the parity test fails.
 - **Applying:** approval in the Review tab runs `planProposalApply()` (`src/pages/api/lib/proposals-apply.mjs`) — pure mutations committed to main via the GitHub Contents API (`src/pages/api/lib/github-content.mjs`). Apply kinds: `override.set` (reuses `applyOverrideMutation`), `seen.approve`, `route.add/update/remove`, `price.update`, `note` (no-op). Admin's own edits in the other tabs commit directly (the admin IS the reviewer).
 
 ### Curated routes & prices (data-only route coverage)
@@ -87,7 +97,7 @@ All data is committed to the repo. Git is the database and the audit log.
 - **`src/pages/api/lib/file-store.js`** — disk reads over `public/data/scraped|published/`; generic `getTrainsBySource(file)`, `isFresh(uploadedAt)` (25h TTL).
 - **`src/pages/api/lib/build-initial-data.mjs`** — pure registry-driven merge into the legacy `{ stops, viewMap, trips }` payload (+ seen gate + price stamping). Shared by `/api/initial-data` and `scripts/canonicalize.mjs`; `tests/verify-build-parity.mjs` is the golden test.
 - **`src/pages/api/lib/github-content.mjs`** — GitHub Contents helpers (read/put/delete/list/branch, sha-conflict retry) used by all admin writes, the suggest endpoint, and the Actions scripts. Env: `ADMIN_GITHUB_TOKEN`/`GITHUB_TOKEN`, `ADMIN_REPO`/`GITHUB_REPOSITORY`, `ADMIN_COMMIT_BRANCH` (default main), `PROPOSALS_BRANCH` (default proposals).
-- **`scripts/scrape-data.mjs`** — registry-driven runner (+ NJ⇄BoT view-map post-step, sticky-trains merge). Daily GitHub Actions job (`.github/workflows/scrape-data.yml`, 3 AM UTC): scrape → canonicalize → classify → AI assist → (Mondays) PKP GTFS + price probes → auto-commit.
+- **`scripts/scrape-data.mjs`** — registry-driven runner (sticky-trains merge, registry-scheduled external steps, then the enrichment post-step from `scripts/lib/enrich-view-map.mjs` + synthetic leftovers). Daily GitHub Actions job (`.github/workflows/scrape-data.yml`, 3 AM UTC): scrape (incl. PKP GTFS) → classify → canonicalize → AI assist → (Mondays) price probes → auto-commit.
 
 ### API Routes (`src/pages/api/`)
 

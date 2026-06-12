@@ -77,6 +77,49 @@
   },
   {
     "v": 1,
+    "id": "europeansleeper",
+    "label": "European Sleeper",
+    "description": "Official europeansleeper.eu timetable — authoritative stop lists for ES trains (discovery via BoT ES rows; geometry from the OSM-backed route-geometry cache, regenerated only when the stop list changes). DISABLED until the 'Probe European Sleeper source' workflow confirms the extraction strategy and parseTimetableHtml() is finalized — see scripts/adapters/europeansleeper.mjs.",
+    "kind": "html",
+    "adapter": "europeansleeper",
+    "enabled": false,
+    "official": true,
+    "trusted": true,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.europeansleeper.eu",
+    "output": "europeansleeper-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "ES", "operatorName": "European Sleeper" },
+    "synthetic": {
+      "idPrefix": "es_",
+      "agency": { "from": "fixed", "value": "ES" },
+      "resolveAliases": true,
+      "withService": true,
+      "excludeBotMatched": true,
+      "dedupStrategy": null
+    },
+    "enrich": {
+      "strategy": "trainsByNumber",
+      "agencyIds": ["ES"],
+      "setPolyline": true,
+      "polylineMode": "perDirection",
+      "updateVia": true,
+      "setTimes": true,
+      "stamp": true
+    },
+    "params": {
+      "timetableUrl": "https://www.europeansleeper.eu/timetable",
+      "bookingBase": "https://booking.europeansleeper.eu",
+      "pinnedRelations": {
+        "452": ["18616102"],
+        "453": ["18616102"]
+      }
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
     "id": "cd",
     "label": "Czech Railways (ČD)",
     "description": "Official cd.cz EC train timetables",

@@ -23,4 +23,5 @@ export async function run(entry, ctx) {
   ctx.write("backontrack-trips.json", trips);
   ctx.shared.viewMap = view_ontd_map;
   ctx.shared.trips = trips;
+  ctx.shared.stops = stops; // station-name → coords lookups in later adapters
 }
