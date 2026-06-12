@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-499",
+  "createdAt": "2026-06-12T07:18:04.684Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 499 (Hamburg Altona – Wien Hbf)",
+  "summary": "Material change on an approved route (already live — FYI): origin: \"Hamburg-Altona\" → \"Hamburg Altona\"; train numbers: \"NJ 499|NJ 498\" → \"NJ 499|NJ 492\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_499",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "origin": "Hamburg-Altona",
+    "train numbers": "NJ 499|NJ 498"
+  },
+  "after": {
+    "origin": "Hamburg Altona",
+    "train numbers": "NJ 499|NJ 492"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
