@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 13486 (Wien Hbf – Zürich HB)",
-  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 13486|NJ 13487\" → \"NJ 13486|NJ 467\"",
+  "title": "Update: NJ 13486 (Wien Hbf – Zürich HB) Train Numbers",
+  "summary": "The train numbers for NJ 13486 (Wien Hbf to Zürich HB) have been updated. The previous train numbers NJ 13486 and NJ 13487 are now NJ 13486 and NJ 467. This change is on an approved route and is already live.",
   "target": {
     "routeKey": "nj_standalone_NJ_13486",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
