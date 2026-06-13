@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-06-13",
+  "createdAt": "2026-06-13T06:54:44.080Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (12 routes, 0 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_408: NJ 408 (Berlin Hbf (tief) – Zürich HB)\nroute nj_standalone_NJ_498: NJ 498 (Wien Hbf – Hamburg Altona)\nroute nj_standalone_NJ_40294: NJ 40294 (Roma Tiburtina – Wien Hbf)\nroute nj_standalone_NJ_13487: NJ 13487 (Zürich HB – Wien Hbf)\nroute nj_standalone_NJ_19947: NJ 19947 (Bregenz Bahnhof – Wien Hbf (Autoreisezuganlage))\nroute nj_standalone_NJ_467: NJ 467 (Zürich HB – Wien Hbf)\nroute nj_standalone_EN_50237: EN 50237 (Stuttgart Hbf – Budapest-Keleti)\nroute nj_standalone_EN_40414: EN 40414 (Zagreb Glavni Kolod. – Zürich HB)\nroute nj_standalone_EN_40458: EN 40458 (Praha hl.n. – Zürich HB)\nroute nj_standalone_EN_40417: EN 40417 (Przemyśl Gł. – München Hbf)\nroute nj_standalone_EN_40237: EN 40237 (Stuttgart Hbf – Zagreb Glavni Kolod.)\nroute nj_standalone_EN_1272: EN 1272 (Split – Wien Hbf (Autoreisezuganlage))",
+  "target": {
+    "routeKey": "trusted-2026-06-13",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
