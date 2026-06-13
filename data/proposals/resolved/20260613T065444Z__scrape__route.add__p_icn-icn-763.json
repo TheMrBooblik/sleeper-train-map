@@ -1,0 +1,42 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-763",
+  "createdAt": "2026-06-13T06:54:44.079Z",
+  "source": "scrape",
+  "sourceDetail": "icn",
+  "kind": "route.add",
+  "title": "New train: ICN 763 from Bolzano to Roma Termini",
+  "summary": "A new train route, ICN 763, has been added. It travels from Bolzano to Roma Termini, stopping at Ora, Mezzocorona, Trento, Rovereto, Verona Porta Nuova, and Orvieto. The return train is ICN 764. This route is currently pending approval.",
+  "target": {
+    "routeKey": "icn_ICN_763",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "ICN 763",
+    "returnTrain": "ICN 764",
+    "origin": "Bolzano",
+    "destination": "Roma Termini",
+    "operator": "FS",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "icn_ICN_763"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "approved",
+  "resolution": {
+    "decision": "approved",
+    "decidedAt": "2026-06-13T22:23:52.240Z",
+    "commit": "https://github.com/TheMrBooblik/sleeper-train-map/commit/c7e40bad721e620edc602b2583a7d95b47892e0e",
+    "note": null,
+    "editedApply": null
+  },
+  "aiEnriched": true
+}
