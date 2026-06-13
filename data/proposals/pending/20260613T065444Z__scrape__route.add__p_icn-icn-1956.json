@@ -6,7 +6,7 @@
   "sourceDetail": "icn",
   "kind": "route.add",
   "title": "New train: ICN 1956 (Messina Centrale – Roma Termini)",
-  "summary": "Route \"icn_ICN_1956\" appeared in tonight's scrape and is withheld from the map until approved. Via: Villa S.giovanni - Lamezia Terme Centrale - Formia-Gaeta - Latina",
+  "summary": "A new train route, ICN 1956, has been added. It travels from Messina Centrale to Roma Termini, stopping at Villa S. Giovanni, Lamezia Terme Centrale, Formia-Gaeta, and Latina. The return train is ICN 1959. This route is currently pending approval.",
   "target": {
     "routeKey": "icn_ICN_1956",
     "agencyId": "FS",
@@ -31,5 +31,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
