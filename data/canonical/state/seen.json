@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "updatedAt": "2026-06-13T22:23:34.842Z",
+  "updatedAt": "2026-06-13T22:23:51.545Z",
   "routes": {
     "3": {
       "firstSeen": "2026-06-10",
@@ -2859,7 +2859,7 @@
     "icn_ICN_763": {
       "firstSeen": "2026-06-13",
       "lastSeen": "2026-06-13",
-      "approved": false,
+      "approved": true,
       "fingerprint": {
         "o": "Bolzano",
         "d": "Roma Termini",
