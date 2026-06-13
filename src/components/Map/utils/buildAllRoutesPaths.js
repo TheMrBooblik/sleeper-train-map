@@ -5,7 +5,6 @@
 import {
   getRouteStyleFromFrequency,
   checkEuropeanSleeper453,
-  checkPrahaWarszawaChopin,
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
   checkZemplinBratislavaHumenne,
@@ -166,8 +165,6 @@ export function buildAllRoutesPaths({
     let osmRelationId = null;
     if (checkEuropeanSleeper453(route)) {
       osmRelationId = "18616102";
-    } else if (checkPrahaWarszawaChopin(route)) {
-      osmRelationId = "8737075";
     } else if (checkRegioJetPrahaChop(route)) {
       osmRelationId = "static:rjChop";
     } else if (checkRegioJetPrahaPrzemysl(route)) {

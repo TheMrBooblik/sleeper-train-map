@@ -4,7 +4,6 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import {
   getRouteStyleFromFrequency,
   checkEuropeanSleeper453,
-  checkPrahaWarszawaChopin,
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
   checkZemplinBratislavaHumenne,
@@ -237,8 +236,6 @@ export function useRoutePaths({
       let osmRelationId = null;
       if (checkEuropeanSleeper453(route)) {
         osmRelationId = "18616102";
-      } else if (checkPrahaWarszawaChopin(route)) {
-        osmRelationId = "8737075";
       } else if (checkRegioJetPrahaChop(route)) {
         osmRelationId = "static:rjChop";
       } else if (checkRegioJetPrahaPrzemysl(route)) {
@@ -306,6 +303,13 @@ export function useRoutePaths({
         );
         const path0ToUse =
           gtfs0 ?? path0 ?? route.fallbackPositions ?? null;
+
+        // #region agent log
+        if (String(routeId) === "9") {
+          const src = gtfs0 ? "pkp_gtfs" : osmRelationId ? "osm:" + osmRelationId : path0 ? "station-path" : "none";
+          fetch('http://127.0.0.1:7246/ingest/f1244d9a-5e9c-4150-a50a-36d6d178e4c9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'071275'},body:JSON.stringify({sessionId:'071275',hypothesisId:'E',location:'useRoutePaths.js:305',message:'route 9 polyline source + station-path geometry',data:{src,osmRelationId,path0Count:path0?.length??null,path0First:path0?.[0],path0Last:path0?.[path0.length-1],via0:route.via_0},timestamp:Date.now()})}).catch(()=>{});
+        }
+        // #endregion
 
         // Use individual rail segments if available (multi-leg routes), otherwise
         // fall back to the combined positions.
@@ -452,9 +456,6 @@ export function useRoutePaths({
       if (isInactiveRoute(route)) return;
       if (checkEuropeanSleeper453(route)) {
         polylineKeysToFetch.add("18616102");
-      }
-      if (checkPrahaWarszawaChopin(route)) {
-        polylineKeysToFetch.add("8737075");
       }
       if (checkRegioJetPrahaChop(route)) {
         polylineKeysToFetch.add("static:rjChop");

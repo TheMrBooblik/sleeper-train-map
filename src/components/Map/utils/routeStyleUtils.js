@@ -291,36 +291,6 @@ export function checkEuropeanSleeper453(route) {
 }
 
 /**
- * Whether the route is the Praha hl.n. ↔ Warszawa Wschodnia night train corridor
- * (BoT route_id 9: "EN 443 / IC 406" + "IC 407 / EN 442").
- *
- * We intentionally skip PKP GTFS polylines for this route (see `src/lib/pkpGtfsMerge.js`)
- * because train keys "406/407" collide with the München↔Warszawa NightJet GTFS shape.
- * Without an alternative, the map falls back to station-to-station segments which can
- * look like "direct lines". Using an OSM route relation gives us a dense, track-like polyline.
- *
- * @param {Object} route - View map route object
- * @returns {boolean}
- */
-export function checkPrahaWarszawaChopin(route) {
-  if (!route) return false;
-  const fields = [
-    route.origin_trip_0,
-    route.destination_trip_0,
-    route.origin_trip_1,
-    route.destination_trip_1,
-  ].map((f) => (f || "").toString().toLowerCase());
-  const hasPraha = fields.some((f) => f.includes("praha"));
-  const hasWarszawa = fields.some((f) => f.includes("warszawa"));
-  if (!hasPraha || !hasWarszawa) return false;
-
-  const t0 = (route.trip_short_name_0 || "").toString().toUpperCase();
-  const t1 = (route.trip_short_name_1 || "").toString().toUpperCase();
-  const blob = `${t0} ${t1}`;
-  return /\bEN\s*443\b/.test(blob) || /\bIC\s*40[67]\b/.test(blob);
-}
-
-/**
  * Whether the route is RegioJet 1020/1021 (Praha – Chop).
  * Detected by agency_id "RJ" and trip names 1020/1021, or by origin/destination matching.
  * Uses combined OSM relations for accurate geometry along the railway tracks.
