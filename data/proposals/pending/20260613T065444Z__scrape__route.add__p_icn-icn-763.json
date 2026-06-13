@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": "icn",
   "kind": "route.add",
-  "title": "New train: ICN 763 (Bolzano – Roma Termini)",
-  "summary": "Route \"icn_ICN_763\" appeared in tonight's scrape and is withheld from the map until approved. Via: Ora - Mezzocorona - Trento - Rovereto - Verona Porta Nuova - Orvieto",
+  "title": "New train: ICN 763 from Bolzano to Roma Termini",
+  "summary": "A new train route, ICN 763, has been added. It travels from Bolzano to Roma Termini, stopping at Ora, Mezzocorona, Trento, Rovereto, Verona Porta Nuova, and Orvieto. The return train is ICN 764. This route is currently pending approval.",
   "target": {
     "routeKey": "icn_ICN_763",
     "agencyId": "FS",
@@ -31,5 +31,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
