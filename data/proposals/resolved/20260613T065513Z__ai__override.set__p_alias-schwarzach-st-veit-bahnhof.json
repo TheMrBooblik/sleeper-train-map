@@ -1,0 +1,42 @@
+{
+  "v": 1,
+  "id": "p_alias-schwarzach-st-veit-bahnhof",
+  "createdAt": "2026-06-13T06:55:13.272Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Schwarzach-St.Veit Bahnhof\" → \"Schwarzach-St.Veit\"",
+  "summary": "The operator-injected station \"Schwarzach-St.Veit Bahnhof\" appears to be the same as Back-on-Track's \"Schwarzach-St.Veit\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Schwarzach-St.Veit Bahnhof"
+  },
+  "before": null,
+  "after": {
+    "alias": "schwarzach-st.veit bahnhof",
+    "canonical": "Schwarzach-St.Veit"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Schwarzach-St.Veit Bahnhof",
+        "canonical": "Schwarzach-St.Veit"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "approved",
+  "resolution": {
+    "decision": "approved",
+    "decidedAt": "2026-06-13T22:20:27.230Z",
+    "commit": "https://github.com/TheMrBooblik/sleeper-train-map/commit/7d0fbf4845c36efe8b2804200ade4f3490c93a02",
+    "note": null,
+    "editedApply": null
+  }
+}
