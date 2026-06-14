@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (1 routes, 3 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_EN_40406: EN 40406 (München Hbf – Warszawa Wschodnia)\nstation Liège Guillemins (nightjet)\nstation Brugg AG (nightjet)\nstation Köln Messe/Deutz Gl.11-12 (nightjet)",
+  "title": "New Night Train Route and Stations Added",
+  "summary": "A new night train route has been added: EN 40406, running from München Hbf to Warszawa Wschodnia. Additionally, three stations have been included: Liège Guillemins, Brugg AG, and Köln Messe/Deutz Gl.11-12, all serving the nightjet service.",
   "target": {
     "routeKey": "trusted-2026-06-14",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
