@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-06-14",
+  "createdAt": "2026-06-14T07:19:15.194Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (1 routes, 3 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_EN_40406: EN 40406 (München Hbf – Warszawa Wschodnia)\nstation Liège Guillemins (nightjet)\nstation Brugg AG (nightjet)\nstation Köln Messe/Deutz Gl.11-12 (nightjet)",
+  "target": {
+    "routeKey": "trusted-2026-06-14",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
