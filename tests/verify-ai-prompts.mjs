@@ -13,6 +13,9 @@ import {
   parsePricing,
   buildSummaryPrompt,
   parseSummary,
+  buildDuplicatePrompt,
+  parseDuplicateVerdict,
+  routeBrief,
 } from "../scripts/ai-tasks.mjs";
 import { extractJson } from "../scripts/lib/ai.mjs";
 import { extractMinPrice } from "../scripts/lib/price-extract.mjs";
@@ -88,6 +91,37 @@ check("summary prompt carries the envelope; parser bounds lengths", () => {
   });
   assert.strictEqual(parseSummary({ title: "x".repeat(200), summary: "" }), null);
   assert.strictEqual(parseSummary({}), null);
+});
+
+check("duplicate prompt carries both routes; verdict parser validates", () => {
+  const a = routeBrief({
+    trip_short_name_0: "EN 235",
+    origin_trip_0: "Wien Hbf",
+    destination_trip_0: "Roma Termini",
+    service_id_0: "2026: Daily",
+    agency_id: "ÖBB",
+  });
+  const b = routeBrief({
+    trip_short_name_0: "NJ 40421",
+    origin_trip_0: "Wien Hbf",
+    destination_trip_0: "Roma Termini",
+    agency_id: "ÖBB",
+  });
+  const p = buildDuplicatePrompt({ a, b });
+  assert.ok(p.user.includes("EN 235") && p.user.includes("NJ 40421"));
+  assert.ok(p.user.includes("Wien Hbf") && p.user.includes("Roma Termini"));
+  assert.deepStrictEqual(
+    parseDuplicateVerdict({ same: true, confidence: 0.92, reason: "same corridor" }),
+    { same: true, confidence: 0.92, reason: "same corridor" },
+  );
+  assert.deepStrictEqual(parseDuplicateVerdict({ same: false, confidence: 0.4 }), {
+    same: false,
+    confidence: 0.4,
+    reason: "",
+  });
+  assert.strictEqual(parseDuplicateVerdict({ same: "maybe", confidence: 1 }), null);
+  assert.strictEqual(parseDuplicateVerdict({ same: true, confidence: 9 }), null);
+  assert.strictEqual(parseDuplicateVerdict(null), null);
 });
 
 // ── JSON extraction from model output ──────────────────────────────────────

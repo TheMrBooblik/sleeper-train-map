@@ -100,6 +100,10 @@ export function buildProposal({
       agencyId: target.agencyId ?? null,
       resource: target.resource ?? null,
       stationName: target.stationName ?? null,
+      // Set when a new route is gated because it looks like a duplicate of an
+      // existing route (route key it may double). Drives the review-queue
+      // "possible duplicate" badge; absent on ordinary proposals.
+      duplicateOf: target.duplicateOf ?? null,
     },
     before,
     after,

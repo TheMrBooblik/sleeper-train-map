@@ -43,9 +43,13 @@ function inAgencyScope(route, agencyIds) {
   return agencyIds.includes((route?.agency_id ?? "").toString().trim());
 }
 
-function trainsByNumber({ entry, viewMap, trains, log }) {
+function trainsByNumber({ entry, viewMap, trains, deferKeys = new Set(), log }) {
   const opts = entry.enrich;
   let touched = 0;
+  // `deferToSources` (registry): a higher-priority source already provides these
+  // train numbers, so this source must not touch them. Used so ČD enriches only
+  // the routes NightJet doesn't already cover.
+  const isDeferred = (name) => deferKeys.has((name ?? "").toString().trim());
 
   Object.values(viewMap).forEach((route) => {
     if (!inAgencyScope(route, opts.agencyIds)) return;
@@ -55,6 +59,7 @@ function trainsByNumber({ entry, viewMap, trains, log }) {
     if (opts.setPolyline && (opts.polylineMode ?? "legacy") === "legacy") {
       const names = [route.trip_short_name_0, route.trip_short_name_1].filter(Boolean);
       for (const name of names) {
+        if (isDeferred(name)) continue;
         const match = trains[name.toString().trim()];
         if (match?.polyline) {
           route.nj_polyline = match.polyline;
@@ -66,6 +71,7 @@ function trainsByNumber({ entry, viewMap, trains, log }) {
     let matchedAny = false;
     for (const d of [0, 1]) {
       const name = route[`trip_short_name_${d}`];
+      if (isDeferred(name)) continue;
       const match = name ? trains[name.toString().trim()] : null;
       if (!match) continue;
       matchedAny = true;
@@ -208,7 +214,15 @@ export async function enrichViewMap({
     if (!entry?.enabled || !strategy) continue;
     try {
       if (entry.enrich.strategy === "trainsByNumber") {
-        strategy({ entry, viewMap, trains: getTrains?.(entry) ?? {}, log });
+        // Train numbers owned by a higher-priority source (deferToSources) — this
+        // source skips them so it only enriches what the others don't cover.
+        const deferKeys = new Set();
+        for (const depId of entry.enrich.deferToSources ?? []) {
+          const depEntry = (registry ?? []).find((e) => e.id === depId);
+          const depTrains = depEntry ? (getTrains?.(depEntry) ?? {}) : {};
+          Object.keys(depTrains).forEach((k) => deferKeys.add(k.toString().trim()));
+        }
+        strategy({ entry, viewMap, trains: getTrains?.(entry) ?? {}, deferKeys, log });
       } else {
         const bundle = entry.params?.statusFile ? readJson?.(entry.params.statusFile) : null;
         await strategy({ entry, viewMap, bundle, stopCoords, resolveGeometry, log });
