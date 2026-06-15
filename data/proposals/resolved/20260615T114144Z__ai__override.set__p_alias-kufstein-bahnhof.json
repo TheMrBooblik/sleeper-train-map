@@ -1,0 +1,43 @@
+{
+  "v": 1,
+  "id": "p_alias-kufstein-bahnhof",
+  "createdAt": "2026-06-15T11:41:44.872Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Kufstein Bahnhof\" → \"Kufstein\"",
+  "summary": "The operator-injected station \"Kufstein Bahnhof\" appears to be the same as Back-on-Track's \"Kufstein\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Kufstein Bahnhof",
+    "duplicateOf": null
+  },
+  "before": null,
+  "after": {
+    "alias": "kufstein bahnhof",
+    "canonical": "Kufstein"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Kufstein Bahnhof",
+        "canonical": "Kufstein"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "approved",
+  "resolution": {
+    "decision": "approved",
+    "decidedAt": "2026-06-15T11:45:31.010Z",
+    "commit": "https://github.com/TheMrBooblik/sleeper-train-map/commit/29d0f5aebe10c83029c24b6a84e3134e6e60449e",
+    "note": null,
+    "editedApply": null
+  }
+}
