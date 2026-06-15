@@ -1,0 +1,42 @@
+{
+  "v": 1,
+  "id": "p_alias-bruxelles-nord",
+  "createdAt": "2026-06-12T07:19:16.326Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Bruxelles Nord\" → \"Bruxelles Noord\"",
+  "summary": "The operator-injected station \"Bruxelles Nord\" appears to be the same as Back-on-Track's \"Bruxelles Noord\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Bruxelles Nord"
+  },
+  "before": null,
+  "after": {
+    "alias": "bruxelles nord",
+    "canonical": "Bruxelles Noord"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Bruxelles Nord",
+        "canonical": "Bruxelles Noord"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "approved",
+  "resolution": {
+    "decision": "approved",
+    "decidedAt": "2026-06-15T10:02:22.979Z",
+    "commit": "https://github.com/TheMrBooblik/sleeper-train-map/commit/e47a57b34df41eb4610913a0e3aa3eef51bd1b6a",
+    "note": null,
+    "editedApply": null
+  }
+}
