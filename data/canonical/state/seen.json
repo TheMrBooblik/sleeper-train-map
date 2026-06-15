@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "updatedAt": "2026-06-15T08:56:20.735Z",
+  "updatedAt": "2026-06-15T10:01:50.694Z",
   "routes": {
     "3": {
       "firstSeen": "2026-06-10",
@@ -3435,7 +3435,7 @@
     "icn_ICN_775": {
       "firstSeen": "2026-06-11",
       "lastSeen": "2026-06-11",
-      "approved": false,
+      "approved": true,
       "fingerprint": {
         "o": "Roma Termini",
         "d": "Trieste Centrale",
