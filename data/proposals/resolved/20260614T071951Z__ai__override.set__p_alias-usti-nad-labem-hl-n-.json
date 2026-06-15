@@ -1,0 +1,42 @@
+{
+  "v": 1,
+  "id": "p_alias-usti-nad-labem-hl-n-",
+  "createdAt": "2026-06-14T07:19:51.736Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Usti nad Labem hl.n.\" → \"Ústí nad Labem hl.n.\"",
+  "summary": "The operator-injected station \"Usti nad Labem hl.n.\" appears to be the same as Back-on-Track's \"Ústí nad Labem hl.n.\" (AI confidence 1). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Usti nad Labem hl.n."
+  },
+  "before": null,
+  "after": {
+    "alias": "usti nad labem hl.n.",
+    "canonical": "Ústí nad Labem hl.n."
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Usti nad Labem hl.n.",
+        "canonical": "Ústí nad Labem hl.n."
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "approved",
+  "resolution": {
+    "decision": "approved",
+    "decidedAt": "2026-06-15T09:50:38.300Z",
+    "commit": "https://github.com/TheMrBooblik/sleeper-train-map/commit/3581ee8409052d35305c8ebc8e0fbb14de073be5",
+    "note": null,
+    "editedApply": null
+  }
+}
