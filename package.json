@@ -20,6 +20,7 @@
     "verify-build-parity": "node tests/verify-build-parity.mjs",
     "verify-proposals": "node tests/verify-proposals-apply.mjs",
     "verify-classify": "node tests/verify-classify.mjs",
+    "verify-duplicate-detect": "node tests/verify-duplicate-detect.mjs",
     "verify-enrich": "node tests/verify-enrich-view-map.mjs",
     "verify-route-geometry": "node tests/verify-route-geometry.mjs",
     "verify-es": "node tests/verify-es-normalize.mjs",

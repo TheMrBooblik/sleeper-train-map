@@ -17,7 +17,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { aiAvailable, aiJson, remainingBudget } from "./lib/ai.mjs";
 import { htmlToText } from "./lib/html-text.mjs";
-import { loadRegistry } from "./lib/registry.mjs";
+import { loadRegistry, trustConfig } from "./lib/registry.mjs";
+import { levenshtein } from "./lib/text-similarity.mjs";
+import {
+  findDuplicateCandidate,
+  buildCoordsLookup,
+} from "./lib/duplicate-detect.mjs";
+import { resolveCanonicalStationName } from "../src/pages/api/lib/primitives.mjs";
 import {
   PENDING_DIR,
   buildProposal,
@@ -40,28 +46,14 @@ const ROOT = path.join(__dirname, "..");
 const MAX_ENRICH = 8;
 const MAX_ALIAS_CHECKS = 5;
 const MAX_EXTRACT_TARGETS = 3;
+const MAX_DUP_ENRICH = 6;
+const MAX_DUP_CHECKS = 8;
 
 // ─── Pure helpers (unit-tested in tests/verify-ai-prompts.mjs) ──────────────
 
-export function levenshtein(a, b, cap = 6) {
-  if (Math.abs(a.length - b.length) > cap) return cap + 1;
-  const prev = new Array(b.length + 1);
-  for (let j = 0; j <= b.length; j++) prev[j] = j;
-  for (let i = 1; i <= a.length; i++) {
-    let diagonal = prev[0];
-    prev[0] = i;
-    for (let j = 1; j <= b.length; j++) {
-      const tmp = prev[j];
-      prev[j] = Math.min(
-        prev[j] + 1,
-        prev[j - 1] + 1,
-        diagonal + (a[i - 1] === b[j - 1] ? 0 : 1),
-      );
-      diagonal = tmp;
-    }
-  }
-  return prev[b.length];
-}
+// Re-exported from the shared module so existing importers (and tests) that
+// pull `levenshtein` from this file keep working.
+export { levenshtein } from "./lib/text-similarity.mjs";
 
 // Injected names with a fuzzy near-miss among BoT stop names: alias candidates.
 // Exact matches are already deduped by the injector; aliased names are
@@ -155,6 +147,43 @@ export function parseSummary(obj) {
   const summary = typeof obj?.summary === "string" ? obj.summary.trim() : "";
   if (!title || title.length > 120 || summary.length > 600) return null;
   return { title, summary };
+}
+
+// Compact a viewMap row for the duplicate prompt / proposal text.
+export function routeBrief(row) {
+  return {
+    train: row?.trip_short_name_0 ?? null,
+    origin: row?.origin_trip_0 ?? null,
+    destination: row?.destination_trip_0 ?? null,
+    via: (row?.via_0 ?? "").toString().slice(0, 180),
+    days: row?.service_id_0 ?? null,
+    operator: row?.agency_id ?? null,
+  };
+}
+
+export function buildDuplicatePrompt({ a, b }) {
+  const fmt = (r) =>
+    `${r.train || "?"}: ${r.origin || "?"} → ${r.destination || "?"}` +
+    (r.via ? ` via ${r.via}` : "") +
+    (r.days ? ` [${r.days}]` : "") +
+    (r.operator ? ` (${r.operator})` : "");
+  return {
+    system:
+      "You decide whether two night-train route descriptions are the SAME real-world service " +
+      "(allowing different train numbers, languages, or station spellings). " +
+      'Respond with JSON only: {"same": true|false, "confidence": 0..1, "reason": "<short>"}. ' +
+      "Two different services that merely share part of a corridor — different operators, " +
+      "different operating days, or a clearly different routing — are NOT the same.",
+    user: `Route A — ${fmt(a)}\nRoute B — ${fmt(b)}\nAre A and B the same train service?`,
+  };
+}
+
+export function parseDuplicateVerdict(obj) {
+  if (typeof obj?.same !== "boolean") return null;
+  const confidence = Number(obj.confidence);
+  if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) return null;
+  const reason = typeof obj.reason === "string" ? obj.reason.trim().slice(0, 200) : "";
+  return { same: obj.same, confidence, reason };
 }
 
 // ─── Tasks ──────────────────────────────────────────────────────────────────
@@ -351,6 +380,120 @@ async function taskPricingExtraction(slug, branch, pendingEntries, registry) {
   console.log(`[ai] task C: ${filed}/${targets.length} pricing proposal(s) filed`);
 }
 
+function buildLiveHelpers() {
+  const stops = readJsonLocal("public", "data", "scraped", "backontrack-stops.json")?.data ?? {};
+  const overrides = readJsonLocal("data", "overrides", "station-coordinates.json") ?? {};
+  return {
+    resolveName: resolveCanonicalStationName,
+    coordsOf: buildCoordsLookup({ botStops: stops, overrides, resolveName: resolveCanonicalStationName }),
+  };
+}
+
+// Task D: AI second opinion on duplicates. (1) Enrich the classifier's gated
+// "possible duplicate" cards with a same/different verdict. (2) Re-check
+// already-live routes for fuzzy duplicates the deterministic pre-gate missed,
+// proposing to hide the NON-official side so official data keeps priority.
+async function taskDuplicateReview(slug, branch, pendingEntries, registry) {
+  const live = readJsonLocal("public", "data", "published", "initial-data.json")?.viewMap ?? {};
+  const liveKeys = Object.keys(live);
+  if (liveKeys.length === 0) {
+    console.log("[ai] task D: no published view map — skipped");
+    return;
+  }
+  const helpers = buildLiveHelpers();
+  const trust = trustConfig(registry);
+  const isTrusted = (key, row) =>
+    trust.prefixes.some((p) => key.startsWith(p)) ||
+    (Array.isArray(row?.official_sources) &&
+      row.official_sources.some((s) => trust.sourceIds.has(s)));
+
+  const openIds = new Set(
+    pendingEntries
+      .map((e) => parseProposalFilename(e.name))
+      .filter(Boolean)
+      .map((m) => `${m.kind}:${m.id}`),
+  );
+
+  // Pass 1 — second-opinion on tonight's gated duplicate cards (in place).
+  let enriched = 0;
+  const dupCards = pendingEntries
+    .filter((e) => {
+      const m = parseProposalFilename(e.name);
+      return m && m.kind === "route.add" && m.source === "scrape";
+    })
+    .slice(0, MAX_DUP_ENRICH);
+  for (const e of dupCards) {
+    if (!aiAvailable()) break;
+    const file = await readJsonFile(slug, branch, `${PENDING_DIR}/${e.name}`);
+    const p = file.json;
+    if (file.error || !p?.target?.duplicateOf || p.aiDuplicateChecked) continue;
+    const candidate = live[p.target.duplicateOf];
+    if (!candidate) continue;
+    const a = {
+      train: p.after?.train,
+      origin: p.after?.origin,
+      destination: p.after?.destination,
+      via: "",
+      days: p.after?.operatingDays,
+      operator: p.after?.operator,
+    };
+    const verdict = parseDuplicateVerdict(await aiJson(buildDuplicatePrompt({ a, b: routeBrief(candidate) })));
+    if (!verdict) continue;
+    const updated = {
+      ...p,
+      summary: (
+        `${p.summary}\n\nAI second opinion: ${verdict.same ? "likely the SAME" : "likely a DIFFERENT"} ` +
+        `service (confidence ${verdict.confidence}). ${verdict.reason}`
+      ).slice(0, 2000),
+      aiDuplicateChecked: true,
+    };
+    const put = await putJsonFile(slug, branch, `${PENDING_DIR}/${e.name}`, updated, `chore(ai): duplicate check ${p.id}`, file.sha);
+    if (!put.error) enriched++;
+  }
+
+  // Pass 2 — fuzzy duplicates among already-live routes (best-effort). Only the
+  // non-official side is proposed for hiding; a live route may show ~1 night
+  // before this catches it.
+  const official = liveKeys.filter((k) => isTrusted(k, live[k])).map((k) => [k, live[k]]);
+  let filed = 0;
+  for (const key of liveKeys) {
+    if (filed >= MAX_DUP_CHECKS || !aiAvailable()) break;
+    const row = live[key];
+    if (isTrusted(key, row)) continue; // hide the BoT duplicate, never the official one
+    const dup = findDuplicateCandidate(row, official, helpers, { requireQualify: false });
+    if (!dup) continue;
+    const stableId = `p_dup-${key.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}`;
+    if (openIds.has(`route.remove:${stableId}`)) continue;
+    const verdict = parseDuplicateVerdict(
+      await aiJson(buildDuplicatePrompt({ a: routeBrief(row), b: routeBrief(live[dup.key]) })),
+    );
+    if (!verdict?.same || verdict.confidence < 0.8) continue;
+    const proposal = buildProposal({
+      id: stableId,
+      source: "ai",
+      sourceDetail: "duplicate-detector",
+      kind: "route.remove",
+      title: `Hide duplicate: ${row.trip_short_name_0 || key} (${row.origin_trip_0 ?? "?"} – ${row.destination_trip_0 ?? "?"})`,
+      summary: (
+        `Live route "${key}" looks like the same service as "${dup.key}" already on the map ` +
+        `(${dup.reasons.join(", ")}). AI: same service, confidence ${verdict.confidence}. ${verdict.reason} ` +
+        `Approve to hide "${key}"; reject to keep both.`
+      ).slice(0, 2000),
+      target: { routeKey: key, agencyId: row.agency_id ?? null, duplicateOf: dup.key },
+      apply: { type: "route.remove", payload: { routeKey: key } },
+    });
+    const put = await putJsonFile(
+      slug,
+      branch,
+      `${PENDING_DIR}/${encodeProposalFilename(proposal)}`,
+      proposal,
+      `chore(ai): duplicate ${proposal.id}`,
+    );
+    if (!put.error) filed++;
+  }
+  console.log(`[ai] task D: ${enriched} dup card(s) enriched, ${filed} live-duplicate proposal(s) filed`);
+}
+
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -378,6 +521,7 @@ async function main() {
   await taskEnrich(slug, branch, pendingEntries);
   await taskStationAliases(slug, branch, pendingEntries);
   await taskPricingExtraction(slug, branch, pendingEntries, registry);
+  await taskDuplicateReview(slug, branch, pendingEntries, registry);
 
   console.log(`[ai] done — request budget remaining: ${remainingBudget()}`);
 }

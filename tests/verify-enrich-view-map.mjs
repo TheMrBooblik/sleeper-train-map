@@ -349,4 +349,57 @@ await check("a failing source is isolated; later sources still enrich", async ()
   assert.ok(logs.some((m) => m.includes("broken") && m.includes("failed")));
 });
 
+await check("trainsByNumber deferToSources: ČD skips NightJet-covered rows", async () => {
+  // nightjet entry is present only so the defer lookup can read its train keys.
+  const njForDefer = { id: "nightjet", enabled: true, output: "nightjet-trains.json" };
+  const cdEntry = {
+    id: "cd",
+    enabled: true,
+    output: "cd-trains.json",
+    enrich: {
+      strategy: "trainsByNumber",
+      agencyIds: ["ČD", "PKP/ČD"],
+      updateVia: true,
+      stamp: true,
+      deferToSources: ["nightjet"],
+    },
+  };
+  const viewMap = {
+    442: {
+      agency_id: "ČD",
+      trip_short_name_0: "EN 442", // NightJet does NOT have this → ČD enriches
+      via_0: "stale - bot - stops",
+    },
+    40458: {
+      agency_id: "ČD",
+      trip_short_name_0: "EN 40458", // NightJet HAS this → ČD must defer
+      via_0: "untouched",
+    },
+    99: {
+      agency_id: "MÁV", // out of ČD agency scope
+      trip_short_name_0: "EN 442",
+      via_0: "untouched",
+    },
+  };
+  await enrichViewMap({
+    registry: [njForDefer, cdEntry],
+    viewMap,
+    getTrains: (entry) =>
+      entry.id === "nightjet"
+        ? { "EN 40458": { polyline: "p", stations: [station("A"), station("B")] } }
+        : {
+            "EN 442": { stations: [station("Praha hl.n."), station("Brno"), station("Wien Hbf")] },
+            "EN 40458": { stations: [station("X"), station("Y"), station("Z")] },
+          },
+    readJson: () => null,
+  });
+  assert.strictEqual(viewMap[442].via_0, "Brno");
+  assert.deepStrictEqual(viewMap[442].official_sources, ["cd"]);
+  // Deferred to NightJet — left untouched, never stamped.
+  assert.strictEqual(viewMap[40458].via_0, "untouched");
+  assert.strictEqual(viewMap[40458].official_sources, undefined);
+  // Out of agency scope.
+  assert.strictEqual(viewMap[99].official_sources, undefined);
+});
+
 console.log(`\n[verify-enrich] ${passed} checks passed`);

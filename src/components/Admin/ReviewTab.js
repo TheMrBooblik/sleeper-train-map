@@ -128,12 +128,23 @@ function ProposalCard({ meta, loadOne, decide, busy }) {
           {!details && <p className="text-xs text-gray-400">Loading…</p>}
           {p && (
             <>
-              {p.summary && <p className="text-sm text-gray-700">{p.summary}</p>}
+              {p.target?.duplicateOf && (
+                <div className="flex items-start gap-2 text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-md px-2 py-1.5">
+                  <span className="font-semibold shrink-0">⚠ Possible duplicate</span>
+                  <span>
+                    of route <code>{p.target.duplicateOf}</code> already on the map.
+                    Approve only if it is genuinely a separate service; reject to keep it hidden.
+                  </span>
+                </div>
+              )}
+
+              {p.summary && <p className="text-sm text-gray-700 whitespace-pre-wrap">{p.summary}</p>}
 
               <div className="flex flex-wrap gap-2 text-xs text-gray-500">
                 {p.target?.routeKey && <span>route: <code>{p.target.routeKey}</code></span>}
                 {p.target?.agencyId && <span>operator: <code>{p.target.agencyId}</code></span>}
                 {p.target?.stationName && <span>station: <code>{p.target.stationName}</code></span>}
+                {p.target?.duplicateOf && <span>duplicate of: <code>{p.target.duplicateOf}</code></span>}
                 {p.submitter?.email && <span>contact: {p.submitter.email}</span>}
                 {p.submitter?.ipHash && <span>ip#{p.submitter.ipHash}</span>}
               </div>

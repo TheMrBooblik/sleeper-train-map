@@ -40,11 +40,13 @@ function parseCDTrainHTML(html, trainNumber, trainType) {
     try {
       const route = strategy();
       if (Array.isArray(route) && route.length > 0) {
-        const stops = route
+        // `stations` (not `stops`) so the registry's trainsByNumber enrichment
+        // reads the official stop list straight off this train (updateVia).
+        const stations = route
           .map((s) => ({ name: s.name || s.stationName || null, arrival: s.timeArr || null, departure: s.timeDep || null }))
           .filter((s) => s.name);
-        if (stops.length > 0) {
-          return { trainNumber: String(trainNumber), trainLabel: `${trainType} ${trainNumber}`, fetchedAt: new Date().toISOString(), stops };
+        if (stations.length > 0) {
+          return { trainNumber: String(trainNumber), trainLabel: `${trainType} ${trainNumber}`, fetchedAt: new Date().toISOString(), stations };
         }
       }
     } catch {
@@ -84,7 +86,9 @@ export async function run(entry, ctx) {
     for (let i = 0; i < numbers.length; i += concurrency) {
       const batch = numbers.slice(i, i + concurrency);
       const fetched = await Promise.all(batch.map((n) => fetchCDTrain(n, prefix)));
-      fetched.forEach((train) => { if (train) cdResults[train.trainNumber] = train; });
+      // Keyed by label ("EC 345" / "EN 442") so it matches BoT trip_short_name
+      // directly in the enrichment post-step.
+      fetched.forEach((train) => { if (train) cdResults[train.trainLabel] = train; });
     }
   }
 

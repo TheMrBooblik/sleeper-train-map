@@ -16,6 +16,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildInitialData } from "../src/pages/api/lib/build-initial-data.mjs";
+import { resolveCanonicalStationName } from "../src/pages/api/lib/primitives.mjs";
+import { buildCoordsLookup } from "./lib/duplicate-detect.mjs";
 import {
   PENDING_DIR,
   RESOLVED_DIR,
@@ -81,7 +83,31 @@ function buildCandidate(registry) {
     registry,
     stats,
   });
-  return { payload, stats };
+  return { payload, stats, stops: stopsEnv.data };
+}
+
+// Duplicate-detector lookups: alias resolver + BoT/override coordinate index
+// (route endpoints are BoT names, so BoT stops come first).
+function buildDuplicateHelpers(botStops) {
+  let overrides = {};
+  try {
+    overrides = JSON.parse(
+      fs.readFileSync(
+        path.join(ROOT, "data", "overrides", "station-coordinates.json"),
+        "utf8",
+      ),
+    );
+  } catch {
+    /* overrides optional */
+  }
+  return {
+    resolveName: resolveCanonicalStationName,
+    coordsOf: buildCoordsLookup({
+      botStops,
+      overrides,
+      resolveName: resolveCanonicalStationName,
+    }),
+  };
 }
 
 async function main() {
@@ -94,7 +120,7 @@ async function main() {
     process.exit(1);
   }
 
-  const { payload, stats } = buildCandidate(registry);
+  const { payload, stats, stops } = buildCandidate(registry);
 
   const githubReady = isGithubWriteConfigured();
   const slug = repoSlug();
@@ -124,6 +150,7 @@ async function main() {
     injectedStations: stats.injectedStations ?? [],
     stationSources: stats.stationSources ?? {},
     trust: trustConfig(registry),
+    helpers: buildDuplicateHelpers(stops),
     // Dedup happens below on stable target-derived ids, not inside classify.
     openProposalKeys: new Set(),
   });

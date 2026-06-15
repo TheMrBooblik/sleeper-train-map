@@ -93,6 +93,9 @@ export function validateRegistryEntry(entry) {
     if (enrich.agencyIds != null && !(Array.isArray(enrich.agencyIds) && enrich.agencyIds.every((a) => typeof a === "string" && a))) {
       errors.push(`${tag} enrich.agencyIds must be an array of non-empty strings`);
     }
+    if (enrich.deferToSources != null && !(Array.isArray(enrich.deferToSources) && enrich.deferToSources.every((a) => typeof a === "string" && a))) {
+      errors.push(`${tag} enrich.deferToSources must be an array of source ids`);
+    }
   }
 
   const synthetic = entry?.synthetic;
@@ -133,6 +136,15 @@ export function validateRegistry(registry) {
 
   const outputs = registry.map((e) => e?.output).filter(Boolean);
   if (new Set(outputs).size !== outputs.length) errors.push("duplicate output filenames");
+
+  const idSet = new Set(ids);
+  registry.forEach((entry) => {
+    for (const dep of entry?.enrich?.deferToSources ?? []) {
+      if (!idSet.has(dep)) {
+        errors.push(`[${entry?.id}] enrich.deferToSources references unknown source "${dep}"`);
+      }
+    }
+  });
 
   // The runner executes entries in array order. Back-on-Track must come first:
   // the cd adapter reads its trips, and the post-step merges into its view map.

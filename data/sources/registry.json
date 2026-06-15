@@ -122,11 +122,12 @@
     "v": 1,
     "id": "cd",
     "label": "Czech Railways (ČD)",
-    "description": "Official cd.cz EC train timetables",
+    "description": "Official cd.cz EC/EN train timetables. Enrich-only (no polylines/coords to build synthetic geometry, like PKP): matched Back-on-Track ČD rows get the official stop list and an official_sources stamp so the classifier auto-approves them. Defers to NightJet — ČD only corroborates routes NightJet doesn't already cover.",
     "kind": "html",
     "adapter": "cd",
     "enabled": true,
     "official": true,
+    "trusted": true,
     "critical": false,
     "schedule": "daily",
     "homepage": "https://www.cd.cz",
@@ -134,6 +135,13 @@
     "missingResponse": "404",
     "agencyDefaults": { "agencyId": "ČD", "operatorName": "Czech Railways" },
     "synthetic": null,
+    "enrich": {
+      "strategy": "trainsByNumber",
+      "agencyIds": ["ČD", "PKP/ČD"],
+      "updateVia": true,
+      "stamp": true,
+      "deferToSources": ["nightjet"]
+    },
     "params": {
       "trainNumberPrefixes": ["EC", "EN"],
       "concurrency": 6
