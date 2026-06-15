@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added (5 routes, 0 stations)",
-  "summary": "Auto-added tonight (already live — FYI): trusted official sources plus new Back-on-Track routes with no duplicate already on the map.\nroute nj_standalone_NJ_403: NJ 403 (Amsterdam Centraal – Zürich HB)\nroute nj_standalone_NJ_471: NJ 471 (Hamburg Altona – Zürich HB)\nroute nj_standalone_NJ_465: NJ 465 (Zürich HB – Graz Hbf)\nroute nj_standalone_NJ_13485: NJ 13485 (Zürich HB – Graz Hbf)\nroute icn_ICN_1956: ICN 1956 (Messina Centrale – Roma Termini)",
+  "title": "New Routes Added to Night-Train Map",
+  "summary": "Five new routes have been added to the night-train map from trusted sources. The routes include: NJ 403 (Amsterdam Centraal – Zürich HB), NJ 471 (Hamburg Altona – Zürich HB), NJ 465 (Zürich HB – Graz Hbf), NJ 13485 (Zürich HB – Graz Hbf), and ICN 1956 (Messina Centrale – Roma Termini).",
   "target": {
     "routeKey": "auto-added-2026-06-15",
     "agencyId": null,
@@ -20,5 +20,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
