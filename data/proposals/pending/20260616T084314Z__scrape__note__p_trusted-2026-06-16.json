@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-06-16",
+  "createdAt": "2026-06-16T08:43:14.833Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (3 routes, 0 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_403: NJ 403 (Amsterdam Centraal – Zürich HB)\nroute nj_standalone_NJ_471: NJ 471 (Hamburg Altona – Zürich HB)\nroute nj_standalone_EN_40476: EN 40476 (Budapest-Nyugati – Berlin Hbf (tief))",
+  "target": {
+    "routeKey": "trusted-2026-06-16",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
