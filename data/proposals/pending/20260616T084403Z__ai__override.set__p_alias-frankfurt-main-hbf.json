@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-frankfurt-main-hbf",
+  "createdAt": "2026-06-16T08:44:03.961Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Frankfurt(Main)Hbf\" → \"Frankfurt (Main) Hbf\"",
+  "summary": "The operator-injected station \"Frankfurt(Main)Hbf\" appears to be the same as Back-on-Track's \"Frankfurt (Main) Hbf\" (AI confidence 1). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Frankfurt(Main)Hbf"
+  },
+  "before": null,
+  "after": {
+    "alias": "frankfurt(main)hbf",
+    "canonical": "Frankfurt (Main) Hbf"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Frankfurt(Main)Hbf",
+        "canonical": "Frankfurt (Main) Hbf"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
