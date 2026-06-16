@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_general",
+  "createdAt": "2026-06-16T08:43:14.833Z",
+  "source": "scrape",
+  "sourceDetail": "backontrack",
+  "kind": "route.add",
+  "title": "New train:  (? – ?)",
+  "summary": "Route \"\" appeared in tonight's scrape and is withheld from the map until approved. Via: ",
+  "target": {
+    "routeKey": "",
+    "agencyId": "",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "",
+    "returnTrain": "",
+    "origin": "",
+    "destination": "",
+    "operator": "",
+    "operatingDays": ""
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": ""
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
