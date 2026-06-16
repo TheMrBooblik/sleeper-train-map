@@ -6,7 +6,7 @@
   "sourceDetail": "backontrack",
   "kind": "route.add",
   "title": "New train: EN 1276 (Rijeka – Warszawa Wschodnia)",
-  "summary": "Route \"113\" appeared in tonight's scrape and is withheld from the map until approved. Via: Břeclav - Staré Město u Uherského Hradiště - Přerov - Hranice na Moravě - Ostrava hl.n. - Bohumín - Tychy - Katowice - Zawiercie - Opoczno Południe - Warszawa Zachodnia - Warszawa Centralna",
+  "summary": "A new route (113) has been added for train EN 1276, operating from Rijeka to Warszawa Wschodnia. The train runs daily from June 26, 2026, to August 28, 2026, except Sundays. It stops at Břeclav, Staré Město u Uherského Hradiště, Přerov, Hranice na Moravě, Ostrava hl.n., Bohumín, Tychy, Katowice, Zawiercie, Opoczno Południe, Warszawa Zachodnia, and Warszawa Centralna.",
   "target": {
     "routeKey": "113",
     "agencyId": "PKP",
@@ -31,5 +31,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
