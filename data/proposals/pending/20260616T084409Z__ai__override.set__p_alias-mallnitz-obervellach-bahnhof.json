@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-mallnitz-obervellach-bahnhof",
+  "createdAt": "2026-06-16T08:44:09.581Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Mallnitz-Obervellach Bahnhof\" → \"Mallnitz-Obervellach\"",
+  "summary": "The operator-injected station \"Mallnitz-Obervellach Bahnhof\" appears to be the same as Back-on-Track's \"Mallnitz-Obervellach\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Mallnitz-Obervellach Bahnhof"
+  },
+  "before": null,
+  "after": {
+    "alias": "mallnitz-obervellach bahnhof",
+    "canonical": "Mallnitz-Obervellach"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Mallnitz-Obervellach Bahnhof",
+        "canonical": "Mallnitz-Obervellach"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
