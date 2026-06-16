@@ -319,10 +319,6 @@ export default function DataPage() {
     <div className={`h-screen flex flex-col overflow-hidden bg-gray-50 ${ADMIN_INTERACTIVE}`}>
       <Head>
         <title>Admin – Pingwi</title>
-        <link
-          rel="icon"
-          href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚂</text></svg>"
-        />
       </Head>
       <AdminHeader onLogout={handleLogout} />
 

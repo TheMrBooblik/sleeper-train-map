@@ -39,11 +39,6 @@ export default function Home() {
         <meta name="twitter:title" content="Pingwi Sleeper Train Map" />
         <meta name="twitter:description" content="Interactive map of all European sleeper train routes. Discover overnight connections across 24+ countries." />
         
-        <link
-          rel="icon"
-          href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚂</text></svg>"
-        />
-        
         {/* JSON-LD Structured Data */}
         <script
           type="application/ld+json"

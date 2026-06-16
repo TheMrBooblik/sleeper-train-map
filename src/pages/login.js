@@ -32,10 +32,6 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 [&_button:not(:disabled)]:cursor-pointer">
       <Head>
         <title>Login – Pingwi</title>
-        <link
-          rel="icon"
-          href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚂</text></svg>"
-        />
       </Head>
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
