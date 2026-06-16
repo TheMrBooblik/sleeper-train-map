@@ -497,7 +497,7 @@ function findTrainDataForKey(
 
   // A reused train number can be several distinct trains (e.g. "406" is both
   // the München→Warszawa sleeper and the Bohumín→Warszawa portion of the
-  // Chopin). Keep ONE entry per distinct corridor (endpoint signature):
+  // §). Keep ONE entry per distinct corridor (endpoint signature):
   // longest = the main entry (back-compat), the rest ride along as `variants`
   // so pkpEntryForRoute can pick by endpoint validation instead of losing them.
   groupResults.sort((a, b) => b.positions.length - a.positions.length);
