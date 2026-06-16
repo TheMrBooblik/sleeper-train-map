@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": "backontrack",
   "kind": "route.add",
-  "title": "New train:  (? – ?)",
-  "summary": "Route \"\" appeared in tonight's scrape and is withheld from the map until approved. Via: ",
+  "title": "New train route pending approval",
+  "summary": "A new train route has been identified but is currently withheld from the map until it receives approval. Details about the train number, origin, destination, and operating days are not yet available.",
   "target": {
     "routeKey": "",
     "agencyId": "",
@@ -31,5 +31,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
