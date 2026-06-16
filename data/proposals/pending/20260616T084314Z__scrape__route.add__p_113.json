@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_113",
+  "createdAt": "2026-06-16T08:43:14.831Z",
+  "source": "scrape",
+  "sourceDetail": "backontrack",
+  "kind": "route.add",
+  "title": "New train: EN 1276 (Rijeka – Warszawa Wschodnia)",
+  "summary": "Route \"113\" appeared in tonight's scrape and is withheld from the map until approved. Via: Břeclav - Staré Město u Uherského Hradiště - Přerov - Hranice na Moravě - Ostrava hl.n. - Bohumín - Tychy - Katowice - Zawiercie - Opoczno Południe - Warszawa Zachodnia - Warszawa Centralna",
+  "target": {
+    "routeKey": "113",
+    "agencyId": "PKP",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "EN 1276",
+    "returnTrain": "EN 1277",
+    "origin": "Rijeka",
+    "destination": "Warszawa Wschodnia",
+    "operator": "PKP",
+    "operatingDays": "2026/06/26-08/28: Daily, except Sunday"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "113"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
