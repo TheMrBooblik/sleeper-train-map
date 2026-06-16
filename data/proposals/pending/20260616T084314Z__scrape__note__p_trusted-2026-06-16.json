@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (3 routes, 0 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_403: NJ 403 (Amsterdam Centraal – Zürich HB)\nroute nj_standalone_NJ_471: NJ 471 (Hamburg Altona – Zürich HB)\nroute nj_standalone_EN_40476: EN 40476 (Budapest-Nyugati – Berlin Hbf (tief))",
+  "title": "New Routes Added from Trusted Sources",
+  "summary": "Three new train routes have been auto-approved from trusted sources:\n- NJ 403: Amsterdam Centraal to Zürich HB\n- NJ 471: Hamburg Altona to Zürich HB\n- EN 40476: Budapest-Nyugati to Berlin Hbf (tief)",
   "target": {
     "routeKey": "trusted-2026-06-16",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
