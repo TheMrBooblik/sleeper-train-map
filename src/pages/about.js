@@ -2,6 +2,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { FaTrain, FaMapMarkerAlt, FaMoon, FaArrowRight } from "react-icons/fa";
 import { COUNTRIES, getFlagEmoji } from "../lib/countries";
+import { slugify } from "../lib/seo/slugify";
 
 const FeatureCard = ({ icon: Icon, title, description }) => (
   <div className="flex flex-col items-start gap-4 p-6 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
@@ -15,9 +16,13 @@ const FeatureCard = ({ icon: Icon, title, description }) => (
   </div>
 );
 
-const CountryCard = ({ code, name }) => (
+const CountryCard = ({ code, name, hubCountryCodes = [] }) => (
   <Link
-    href={`/?country=${code}`}
+    href={
+      hubCountryCodes.includes(code)
+        ? `/night-trains/${slugify(name)}`
+        : `/?country=${code}`
+    }
     className="group flex items-center gap-3 p-4 rounded-lg border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-primary-green/50 transition-all"
   >
     <span className="text-2xl">{getFlagEmoji(code)}</span>
@@ -42,7 +47,7 @@ const StepCard = ({ number, title, description }) => (
   </div>
 );
 
-export default function AboutPage() {
+export default function AboutPage({ hubCountryCodes = [] }) {
   const europeCountries = COUNTRIES.filter(
     (country) => !ASIA_COUNTRY_CODES.has(country.code),
   );
@@ -224,7 +229,11 @@ export default function AboutPage() {
             <h3 className="text-lg font-semibold text-white mb-4">Europe</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {europeCountries.map((country) => (
-                <CountryCard key={country.code} {...country} />
+                <CountryCard
+                  key={country.code}
+                  {...country}
+                  hubCountryCodes={hubCountryCodes}
+                />
               ))}
             </div>
             {asiaCountries.length > 0 && (
@@ -234,7 +243,11 @@ export default function AboutPage() {
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {asiaCountries.map((country) => (
-                    <CountryCard key={country.code} {...country} />
+                    <CountryCard
+                      key={country.code}
+                      {...country}
+                      hubCountryCodes={hubCountryCodes}
+                    />
                   ))}
                 </div>
               </>
@@ -277,6 +290,12 @@ export default function AboutPage() {
                 Map
               </Link>
               <Link
+                href="/trains"
+                className="text-sm text-white/40 hover:text-white/70 transition-colors"
+              >
+                Night trains
+              </Link>
+              <Link
                 href="/about"
                 className="text-sm text-white/40 hover:text-white/70 transition-colors"
               >
@@ -315,4 +334,13 @@ export default function AboutPage() {
       />
     </>
   );
+}
+
+export async function getStaticProps() {
+  // Country tiles link to the night-trains hub when one exists (≥1 route),
+  // otherwise they keep linking to the map. Computed at build time; no visible
+  // content or meta on this page changes.
+  const { getAllCountryHubs } = await import("../lib/seo/aggregate");
+  const hubCountryCodes = getAllCountryHubs().map((h) => h.country.code);
+  return { props: { hubCountryCodes } };
 }
