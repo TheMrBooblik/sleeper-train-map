@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_106",
+  "createdAt": "2026-06-18T07:29:58.413Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Disappeared: IC Notte 763|IC Notte 764",
+  "summary": "Route \"106\" (Bolzano / Bozen – Roma Termini) has been missing from the sources for 7 days and is no longer shown. No action needed if the train was discontinued.",
+  "target": {
+    "routeKey": "106",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
