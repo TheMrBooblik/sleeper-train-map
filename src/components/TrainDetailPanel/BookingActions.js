@@ -60,7 +60,7 @@ export default function BookingActions({
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="group block w-full text-center bg-slate-100 text-slate-800 py-2.5 px-3 rounded-md border border-slate-200 hover:bg-slate-200 hover:border-slate-300 active:translate-y-px transition-all duration-150 text-sm font-semibold"
+          className="group block w-full cursor-pointer text-center bg-slate-100 text-slate-800 py-2.5 px-3 rounded-md border border-slate-200 hover:bg-slate-200 hover:border-slate-300 active:translate-y-px transition-all duration-150 text-sm font-semibold"
         >
           <span className="inline-flex items-center gap-1">
             Book / view details&nbsp;
@@ -86,7 +86,7 @@ export default function BookingActions({
           href={dealsLink.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="group block w-full text-center text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline py-1"
+          className="group block w-full cursor-pointer text-center text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline py-1"
         >
           <span className="inline-flex items-center gap-1">
             {dealsLink.label}&nbsp;
