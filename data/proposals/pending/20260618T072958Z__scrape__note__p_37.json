@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: 1003 (G) (London Euston – Glasgow Central)",
-  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026: Daily\" → \"2026: Daily, except Sat\"; operating days (return): \"2026: Daily\" → \"2026: Daily, except Sat\"",
+  "title": "Update: Train 1003 (London Euston – Glasgow Central)",
+  "summary": "The operating days for train 1003 in 2026 have changed. Outbound and return services will now run daily except on Saturdays.",
   "target": {
     "routeKey": "37",
     "agencyId": "CS",
@@ -25,5 +25,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
