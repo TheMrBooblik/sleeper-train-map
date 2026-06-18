@@ -73,8 +73,9 @@
     }
   },
   "ES": {
-    "urlTemplate": "https://booking.europeansleeper.eu/en?departureStation={origin}&arrivalStation={dest}",
-    "dealsUrl": "https://www.europeansleeper.eu/last-minutes-berlin-prague",
+    "urlTemplate": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=&u=https%3A%2F%2Fbooking.europeansleeper.eu%2Fen%3FdepartureStation%3D{origin}%26arrivalStation%3D{dest}",
+    "bookingPageUrl": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=view&u=",
+    "dealsUrl": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=deals&u=%2Flast-minutes-berlin-prague",
     "dealsLabel": "Last-minute deals",
     "requireStationMapping": true,
     "stationNames": {
