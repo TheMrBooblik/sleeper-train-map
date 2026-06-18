@@ -59,6 +59,7 @@ export default function TrainPage({ detail, related, cityPair }) {
   } — Times & Stops | Pingwi`;
   const description = buildDescription(detail);
   const primary = detail.directions[0];
+  const trainNumbers = detail.directions.map((d) => d.trainNumber).filter(Boolean);
 
   const trainTripLd = {
     "@context": "https://schema.org",
@@ -109,6 +110,12 @@ export default function TrainPage({ detail, related, cityPair }) {
             </p>
             <h1 className="mt-2 text-3xl sm:text-4xl font-bold text-white tracking-tight text-balance">
               {detail.origin} <span className="text-white/40">→</span> {detail.destination}
+              {trainNumbers.length > 0 && (
+                <span className="font-semibold text-white/50">
+                  {" "}
+                  ({trainNumbers.join(" / ")})
+                </span>
+              )}
             </h1>
             <p className="mt-4 text-white/70 leading-relaxed text-pretty">
               {buildIntro(detail)}

@@ -1,7 +1,23 @@
 /**
+ * Resolve the clock time to show against a stop. Stops are { name, arrival,
+ * departure } objects (legacy string stops are tolerated). The first stop shows
+ * its departure, the last its arrival, intermediate stops whichever is known.
+ */
+function stopTime(stop, isFirst, isLast) {
+  if (typeof stop === "string") return "";
+  const dep = stop.departure || "";
+  const arr = stop.arrival || "";
+  if (isFirst) return dep || arr;
+  if (isLast) return arr || dep;
+  return arr || dep;
+}
+
+const stopName = (stop) => (typeof stop === "string" ? stop : stop.name);
+
+/**
  * Static timetable for one direction of a route: header (train number, endpoints,
- * times, days) + the ordered stop list. Intermediate (via) stops have no per-stop
- * times in the source data, so only origin departure / destination arrival show.
+ * times, days) + the ordered stop list with per-stop times where the operator feed
+ * provides them (otherwise just origin departure / destination arrival).
  */
 export default function RouteTimetable({ direction }) {
   if (!direction) return null;
@@ -26,10 +42,11 @@ export default function RouteTimetable({ direction }) {
       </div>
 
       <ol className="mt-5 space-y-0">
-        {stops.map((name, i) => {
+        {stops.map((stop, i) => {
           const isFirst = i === 0;
           const isLast = i === lastIdx;
-          const time = isFirst ? departureTime : isLast ? arrivalTime : "";
+          const name = stopName(stop);
+          const time = stopTime(stop, isFirst, isLast);
           return (
             <li key={`${name}-${i}`} className="flex items-stretch gap-3">
               {/* rail */}

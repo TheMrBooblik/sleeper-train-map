@@ -18,6 +18,7 @@ import { parseBotServiceString, renderCalendar } from "../../pages/api/lib/calen
 import { normalizeStationNameForDisplay } from "../../components/Map/utils/stationNameUtils";
 import { getRouteFrequencyOverride } from "../routeFrequencyOverrides";
 import { slugify, buildTrainSlug } from "./slugify";
+import { getStationTimesForTrain } from "./stationTimes";
 import {
   deriveTitle,
   formatAnyTime,
@@ -278,14 +279,46 @@ export function getRouteDetail(routeId) {
     const origin = route[`origin_trip_${dir}`] || "";
     const destination = route[`destination_trip_${dir}`] || "";
     const via = parseViaList(route[`via_${dir}`]);
-    const stops = [origin, ...via, destination].filter(Boolean);
     const trip = trips.find((t) => Number(t.direction_id) === dir) || trips[dir] || null;
+
+    const vmDeparture = formatAnyTime(route[`origin_departure_time_${dir}`]);
+    const vmArrival = formatAnyTime(route[`destination_arrival_time_${dir}`]);
+
+    // Prefer the operator's own station sequence (full stop list + per-stop times +
+    // coordinates); fall back to the published "via" names with endpoint times only.
+    const raw = getStationTimesForTrain(trainNumber, { origin, destination });
+    let stops;
+    if (raw) {
+      stops = raw.map((s) => ({
+        name: s.name,
+        lat: Number.isFinite(s.lat) ? s.lat : null,
+        lon: Number.isFinite(s.lon) ? s.lon : null,
+        departure: formatAnyTime(s.departure),
+        arrival: formatAnyTime(s.arrival),
+      }));
+      // Endpoint times prefer the gated viewMap value over the live feed.
+      if (vmDeparture) stops[0].departure = vmDeparture;
+      if (vmArrival) stops[stops.length - 1].arrival = vmArrival;
+    } else {
+      const names = [origin, ...via, destination].filter(Boolean);
+      stops = names.map((name, i) => {
+        const c = coords.get(name);
+        return {
+          name,
+          lat: c ? c[0] : null,
+          lon: c ? c[1] : null,
+          departure: i === 0 ? vmDeparture : "",
+          arrival: i === names.length - 1 ? vmArrival : "",
+        };
+      });
+    }
+
     directions.push({
       trainNumber,
       origin,
       destination,
-      departureTime: formatAnyTime(route[`origin_departure_time_${dir}`]),
-      arrivalTime: formatAnyTime(route[`destination_arrival_time_${dir}`]),
+      departureTime: vmDeparture || stops[0]?.departure || "",
+      arrivalTime: vmArrival || stops[stops.length - 1]?.arrival || "",
       via,
       stops,
       serviceDays: serviceDaysFor(route, dir, trip),
@@ -303,14 +336,12 @@ export function getRouteDetail(routeId) {
     classes: (factTrip && factTrip.classes ? String(factTrip.classes) : "").trim(),
   };
 
-  // Map geometry: encoded polylines (preferred) + straight-line fallback coords.
+  // Map geometry: encoded polylines (preferred) + station markers from the
+  // primary direction's resolved stops (operator coords, else name lookup).
   const primary = directions[0] || {};
   const mapStops = (primary.stops || [])
-    .map((name) => {
-      const c = coords.get(name);
-      return c ? { name, lat: c[0], lon: c[1] } : null;
-    })
-    .filter(Boolean);
+    .filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon))
+    .map((s) => ({ name: s.name, lat: s.lat, lon: s.lon }));
 
   return {
     routeId: String(routeId),
