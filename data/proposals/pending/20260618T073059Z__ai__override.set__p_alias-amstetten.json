@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-amstetten",
+  "createdAt": "2026-06-18T07:30:59.829Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Amstetten\" → \"Amstetten (NÖ)\"",
+  "summary": "The operator-injected station \"Amstetten\" appears to be the same as Back-on-Track's \"Amstetten (NÖ)\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Amstetten"
+  },
+  "before": null,
+  "after": {
+    "alias": "amstetten",
+    "canonical": "Amstetten (NÖ)"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Amstetten",
+        "canonical": "Amstetten (NÖ)"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
