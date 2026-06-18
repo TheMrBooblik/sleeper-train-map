@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_40",
+  "createdAt": "2026-06-18T07:29:58.409Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: 1001 (FW) (London Euston – Fort William / An Gearasdan)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026: Daily\" → \"2026: Daily, except Sat\"; operating days (return): \"2026: Daily\" → \"2026: Daily, except Sat\"",
+  "target": {
+    "routeKey": "40",
+    "agencyId": "CS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2026: Daily",
+    "operating days (return)": "2026: Daily"
+  },
+  "after": {
+    "operating days (outbound)": "2026: Daily, except Sat",
+    "operating days (return)": "2026: Daily, except Sat"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
