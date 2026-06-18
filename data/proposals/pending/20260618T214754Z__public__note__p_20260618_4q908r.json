@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_20260618_4q908r",
+  "createdAt": "2026-06-18T21:47:54.133Z",
+  "source": "public",
+  "sourceDetail": "correction",
+  "kind": "note",
+  "title": "[correction] ICN 770",
+  "summary": "Some of the green dots (eg Sacile & Trento) are in the wrong place. The lines are correct but the dots are not on them.",
+  "target": {
+    "routeKey": "icn_ICN_770",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": {
+    "ipHash": "31ca03787cae03cc",
+    "email": null,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+  },
+  "status": "pending",
+  "resolution": null
+}
