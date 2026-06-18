@@ -178,7 +178,14 @@ const Header = ({
                     );
                   })}
                 </div>
-                <div className="mt-3 border-t border-white/15 pt-3">
+                <div className="mt-3 flex flex-col gap-2 border-t border-white/15 pt-3">
+                  <Link
+                    href="/trains"
+                    className="inline-flex items-center gap-1.5 rounded-sm text-xs font-medium text-sky-400 underline decoration-sky-400 underline-offset-2 hover:text-sky-300"
+                  >
+                    <FaRoute size={10} />
+                    Browse all night train routes
+                  </Link>
                   <Link
                     href="/about"
                     className="inline-flex items-center gap-1.5 rounded-sm text-xs font-medium text-sky-400 underline decoration-sky-400 underline-offset-2 hover:text-sky-300"
@@ -249,8 +256,16 @@ const Header = ({
             ) : null}
           </div>
 
-          {/* About link — hidden on mobile (surfaced in mobile controls menu instead) */}
-          <div className="hidden min-[640px]:flex shrink-0">
+          {/* Browse routes + About — hidden on mobile (surfaced in mobile controls menu instead) */}
+          <div className="hidden min-[640px]:flex shrink-0 items-center gap-1.5 min-[640px]:gap-2">
+            <Link
+              href="/trains"
+              className="icon-toggle-button"
+              aria-label="Browse all night train routes"
+              data-tooltip="All night train routes"
+            >
+              <FaRoute size={14} />
+            </Link>
             <Link
               href="/about"
               className="icon-toggle-button"
