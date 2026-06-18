@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useMemo, useEffect, useState } from "react";
+import Link from "next/link";
 import { FiChevronDown } from "react-icons/fi";
 import { useAgencies } from "../../hooks/requests/useAgencies";
 import { useRoutes } from "../../hooks/requests/useRoutes";
 import { useTrips } from "../../hooks/requests/useTrips";
 import { getRouteFrequencyOverride } from "../../lib/routeFrequencyOverrides";
+import { buildTrainSlug } from "../../lib/seo/slugify";
 import {
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
@@ -832,6 +834,26 @@ const TrainDetailPanel = ({
                 // were merged onto the route in pkpGtfsMerge. Pick the direction
                 // whose origin matches this trip's origin.
                 const tripRoute = routes?.[trip.route_id?.toString()];
+
+                // SEO per-train page slug. Built strictly from the route row's
+                // endpoints (mirroring routeEndpoints() in src/lib/seo/data.js) so
+                // it matches the statically generated /trains/[slug] page exactly.
+                // Only routes present in the viewMap have a page, so we link only
+                // when a route row exists (no link for orphan/legacy trip rows).
+                const trainPageSlug = tripRoute
+                  ? buildTrainSlug({
+                      origin:
+                        tripRoute.origin_trip_0 || tripRoute.origin_trip_1 || "",
+                      destination:
+                        tripRoute.destination_trip_0 ||
+                        tripRoute.destination_trip_1 ||
+                        "",
+                      trainNumber:
+                        tripRoute.trip_short_name_0 ||
+                        tripRoute.trip_short_name_1 ||
+                        "",
+                    })
+                  : "";
                 const isDir1 =
                   tripRoute &&
                   trip.trip_origin &&
@@ -1017,17 +1039,30 @@ const TrainDetailPanel = ({
                           {operatorName}
                         </div>
                       </div>
-                      {trip.trip_short_name && (
-                        <div
-                          className="shrink-0 rounded-md px-2 py-1 text-sm font-semibold"
-                          style={{
-                            backgroundColor: hexWithAlpha(operatorColor, 0.12),
-                            color: operatorColor,
-                          }}
-                        >
-                          {trip.trip_short_name}
-                        </div>
-                      )}
+                      {trip.trip_short_name &&
+                        (trainPageSlug ? (
+                          <Link
+                            href={`/trains/${trainPageSlug}`}
+                            className="shrink-0 rounded-md px-2 py-1 text-sm font-semibold underline decoration-transparent underline-offset-2 transition hover:decoration-current hover:opacity-90"
+                            style={{
+                              backgroundColor: hexWithAlpha(operatorColor, 0.12),
+                              color: operatorColor,
+                            }}
+                            title={`View ${trip.trip_short_name} timetable & route`}
+                          >
+                            {trip.trip_short_name}
+                          </Link>
+                        ) : (
+                          <div
+                            className="shrink-0 rounded-md px-2 py-1 text-sm font-semibold"
+                            style={{
+                              backgroundColor: hexWithAlpha(operatorColor, 0.12),
+                              color: operatorColor,
+                            }}
+                          >
+                            {trip.trip_short_name}
+                          </div>
+                        ))}
                     </div>
 
                     {/* Pricing */}

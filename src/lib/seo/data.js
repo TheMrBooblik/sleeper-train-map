@@ -323,7 +323,6 @@ export function getRouteDetail(routeId) {
       stops,
       serviceDays: serviceDaysFor(route, dir, trip),
       irregularities: (route[`irregularities_${dir}`] || "").trim(),
-      polyline: route[`nj_polyline_${dir}`] || null,
     });
   }
 
