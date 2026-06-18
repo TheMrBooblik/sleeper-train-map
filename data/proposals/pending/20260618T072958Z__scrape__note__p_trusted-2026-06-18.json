@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-06-18",
+  "createdAt": "2026-06-18T07:29:58.414Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (2 routes, 0 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_40466: NJ 40466 (Wien Hbf – Venezia Santa Lucia)\nroute nj_standalone_NJ_465: NJ 465 (Zürich HB – Graz Hbf)",
+  "target": {
+    "routeKey": "trusted-2026-06-18",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
