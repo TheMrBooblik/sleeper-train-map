@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: 1001 (A) (London Euston – Aberdeen)",
-  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026: Daily\" → \"2026: Daily, except Sat\"; operating days (return): \"2026: Daily\" → \"2026: Daily, except Sat\"",
+  "title": "Update: Train 1001 (London Euston – Aberdeen) Schedule",
+  "summary": "The schedule for train 1001 has been updated. In 2026, it will operate daily except on Saturdays for both outbound and return journeys.",
   "target": {
     "routeKey": "39",
     "agencyId": "CS",
@@ -25,5 +25,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
