@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_20260618_achqdh",
+  "createdAt": "2026-06-18T21:48:50.061Z",
+  "source": "public",
+  "sourceDetail": "correction",
+  "kind": "note",
+  "title": "[correction] 454",
+  "summary": "European Sleeper will not be running this. Instead the Brussels route will be diverted with some stops added in Southern Netherlands.",
+  "target": {
+    "routeKey": "239",
+    "agencyId": "ES",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": {
+    "ipHash": "31ca03787cae03cc",
+    "email": null,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+  },
+  "status": "pending",
+  "resolution": null
+}
