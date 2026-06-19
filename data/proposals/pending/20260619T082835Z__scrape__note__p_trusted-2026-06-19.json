@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-06-19",
+  "createdAt": "2026-06-19T08:28:35.147Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (4 routes, 0 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_448: NJ 448 (Wien Hbf – Bruxelles Midi)\nroute nj_standalone_NJ_40490: NJ 40490 (Wien Hbf – Amsterdam Centraal)\nroute nj_standalone_NJ_420: NJ 420 (Innsbruck Hbf – Amsterdam Centraal)\nroute nj_standalone_NJ_456: NJ 456 (Graz Hbf – Berlin Hbf (tief))",
+  "target": {
+    "routeKey": "trusted-2026-06-19",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
