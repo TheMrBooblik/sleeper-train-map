@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-498",
+  "createdAt": "2026-06-19T08:28:35.146Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 498 (Wien Hbf – Hamburg Altona)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 498|NJ 499\" → \"NJ 498\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_498",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "NJ 498|NJ 499"
+  },
+  "after": {
+    "train numbers": "NJ 498"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
