@@ -66,6 +66,35 @@ export function getDataGeneratedAt() {
   return j.generatedAt || j.uploadedAt || new Date().toISOString();
 }
 
+/**
+ * Serverless escape hatch. On Vercel the `public/` files are NOT on the lambda
+ * filesystem, so the only runtime consumer (the sitemap, via getServerSideProps)
+ * cannot fs-read the published payload. It instead loads the payload through a
+ * runtime-safe path (the initial-data API / GitHub) and injects it here.
+ *
+ * SSG/build (getStaticProps) never calls this — it reads from disk. Resets all
+ * derived memos so they rebuild from the injected payload.
+ *
+ * @param {{ stops?: any[], viewMap: object, trips?: object, generatedAt?: string }} payload
+ */
+export function setPublishedPayload(payload) {
+  if (!payload || !payload.viewMap) return false;
+  _publishedFull = {
+    data: {
+      stops: payload.stops || [],
+      viewMap: payload.viewMap,
+      trips: payload.trips || {},
+    },
+    generatedAt: payload.generatedAt,
+  };
+  _stopCoords = undefined;
+  _stopCountry = undefined;
+  _tripsByRoute = undefined;
+  _slugMaps = undefined;
+  _summaries = undefined;
+  return true;
+}
+
 /** name → [lat, lon] from the published stops (for map fallback geometry). */
 function getStopCoords() {
   if (!_stopCoords) {
