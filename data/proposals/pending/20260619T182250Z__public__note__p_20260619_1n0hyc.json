@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_20260619_1n0hyc",
+  "createdAt": "2026-06-19T18:22:50.266Z",
+  "source": "public",
+  "sourceDetail": "correction",
+  "kind": "note",
+  "title": "[correction] 605",
+  "summary": "This train is missing a lot of intermediate stations. Particalry Voss is a very popular option for tourists.",
+  "target": {
+    "routeKey": "69",
+    "agencyId": "VY",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": {
+    "ipHash": "31ca03787cae03cc",
+    "email": null,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+  },
+  "status": "pending",
+  "resolution": null
+}
