@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 447 (Bregenz Bahnhof – Wien Hbf (Autoreisezuganlage))",
-  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 447|NJ 446\" → \"NJ 447\"",
+  "title": "Update: NJ 447 Route Change",
+  "summary": "The train numbers for the route from Bregenz Bahnhof to Wien Hbf (Autoreisezuganlage) have been updated. The previous train numbers were NJ 447 and NJ 446, and now it is only NJ 447. This change is already live.",
   "target": {
     "routeKey": "nj_standalone_NJ_447",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
