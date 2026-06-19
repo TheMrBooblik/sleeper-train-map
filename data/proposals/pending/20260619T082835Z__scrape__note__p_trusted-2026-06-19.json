@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (4 routes, 0 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_448: NJ 448 (Wien Hbf – Bruxelles Midi)\nroute nj_standalone_NJ_40490: NJ 40490 (Wien Hbf – Amsterdam Centraal)\nroute nj_standalone_NJ_420: NJ 420 (Innsbruck Hbf – Amsterdam Centraal)\nroute nj_standalone_NJ_456: NJ 456 (Graz Hbf – Berlin Hbf (tief))",
+  "title": "New Routes Added from Trusted Sources",
+  "summary": "Four new train routes have been auto-approved from trusted sources:\n- NJ 448: Wien Hbf to Bruxelles Midi\n- NJ 40490: Wien Hbf to Amsterdam Centraal\n- NJ 420: Innsbruck Hbf to Amsterdam Centraal\n- NJ 456: Graz Hbf to Berlin Hbf (tief)",
   "target": {
     "routeKey": "trusted-2026-06-19",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
