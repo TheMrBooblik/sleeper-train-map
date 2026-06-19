@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: ICN 764 (Roma Termini – Bolzano)",
-  "summary": "Material change on an approved route (already live — FYI): train numbers: \"ICN 764\" → \"ICN 764|ICN 763\"",
+  "title": "Update: ICN 764 (Roma Termini – Bolzano)",
+  "summary": "The train number for the route ICN 764 has been updated to include ICN 763. This change is already live and is for your information.",
   "target": {
     "routeKey": "icn_ICN_764",
     "agencyId": "FS",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
