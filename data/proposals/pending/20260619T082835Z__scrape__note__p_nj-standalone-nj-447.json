@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-447",
+  "createdAt": "2026-06-19T08:28:35.146Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 447 (Bregenz Bahnhof – Wien Hbf (Autoreisezuganlage))",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 447|NJ 446\" → \"NJ 447\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_447",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "NJ 447|NJ 446"
+  },
+  "after": {
+    "train numbers": "NJ 447"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
