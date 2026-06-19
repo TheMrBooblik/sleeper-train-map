@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 498 (Wien Hbf – Hamburg Altona)",
-  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 498|NJ 499\" → \"NJ 498\"",
+  "title": "Update: NJ 498 (Wien Hbf – Hamburg Altona)",
+  "summary": "The train numbers for the route NJ 498 (Wien Hbf – Hamburg Altona) have been updated. The previous train numbers were \"NJ 498|NJ 499\" and are now changed to \"NJ 498\". This change is already live.",
   "target": {
     "routeKey": "nj_standalone_NJ_498",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
