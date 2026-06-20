@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-06-20",
+  "createdAt": "2026-06-20T06:57:44.329Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (3 routes, 0 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_492: NJ 492 (Wien Hbf – Hamburg Altona)\nroute nj_standalone_NJ_236: NJ 236 (Venezia Santa Lucia – Stuttgart Hbf)\nroute nj_standalone_NJ_13485: NJ 13485 (Zürich HB – Graz Hbf)",
+  "target": {
+    "routeKey": "trusted-2026-06-20",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
