@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_229",
+  "createdAt": "2026-06-20T06:57:44.327Z",
+  "source": "scrape",
+  "sourceDetail": "backontrack",
+  "kind": "route.add",
+  "title": "New train: NJ 446 (Wien Hbf – Bregenz)",
+  "summary": "Route \"229\" appeared in tonight's scrape and is withheld from the map until approved. Via: Wien Meidling - St. Pölten Hbf - Amstetten (NÖ) - Linz Hbf - Wels Hbf - Attnang-Puchheim - Vöcklabruck - Salzburg Hbf - Innsbruck Hbf - Telfs-Pfaffenhofen - Ötztal - Imst-Pitztal - Landeck-Zams - St. Anton am Arlberg - Langen am Arlberg - Bludenz - Feldkirch - Rankweil - Götzis - Hohenems - Dornbirn",
+  "target": {
+    "routeKey": "229",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "NJ 446",
+    "returnTrain": "NJ 447",
+    "origin": "Wien Hbf",
+    "destination": "Bregenz",
+    "operator": "ÖBB",
+    "operatingDays": "2026: Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "229"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
