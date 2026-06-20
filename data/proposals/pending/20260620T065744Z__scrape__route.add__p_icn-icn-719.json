@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": "icn",
   "kind": "route.add",
-  "title": "New train: ICN 719 (Torino Porta Nuova – Reggio Di Calabria Centrale)",
-  "summary": "Route \"icn_ICN_719\" appeared in tonight's scrape and is withheld from the map until approved. Via: Torino Lingotto - Asti - Alessandria - Genova Piazza Principe - Genova Brignole - Rapallo - Chiavari - La Spezia Centrale - Viareggio - Pisa Centrale - Livorno Centrale - Grosseto - Civitavecchia - Roma Ostiense - Salerno - Sapri - Scalea S.domenica Talao - Paola - Amantea - Lamezia Terme Centrale -",
+  "title": "New train: ICN 719 from Torino to Reggio Di Calabria",
+  "summary": "A new train route, ICN 719, has been added. It travels from Torino Porta Nuova to Reggio Di Calabria Centrale, stopping at stations including Torino Lingotto, Asti, Alessandria, Genova, and more. The return train is ICN 794. This route is currently pending approval.",
   "target": {
     "routeKey": "icn_ICN_719",
     "agencyId": "FS",
@@ -31,5 +31,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
