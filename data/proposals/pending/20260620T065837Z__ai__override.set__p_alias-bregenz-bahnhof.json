@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-bregenz-bahnhof",
+  "createdAt": "2026-06-20T06:58:37.220Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Bregenz Bahnhof\" → \"Bregenz\"",
+  "summary": "The operator-injected station \"Bregenz Bahnhof\" appears to be the same as Back-on-Track's \"Bregenz\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Bregenz Bahnhof"
+  },
+  "before": null,
+  "after": {
+    "alias": "bregenz bahnhof",
+    "canonical": "Bregenz"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Bregenz Bahnhof",
+        "canonical": "Bregenz"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
