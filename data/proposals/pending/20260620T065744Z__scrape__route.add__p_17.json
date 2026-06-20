@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_17",
+  "createdAt": "2026-06-20T06:57:44.324Z",
+  "source": "scrape",
+  "sourceDetail": "backontrack",
+  "kind": "route.add",
+  "title": "New train: NJ 498 (Wien Hbf – Hamburg Hbf)",
+  "summary": "Route \"17\" appeared in tonight's scrape and is withheld from the map until approved. Via: Wien Meidling - St. Pölten Hbf - Linz Hbf - Passau Hbf - Regensburg Hbf - Nürnberg Hbf - Würzburg Hbf - Kassel-Wilhelmshöhe - Göttingen - Hannover Hbf - Hamburg Harburg",
+  "target": {
+    "routeKey": "17",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "NJ 498",
+    "returnTrain": "NJ 499",
+    "origin": "Wien Hbf",
+    "destination": "Hamburg Hbf",
+    "operator": "ÖBB",
+    "operatingDays": "2026: Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "17"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
