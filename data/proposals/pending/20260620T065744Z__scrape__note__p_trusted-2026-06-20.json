@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (3 routes, 0 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_492: NJ 492 (Wien Hbf – Hamburg Altona)\nroute nj_standalone_NJ_236: NJ 236 (Venezia Santa Lucia – Stuttgart Hbf)\nroute nj_standalone_NJ_13485: NJ 13485 (Zürich HB – Graz Hbf)",
+  "title": "New Routes Added from Trusted Sources",
+  "summary": "Three new train routes have been auto-approved from trusted sources:\n- NJ 492: Wien Hbf to Hamburg Altona\n- NJ 236: Venezia Santa Lucia to Stuttgart Hbf\n- NJ 13485: Zürich HB to Graz Hbf\nThese routes are already live.",
   "target": {
     "routeKey": "trusted-2026-06-20",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
