@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-719",
+  "createdAt": "2026-06-20T06:57:44.328Z",
+  "source": "scrape",
+  "sourceDetail": "icn",
+  "kind": "route.add",
+  "title": "New train: ICN 719 (Torino Porta Nuova – Reggio Di Calabria Centrale)",
+  "summary": "Route \"icn_ICN_719\" appeared in tonight's scrape and is withheld from the map until approved. Via: Torino Lingotto - Asti - Alessandria - Genova Piazza Principe - Genova Brignole - Rapallo - Chiavari - La Spezia Centrale - Viareggio - Pisa Centrale - Livorno Centrale - Grosseto - Civitavecchia - Roma Ostiense - Salerno - Sapri - Scalea S.domenica Talao - Paola - Amantea - Lamezia Terme Centrale -",
+  "target": {
+    "routeKey": "icn_ICN_719",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "ICN 719",
+    "returnTrain": "ICN 794",
+    "origin": "Torino Porta Nuova",
+    "destination": "Reggio Di Calabria Centrale",
+    "operator": "FS",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "icn_ICN_719"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
