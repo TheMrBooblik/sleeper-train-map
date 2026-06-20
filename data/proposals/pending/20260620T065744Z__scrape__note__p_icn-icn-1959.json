@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: ICN 1959 (Roma Termini – Siracusa)",
-  "summary": "Material change on an approved route (already live — FYI): train numbers: \"ICN 1959\" → \"ICN 1959|ICN 1960\"",
+  "title": "Update: ICN 1959 (Roma Termini – Siracusa)",
+  "summary": "The train numbers for the route from Roma Termini to Siracusa have been updated. The previous train number \"ICN 1959\" is now listed as \"ICN 1959|ICN 1960\". This change is already live.",
   "target": {
     "routeKey": "icn_ICN_1959",
     "agencyId": "FS",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
