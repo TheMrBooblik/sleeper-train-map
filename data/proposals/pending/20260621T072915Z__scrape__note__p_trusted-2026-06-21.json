@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (1 routes, 1 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_294: NJ 294 (Roma Tiburtina – München Hbf)\nstation Brugg AG (nightjet)",
+  "title": "New Night Train Route and Station Added",
+  "summary": "A new night train route has been added: NJ 294, which runs from Roma Tiburtina to München Hbf. Additionally, the station Brugg AG has been included in the nightjet service. This information comes from trusted official sources and is already live.",
   "target": {
     "routeKey": "trusted-2026-06-21",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
