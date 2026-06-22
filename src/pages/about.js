@@ -59,7 +59,7 @@ export default function AboutPage({ hubCountryCodes = [] }) {
     <>
       <Head>
         <title>
-          About | Pingwi Sleeper Train Map - European Night Train Routes
+          About | Pingwi Sleeper Train Map 2026 - European Night Train Routes
         </title>
         <meta
           name="description"
@@ -77,7 +77,7 @@ export default function AboutPage({ hubCountryCodes = [] }) {
         {/* Open Graph */}
         <meta
           property="og:title"
-          content="Pingwi Sleeper Train Map - European Night Train Routes"
+          content="Pingwi Sleeper Train Map 2026 - European Night Train Routes"
         />
         <meta
           property="og:description"
@@ -273,7 +273,8 @@ export default function AboutPage({ hubCountryCodes = [] }) {
             </Link>
             <p className="mt-6 text-sm text-white/40">
               Spotted wrong data or a missing train? Open it on the map and use
-              “Suggest an edit” — every suggestion is reviewed before it goes live.
+              “Suggest an edit” — every suggestion is reviewed before it goes
+              live.
             </p>
           </div>
         </section>

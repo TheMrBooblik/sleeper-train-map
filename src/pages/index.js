@@ -4,41 +4,57 @@ import Layout from "@components/Layout";
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  "name": "Pingwi Sleeper Train Map",
-  "description": "Interactive map of European sleeper train routes. Click any station to discover overnight train connections across 24+ countries.",
-  "url": "https://sleeper-train-map.pingwi.com",
-  "applicationCategory": "TravelApplication",
-  "operatingSystem": "Web Browser",
-  "offers": {
+  name: "Sleeper Train Map 2026 (interactive)",
+  description:
+    "Interactive map of European sleeper train routes. Click any station to discover overnight train connections across 24+ countries.",
+  url: "https://sleeper-train-map.pingwi.com",
+  applicationCategory: "TravelApplication",
+  operatingSystem: "Web Browser",
+  offers: {
     "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "EUR"
-  }
+    price: "0",
+    priceCurrency: "EUR",
+  },
 };
 
 export default function Home() {
   return (
     <Layout>
       <Head>
-        <title>Pingwi Sleeper Train Map - European Night Train Routes</title>
+        <title>Sleeper Train Map 2026 (interactive)</title>
         <meta
           name="description"
-          content="Interactive sleeper train map of Europe. Click any station to discover all night train routes and overnight connections across 24+ countries. Plan your spontaneous train travel."
+          content="Interactive sleeper train map. Click any station to discover all night train routes and overnight connections across 24+ countries. Plan your spontaneous train travel."
         />
-        <meta name="keywords" content="sleeper train map, night train Europe, European sleeper trains, overnight train routes, train travel Europe, night train map" />
+        <meta
+          name="keywords"
+          content="sleeper train map, night train Europe, European sleeper trains, overnight train routes, train travel Europe, night train map"
+        />
         <link rel="canonical" href="https://sleeper-train-map.pingwi.com" />
-        
+
         {/* Open Graph */}
-        <meta property="og:title" content="Pingwi Sleeper Train Map - European Night Train Routes" />
-        <meta property="og:description" content="Interactive map of all European sleeper train routes. Click any station to discover overnight connections across 24+ countries." />
+        <meta
+          property="og:title"
+          content="Sleeper Train Map 2026 (interactive)"
+        />
+        <meta
+          property="og:description"
+          content="Interactive map of all European sleeper train routes. Click any station to discover overnight connections across 24+ countries."
+        />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://sleeper-train-map.pingwi.com" />
-        
+        <meta
+          property="og:url"
+          content="https://sleeper-train-map.pingwi.com"
+        />
+
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Pingwi Sleeper Train Map" />
-        <meta name="twitter:description" content="Interactive map of all European sleeper train routes. Discover overnight connections across 24+ countries." />
-        
+        <meta
+          name="twitter:description"
+          content="Interactive map of all European sleeper train routes. Discover overnight connections across 24+ countries."
+        />
+
         {/* JSON-LD Structured Data */}
         <script
           type="application/ld+json"
