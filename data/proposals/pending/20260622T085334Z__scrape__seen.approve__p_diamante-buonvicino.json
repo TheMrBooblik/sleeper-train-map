@@ -1,0 +1,28 @@
+{
+  "v": 1,
+  "id": "p_diamante-buonvicino",
+  "createdAt": "2026-06-22T08:53:34.466Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "seen.approve",
+  "title": "New station: Diamante Buonvicino",
+  "summary": "Station \"Diamante Buonvicino\" was injected by an operator source for the first time. Its marker is hidden until approved (routes through it still render).",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Diamante Buonvicino"
+  },
+  "before": null,
+  "after": null,
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "stationName": "Diamante Buonvicino"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
