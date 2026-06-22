@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": "icn",
   "kind": "route.add",
-  "title": "New train: ICN 797 (Torino Porta Nuova – Salerno)",
-  "summary": "Route \"icn_ICN_797\" appeared in tonight's scrape and is withheld from the map until approved. Via: Torino Porta Susa - Vercelli - Novara - Milano Porta Garibaldi - Piacenza - Parma - Orvieto - Orte - Roma Tiburtina - Napoli Centrale",
+  "title": "New train ICN 797 from Torino Porta Nuova to Salerno",
+  "summary": "A new train route, ICN 797, has been added. It travels from Torino Porta Nuova to Salerno, stopping at Torino Porta Susa, Vercelli, Novara, Milano Porta Garibaldi, Piacenza, Parma, Orvieto, Orte, Roma Tiburtina, and Napoli Centrale. This route is currently pending approval.",
   "target": {
     "routeKey": "icn_ICN_797",
     "agencyId": "FS",
@@ -31,5 +31,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
