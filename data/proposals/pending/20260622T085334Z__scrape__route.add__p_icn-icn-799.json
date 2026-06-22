@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": "icn",
   "kind": "route.add",
-  "title": "New train: ICN 799 (Torino Porta Nuova – Salerno)",
-  "summary": "Route \"icn_ICN_799\" appeared in tonight's scrape and is withheld from the map until approved. Via: Torino Lingotto - Asti - Alessandria - Genova Piazza Principe - Genova Brignole - Rapallo - Chiavari - La Spezia Centrale - Pisa Centrale - Livorno Centrale - Grosseto - Civitavecchia - Roma Ostiense - Latina - Formia-Gaeta - Aversa - Napoli Centrale",
+  "title": "New train: ICN 799 from Torino Porta Nuova to Salerno",
+  "summary": "A new train route, ICN 799, has been added. It travels from Torino Porta Nuova to Salerno, stopping at Torino Lingotto, Asti, Alessandria, Genova Piazza Principe, Genova Brignole, Rapallo, Chiavari, La Spezia Centrale, Pisa Centrale, Livorno Centrale, Grosseto, Civitavecchia, Roma Ostiense, Latina, Formia-Gaeta, Aversa, and Napoli Centrale. The return train is ICN 796.",
   "target": {
     "routeKey": "icn_ICN_799",
     "agencyId": "FS",
@@ -31,5 +31,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
