@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-40467",
+  "createdAt": "2026-06-23T06:44:04.018Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: EN 40467 (Zürich HB – Kelenföld)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Budapest-Keleti\" → \"Kelenföld\"; train numbers: \"EN 40467|EN 40462\" → \"EN 40467\"",
+  "target": {
+    "routeKey": "nj_standalone_EN_40467",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Budapest-Keleti",
+    "train numbers": "EN 40467|EN 40462"
+  },
+  "after": {
+    "destination": "Kelenföld",
+    "train numbers": "EN 40467"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
