@@ -948,11 +948,6 @@ const TrainDetailPanel = ({
                   cdScheduleByTrainNumber.get(numericTrainNumber) ||
                   cdScheduleByTrainNumber.get(normalizedTrainNumber) ||
                   null;
-                // #region agent log
-                if (cdSchedule) {
-                  fetch('http://127.0.0.1:7246/ingest/f1244d9a-5e9c-4150-a50a-36d6d178e4c9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'071275'},body:JSON.stringify({sessionId:'071275',hypothesisId:'D',location:'TrainDetailPanel.js:925',message:'detail panel cdSchedule resolved for trip',data:{tripShortName:trip.trip_short_name,tripOrigin:trip.trip_origin,tripHeadsign:trip.trip_headsign,numericTrainNumber,cdFirst:cdSchedule.stops?.[0]?.name,cdLast:cdSchedule.stops?.[cdSchedule.stops.length-1]?.name,cdCount:cdSchedule.stops?.length},timestamp:Date.now()})}).catch(()=>{});
-                }
-                // #endregion
                 const endpointMatchedSchedule =
                   !detailedSchedule && gtfsTimetableData?.trips?.length
                     ? gtfsTimetableData.trips.find((candidate) => {

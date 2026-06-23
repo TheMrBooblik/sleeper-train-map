@@ -308,13 +308,6 @@ export function useRoutePaths({
         const path0ToUse =
           gtfs0 ?? path0 ?? route.fallbackPositions ?? null;
 
-        // #region agent log
-        if (String(routeId) === "9") {
-          const src = gtfs0 ? "pkp_gtfs" : osmRelationId ? "osm:" + osmRelationId : path0 ? "station-path" : "none";
-          fetch('http://127.0.0.1:7246/ingest/f1244d9a-5e9c-4150-a50a-36d6d178e4c9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'071275'},body:JSON.stringify({sessionId:'071275',hypothesisId:'E',location:'useRoutePaths.js:305',message:'route 9 polyline source + station-path geometry',data:{src,osmRelationId,path0Count:path0?.length??null,path0First:path0?.[0],path0Last:path0?.[path0.length-1],via0:route.via_0},timestamp:Date.now()})}).catch(()=>{});
-        }
-        // #endregion
-
         // Use individual rail segments if available (multi-leg routes), otherwise
         // fall back to the combined positions.
         const railSegs0 = route.pkp_rail_segments_0;

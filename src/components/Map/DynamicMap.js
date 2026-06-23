@@ -454,10 +454,6 @@ const TrainMap = ({
       (r) => r?.route_id?.toString() === activeId,
     );
 
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/f1244d9a-5e9c-4150-a50a-36d6d178e4c9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'071275'},body:JSON.stringify({sessionId:'071275',hypothesisId:'A',location:'DynamicMap.js:451',message:'CD filter resolved train number for route',data:{activeId,cdTrainNumber,origin0:activeRoute?.origin_trip_0,dest0:activeRoute?.destination_trip_0,origin1:activeRoute?.origin_trip_1,dest1:activeRoute?.destination_trip_1},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-
     if (!cdTrainNumber) {
       setCdRouteFilterStops(null);
       return;
@@ -486,10 +482,6 @@ const TrainMap = ({
       ) {
         return null;
       }
-
-      // #region agent log
-      fetch('http://127.0.0.1:7246/ingest/f1244d9a-5e9c-4150-a50a-36d6d178e4c9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'071275'},body:JSON.stringify({sessionId:'071275',hypothesisId:'A',location:'DynamicMap.js:460',message:'CD train stop list PASSED endpoint guard, used as marker source',data:{cdTrainNumber,cdFirst:trainData.stops[0]?.name,cdLast:trainData.stops[trainData.stops.length-1]?.name,cdCount:trainData.stops.length,routeOrigin:activeRoute?.origin_trip_0,routeDest:activeRoute?.destination_trip_0},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
 
       const stopLookup = new Map();
       stops.forEach((stop) => {
@@ -535,14 +527,6 @@ const TrainMap = ({
     loadCDStops();
     return () => { cancelled = true; };
   }, [hasRouteFilter, selectedTrainRouteIds, trips, stops, normalizeStationNameForLookup]);
-
-  // #region agent log
-  useEffect(() => {
-    if (!hasRouteFilter) return;
-    const chosen = cdRouteFilterStops ? 'cd' : gtfsRouteFilterStops ? 'gtfs' : routeFilterStops ? 'bot' : 'filteredStops';
-    fetch('http://127.0.0.1:7246/ingest/f1244d9a-5e9c-4150-a50a-36d6d178e4c9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'071275'},body:JSON.stringify({sessionId:'071275',hypothesisId:'B',location:'DynamicMap.js:509',message:'marker source precedence chosen for route filter',data:{chosen,cdLen:cdRouteFilterStops?.length??null,gtfsLen:gtfsRouteFilterStops?.length??null,botLen:routeFilterStops?.length??null,botStations:(routeFilterStops||[]).map((s)=>s.stop_id),cdStations:(cdRouteFilterStops||[]).map((s)=>s.stop_id)},timestamp:Date.now()})}).catch(()=>{});
-  }, [hasRouteFilter, cdRouteFilterStops, gtfsRouteFilterStops, routeFilterStops]);
-  // #endregion
 
   const markers = useMapMarkers({
     filteredStops: cdRouteFilterStops || gtfsRouteFilterStops || routeFilterStops || filteredStops,
