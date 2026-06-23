@@ -19,6 +19,7 @@ import {
   getFutureRouteStartDate,
   isRouteOutsideServiceIdSeason,
   MAP_LEGEND_LINE_BASE_STYLES,
+  arePositionsReverseEqual,
 } from "../utils/routeStyleUtils";
 import { parseCoord } from "../../../helpers/enrichStationsWithCoordinates";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../utils/operatorColors";
@@ -369,7 +370,21 @@ export function useRoutePaths({
           const railSegs1 = route.pkp_rail_segments_1;
           const segsToRender1 =
             railSegs1?.length >= 1 ? railSegs1 : path1ToUse ? [path1ToUse] : [];
-          segsToRender1.forEach((seg, i) => {
+
+          // Skip the return direction when it is the exact reverse of the
+          // outbound line: stacking identical geometry makes the dashes
+          // interleave (the line reads as solid) and doubles the opacity.
+          // Genuinely different return routes still render both directions.
+          const dir1IsReverseOfDir0 =
+            segsToRender0.length === 1 &&
+            segsToRender1.length === 1 &&
+            arePositionsReverseEqual(segsToRender0[0], segsToRender1[0]);
+          const renderSegs1 = dir1IsReverseOfDir0 ? [] : segsToRender1;
+          const renderBus1 = dir1IsReverseOfDir0
+            ? []
+            : route.pkp_bus_segments_1 || [];
+
+          renderSegs1.forEach((seg, i) => {
             if (!seg || seg.length < 2) return;
             paths.push({
               positions: seg,
@@ -383,7 +398,7 @@ export function useRoutePaths({
             });
           });
 
-          (route.pkp_bus_segments_1 || []).forEach((seg, i) => {
+          renderBus1.forEach((seg, i) => {
             const segPos = seg?.positions ?? seg;
             if (!segPos || segPos.length < 2) return;
             paths.push({

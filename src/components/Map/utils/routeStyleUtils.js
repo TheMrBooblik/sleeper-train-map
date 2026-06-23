@@ -620,3 +620,26 @@ export function getFutureRouteStartDate(routeId, trips) {
 
   return earliestFutureDateText;
 }
+
+/**
+ * True when two coordinate paths trace the same line in opposite order — i.e.
+ * one is the other reversed (a route's return direction over identical track).
+ * Stacking such duplicates makes dashed lines look solid (the dashes interleave
+ * and fill each other's gaps) and doubles the stroke opacity, so the route
+ * renderers draw only one of the pair. Coordinates compare exactly because both
+ * directions resolve the same station coordinates from one shared lookup.
+ * @param {Array<[number, number]>} a
+ * @param {Array<[number, number]>} b
+ * @returns {boolean}
+ */
+export function arePositionsReverseEqual(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  const n = a.length;
+  if (n < 2 || n !== b.length) return false;
+  for (let i = 0; i < n; i++) {
+    const p = a[i];
+    const q = b[n - 1 - i];
+    if (!p || !q || p[0] !== q[0] || p[1] !== q[1]) return false;
+  }
+  return true;
+}
