@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: 351 K (Kyiv Pasazhyrskyi – Chişinău)",
-  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026: Every 2nd day\" → \"2026: Daily\"; operating days (return): \"2026: Every 2nd day\" → \"2026: Daily\"",
+  "title": "Updated Schedule for Train 351 K (Kyiv Pasazhyrskyi – Chişinău)",
+  "summary": "The operating days for train 351 K have changed. Starting in 2026, the train will run daily instead of every 2nd day for both outbound and return trips.",
   "target": {
     "routeKey": "195",
     "agencyId": "UZ/CFM",
@@ -25,5 +25,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
