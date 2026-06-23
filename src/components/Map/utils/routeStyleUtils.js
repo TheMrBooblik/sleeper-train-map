@@ -78,10 +78,12 @@ export const MAP_LEGEND_LINE_BASE_STYLES = {
   /** FrequencyRank 2 — infrequent (~weekly patterns in BoT text) */
   rank2: { weight: 2.75, dashArray: "8,5" },
   /**
-   * Routes with a future "From YYYY-MM-DD" — thin dashed ghost until they start.
-   * Opacity here is for legend sample only; Leaflet uses the same dash + low opacity on the map.
+   * Not-yet-running routes ("From YYYY-MM-DD", postponed, or an upcoming season).
+   * Only the lowered opacity marks them as future — weight and dash still encode
+   * frequency exactly like a running route (see useRoutePaths / buildAllRoutesPaths,
+   * which apply just `.opacity`). The legend therefore shows a faded daily line.
    */
-  futureGhost: { weight: 1.5, dashArray: "6,4", opacity: 0.35 },
+  futureGhost: { weight: 4.5, dashArray: null, opacity: 0.35 },
 };
 
 /**
@@ -617,4 +619,27 @@ export function getFutureRouteStartDate(routeId, trips) {
   }
 
   return earliestFutureDateText;
+}
+
+/**
+ * True when two coordinate paths trace the same line in opposite order — i.e.
+ * one is the other reversed (a route's return direction over identical track).
+ * Stacking such duplicates makes dashed lines look solid (the dashes interleave
+ * and fill each other's gaps) and doubles the stroke opacity, so the route
+ * renderers draw only one of the pair. Coordinates compare exactly because both
+ * directions resolve the same station coordinates from one shared lookup.
+ * @param {Array<[number, number]>} a
+ * @param {Array<[number, number]>} b
+ * @returns {boolean}
+ */
+export function arePositionsReverseEqual(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  const n = a.length;
+  if (n < 2 || n !== b.length) return false;
+  for (let i = 0; i < n; i++) {
+    const p = a[i];
+    const q = b[n - 1 - i];
+    if (!p || !q || p[0] !== q[0] || p[1] !== q[1]) return false;
+  }
+  return true;
 }

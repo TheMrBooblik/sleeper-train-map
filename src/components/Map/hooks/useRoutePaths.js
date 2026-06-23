@@ -18,6 +18,8 @@ import {
   checkWarszawaBudapestRoute,
   getFutureRouteStartDate,
   isRouteOutsideServiceIdSeason,
+  MAP_LEGEND_LINE_BASE_STYLES,
+  arePositionsReverseEqual,
 } from "../utils/routeStyleUtils";
 import { parseCoord } from "../../../helpers/enrichStationsWithCoordinates";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../utils/operatorColors";
@@ -222,7 +224,10 @@ export function useRoutePaths({
       const pathOptions = {
         color: routeColor,
         weight: style.weight,
-        opacity: style.opacity ?? 0.92,
+        // Not-yet-running routes only fade out; weight/dash still encode frequency.
+        opacity: isFuture
+          ? MAP_LEGEND_LINE_BASE_STYLES.futureGhost.opacity
+          : (style.opacity ?? 0.92),
         dashArray: style.dashArray || undefined,
         lineCap: "round",
         lineJoin: "round",
@@ -304,13 +309,6 @@ export function useRoutePaths({
         const path0ToUse =
           gtfs0 ?? path0 ?? route.fallbackPositions ?? null;
 
-        // #region agent log
-        if (String(routeId) === "9") {
-          const src = gtfs0 ? "pkp_gtfs" : osmRelationId ? "osm:" + osmRelationId : path0 ? "station-path" : "none";
-          fetch('http://127.0.0.1:7246/ingest/f1244d9a-5e9c-4150-a50a-36d6d178e4c9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'071275'},body:JSON.stringify({sessionId:'071275',hypothesisId:'E',location:'useRoutePaths.js:305',message:'route 9 polyline source + station-path geometry',data:{src,osmRelationId,path0Count:path0?.length??null,path0First:path0?.[0],path0Last:path0?.[path0.length-1],via0:route.via_0},timestamp:Date.now()})}).catch(()=>{});
-        }
-        // #endregion
-
         // Use individual rail segments if available (multi-leg routes), otherwise
         // fall back to the combined positions.
         const railSegs0 = route.pkp_rail_segments_0;
@@ -372,7 +370,21 @@ export function useRoutePaths({
           const railSegs1 = route.pkp_rail_segments_1;
           const segsToRender1 =
             railSegs1?.length >= 1 ? railSegs1 : path1ToUse ? [path1ToUse] : [];
-          segsToRender1.forEach((seg, i) => {
+
+          // Skip the return direction when it is the exact reverse of the
+          // outbound line: stacking identical geometry makes the dashes
+          // interleave (the line reads as solid) and doubles the opacity.
+          // Genuinely different return routes still render both directions.
+          const dir1IsReverseOfDir0 =
+            segsToRender0.length === 1 &&
+            segsToRender1.length === 1 &&
+            arePositionsReverseEqual(segsToRender0[0], segsToRender1[0]);
+          const renderSegs1 = dir1IsReverseOfDir0 ? [] : segsToRender1;
+          const renderBus1 = dir1IsReverseOfDir0
+            ? []
+            : route.pkp_bus_segments_1 || [];
+
+          renderSegs1.forEach((seg, i) => {
             if (!seg || seg.length < 2) return;
             paths.push({
               positions: seg,
@@ -386,7 +398,7 @@ export function useRoutePaths({
             });
           });
 
-          (route.pkp_bus_segments_1 || []).forEach((seg, i) => {
+          renderBus1.forEach((seg, i) => {
             const segPos = seg?.positions ?? seg;
             if (!segPos || segPos.length < 2) return;
             paths.push({
