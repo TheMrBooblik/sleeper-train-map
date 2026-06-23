@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_195",
+  "createdAt": "2026-06-23T06:44:04.015Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: 351 K (Kyiv Pasazhyrskyi – Chişinău)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026: Every 2nd day\" → \"2026: Daily\"; operating days (return): \"2026: Every 2nd day\" → \"2026: Daily\"",
+  "target": {
+    "routeKey": "195",
+    "agencyId": "UZ/CFM",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2026: Every 2nd day",
+    "operating days (return)": "2026: Every 2nd day"
+  },
+  "after": {
+    "operating days (outbound)": "2026: Daily",
+    "operating days (return)": "2026: Daily"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
