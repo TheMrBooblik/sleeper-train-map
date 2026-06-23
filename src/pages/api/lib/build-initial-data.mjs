@@ -25,8 +25,50 @@ import ROUTE_PRICES from "../../../../data/canonical/prices.json" with { type: "
 // Operator pricing defaults — provides the fixed/dynamic `type` half of the
 // stamped record so the existing badge keeps rendering.
 import OPERATOR_PRICING from "../../../../data/overrides/operator-pricing.json" with { type: "json" };
+// TEMPORARY route previews: hand-authored future re-routings we want to show
+// ahead of Back-on-Track publishing them (e.g. the 14-Dec European Sleeper
+// 456/457 path). Each entry injects a synthetic viewMap row + trips and can
+// retire the route it supersedes once its date arrives. Delete the file entry
+// (and this import stays harmless with an empty array) once BoT carries it.
+import FUTURE_PREVIEWS from "../../../../data/overrides/future-route-previews.json" with { type: "json" };
 
 const identity = (name) => name;
+
+// Inject hand-authored future route variants and, once their start date has
+// arrived, hide the route they replace. The injected trips carry a
+// "From YYYY-MM-DD" irregularity, so the existing client-side future-ghost
+// logic fades them until the date and turns them solid afterwards — no
+// render-layer changes needed. This runs AFTER the review gate so previews are
+// never withheld.
+function applyFutureRoutePreviews(viewMap, trips, stops, now, previews) {
+  for (const preview of previews ?? []) {
+    if (!preview?.id || !preview.row) continue;
+    // Add the variant row + its trips (keyed so they never collide with BoT).
+    viewMap[preview.id] = { ...preview.row };
+    for (const [tripKey, trip] of Object.entries(preview.trips ?? {})) {
+      trips[tripKey] = { ...trip };
+    }
+    // Hand-authored stops for via points the dataset lacks (e.g. Dutch Breda),
+    // so the new calling points still render as markers. Skip names already
+    // present to avoid duplicates.
+    for (const stop of preview.extraStops ?? []) {
+      if (!stop?.stop_id) continue;
+      const exists = stops.some((s) => s.stop_id === stop.stop_id);
+      if (!exists) stops.push({ ...stop });
+    }
+    // Once the new routing is live, retire the routing it replaces so the same
+    // train never shows two physical paths at once.
+    const startsAt = preview.activeFrom ? Date.parse(preview.activeFrom) : NaN;
+    if (
+      preview.supersedesRouteId &&
+      Number.isFinite(startsAt) &&
+      now.getTime() >= startsAt
+    ) {
+      const superseded = viewMap[preview.supersedesRouteId];
+      if (superseded) superseded.is_active = "N";
+    }
+  }
+}
 
 // ─── Operator filtering ──────────────────────────────────────────────────────
 
@@ -296,6 +338,8 @@ export function buildInitialData({
   registry = SOURCE_REGISTRY,
   seenIndex = null,
   routePrices = ROUTE_PRICES,
+  futurePreviews = FUTURE_PREVIEWS,
+  now = new Date(),
   stats = null,
 } = {}) {
   const filteredTrips = filterTrips(trips);
@@ -408,6 +452,16 @@ export function buildInitialData({
     stats.stationSources = stationSources;
     stats.gatedRouteKeys = gatedRouteKeys;
   }
+
+  // Temporary hand-authored future re-routings (see import note). After the
+  // gate so they always render; date-driven fade/activate is handled client-side.
+  applyFutureRoutePreviews(
+    filteredViewMap,
+    filteredTrips,
+    trimmedStops,
+    now,
+    futurePreviews,
+  );
 
   return {
     stops: trimmedStops,
