@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: EN 50462 (Budapest-Keleti – Stuttgart Hbf)",
-  "summary": "Material change on an approved route (already live — FYI): train numbers: \"EN 50462|EN 50237\" → \"EN 50462\"",
+  "title": "Update: EN 50462 (Budapest-Keleti – Stuttgart Hbf)",
+  "summary": "The train numbers for the route EN 50462 have been updated. The previous train numbers were \"EN 50462|EN 50237\" and are now changed to just \"EN 50462\". This change is already live.",
   "target": {
     "routeKey": "nj_standalone_EN_50462",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
