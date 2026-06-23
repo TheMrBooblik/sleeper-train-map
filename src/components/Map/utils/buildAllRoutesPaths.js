@@ -20,7 +20,8 @@ import {
   getFutureRouteStartDate,
   isRouteOutsideServiceIdSeason,
   MAP_LEGEND_LINE_BASE_STYLES,
-  arePositionsReverseEqual,
+  collectEdges,
+  subtractCoveredEdges,
 } from "./routeStyleUtils";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "./operatorColors";
 import { parseCoord } from "../../../helpers/enrichStationsWithCoordinates";
@@ -293,18 +294,16 @@ export function buildAllRoutesPaths({
         const segsToRender1 =
           railSegs1?.length >= 1 ? railSegs1 : path1ToUse ? [path1ToUse] : [];
 
-        // Skip the return direction when it is the exact reverse of the
-        // outbound line: stacking identical geometry makes the dashes
-        // interleave (the line reads as solid) and doubles the opacity.
-        // Genuinely different return routes still render both directions.
-        const dir1IsReverseOfDir0 =
-          segsToRender0.length === 1 &&
-          segsToRender1.length === 1 &&
-          arePositionsReverseEqual(segsToRender0[0], segsToRender1[0]);
-        const renderSegs1 = dir1IsReverseOfDir0 ? [] : segsToRender1;
-        const renderBus1 = dir1IsReverseOfDir0
-          ? []
-          : route.pkp_bus_segments_1 || [];
+        // Draw the return direction only where it adds track the outbound leg
+        // didn't. Overlapping dashed lines interleave their dashes (the line
+        // reads as solid) and double the opacity; drawing each shared edge once
+        // fixes both, while genuinely different return geometry still draws. An
+        // OSM-substituted route is one direction-agnostic polyline, so the
+        // outbound already drew it — skip the return.
+        const renderSegs1 =
+          osmRelationId && !gtfs0
+            ? []
+            : subtractCoveredEdges(segsToRender1, collectEdges(segsToRender0));
 
         renderSegs1.forEach((seg, i) => {
           if (!seg || seg.length < 2) return;
@@ -319,7 +318,7 @@ export function buildAllRoutesPaths({
           });
         });
 
-        renderBus1.forEach((seg, i) => {
+        (route.pkp_bus_segments_1 || []).forEach((seg, i) => {
           const segPos = seg?.positions ?? seg;
           if (!segPos || segPos.length < 2) return;
           paths.push({

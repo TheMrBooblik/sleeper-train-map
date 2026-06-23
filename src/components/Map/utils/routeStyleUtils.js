@@ -621,25 +621,62 @@ export function getFutureRouteStartDate(routeId, trips) {
   return earliestFutureDateText;
 }
 
+// ~50 m grid for treating two polyline vertices as the same point. Station-coord
+// routes share exact coordinates across directions; Nightjet per-direction
+// polylines are sampled independently, so shared track needs a tolerance.
+const EDGE_GRID_DEG = 5e-4;
+const edgeQuantize = (v) => Math.round(v / EDGE_GRID_DEG);
+
+/** Order-independent quantized key for the segment between two coordinates. */
+function edgeKey(p, q) {
+  const a = `${edgeQuantize(p[0])},${edgeQuantize(p[1])}`;
+  const b = `${edgeQuantize(q[0])},${edgeQuantize(q[1])}`;
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}
+
 /**
- * True when two coordinate paths trace the same line in opposite order — i.e.
- * one is the other reversed (a route's return direction over identical track).
- * Stacking such duplicates makes dashed lines look solid (the dashes interleave
- * and fill each other's gaps) and doubles the stroke opacity, so the route
- * renderers draw only one of the pair. Coordinates compare exactly because both
- * directions resolve the same station coordinates from one shared lookup.
- * @param {Array<[number, number]>} a
- * @param {Array<[number, number]>} b
- * @returns {boolean}
+ * Collect the quantized edges of a list of coordinate segments — the "already
+ * drawn" track that subtractCoveredEdges() tests against.
+ * @param {Array<Array<[number, number]>>} segments
+ * @returns {Set<string>}
  */
-export function arePositionsReverseEqual(a, b) {
-  if (!Array.isArray(a) || !Array.isArray(b)) return false;
-  const n = a.length;
-  if (n < 2 || n !== b.length) return false;
-  for (let i = 0; i < n; i++) {
-    const p = a[i];
-    const q = b[n - 1 - i];
-    if (!p || !q || p[0] !== q[0] || p[1] !== q[1]) return false;
+export function collectEdges(segments) {
+  const set = new Set();
+  for (const seg of segments || []) {
+    if (!Array.isArray(seg)) continue;
+    for (let i = 0; i < seg.length - 1; i++) {
+      if (seg[i] && seg[i + 1]) set.add(edgeKey(seg[i], seg[i + 1]));
+    }
   }
-  return true;
+  return set;
+}
+
+/**
+ * Return the sub-segments of `segments` whose edges are NOT already in
+ * `coveredEdges` — i.e. the track a route's return direction adds beyond its
+ * outbound leg. Stacking overlapping dashed lines makes their dashes interleave
+ * and fill each other's gaps (the line reads as solid) and doubles the stroke
+ * opacity; drawing each shared edge once fixes both, while genuinely different
+ * return geometry is preserved. An exact there-and-back duplicate yields [].
+ * @param {Array<Array<[number, number]>>} segments
+ * @param {Set<string>} coveredEdges
+ * @returns {Array<Array<[number, number]>>}
+ */
+export function subtractCoveredEdges(segments, coveredEdges) {
+  const out = [];
+  for (const seg of segments || []) {
+    if (!Array.isArray(seg) || seg.length < 2) continue;
+    let run = null;
+    for (let i = 0; i < seg.length - 1; i++) {
+      if (seg[i] && seg[i + 1] && !coveredEdges.has(edgeKey(seg[i], seg[i + 1]))) {
+        if (!run) run = [seg[i]];
+        run.push(seg[i + 1]);
+      } else if (run) {
+        out.push(run);
+        run = null;
+      }
+    }
+    if (run) out.push(run);
+  }
+  return out;
 }
