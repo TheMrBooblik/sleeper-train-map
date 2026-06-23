@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-40462",
+  "createdAt": "2026-06-23T06:44:04.018Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: EN 40462 (Budapest-Keleti – Zürich HB)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"EN 40462|EN 40467\" → \"EN 40462\"",
+  "target": {
+    "routeKey": "nj_standalone_EN_40462",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "EN 40462|EN 40467"
+  },
+  "after": {
+    "train numbers": "EN 40462"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
