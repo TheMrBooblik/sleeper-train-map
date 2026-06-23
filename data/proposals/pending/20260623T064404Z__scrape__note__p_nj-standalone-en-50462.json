@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-50462",
+  "createdAt": "2026-06-23T06:44:04.018Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: EN 50462 (Budapest-Keleti – Stuttgart Hbf)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"EN 50462|EN 50237\" → \"EN 50462\"",
+  "target": {
+    "routeKey": "nj_standalone_EN_50462",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "EN 50462|EN 50237"
+  },
+  "after": {
+    "train numbers": "EN 50462"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
