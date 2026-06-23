@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: EN 50237 (Stuttgart Hbf – Kelenföld)",
-  "summary": "Material change on an approved route (already live — FYI): destination: \"Budapest-Keleti\" → \"Kelenföld\"; train numbers: \"EN 50237|EN 50462\" → \"EN 50237\"",
+  "title": "Update: EN 50237 Route Change to Kelenföld",
+  "summary": "The route for train EN 50237 has been updated. The destination has changed from \"Budapest-Keleti\" to \"Kelenföld\". Train numbers have been revised from \"EN 50237|EN 50462\" to just \"EN 50237\". This change is already live.",
   "target": {
     "routeKey": "nj_standalone_EN_50237",
     "agencyId": "ÖBB",
@@ -25,5 +25,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
