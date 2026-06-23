@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: EN 40462 (Budapest-Keleti – Zürich HB)",
-  "summary": "Material change on an approved route (already live — FYI): train numbers: \"EN 40462|EN 40467\" → \"EN 40462\"",
+  "title": "Update on EN 40462 (Budapest-Keleti – Zürich HB)",
+  "summary": "The train service EN 40462 has been updated. The previous train numbers were EN 40462 and EN 40467, but now only EN 40462 will operate on this route. This change is already in effect.",
   "target": {
     "routeKey": "nj_standalone_EN_40462",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
