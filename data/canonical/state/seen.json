@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "updatedAt": "2026-06-23T06:44:04.008Z",
+  "updatedAt": "2026-06-23T10:14:20.825Z",
   "routes": {
     "3": {
       "firstSeen": "2026-06-10",
@@ -2397,20 +2397,6 @@
         "stopsHash": "88cfe4f1"
       }
     },
-    "nj_standalone_NJ_402": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-06-23",
-      "approved": true,
-      "fingerprint": {
-        "o": "Zürich HB",
-        "d": "Amsterdam Centraal",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 402|NJ 403",
-        "stopsHash": "42a0b6cd"
-      }
-    },
     "nj_standalone_NJ_470": {
       "firstSeen": "2026-06-10",
       "lastSeen": "2026-06-23",
@@ -2423,6 +2409,20 @@
         "agency": "ÖBB",
         "trains": "NJ 470|NJ 471",
         "stopsHash": "88fd6f47"
+      }
+    },
+    "nj_standalone_NJ_402": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Amsterdam Centraal",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 402|NJ 403",
+        "stopsHash": "42a0b6cd"
       }
     },
     "nj_standalone_NJ_408": {
@@ -2440,102 +2440,109 @@
       },
       "autoApproved": "2026-06-13"
     },
-    "nj_standalone_NJ_466": {
-      "firstSeen": "2026-06-10",
+    "nj_standalone_NJ_40294": {
+      "firstSeen": "2026-06-13",
       "lastSeen": "2026-06-23",
       "approved": true,
+      "autoApproved": "2026-06-13",
       "fingerprint": {
-        "o": "Wien Hbf",
-        "d": "Zürich HB",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 466|NJ 467",
-        "stopsHash": "d390e9b9"
-      }
-    },
-    "nj_standalone_NJ_13484": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-06-23",
-      "approved": true,
-      "fingerprint": {
-        "o": "Graz Hbf",
-        "d": "Zürich HB",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 13484|NJ 13485",
-        "stopsHash": "5de44879"
-      }
-    },
-    "nj_standalone_NJ_40236": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-06-23",
-      "approved": true,
-      "fingerprint": {
-        "o": "Venezia Santa Lucia",
+        "o": "Roma Tiburtina",
         "d": "Wien Hbf",
         "days0": null,
         "days1": null,
         "agency": "ÖBB",
-        "trains": "NJ 40236|NJ 40466",
-        "stopsHash": "fc7b19f9"
+        "trains": "NJ 40294|NJ 40233",
+        "stopsHash": "659489f5"
       }
     },
-    "nj_standalone_NJ_464": {
-      "firstSeen": "2026-06-10",
+    "nj_standalone_NJ_19947": {
+      "firstSeen": "2026-06-13",
       "lastSeen": "2026-06-23",
       "approved": true,
+      "autoApproved": "2026-06-13",
       "fingerprint": {
-        "o": "Graz Hbf",
-        "d": "Zürich HB",
+        "o": "Bregenz Bahnhof",
+        "d": "Wien Hbf (Autoreisezuganlage)",
         "days0": null,
         "days1": null,
         "agency": "ÖBB",
-        "trains": "NJ 464|NJ 465",
-        "stopsHash": "29d361a2"
+        "trains": "NJ 19947|NJ 19946",
+        "stopsHash": "78a32b38"
       }
     },
-    "nj_standalone_NJ_40233": {
-      "firstSeen": "2026-06-10",
+    "nj_standalone_NJ_13487": {
+      "firstSeen": "2026-06-13",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "autoApproved": "2026-06-13",
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Wien Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 13487|NJ 13486",
+        "stopsHash": "284dcb11"
+      }
+    },
+    "nj_standalone_NJ_465": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Graz Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 465|NJ 464",
+        "stopsHash": "7ed148e2"
+      },
+      "autoApproved": "2026-06-18"
+    },
+    "nj_standalone_NJ_40466": {
+      "firstSeen": "2026-06-11",
       "lastSeen": "2026-06-23",
       "approved": true,
       "fingerprint": {
         "o": "Wien Hbf",
-        "d": "Roma Tiburtina",
+        "d": "Venezia Santa Lucia",
         "days0": null,
         "days1": null,
         "agency": "ÖBB",
-        "trains": "NJ 40233|NJ 40294",
-        "stopsHash": "094b09f5"
-      }
+        "trains": "NJ 40466|NJ 40236",
+        "stopsHash": "9f9556b9"
+      },
+      "autoApproved": "2026-06-18"
     },
-    "nj_standalone_NJ_19946": {
-      "firstSeen": "2026-06-10",
+    "nj_standalone_NJ_13485": {
+      "firstSeen": "2026-06-11",
       "lastSeen": "2026-06-23",
       "approved": true,
       "fingerprint": {
-        "o": "Wien Hbf (Autoreisezuganlage)",
-        "d": "Bregenz Bahnhof",
+        "o": "Zürich HB",
+        "d": "Graz Hbf",
         "days0": null,
         "days1": null,
         "agency": "ÖBB",
-        "trains": "NJ 19946|NJ 19947",
-        "stopsHash": "51b7e6d8"
-      }
+        "trains": "NJ 13485|NJ 13484",
+        "stopsHash": "733822b9"
+      },
+      "autoApproved": "2026-06-20"
     },
-    "nj_standalone_NJ_13486": {
-      "firstSeen": "2026-06-10",
+    "nj_standalone_NJ_467": {
+      "firstSeen": "2026-06-13",
       "lastSeen": "2026-06-23",
       "approved": true,
+      "autoApproved": "2026-06-13",
       "fingerprint": {
-        "o": "Wien Hbf",
-        "d": "Zürich HB",
+        "o": "Zürich HB",
+        "d": "Wien Hbf",
         "days0": null,
         "days1": null,
         "agency": "ÖBB",
-        "trains": "NJ 13486|NJ 13487",
-        "stopsHash": "c82340f1"
+        "trains": "NJ 467|NJ 466",
+        "stopsHash": "11328bf9"
       }
     },
     "nj_standalone_NJ_13464": {
@@ -2566,33 +2573,106 @@
         "stopsHash": "32d875ce"
       }
     },
-    "nj_standalone_EN_40417": {
-      "firstSeen": "2026-06-13",
+    "nj_standalone_EN_50237": {
+      "firstSeen": "2026-06-12",
       "lastSeen": "2026-06-23",
       "approved": true,
-      "autoApproved": "2026-06-13",
       "fingerprint": {
-        "o": "Przemyśl Gł.",
-        "d": "München Hbf",
+        "o": "Stuttgart Hbf",
+        "d": "Kelenföld",
         "days0": null,
         "days1": null,
         "agency": "ÖBB",
-        "trains": "EN 40417|EN 40416",
-        "stopsHash": "b601e513"
-      }
+        "trains": "EN 50237",
+        "stopsHash": "1c562923"
+      },
+      "autoApproved": "2026-06-13"
     },
-    "nj_standalone_EN_40407": {
+    "nj_standalone_EN_40414": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zagreb Glavni Kolod.",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40414|EN 40465",
+        "stopsHash": "22833fd3"
+      },
+      "autoApproved": "2026-06-13"
+    },
+    "nj_standalone_EN_414": {
       "firstSeen": "2026-06-10",
       "lastSeen": "2026-06-23",
       "approved": true,
       "fingerprint": {
-        "o": "Warszawa Wschodnia",
-        "d": "München Hbf",
+        "o": "Zagreb Glavni Kolod.",
+        "d": "Stuttgart Hbf",
         "days0": null,
         "days1": null,
         "agency": "ÖBB",
-        "trains": "EN 40407|EN 40406",
-        "stopsHash": "93736259"
+        "trains": "EN 414|EN 40237",
+        "stopsHash": "deebbfa5"
+      }
+    },
+    "nj_standalone_EN_40457": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "Berlin Hbf (tief)",
+        "d": "Budapest-Nyugati",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40457|EN 40476",
+        "stopsHash": "5b28b635"
+      }
+    },
+    "nj_standalone_EN_40467": {
+      "firstSeen": "2026-06-12",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Kelenföld",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40467",
+        "stopsHash": "9319d97c"
+      },
+      "autoApproved": "2026-06-15"
+    },
+    "nj_standalone_EN_40406": {
+      "firstSeen": "2026-06-12",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "München Hbf",
+        "d": "Warszawa Wschodnia",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40406|EN 40407",
+        "stopsHash": "3c1ea399"
+      },
+      "autoApproved": "2026-06-14"
+    },
+    "nj_standalone_EN_1273": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "Wien Hbf (Autoreisezuganlage)",
+        "d": "Split",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 1273|EN 1272",
+        "stopsHash": "8e94d0d9"
       }
     },
     "nj_standalone_EN_40459": {
@@ -2623,20 +2703,20 @@
         "stopsHash": "e3e83d2b"
       }
     },
-    "nj_standalone_EN_40414": {
-      "firstSeen": "2026-06-11",
+    "nj_standalone_EN_40417": {
+      "firstSeen": "2026-06-13",
       "lastSeen": "2026-06-23",
       "approved": true,
+      "autoApproved": "2026-06-13",
       "fingerprint": {
-        "o": "Zagreb Glavni Kolod.",
-        "d": "Zürich HB",
+        "o": "Przemyśl Gł.",
+        "d": "München Hbf",
         "days0": null,
         "days1": null,
         "agency": "ÖBB",
-        "trains": "EN 40414|EN 40465",
-        "stopsHash": "22833fd3"
-      },
-      "autoApproved": "2026-06-13"
+        "trains": "EN 40417|EN 40416",
+        "stopsHash": "b601e513"
+      }
     },
     "nj_standalone_EN_40462": {
       "firstSeen": "2026-06-10",
@@ -2650,78 +2730,6 @@
         "agency": "ÖBB",
         "trains": "EN 40462",
         "stopsHash": "55fcd290"
-      }
-    },
-    "nj_standalone_EN_40467": {
-      "firstSeen": "2026-06-12",
-      "lastSeen": "2026-06-23",
-      "approved": true,
-      "fingerprint": {
-        "o": "Zürich HB",
-        "d": "Kelenföld",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "EN 40467",
-        "stopsHash": "9319d97c"
-      },
-      "autoApproved": "2026-06-15"
-    },
-    "nj_standalone_EN_40457": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-06-23",
-      "approved": true,
-      "fingerprint": {
-        "o": "Berlin Hbf (tief)",
-        "d": "Budapest-Nyugati",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "EN 40457|EN 40476",
-        "stopsHash": "5b28b635"
-      }
-    },
-    "nj_standalone_EN_414": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-06-23",
-      "approved": true,
-      "fingerprint": {
-        "o": "Zagreb Glavni Kolod.",
-        "d": "Stuttgart Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "EN 414|EN 40237",
-        "stopsHash": "deebbfa5"
-      }
-    },
-    "nj_standalone_EN_50237": {
-      "firstSeen": "2026-06-12",
-      "lastSeen": "2026-06-23",
-      "approved": true,
-      "fingerprint": {
-        "o": "Stuttgart Hbf",
-        "d": "Kelenföld",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "EN 50237",
-        "stopsHash": "1c562923"
-      },
-      "autoApproved": "2026-06-13"
-    },
-    "nj_standalone_EN_1273": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-06-23",
-      "approved": true,
-      "fingerprint": {
-        "o": "Wien Hbf (Autoreisezuganlage)",
-        "d": "Split",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "EN 1273|EN 1272",
-        "stopsHash": "8e94d0d9"
       }
     },
     "cr_Z_21": {
@@ -2972,7 +2980,7 @@
         "days0": null,
         "days1": null,
         "agency": "FS",
-        "trains": "ICN 1954|ICN 1961",
+        "trains": "ICN 1954|ICN 1965",
         "stopsHash": "89ee16ef"
       }
     },
@@ -3000,7 +3008,7 @@
         "days0": null,
         "days1": null,
         "agency": "FS",
-        "trains": "ICN 1958|ICN 1965",
+        "trains": "ICN 1958|ICN 1961",
         "stopsHash": "89ee16ef"
       }
     },
@@ -3116,6 +3124,118 @@
         "stopsHash": "06365ea5"
       }
     },
+    "nj_standalone_NJ_466": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "Wien Hbf",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 466|NJ 467",
+        "stopsHash": "d390e9b9"
+      }
+    },
+    "nj_standalone_NJ_13484": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "Graz Hbf",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 13484|NJ 13485",
+        "stopsHash": "5de44879"
+      }
+    },
+    "nj_standalone_NJ_40236": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "Venezia Santa Lucia",
+        "d": "Wien Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 40236|NJ 40466",
+        "stopsHash": "fc7b19f9"
+      }
+    },
+    "nj_standalone_NJ_464": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "Graz Hbf",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 464|NJ 465",
+        "stopsHash": "29d361a2"
+      }
+    },
+    "nj_standalone_NJ_40233": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "Wien Hbf",
+        "d": "Roma Tiburtina",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 40233|NJ 40294",
+        "stopsHash": "094b09f5"
+      }
+    },
+    "nj_standalone_NJ_19946": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "Wien Hbf (Autoreisezuganlage)",
+        "d": "Bregenz Bahnhof",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 19946|NJ 19947",
+        "stopsHash": "51b7e6d8"
+      }
+    },
+    "nj_standalone_NJ_13486": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "Wien Hbf",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 13486|NJ 13487",
+        "stopsHash": "c82340f1"
+      }
+    },
+    "nj_standalone_EN_40407": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-06-23",
+      "approved": true,
+      "fingerprint": {
+        "o": "Warszawa Wschodnia",
+        "d": "München Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 40407|EN 40406",
+        "stopsHash": "93736259"
+      }
+    },
     "nj_standalone_NJ_409": {
       "firstSeen": "2026-06-10",
       "lastSeen": "2026-06-22",
@@ -3160,66 +3280,6 @@
         "stopsHash": "6514c047"
       }
     },
-    "nj_standalone_NJ_467": {
-      "firstSeen": "2026-06-13",
-      "lastSeen": "2026-06-22",
-      "approved": true,
-      "autoApproved": "2026-06-13",
-      "fingerprint": {
-        "o": "Zürich HB",
-        "d": "Wien Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 467|NJ 466",
-        "stopsHash": "11328bf9"
-      }
-    },
-    "nj_standalone_NJ_40294": {
-      "firstSeen": "2026-06-13",
-      "lastSeen": "2026-06-22",
-      "approved": true,
-      "autoApproved": "2026-06-13",
-      "fingerprint": {
-        "o": "Roma Tiburtina",
-        "d": "Wien Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 40294|NJ 40233",
-        "stopsHash": "659489f5"
-      }
-    },
-    "nj_standalone_NJ_19947": {
-      "firstSeen": "2026-06-13",
-      "lastSeen": "2026-06-22",
-      "approved": true,
-      "autoApproved": "2026-06-13",
-      "fingerprint": {
-        "o": "Bregenz Bahnhof",
-        "d": "Wien Hbf (Autoreisezuganlage)",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 19947|NJ 19946",
-        "stopsHash": "78a32b38"
-      }
-    },
-    "nj_standalone_NJ_13487": {
-      "firstSeen": "2026-06-13",
-      "lastSeen": "2026-06-22",
-      "approved": true,
-      "autoApproved": "2026-06-13",
-      "fingerprint": {
-        "o": "Zürich HB",
-        "d": "Wien Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 13487|NJ 13486",
-        "stopsHash": "284dcb11"
-      }
-    },
     "nj_standalone_EN_40476": {
       "firstSeen": "2026-06-11",
       "lastSeen": "2026-06-22",
@@ -3249,21 +3309,6 @@
         "stopsHash": "770d30d9"
       },
       "autoApproved": "2026-06-13"
-    },
-    "nj_standalone_EN_40406": {
-      "firstSeen": "2026-06-12",
-      "lastSeen": "2026-06-22",
-      "approved": true,
-      "fingerprint": {
-        "o": "München Hbf",
-        "d": "Warszawa Wschodnia",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "EN 40406|EN 40407",
-        "stopsHash": "3c1ea399"
-      },
-      "autoApproved": "2026-06-14"
     },
     "nj_standalone_EN_40465": {
       "firstSeen": "2026-06-10",
@@ -3366,21 +3411,6 @@
         "stopsHash": "3d91fd59"
       }
     },
-    "nj_standalone_NJ_465": {
-      "firstSeen": "2026-06-11",
-      "lastSeen": "2026-06-21",
-      "approved": true,
-      "fingerprint": {
-        "o": "Zürich HB",
-        "d": "Graz Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 465|NJ 13484",
-        "stopsHash": "306cc04a"
-      },
-      "autoApproved": "2026-06-18"
-    },
     "nj_standalone_NJ_456": {
       "firstSeen": "2026-06-19",
       "lastSeen": "2026-06-20",
@@ -3440,36 +3470,6 @@
         "trains": "NJ 40490|NJ 40421",
         "stopsHash": "a21af96f"
       }
-    },
-    "nj_standalone_NJ_40466": {
-      "firstSeen": "2026-06-11",
-      "lastSeen": "2026-06-20",
-      "approved": true,
-      "fingerprint": {
-        "o": "Wien Hbf",
-        "d": "Venezia Santa Lucia",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 40466|NJ 40236",
-        "stopsHash": "9f9556b9"
-      },
-      "autoApproved": "2026-06-18"
-    },
-    "nj_standalone_NJ_13485": {
-      "firstSeen": "2026-06-11",
-      "lastSeen": "2026-06-20",
-      "approved": true,
-      "fingerprint": {
-        "o": "Zürich HB",
-        "d": "Graz Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 13485|NJ 13484",
-        "stopsHash": "733822b9"
-      },
-      "autoApproved": "2026-06-20"
     },
     "nj_standalone_EN_40458": {
       "firstSeen": "2026-06-11",
@@ -3749,75 +3749,7 @@
       "approved": true,
       "autoApproved": "2026-06-15"
     },
-    "Amstetten": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Landeck-Zams Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Bludenz Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Feldkirch Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Buchs SG": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Spittal-Millstätter See Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Mallnitz-Obervellach Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Bad Gastein Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Bad Hofgastein Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "St.Anton am Arlberg Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Langen am Arlberg Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Tullnerfeld Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Vöcklabruck Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Ötztal Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Imst-Pitztal Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Rankweil Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Götzis Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Hohenems Bahnhof": {
+    "Bregenz Bahnhof": {
       "firstSeen": "2026-06-10",
       "approved": true
     },
@@ -3825,7 +3757,47 @@
       "firstSeen": "2026-06-10",
       "approved": true
     },
-    "Bregenz Bahnhof": {
+    "Hohenems Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Götzis Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Rankweil Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Feldkirch Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Bludenz Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Langen am Arlberg Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "St.Anton am Arlberg Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Landeck-Zams Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Imst-Pitztal Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Ötztal Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Vöcklabruck Bahnhof": {
       "firstSeen": "2026-06-10",
       "approved": true
     },
@@ -3833,19 +3805,35 @@
       "firstSeen": "2026-06-10",
       "approved": true
     },
-    "Chalupki": {
+    "Amstetten": {
       "firstSeen": "2026-06-10",
       "approved": true
     },
-    "Chalupki Granica panstwa": {
+    "Buchs SG": {
       "firstSeen": "2026-06-10",
       "approved": true
     },
-    "Kelenföld": {
+    "Bad Hofgastein Bahnhof": {
       "firstSeen": "2026-06-10",
       "approved": true
     },
-    "Tatabanya": {
+    "Bad Gastein Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Mallnitz-Obervellach Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Spittal-Millstätter See Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Tullnerfeld Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Mosonmagyarovar": {
       "firstSeen": "2026-06-10",
       "approved": true
     },
@@ -3853,7 +3841,11 @@
       "firstSeen": "2026-06-10",
       "approved": true
     },
-    "Mosonmagyarovar": {
+    "Tatabanya": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Kelenföld": {
       "firstSeen": "2026-06-10",
       "approved": true
     },
@@ -3897,7 +3889,11 @@
       "firstSeen": "2026-06-10",
       "approved": true
     },
-    "Krsko": {
+    "Chalupki Granica panstwa": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Chalupki": {
       "firstSeen": "2026-06-10",
       "approved": true
     },
@@ -3914,6 +3910,10 @@
       "approved": true
     },
     "Perkovic": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Krsko": {
       "firstSeen": "2026-06-10",
       "approved": true
     },
