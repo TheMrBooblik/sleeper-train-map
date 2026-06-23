@@ -95,6 +95,42 @@ throws("disabled-routes add rejects empty routeKey", () =>
   applyOverrideMutation("disabled-routes", "add", { routeKey: "" }, []),
 );
 
+// route-polylines (object keyed by route_id → per-direction encoded polylines)
+check("route-polylines set one direction", () => {
+  const out = applyOverrideMutation(
+    "route-polylines",
+    "set",
+    { routeId: "238", nj_polyline_1: "abc" },
+    {},
+  );
+  assert.deepStrictEqual(out["238"], { nj_polyline_1: "abc" });
+});
+check("route-polylines set preserves the other direction", () => {
+  const out = applyOverrideMutation(
+    "route-polylines",
+    "set",
+    { routeId: "238", nj_polyline_0: "rev" },
+    { "238": { nj_polyline_1: "fwd" } },
+  );
+  assert.deepStrictEqual(out["238"], { nj_polyline_1: "fwd", nj_polyline_0: "rev" });
+});
+check("route-polylines remove drops the entry", () => {
+  const out = applyOverrideMutation(
+    "route-polylines",
+    "remove",
+    { routeId: "238" },
+    { "238": { nj_polyline_1: "x" }, "9": { nj_polyline_0: "y" } },
+  );
+  assert.ok(!("238" in out));
+  assert.ok("9" in out);
+});
+throws("route-polylines set rejects no polyline", () =>
+  applyOverrideMutation("route-polylines", "set", { routeId: "238" }, {}),
+);
+throws("route-polylines set rejects empty routeId", () =>
+  applyOverrideMutation("route-polylines", "set", { routeId: "", nj_polyline_1: "x" }, {}),
+);
+
 // operator-pricing
 check("pricing set", () => {
   const out = applyOverrideMutation(

@@ -18,6 +18,11 @@ export const OVERRIDE_FILES = {
   // serve time, so a toggle here goes live on the next redeploy and is fully
   // reversible — see stripDisabledRoutes() in build-initial-data.mjs.
   "disabled-routes": "data/overrides/disabled-routes.json",
+  // Manual route geometry keyed by route_id → { nj_polyline_0?, nj_polyline_1? }.
+  // Overlaid onto the matching viewMap row in build-initial-data.mjs (baked into
+  // the published artifact), so an admin can attach a real track polyline to a
+  // row that ships without one. Values are encoded @mapbox/polyline strings.
+  "route-polylines": "data/overrides/route-polylines.json",
   // The source registry rides the same admin write path (array of entries,
   // mutated by entry id). Scrapes pick changes up on the next nightly run.
   "source-registry": "data/sources/registry.json",
@@ -206,6 +211,37 @@ export function applyOverrideMutation(resource, action, payload, current) {
         default:
           throw invalid(`unknown action "${action}" for ${resource}`);
       }
+    }
+
+    // Manual route geometry keyed by route_id. Each entry holds one or both
+    // per-direction encoded polylines; `set` writes only the directions given
+    // (preserving the other), `remove` drops the whole route_id entry.
+    case "route-polylines": {
+      const obj = next && typeof next === "object" ? next : {};
+      const routeId = requireString(p.routeId, "routeId");
+      if (action === "set") {
+        const existing =
+          obj[routeId] && typeof obj[routeId] === "object" ? obj[routeId] : {};
+        const record = { ...existing };
+        let touched = false;
+        for (const dir of [0, 1]) {
+          const key = `nj_polyline_${dir}`;
+          if (p[key] != null) {
+            record[key] = requireString(p[key], key);
+            touched = true;
+          }
+        }
+        if (!touched) {
+          throw invalid('"set" requires nj_polyline_0 and/or nj_polyline_1');
+        }
+        obj[routeId] = record;
+        return obj;
+      }
+      if (action === "remove") {
+        delete obj[routeId];
+        return obj;
+      }
+      throw invalid(`unknown action "${action}" for ${resource}`);
     }
 
     // Source registry: array of source entries keyed by `id` (see

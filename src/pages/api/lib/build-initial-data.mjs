@@ -25,6 +25,14 @@ import ROUTE_PRICES from "../../../../data/canonical/prices.json" with { type: "
 // Operator pricing defaults — provides the fixed/dynamic `type` half of the
 // stamped record so the existing badge keeps rendering.
 import OPERATOR_PRICING from "../../../../data/overrides/operator-pricing.json" with { type: "json" };
+// Manual route geometry overrides, keyed by route_id → { nj_polyline_0?,
+// nj_polyline_1? }. Overlays admin-provided @mapbox/polyline geometry onto an
+// existing row so a route that ships without real track geometry (e.g. a
+// Back-on-Track row whose official source isn't wired up yet) can still render
+// a real polyline — the same fields the map reads and the europeansleeper
+// enrich would eventually write. Bundled via ESM JSON import; baked into the
+// published artifact so verify-build-parity covers it.
+import ROUTE_POLYLINES from "../../../../data/overrides/route-polylines.json" with { type: "json" };
 
 const identity = (name) => name;
 
@@ -400,6 +408,18 @@ export function buildInitialData({
         // mutating those would leak into the caller's raw input.
         filteredTrips[tripKey] = { ...trip, pricing };
       }
+    }
+  }
+
+  // Manual polyline overrides: overlay admin-provided geometry onto the
+  // matching (surviving) row by route_id. Applied after gating so we only
+  // stamp rows that actually reach the map; missing rows are skipped.
+  for (const [routeId, geom] of Object.entries(ROUTE_POLYLINES ?? {})) {
+    const row = filteredViewMap[routeId];
+    if (!row || !geom || typeof geom !== "object") continue;
+    for (const dir of [0, 1]) {
+      const poly = geom[`nj_polyline_${dir}`];
+      if (typeof poly === "string" && poly) row[`nj_polyline_${dir}`] = poly;
     }
   }
 
