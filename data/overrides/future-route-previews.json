@@ -3,6 +3,7 @@
     "id": "240_dec14",
     "supersedesRouteId": "240",
     "activeFrom": "2026-12-14",
+    "infoUrl": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=LGG&u=%2Fmilan",
     "extraStops": [
       { "stop_id": "Breda", "stop_name": "Breda", "stop_lat": 51.5956, "stop_lon": 4.7799 }
     ],
@@ -27,16 +28,22 @@
     "trips": {
       "ES 456 (from 2026-12-14)": {
         "route_id": "240_dec14",
+        "agency_id": "ES",
         "service_id": "2026: Mon, Thu, Sat",
         "trip_short_name": "456",
+        "trip_origin": "Bruxelles Midi / Brussel Zuid",
         "trip_headsign": "Milano Porta Garibaldi",
+        "via": "Antwerpen Centraal / Anvers Central - Breda - Eindhoven Centraal - Köln Hbf - Aarau - Arth-Goldau - Göschenen - Bellinzona - Lugano - Como San Giovanni",
         "irregularities": "From 2026-12-14"
       },
       "ES 457 (from 2026-12-14)": {
         "route_id": "240_dec14",
+        "agency_id": "ES",
         "service_id": "2026: Wed, Fri, Sun",
         "trip_short_name": "457",
+        "trip_origin": "Milano Porta Garibaldi",
         "trip_headsign": "Bruxelles Midi / Brussel Zuid",
+        "via": "Como San Giovanni - Lugano - Bellinzona - Göschenen - Arth-Goldau - Aarau - Köln Hbf - Eindhoven Centraal - Breda - Antwerpen Centraal / Anvers Central",
         "irregularities": "From 2026-12-14"
       }
     }

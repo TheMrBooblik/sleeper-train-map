@@ -56,6 +56,14 @@ function applyFutureRoutePreviews(viewMap, trips, stops, now, previews) {
       const exists = stops.some((s) => s.stop_id === stop.stop_id);
       if (!exists) stops.push({ ...stop });
     }
+    // Informational "about this route" link, shown in the detail panel. Stamp it
+    // onto both the new variant and the route it replaces (same service), so the
+    // existing via-Liège line gets the link too.
+    if (preview.infoUrl) {
+      viewMap[preview.id].info_url = preview.infoUrl;
+      const superseded = viewMap[preview.supersedesRouteId];
+      if (superseded) superseded.info_url = preview.infoUrl;
+    }
     // Once the new routing is live, retire the routing it replaces so the same
     // train never shows two physical paths at once.
     const startsAt = preview.activeFrom ? Date.parse(preview.activeFrom) : NaN;

@@ -2,7 +2,7 @@
 
 import React, { useMemo, useEffect, useState } from "react";
 import Link from "next/link";
-import { FiChevronDown } from "react-icons/fi";
+import { FiChevronDown, FiExternalLink } from "react-icons/fi";
 import { useAgencies } from "../../hooks/requests/useAgencies";
 import { useRoutes } from "../../hooks/requests/useRoutes";
 import { useTrips } from "../../hooks/requests/useTrips";
@@ -1090,6 +1090,20 @@ const TrainDetailPanel = ({
                         <div className="text-xs text-gray-600">
                           via {abbreviateStationName(trip.via)}
                         </div>
+                      )}
+                      {/* Optional informational link about the route (e.g. the
+                          operator's destination page). Distinct from the booking
+                          CTA below — purely "learn more". */}
+                      {tripRoute?.info_url && (
+                        <a
+                          href={tripRoute.info_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                        >
+                          About this route
+                          <FiExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+                        </a>
                       )}
                     </div>
 
