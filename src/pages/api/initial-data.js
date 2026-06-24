@@ -15,9 +15,8 @@ import {
 } from "./lib/file-store";
 import { buildInitialData, stripDisabledRoutes } from "./lib/build-initial-data.mjs";
 import SOURCE_REGISTRY from "../../../data/sources/registry.json" with { type: "json" };
-// Review-gate approval index, bundled at build time. The published fast path
-// is already gated by canonicalize; this covers the on-the-fly fallback merge.
-import SEEN_INDEX from "../../../data/canonical/state/seen.json" with { type: "json" };
+// Review gate disabled for now: the fallback merge passes seenIndex: null
+// (allow-all), matching the un-gated published artifact from canonicalize.
 // Routes the admin turned off from the map. Applied here at serve time (over
 // both the published file and the fallback merge) so a toggle goes live on the
 // next redeploy and is reversible — see admin Routes tab.
@@ -106,7 +105,7 @@ export default async function handler(req, res) {
       viewMap: rawViewMap,
       trips: rawTrips,
       operatorTrains,
-      seenIndex: SEEN_INDEX,
+      seenIndex: null,
     });
 
     setCacheHeaders(res);
