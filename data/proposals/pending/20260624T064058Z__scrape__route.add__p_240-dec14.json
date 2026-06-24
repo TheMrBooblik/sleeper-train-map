@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": "240",
   "kind": "route.add",
-  "title": "New train: 456 (Bruxelles Midi / Brussel Zuid – Milano Porta Garibaldi)",
-  "summary": "Route \"240_dec14\" appeared in tonight's scrape and is withheld from the map until approved. Via: Antwerpen Centraal / Anvers Central - Breda - Eindhoven Centraal - Köln Hbf - Aarau - Arth-Goldau - Göschenen - Bellinzona - Lugano - Como San Giovanni",
+  "title": "New train 456: Bruxelles Midi to Milano Porta Garibaldi",
+  "summary": "A new route for train 456 from Bruxelles Midi / Brussel Zuid to Milano Porta Garibaldi has been added. It operates on Mondays, Thursdays, and Saturdays, with a return train 457. The route includes stops at Antwerpen Centraal, Breda, Eindhoven Centraal, Köln Hbf, Aarau, Arth-Goldau, Göschenen, Bellinzona, Lugano, and Como San Giovanni.",
   "target": {
     "routeKey": "240_dec14",
     "agencyId": "ES",
@@ -31,5 +31,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
