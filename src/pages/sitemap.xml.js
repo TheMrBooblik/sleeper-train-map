@@ -3,6 +3,7 @@ import {
   getAllCountryHubs,
   getAllOperatorHubs,
   getAllCityPairs,
+  getStationHubsForCountry,
 } from "../lib/seo/aggregate";
 
 const SITE_URL = "https://sleeper-train-map.pingwi.com";
@@ -31,6 +32,12 @@ function generateSiteMap() {
   // Country hubs (replace the old /?country= deep-link entries)
   for (const { country } of getAllCountryHubs()) {
     entries.push(urlEntry(`${SITE_URL}/night-trains/${country.slug}`, lastmod, "weekly", "0.8"));
+    // Per-station "/from" hubs nested under each country.
+    for (const st of getStationHubsForCountry(country.slug)) {
+      entries.push(
+        urlEntry(`${SITE_URL}/night-trains/${country.slug}/from/${st.slug}`, lastmod, "weekly", "0.6"),
+      );
+    }
   }
 
   // Operator hubs

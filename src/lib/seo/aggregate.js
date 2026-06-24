@@ -5,19 +5,24 @@
  * All maps are memoized at module scope (one build = one computation).
  */
 
-import { getAllRouteSummaries } from "./data";
-import { getSeoCountry } from "./countries";
+import { getAllRouteSummaries, getStationCountryCode } from "./data";
+import { getSeoCountry, getSeoCountryBySlug } from "./countries";
 import { getOperatorMeta } from "./operators";
-import { buildPairSlug } from "./slugify";
+import { buildPairSlug, slugify } from "./slugify";
 
 // Minimum distinct trains a directed city pair needs before it earns its own page.
 // Single-train pairs are already covered by the train page (avoids thin/duplicate content).
 const MIN_TRAINS_PER_PAIR = 2;
 
+// Minimum routes a station needs before it earns its own "/from" page. A
+// single-route station would just duplicate that train page, so we gate it.
+const MIN_ROUTES_PER_STATION = 2;
+
 let _countryMap;
 let _operatorMap;
 let _operatorSlugToId;
 let _pairMap;
+let _stationMap;
 
 function dedupePush(arr, summary) {
   if (!arr.some((r) => r.routeId === summary.routeId)) arr.push(summary);
@@ -147,6 +152,70 @@ export function getCityPair(slug) {
     routes: sortByTitle(pair.routes),
     operators: uniqueOperators(pair.routes),
     countries: uniqueCountries(pair.routes),
+  };
+}
+
+// --- Station hubs (nested under country: /night-trains/{country}/from/{station}) ---
+
+/**
+ * countryCode → (stationSlug → { name, slug, countryCode, routes[] }).
+ *
+ * A route's two physical endpoints (origin + destination) each become a "from"
+ * station — night trains run both directions, so "from A" and "from B" are both
+ * valid. Each station is nested under the country it physically sits in, derived
+ * from the raw Back-on-Track stop→country index (not the route's country list,
+ * which can span several countries).
+ */
+function getStationMap() {
+  if (!_stationMap) {
+    _stationMap = new Map();
+    for (const s of getAllRouteSummaries()) {
+      const endpoints = [
+        { raw: s.origin, city: s.originCity },
+        { raw: s.destination, city: s.destinationCity },
+      ];
+      for (const { raw, city } of endpoints) {
+        if (!city) continue;
+        const code = getStationCountryCode(raw);
+        if (!getSeoCountry(code)) continue; // only nest under real hub countries
+        const slug = slugify(city);
+        if (!slug) continue;
+        if (!_stationMap.has(code)) _stationMap.set(code, new Map());
+        const byStation = _stationMap.get(code);
+        if (!byStation.has(slug)) {
+          byStation.set(slug, { name: city, slug, countryCode: code, routes: [] });
+        }
+        dedupePush(byStation.get(slug).routes, s);
+      }
+    }
+  }
+  return _stationMap;
+}
+
+/** [{ name, slug, routeCount }] for a country slug — only stations clearing the threshold. */
+export function getStationHubsForCountry(countrySlug) {
+  const country = getSeoCountryBySlug(countrySlug);
+  if (!country) return [];
+  const byStation = getStationMap().get(country.code);
+  if (!byStation) return [];
+  return [...byStation.values()]
+    .filter((st) => st.routes.length >= MIN_ROUTES_PER_STATION)
+    .map((st) => ({ name: st.name, slug: st.slug, routeCount: st.routes.length }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** { country, station:{name,slug}, routes[], operators[] } for a country+station slug, or null. */
+export function getStationHub(countrySlug, stationSlug) {
+  const country = getSeoCountryBySlug(countrySlug);
+  if (!country) return null;
+  const byStation = getStationMap().get(country.code);
+  const station = byStation && byStation.get(stationSlug);
+  if (!station || station.routes.length < MIN_ROUTES_PER_STATION) return null;
+  return {
+    country,
+    station: { name: station.name, slug: station.slug },
+    routes: sortByTitle(station.routes),
+    operators: uniqueOperators(station.routes),
   };
 }
 

@@ -115,7 +115,7 @@ const Legend = ({ variant = "inline" }) => {
                 style={{ backgroundColor: color }}
                 aria-hidden
               />
-              <span className="text-[10px] font-medium text-white/80">
+              <span className="text-[11px] font-medium text-white/80">
                 {label}
               </span>
             </span>
@@ -126,7 +126,7 @@ const Legend = ({ variant = "inline" }) => {
               style={{ backgroundColor: PKP_COLOR }}
               aria-hidden
             />
-            <span className="text-[10px] font-medium text-white/80">PKP</span>
+            <span className="text-[11px] font-medium text-white/80">PKP</span>
           </span>
           <span className="inline-flex items-center gap-1.5 rounded border border-white/20 bg-white/5 px-1.5 py-0.5">
             <span
@@ -134,7 +134,7 @@ const Legend = ({ variant = "inline" }) => {
               style={{ backgroundColor: REGIOJET_COLOR }}
               aria-hidden
             />
-            <span className="text-[10px] font-medium text-white/80">RJ</span>
+            <span className="text-[11px] font-medium text-white/80">RJ</span>
           </span>
         </div>
       </div>
@@ -155,25 +155,25 @@ const Legend = ({ variant = "inline" }) => {
         >
           <span className="flex items-center gap-1.5">
             <FrequencyLineSample {...MAP_LEGEND_LINE_BASE_STYLES.rank0} />
-            <span className="text-[10px] font-medium text-white/85 whitespace-nowrap">
+            <span className="text-[11px] font-medium text-white/85 whitespace-nowrap">
               Daily
             </span>
           </span>
           <span className="flex items-center gap-1.5">
             <FrequencyLineSample {...MAP_LEGEND_LINE_BASE_STYLES.rank1} />
-            <span className="text-[10px] font-medium text-white/85 whitespace-nowrap">
+            <span className="text-[11px] font-medium text-white/85 whitespace-nowrap">
               Less than daily
             </span>
           </span>
           <span className="flex items-center gap-1.5">
             <FrequencyLineSample {...MAP_LEGEND_LINE_BASE_STYLES.rank2} />
-            <span className="text-[10px] font-medium text-white/85 whitespace-nowrap">
+            <span className="text-[11px] font-medium text-white/85 whitespace-nowrap">
               Infrequent
             </span>
           </span>
           <span className="flex items-center gap-1.5">
             <FrequencyLineSample {...MAP_LEGEND_LINE_BASE_STYLES.futureGhost} />
-            <span className="text-[10px] font-medium text-white/85 whitespace-nowrap">
+            <span className="text-[11px] font-medium text-white/85 whitespace-nowrap">
               Not yet running
             </span>
           </span>
@@ -181,17 +181,13 @@ const Legend = ({ variant = "inline" }) => {
       </div>
 
       {/* Station dots — match mapIcons.js gradients */}
-      <div
-        className={
-          isPanel ? "flex flex-col gap-2" : "flex flex-wrap items-center gap-3"
-        }
-      >
+      <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1.5">
           <div
             className="h-3 w-3 shrink-0 rounded-full border border-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] bg-gradient-to-br from-[#2196f3] to-[#1976d2] min-[1280px]:h-3.5 min-[1280px]:w-3.5"
             aria-hidden
           />
-          <span className="text-[11px] font-medium text-white min-[1280px]:text-xs">
+          <span className="text-xs font-medium text-white min-[1280px]:text-xs">
             Route endpoint
           </span>
         </div>
@@ -200,14 +196,14 @@ const Legend = ({ variant = "inline" }) => {
             className="h-2.5 w-2.5 shrink-0 rounded-full border border-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] bg-gradient-to-br from-[#4caf50] to-[#388e3c] min-[1280px]:h-3 min-[1280px]:w-3"
             aria-hidden
           />
-          <span className="text-[11px] font-medium text-white min-[1280px]:text-xs">
+          <span className="text-xs font-medium text-white min-[1280px]:text-xs">
             Intermediate stop
           </span>
         </div>
       </div>
 
       <div className="flex flex-col gap-4 border-t border-white/15 pt-3">
-        <p className="text-[10px] leading-snug text-white/65">
+        <p className="text-[11px] leading-snug text-white/65">
           Huge thanks to{" "}
           <a
             href="https://back-on-track.eu"
