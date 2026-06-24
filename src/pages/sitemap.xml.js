@@ -19,40 +19,49 @@ function urlEntry(loc, lastmod, changefreq, priority) {
 }
 
 function generateSiteMap() {
-  const lastmod = getDataGeneratedAt();
   const staticLastmod = new Date().toISOString();
 
   const entries = [];
 
-  // Core pages
+  // Core pages — emitted unconditionally so the sitemap is always valid even if the
+  // data layer can't load (e.g. the committed payload is missing from the lambda).
   entries.push(urlEntry(SITE_URL, staticLastmod, "weekly", "1.0"));
   entries.push(urlEntry(`${SITE_URL}/about`, staticLastmod, "monthly", "0.9"));
-  entries.push(urlEntry(`${SITE_URL}/trains`, lastmod, "weekly", "0.9"));
 
-  // Country hubs (replace the old /?country= deep-link entries)
-  for (const { country } of getAllCountryHubs()) {
-    entries.push(urlEntry(`${SITE_URL}/night-trains/${country.slug}`, lastmod, "weekly", "0.8"));
-    // Per-station "/from" hubs nested under each country.
-    for (const st of getStationHubsForCountry(country.slug)) {
-      entries.push(
-        urlEntry(`${SITE_URL}/night-trains/${country.slug}/from/${st.slug}`, lastmod, "weekly", "0.6"),
-      );
+  // Data-derived pages. Wrapped so a read failure degrades to the core sitemap
+  // (HTTP 200) instead of throwing a 500 and giving crawlers nothing at all.
+  try {
+    const lastmod = getDataGeneratedAt();
+
+    entries.push(urlEntry(`${SITE_URL}/trains`, lastmod, "weekly", "0.9"));
+
+    // Country hubs (replace the old /?country= deep-link entries)
+    for (const { country } of getAllCountryHubs()) {
+      entries.push(urlEntry(`${SITE_URL}/night-trains/${country.slug}`, lastmod, "weekly", "0.8"));
+      // Per-station "/from" hubs nested under each country.
+      for (const st of getStationHubsForCountry(country.slug)) {
+        entries.push(
+          urlEntry(`${SITE_URL}/night-trains/${country.slug}/from/${st.slug}`, lastmod, "weekly", "0.6"),
+        );
+      }
     }
-  }
 
-  // Operator hubs
-  for (const { operator } of getAllOperatorHubs()) {
-    entries.push(urlEntry(`${SITE_URL}/operators/${operator.slug}`, lastmod, "weekly", "0.7"));
-  }
+    // Operator hubs
+    for (const { operator } of getAllOperatorHubs()) {
+      entries.push(urlEntry(`${SITE_URL}/operators/${operator.slug}`, lastmod, "weekly", "0.7"));
+    }
 
-  // Per-train pages
-  for (const route of getAllRouteSummaries()) {
-    entries.push(urlEntry(`${SITE_URL}/trains/${route.slug}`, lastmod, "weekly", "0.7"));
-  }
+    // Per-train pages
+    for (const route of getAllRouteSummaries()) {
+      entries.push(urlEntry(`${SITE_URL}/trains/${route.slug}`, lastmod, "weekly", "0.7"));
+    }
 
-  // City-pair connections
-  for (const pair of getAllCityPairs()) {
-    entries.push(urlEntry(`${SITE_URL}/connections/${pair.slug}`, lastmod, "weekly", "0.6"));
+    // City-pair connections
+    for (const pair of getAllCityPairs()) {
+      entries.push(urlEntry(`${SITE_URL}/connections/${pair.slug}`, lastmod, "weekly", "0.6"));
+    }
+  } catch (err) {
+    console.error("[sitemap] failed to build data-derived URLs:", err);
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
