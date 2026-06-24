@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-468",
+  "createdAt": "2026-06-24T06:40:58.721Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Disappeared: NJ 468",
+  "summary": "Route \"nj_standalone_NJ_468\" (Wien Hbf – Bruxelles Midi) has been missing from the sources for 7 days and is no longer shown. No action needed if the train was discontinued.",
+  "target": {
+    "routeKey": "nj_standalone_NJ_468",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
