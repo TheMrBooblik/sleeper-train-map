@@ -40,6 +40,16 @@ export default function TrainsIndex({ routes, countries, operators, cityPairs })
     description: DESCRIPTION,
     url: canonical,
     isPartOf: { "@type": "WebSite", name: "Pingwi Sleeper Train Map", url: SITE_URL },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: routes.length,
+      itemListElement: routes.map((r, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: absoluteUrl(`/trains/${r.slug}`),
+        name: r.title,
+      })),
+    },
   };
 
   return (

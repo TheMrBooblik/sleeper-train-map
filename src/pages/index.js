@@ -1,6 +1,7 @@
 import Head from "next/head";
 import Layout from "@components/Layout";
 import HomeSeoPanel from "@components/seo/HomeSeoPanel";
+import { organizationLd, webSiteLd } from "../lib/seo/schema";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -60,6 +61,14 @@ export default function Home({ seo }) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationLd()) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteLd()) }}
         />
       </Head>
     </Layout>

@@ -325,11 +325,6 @@ export default function AboutPage({ hubCountryCodes = [] }) {
               price: "0",
               priceCurrency: "EUR",
             },
-            aggregateRating: {
-              "@type": "AggregateRating",
-              ratingValue: "4.8",
-              ratingCount: "150",
-            },
           }),
         }}
       />
