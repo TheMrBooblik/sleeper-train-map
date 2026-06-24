@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-feldkirch-bahnhof",
+  "createdAt": "2026-06-24T06:41:26.490Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Feldkirch Bahnhof\" → \"Feldkirch\"",
+  "summary": "The operator-injected station \"Feldkirch Bahnhof\" appears to be the same as Back-on-Track's \"Feldkirch\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Feldkirch Bahnhof"
+  },
+  "before": null,
+  "after": {
+    "alias": "feldkirch bahnhof",
+    "canonical": "Feldkirch"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Feldkirch Bahnhof",
+        "canonical": "Feldkirch"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
