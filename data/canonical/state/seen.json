@@ -2801,18 +2801,18 @@
         "stopsHash": "1628b1af"
       }
     },
-    "cr_K_9795": {
-      "firstSeen": "2026-06-10",
+    "cr_K_23": {
+      "firstSeen": "2026-06-25",
       "lastSeen": "2026-06-25",
       "approved": true,
       "fingerprint": {
-        "o": "Urumqi",
-        "d": "Almaty",
+        "o": "Beijing",
+        "d": "Ulaanbaatar",
         "days0": null,
         "days1": null,
         "agency": "CR",
-        "trains": "K 9795|K 9796",
-        "stopsHash": "4195d1a1"
+        "trains": "K 23|K 24",
+        "stopsHash": "a8471631"
       }
     },
     "icn_ICN_752": {
@@ -4074,20 +4074,28 @@
       "firstSeen": "2026-06-10",
       "approved": true
     },
-    "Alashankou": {
-      "firstSeen": "2026-06-10",
+    "Jining South": {
+      "firstSeen": "2026-06-25",
       "approved": true
     },
-    "Dostyk": {
-      "firstSeen": "2026-06-10",
+    "Erlian": {
+      "firstSeen": "2026-06-25",
       "approved": true
     },
-    "Aktogay": {
-      "firstSeen": "2026-06-10",
+    "Zamyn-Üüd": {
+      "firstSeen": "2026-06-25",
       "approved": true
     },
-    "Almaty": {
-      "firstSeen": "2026-06-10",
+    "Saynshand": {
+      "firstSeen": "2026-06-25",
+      "approved": true
+    },
+    "Choir": {
+      "firstSeen": "2026-06-25",
+      "approved": true
+    },
+    "Ulaanbaatar": {
+      "firstSeen": "2026-06-25",
       "approved": true
     },
     "S.severo": {
