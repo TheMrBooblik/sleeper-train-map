@@ -110,15 +110,17 @@
     ]
   },
   {
-    "lineName": "K 9795",
-    "returnLineName": "K 9796",
+    "lineName": "K 23",
+    "returnLineName": "K 24",
     "operator": "China Railway",
     "stations": [
-      { "name": "Urumqi", "lat": 43.8063, "lon": 87.6183 },
-      { "name": "Alashankou", "lat": 45.1866, "lon": 82.5607 },
-      { "name": "Dostyk", "lat": 45.2633, "lon": 82.0283 },
-      { "name": "Aktogay", "lat": 46.9500, "lon": 79.6333 },
-      { "name": "Almaty", "lat": 43.2567, "lon": 76.9286 }
+      { "name": "Beijing", "lat": 39.9027, "lon": 116.4279 },
+      { "name": "Jining South", "lat": 40.9536, "lon": 113.1003 },
+      { "name": "Erlian", "lat": 43.6531, "lon": 111.9776 },
+      { "name": "Zamyn-Üüd", "lat": 43.7156, "lon": 111.8967 },
+      { "name": "Saynshand", "lat": 44.8917, "lon": 110.1372 },
+      { "name": "Choir", "lat": 46.3606, "lon": 108.3636 },
+      { "name": "Ulaanbaatar", "lat": 47.9077, "lon": 106.8832 }
     ]
   }
 ]
