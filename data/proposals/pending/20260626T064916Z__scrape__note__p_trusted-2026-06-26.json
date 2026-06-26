@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-06-26",
+  "createdAt": "2026-06-26T06:49:16.323Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (1 routes, 2 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_284: NJ 284 (Bologna Centrale – Wien Hbf)\nstation Brennero/Brenner (nightjet)\nstation Salzburg Süd Bahnhof (nightjet)",
+  "target": {
+    "routeKey": "trusted-2026-06-26",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
