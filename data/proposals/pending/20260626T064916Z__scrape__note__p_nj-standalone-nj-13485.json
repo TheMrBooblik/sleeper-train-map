@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 13485 (Zürich HB – Graz Hbf)",
-  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 13485|NJ 13484\" → \"NJ 13485|NJ 464\"",
+  "title": "Update: NJ 13485 (Zürich HB – Graz Hbf) Train Numbers",
+  "summary": "The train numbers for NJ 13485 (Zürich HB – Graz Hbf) have been updated. The previous train numbers were NJ 13485 and NJ 13484. They have now changed to NJ 13485 and NJ 464. This change is already live.",
   "target": {
     "routeKey": "nj_standalone_NJ_13485",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
