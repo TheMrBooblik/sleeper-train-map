@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (1 routes, 2 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_284: NJ 284 (Bologna Centrale – Wien Hbf)\nstation Brennero/Brenner (nightjet)\nstation Salzburg Süd Bahnhof (nightjet)",
+  "title": "New Night Train Route and Stations Added",
+  "summary": "A new night train route has been added: NJ 284, which runs from Bologna Centrale to Wien Hbf. Additionally, two stations have been included: Brennero/Brenner and Salzburg Süd Bahnhof, both serving the nightjet service.",
   "target": {
     "routeKey": "trusted-2026-06-26",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
