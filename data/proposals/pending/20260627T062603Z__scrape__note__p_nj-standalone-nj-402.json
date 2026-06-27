@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 402 (Zürich HB – Utrecht Centraal)",
-  "summary": "Material change on an approved route (already live — FYI): destination: \"Amsterdam Centraal\" → \"Utrecht Centraal\"; train numbers: \"NJ 402|NJ 403\" → \"NJ 402\"",
+  "title": "Update: NJ 402 Route Change (Zürich HB – Utrecht Centraal)",
+  "summary": "The destination for train NJ 402 has been updated from \"Amsterdam Centraal\" to \"Utrecht Centraal\". Train numbers have also changed; now only NJ 402 is in service, while NJ 403 is no longer included.",
   "target": {
     "routeKey": "nj_standalone_NJ_402",
     "agencyId": "ÖBB",
@@ -25,5 +25,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
