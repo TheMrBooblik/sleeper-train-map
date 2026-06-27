@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-1961",
+  "createdAt": "2026-06-27T06:26:03.593Z",
+  "source": "scrape",
+  "sourceDetail": "icn",
+  "kind": "route.add",
+  "title": "New train: ICN 1961 (Messina Centrale – Palermo Centrale)",
+  "summary": "Route \"icn_ICN_1961\" appeared in tonight's scrape and is withheld from the map until approved. Via: Milazzo - Barcellona-Castroreale - Patti-S.piero Patti - Capo D'Orlando-Naso - S.agata Di Militello - S.stefano Di Camastra-Mistretta - Cefalu' - Termini Imerese",
+  "target": {
+    "routeKey": "icn_ICN_1961",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "ICN 1961",
+    "returnTrain": "ICN 1964",
+    "origin": "Messina Centrale",
+    "destination": "Palermo Centrale",
+    "operator": "FS",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "icn_ICN_1961"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
