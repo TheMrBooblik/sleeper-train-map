@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 40490 (Wien Hbf – Utrecht Centraal)",
-  "summary": "Material change on an approved route (already live — FYI): destination: \"Amsterdam Centraal\" → \"Utrecht Centraal\"; train numbers: \"NJ 40490|NJ 40421\" → \"NJ 40490\"",
+  "title": "Update: NJ 40490 Route Change",
+  "summary": "The route for train NJ 40490 has been updated. It now travels from Wien Hbf to Utrecht Centraal instead of Amsterdam Centraal. The train number remains NJ 40490, and NJ 40421 is no longer part of this route.",
   "target": {
     "routeKey": "nj_standalone_NJ_40490",
     "agencyId": "ÖBB",
@@ -25,5 +25,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
