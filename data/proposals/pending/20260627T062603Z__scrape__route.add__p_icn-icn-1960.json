@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-1960",
+  "createdAt": "2026-06-27T06:26:03.593Z",
+  "source": "scrape",
+  "sourceDetail": "icn",
+  "kind": "route.add",
+  "title": "New train: ICN 1960 (Siracusa – Roma Termini)",
+  "summary": "Route \"icn_ICN_1960\" appeared in tonight's scrape and is withheld from the map until approved. Via: Augusta - Lentini - Catania Centrale - Acireale - Giarre Riposto - Taormina-Giardini - Messina Centrale - Salerno - Napoli Centrale - Formia-Gaeta - Latina",
+  "target": {
+    "routeKey": "icn_ICN_1960",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "ICN 1960",
+    "returnTrain": "ICN 1955",
+    "origin": "Siracusa",
+    "destination": "Roma Termini",
+    "operator": "FS",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "icn_ICN_1960"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
