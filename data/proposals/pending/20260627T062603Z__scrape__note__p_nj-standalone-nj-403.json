@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 403 (Amsterdam Centraal – Zürich HB)",
-  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 403|NJ 402\" → \"NJ 403\"",
+  "title": "Update: NJ 403 (Amsterdam Centraal – Zürich HB)",
+  "summary": "The train numbers for NJ 403 have been updated. The previous listing included NJ 402, but it is now only NJ 403. This change is already live and is for your information.",
   "target": {
     "routeKey": "nj_standalone_NJ_403",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
