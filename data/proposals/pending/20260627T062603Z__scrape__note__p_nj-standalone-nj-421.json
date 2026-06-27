@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 421 (Amsterdam Centraal – Innsbruck Hbf)",
-  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 421|NJ 420\" → \"NJ 421\"",
+  "title": "Update: NJ 421 (Amsterdam Centraal – Innsbruck Hbf)",
+  "summary": "The train numbers for NJ 421 have been updated. The previous listing included NJ 420, but it is now only NJ 421. This change is on an approved route and is already live.",
   "target": {
     "routeKey": "nj_standalone_NJ_421",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
