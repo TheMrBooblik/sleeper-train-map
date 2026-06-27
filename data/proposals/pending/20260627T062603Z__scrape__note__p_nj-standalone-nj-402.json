@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-402",
+  "createdAt": "2026-06-27T06:26:03.592Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 402 (Zürich HB – Utrecht Centraal)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Amsterdam Centraal\" → \"Utrecht Centraal\"; train numbers: \"NJ 402|NJ 403\" → \"NJ 402\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_402",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Amsterdam Centraal",
+    "train numbers": "NJ 402|NJ 403"
+  },
+  "after": {
+    "destination": "Utrecht Centraal",
+    "train numbers": "NJ 402"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
