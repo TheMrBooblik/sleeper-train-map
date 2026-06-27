@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 40421 (Amsterdam Centraal – Wien Hbf)",
-  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 40421|NJ 40490\" → \"NJ 40421\"",
+  "title": "Update: NJ 40421 (Amsterdam Centraal – Wien Hbf)",
+  "summary": "The train number for the route from Amsterdam Centraal to Wien Hbf has been updated. The previous train numbers were NJ 40421 and NJ 40490, and now it is only NJ 40421. This change is already live.",
   "target": {
     "routeKey": "nj_standalone_NJ_40421",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
