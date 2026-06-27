@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-421",
+  "createdAt": "2026-06-27T06:26:03.592Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 421 (Amsterdam Centraal – Innsbruck Hbf)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 421|NJ 420\" → \"NJ 421\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_421",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "NJ 421|NJ 420"
+  },
+  "after": {
+    "train numbers": "NJ 421"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
