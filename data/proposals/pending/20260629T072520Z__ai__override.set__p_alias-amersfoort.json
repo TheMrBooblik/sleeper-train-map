@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-amersfoort",
+  "createdAt": "2026-06-29T07:25:20.150Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Amersfoort\" → \"Amersfoort Centraal\"",
+  "summary": "The operator-injected station \"Amersfoort\" appears to be the same as Back-on-Track's \"Amersfoort Centraal\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Amersfoort"
+  },
+  "before": null,
+  "after": {
+    "alias": "amersfoort",
+    "canonical": "Amersfoort Centraal"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Amersfoort",
+        "canonical": "Amersfoort Centraal"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
