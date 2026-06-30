@@ -53,9 +53,11 @@ function setCacheHeaders(res) {
 }
 
 export default async function handler(req, res) {
+  // Hoisted so the catch can serve it as a stale last resort (see below).
+  let published = null;
   try {
     // Fast path: pre-merged dataset committed by the daily canonicalize step.
-    const published = await getPublishedInitialData();
+    published = await getPublishedInitialData();
     if (published && isFresh(published.uploadedAt)) {
       console.log("[initial-data] source: published");
       setCacheHeaders(res);
@@ -112,6 +114,15 @@ export default async function handler(req, res) {
     res.status(200).json(stripDisabledRoutes(payload, DISABLED_ROUTES));
   } catch (error) {
     console.error("[initial-data] Error:", error);
+    // Last resort: if the fresh-data fallbacks failed (e.g. upstream serving a
+    // corrupted file) but we have a committed published artifact, serve it even
+    // when stale rather than 500 — the map must never blank.
+    if (published?.data) {
+      console.warn("[initial-data] serving stale published artifact after fallback failure");
+      setCacheHeaders(res);
+      res.status(200).json(stripDisabledRoutes(published.data, DISABLED_ROUTES));
+      return;
+    }
     res.status(500).json({ error: "Error fetching initial data" });
   }
 }
