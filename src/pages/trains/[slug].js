@@ -61,6 +61,23 @@ export default function TrainPage({ detail, related, cityPair }) {
   const primary = detail.directions[0];
   const trainNumbers = detail.directions.map((d) => d.trainNumber).filter(Boolean);
 
+  // Ordered itinerary (via-stations) from the primary direction's resolved stops.
+  // `Trip.itinerary` (inherited by TrainTrip) takes an ItemList when order matters.
+  const stopNames = (primary?.stops || [])
+    .map((s) => (typeof s === "string" ? s : s?.name))
+    .filter(Boolean);
+  const itinerary =
+    stopNames.length >= 2
+      ? {
+          "@type": "ItemList",
+          itemListElement: stopNames.map((name, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            item: { "@type": "TrainStation", name },
+          })),
+        }
+      : null;
+
   const trainTripLd = {
     "@context": "https://schema.org",
     "@type": "TrainTrip",
@@ -73,6 +90,7 @@ export default function TrainPage({ detail, related, cityPair }) {
     arrivalStation: { "@type": "TrainStation", name: detail.destination },
     ...(primary?.departureTime ? { departureTime: primary.departureTime } : {}),
     ...(primary?.arrivalTime ? { arrivalTime: primary.arrivalTime } : {}),
+    ...(itinerary ? { itinerary } : {}),
     url: canonical,
   };
 

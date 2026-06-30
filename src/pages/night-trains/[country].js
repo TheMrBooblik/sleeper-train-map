@@ -7,11 +7,15 @@ import Breadcrumbs from "@components/seo/Breadcrumbs";
 import RouteCardLink from "@components/seo/RouteCardLink";
 import JsonLd from "@components/seo/JsonLd";
 
-import { getAllCountryHubs, getCountryHub } from "../../lib/seo/aggregate";
+import {
+  getAllCountryHubs,
+  getCountryHub,
+  getStationHubsForCountry,
+} from "../../lib/seo/aggregate";
 import { getFlagEmoji } from "../../lib/countries";
 import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
-export default function CountryHub({ country, routes, operators }) {
+export default function CountryHub({ country, routes, operators, stations }) {
   const canonical = absoluteUrl(`/night-trains/${country.slug}`);
   const title = `Night Trains in ${country.name} — Routes & Sleeper Connections | Pingwi`;
   const operatorNames = operators.map((o) => o.name).join(", ");
@@ -100,6 +104,24 @@ export default function CountryHub({ country, routes, operators }) {
             </section>
           )}
 
+          {stations.length > 0 && (
+            <section className="mt-10">
+              <h2 className="text-lg font-semibold text-white">Departure stations</h2>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {stations.map((st) => (
+                  <Link
+                    key={st.slug}
+                    href={`/night-trains/${country.slug}/from/${st.slug}`}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.02] px-3.5 py-1.5 text-sm text-white/70 hover:text-white hover:border-primary-green/50 transition-colors"
+                  >
+                    {st.name}
+                    <span className="text-xs text-white/40">{st.routeCount}</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
           <section className="mt-10">
             <h2 className="text-lg font-semibold text-white">
               Routes ({routes.length})
@@ -137,6 +159,11 @@ export async function getStaticProps({ params }) {
     operators: s.operators,
   }));
   return {
-    props: { country: hub.country, routes, operators: hub.operators },
+    props: {
+      country: hub.country,
+      routes,
+      operators: hub.operators,
+      stations: getStationHubsForCountry(params.country),
+    },
   };
 }

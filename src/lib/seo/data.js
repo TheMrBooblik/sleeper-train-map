@@ -104,6 +104,18 @@ function getStopCountryIndex() {
   return _stopCountry;
 }
 
+/**
+ * Normalized ISO-2 country code for a station name, derived from the raw
+ * Back-on-Track stop index. Returns "" when the station is unknown.
+ * Used by the per-station hub aggregator to nest stations under their country.
+ * @param {string} name - raw station name (e.g. route.origin_trip_0)
+ * @returns {string}
+ */
+export function getStationCountryCode(name) {
+  if (!name) return "";
+  return getStopCountryIndex().get(String(name).toLowerCase()) || "";
+}
+
 /** routeId(string) → trips[] (memoized). */
 function getTripsByRoute() {
   if (!_tripsByRoute) {
