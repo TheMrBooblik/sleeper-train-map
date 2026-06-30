@@ -1,0 +1,14 @@
+{
+  "note": "VIA Rail Canada routes that offer sleeping accommodations (cabins / berths). The gtfs-sleeper adapter keeps only feed routes whose route_long_name / route_short_name / route_id matches one of these (case/space/punctuation-insensitive). Several name/city-pair variants are listed because VIA's GTFS route naming should be confirmed against the live feed. Corridor day trains (Québec City–Windsor) are intentionally excluded.",
+  "source": "https://www.viarail.ca/sites/all/files/gtfs/viarail.zip",
+  "routes": [
+    "The Canadian",
+    "Canadian",
+    "Toronto - Vancouver",
+    "The Ocean",
+    "Ocean",
+    "Montreal - Halifax",
+    "Hudson Bay",
+    "Winnipeg - Churchill"
+  ]
+}

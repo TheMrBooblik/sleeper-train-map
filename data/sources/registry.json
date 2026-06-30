@@ -258,6 +258,70 @@
   },
   {
     "v": 1,
+    "id": "amtrak",
+    "label": "Amtrak",
+    "description": "Official Amtrak GTFS feed, filtered to long-distance routes with sleeping cars (data/sources/amtrak-sleepers.json). Each route becomes a synthetic map route; coordinates, polylines and service calendars come straight from the feed. Refreshed nightly inside the scrape.",
+    "kind": "gtfs",
+    "adapter": "gtfs-sleeper",
+    "enabled": true,
+    "official": true,
+    "trusted": true,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.amtrak.com",
+    "output": "amtrak-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "AMTK", "operatorName": "Amtrak" },
+    "synthetic": {
+      "idPrefix": "amtrak_",
+      "agency": { "from": "fixed", "value": "AMTK" },
+      "resolveAliases": false,
+      "withService": true,
+      "excludeBotMatched": false,
+      "dedupStrategy": null
+    },
+    "params": {
+      "feedUrl": "https://content.amtrak.com/content/gtfs/GTFS.zip",
+      "configPath": "data/sources/amtrak-sleepers.json",
+      "agency": "AMTK",
+      "operator": "Amtrak"
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
+    "id": "viarail",
+    "label": "VIA Rail Canada",
+    "description": "Official VIA Rail GTFS feed, filtered to overnight routes with sleeping cars/berths (data/sources/viarail-sleepers.json). Each route becomes a synthetic map route; coordinates, polylines and service calendars come straight from the feed. Refreshed nightly inside the scrape.",
+    "kind": "gtfs",
+    "adapter": "gtfs-sleeper",
+    "enabled": true,
+    "official": true,
+    "trusted": true,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.viarail.ca",
+    "output": "viarail-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "VIA", "operatorName": "VIA Rail" },
+    "synthetic": {
+      "idPrefix": "via_",
+      "agency": { "from": "fixed", "value": "VIA" },
+      "resolveAliases": false,
+      "withService": true,
+      "excludeBotMatched": false,
+      "dedupStrategy": null
+    },
+    "params": {
+      "feedUrl": "https://www.viarail.ca/sites/all/files/gtfs/viarail.zip",
+      "configPath": "data/sources/viarail-sleepers.json",
+      "agency": "VIA",
+      "operator": "VIA Rail"
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
     "id": "pkp-gtfs",
     "label": "PKP Intercity (Polish GTFS)",
     "description": "Official PKP Intercity timetable data (mkuran.pl is a mechanical daily conversion of the official NAP feed). Committed as public/data/gtfs/pkpTrainShapes.json; regenerated nightly inside the scrape (npm run parse-pkp-gtfs, scoped by BoT PKP trips). Enriches PKP rows with official stop lists and stamps them for trusted auto-approval.",

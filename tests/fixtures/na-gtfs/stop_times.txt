@@ -1,0 +1,11 @@
+trip_id,stop_sequence,stop_id,arrival_time,departure_time
+t1,1,CHI,,14:00:00
+t1,2,OMA,06:00:00,06:10:00
+t1,3,EMY,16:10:00,
+t2,1,CHI,,14:00:00
+t2,2,EMY,16:10:00,
+t4,1,NYP,,14:15:00
+t4,2,WAS,18:25:00,18:30:00
+t4,3,NOL,19:32:00,
+t3,1,LAX,,09:00:00
+t3,2,SAN,11:00:00,

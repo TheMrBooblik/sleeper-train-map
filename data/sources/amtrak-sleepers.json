@@ -1,0 +1,21 @@
+{
+  "note": "Amtrak routes that offer sleeping accommodations (Roomette/Bedroom). The gtfs-sleeper adapter keeps only feed routes whose route_long_name / route_short_name / route_id matches one of these (case/space/punctuation-insensitive). Day corridors (Acela, Northeast Regional, state-supported services) are intentionally excluded. Edit this list to add/remove sleeper routes; no code change needed.",
+  "source": "https://content.amtrak.com/content/gtfs/GTFS.zip",
+  "routes": [
+    "Auto Train",
+    "California Zephyr",
+    "Capitol Limited",
+    "Floridian",
+    "Cardinal",
+    "City of New Orleans",
+    "Coast Starlight",
+    "Crescent",
+    "Empire Builder",
+    "Lake Shore Limited",
+    "Silver Meteor",
+    "Silver Star",
+    "Southwest Chief",
+    "Sunset Limited",
+    "Texas Eagle"
+  ]
+}

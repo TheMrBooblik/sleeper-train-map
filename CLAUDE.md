@@ -24,7 +24,7 @@ npm run test:smoke   # Run smoke tests (separate config)
 npm run verify-registry && npm run verify-build-parity && npm run verify-overrides && \
 npm run verify-proposals && npm run verify-classify && npm run verify-calendar && \
 npm run verify-canonical-routes && npm run verify-ai && npm run verify-enrich && \
-npm run verify-route-geometry && npm run verify-es
+npm run verify-route-geometry && npm run verify-es && npm run verify-na-gtfs
 ```
 
 ## Architecture Overview
@@ -85,7 +85,7 @@ All data is committed to the repo. Git is the database and the audit log.
 
 **Layout:**
 - `public/data/scraped/backontrack-{stops,view_ontd_map,trips}.json` — raw Back-on-Track datasets, refreshed nightly.
-- `public/data/scraped/{nightjet,cd,chinese,italian,caucasus,curated}-trains.json` — per-source trains (`{ uploadedAt, trains: { "NJ 403": {polyline, stations, lastSeenAt}, ... } }`); filenames come from registry `output`.
+- `public/data/scraped/{nightjet,cd,chinese,italian,caucasus,curated,amtrak,viarail}-trains.json` — per-source trains (`{ uploadedAt, trains: { "NJ 403": {polyline, stations, lastSeenAt}, ... } }`); filenames come from registry `output`. The `amtrak`/`viarail` files are produced by the generic `gtfs-sleeper` adapter (`scripts/adapters/gtfs-sleeper.mjs` + `scripts/lib/gtfs.mjs`): it downloads an operator's official GTFS feed and keeps only the routes in a curated sleeper allowlist (`data/sources/{amtrak,viarail}-sleepers.json`), turning each into a synthetic route — feed shapes/stops/calendars mean no manual coordinates. These two sources stay empty until the first nightly scrape, since the feed hosts may be unreachable from a dev session's egress policy.
 - `public/data/scraped/osm-{relationId}.json` — cached OSM relation geometries.
 - `public/data/published/initial-data.json` — the pre-merged, review-gated `{ stops, viewMap, trips }` payload served directly by `/api/initial-data` when fresh. Built by `npm run canonicalize`.
 - `data/sources/registry.json` — the source registry (see above).

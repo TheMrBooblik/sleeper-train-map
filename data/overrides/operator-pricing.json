@@ -16,5 +16,7 @@
   "CR": { "type": "fixed", "currency": "CNY", "fromPrice": null, "source": "draft", "note": "China Railway government tariff" },
   "GR": { "type": "fixed", "currency": "GEL", "fromPrice": null, "source": "draft" },
   "ADY": { "type": "fixed", "currency": "AZN", "fromPrice": null, "source": "draft" },
-  "SCR": { "type": "fixed", "currency": "AMD", "fromPrice": null, "source": "draft" }
+  "SCR": { "type": "fixed", "currency": "AMD", "fromPrice": null, "source": "draft" },
+  "AMTK": { "type": "dynamic", "currency": "USD", "fromPrice": null, "source": "draft", "note": "Amtrak yield-managed sleeper fares (Roomette/Bedroom)" },
+  "VIA": { "type": "dynamic", "currency": "CAD", "fromPrice": null, "source": "draft", "note": "VIA Rail cabin/berth fares" }
 }

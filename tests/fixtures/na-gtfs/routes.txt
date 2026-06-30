@@ -1,0 +1,4 @@
+route_id,agency_id,route_short_name,route_long_name,route_type
+CZ,AMTK,5,California Zephyr,2
+CR,AMTK,20,Crescent,2
+PS,AMTK,,Pacific Surfliner,2

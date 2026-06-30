@@ -6,6 +6,11 @@ import Map from "@components/Map";
 import Section from "@components/Section";
 import { useWindowSize } from "../../hooks/useWindowSize";
 import { getCountryByCode } from "../../lib/countries";
+import {
+  isNorthAmericaClient,
+  NORTH_AMERICA_CENTER,
+  NORTH_AMERICA_ZOOM,
+} from "../../lib/detectRegion";
 import { useInitialData } from "../../hooks/requests/useInitialData";
 
 const DEFAULT_CENTER = [49.385541, 12.765493];
@@ -45,6 +50,10 @@ const Layout = ({ children }) => {
         return countryData.center;
       }
     }
+    // No explicit target: open on North America for NA visitors, else Europe.
+    if (isNorthAmericaClient()) {
+      return NORTH_AMERICA_CENTER;
+    }
     return DEFAULT_CENTER;
   })();
 
@@ -62,6 +71,9 @@ const Layout = ({ children }) => {
       if (countryData) {
         return countryData.zoom;
       }
+    }
+    if (isNorthAmericaClient()) {
+      return NORTH_AMERICA_ZOOM;
     }
     return DEFAULT_ZOOM;
   })();
