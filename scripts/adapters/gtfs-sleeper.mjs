@@ -49,14 +49,28 @@ export async function run(entry, ctx) {
   }
 
   const gtfs = loadGtfsDir(gtfsDir);
+  const stats = {};
   const trains = buildSleeperTrains({
     gtfs,
     allowlist,
     agency: agency || entry.synthetic?.agency?.value || entry.id,
     operator: operator || entry.label,
     log,
+    stats,
   });
 
+  const built = Object.keys(trains).length;
+
+  // Freshness safety net: if the feed has routes but our curated allowlist
+  // matched none of them, the feed's naming almost certainly drifted. Fail
+  // loudly (recorded as a per-source error by the runner) so sticky-merge keeps
+  // yesterday's data instead of silently publishing an empty operator.
+  if (built === 0 && stats.feedRouteCount > 0) {
+    throw new Error(
+      `${entry.id}: 0 of ${stats.feedRouteCount} feed routes matched the allowlist — feed naming may have changed (unmatched: ${(stats.unmatched || []).join(", ")})`,
+    );
+  }
+
   ctx.write(entry.output, { uploadedAt: ctx.today, trains });
-  log(`stored ${Object.keys(trains).length} trains`);
+  log(`stored ${built} trains`);
 }

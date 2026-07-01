@@ -1,9 +1,10 @@
 // tests/verify-na-gtfs.mjs
 // Offline unit test for the generic GTFS sleeper builder (scripts/lib/gtfs.mjs)
 // that powers the Amtrak + VIA Rail sources. Runs a committed GTFS fixture
-// through loadGtfsDir() + buildSleeperTrains() and asserts allowlist filtering,
-// representative-trip selection, shape vs station-chain geometry, ordered
-// stations and calendar rendering. Raw node, no network.
+// through loadGtfsDir() + buildSleeperTrains() and asserts allowlist filtering
+// (by route name AND by endpoint city-pair), representative-trip selection,
+// shape vs station-chain geometry, ordered stations, calendar rendering, and
+// unmatched-allowlist reporting. Raw node, no network.
 // Run: npm run verify-na-gtfs
 
 import path from "node:path";
@@ -22,19 +23,31 @@ const approx = (a, b) => Math.abs(a - b) < 1e-4;
 
 const gtfs = loadGtfsDir(FIXTURE);
 
-// Allowlist deliberately uses different case to exercise loose matching, and
-// omits "Pacific Surfliner" so the day route is filtered out.
+// Allowlist mixes forms: name strings (Amtrak), an endpoint city-pair whose
+// ASCII city must match the accented feed station (VIA "The Ocean" via
+// Montréal↔Halifax), and a deliberately-unmatched entry. "Pacific Surfliner"
+// is omitted so the day route is filtered out.
+const stats = {};
 const trains = buildSleeperTrains({
   gtfs,
-  allowlist: ["CALIFORNIA ZEPHYR", "Crescent"],
+  allowlist: [
+    "CALIFORNIA ZEPHYR",
+    "Crescent",
+    { from: "Montreal", to: "Halifax" },
+    "Nonexistent Route",
+  ],
   agency: "AMTK",
   operator: "Amtrak",
+  stats,
 });
 
 const keys = Object.keys(trains).sort();
 check(
-  keys.length === 2 && keys[0] === "California Zephyr" && keys[1] === "Crescent",
-  `expected exactly [California Zephyr, Crescent], got [${keys.join(", ")}]`,
+  keys.length === 3 &&
+    keys[0] === "California Zephyr" &&
+    keys[1] === "Crescent" &&
+    keys[2] === "The Ocean",
+  `expected [California Zephyr, Crescent, The Ocean], got [${keys.join(", ")}]`,
 );
 check(!("Pacific Surfliner" in trains), "Pacific Surfliner (no sleeper) must be filtered out");
 
@@ -51,19 +64,16 @@ if (!cz) {
       names[0] === "Chicago Union Station" &&
       names[1] === "Omaha" &&
       names[2] === "Emeryville",
-    `CZ stations should be Chicago→Omaha→Emeryville, got [${names.join(" → ")}]`,
+    `CZ stations should be Chicago->Omaha->Emeryville, got [${names.join(" -> ")}]`,
   );
   check(
     cz.stations.every(
-      (s) =>
-        Number.isFinite(s.location.latitude) &&
-        Number.isFinite(s.location.longitude),
+      (s) => Number.isFinite(s.location.latitude) && Number.isFinite(s.location.longitude),
     ),
     "CZ stations must all carry coordinates",
   );
-  // Times come through formatted HH:MM.
   check(cz.stations[0].departure === "14:00", `CZ first departure: ${cz.stations[0].departure}`);
-  // Geometry uses the GTFS shape (sh1: 3 points), not just the 2-stop t2.
+  // Geometry uses the GTFS shape (sh1: 3 points), not the 2-stop t2.
   const decoded = polyline.decode(cz.polyline);
   check(
     decoded.length === 3 &&
@@ -72,7 +82,6 @@ if (!cz) {
       approx(decoded[2][0], 37.8409),
     `CZ polyline should follow shape sh1 (3 pts), decoded ${decoded.length}`,
   );
-  // Full-year daily calendar → "2026: Daily".
   check(cz.frequency === "2026: Daily", `CZ frequency: ${cz.frequency}`);
 }
 
@@ -80,15 +89,36 @@ const cr = trains["Crescent"];
 if (!cr) {
   problems.push("Crescent missing");
 } else {
-  // No shape_id on the Crescent trip → polyline falls back to the station chain.
+  // No shape_id on the Crescent trip -> polyline falls back to the station chain.
   const decoded = polyline.decode(cr.polyline);
   check(
-    decoded.length === 3 &&
-      approx(decoded[0][0], 40.7506) &&
-      approx(decoded[2][1], -90.0701),
+    decoded.length === 3 && approx(decoded[0][0], 40.7506) && approx(decoded[2][1], -90.0701),
     `Crescent polyline should fall back to its 3-station chain, decoded ${decoded.length}`,
   );
 }
+
+// VIA "The Ocean": matched purely by endpoint pair {Montreal, Halifax} even
+// though its route name isn't in the allowlist and the feed station is accented.
+const oc = trains["The Ocean"];
+if (!oc) {
+  problems.push("The Ocean must match by endpoint city-pair (accent-folded)");
+} else {
+  const names = oc.stations.map((s) => s.name);
+  check(
+    names[0] === "Montréal Gare Centrale" && names[names.length - 1] === "Halifax",
+    `Ocean endpoints should be Montréal->Halifax, got [${names.join(" -> ")}]`,
+  );
+}
+
+// Freshness safety net: the unmatched entry is reported, matched ones are not.
+check(
+  stats.unmatched.length === 1 && stats.unmatched[0] === "Nonexistent Route",
+  `stats.unmatched should be [Nonexistent Route], got [${(stats.unmatched || []).join(", ")}]`,
+);
+check(
+  stats.matched.includes("Montreal – Halifax"),
+  `stats.matched should include the endpoint pair, got [${(stats.matched || []).join(", ")}]`,
+);
 
 if (problems.length) {
   problems.forEach((p) => console.error(`  ✗ ${p}`));
@@ -96,4 +126,6 @@ if (problems.length) {
   process.exit(1);
 }
 
-console.log(`verify-na-gtfs: OK — ${keys.length} sleeper routes built from fixture`);
+console.log(
+  `verify-na-gtfs: OK — ${keys.length} sleeper routes built (name + endpoint-pair matching)`,
+);

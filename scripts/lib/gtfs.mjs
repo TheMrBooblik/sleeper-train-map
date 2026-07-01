@@ -246,12 +246,50 @@ const fmtTime = (t) => {
   return `${String(h).padStart(2, "0")}:${parts[1].padStart(2, "0")}`;
 };
 
-// Normalise a route name for allowlist matching (case/space/punctuation-loose).
+// Normalise a route name / station for matching: fold accents (Montréal →
+// montreal), lowercase, collapse punctuation to single spaces. Accent-folding
+// matters for bilingual feeds like VIA Rail.
 function normLabel(s) {
   return String(s || "")
+    .normalize("NFD")
+    .replace(/\p{Mn}/gu, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+// Does a route endpoint (already normalised) start with an allowlist city?
+// Token-aware so "toronto union station" matches "toronto" but "new york"
+// never matches "york".
+function endpointMatchesCity(endpointNorm, cityNorm) {
+  if (!cityNorm || !endpointNorm) return false;
+  return endpointNorm === cityNorm || endpointNorm.startsWith(`${cityNorm} `);
+}
+
+// Order-independent endpoint-pair match: keep a route when its two termini are
+// the allowlisted city pair in either direction.
+function pairMatches(originNorm, destNorm, from, to) {
+  const f = normLabel(from);
+  const t = normLabel(to);
+  return (
+    (endpointMatchesCity(originNorm, f) && endpointMatchesCity(destNorm, t)) ||
+    (endpointMatchesCity(originNorm, t) && endpointMatchesCity(destNorm, f))
+  );
+}
+
+// Pick the representative trip for a route: the one serving the most located
+// stations (full corridor), so seasonal/partial runs don't truncate it.
+function representativeTrip(trips, gtfs) {
+  let best = null;
+  let bestStations = [];
+  for (const t of trips) {
+    const stations = stationsForTrip(t.trip_id, gtfs);
+    if (stations.length > bestStations.length) {
+      best = t;
+      bestStations = stations;
+    }
+  }
+  return { trip: best, stations: bestStations };
 }
 
 // Build the ordered station list for a trip from its stop_times.
@@ -279,50 +317,92 @@ function stationsForTrip(tripId, gtfs) {
 /**
  * Build the standard trains dict for the allowlisted routes of one feed.
  *
- * @param {object}   args
- * @param {object}   args.gtfs       result of loadGtfsDir()
- * @param {string[]} args.allowlist  route names to keep (matched against
- *                                   route_long_name / route_short_name / route_id)
- * @param {string}   args.agency     agency_id stamp (e.g. "AMTK")
- * @param {string}   args.operator   display operator name (e.g. "Amtrak")
+ * Allowlist entries can take either form (mix freely):
+ *   - a string      → matched against route_long_name / route_short_name /
+ *                     route_id, accent/space/punctuation-insensitive. Good for
+ *                     Amtrak, whose route_long_name is the service name.
+ *   - { from, to }  → matched against the route's two terminal stations, in
+ *                     either direction and accent-folded. Robust for feeds that
+ *                     name routes by city pair (VIA Rail: "Montréal - Halifax"),
+ *                     where exact-name matching is brittle.
+ *
+ * @param {object} args
+ * @param {object} args.gtfs       result of loadGtfsDir()
+ * @param {Array<string|{from:string,to:string}>} args.allowlist  routes to keep
+ * @param {string} args.agency     agency_id stamp (e.g. "AMTK")
+ * @param {string} args.operator   display operator name (e.g. "Amtrak")
  * @param {(msg: string) => void} [args.log]
+ * @param {object} [args.stats]    optional out-param filled with
+ *                                 { matched, unmatched, feedRouteCount } so the
+ *                                 adapter can flag naming drift (an allowlist
+ *                                 entry that matched nothing).
  * @returns {Record<string, object>} trains dict in the shape build-initial-data expects
  */
-export function buildSleeperTrains({ gtfs, allowlist, agency, operator, log = () => {} }) {
-  const allow = new Set((allowlist || []).map(normLabel));
-  const trains = {};
+export function buildSleeperTrains({
+  gtfs,
+  allowlist,
+  agency,
+  operator,
+  log = () => {},
+  stats = null,
+}) {
+  // Split the allowlist into name entries and endpoint-pair entries.
+  const nameEntries = [];
+  const pairEntries = [];
+  for (const e of allowlist || []) {
+    if (typeof e === "string" && e.trim()) {
+      nameEntries.push({ raw: e, norm: normLabel(e) });
+    } else if (e && e.from && e.to) {
+      pairEntries.push({ raw: `${e.from} – ${e.to}`, from: e.from, to: e.to });
+    }
+  }
+  const matchedEntries = new Set();
 
-  // Group trips by the route they belong to, keeping only allowlisted routes.
+  // Group every trip by its route; allowlist filtering happens per route below.
   const tripsByRoute = new Map();
   for (const t of gtfs.trips) {
-    const route = gtfs.routesById.get(t.route_id);
-    if (!route) continue;
-    const matches =
-      allow.has(normLabel(route.route_long_name)) ||
-      allow.has(normLabel(route.route_short_name)) ||
-      allow.has(normLabel(route.route_id));
-    if (!matches) continue;
+    if (!gtfs.routesById.has(t.route_id)) continue;
     if (!tripsByRoute.has(t.route_id)) tripsByRoute.set(t.route_id, []);
     tripsByRoute.get(t.route_id).push(t);
   }
 
+  const trains = {};
   for (const [routeId, trips] of tripsByRoute.entries()) {
     const route = gtfs.routesById.get(routeId);
+    const nameNorms = [
+      route.route_long_name,
+      route.route_short_name,
+      route.route_id,
+    ].map(normLabel);
+
+    // Cheap name match first; only build the representative trip (which walks
+    // stop_times) when endpoints are actually needed for pair matching.
+    const nameHits = nameEntries.filter(
+      (ne) => ne.norm && nameNorms.includes(ne.norm),
+    );
+
+    let rep = null;
+    const getRep = () => (rep ??= representativeTrip(trips, gtfs));
+
+    const pairHits = [];
+    if (pairEntries.length) {
+      const stations = getRep().stations;
+      if (stations.length >= 2) {
+        const originNorm = normLabel(stations[0].name);
+        const destNorm = normLabel(stations[stations.length - 1].name);
+        for (const pe of pairEntries) {
+          if (pairMatches(originNorm, destNorm, pe.from, pe.to)) pairHits.push(pe);
+        }
+      }
+    }
+
+    if (nameHits.length === 0 && pairHits.length === 0) continue;
+    [...nameHits, ...pairHits].forEach((h) => matchedEntries.add(h.raw));
+
+    const { trip: best, stations: bestStations } = getRep();
     const routeName =
       (route.route_long_name || route.route_short_name || "").trim() ||
       `Train ${routeId}`;
-
-    // Representative trip = the one serving the most stations (full corridor),
-    // so seasonal/partial runs don't truncate the drawn route.
-    let best = null;
-    let bestStations = [];
-    for (const t of trips) {
-      const stations = stationsForTrip(t.trip_id, gtfs);
-      if (stations.length > bestStations.length) {
-        best = t;
-        bestStations = stations;
-      }
-    }
     if (!best || bestStations.length < 2) {
       log(`skip ${routeName}: no trip with ≥2 located stops`);
       continue;
@@ -345,6 +425,19 @@ export function buildSleeperTrains({ gtfs, allowlist, agency, operator, log = ()
     };
   }
 
+  const unmatched = [...nameEntries, ...pairEntries]
+    .map((e) => e.raw)
+    .filter((raw) => !matchedEntries.has(raw));
+  if (stats) {
+    stats.matched = [...matchedEntries];
+    stats.unmatched = unmatched;
+    stats.feedRouteCount = tripsByRoute.size;
+  }
+  if (unmatched.length) {
+    log(
+      `WARNING: ${unmatched.length} allowlist entr${unmatched.length === 1 ? "y" : "ies"} matched no feed route: ${unmatched.join(", ")}`,
+    );
+  }
   log(`built ${Object.keys(trains).length} ${operator} sleeper route(s)`);
   return trains;
 }
