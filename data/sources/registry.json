@@ -294,6 +294,31 @@
   },
   {
     "v": 1,
+    "id": "pkp-plk",
+    "label": "PKP / PLK Open Data (station info)",
+    "description": "Official PLK 'Otwarte Dane Kolejowe' API (pdp-api.plk-sa.pl) — the infrastructure manager's authoritative planned schedule, richest for international EN/EC station lists. SUPPLEMENT: folds PLK per-train stop lists (names + times + station coords) into the existing pkpTrainShapes.json byTrainKey bundle, keeping the GTFS/OSM geometry. Gated on /data-version so a typical night is a single request. Runs after pkp-gtfs (which regenerates the bundle nightly). DISABLED until the response field names are confirmed from the first live CI run; requires the PLK_API_KEY secret.",
+    "kind": "json-api",
+    "adapter": "pkp-plk",
+    "enabled": false,
+    "official": true,
+    "trusted": true,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://pdp-api.plk-sa.pl/api-documentation",
+    "output": "pkp-plk-trains.json",
+    "missingResponse": "empty",
+    "synthetic": null,
+    "params": {
+      "carriersInclude": "IC",
+      "concurrency": 4,
+      "maxRequestsPerRun": 80,
+      "rateFloor": 10,
+      "stationsPageSize": 5000
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
     "id": "regiojet-gtfs",
     "label": "RegioJet (GTFS timetables)",
     "description": "Checked-in artifacts public/data/gtfs/rj*.json. Regenerate manually: npm run parse-gtfs.",
