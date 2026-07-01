@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-07-01",
+  "createdAt": "2026-07-01T06:46:36.835Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (14 routes, 374 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_40420: NJ 40420 (Innsbruck Hbf – Hamburg Altona)\nroute amtrak_Coast_Starlight: Coast Starlight (Seattle – Los Angeles)\nroute amtrak_Texas_Eagle: Texas Eagle (Chicago Union Station – Los Angeles)\nroute amtrak_Auto_Train: Auto Train (Lorton Amtrak Auto Train Station – Sanford Amtrak Auto Train Station)\nroute amtrak_Empire_Builder: Empire Builder (Seattle – Chicago Union Station)\nroute amtrak_Cardinal: Cardinal (Ny Moynihan Train Hall At Penn Station – Chicago Union Station)\nroute amtrak_Crescent: Crescent (New Orleans Union Passenger Terminal – Ny Moynihan Train Hall At Penn Station)\nroute amtrak_Floridian: Floridian (Miami Amtrak Station – Chicago Union Station)\nroute amtrak_Silver_Meteor: Silver Meteor (Ny Moynihan Train Hall At Penn Station – Miami Amtrak Station)\nroute amtrak_City_of_New_Orleans: City of New Orleans (New Orleans Union Passenger Terminal – Chicago Union Station)\nroute amtrak_Lake_Shore_Limited: Lake Shore Limited (Chicago Union Station – Boston)\nroute amtrak_California_Zephyr: California Zephyr (Emeryville – Chicago Union Station)\nroute amtrak_Sunset_Limited: Sunset Limited (New Orleans Union Passenger Terminal – Los Angeles)\nroute via_Winnipeg_-_Churchill: Winnipeg - Churchill (Winnipeg – Churchill)\nstation Frankfurt(M) Flughafen Regionalbf (nightjet)\nstation Seattle (amtrak)\nstation Tacoma (amtrak)\nstation Olympia-Lacey Amtrak Station (amtrak)\nstation Centralia Amtrak Station (amtrak)\nstation Kelso-Longview (amtrak)\nstation Vancouver (amtrak)\nstation Portland (amtrak)\nstation Albany Amtrak Station (amtrak)\nstation Eugene (amtrak)\nstation Chemult (amtrak)\nstation Klamath Falls (amtrak)\nstation Dunsmuir Amtrak Station (amtrak)\nstation Redding Amtrak (amtrak)\nstation Chico Amtrak (amtrak)\nstation Sacramento (amtrak)\nstation Davis (amtrak)\nstation Martinez (amtrak)…",
+  "target": {
+    "routeKey": "trusted-2026-07-01",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
