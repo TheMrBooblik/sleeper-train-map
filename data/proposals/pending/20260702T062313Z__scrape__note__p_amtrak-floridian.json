@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: Floridian (Miami Amtrak Station – Chicago Union Station)",
-  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026/06/28-08/13: Daily\" → \"2026-10-25 – 2027-06-28: Daily\"",
+  "title": "Updated Operating Days for Floridian Train",
+  "summary": "The operating days for the Floridian train, which runs from Miami Amtrak Station to Chicago Union Station, have changed. The new schedule is from October 25, 2026, to June 28, 2027, with daily service. This replaces the previous schedule of June 28 to August 13, 2026.",
   "target": {
     "routeKey": "amtrak_Floridian",
     "agencyId": "AMTK",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
