@@ -31,10 +31,15 @@ function write(filename, data) {
 }
 
 // ─── Sticky trains merge ────────────────────────────────────────────────────
-// Operator APIs are flaky: a train missing from one night's fetch is usually
-// an upstream hiccup, not a discontinued service. For per-source trains files
-// we retain yesterday's entries for up to 7 days (stamped lastSeenAt) before
-// letting them drop — the classifier files an FYI when one really goes away.
+// Operator APIs are flaky, so we guard against a whole-source outage: if a
+// per-source fetch comes back EMPTY tonight, we keep yesterday's entries live
+// for up to 7 days (stamped lastSeenAt) rather than blanking the map.
+//
+// But a fetch that returned trains is authoritative: any train missing from a
+// healthy fetch has genuinely been withdrawn, so we drop it immediately to stay
+// up to date (this is how seasonal trains like NJ 284 — gone from the ÖBB API
+// but still on our map — used to linger for a week). Trade-off: a rare per-train
+// detail hiccup on an otherwise-healthy night drops that train for one night.
 
 const STICKY_RETAIN_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -56,17 +61,24 @@ function stickyMergeTrains(filename, data) {
   for (const [key, train] of Object.entries(data.trains)) {
     merged[key] = { ...train, lastSeenAt: nowIso };
   }
+
+  // Only fall back to the sticky window on a total outage (empty fetch). A
+  // healthy fetch is trusted as the current truth, so vanished trains drop now.
+  const fetchHealthy = Object.keys(data.trains).length > 0;
+
   let retained = 0;
-  for (const [key, train] of Object.entries(prevTrains)) {
-    if (key in merged) continue;
-    const lastSeen = train.lastSeenAt || prevUploadedAt;
-    if (lastSeen && Date.now() - Date.parse(lastSeen) <= STICKY_RETAIN_MS) {
-      merged[key] = { ...train, lastSeenAt: lastSeen };
-      retained++;
+  if (!fetchHealthy) {
+    for (const [key, train] of Object.entries(prevTrains)) {
+      if (key in merged) continue;
+      const lastSeen = train.lastSeenAt || prevUploadedAt;
+      if (lastSeen && Date.now() - Date.parse(lastSeen) <= STICKY_RETAIN_MS) {
+        merged[key] = { ...train, lastSeenAt: lastSeen };
+        retained++;
+      }
     }
   }
   if (retained > 0) {
-    console.log(`[scrape] ${filename}: retained ${retained} train(s) missing from tonight's fetch`);
+    console.log(`[scrape] ${filename}: source empty tonight — retained ${retained} train(s) from the last good fetch`);
   }
   return { ...data, trains: merged };
 }

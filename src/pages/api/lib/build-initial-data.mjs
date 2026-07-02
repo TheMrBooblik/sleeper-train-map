@@ -117,6 +117,10 @@ function filterViewMap(data, rawTrips, filteredTrips) {
     if (!isActiveRecord(route)) return;
     const trip0 = (route?.trip_short_name_0 || "").toString();
     const trip1 = (route?.trip_short_name_1 || "").toString();
+    // Drop malformed rows with no train identity (e.g. an all-empty BoT row):
+    // real and synthetic rows always carry a train number, so a row missing both
+    // can't render and must never reach the map.
+    if (!trip0.trim() && !trip1.trim()) return;
     const isT4y = isTrain4you(route, trip0) || isTrain4you(route, trip1);
     const rowOk = !isT4y;
     if (

@@ -67,17 +67,9 @@ for (const entry of registry) {
   operatorTrains[entry.id] = readEnvelope(entry.output)?.data?.trains ?? {};
 }
 
-// Same gate as canonicalize: without it the test compares an un-gated build
-// against the gated published artifact and goes red whenever anything is
-// pending review.
-let seenIndex = null;
-try {
-  seenIndex = JSON.parse(
-    fs.readFileSync(path.join(ROOT, "data", "canonical", "state", "seen.json"), "utf8"),
-  );
-} catch {
-  seenIndex = null;
-}
+// Review gate disabled for now: canonicalize passes seenIndex: null (allow-all),
+// so the parity build must do the same to match the un-gated published artifact.
+const seenIndex = null;
 
 const payload = buildInitialData({
   stops: stopsEnv.data,

@@ -30,17 +30,6 @@ function readEnvelope(name) {
   }
 }
 
-// Approval index for the review gate (null = gate off, everything flows).
-function readSeenIndex() {
-  try {
-    return JSON.parse(
-      fs.readFileSync(path.join(ROOT, "data", "canonical", "state", "seen.json"), "utf8"),
-    );
-  } catch {
-    return null;
-  }
-}
-
 function trainsOf(envelope) {
   return envelope?.data?.trains ?? {};
 }
@@ -84,7 +73,10 @@ function main() {
     operatorTrains[entry.id] = trainsOf(env);
   }
 
-  const seenIndex = readSeenIndex();
+  // Review gate disabled for now — pass null so every route/station flows through
+  // (build-initial-data treats a null index as allow-all). Restore the seen.json
+  // read here (and at the other two call sites) to re-enable approval gating.
+  const seenIndex = null;
   const stats = {};
   const payload = buildInitialData({
     stops: stopsEnv.data,

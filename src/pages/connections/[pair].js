@@ -7,6 +7,7 @@ import RouteCardLink from "@components/seo/RouteCardLink";
 import JsonLd from "@components/seo/JsonLd";
 
 import { getAllCityPairs, getCityPair } from "../../lib/seo/aggregate";
+import { toCardRoute } from "../../lib/seo/data";
 import { getFlagEmoji } from "../../lib/countries";
 import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
@@ -119,14 +120,7 @@ export async function getStaticPaths() {
 export async function getStaticProps({ params }) {
   const pair = getCityPair(params.pair);
   if (!pair) return { notFound: true };
-  const routes = pair.routes.map((s) => ({
-    routeId: s.routeId,
-    slug: s.slug,
-    title: s.title,
-    trainNumbers: s.trainNumbers,
-    operatorIds: s.operatorIds,
-    operators: s.operators,
-  }));
+  const routes = pair.routes.map(toCardRoute);
   return {
     props: {
       slug: pair.slug,
