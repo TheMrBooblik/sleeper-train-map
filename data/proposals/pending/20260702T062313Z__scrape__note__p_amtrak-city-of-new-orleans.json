@@ -1,0 +1,31 @@
+{
+  "v": 1,
+  "id": "p_amtrak-city-of-new-orleans",
+  "createdAt": "2026-07-02T06:23:13.906Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: City of New Orleans (Chicago Union Station – New Orleans Union Passenger Terminal)",
+  "summary": "Material change on an approved route (already live — FYI): origin: \"New Orleans Union Passenger Terminal\" → \"Chicago Union Station\"; destination: \"Chicago Union Station\" → \"New Orleans Union Passenger Terminal\"; operating days (outbound): \"2026/07/01-07/30: Daily\" → \"2026-07-31 – 2027-06-28: Daily\"",
+  "target": {
+    "routeKey": "amtrak_City_of_New_Orleans",
+    "agencyId": "AMTK",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "origin": "New Orleans Union Passenger Terminal",
+    "destination": "Chicago Union Station",
+    "operating days (outbound)": "2026/07/01-07/30: Daily"
+  },
+  "after": {
+    "origin": "Chicago Union Station",
+    "destination": "New Orleans Union Passenger Terminal",
+    "operating days (outbound)": "2026-07-31 – 2027-06-28: Daily"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
