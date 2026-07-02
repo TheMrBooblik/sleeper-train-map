@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 457 (Berlin Hbf – Graz Hbf)",
-  "summary": "Material change on an approved route (already live — FYI): origin: \"Berlin Hbf (tief)\" → \"Berlin Hbf\"",
+  "title": "Update: NJ 457 Route Origin Change",
+  "summary": "The origin for train NJ 457, which runs from Berlin Hbf to Graz Hbf, has been updated. The new origin is now \"Berlin Hbf\" instead of \"Berlin Hbf (tief)\". This change is already live.",
   "target": {
     "routeKey": "nj_standalone_NJ_457",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
