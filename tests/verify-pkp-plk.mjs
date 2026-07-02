@@ -16,6 +16,7 @@ import {
   endpointKey,
   reconcileStopCoords,
   mergePlkIntoBundle,
+  plkScheduleForRow,
 } from "../scripts/adapters/pkp-plk.mjs";
 
 // Dictionary: id → { name } (no coordinates, exactly like the live API).
@@ -193,6 +194,62 @@ assert.equal(
   vres.byTrainKey["460"].variants[0].stops.length,
   3,
   "variant → Warszawa corridor",
+);
+
+// 7) plkScheduleForRow — GTFS-less BoT row gets pkp_schedule per direction by
+//    ORIENTED endpoints (correct times), preferring same-number; via_ untouched.
+const rijekaRow = {
+  agency_id: "PKP",
+  trip_short_name_0: "EN 1276",
+  origin_trip_0: "Rijeka",
+  destination_trip_0: "Warszawa Wschodnia",
+  trip_short_name_1: "EN 1277",
+  origin_trip_1: "Warszawa Wschodnia",
+  destination_trip_1: "Rijeka",
+  via_0: "OLD VIA (must stay untouched)",
+};
+const rijekaCands = [
+  {
+    number: "1276",
+    operatingDates: ["2026-07-04", "2026-07-11", "2026-07-18"],
+    stops: [
+      { name: "Rijeka", arr: null, dep: "18:00" },
+      { name: "Ljubljana", arr: "20:00", dep: "20:10" },
+      { name: "Wien Hauptbahnhof", arr: "23:00", dep: "23:20" },
+      { name: "Warszawa Wschodnia", arr: "10:00", dep: null },
+    ],
+  },
+  {
+    number: "1277",
+    operatingDates: ["2026-07-05"],
+    stops: [
+      { name: "Warszawa Wschodnia", arr: null, dep: "19:00" },
+      { name: "Wien Hauptbahnhof", arr: "06:00", dep: "06:20" },
+      { name: "Rijeka", arr: "12:00", dep: null },
+    ],
+  },
+];
+const rf = plkScheduleForRow(rijekaRow, rijekaCands);
+assert.ok(rf, "Rijeka row enriched from PLK");
+assert.equal(rf.pkp_schedule_0.length, 4, "dir0 Rijeka -> Warszawa (4 stops)");
+assert.equal(rf.pkp_schedule_0[0].name, "Rijeka");
+assert.equal(rf.pkp_schedule_0[3].name, "Warszawa Wschodnia");
+assert.equal(
+  rf.pkp_schedule_1.length,
+  3,
+  "dir1 Warszawa -> Rijeka (own times)",
+);
+assert.equal(rf.pkp_schedule_1[0].name, "Warszawa Wschodnia");
+assert.equal(rf.pkp_schedule_1[0].dep, "19:00", "dir1 keeps its own departure");
+assert.ok(!("via_0" in rf) && !("via_1" in rf), "via_ is never produced");
+assert.ok(rf.pkp_valid_0?.days, "calendar derived from operatingDates");
+assert.equal(
+  plkScheduleForRow(
+    { agency_id: "PKP", origin_trip_0: "Gdańsk", destination_trip_0: "Kraków" },
+    rijekaCands,
+  ),
+  null,
+  "no oriented endpoint match -> null",
 );
 
 console.log(

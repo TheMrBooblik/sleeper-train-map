@@ -29,8 +29,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fetchWithTimeout } from "../lib/scrape-helpers.mjs";
-import { normalizeCity } from "../../src/lib/pkpTrainKeyExtract.js";
-import { fmtHHMM } from "../lib/pkp-calendar.mjs";
+import {
+  normalizeCity,
+  extractKeysFromTripLabel,
+  pkpEntryForRoute,
+} from "../../src/lib/pkpTrainKeyExtract.js";
+import { fmtHHMM, summariseDates } from "../lib/pkp-calendar.mjs";
 
 const BASE_URL = "https://pdp-api.plk-sa.pl/api/v1";
 const SHAPES_REL = "public/data/gtfs/pkpTrainShapes.json";
@@ -56,6 +60,7 @@ function scheduleVersionOf(v) {
   if (!v || typeof v !== "object") return null;
   const direct = pick(
     v,
+    "schedulesVersion",
     "scheduleDataVersion",
     "scheduleVersion",
     "schedule",
@@ -87,6 +92,7 @@ export const FIELDS = {
     pick(r, "nationalNumber", "trainNumber", "number", "commercialNumber"),
   routeCarrier: (r) => pick(r, "carrierCode", "carrier"),
   routeStations: (r) => asArray(pick(r, "stations", "stops", "points")),
+  routeOperatingDates: (r) => asArray(pick(r, "operatingDates")),
   stopStationId: (s) => pick(s, "stationId", "stationCode", "id"),
   stopName: (s) => pick(s, "stationName", "name"),
   stopArrival: (s) =>
@@ -258,6 +264,68 @@ export function mergePlkIntoBundle(byTrainKey, candidates = []) {
   return { byTrainKey: out, enrichedCount };
 }
 
+/**
+ * Build PLK station-list enrichment for one Back-on-Track PKP row. Matches a PLK
+ * candidate per direction by ORIENTED endpoints (first stop == origin, last ==
+ * destination) so per-direction times are correct, preferring a same-number
+ * candidate. Returns { pkp_schedule_0/1, pkp_valid_0/1 } to set — never via_ or
+ * geometry. Callers apply this only to rows the GTFS bundle can't resolve.
+ * @param {object} row  a Back-on-Track view-map row
+ * @param {{number?: string, stops: object[], operatingDates?: string[]}[]} candidates
+ * @returns {object|null} partial row fields, or null when nothing matched
+ */
+export function plkScheduleForRow(row, candidates) {
+  const list = asArray(candidates).filter((c) => c?.stops?.length >= 2);
+  if (!row || list.length === 0) return null;
+
+  const out = {};
+  let matched = false;
+  for (const d of [0, 1]) {
+    const o = normalizeCity(row[`origin_trip_${d}`]);
+    const z = normalizeCity(row[`destination_trip_${d}`]);
+    if (!o || !z) continue;
+    const keys = new Set(extractKeysFromTripLabel(row[`trip_short_name_${d}`]));
+
+    let best = null;
+    let bestPreferred = false;
+    for (const c of list) {
+      // Oriented match keeps the arrival/departure times for THIS direction.
+      if (normalizeCity(c.stops[0]?.name) !== o) continue;
+      if (normalizeCity(c.stops[c.stops.length - 1]?.name) !== z) continue;
+      const preferred = keys.has(String(c.number));
+      if (
+        !best ||
+        (preferred && !bestPreferred) ||
+        (preferred === bestPreferred && c.stops.length > best.stops.length)
+      ) {
+        best = c;
+        bestPreferred = preferred;
+      }
+    }
+    if (!best) continue;
+
+    out[`pkp_schedule_${d}`] = best.stops.map((s) => ({
+      name: s.name,
+      arr: s.arr ?? null,
+      dep: s.dep ?? null,
+      lat: null,
+      lon: null,
+    }));
+    const cal = summariseDates(best.operatingDates);
+    if (cal.days || cal.validFrom) out[`pkp_valid_${d}`] = cal;
+    matched = true;
+  }
+  return matched ? out : null;
+}
+
+// Stamp official_sources like enrich-view-map.mjs so the classifier auto-approves.
+function stampOfficialSource(route, sourceId) {
+  const existing = Array.isArray(route.official_sources)
+    ? route.official_sources
+    : [];
+  route.official_sources = [...new Set([...existing, sourceId])].sort();
+}
+
 // ── I/O + network ────────────────────────────────────────────────────────────
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -365,7 +433,11 @@ async function fetchScoped({
     if (stops.length < 2) continue;
     const number = String(FIELDS.routeTrainNumber(r) ?? "").trim();
     if (scopedNumbers.has(number) || scopedEpKeys.has(endpointKey(stops))) {
-      candidates.push({ number, stops });
+      candidates.push({
+        number,
+        stops,
+        operatingDates: FIELDS.routeOperatingDates(r),
+      });
     }
   }
   log(
@@ -420,6 +492,26 @@ export async function run(entry, ctx) {
   }
 
   const params = entry.params || {};
+  // Widen scope to Back-on-Track PKP rows so GTFS-less through-car routes (e.g.
+  // Warszawa–Rijeka) keep a candidate from the bulk pull.
+  const viewMap = ctx.shared?.viewMap ?? null;
+  const vmAgencyIds = params.viewMapAgencyIds ?? ["PKP", "PKP/ČD", "MÁV/PKP"];
+  const isPkpRow = (r) =>
+    vmAgencyIds.includes((r?.agency_id ?? "").toString().trim());
+  if (viewMap) {
+    for (const route of Object.values(viewMap)) {
+      if (!isPkpRow(route)) continue;
+      for (const d of [0, 1]) {
+        for (const k of extractKeysFromTripLabel(route[`trip_short_name_${d}`]))
+          scopedNumbers.add(k);
+        const ep = endpointKey([
+          { name: route[`origin_trip_${d}`] },
+          { name: route[`destination_trip_${d}`] },
+        ]);
+        if (ep) scopedEpKeys.add(ep);
+      }
+    }
+  }
   const budget = {
     used: 0,
     max: params.maxRequestsPerRun ?? 80,
@@ -478,6 +570,38 @@ export async function run(entry, ctx) {
   log(
     `enriched ${enrichedCount}/${Object.keys(merged).length} bundle entries from PLK (${budget.used} request(s))`,
   );
+
+  // 2b) Enrich GTFS-less PKP rows in the Back-on-Track view map (through-car
+  // routes like Warszawa–Rijeka the Polish GTFS doesn't carry): set the
+  // detail-panel station list (pkp_schedule_*) from PLK — never via_/geometry.
+  if (viewMap && candidates.length) {
+    let vmEnriched = 0;
+    for (const route of Object.values(viewMap)) {
+      if (!isPkpRow(route)) continue;
+      // Skip rows the GTFS bundle already resolves — the fold + client attach
+      // own those (and provide the geometry-aligned schedule).
+      const g0 = pkpEntryForRoute(
+        route.trip_short_name_0,
+        byTrainKey,
+        route.origin_trip_0,
+        route.destination_trip_0,
+      );
+      const g1 = pkpEntryForRoute(
+        route.trip_short_name_1,
+        byTrainKey,
+        route.origin_trip_1,
+        route.destination_trip_1,
+      );
+      if (g0 || g1) continue;
+      const fields = plkScheduleForRow(route, candidates);
+      if (fields) {
+        Object.assign(route, fields);
+        stampOfficialSource(route, entry.id);
+        vmEnriched += 1;
+      }
+    }
+    log(`view-map: enriched ${vmEnriched} GTFS-less PKP row(s) from PLK`);
+  }
 
   // 3) Provenance + cache for the next run's data-version gate.
   ctx.write(entry.output, {
