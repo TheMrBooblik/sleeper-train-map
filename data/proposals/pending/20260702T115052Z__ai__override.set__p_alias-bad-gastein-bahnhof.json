@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-bad-gastein-bahnhof",
+  "createdAt": "2026-07-02T11:50:52.970Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Bad Gastein Bahnhof\" → \"Bad Gastein\"",
+  "summary": "The operator-injected station \"Bad Gastein Bahnhof\" appears to be the same as Back-on-Track's \"Bad Gastein\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Bad Gastein Bahnhof"
+  },
+  "before": null,
+  "after": {
+    "alias": "bad gastein bahnhof",
+    "canonical": "Bad Gastein"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Bad Gastein Bahnhof",
+        "canonical": "Bad Gastein"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
