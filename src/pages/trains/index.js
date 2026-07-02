@@ -6,7 +6,7 @@ import Breadcrumbs from "@components/seo/Breadcrumbs";
 import RouteCardLink from "@components/seo/RouteCardLink";
 import JsonLd from "@components/seo/JsonLd";
 
-import { getAllRouteSummaries } from "../../lib/seo/data";
+import { getAllRouteSummaries, toCardRoute } from "../../lib/seo/data";
 import {
   getAllCountryHubs,
   getAllOperatorHubs,
@@ -141,14 +141,7 @@ export default function TrainsIndex({ routes, countries, operators, cityPairs })
 
 export async function getStaticProps() {
   // Trim summaries to just what the cards/JSON need (keep props lean).
-  const routes = getAllRouteSummaries().map((s) => ({
-    routeId: s.routeId,
-    slug: s.slug,
-    title: s.title,
-    trainNumbers: s.trainNumbers,
-    operatorIds: s.operatorIds,
-    operators: s.operators,
-  }));
+  const routes = getAllRouteSummaries().map(toCardRoute);
   return {
     props: {
       routes,

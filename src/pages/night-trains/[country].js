@@ -17,6 +17,7 @@ import {
   getConnectedCountries,
 } from "../../lib/seo/aggregate";
 import { buildCountryFaq } from "../../lib/seo/faq";
+import { toCardRoute } from "../../lib/seo/data";
 import { getFlagEmoji } from "../../lib/countries";
 import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
@@ -236,16 +237,7 @@ export async function getStaticPaths() {
 export async function getStaticProps({ params }) {
   const hub = getCountryHub(params.country);
   if (!hub) return { notFound: true };
-  const routes = hub.routes.map((s) => ({
-    routeId: s.routeId,
-    slug: s.slug,
-    title: s.title,
-    trainNumbers: s.trainNumbers,
-    operatorIds: s.operatorIds,
-    operators: s.operators,
-    durationText: s.durationText,
-    fromPrice: s.fromPrice,
-  }));
+  const routes = hub.routes.map(toCardRoute);
   const connectedCountries = getConnectedCountries(params.country).map((c) => ({
     code: c.code,
     name: c.name,

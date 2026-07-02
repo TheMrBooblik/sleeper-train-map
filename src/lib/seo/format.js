@@ -83,6 +83,30 @@ export function formatCo2(value) {
   return `${Math.round(n)} kg CO₂e`;
 }
 
+const MONTHS_SHORT = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/**
+ * Compact "from …" label for a not-yet-running train, given the future start
+ * date the map's getFutureRouteStartDate() returns ("YYYY-MM-DD").
+ *
+ * A date of the 1st of January means the source only gave us a year (e.g. a
+ * "postponed to 2027" note the map normalises to YYYY-01-01), so we show just
+ * the year — "from 2027". Otherwise we show the day — "from 9 Sep 2026".
+ * Returns "" when there is no future date.
+ * @param {string} dateStr - "YYYY-MM-DD" or falsy
+ * @returns {string}
+ */
+export function formatFutureFrom(dateStr) {
+  if (!dateStr) return "";
+  const [y, m, d] = String(dateStr).split("-").map(Number);
+  if (!y || !m || !d) return "";
+  if (m === 1 && d === 1) return `from ${y}`;
+  return `from ${d} ${MONTHS_SHORT[m - 1]} ${y}`;
+}
+
 /**
  * Split a hyphen-separated "via" string into a clean list of station names.
  * "Knin - Gospić - Karlovac" → ["Knin", "Gospić", "Karlovac"].

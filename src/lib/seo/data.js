@@ -16,6 +16,10 @@ import path from "path";
 
 import { parseBotServiceString, renderCalendar } from "../../pages/api/lib/calendar.mjs";
 import { normalizeStationNameForDisplay } from "../../components/Map/utils/stationNameUtils";
+// Reuse the exact "not yet running" detection the map hover uses, so a route is
+// flagged "future" here in the same way (irregularities "From …", postponed
+// notes, or an upcoming service_id season).
+import { getFutureRouteStartDate } from "../../components/Map/utils/routeStyleUtils";
 import { getRouteFrequencyOverride } from "../routeFrequencyOverrides";
 import { slugify, buildTrainSlug } from "./slugify";
 import { getStationTimesForTrain } from "./stationTimes";
@@ -27,6 +31,7 @@ import {
   durationToMinutes,
   formatDistanceKm,
   formatCo2,
+  formatFutureFrom,
 } from "./format";
 import { getOperatorPricing, formatFromPrice } from "../operatorPricing";
 import { splitAgencyIds, getOperatorMeta } from "./operators";
@@ -253,10 +258,25 @@ function buildSummary(route) {
     pricing: route.pricing,
   });
 
+  // Card display: always show the "Origin – Destination" city title, and expose
+  // the operator's proper train NAME (e.g. "Bessarabia", "Le Train Bleu")
+  // separately so cards can show it in small type. A long_name that is itself a
+  // "City – City" description (contains a spaced dash) is not a real name.
+  const endpointTitle =
+    origin && destination ? `${origin} – ${destination}` : origin || destination || "Night train";
+  const longName = (route.route_long_name || "").trim();
+  const routeName =
+    longName && !/\s[–-]\s/.test(longName) && longName !== endpointTitle ? longName : "";
+
+  // Future ("not yet running") flag — reuses the map's detector verbatim.
+  const futureStartDate = getFutureRouteStartDate(routeId, getPublished().trips);
+
   return {
     routeId,
     slug,
     title: deriveTitle(route, origin, destination),
+    endpointTitle,
+    routeName,
     origin,
     destination,
     originCity: normalizeStationNameForDisplay(origin),
@@ -272,7 +292,30 @@ function buildSummary(route) {
     durationText: factTrip ? formatDuration(factTrip.duration) : "",
     pricing,
     fromPrice: formatFromPrice(pricing),
+    futureStartDate,
+    futureFrom: formatFutureFrom(futureStartDate),
     hasPolyline: Boolean(route.nj_polyline_0 || route.nj_polyline_1),
+  };
+}
+
+/**
+ * Trim a route summary to the lean shape the hub-page route cards need. Used by
+ * every page that renders <RouteCardLink> so the card treatment (city title +
+ * small train name + duration/price/future badge) stays consistent everywhere.
+ * @param {object} s - a summary from getAllRouteSummaries()
+ */
+export function toCardRoute(s) {
+  return {
+    routeId: s.routeId,
+    slug: s.slug,
+    title: s.endpointTitle || s.title, // city "A – B" title on the card
+    routeName: s.routeName || "",
+    trainNumbers: s.trainNumbers,
+    operatorIds: s.operatorIds,
+    operators: s.operators,
+    durationText: s.durationText || "",
+    fromPrice: s.fromPrice || null,
+    futureFrom: s.futureFrom || "",
   };
 }
 
