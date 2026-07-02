@@ -1,0 +1,31 @@
+{
+  "v": 1,
+  "id": "p_amtrak-cardinal",
+  "createdAt": "2026-07-02T06:23:13.906Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: Cardinal (Chicago Union Station – Ny Moynihan Train Hall At Penn Station)",
+  "summary": "Material change on an approved route (already live — FYI): origin: \"Ny Moynihan Train Hall At Penn Station\" → \"Chicago Union Station\"; destination: \"Chicago Union Station\" → \"Ny Moynihan Train Hall At Penn Station\"; operating days (outbound): \"2026/06/28-07/05: Wed, Fri, Sun\" → \"2026/06/28-07/04: Tue, Thu, Sat\"",
+  "target": {
+    "routeKey": "amtrak_Cardinal",
+    "agencyId": "AMTK",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "origin": "Ny Moynihan Train Hall At Penn Station",
+    "destination": "Chicago Union Station",
+    "operating days (outbound)": "2026/06/28-07/05: Wed, Fri, Sun"
+  },
+  "after": {
+    "origin": "Chicago Union Station",
+    "destination": "Ny Moynihan Train Hall At Penn Station",
+    "operating days (outbound)": "2026/06/28-07/04: Tue, Thu, Sat"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
