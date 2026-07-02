@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 408 (Berlin Hbf – Zürich HB)",
-  "summary": "Material change on an approved route (already live — FYI): origin: \"Berlin Hbf (tief)\" → \"Berlin Hbf\"",
+  "title": "Update: NJ 408 Route Change (Berlin Hbf – Zürich HB)",
+  "summary": "The origin station for train NJ 408 has been updated from \"Berlin Hbf (tief)\" to \"Berlin Hbf\". This change is already in effect.",
   "target": {
     "routeKey": "nj_standalone_NJ_408",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
