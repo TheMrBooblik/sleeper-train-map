@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: EN 40476 (Budapest-Nyugati – Berlin Hbf)",
-  "summary": "Material change on an approved route (already live — FYI): destination: \"Berlin Hbf (tief)\" → \"Berlin Hbf\"",
+  "title": "Update: EN 40476 (Budapest-Nyugati – Berlin Hbf)",
+  "summary": "The destination for train EN 40476 has been changed from \"Berlin Hbf (tief)\" to \"Berlin Hbf\". This is a material change on an approved route and is already live.",
   "target": {
     "routeKey": "nj_standalone_EN_40476",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
