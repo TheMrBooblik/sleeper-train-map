@@ -1,0 +1,42 @@
+{
+  "v": 1,
+  "id": "p_alias-berlin-hbf-tief-",
+  "createdAt": "2026-07-02T06:23:46.815Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Berlin Hbf (tief)\" → \"Berlin Hbf\"",
+  "summary": "The operator-injected station \"Berlin Hbf (tief)\" appears to be the same as Back-on-Track's \"Berlin Hbf\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Berlin Hbf (tief)"
+  },
+  "before": null,
+  "after": {
+    "alias": "berlin hbf (tief)",
+    "canonical": "Berlin Hbf"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Berlin Hbf (tief)",
+        "canonical": "Berlin Hbf"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "approved",
+  "resolution": {
+    "decision": "approved",
+    "decidedAt": "2026-07-02T10:13:33.689Z",
+    "commit": "https://github.com/TheMrBooblik/sleeper-train-map/commit/fe853e77a166fed0b861a4c6f1a9cf0ff3701c33",
+    "note": null,
+    "editedApply": null
+  }
+}
