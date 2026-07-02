@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: City of New Orleans (Chicago Union Station – New Orleans Union Passenger Terminal)",
-  "summary": "Material change on an approved route (already live — FYI): origin: \"New Orleans Union Passenger Terminal\" → \"Chicago Union Station\"; destination: \"Chicago Union Station\" → \"New Orleans Union Passenger Terminal\"; operating days (outbound): \"2026/07/01-07/30: Daily\" → \"2026-07-31 – 2027-06-28: Daily\"",
+  "title": "Update: City of New Orleans Route Changes",
+  "summary": "The City of New Orleans train route has been updated. The origin is now Chicago Union Station instead of New Orleans Union Passenger Terminal, and the destination is now New Orleans Union Passenger Terminal instead of Chicago Union Station. The operating days for outbound trips have changed from July 1-30, 2026, to July 31, 2026, through June 28, 2027, with daily service.",
   "target": {
     "routeKey": "amtrak_City_of_New_Orleans",
     "agencyId": "AMTK",
@@ -27,5 +27,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
