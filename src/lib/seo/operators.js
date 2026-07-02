@@ -62,6 +62,10 @@ export const OPERATORS = {
   GR: { name: "Georgian Railway", slug: "georgian-railway" },
   ADY: { name: "Azerbaijan Railways", slug: "azerbaijan-railways" },
   SCR: { name: "South Caucasus Railway", slug: "south-caucasus-railway" },
+
+  // North America
+  AMTK: { name: "Amtrak", slug: "amtrak" },
+  VIA: { name: "VIA Rail", slug: "via-rail" },
 };
 
 // Inverse slug → agency_id map (built once).
