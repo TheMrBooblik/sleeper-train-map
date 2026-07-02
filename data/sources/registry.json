@@ -278,7 +278,8 @@
       "resolveAliases": false,
       "withService": true,
       "excludeBotMatched": false,
-      "dedupStrategy": null
+      "dedupStrategy": null,
+      "stationRenames": { "Vancouver": "Vancouver, WA" }
     },
     "params": {
       "feedUrl": "https://content.amtrak.com/content/gtfs/GTFS.zip",

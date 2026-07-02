@@ -208,6 +208,29 @@ function injectTrainStations(trimmedStops, stopNameSet, trains, gate) {
   });
 }
 
+// Disambiguate colliding station names within one source's trains (e.g. the US
+// "Vancouver, WA" vs Canada's "Vancouver"). Applied before station injection and
+// route building so the injected marker and the route's derived
+// origin/destination/via all use the same (renamed) name. Geometry is untouched.
+function applyStationRenames(trains, renames) {
+  const keys = renames && typeof renames === "object" ? Object.keys(renames) : [];
+  if (keys.length === 0) return trains;
+  const lower = new Map(keys.map((k) => [k.toLowerCase(), renames[k]]));
+  const out = {};
+  for (const [key, train] of Object.entries(trains)) {
+    const stations = Array.isArray(train?.stations) ? train.stations : null;
+    if (!stations) { out[key] = train; continue; }
+    let changed = false;
+    const renamed = stations.map((s) => {
+      const to = s?.name ? lower.get(String(s.name).toLowerCase()) : null;
+      if (to && to !== s.name) { changed = true; return { ...s, name: to }; }
+      return s;
+    });
+    out[key] = changed ? { ...train, stations: renamed } : train;
+  }
+  return out;
+}
+
 // ─── Synthetic routes ────────────────────────────────────────────────────────
 
 // Builds synthetic view_ontd_map rows from a list of [lineName, data] trains
@@ -380,7 +403,10 @@ export function buildInitialData({
   for (const entry of registry) {
     const synthetic = entry?.synthetic;
     if (!synthetic || !entry.enabled) continue;
-    const trains = operatorTrains[entry.id] ?? {};
+    let trains = operatorTrains[entry.id] ?? {};
+    if (synthetic.stationRenames) {
+      trains = applyStationRenames(trains, synthetic.stationRenames);
+    }
 
     const dedup = DEDUP_STRATEGIES[synthetic.dedupStrategy];
     if (dedup) dedup(filteredViewMap, trains, synthetic);

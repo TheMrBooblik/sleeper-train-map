@@ -345,6 +345,7 @@ export function buildSleeperTrains({
   operator,
   log = () => {},
   stats = null,
+  stationRenames = null,
 }) {
   // Split the allowlist into name entries and endpoint-pair entries.
   const nameEntries = [];
@@ -357,6 +358,19 @@ export function buildSleeperTrains({
     }
   }
   const matchedEntries = new Set();
+  const renameMap =
+    stationRenames && Object.keys(stationRenames).length
+      ? new Map(
+          Object.entries(stationRenames).map(([k, v]) => [k.toLowerCase(), v]),
+        )
+      : null;
+  const renameStations = (list) =>
+    renameMap
+      ? list.map((s) => {
+          const to = s?.name ? renameMap.get(String(s.name).toLowerCase()) : null;
+          return to && to !== s.name ? { ...s, name: to } : s;
+        })
+      : list;
 
   // Group every trip by its route; allowlist filtering happens per route below.
   const tripsByRoute = new Map();
@@ -421,7 +435,7 @@ export function buildSleeperTrains({
       agency_id: agency,
       frequency: serviceDisplay(best.service_id, gtfs),
       polyline: polyline.encode(positions),
-      stations: bestStations,
+      stations: renameStations(bestStations),
     };
   }
 

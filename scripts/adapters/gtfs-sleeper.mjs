@@ -57,6 +57,7 @@ export async function run(entry, ctx) {
     operator: operator || entry.label,
     log,
     stats,
+    stationRenames: entry.synthetic?.stationRenames,
   });
 
   const built = Object.keys(trains).length;
