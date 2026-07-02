@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-07-02",
+  "createdAt": "2026-07-02T06:23:13.907Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (2 routes, 92 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute via_Vancouver_-_Toronto: Vancouver - Toronto (Toronto – Vancouver)\nroute via_Montréal_-_Halifax: Montréal - Halifax (Montréal – Halifax)\nstation Toronto (viarail)\nstation Washago (viarail)\nstation South Parry (viarail)\nstation Sudbury Jct (viarail)\nstation Capreol (viarail)\nstation Laforest (viarail)\nstation McKee's Camp (viarail)\nstation Felix (viarail)\nstation Ruel (viarail)\nstation Westree (viarail)\nstation Gogama (viarail)\nstation Foleyet (viarail)\nstation Elsas (viarail)\nstation Oba (viarail)\nstation Hornepayne (viarail)\nstation Hillsport (viarail)\nstation Caramat (viarail)\nstation Longlac (viarail)\nstation Nakina (viarail)\nstation Auden (viarail)\nstation Ferland (viarail)\nstation Mud River (viarail)\nstation Armstrong (viarail)\nstation Collins (viarail)\nstation Allanwater Bridge (viarail)\nstation Flindt Landing (viarail)\nstation Savant Lake (viarail)\nstation Sioux Lookout (viarail)\nstation Richan (viarail)\nstation Red Lake Road (viarail)\nstation Canyon (viarail)\nstation Farlane (viarail)\nstation Redditt (viarail)\nstation Minaki (viarail)\nstation Ottermere (viarail)\nstation Malachi (viarail)\nstation Copelands Landing (viarail)\nstation Rice Lake (viarail)\nstation Winnitoba (viarail)\nstation Ophir (viarail)\nstation Brereton Lake (viarail)\nstation Elma (viarail)\nstation Rivers (viarail)\nstation Melville (viarail)\nstation Watrous (viarail)\nstation Saskatoon (viarail)\nstation Biggar (viarail)\nstation Unity (viarail)\nstation Wainwright (viarail)\nstation Viking (viarail)\nstation Edmonton (viarail)\nstation Evansburg (viarail)\nstation Edson (viarail)\nstation Hinton (viarail)\nstation Jasper (viarail)\nstation Valemount (viarail)\nstation Blue River (viarail)\nstation Clearwater (viarail)\nstation Kamloops North (viarail)\nstation Ashcroft (viarail)\nstation Boston Bar (viarail)\nstation Hope (viarail)\nstation …",
+  "target": {
+    "routeKey": "trusted-2026-07-02",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
