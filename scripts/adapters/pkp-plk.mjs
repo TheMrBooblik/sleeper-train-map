@@ -1,40 +1,43 @@
 // scripts/adapters/pkp-plk.mjs
 // Official PLK "Otwarte Dane Kolejowe" (Open Railway Data) API adapter.
 // https://pdp-api.plk-sa.pl/api-documentation — the infrastructure manager's
-// authoritative planned schedule, which carries every station a train calls at
-// on Polish track (incl. the international EN/EC sections we want richer data
-// for). Base URL https://pdp-api.plk-sa.pl/api/v1, auth via X-API-Key.
+// authoritative planned schedule. Its stations dictionary and per-train stop
+// lists reach across the border (Berlin/Praha/Wien confirmed), so it carries the
+// international station names GTFS's Polish feed lacks. Base URL
+// https://pdp-api.plk-sa.pl/api/v1, auth via the X-API-Key header (PLK_API_KEY).
 //
-// SUPPLEMENT strategy (see the migration plan): PLK does NOT ship track geometry,
-// so we keep the GTFS/OSM polylines and only fold PLK's richer per-train stop
-// lists (names + times + station coordinates) into the existing
-// public/data/gtfs/pkpTrainShapes.json `byTrainKey` bundle. Every downstream
-// consumer (attachPkpGtfsPolylinesToViewMap, the gtfsBundle enrichment,
-// pkpEntryForRoute) keeps working unchanged because the bundle shape is
-// preserved. The GTFS parser regenerates that file every run, so we re-apply the
-// fold every run — but only hit the network when /data-version changed.
+// SUPPLEMENT strategy: PLK has no coordinates and no track geometry — just names
+// + times per stop (station referenced by id → resolved via the dictionary). So
+// we keep the GTFS/OSM polylines and only fold PLK's richer stop lists into the
+// existing public/data/gtfs/pkpTrainShapes.json `byTrainKey` bundle (coords
+// reconciled from GTFS by city; missing foreign coords stay null — fine for the
+// station-list text). Every consumer (attachPkpGtfsPolylinesToViewMap, the
+// gtfsBundle enrichment, pkpEntryForRoute) keeps working: the bundle shape is
+// preserved. The GTFS parser regenerates the file every run, so we re-apply the
+// fold every run, but only hit the network when /data-version changed.
 //
-// This entry ships DISABLED in the registry until the exact response field names
-// are confirmed from the first live CI run (the no-auth /fields/schedules
-// dictionary documents them). All field reads are centralized in FIELDS below so
-// finalizing is a one-place change. The adapter never throws: any failure leaves
+// Fetch: one bulk `/schedules?carriersInclude=IC` pull returns every IC train
+// (nationalNumber + stations[]) in a single response; we filter to our scoped
+// night-train set in memory. Matching GTFS↔PLK is by number OR endpoint cities
+// (international trains often carry a Polish national number ≠ the commercial
+// EC/EN number, so endpoint match is the fallback).
+//
+// Field
+// reads are centralized in FIELDS. The adapter never throws: any failure leaves
 // the bundle as GTFS-only.
 
 import fs from "node:fs";
 import path from "node:path";
-import { fetchWithTimeout, pMapLimit } from "../lib/scrape-helpers.mjs";
+import { fetchWithTimeout } from "../lib/scrape-helpers.mjs";
 import { normalizeCity } from "../../src/lib/pkpTrainKeyExtract.js";
 import { fmtHHMM } from "../lib/pkp-calendar.mjs";
 
 const BASE_URL = "https://pdp-api.plk-sa.pl/api/v1";
 const SHAPES_REL = "public/data/gtfs/pkpTrainShapes.json";
-const STATIONS_CACHE_REL = "public/data/scraped/pkp-plk-stations.json";
 
 // ── Field access ─────────────────────────────────────────────────────────────
-// The API also exposes /shortened endpoints (scheduleId → sid, …). Response
-// bodies aren't visible from the dev sandbox (host is egress-blocked), so each
-// logical field lists the plausible full + shortened names; the first present
-// wins. Confirm/trim these from the first live response or /fields/schedules.
+// Confirmed from live responses (2026-07). Extra fallback names are kept for the
+// /shortened variants and future-proofing; the first present value wins.
 const pick = (obj, ...keys) => {
   if (!obj || typeof obj !== "object") return undefined;
   for (const k of keys) if (obj[k] != null) return obj[k];
@@ -46,63 +49,93 @@ const num = (v) => {
   return Number.isFinite(n) ? n : null;
 };
 
+// /data-version returns schedule + operations GUIDs; we gate only on the
+// schedule one (operations churns constantly). Shape unconfirmed, so probe the
+// likely names/nesting; null just means "always fetch" (correct, un-optimized).
+function scheduleVersionOf(v) {
+  if (!v || typeof v !== "object") return null;
+  const direct = pick(
+    v,
+    "scheduleDataVersion",
+    "scheduleVersion",
+    "schedule",
+    "schedules",
+    "scheduleGuid",
+  );
+  if (direct != null && typeof direct !== "object") return String(direct);
+  const sched = v.schedule ?? v.schedules;
+  if (sched && typeof sched === "object") {
+    const g = pick(sched, "version", "guid", "dataVersion", "id");
+    if (g != null) return String(g);
+  }
+  for (const key of ["versions", "data", "result"]) {
+    if (v[key] && typeof v[key] === "object") {
+      const nested = scheduleVersionOf(v[key]);
+      if (nested) return nested;
+    }
+  }
+  return null;
+}
+
 export const FIELDS = {
-  scheduleVersion: (v) =>
-    pick(v, "schedule", "scheduleDataVersion", "scheduleVersion", "schedules"),
-  routeList: (v) =>
-    Array.isArray(v) ? v : asArray(pick(v, "routes", "items", "data")),
-  routeScheduleId: (r) => pick(r, "scheduleId", "sid"),
-  routeOrderId: (r) => pick(r, "orderId", "oid"),
+  scheduleVersion: (v) => scheduleVersionOf(v),
+  schedulesList: (v) =>
+    Array.isArray(v)
+      ? v
+      : asArray(pick(v, "routes", "schedules", "items", "data")),
   routeTrainNumber: (r) =>
-    pick(r, "trainNumber", "trainNo", "number", "commercialNumber", "nr"),
-  routeCarrier: (r) => pick(r, "carrier", "carrierCode", "carrierId"),
-  detailTrainNumber: (d) =>
-    pick(d, "trainNumber", "trainNo", "number", "commercialNumber", "nr"),
-  detailStops: (d) =>
-    asArray(pick(d, "stops", "route", "stations", "points", "st")),
-  stopStationId: (s) =>
-    pick(s, "stationId", "stationCode", "station", "id", "sid"),
+    pick(r, "nationalNumber", "trainNumber", "number", "commercialNumber"),
+  routeCarrier: (r) => pick(r, "carrierCode", "carrier"),
+  routeStations: (r) => asArray(pick(r, "stations", "stops", "points")),
+  stopStationId: (s) => pick(s, "stationId", "stationCode", "id"),
   stopName: (s) => pick(s, "stationName", "name"),
   stopArrival: (s) =>
-    pick(s, "plannedArrival", "arrival", "plannedArrivalTime", "arr"),
+    pick(s, "arrivalTime", "plannedArrival", "arrival", "plannedArrivalTime"),
   stopDeparture: (s) =>
-    pick(s, "plannedDeparture", "departure", "plannedDepartureTime", "dep"),
-  stopLat: (s) => pick(s, "latitude", "lat", "y"),
-  stopLon: (s) => pick(s, "longitude", "lon", "lng", "x"),
+    pick(
+      s,
+      "departureTime",
+      "plannedDeparture",
+      "departure",
+      "plannedDepartureTime",
+    ),
+  stopOrder: (s) => pick(s, "orderNumber", "sequence", "order"),
   stationList: (v) =>
     Array.isArray(v) ? v : asArray(pick(v, "stations", "items", "data")),
   stationTotalPages: (v) => pick(v, "totalPages", "pages", "pageCount"),
   stationId: (st) => pick(st, "id", "stationId", "code"),
   stationName: (st) => pick(st, "name", "stationName"),
-  stationLat: (st) => pick(st, "latitude", "lat", "y"),
-  stationLon: (st) => pick(st, "longitude", "lon", "lng", "x"),
 };
 
 // ── Pure transforms (exported for tests) ─────────────────────────────────────
 
 /**
- * Normalize a PLK route-detail stop array into the bundle's stop shape
- * ({ name, arr, dep, lat, lon }). Names/coords resolve from the stop itself,
- * falling back to the stations dictionary by station id.
+ * Normalize a PLK route's stop array into the bundle's stop shape
+ * ({ name, arr, dep, lat, lon }). Stops are ordered by `orderNumber`; the name
+ * is resolved from the stations dictionary by `stationId`; times "HH:MM:SS" →
+ * "HH:MM". PLK has no coordinates, so lat/lon start null and are backfilled from
+ * GTFS by reconcileStopCoords.
  * @param {object[]} rawStops
- * @param {Record<string, {name?: string, lat?: number, lon?: number}>} stationsById
+ * @param {Record<string, {name?: string}>} stationsById
  * @returns {{name: string, arr: string|null, dep: string|null, lat: number|null, lon: number|null}[]}
  */
 export function normalizeStops(rawStops, stationsById = {}) {
+  const ordered = asArray(rawStops)
+    .map((s) => ({ s, order: num(FIELDS.stopOrder(s)) ?? 0 }))
+    .sort((a, b) => a.order - b.order);
+
   const out = [];
-  for (const s of asArray(rawStops)) {
+  for (const { s } of ordered) {
     const id = FIELDS.stopStationId(s);
     const station = id != null ? stationsById[String(id)] : null;
     const name = FIELDS.stopName(s) ?? station?.name;
     if (!name) continue;
-    const lat = num(FIELDS.stopLat(s)) ?? num(station?.lat);
-    const lon = num(FIELDS.stopLon(s)) ?? num(station?.lon);
     out.push({
       name: String(name).trim(),
       arr: fmtHHMM(FIELDS.stopArrival(s)),
       dep: fmtHHMM(FIELDS.stopDeparture(s)),
-      lat: lat ?? null,
-      lon: lon ?? null,
+      lat: null,
+      lon: null,
     });
   }
   return out;
@@ -119,10 +152,20 @@ export function endpointsMatch(a, b) {
   return (a0 === b0 && a1 === b1) || (a0 === b1 && a1 === b0);
 }
 
+/** Order-independent endpoint-city key for a stop list ("a|b", sorted). */
+export function endpointKey(stops) {
+  if (!stops || stops.length < 2) return "";
+  const a = normalizeCity(stops[0]?.name);
+  const b = normalizeCity(stops[stops.length - 1]?.name);
+  if (!a || !b) return "";
+  return [a, b].sort().join("|");
+}
+
 /**
  * Fill missing PLK stop coordinates from the GTFS stop list (matched by city),
  * so compound-label stitching (which cuts polylines at junction coords) keeps
- * working after we swap in the richer PLK stops.
+ * working after we swap in the richer PLK stops. Foreign stops absent from the
+ * Polish GTFS keep null coords (they still render in the station-list text).
  */
 export function reconcileStopCoords(plkStops, gtfsStops) {
   const gtfsByCity = new Map();
@@ -146,57 +189,78 @@ export function reconcileStopCoords(plkStops, gtfsStops) {
 
 /**
  * Fold PLK stop lists into the GTFS bundle. For each `byTrainKey` entry (and its
- * `variants`), pick the PLK candidate for that train number whose endpoints
- * match the entry's own corridor and that is at least as detailed, then replace
- * the entry's `stops` (coords reconciled from GTFS). Geometry/calendar are kept.
- * Reused train numbers can't cross-contaminate: endpoint validation rejects
- * wrong-corridor candidates, exactly like pkpEntryForRoute.
+ * `variants`), pick the PLK candidate that (a) matches the entry's corridor
+ * endpoints and (b) is at least as detailed, preferring a same-`number`
+ * candidate, then falling back to any endpoint match (international trains carry
+ * a national number ≠ the commercial one). Replace `stops` (coords reconciled
+ * from GTFS); geometry/calendar are untouched. Reused numbers can't
+ * cross-contaminate — endpoint validation rejects wrong-corridor candidates.
  *
  * @param {Record<string, object>} byTrainKey
- * @param {Record<string, {stops: object[]}[]>} candidatesByNumber
+ * @param {{number?: string, stops: object[]}[]} candidates
  * @returns {{ byTrainKey: Record<string, object>, enrichedCount: number }}
  */
-export function mergePlkIntoBundle(byTrainKey, candidatesByNumber = {}) {
-  const out = {};
-  let enrichedCount = 0;
+export function mergePlkIntoBundle(byTrainKey, candidates = []) {
+  const list = asArray(candidates).filter((c) => c?.stops?.length >= 2);
+  const byNumber = new Map();
+  for (const c of list) {
+    const n = c.number != null ? String(c.number) : "";
+    if (!n) continue;
+    if (!byNumber.has(n)) byNumber.set(n, []);
+    byNumber.get(n).push(c);
+  }
 
-  const enrichStops = (existingStops, key) => {
-    const candidates = candidatesByNumber[key];
-    if (!Array.isArray(candidates) || !existingStops?.length) return null;
-    const match = candidates.find(
-      (c) =>
-        c.stops?.length >= 2 &&
+  const bestMatch = (pool, existingStops) => {
+    let best = null;
+    for (const c of pool) {
+      if (
         endpointsMatch(c.stops, existingStops) &&
-        c.stops.length >= existingStops.length,
-    );
-    if (!match) return null;
-    return reconcileStopCoords(match.stops, existingStops);
+        c.stops.length >= existingStops.length &&
+        (!best || c.stops.length > best.stops.length)
+      ) {
+        best = c;
+      }
+    }
+    return best;
   };
 
+  const matchFor = (existingStops, key) => {
+    if (!existingStops || existingStops.length < 2) return null;
+    // Prefer a candidate carrying the same national number, then any candidate
+    // whose endpoints match (covers international national-number mismatches).
+    return (
+      bestMatch(byNumber.get(key) ?? [], existingStops) ??
+      bestMatch(list, existingStops)
+    );
+  };
+
+  const out = {};
+  let enrichedCount = 0;
   for (const [key, entry] of Object.entries(byTrainKey)) {
     const next = { ...entry };
-    const mainStops = enrichStops(entry.stops, key);
-    if (mainStops) {
-      next.stops = mainStops;
+    const m = matchFor(entry.stops, key);
+    if (m) {
+      next.stops = reconcileStopCoords(m.stops, entry.stops);
       enrichedCount += 1;
     }
     if (Array.isArray(entry.variants)) {
       next.variants = entry.variants.map((v) => {
-        const vs = enrichStops(v.stops, key);
-        if (vs) {
+        const mv = matchFor(v.stops, key);
+        if (mv) {
           enrichedCount += 1;
-          return { ...v, stops: vs };
+          return { ...v, stops: reconcileStopCoords(mv.stops, v.stops) };
         }
         return v;
       });
     }
     out[key] = next;
   }
-
   return { byTrainKey: out, enrichedCount };
 }
 
 // ── I/O + network ────────────────────────────────────────────────────────────
+
+const today = () => new Date().toISOString().slice(0, 10);
 
 function readScrapedData(rootDir, relPath) {
   try {
@@ -227,129 +291,99 @@ async function getJson(url, apiKey, budget) {
   return { ok: true, status: res.status, json };
 }
 
-async function loadStations({ rootDir, apiKey, budget, params, log }) {
-  const cached = readScrapedData(rootDir, STATIONS_CACHE_REL)?.stationsById;
-  if (cached && Object.keys(cached).length) {
-    log(`stations: ${Object.keys(cached).length} from cache`);
-    return cached;
-  }
+/** Dictionary id → { name } for every station (paginated, budget-capped). */
+async function loadStationNames({ apiKey, budget, params, log }) {
   const stationsById = {};
   const pageSize = params.stationsPageSize ?? 5000;
-  for (let page = 1; ; page += 1) {
+  let totalPages = 1;
+  for (let page = 1; page <= totalPages; page += 1) {
+    if (
+      budget.used >= budget.max ||
+      budget.rateRemaining <= (params.rateFloor ?? 10)
+    )
+      break;
     const resp = await getJson(
       `${BASE_URL}/dictionaries/stations?page=${page}&pageSize=${pageSize}`,
       apiKey,
       budget,
     );
-    if (!resp.ok) break;
-    const list = FIELDS.stationList(resp.json);
-    for (const st of list) {
-      const id = FIELDS.stationId(st);
-      if (id == null) continue;
-      stationsById[String(id)] = {
-        name: FIELDS.stationName(st),
-        lat: num(FIELDS.stationLat(st)),
-        lon: num(FIELDS.stationLon(st)),
-      };
+    if (!resp.ok) {
+      log(`stations page ${page} → ${resp.status || resp.error}`);
+      break;
     }
-    const totalPages = Number(FIELDS.stationTotalPages(resp.json)) || 1;
-    if (list.length === 0 || page >= totalPages) break;
+    for (const st of FIELDS.stationList(resp.json)) {
+      const id = FIELDS.stationId(st);
+      if (id != null)
+        stationsById[String(id)] = { name: FIELDS.stationName(st) };
+    }
+    totalPages = Number(FIELDS.stationTotalPages(resp.json)) || 1;
   }
-  if (Object.keys(stationsById).length) {
-    fs.writeFileSync(
-      path.join(rootDir, STATIONS_CACHE_REL),
-      JSON.stringify({
-        uploadedAt: new Date().toISOString(),
-        data: { stationsById },
-      }) + "\n",
-      "utf8",
-    );
-    log(`stations: fetched + cached ${Object.keys(stationsById).length}`);
-  }
+  log(
+    `stations: ${Object.keys(stationsById).length} names (${totalPages} page(s))`,
+  );
   return stationsById;
 }
 
-/** Fetch PLK route detail for the scoped train numbers → { number: [{stops}] }. */
+/**
+ * One bulk `/schedules?carriersInclude=IC` pull → the candidate list, filtered
+ * to routes whose number OR endpoint-city pair is in our scoped night-train set.
+ * @returns {{number: string, stops: object[]}[] | null}
+ */
 async function fetchScoped({
-  rootDir,
   apiKey,
   budget,
   scopedNumbers,
+  scopedEpKeys,
   params,
   log,
 }) {
-  const stationsById = await loadStations({
-    rootDir,
-    apiKey,
-    budget,
-    params,
-    log,
-  });
-
-  const date = params.date || new Date().toISOString().slice(0, 10);
-  const carrier = (params.carriersInclude || "").toUpperCase();
-  const listResp = await getJson(
-    `${BASE_URL}/schedules/routes/${date}`,
+  const dateFrom = params.date || today();
+  const dateTo = params.dateTo || dateFrom;
+  const carrier = params.carriersInclude || "IC";
+  const resp = await getJson(
+    `${BASE_URL}/schedules?carriersInclude=${encodeURIComponent(carrier)}&dateFrom=${dateFrom}&dateTo=${dateTo}`,
     apiKey,
     budget,
   );
-  if (!listResp.ok) {
-    log(`schedules/routes/${date} → ${listResp.status || listResp.error}`);
+  if (!resp.ok) {
+    log(`schedules → ${resp.status || resp.error}`);
     return null;
   }
-
-  const seen = new Set();
-  const wanted = FIELDS.routeList(listResp.json)
-    .map((r) => ({
-      sid: FIELDS.routeScheduleId(r),
-      oid: FIELDS.routeOrderId(r),
-      num: String(FIELDS.routeTrainNumber(r) ?? ""),
-      carrier: String(FIELDS.routeCarrier(r) ?? "").toUpperCase(),
-    }))
-    .filter((r) => r.sid != null && r.oid != null)
-    .filter((r) => scopedNumbers.has(r.num))
-    .filter((r) => !carrier || !r.carrier || r.carrier.includes(carrier))
-    .filter((r) => {
-      const k = `${r.sid}/${r.oid}`;
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
-
-  log(
-    `${wanted.length} scoped route(s) to fetch (budget ${budget.max - budget.used} left)`,
-  );
-
-  const details = await pMapLimit(
-    wanted,
-    params.concurrency ?? 4,
-    async (r) => {
-      if (
-        budget.used >= budget.max ||
-        budget.rateRemaining <= (params.rateFloor ?? 10)
-      )
-        return null;
-      const d = await getJson(
-        `${BASE_URL}/schedules/route/${r.sid}/${r.oid}`,
-        apiKey,
-        budget,
-      );
-      if (!d.ok) return null;
-      return {
-        num: r.num || String(FIELDS.detailTrainNumber(d.json) ?? ""),
-        detail: d.json,
-      };
-    },
-  );
-
-  const byNumber = {};
-  for (const item of details) {
-    if (!item?.num) continue;
-    const stops = normalizeStops(FIELDS.detailStops(item.detail), stationsById);
-    if (stops.length < 2) continue;
-    (byNumber[item.num] ||= []).push({ stops });
+  const routes = FIELDS.schedulesList(resp.json);
+  if (routes.length === 0) {
+    log("schedules: empty response");
+    return [];
   }
-  return byNumber;
+
+  const stationsById = await loadStationNames({ apiKey, budget, params, log });
+
+  const candidates = [];
+  for (const r of routes) {
+    const stations = FIELDS.routeStations(r);
+    if (stations.length < 2) continue;
+    const stops = normalizeStops(stations, stationsById);
+    if (stops.length < 2) continue;
+    const number = String(FIELDS.routeTrainNumber(r) ?? "").trim();
+    if (scopedNumbers.has(number) || scopedEpKeys.has(endpointKey(stops))) {
+      candidates.push({ number, stops });
+    }
+  }
+  log(
+    `bulk: ${routes.length} IC route(s) → ${candidates.length} scoped candidate(s)`,
+  );
+  return candidates;
+}
+
+/** Merge candidate lists, keyed by number#endpoints; later lists win (fresher). */
+function dedupCandidates(...lists) {
+  const map = new Map();
+  for (const list of lists) {
+    for (const c of asArray(list)) {
+      if (!c?.stops?.length) continue;
+      map.set(`${c.number ?? ""}#${endpointKey(c.stops)}`, c);
+    }
+  }
+  return [...map.values()];
 }
 
 /** Registry adapter entrypoint. */
@@ -375,7 +409,15 @@ export async function run(entry, ctx) {
     log("empty GTFS bundle — skip");
     return;
   }
+
   const scopedNumbers = new Set(Object.keys(byTrainKey));
+  const scopedEpKeys = new Set();
+  for (const e of Object.values(byTrainKey)) {
+    for (const s of [e.stops, ...(e.variants ?? []).map((v) => v.stops)]) {
+      const k = endpointKey(s);
+      if (k) scopedEpKeys.add(k);
+    }
+  }
 
   const params = entry.params || {};
   const budget = {
@@ -383,7 +425,6 @@ export async function run(entry, ctx) {
     max: params.maxRequestsPerRun ?? 80,
     rateRemaining: Infinity,
   };
-
   const prev = readScrapedData(rootDir, `public/data/scraped/${entry.output}`);
 
   // 1) data-version gate (1 request) — skip the fetch when nothing changed.
@@ -392,33 +433,33 @@ export async function run(entry, ctx) {
     ? (FIELDS.scheduleVersion(dv.json) ?? null)
     : null;
 
-  let candidatesByNumber = prev?.candidatesByNumber ?? null;
+  let candidates = Array.isArray(prev?.candidates) ? prev.candidates : [];
   let dataVersion = prev?.dataVersion ?? null;
 
   const unchanged =
     currentVersion &&
     dataVersion &&
     currentVersion === dataVersion &&
-    candidatesByNumber;
+    candidates.length > 0;
 
   if (unchanged) {
     log(
-      `data unchanged (${currentVersion}) — re-applying cached PLK stops, 0 further requests`,
+      `data unchanged (${currentVersion}) — re-applying ${candidates.length} cached candidate(s), 0 further requests`,
     );
   } else {
     const fetched = await fetchScoped({
-      rootDir,
       apiKey,
       budget,
       scopedNumbers,
+      scopedEpKeys,
       params,
       log,
     });
-    if (fetched && Object.keys(fetched).length) {
-      candidatesByNumber = fetched;
+    if (fetched && fetched.length) {
+      candidates = dedupCandidates(candidates, fetched); // fresher fetch wins; keeps trains not running today
       dataVersion = currentVersion ?? dataVersion;
-    } else if (candidatesByNumber) {
-      log("fetch produced nothing — falling back to cached PLK stops");
+    } else if (candidates.length) {
+      log("fetch produced nothing — re-applying cached candidates");
     } else {
       log("no PLK data available — leaving bundle as GTFS-only");
       return;
@@ -428,7 +469,7 @@ export async function run(entry, ctx) {
   // 2) Fold PLK stops into the freshly-regenerated GTFS bundle (supplement).
   const { byTrainKey: merged, enrichedCount } = mergePlkIntoBundle(
     byTrainKey,
-    candidatesByNumber,
+    candidates,
   );
   shapes.byTrainKey = merged;
   shapes.plkEnrichedAt = new Date().toISOString();
@@ -444,6 +485,6 @@ export async function run(entry, ctx) {
     fetchedAt: new Date().toISOString(),
     requests: budget.used,
     enrichedCount,
-    candidatesByNumber,
+    candidates,
   });
 }
