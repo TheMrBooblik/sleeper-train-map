@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-buchs-sg",
+  "createdAt": "2026-07-02T11:21:08.124Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Buchs SG\" → \"Buchs (SG)\"",
+  "summary": "The operator-injected station \"Buchs SG\" appears to be the same as Back-on-Track's \"Buchs (SG)\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Buchs SG"
+  },
+  "before": null,
+  "after": {
+    "alias": "buchs sg",
+    "canonical": "Buchs (SG)"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Buchs SG",
+        "canonical": "Buchs (SG)"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
