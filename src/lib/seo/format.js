@@ -31,16 +31,28 @@ export function formatAnyTime(value) {
 }
 
 /**
+ * Total minutes for a trip duration (Excel-epoch ISO), or 0 when unreadable.
+ * Kept separate from formatDuration so callers can sort routes by length
+ * (fastest/longest) without re-parsing the human-readable string.
+ * @param {string} value
+ * @returns {number}
+ */
+export function durationToMinutes(value) {
+  if (!value) return 0;
+  const ts = Date.parse(String(value));
+  if (Number.isNaN(ts)) return 0;
+  const total = Math.round((ts - EXCEL_EPOCH_MS) / 60000);
+  return total > 0 ? total : 0;
+}
+
+/**
  * Format a trip duration (Excel-epoch ISO) as "12h 47m". Handles durations over
  * 24h by measuring elapsed time from the Excel epoch rather than reading the clock.
  * @param {string} value
  * @returns {string}
  */
 export function formatDuration(value) {
-  if (!value) return "";
-  const ts = Date.parse(String(value));
-  if (Number.isNaN(ts)) return "";
-  const totalMinutes = Math.round((ts - EXCEL_EPOCH_MS) / 60000);
+  const totalMinutes = durationToMinutes(value);
   if (totalMinutes <= 0) return "";
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;

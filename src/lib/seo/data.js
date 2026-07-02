@@ -24,9 +24,11 @@ import {
   formatAnyTime,
   parseViaList,
   formatDuration,
+  durationToMinutes,
   formatDistanceKm,
   formatCo2,
 } from "./format";
+import { getOperatorPricing, formatFromPrice } from "../operatorPricing";
 import { splitAgencyIds, getOperatorMeta } from "./operators";
 import {
   normalizeCountryCode,
@@ -231,10 +233,25 @@ function buildSummary(route) {
       cityPairs.push({
         originCity: normalizeStationNameForDisplay(o),
         destCity: normalizeStationNameForDisplay(d),
+        // Physical country of each endpoint, so we can filter city-pair
+        // connections down to those touching a given country hub.
+        originCountry: getStationCountryCode(o),
+        destCountry: getStationCountryCode(d),
       });
     }
   }
   const countries = countryCodesForRoute(route, stopNames, operatorIds);
+
+  // Journey length + price come from the direction-0 trip (same source the full
+  // detail view uses). Kept on the summary so hub pages can show a duration/price
+  // badge and compute "fastest/longest/from" facts without a second data pass.
+  const trips = getTripsByRoute().get(routeId) || [];
+  const factTrip = trips.find((t) => Number(t.direction_id) === 0) || trips[0] || null;
+  const durationMinutes = factTrip ? durationToMinutes(factTrip.duration) : 0;
+  const pricing = getOperatorPricing({
+    agency_id: route.agency_id,
+    pricing: route.pricing,
+  });
 
   return {
     routeId,
@@ -251,6 +268,10 @@ function buildSummary(route) {
     operatorIds,
     countries,
     cityPairs,
+    durationMinutes,
+    durationText: factTrip ? formatDuration(factTrip.duration) : "",
+    pricing,
+    fromPrice: formatFromPrice(pricing),
     hasPolyline: Boolean(route.nj_polyline_0 || route.nj_polyline_1),
   };
 }

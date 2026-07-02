@@ -29,6 +29,19 @@ export default function RouteCardLink({ route }) {
         {operatorNames && (
           <p className="mt-1 text-xs text-white/50">{operatorNames}</p>
         )}
+        {/* Journey length + starting price, shown only when the data exists so
+            sparse routes still render cleanly. */}
+        {(route.durationText || route.fromPrice) && (
+          <p className="mt-2 flex items-center gap-2 text-xs text-white/40">
+            {route.durationText && <span>{route.durationText}</span>}
+            {route.durationText && route.fromPrice && (
+              <span aria-hidden="true">·</span>
+            )}
+            {route.fromPrice && (
+              <span className="text-primary-green/80">{route.fromPrice}</span>
+            )}
+          </p>
+        )}
       </div>
     </Link>
   );

@@ -63,7 +63,7 @@ function getOperatorMap() {
   return _operatorMap;
 }
 
-/** pairSlug → { slug, originCity, destCity, routes[] } (all pairs, pre-threshold). */
+/** pairSlug → { slug, originCity, destCity, countryCodes:Set, routes[] } (pre-threshold). */
 function getPairMap() {
   if (!_pairMap) {
     _pairMap = new Map();
@@ -77,10 +77,16 @@ function getPairMap() {
             slug,
             originCity: p.originCity,
             destCity: p.destCity,
+            // Which countries this pair's endpoints sit in, so a country hub can
+            // surface the connections that touch it.
+            countryCodes: new Set(),
             routes: [],
           });
         }
-        dedupePush(_pairMap.get(slug).routes, s);
+        const entry = _pairMap.get(slug);
+        if (p.originCountry) entry.countryCodes.add(p.originCountry);
+        if (p.destCountry) entry.countryCodes.add(p.destCountry);
+        dedupePush(entry.routes, s);
       }
     }
   }
@@ -96,15 +102,92 @@ export function getAllCountryHubs() {
     .sort((a, b) => a.country.name.localeCompare(b.country.name));
 }
 
-/** { country, routes[], operators[] } for a country slug, or null. */
+/** { country, routes[], operators[], facts } for a country slug, or null. */
 export function getCountryHub(slug) {
   for (const { country, routes } of getCountryMap().values()) {
     if (country.slug === slug) {
       const operators = uniqueOperators(routes);
-      return { country, routes: sortByTitle(routes), operators };
+      return {
+        country,
+        routes: sortByTitle(routes),
+        operators,
+        facts: countryFacts(routes, operators),
+      };
     }
   }
   return null;
+}
+
+/**
+ * Compact headline facts for a country hub: how many routes/operators, the
+ * fastest and longest journeys, and the cheapest known "from" price. Every
+ * field degrades gracefully (null) when the underlying data is missing.
+ */
+function countryFacts(routes, operators) {
+  const timed = routes.filter((r) => r.durationMinutes > 0);
+  const pick = (better) =>
+    timed.length
+      ? timed.reduce((best, r) => (better(r.durationMinutes, best.durationMinutes) ? r : best))
+      : null;
+  const brief = (r) =>
+    r && { title: r.title, slug: r.slug, durationText: r.durationText };
+
+  const fastest = pick((a, b) => a < b);
+  const longest = pick((a, b) => a > b);
+
+  let minFromPrice = null;
+  for (const r of routes) {
+    const p = r.pricing;
+    if (p && p.fromPrice != null) {
+      if (!minFromPrice || p.fromPrice < minFromPrice.fromPrice) {
+        // currency defaults to null (never undefined) so the object stays
+        // JSON-serializable for getStaticProps.
+        minFromPrice = { fromPrice: p.fromPrice, currency: p.currency || null };
+      }
+    }
+  }
+
+  return {
+    routeCount: routes.length,
+    operatorCount: operators.length,
+    fastest: brief(fastest),
+    longest: brief(longest),
+    minFromPrice,
+  };
+}
+
+/**
+ * City-pair connections (that clear the per-pair threshold) whose endpoints
+ * touch this country — links straight to the existing /connections pages.
+ * Sorted by how many trains serve the pair, then alphabetically.
+ */
+export function getConnectionsForCountry(countrySlug) {
+  const country = getSeoCountryBySlug(countrySlug);
+  if (!country) return [];
+  return [...getPairMap().values()]
+    .filter(
+      (p) => p.routes.length >= MIN_TRAINS_PER_PAIR && p.countryCodes.has(country.code),
+    )
+    .map((p) => ({
+      slug: p.slug,
+      originCity: p.originCity,
+      destCity: p.destCity,
+      routeCount: p.routes.length,
+    }))
+    .sort((a, b) => b.routeCount - a.routeCount || a.slug.localeCompare(b.slug));
+}
+
+/**
+ * Other country hubs reachable from this one — the union of countries served by
+ * this country's routes, minus itself. Because each connected country shares a
+ * route with this one, it always has its own hub page. Powers the "travel
+ * onward" cross-links (and closes the current country↔country linking gap).
+ */
+export function getConnectedCountries(countrySlug) {
+  const self = getSeoCountryBySlug(countrySlug);
+  const hub = getCountryHub(countrySlug);
+  if (!self || !hub) return [];
+  return uniqueCountries(hub.routes).filter((c) => c.code !== self.code);
 }
 
 // --- Operator hubs ----------------------------------------------------------
