@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-40476",
+  "createdAt": "2026-07-02T11:50:18.965Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: EN 40476 (Budapest-Nyugati – Berlin Hbf)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Berlin Hbf (tief)\" → \"Berlin Hbf\"",
+  "target": {
+    "routeKey": "nj_standalone_EN_40476",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Berlin Hbf (tief)"
+  },
+  "after": {
+    "destination": "Berlin Hbf"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
