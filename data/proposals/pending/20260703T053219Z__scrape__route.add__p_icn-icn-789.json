@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-789",
+  "createdAt": "2026-07-03T05:32:19.120Z",
+  "source": "scrape",
+  "sourceDetail": "icn",
+  "kind": "route.add",
+  "title": "New train: ICN 789 (Roma Termini – Lecce)",
+  "summary": "Route \"icn_ICN_789\" appeared in tonight's scrape and is withheld from the map until approved. Via: Ciampino - Frosinone - Cassino - Caserta - Benevento - Foggia - Barletta - Trani - Bisceglie - Molfetta - Bari Centrale - Polignano A Mare - Monopoli - Fasano - Ostuni - Brindisi",
+  "target": {
+    "routeKey": "icn_ICN_789",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "ICN 789",
+    "returnTrain": null,
+    "origin": "Roma Termini",
+    "destination": "Lecce",
+    "operator": "FS",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "icn_ICN_789"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
