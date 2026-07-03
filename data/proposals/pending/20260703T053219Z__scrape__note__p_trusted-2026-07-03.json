@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (1 routes, 1 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute 113: EN 1276 (Rijeka – Warszawa Wschodnia)\nstation Frankfurt(M) Flughafen Fernbf (nightjet)",
+  "title": "New Route and Station Added from Trusted Sources",
+  "summary": "A new route and station have been auto-approved from trusted sources. Route 113 connects Rijeka to Warszawa Wschodnia (EN 1276). The station Frankfurt(M) Flughafen Fernbf is now included in the nightjet service.",
   "target": {
     "routeKey": "trusted-2026-07-03",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
