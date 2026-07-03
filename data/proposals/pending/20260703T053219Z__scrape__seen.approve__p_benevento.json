@@ -1,0 +1,28 @@
+{
+  "v": 1,
+  "id": "p_benevento",
+  "createdAt": "2026-07-03T05:32:19.121Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "seen.approve",
+  "title": "New station: Benevento",
+  "summary": "Station \"Benevento\" was injected by an operator source for the first time. Its marker is hidden until approved (routes through it still render).",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Benevento"
+  },
+  "before": null,
+  "after": null,
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "stationName": "Benevento"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
