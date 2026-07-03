@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "seen.approve",
-  "title": "New station: Benevento",
-  "summary": "Station \"Benevento\" was injected by an operator source for the first time. Its marker is hidden until approved (routes through it still render).",
+  "title": "New Station Added: Benevento",
+  "summary": "A new station named \"Benevento\" has been added to the system by an operator. Its marker will remain hidden until it is approved, but routes that pass through this station will still be displayed.",
   "target": {
     "routeKey": null,
     "agencyId": null,
@@ -24,5 +24,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
