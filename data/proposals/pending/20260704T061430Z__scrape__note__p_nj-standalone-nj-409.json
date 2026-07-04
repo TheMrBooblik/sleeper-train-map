@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 409 (Zürich HB – Berlin Hbf)",
-  "summary": "Material change on an approved route (already live — FYI): destination: \"Berlin Hbf (tief)\" → \"Berlin Hbf\"",
+  "title": "Update: NJ 409 Destination Change",
+  "summary": "The destination for train NJ 409, which runs from Zürich HB to Berlin Hbf, has been updated. The new destination is now \"Berlin Hbf\" instead of \"Berlin Hbf (tief)\". This change is already live.",
   "target": {
     "routeKey": "nj_standalone_NJ_409",
     "agencyId": "ÖBB",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
