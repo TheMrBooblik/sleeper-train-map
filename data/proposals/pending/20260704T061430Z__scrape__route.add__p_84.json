@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": "backontrack",
   "kind": "route.add",
-  "title": "New train: IC Notte 1964 (Palermo Centrale – Milano Centrale)",
-  "summary": "Route \"84\" appeared in tonight's scrape and is withheld from the map until approved. Via: Termini Imerese - Barcellona Castroreale - Messina Centrale - Lamezia Terme Centrale - Salerno - Firenze S. M. N. - Bologna Centrale",
+  "title": "New train: IC Notte 1964 (Palermo to Milano)",
+  "summary": "A new route (84) has been added for the IC Notte 1964 train, operating daily from Palermo Centrale to Milano Centrale. The train stops at Termini Imerese, Barcellona Castroreale, Messina Centrale, Lamezia Terme Centrale, Salerno, Firenze S. M. N., and Bologna Centrale. The return train is IC Notte 1967.",
   "target": {
     "routeKey": "84",
     "agencyId": "FS",
@@ -31,5 +31,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
