@@ -311,8 +311,12 @@ export function plkScheduleForRow(row, candidates) {
       lat: null,
       lon: null,
     }));
+    // Only attach a validity line when PLK gives a real multi-day span — the
+    // single-day bulk pull would otherwise show a misleading one-date calendar.
     const cal = summariseDates(best.operatingDates);
-    if (cal.days || cal.validFrom) out[`pkp_valid_${d}`] = cal;
+    if (cal.validFrom && cal.validUntil && cal.validFrom !== cal.validUntil) {
+      out[`pkp_valid_${d}`] = cal;
+    }
     matched = true;
   }
   return matched ? out : null;
