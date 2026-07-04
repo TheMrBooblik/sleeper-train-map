@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-409",
+  "createdAt": "2026-07-04T06:14:30.896Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 409 (Zürich HB – Berlin Hbf)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Berlin Hbf (tief)\" → \"Berlin Hbf\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_409",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Berlin Hbf (tief)"
+  },
+  "after": {
+    "destination": "Berlin Hbf"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
