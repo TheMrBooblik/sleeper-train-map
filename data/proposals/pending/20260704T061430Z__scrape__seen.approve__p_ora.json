@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "seen.approve",
-  "title": "New station: Ora",
-  "summary": "Station \"Ora\" was injected by an operator source for the first time. Its marker is hidden until approved (routes through it still render).",
+  "title": "New station added: Ora",
+  "summary": "The station \"Ora\" has been introduced by an operator source for the first time. Its marker will remain hidden until it receives approval, but routes passing through it will still be displayed.",
   "target": {
     "routeKey": null,
     "agencyId": null,
@@ -24,5 +24,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
