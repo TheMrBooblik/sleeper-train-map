@@ -196,8 +196,8 @@ assert.equal(
   "variant → Warszawa corridor",
 );
 
-// 7) plkScheduleForRow — GTFS-less BoT row gets pkp_schedule per direction by
-//    ORIENTED endpoints (correct times), preferring same-number; via_ untouched.
+// 7) plkScheduleForRow — GTFS-less row gets pkp_schedule + via_ per direction by
+//    ORIENTED endpoints (correct times/order), preferring same-number.
 const rijekaRow = {
   agency_id: "PKP",
   trip_short_name_0: "EN 1276",
@@ -206,7 +206,7 @@ const rijekaRow = {
   trip_short_name_1: "EN 1277",
   origin_trip_1: "Warszawa Wschodnia",
   destination_trip_1: "Rijeka",
-  via_0: "OLD VIA (must stay untouched)",
+  via_0: "OLD VIA (replaced by the PLK via)",
 };
 const rijekaCands = [
   {
@@ -241,7 +241,12 @@ assert.equal(
 );
 assert.equal(rf.pkp_schedule_1[0].name, "Warszawa Wschodnia");
 assert.equal(rf.pkp_schedule_1[0].dep, "19:00", "dir1 keeps its own departure");
-assert.ok(!("via_0" in rf) && !("via_1" in rf), "via_ is never produced");
+assert.equal(
+  rf.via_0,
+  "Ljubljana - Wien Hauptbahnhof",
+  "via_0 = intermediate stations in order, endpoints dropped",
+);
+assert.equal(rf.via_1, "Wien Hauptbahnhof", "via_1 intermediate only");
 assert.ok(rf.pkp_valid_0?.days, "calendar derived from operatingDates");
 assert.equal(
   plkScheduleForRow(

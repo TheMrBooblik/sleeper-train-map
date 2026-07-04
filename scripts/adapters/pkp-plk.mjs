@@ -35,6 +35,7 @@ import {
   pkpEntryForRoute,
 } from "../../src/lib/pkpTrainKeyExtract.js";
 import { fmtHHMM, summariseDates } from "../lib/pkp-calendar.mjs";
+import { buildVia } from "../../src/lib/pkpGtfsMerge.js";
 
 const BASE_URL = "https://pdp-api.plk-sa.pl/api/v1";
 const SHAPES_REL = "public/data/gtfs/pkpTrainShapes.json";
@@ -268,8 +269,9 @@ export function mergePlkIntoBundle(byTrainKey, candidates = []) {
  * Build PLK station-list enrichment for one Back-on-Track PKP row. Matches a PLK
  * candidate per direction by ORIENTED endpoints (first stop == origin, last ==
  * destination) so per-direction times are correct, preferring a same-number
- * candidate. Returns { pkp_schedule_0/1, pkp_valid_0/1 } to set — never via_ or
- * geometry. Callers apply this only to rows the GTFS bundle can't resolve.
+ * candidate. Returns { pkp_schedule_0/1, pkp_valid_0/1, via_0/1 } to set — via_
+ * drives the BoT-coordinate map dots + line (PLK has no geometry of its own).
+ * Callers apply this only to rows the GTFS bundle can't resolve.
  * @param {object} row  a Back-on-Track view-map row
  * @param {{number?: string, stops: object[], operatingDates?: string[]}[]} candidates
  * @returns {object|null} partial row fields, or null when nothing matched
@@ -311,6 +313,16 @@ export function plkScheduleForRow(row, candidates) {
       lat: null,
       lon: null,
     }));
+    // List the intermediate stations in via_${d}: deriveCities() links them to
+    // this route → map dots, and buildAllRoutesPaths chains them into the line —
+    // both resolved from Back-on-Track station coordinates (PLK has none). Names
+    // BoT doesn't know simply don't render, which is harmless.
+    const via = buildVia(
+      best.stops,
+      row[`origin_trip_${d}`],
+      row[`destination_trip_${d}`],
+    );
+    if (via) out[`via_${d}`] = via;
     // Only attach a validity line when PLK gives a real multi-day span — the
     // single-day bulk pull would otherwise show a misleading one-date calendar.
     const cal = summariseDates(best.operatingDates);
