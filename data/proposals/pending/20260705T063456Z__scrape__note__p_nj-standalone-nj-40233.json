@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 40233 (Wien Hbf – Bologna Centrale)",
-  "summary": "Material change on an approved route (already live — FYI): destination: \"Roma Tiburtina\" → \"Bologna Centrale\"; train numbers: \"NJ 40233|NJ 40294\" → \"NJ 40233\"",
+  "title": "Update: NJ 40233 Route Change",
+  "summary": "The route for train NJ 40233 has been updated. It will now travel from Wien Hbf to Bologna Centrale instead of Roma Tiburtina. Train numbers affected: NJ 40233 remains, while NJ 40294 is no longer included.",
   "target": {
     "routeKey": "nj_standalone_NJ_40233",
     "agencyId": "ÖBB",
@@ -25,5 +25,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
