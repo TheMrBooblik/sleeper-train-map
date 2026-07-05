@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-295",
+  "createdAt": "2026-07-05T06:34:56.016Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 295 (München Hbf – Bologna Centrale)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Roma Tiburtina\" → \"Bologna Centrale\"; train numbers: \"NJ 295|NJ 294\" → \"NJ 295\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_295",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Roma Tiburtina",
+    "train numbers": "NJ 295|NJ 294"
+  },
+  "after": {
+    "destination": "Bologna Centrale",
+    "train numbers": "NJ 295"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
