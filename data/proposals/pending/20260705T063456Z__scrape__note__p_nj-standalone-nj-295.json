@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 295 (München Hbf – Bologna Centrale)",
-  "summary": "Material change on an approved route (already live — FYI): destination: \"Roma Tiburtina\" → \"Bologna Centrale\"; train numbers: \"NJ 295|NJ 294\" → \"NJ 295\"",
+  "title": "Update: NJ 295 Route Change (München Hbf – Bologna Centrale)",
+  "summary": "The destination for train NJ 295 has been updated from \"Roma Tiburtina\" to \"Bologna Centrale.\" Train numbers have been revised to only include \"NJ 295\" instead of both \"NJ 295\" and \"NJ 294.\" This change is already live.",
   "target": {
     "routeKey": "nj_standalone_NJ_295",
     "agencyId": "ÖBB",
@@ -25,5 +25,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
