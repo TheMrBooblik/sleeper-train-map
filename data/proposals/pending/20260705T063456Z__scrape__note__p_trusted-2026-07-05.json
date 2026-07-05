@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (1 routes, 5 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_40420: NJ 40420 (Innsbruck Hbf – Hamburg Altona)\nstation Brugg AG (nightjet)\nstation Lesce-Bled (nightjet)\nstation Jesenice(SL) (nightjet)\nstation Jesenice(Gr) (nightjet)\nstation Krsko (nightjet)",
+  "title": "New Night Train Route and Stations Added",
+  "summary": "A new night train route has been auto-approved from trusted sources. The route NJ 40420 operates between Innsbruck Hbf and Hamburg Altona. The following stations have been added: Brugg AG, Lesce-Bled, Jesenice (SL), Jesenice (Gr), and Krsko.",
   "target": {
     "routeKey": "trusted-2026-07-05",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
