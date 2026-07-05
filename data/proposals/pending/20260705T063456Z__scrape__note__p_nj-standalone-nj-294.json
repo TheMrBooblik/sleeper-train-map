@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-294",
+  "createdAt": "2026-07-05T06:34:56.017Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 294 (Roma Tiburtina – München Hbf)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 294|NJ 295\" → \"NJ 294\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_294",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "NJ 294|NJ 295"
+  },
+  "after": {
+    "train numbers": "NJ 294"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
