@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-07-05",
+  "createdAt": "2026-07-05T06:34:56.017Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (1 routes, 5 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_40420: NJ 40420 (Innsbruck Hbf – Hamburg Altona)\nstation Brugg AG (nightjet)\nstation Lesce-Bled (nightjet)\nstation Jesenice(SL) (nightjet)\nstation Jesenice(Gr) (nightjet)\nstation Krsko (nightjet)",
+  "target": {
+    "routeKey": "trusted-2026-07-05",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
