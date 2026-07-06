@@ -13,12 +13,13 @@ const DEFAULT_ZOOM = 5;
 const STORAGE_KEY_IS_GROUPED = "train-map:isGrouped";
 const STORAGE_KEY_SHOW_ROUTES = "train-map:showRoutes";
 const STORAGE_KEY_HIDE_INTERMEDIATE = "train-map:hideIntermediateStations";
+const STORAGE_KEY_RAILWAY_OVERLAY = "train-map:showRailwayOverlay";
 
 const Layout = ({ children }) => {
   const router = useRouter();
   const { stops, isLoading: stopsLoading } = useInitialData();
   const [searchTarget, setSearchTarget] = useState(null);
-  const [layerType, setLayerType] = useState("thunderforest");
+  const [showRailwayOverlay, setShowRailwayOverlay] = useState(false); // OpenRailwayMap tile overlay
   const [isGrouped, setIsGrouped] = useState(true);
   const [showRoutes, setShowRoutes] = useState(false); // Toggle for showing route paths
   const [hideIntermediateStations, setHideIntermediateStations] =
@@ -82,6 +83,9 @@ const Layout = ({ children }) => {
       const storedHideIntermediate = localStorage.getItem(
         STORAGE_KEY_HIDE_INTERMEDIATE,
       );
+      const storedRailwayOverlay = localStorage.getItem(
+        STORAGE_KEY_RAILWAY_OVERLAY,
+      );
 
       if (storedIsGrouped !== null) {
         setIsGrouped(storedIsGrouped === "true");
@@ -91,6 +95,9 @@ const Layout = ({ children }) => {
       }
       if (storedHideIntermediate !== null) {
         setHideIntermediateStations(storedHideIntermediate === "true");
+      }
+      if (storedRailwayOverlay !== null) {
+        setShowRailwayOverlay(storedRailwayOverlay === "true");
       }
     } catch {
       // Ignore storage errors (private mode, blocked storage, etc.)
@@ -108,22 +115,32 @@ const Layout = ({ children }) => {
         STORAGE_KEY_HIDE_INTERMEDIATE,
         String(hideIntermediateStations),
       );
+      localStorage.setItem(
+        STORAGE_KEY_RAILWAY_OVERLAY,
+        String(showRailwayOverlay),
+      );
     } catch {
       // Ignore storage errors (private mode, blocked storage, etc.)
     }
-  }, [hasLoadedPreferences, isGrouped, showRoutes, hideIntermediateStations]);
+  }, [
+    hasLoadedPreferences,
+    isGrouped,
+    showRoutes,
+    hideIntermediateStations,
+    showRailwayOverlay,
+  ]);
 
   return (
     <div className="grid grid-rows-[auto_1fr_auto] overflow-hidden min-h-screen">
       <Header
-        setLayerType={setLayerType}
-        layerType={layerType}
         isGrouped={isGrouped}
         setIsGrouped={setIsGrouped}
         showRoutes={showRoutes}
         setShowRoutes={setShowRoutesStable}
         hideIntermediateStations={hideIntermediateStations}
         setHideIntermediateStations={setHideIntermediateStations}
+        showRailwayOverlay={showRailwayOverlay}
+        setShowRailwayOverlay={setShowRailwayOverlay}
         stops={stops}
         stopsLoading={stopsLoading}
         onSearchSelect={setSearchTarget}
@@ -140,6 +157,7 @@ const Layout = ({ children }) => {
             setIsGrouped={setIsGrouped}
             showRoutes={showRoutes}
             hideIntermediateStations={hideIntermediateStations}
+            showRailwayOverlay={showRailwayOverlay}
             searchTarget={searchTarget}
             onSearchProcessed={() => setSearchTarget(null)}
           />

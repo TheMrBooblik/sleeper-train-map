@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaBars, FaEyeSlash, FaInfo, FaLayerGroup, FaRoute, FaExternalLinkAlt } from "react-icons/fa";
+import { FaBars, FaEyeSlash, FaInfo, FaLayerGroup, FaRoute, FaExternalLinkAlt, FaCog, FaTrain } from "react-icons/fa";
 
 import Container from "@components/Container";
 import Legend from "@components/Legend";
@@ -8,32 +8,8 @@ import StationSearchBar from "../Map/components/StationSearchBar";
 
 import { HEADER_HEIGHT } from "../../constants/header";
 
-// label: shown next to icon on desktop (1280px+). ariaLabel: full phrase for a11y / mobile tooltip.
-const IconToggleButton = ({
-  isActive,
-  label,
-  ariaLabel,
-  onClick,
-  icon,
-  showMobileTooltip = false,
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`icon-toggle-button icon-toggle-button--labeled whitespace-nowrap ${
-      showMobileTooltip ? "icon-toggle-button--show-tooltip-mobile" : ""
-    } ${isActive ? "is-active" : ""}`}
-    aria-label={ariaLabel || label}
-    data-tooltip={ariaLabel || label}
-  >
-    {icon}
-    <span className="hidden min-[1280px]:inline text-xs font-medium leading-none whitespace-nowrap">
-      {label}
-    </span>
-  </button>
-);
-
-const MOBILE_CONTROLS = [
+// Shared toggle config rendered both in the desktop Settings popover and the mobile ≡ menu.
+const SETTINGS_CONTROLS = [
   {
     id: "showRoutes",
     label: "Show all routes",
@@ -55,7 +31,40 @@ const MOBILE_CONTROLS = [
     getValue: (p) => p.isGrouped,
     toggle: (p) => p.setIsGrouped(!p.isGrouped),
   },
+  {
+    id: "railwayOverlay",
+    label: "OpenRailwayMap overlay",
+    icon: <FaTrain size={14} />,
+    getValue: (p) => p.showRailwayOverlay,
+    toggle: (p) => p.setShowRailwayOverlay(!p.showRailwayOverlay),
+  },
 ];
+
+// Full-width switch row used inside the Settings popover and the mobile menu.
+const ControlRow = ({ label, icon, isActive, onClick }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={isActive}
+    aria-label={label}
+    onClick={onClick}
+    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+  >
+    <span className="text-white/60">{icon}</span>
+    <span className="flex-1">{label}</span>
+    <span
+      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+        isActive ? "bg-emerald-500" : "bg-white/25"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+          isActive ? "translate-x-4" : "translate-x-0.5"
+        }`}
+      />
+    </span>
+  </button>
+);
 
 function usePopover() {
   const [open, setOpen] = useState(false);
@@ -81,14 +90,14 @@ function usePopover() {
 }
 
 const Header = ({
-  setLayerType,
-  layerType,
   isGrouped,
   setIsGrouped,
   showRoutes,
   setShowRoutes,
   hideIntermediateStations,
   setHideIntermediateStations,
+  showRailwayOverlay,
+  setShowRailwayOverlay,
   stops,
   stopsLoading,
   onSearchSelect,
@@ -97,8 +106,9 @@ const Header = ({
   const [mobileTooltipSession, setMobileTooltipSession] = useState(0);
   const legend = usePopover();
   const mobileMenu = usePopover();
+  const settings = usePopover();
 
-  const props = { isGrouped, setIsGrouped, showRoutes, setShowRoutes, hideIntermediateStations, setHideIntermediateStations };
+  const props = { isGrouped, setIsGrouped, showRoutes, setShowRoutes, hideIntermediateStations, setHideIntermediateStations, showRailwayOverlay, setShowRailwayOverlay };
 
   const showMobileTooltip = useCallback((id) => {
     setMobileTooltipId(id);
@@ -155,28 +165,16 @@ const Header = ({
                 role="dialog"
                 aria-label="Map controls"
               >
-                <div className="flex flex-col gap-1.5">
-                  {MOBILE_CONTROLS.map(({ id, label, icon, getValue, toggle }) => {
-                    const isActive = getValue(props);
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => toggle(props)}
-                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
-                          isActive
-                            ? "bg-white/20 text-white"
-                            : "text-white/70 hover:bg-white/10 hover:text-white/90"
-                        }`}
-                      >
-                        {icon}
-                        <span className="flex-1">{label}</span>
-                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${isActive ? "bg-white/20 text-white" : "text-white/40"}`}>
-                          {isActive ? "ON" : "OFF"}
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div className="flex flex-col gap-1">
+                  {SETTINGS_CONTROLS.map((c) => (
+                    <ControlRow
+                      key={c.id}
+                      label={c.label}
+                      icon={c.icon}
+                      isActive={c.getValue(props)}
+                      onClick={() => c.toggle(props)}
+                    />
+                  ))}
                 </div>
                 <div className="mt-3 flex flex-col gap-2 border-t border-white/15 pt-3">
                   <Link
@@ -198,32 +196,42 @@ const Header = ({
             ) : null}
           </div>
 
-          {/* Desktop: 3 individual toggle buttons — hidden on mobile */}
-          <div className="hidden min-[640px]:flex shrink-0 items-center gap-1.5 min-[640px]:gap-2">
-            <IconToggleButton
-              isActive={showRoutes}
-              label="All routes"
-              ariaLabel="Show all routes"
-              onClick={() => { setShowRoutes(!showRoutes); showMobileTooltip("showRoutes"); }}
-              showMobileTooltip={mobileTooltipId === "showRoutes"}
-              icon={<FaRoute size={14} />}
-            />
-            <IconToggleButton
-              isActive={hideIntermediateStations}
-              label="Hide via stations"
-              ariaLabel="Hide intermediate stations"
-              onClick={() => { setHideIntermediateStations(!hideIntermediateStations); showMobileTooltip("hideIntermediateStations"); }}
-              showMobileTooltip={mobileTooltipId === "hideIntermediateStations"}
-              icon={<FaEyeSlash size={14} />}
-            />
-            <IconToggleButton
-              isActive={isGrouped}
-              label="Group stations"
-              ariaLabel="Group stations"
-              onClick={() => { setIsGrouped(!isGrouped); showMobileTooltip("groupStations"); }}
-              showMobileTooltip={mobileTooltipId === "groupStations"}
-              icon={<FaLayerGroup size={14} />}
-            />
+          {/* Desktop: settings gear opening a popover with all toggles — hidden on mobile */}
+          <div className="relative hidden min-[640px]:block shrink-0">
+            <button
+              ref={settings.buttonRef}
+              type="button"
+              onClick={() => settings.setOpen((v) => !v)}
+              className={`icon-toggle-button shrink-0 ${settings.open ? "is-active" : ""}`}
+              aria-expanded={settings.open}
+              aria-controls="map-settings-popover"
+              aria-label="Map settings"
+              data-tooltip="Map settings"
+            >
+              <FaCog size={14} />
+            </button>
+            {settings.open ? (
+              <div
+                ref={settings.panelRef}
+                id="map-settings-popover"
+                className="fixed right-2 min-[640px]:right-4 z-[1003] w-[min(calc(100vw-1rem),20rem)] rounded-lg border border-white/15 bg-zinc-900 p-3 shadow-xl"
+                style={{ top: HEADER_HEIGHT + 8 }}
+                role="dialog"
+                aria-label="Map settings"
+              >
+                <div className="flex flex-col gap-1">
+                  {SETTINGS_CONTROLS.map((c) => (
+                    <ControlRow
+                      key={c.id}
+                      label={c.label}
+                      icon={c.icon}
+                      isActive={c.getValue(props)}
+                      onClick={() => c.toggle(props)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {/* Legend button */}

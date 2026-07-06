@@ -324,8 +324,9 @@ test.describe("Polish train routes", () => {
     await page.waitForSelector(".leaflet-container", { timeout: 15000 });
     // Wait for station markers to appear (data loaded)
     await page.waitForSelector(".leaflet-marker-icon", { timeout: 20000 });
-    // Click "Show all routes" to enable route polylines
-    await page.getByRole("button", { name: /show all routes/i }).click();
+    // Open the settings popover, then enable "Show all routes" to render route polylines
+    await page.getByRole("button", { name: /map settings/i }).click();
+    await page.getByRole("switch", { name: /show all routes/i }).click();
     // Give React time to render polylines (startTransition defers the update)
     await page.waitForTimeout(4000);
     await page.screenshot({
