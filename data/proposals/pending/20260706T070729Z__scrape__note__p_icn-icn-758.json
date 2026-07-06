@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-758",
+  "createdAt": "2026-07-06T07:07:29.536Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: ICN 758 (Lecce – Milano Centrale)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"ICN 758|ICN 765\" → \"ICN 758\"",
+  "target": {
+    "routeKey": "icn_ICN_758",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "ICN 758|ICN 765"
+  },
+  "after": {
+    "train numbers": "ICN 758"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
