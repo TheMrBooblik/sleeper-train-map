@@ -48,7 +48,7 @@ const ControlRow = ({ label, icon, isActive, onClick }) => (
     aria-checked={isActive}
     aria-label={label}
     onClick={onClick}
-    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+    className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
   >
     <span className="text-white/60">{icon}</span>
     <span className="flex-1">{label}</span>
