@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": "icn",
   "kind": "route.add",
-  "title": "New train: ICN 765 (Milano Centrale – Brindisi)",
-  "summary": "Route \"icn_ICN_765\" appeared in tonight's scrape and is withheld from the map until approved. Via: Piacenza - Parma - Reggio Emilia - Modena - Bologna Centrale - Faenza - Forli' - Cesena - Rimini - Pesaro - Ancona - Pescara - Foggia - Barletta - Trani - Bisceglie - Molfetta - Bari Centrale - Gioia Del Colle - Taranto - Francavilla Fontana",
+  "title": "New train: ICN 765 from Milano Centrale to Brindisi",
+  "summary": "A new train route, ICN 765, has been added. It travels from Milano Centrale to Brindisi, stopping at several stations including Piacenza, Parma, Reggio Emilia, and more. This route is currently pending approval and is not yet visible on the map.",
   "target": {
     "routeKey": "icn_ICN_765",
     "agencyId": "FS",
@@ -31,5 +31,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
