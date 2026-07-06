@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": "icn",
   "kind": "route.add",
-  "title": "New train: ICN 755 (Milano Centrale – Brindisi)",
-  "summary": "Route \"icn_ICN_755\" appeared in tonight's scrape and is withheld from the map until approved. Via: Piacenza - Parma - Reggio Emilia - Modena - Bologna Centrale - Faenza - Forli' - Cesena - Rimini - Ancona - Pescara - Termoli - S.severo - Foggia - Barletta - Trani - Bisceglie - Molfetta - Bari Centrale - Polignano A Mare - Monopoli - Fasano - Ostuni",
+  "title": "New train: ICN 755 from Milano Centrale to Brindisi",
+  "summary": "A new train route, ICN 755, has been added for review. It travels from Milano Centrale to Brindisi, stopping at several stations including Piacenza, Parma, Bologna Centrale, Rimini, Ancona, and Bari Centrale. This route is currently withheld from the map until it is approved.",
   "target": {
     "routeKey": "icn_ICN_755",
     "agencyId": "FS",
@@ -31,5 +31,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
