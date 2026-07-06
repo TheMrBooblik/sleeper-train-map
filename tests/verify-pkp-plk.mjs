@@ -2,7 +2,7 @@
 /**
  * Unit tests for the pure PKP PLK transforms (no server, no network):
  * normalizeStops, endpointsMatch, endpointKey, reconcileStopCoords,
- * mergePlkIntoBundle. Run: node tests/verify-pkp-plk.mjs
+ * mergePlkIntoBundle, canonicalizeStationName. Run: node tests/verify-pkp-plk.mjs
  *
  * Fixtures mirror the REAL PLK schema confirmed from live responses (2026-07):
  * a stop carries `stationId` (name resolved via the dictionary), `orderNumber`,
@@ -17,6 +17,7 @@ import {
   reconcileStopCoords,
   mergePlkIntoBundle,
   plkScheduleForRow,
+  canonicalizeStationName,
 } from "../scripts/adapters/pkp-plk.mjs";
 
 // Dictionary: id → { name } (no coordinates, exactly like the live API).
@@ -257,6 +258,92 @@ assert.equal(
   "no oriented endpoint match -> null",
 );
 
+// 8) canonicalizeStationName — PLK ASCII/alternate names → canonical BoT names
+//    via the shared alias table, so international stops match BoT
+//    coordinate-bearing stations (map dots + line). Unmapped names pass through.
+assert.equal(canonicalizeStationName("Bohumin"), "Bohumín", "diacritic alias");
+assert.equal(canonicalizeStationName("Breclav"), "Břeclav");
+assert.equal(
+  canonicalizeStationName("Graz Hauptbahnhof"),
+  "Graz Hbf",
+  "naming-form alias",
+);
+assert.equal(
+  canonicalizeStationName("Stare Mesto u Uher. Hradiste"),
+  "Staré Město u Uherského Hradiště",
+);
+assert.equal(
+  canonicalizeStationName("Ljubljana"),
+  "Ljubljana",
+  "unmapped name passes through unchanged",
+);
+assert.equal(canonicalizeStationName(""), "", "empty passes through");
+
+// 9) plkScheduleForRow threads the canonicalizer through via_ AND pkp_schedule_.
+const canonRow = {
+  agency_id: "PKP",
+  trip_short_name_0: "EN 1276",
+  origin_trip_0: "Rijeka",
+  destination_trip_0: "Warszawa Wschodnia",
+};
+const canonCands = [
+  {
+    number: "1276",
+    stops: [
+      { name: "Rijeka", arr: null, dep: "18:00" },
+      { name: "Lasko", arr: "20:00", dep: "20:02" },
+      { name: "Bohumin", arr: "04:00", dep: "04:05" },
+      { name: "Warszawa Wschodnia", arr: "10:00", dep: null },
+    ],
+  },
+];
+const cf = plkScheduleForRow(canonRow, canonCands, canonicalizeStationName);
+assert.equal(
+  cf.via_0,
+  "Laško - Bohumín",
+  "via_ names canonicalized, endpoints dropped",
+);
+assert.deepEqual(
+  cf.pkp_schedule_0.map((s) => s.name),
+  ["Rijeka", "Laško", "Bohumín", "Warszawa Wschodnia"],
+  "schedule names canonicalized",
+);
+// Default (no canonicalizer) leaves names verbatim — back-compat for callers.
+assert.equal(
+  plkScheduleForRow(canonRow, canonCands).via_0,
+  "Lasko - Bohumin",
+  "default identity preserves raw names",
+);
+
+// 10) mergePlkIntoBundle threads the canonicalizer into folded bundle stops.
+const cbRes = mergePlkIntoBundle(
+  {
+    1276: {
+      positions: [
+        [45.33, 14.44],
+        [52.25, 21.05],
+      ],
+      stops: [{ name: "Rijeka" }, { name: "Warszawa Wschodnia" }],
+    },
+  },
+  [
+    {
+      number: "1276",
+      stops: [
+        { name: "Rijeka" },
+        { name: "Bohumin" },
+        { name: "Warszawa Wschodnia" },
+      ],
+    },
+  ],
+  canonicalizeStationName,
+);
+assert.deepEqual(
+  cbRes.byTrainKey["1276"].stops.map((s) => s.name),
+  ["Rijeka", "Bohumín", "Warszawa Wschodnia"],
+  "bundle fold canonicalizes PLK names",
+);
+
 console.log(
-  "pkp-plk transforms OK — normalize/sort/times, endpoint match+key, coord reconcile, number+endpoint merge, variants",
+  "pkp-plk transforms OK — normalize/sort/times, endpoint match+key, coord reconcile, number+endpoint merge, variants, name canonicalization",
 );

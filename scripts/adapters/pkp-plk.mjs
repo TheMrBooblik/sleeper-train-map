@@ -36,6 +36,7 @@ import {
 } from "../../src/lib/pkpTrainKeyExtract.js";
 import { fmtHHMM, summariseDates } from "../lib/pkp-calendar.mjs";
 import { buildVia } from "../../src/lib/pkpGtfsMerge.js";
+import STATION_ALIASES from "../../data/overrides/station-aliases.json" with { type: "json" };
 
 const BASE_URL = "https://pdp-api.plk-sa.pl/api/v1";
 const SHAPES_REL = "public/data/gtfs/pkpTrainShapes.json";
@@ -113,6 +114,21 @@ export const FIELDS = {
   stationId: (st) => pick(st, "id", "stationId", "code"),
   stationName: (st) => pick(st, "name", "stationName"),
 };
+
+/**
+ * Canonicalize a PLK station name to its Back-on-Track form via the shared
+ * alias table (data/overrides/station-aliases.json). PLK returns names
+ * ASCII-folded or in an alternate form ("Bohumin", "Graz Hauptbahnhof") that
+ * won't match BoT's coordinate-bearing stops ("Bohumín", "Graz Hbf"); mapping
+ * them lets the stations join the map dots + route line. Unmapped names pass
+ * through unchanged (never mis-mapped).
+ * @param {string} name
+ * @returns {string}
+ */
+export function canonicalizeStationName(name) {
+  if (!name) return name;
+  return STATION_ALIASES[String(name).toLowerCase().trim()] ?? name;
+}
 
 // ── Pure transforms (exported for tests) ─────────────────────────────────────
 
@@ -207,7 +223,11 @@ export function reconcileStopCoords(plkStops, gtfsStops) {
  * @param {{number?: string, stops: object[]}[]} candidates
  * @returns {{ byTrainKey: Record<string, object>, enrichedCount: number }}
  */
-export function mergePlkIntoBundle(byTrainKey, candidates = []) {
+export function mergePlkIntoBundle(
+  byTrainKey,
+  candidates = [],
+  canonicalize = (s) => s,
+) {
   const list = asArray(candidates).filter((c) => c?.stops?.length >= 2);
   const byNumber = new Map();
   for (const c of list) {
@@ -241,13 +261,18 @@ export function mergePlkIntoBundle(byTrainKey, candidates = []) {
     );
   };
 
+  // Canonicalize PLK names to BoT form so international stops match BoT
+  // coordinate-bearing stations (matching itself is city-level and unaffected).
+  const canon = (stops) =>
+    stops.map((s) => (s?.name ? { ...s, name: canonicalize(s.name) } : s));
+
   const out = {};
   let enrichedCount = 0;
   for (const [key, entry] of Object.entries(byTrainKey)) {
     const next = { ...entry };
     const m = matchFor(entry.stops, key);
     if (m) {
-      next.stops = reconcileStopCoords(m.stops, entry.stops);
+      next.stops = reconcileStopCoords(canon(m.stops), entry.stops);
       enrichedCount += 1;
     }
     if (Array.isArray(entry.variants)) {
@@ -255,7 +280,7 @@ export function mergePlkIntoBundle(byTrainKey, candidates = []) {
         const mv = matchFor(v.stops, key);
         if (mv) {
           enrichedCount += 1;
-          return { ...v, stops: reconcileStopCoords(mv.stops, v.stops) };
+          return { ...v, stops: reconcileStopCoords(canon(mv.stops), v.stops) };
         }
         return v;
       });
@@ -276,7 +301,7 @@ export function mergePlkIntoBundle(byTrainKey, candidates = []) {
  * @param {{number?: string, stops: object[], operatingDates?: string[]}[]} candidates
  * @returns {object|null} partial row fields, or null when nothing matched
  */
-export function plkScheduleForRow(row, candidates) {
+export function plkScheduleForRow(row, candidates, canonicalize = (s) => s) {
   const list = asArray(candidates).filter((c) => c?.stops?.length >= 2);
   if (!row || list.length === 0) return null;
 
@@ -306,7 +331,10 @@ export function plkScheduleForRow(row, candidates) {
     }
     if (!best) continue;
 
-    out[`pkp_schedule_${d}`] = best.stops.map((s) => ({
+    // Canonicalize PLK names to Back-on-Track form (data/overrides/station-
+    // aliases.json) so the stations match BoT coordinate-bearing stops.
+    const stops = best.stops.map((s) => ({ ...s, name: canonicalize(s.name) }));
+    out[`pkp_schedule_${d}`] = stops.map((s) => ({
       name: s.name,
       arr: s.arr ?? null,
       dep: s.dep ?? null,
@@ -318,7 +346,7 @@ export function plkScheduleForRow(row, candidates) {
     // both resolved from Back-on-Track station coordinates (PLK has none). Names
     // BoT doesn't know simply don't render, which is harmless.
     const via = buildVia(
-      best.stops,
+      stops,
       row[`origin_trip_${d}`],
       row[`destination_trip_${d}`],
     );
@@ -578,6 +606,7 @@ export async function run(entry, ctx) {
   const { byTrainKey: merged, enrichedCount } = mergePlkIntoBundle(
     byTrainKey,
     candidates,
+    canonicalizeStationName,
   );
   shapes.byTrainKey = merged;
   shapes.plkEnrichedAt = new Date().toISOString();
@@ -588,8 +617,9 @@ export async function run(entry, ctx) {
   );
 
   // 2b) Enrich GTFS-less PKP rows in the Back-on-Track view map (through-car
-  // routes like Warszawa–Rijeka the Polish GTFS doesn't carry): set the
-  // detail-panel station list (pkp_schedule_*) from PLK — never via_/geometry.
+  // routes like Warszawa–Rijeka the Polish GTFS doesn't carry): set the detail-
+  // panel station list (pkp_schedule_*) plus via_* (map dots + line) from PLK,
+  // station names canonicalized to BoT form; geometry stays BoT/GTFS-derived.
   if (viewMap && candidates.length) {
     let vmEnriched = 0;
     for (const route of Object.values(viewMap)) {
@@ -609,7 +639,11 @@ export async function run(entry, ctx) {
         route.destination_trip_1,
       );
       if (g0 || g1) continue;
-      const fields = plkScheduleForRow(route, candidates);
+      const fields = plkScheduleForRow(
+        route,
+        candidates,
+        canonicalizeStationName,
+      );
       if (fields) {
         Object.assign(route, fields);
         stampOfficialSource(route, entry.id);
