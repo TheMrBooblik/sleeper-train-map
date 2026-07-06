@@ -14,6 +14,7 @@ import {
   getRouteSlugMap,
   getRouteDetail,
   getAllRouteSummaries,
+  toCardRoute,
 } from "../../lib/seo/data";
 import {
   getRelatedRoutes,
@@ -214,7 +215,7 @@ export async function getStaticProps({ params }) {
   if (!detail) return { notFound: true };
 
   const summary = getAllRouteSummaries().find((s) => s.routeId === routeId);
-  const related = summary ? getRelatedRoutes(summary, 6) : [];
+  const related = summary ? getRelatedRoutes(summary, 6).map(toCardRoute) : [];
   const pairSlug = summary ? getCityPairSlugForRoute(summary) : null;
   const cityPair = pairSlug
     ? { slug: pairSlug, originCity: summary.originCity, destCity: summary.destinationCity }

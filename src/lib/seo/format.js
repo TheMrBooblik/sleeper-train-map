@@ -31,16 +31,28 @@ export function formatAnyTime(value) {
 }
 
 /**
+ * Total minutes for a trip duration (Excel-epoch ISO), or 0 when unreadable.
+ * Kept separate from formatDuration so callers can sort routes by length
+ * (fastest/longest) without re-parsing the human-readable string.
+ * @param {string} value
+ * @returns {number}
+ */
+export function durationToMinutes(value) {
+  if (!value) return 0;
+  const ts = Date.parse(String(value));
+  if (Number.isNaN(ts)) return 0;
+  const total = Math.round((ts - EXCEL_EPOCH_MS) / 60000);
+  return total > 0 ? total : 0;
+}
+
+/**
  * Format a trip duration (Excel-epoch ISO) as "12h 47m". Handles durations over
  * 24h by measuring elapsed time from the Excel epoch rather than reading the clock.
  * @param {string} value
  * @returns {string}
  */
 export function formatDuration(value) {
-  if (!value) return "";
-  const ts = Date.parse(String(value));
-  if (Number.isNaN(ts)) return "";
-  const totalMinutes = Math.round((ts - EXCEL_EPOCH_MS) / 60000);
+  const totalMinutes = durationToMinutes(value);
   if (totalMinutes <= 0) return "";
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -69,6 +81,30 @@ export function formatCo2(value) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return "";
   return `${Math.round(n)} kg CO₂e`;
+}
+
+const MONTHS_SHORT = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/**
+ * Compact "from …" label for a not-yet-running train, given the future start
+ * date the map's getFutureRouteStartDate() returns ("YYYY-MM-DD").
+ *
+ * A date of the 1st of January means the source only gave us a year (e.g. a
+ * "postponed to 2027" note the map normalises to YYYY-01-01), so we show just
+ * the year — "from 2027". Otherwise we show the day — "from 9 Sep 2026".
+ * Returns "" when there is no future date.
+ * @param {string} dateStr - "YYYY-MM-DD" or falsy
+ * @returns {string}
+ */
+export function formatFutureFrom(dateStr) {
+  if (!dateStr) return "";
+  const [y, m, d] = String(dateStr).split("-").map(Number);
+  if (!y || !m || !d) return "";
+  if (m === 1 && d === 1) return `from ${y}`;
+  return `from ${d} ${MONTHS_SHORT[m - 1]} ${y}`;
 }
 
 /**

@@ -5,6 +5,12 @@ on:
     - cron: "0 3 * * *"
   workflow_dispatch:
 
+# Never let two scrape runs race to push main: a queued run waits for the
+# in-flight one to finish. Removes the main source of non-fast-forward pushes.
+concurrency:
+  group: daily-scrape
+  cancel-in-progress: false
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
@@ -12,7 +18,11 @@ jobs:
       contents: write
       models: read
     steps:
+      # Full history so we can rebase our data commit onto main if it moved
+      # while the scrape was running (see the commit step below).
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -70,9 +80,36 @@ jobs:
       # registry entry is a daily external-runner step, so the bundle is fresh
       # before the enrichment post-step stamps PKP rows.
 
-      - uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: daily data scrape [skip ci]"
-          file_pattern: "public/data/scraped/*.json public/data/published/*.json public/data/gtfs/pkpTrainShapes.json data/canonical/state/*.json"
+      # Commit tonight's regenerated data and push it to main. If main advanced
+      # while we were running (a concurrent commit, or a manual push), rebase our
+      # data commit onto the new tip and retry. Regenerated files always win on
+      # conflict (-X theirs): they are a fresh, complete source-of-truth snapshot,
+      # so overwriting is correct. Bounded retries so a real problem still fails
+      # loudly. Replaces the git-auto-commit action (also drops its Node 20 runtime).
+      - name: Commit & push regenerated data
         env:
           HUSKY: "0"
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/scraped/*.json public/data/published/*.json public/data/gtfs/pkpTrainShapes.json data/canonical/state/*.json
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: daily data scrape [skip ci]"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt) — main moved; rebasing onto latest."
+            git fetch origin main
+            if ! git rebase -X theirs origin/main; then
+              git rebase --abort || true
+              echo "Rebase hit an unresolvable conflict; aborting."
+              exit 1
+            fi
+          done
+          echo "Failed to push after retries."
+          exit 1
