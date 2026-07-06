@@ -18,5 +18,10 @@ export function fetchWithTimeout(url, options = {}) {
 
 export function titleCase(str) {
   if (!str) return str;
-  return str.toLowerCase().replace(/(?:^|\s|[-'(])(\p{L})/gu, (_, c) => _.slice(0, -1) + c.toUpperCase());
+  return str
+    .toLowerCase()
+    .replace(
+      /(?:^|\s|[-'(])(\p{L})/gu,
+      (_, c) => _.slice(0, -1) + c.toUpperCase(),
+    );
 }
