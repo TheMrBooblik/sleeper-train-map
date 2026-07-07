@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-07-07",
+  "createdAt": "2026-07-07T06:42:49.246Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (1 routes, 2 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute 113: EN 1276 (Rijeka – Warszawa Wschodnia)\nstation Frankfurt(Main)Hbf (nightjet)\nstation Frankfurt(M) Flughafen Fernbf (nightjet)",
+  "target": {
+    "routeKey": "trusted-2026-07-07",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
