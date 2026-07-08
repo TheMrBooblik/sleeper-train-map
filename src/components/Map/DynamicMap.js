@@ -69,6 +69,7 @@ const TrainMap = ({
   isGrouped,
   showRoutes = true,
   hideIntermediateStations = false,
+  showRailwayOverlay = false,
   searchTarget,
   onSearchProcessed,
   ...rest
@@ -632,6 +633,14 @@ const TrainMap = ({
         {...rest}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        {showRailwayOverlay && (
+          <TileLayer
+            url="https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png"
+            zIndex={2}
+            maxZoom={19}
+            attribution='Railway overlay: <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> (CC-BY-SA 2.0)'
+          />
+        )}
         <MapClickHandler
           hasSelection={hasSelection}
           onClearFilter={handleFilterClose}

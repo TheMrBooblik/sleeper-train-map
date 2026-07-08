@@ -31,7 +31,12 @@ jobs:
 
       - run: npm ci
 
+      # PLK_API_KEY: official PLK "Otwarte Dane Kolejowe" API key, consumed by the
+      # pkp-plk adapter to enrich PKP station info. Optional — absent key just
+      # leaves the GTFS bundle as-is. Add it as a repo secret to enable.
       - run: npm run scrape
+        env:
+          PLK_API_KEY: ${{ secrets.PLK_API_KEY }}
 
       # Classify tonight's changes BEFORE canonicalize: new trains/stations
       # file proposals on the `proposals` branch (reviewed in /data) and update
