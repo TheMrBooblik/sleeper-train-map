@@ -60,6 +60,10 @@ export const OPERATOR_BRAND_COLORS = {
   GR: "#D4380D",  // Georgian Railway – Georgian red-orange
   ADY: "#0080C8", // ADY (Azerbaijan Railways) – ADY blue
   SCR: "#7B2D8B", // South Caucasus Railway (Armenia) – violet
+
+  // North America
+  AMTK: "#003E7A", // Amtrak – Amtrak blue
+  VIA: "#FFC72C",  // VIA Rail Canada – VIA yellow
 };
 
 // Optional secondary accent colors for operators with many routes.

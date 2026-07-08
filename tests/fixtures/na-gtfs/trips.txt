@@ -1,0 +1,6 @@
+route_id,service_id,trip_id,trip_short_name,direction_id,shape_id
+CZ,DAILY,t1,5,0,sh1
+CZ,DAILY,t2,5,0,
+CR,DAILY,t4,20,0,
+PS,WEEKDAY,t3,,0,
+OC,DAILY,t5,15,0,

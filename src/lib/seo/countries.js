@@ -66,4 +66,6 @@ export const OPERATOR_COUNTRY_FALLBACK = {
   GR: ["GE"], // Georgian Railway (no GE hub — informational only)
   ADY: ["AZ"], // Azerbaijan Railways
   SCR: ["AM"], // South Caucasus Railway (Armenia)
+  AMTK: ["US"], // Amtrak
+  VIA: ["CA"], // VIA Rail Canada
 };

@@ -1,0 +1,12 @@
+stop_id,stop_name,stop_lat,stop_lon
+CHI,Chicago Union Station,41.8786,-87.6401
+OMA,Omaha,41.2586,-95.9378
+EMY,Emeryville,37.8409,-122.2913
+NYP,New York Penn,40.7506,-73.9935
+WAS,Washington Union,38.8970,-77.0066
+NOL,New Orleans Union,29.9499,-90.0701
+LAX,Los Angeles Union,34.0561,-118.2365
+SAN,San Diego,32.7174,-117.1628
+MTL,Montréal Gare Centrale,45.4995,-73.5666
+MNC,Moncton,46.0878,-64.7782
+HFX,Halifax,44.6476,-63.5875

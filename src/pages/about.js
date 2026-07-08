@@ -34,6 +34,7 @@ const CountryCard = ({ code, name, hubCountryCodes = [] }) => (
 );
 
 const ASIA_COUNTRY_CODES = new Set(["CN"]);
+const NORTH_AMERICA_COUNTRY_CODES = new Set(["US", "CA"]);
 
 const StepCard = ({ number, title, description }) => (
   <div className="flex gap-4 items-start">
@@ -49,10 +50,15 @@ const StepCard = ({ number, title, description }) => (
 
 export default function AboutPage({ hubCountryCodes = [] }) {
   const europeCountries = COUNTRIES.filter(
-    (country) => !ASIA_COUNTRY_CODES.has(country.code),
+    (country) =>
+      !ASIA_COUNTRY_CODES.has(country.code) &&
+      !NORTH_AMERICA_COUNTRY_CODES.has(country.code),
   );
   const asiaCountries = COUNTRIES.filter((country) =>
     ASIA_COUNTRY_CODES.has(country.code),
+  );
+  const northAmericaCountries = COUNTRIES.filter((country) =>
+    NORTH_AMERICA_COUNTRY_CODES.has(country.code),
   );
 
   return (
@@ -243,6 +249,22 @@ export default function AboutPage({ hubCountryCodes = [] }) {
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {asiaCountries.map((country) => (
+                    <CountryCard
+                      key={country.code}
+                      {...country}
+                      hubCountryCodes={hubCountryCodes}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+            {northAmericaCountries.length > 0 && (
+              <>
+                <h3 className="text-lg font-semibold text-white mt-10 mb-4">
+                  North America
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {northAmericaCountries.map((country) => (
                     <CountryCard
                       key={country.code}
                       {...country}

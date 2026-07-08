@@ -107,6 +107,14 @@ function isCaucasusTrainNumber(value) {
   return /^\s*(GR|ADY|SCR)\s+\d+/i.test((value || "").toString());
 }
 
+// North American synthetic routes (Amtrak / VIA Rail) are keyed by their
+// route-id prefix rather than a train-number pattern — the label is the service
+// name (e.g. "California Zephyr"), not a number.
+function isNorthAmericaRoute(routeId) {
+  const id = String(routeId || "");
+  return id.startsWith("amtrak_") || id.startsWith("via_");
+}
+
 function normalizeStationToken(value) {
   return (
     (value || "")
@@ -169,6 +177,9 @@ const TrainDetailPanel = ({
   const [curatedTrainData, setCuratedTrainData] = useState(null);
   const [curatedLoadFailed, setCuratedLoadFailed] = useState(false);
   const [curatedLoading, setCuratedLoading] = useState(false);
+  const [naTrainData, setNaTrainData] = useState(null);
+  const [naLoadFailed, setNaLoadFailed] = useState(false);
+  const [naLoading, setNaLoading] = useState(false);
   const [suggestContext, setSuggestContext] = useState(null);
 
   // IMPORTANT: `useRoutes()` fetches `/api/trains?type=view_ontd_map` which filters out NJ/EN.
@@ -232,7 +243,10 @@ const TrainDetailPanel = ({
           trip_origin: origin,
           trip_headsign: dest,
           via: via || "",
-          // Times will be filled from official NJ timetable when available.
+          // Service string carried from the route row (synthetic sources with
+          // withService:true, e.g. Amtrak/VIA/curated) so Frequency can render.
+          service_id: route[`service_id_${suffix}`] || null,
+          // Times will be filled from the official operator timetable when available.
           origin_departure_time: null,
           destination_arrival_time: null,
         });
@@ -243,13 +257,15 @@ const TrainDetailPanel = ({
     });
 
     // Only keep trains we can recognize as NJ/EN, CR, Italian ICN, Caucasus,
-    // or admin-curated routes; otherwise fall back to empty-state.
+    // North American (Amtrak/VIA), or admin-curated routes; otherwise fall back
+    // to empty-state.
     return next.filter(
       (t) =>
         isNightJetOrEuroNightTrainNumber(t.trip_short_name) ||
         isChinaRailwayTrainNumber(t.trip_short_name) ||
         isItalianICNTrainNumber(t.trip_short_name) ||
         isCaucasusTrainNumber(t.trip_short_name) ||
+        isNorthAmericaRoute(t.route_id) ||
         String(t.route_id || "").startsWith("curated_"),
     );
   }, [selectedRouteIds, routes, relevantTrips.length]);
@@ -395,6 +411,9 @@ const TrainDetailPanel = ({
   );
   const hasCuratedFallback = fallbackTrips.some((t) =>
     String(t.route_id || "").startsWith("curated_"),
+  );
+  const hasNAFallback = fallbackTrips.some((t) =>
+    isNorthAmericaRoute(t.route_id),
   );
 
   useEffect(() => {
@@ -562,6 +581,55 @@ const TrainDetailPanel = ({
     };
   }, [isOpen, hasCuratedFallback]);
 
+  // North America (Amtrak + VIA Rail): both are separate registry sources, so
+  // fetch each generic per-source trains file and merge (route names are unique
+  // across the two). Station times arrive as plain "HH:MM" strings.
+  useEffect(() => {
+    if (!isOpen || !hasNAFallback) {
+      setNaTrainData(null);
+      setNaLoadFailed(false);
+      setNaLoading(false);
+      return;
+    }
+
+    let active = true;
+    const loadNATrains = async () => {
+      setNaLoading(true);
+      try {
+        setNaLoadFailed(false);
+        const fetchSource = (source) =>
+          fetch(`/api/operator-trains?source=${source}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null);
+        const [amtrak, viarail] = await Promise.all([
+          fetchSource("amtrak"),
+          fetchSource("viarail"),
+        ]);
+        if (!active) return;
+        if (!amtrak && !viarail) {
+          setNaTrainData(null);
+          setNaLoadFailed(true);
+        } else {
+          setNaTrainData({
+            trains: { ...(amtrak?.trains || {}), ...(viarail?.trains || {}) },
+          });
+        }
+      } catch {
+        if (active) {
+          setNaTrainData(null);
+          setNaLoadFailed(true);
+        }
+      } finally {
+        if (active) setNaLoading(false);
+      }
+    };
+
+    loadNATrains();
+    return () => {
+      active = false;
+    };
+  }, [isOpen, hasNAFallback]);
+
   const nightjetTrainByNumber = useMemo(() => {
     const trains = nightjetData?.trains || {};
     const next = new Map();
@@ -717,6 +785,32 @@ const TrainDetailPanel = ({
     return next;
   }, [curatedTrainData]);
 
+  const naScheduleByTrainNumber = useMemo(() => {
+    if (!naTrainData?.trains) return new Map();
+    // Amtrak/VIA station times are plain "HH:MM" strings (ISO tolerated).
+    const asTime = (value) =>
+      value ? (String(value).includes("T") ? formatTime(value) : value) : null;
+    const next = new Map();
+    Object.entries(naTrainData.trains).forEach(([key, train]) => {
+      const stations = Array.isArray(train?.stations) ? train.stations : [];
+      if (stations.length === 0) return;
+      next.set(normalizeTrainNumber(key), {
+        tripId: key,
+        stops: stations.map((s, i) => ({
+          stopId: s.name || String(i),
+          sequence: i + 1,
+          name: s.name || "Station",
+          arrival: asTime(s.arrival),
+          departure: asTime(s.departure),
+        })),
+        validFrom: null,
+        validUntil: null,
+        source: "na",
+      });
+    });
+    return next;
+  }, [naTrainData]);
+
   if (!isOpen) {
     return null;
   }
@@ -768,7 +862,8 @@ const TrainDetailPanel = ({
               chineseLoading ||
               italianLoading ||
               caucasusLoading ||
-              curatedLoading ? (
+              curatedLoading ||
+              naLoading ? (
                 <span className="flex items-center gap-2">
                   <span
                     className="inline-block w-3.5 h-3.5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"
@@ -815,6 +910,11 @@ const TrainDetailPanel = ({
               {curatedLoadFailed && hasCuratedFallback && (
                 <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
                   Detailed timetable is currently unavailable.
+                </div>
+              )}
+              {naLoadFailed && hasNAFallback && (
+                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                  Amtrak / VIA Rail timetable is currently unavailable.
                 </div>
               )}
 
@@ -902,11 +1002,16 @@ const TrainDetailPanel = ({
                   caucasusTrainData?.trains?.[normalizedTrainNumber] || null;
                 const curatedTrain =
                   curatedTrainData?.trains?.[normalizedTrainNumber] || null;
+                const naTrain =
+                  naTrainData?.trains?.[trip.trip_short_name] ||
+                  naTrainData?.trains?.[normalizedTrainNumber] ||
+                  null;
                 const operatorName =
                   nightjetTrain?.operator ||
                   crTrain?.operator ||
                   caucasusTrain?.operator ||
                   curatedTrain?.operator ||
+                  naTrain?.operator ||
                   agency?.agency_name ||
                   "Operator";
                 // Synthetic NJ/EN trips use agency_id="ÖBB" for styling, but the actual
@@ -938,6 +1043,17 @@ const TrainDetailPanel = ({
                 const itDestinationArrival =
                   itStations?.[itStations.length - 1]?.arrival ||
                   itStations?.[itStations.length - 1]?.departure ||
+                  null;
+                // Amtrak/VIA stations carry "HH:MM" local strings straight from
+                // GTFS — used directly, like PKP (not via formatTime).
+                const naStations = Array.isArray(naTrain?.stations)
+                  ? naTrain.stations
+                  : [];
+                const naOriginDeparture =
+                  naStations?.[0]?.departure || naStations?.[0]?.arrival || null;
+                const naDestinationArrival =
+                  naStations?.[naStations.length - 1]?.arrival ||
+                  naStations?.[naStations.length - 1]?.departure ||
                   null;
 
                 const detailedSchedule =
@@ -974,6 +1090,8 @@ const TrainDetailPanel = ({
                 const curatedSchedule =
                   curatedScheduleByTrainNumber.get(normalizedTrainNumber) ||
                   null;
+                const naSchedule =
+                  naScheduleByTrainNumber.get(normalizedTrainNumber) || null;
                 const schedule =
                   // PKP GTFS is the source of truth for Polish trains.
                   pkpSchedule ||
@@ -983,7 +1101,8 @@ const TrainDetailPanel = ({
                   crSchedule ||
                   itSchedule ||
                   caucasusSchedule ||
-                  curatedSchedule;
+                  curatedSchedule ||
+                  naSchedule;
                 const validFrom = formatCalendarDate(schedule?.validFrom);
                 const validUntil = formatCalendarDate(schedule?.validUntil);
 
@@ -1142,6 +1261,8 @@ const TrainDetailPanel = ({
                         PKP GTFS times take priority; BoT is the fallback. */}
                     {(pkpOriginDeparture ||
                       pkpDestinationArrival ||
+                      naOriginDeparture ||
+                      naDestinationArrival ||
                       formatTime(
                         trip.origin_departure_time ||
                           nightjetOriginDeparture ||
@@ -1159,6 +1280,7 @@ const TrainDetailPanel = ({
                           </div>
                           <div className="font-semibold text-gray-900">
                             {pkpOriginDeparture ||
+                              naOriginDeparture ||
                               formatTime(
                                 trip.origin_departure_time ||
                                   nightjetOriginDeparture ||
@@ -1172,6 +1294,7 @@ const TrainDetailPanel = ({
                           </div>
                           <div className="font-semibold text-gray-900">
                             {pkpDestinationArrival ||
+                              naDestinationArrival ||
                               formatTime(
                                 trip.destination_arrival_time ||
                                   nightjetDestinationArrival ||
