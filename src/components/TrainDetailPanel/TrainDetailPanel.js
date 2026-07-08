@@ -24,6 +24,10 @@ import {
 } from "../../lib/operatorPricing";
 import BookingActions from "./BookingActions";
 import SuggestEditModal from "../SuggestEdit/SuggestEditModal";
+import {
+  buildMajorViaContext,
+  selectMajorViaStations,
+} from "../../lib/viaDisplay.mjs";
 
 const GTFS_ROUTE_KIND = {
   chop: "chop",
@@ -185,6 +189,12 @@ const TrainDetailPanel = ({
   // IMPORTANT: `useRoutes()` fetches `/api/trains?type=view_ontd_map` which filters out NJ/EN.
   // For NJ/EN fallback we must use unfiltered `viewMapData` from `/api/initial-data` when provided.
   const routes = viewMapData || fetchedRoutes;
+
+  // Hub/main-station context for the compact via summary (full via stays on the row).
+  const majorViaContext = useMemo(
+    () => buildMajorViaContext(routes),
+    [routes],
+  );
 
   // Handle ESC key press
   useEffect(() => {
@@ -934,6 +944,10 @@ const TrainDetailPanel = ({
                 // were merged onto the route in pkpGtfsMerge. Pick the direction
                 // whose origin matches this trip's origin.
                 const tripRoute = routes?.[trip.route_id?.toString()];
+                const viaSummary = selectMajorViaStations(
+                  trip.via,
+                  majorViaContext,
+                );
 
                 // SEO per-train page slug. Built strictly from the route row's
                 // endpoints (mirroring routeEndpoints() in src/lib/seo/data.js) so
@@ -1205,9 +1219,9 @@ const TrainDetailPanel = ({
                         {abbreviateStationName(trip.trip_origin)} {"->"}{" "}
                         {abbreviateStationName(trip.trip_headsign)}
                       </div>
-                      {trip.via && (
+                      {viaSummary && (
                         <div className="text-xs text-gray-600">
-                          via {abbreviateStationName(trip.via)}
+                          via {abbreviateStationName(viaSummary)}
                         </div>
                       )}
                       {/* Optional informational link about the route (e.g. the
