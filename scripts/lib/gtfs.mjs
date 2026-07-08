@@ -304,6 +304,8 @@ function stationsForTrip(tripId, gtfs) {
     seen.add(stop.name);
     stations.push({
       name: stop.name,
+      // GTFS stop_id is the operator station code (Amtrak: CHI, VIA: MTL).
+      code: st.stop_id,
       location: { latitude: stop.lat, longitude: stop.lon },
       arrival: fmtTime(st.arrival),
       departure: fmtTime(st.departure),

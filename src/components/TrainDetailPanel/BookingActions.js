@@ -3,6 +3,10 @@
 import React from "react";
 import { FiExternalLink } from "react-icons/fi";
 import { buildBookingUrl, getDealsLink, getBookingPageUrl } from "../../lib/operatorBooking";
+import {
+  buildNorthAmericaBookingUrl,
+  isNorthAmericaAgency,
+} from "../../lib/naBooking.mjs";
 import { formatFromPrice } from "../../lib/operatorPricing";
 import { abbreviateStationName } from "../Map/utils/stationNameUtils";
 
@@ -27,11 +31,27 @@ export default function BookingActions({
   dest,
   pricing,
   livePrice, // reserved for future live-price fetching; unused for now
+  routeId,
+  scheduleStops,
 }) {
-  // Deep link with preselected stations (null when no template for operator).
-  const deepLink = buildBookingUrl({ agencyId, origin, dest });
-  const bookingPageUrl = getBookingPageUrl(agencyId);
-  const href = deepLink || bookingPageUrl || agencyUrl || null;
+  let deepLink = null;
+  let href = null;
+
+  if (isNorthAmericaAgency(agencyId)) {
+    const na = buildNorthAmericaBookingUrl({
+      agencyId,
+      routeId,
+      origin,
+      dest,
+      scheduleStops,
+    });
+    href = na.url;
+    if (na.isStationDeepLink) deepLink = na.url;
+  } else {
+    deepLink = buildBookingUrl({ agencyId, origin, dest });
+    const bookingPageUrl = getBookingPageUrl(agencyId);
+    href = deepLink || bookingPageUrl || agencyUrl || null;
+  }
 
   const dealsLink = getDealsLink(agencyId);
 

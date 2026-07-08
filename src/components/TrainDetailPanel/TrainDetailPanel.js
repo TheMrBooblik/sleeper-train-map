@@ -810,6 +810,7 @@ const TrainDetailPanel = ({
           stopId: s.name || String(i),
           sequence: i + 1,
           name: s.name || "Station",
+          code: s.code || null,
           arrival: asTime(s.arrival),
           departure: asTime(s.departure),
         })),
@@ -1486,6 +1487,8 @@ const TrainDetailPanel = ({
                       origin={bookingOrigin}
                       dest={trip.trip_headsign}
                       pricing={pricing}
+                      routeId={trip.route_id}
+                      scheduleStops={schedule?.stops}
                     />
 
                     {/* Community corrections feed the admin review queue */}
