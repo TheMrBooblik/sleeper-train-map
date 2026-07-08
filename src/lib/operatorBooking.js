@@ -12,7 +12,7 @@
  * This mirrors operatorPricing.js: the JSON is bundled at build time (no API),
  * so admin edits go live on the next deploy.
  */
-import OPERATOR_BOOKING from "../../data/overrides/operator-booking.json";
+import OPERATOR_BOOKING from "../../data/overrides/operator-booking.json" with { type: "json" };
 
 export { OPERATOR_BOOKING };
 

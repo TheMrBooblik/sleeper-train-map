@@ -15,6 +15,8 @@
     "parse-pkp-gtfs": "node scripts/parse-pkp-gtfs.js",
     "verify-pkp-bundle": "node tests/verify-pkp-train-shapes.mjs",
     "verify-na-gtfs": "node tests/verify-na-gtfs.mjs",
+    "verify-na-booking": "node tests/verify-na-booking.mjs",
+    "verify-via-display": "node tests/verify-via-display.mjs",
     "verify-pkp-plk": "node tests/verify-pkp-plk.mjs",
     "verify-overrides": "node tests/verify-overrides-mutate.mjs",
     "verify-disabled-routes": "node tests/verify-disabled-routes.mjs",

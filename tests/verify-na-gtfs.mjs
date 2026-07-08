@@ -72,6 +72,12 @@ if (!cz) {
     ),
     "CZ stations must all carry coordinates",
   );
+  check(
+    cz.stations.every((s) => s.code),
+    "CZ stations must carry GTFS stop codes",
+  );
+  check(cz.stations[0].code === "CHI", `CZ first stop code: ${cz.stations[0].code}`);
+  check(cz.stations[2].code === "EMY", `CZ last stop code: ${cz.stations[2].code}`);
   check(cz.stations[0].departure === "14:00", `CZ first departure: ${cz.stations[0].departure}`);
   // Geometry uses the GTFS shape (sh1: 3 points), not the 2-stop t2.
   const decoded = polyline.decode(cz.polyline);

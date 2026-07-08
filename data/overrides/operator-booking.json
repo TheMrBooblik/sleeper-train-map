@@ -120,5 +120,34 @@
       "Göschenen": "8500689",
       "Arth-Goldau": "8505004"
     }
+  },
+  "AMTK": {
+    "urlTemplate": "https://www.amtrak.com/booking/results?origin={origin}&destination={dest}&passengers=1",
+    "bookingPageUrl": "https://www.amtrak.com/tickets-reservations",
+    "routePages": {
+      "amtrak_Auto_Train": "https://www.amtrak.com/routes/auto-train-train.html",
+      "amtrak_California_Zephyr": "https://www.amtrak.com/routes/california-zephyr-train.html",
+      "amtrak_Capitol_Limited": "https://www.amtrak.com/routes/capitol-limited-train.html",
+      "amtrak_Cardinal": "https://www.amtrak.com/routes/cardinal-train.html",
+      "amtrak_City_of_New_Orleans": "https://www.amtrak.com/routes/city-of-new-orleans-train.html",
+      "amtrak_Coast_Starlight": "https://www.amtrak.com/routes/coast-starlight-train.html",
+      "amtrak_Crescent": "https://www.amtrak.com/routes/crescent-train.html",
+      "amtrak_Empire_Builder": "https://www.amtrak.com/routes/empire-builder-train.html",
+      "amtrak_Floridian": "https://www.amtrak.com/routes/floridian-train.html",
+      "amtrak_Lake_Shore_Limited": "https://www.amtrak.com/routes/lake-shore-limited-train.html",
+      "amtrak_Silver_Meteor": "https://www.amtrak.com/routes/silver-meteor-train.html",
+      "amtrak_Silver_Star": "https://www.amtrak.com/routes/silver-star-train.html",
+      "amtrak_Southwest_Chief": "https://www.amtrak.com/routes/southwest-chief-train.html",
+      "amtrak_Sunset_Limited": "https://www.amtrak.com/routes/sunset-limited-train.html",
+      "amtrak_Texas_Eagle": "https://www.amtrak.com/routes/texas-eagle-train.html"
+    }
+  },
+  "VIA": {
+    "bookingPageUrl": "https://www.viarail.ca/en/plan/book-travel",
+    "routePages": {
+      "via_Vancouver_-_Toronto": "https://www.viarail.ca/en/explore-our-destinations/trains/rockies-and-pacific/toronto-vancouver-canadian",
+      "via_Montréal_-_Halifax": "https://www.viarail.ca/en/explore-our-destinations/trains/atlantic-canada/montreal-halifax-ocean",
+      "via_Winnipeg_-_Churchill": "https://www.viarail.ca/en/explore-our-destinations/trains/regional-trains/winnipeg-churchill"
+    }
   }
 }
