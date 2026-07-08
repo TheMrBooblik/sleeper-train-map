@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_20260708_zacdh9",
+  "createdAt": "2026-07-08T07:51:09.268Z",
+  "source": "public",
+  "sourceDetail": "correction",
+  "kind": "note",
+  "title": "[correction] EN 50443",
+  "summary": "The intermediate stop in Kolin, Poland seems to be an error (it is very out of the way)",
+  "target": {
+    "routeKey": "8",
+    "agencyId": "PKP/ČD",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": {
+    "ipHash": "9e2aec607d668439",
+    "email": null,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
+  },
+  "status": "pending",
+  "resolution": null
+}
