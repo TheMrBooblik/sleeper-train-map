@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FaTrain, FaMapMarkerAlt, FaMoon, FaArrowRight } from "react-icons/fa";
 import { COUNTRIES, getFlagEmoji } from "../lib/countries";
 import { slugify } from "../lib/seo/slugify";
+import { OG_IMAGE } from "../lib/seo/site";
 
 const FeatureCard = ({ icon: Icon, title, description }) => (
   <div className="flex flex-col items-start gap-4 p-6 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
@@ -94,6 +95,8 @@ export default function AboutPage({ hubCountryCodes = [] }) {
           property="og:url"
           content="https://sleeper-train-map.pingwi.com/about"
         />
+        <meta property="og:image" content={OG_IMAGE} />
+        <meta property="og:site_name" content="Pingwi Sleeper Train Map" />
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
@@ -102,6 +105,7 @@ export default function AboutPage({ hubCountryCodes = [] }) {
           name="twitter:description"
           content="Interactive map of all European sleeper train routes. Discover overnight connections across 24+ countries."
         />
+        <meta name="twitter:image" content={OG_IMAGE} />
       </Head>
 
       <div className="h-screen overflow-y-auto bg-black">
