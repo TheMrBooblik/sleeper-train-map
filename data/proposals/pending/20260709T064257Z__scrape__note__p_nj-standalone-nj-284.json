@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-284",
+  "createdAt": "2026-07-09T06:42:57.454Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Disappeared: NJ 284|NJ 285",
+  "summary": "Route \"nj_standalone_NJ_284\" (Bologna Centrale – Wien Hbf) has been missing from the sources for 7 days and is no longer shown. No action needed if the train was discontinued.",
+  "target": {
+    "routeKey": "nj_standalone_NJ_284",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
