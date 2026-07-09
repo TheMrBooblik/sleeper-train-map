@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (15 routes, 466 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute amtrak_Auto_Train: Auto Train (Lorton Amtrak Auto Train Station – Sanford Amtrak Auto Train Station)\nroute amtrak_Crescent: Crescent (New Orleans Union Passenger Terminal – Ny Moynihan Train Hall At Penn Station)\nroute amtrak_Cardinal: Cardinal (Chicago Union Station – Ny Moynihan Train Hall At Penn Station)\nroute amtrak_Silver_Meteor: Silver Meteor (Miami Amtrak Station – Ny Moynihan Train Hall At Penn Station)\nroute amtrak_Southwest_Chief: Southwest Chief (Los Angeles – Chicago Union Station)\nroute amtrak_California_Zephyr: California Zephyr (Chicago Union Station – Emeryville)\nroute amtrak_Lake_Shore_Limited: Lake Shore Limited (Chicago Union Station – Boston)\nroute amtrak_Empire_Builder: Empire Builder (Chicago Union Station – Seattle)\nroute amtrak_Floridian: Floridian (Chicago Union Station – Miami Amtrak Station)\nroute amtrak_Coast_Starlight: Coast Starlight (Seattle – Los Angeles)\nroute amtrak_City_of_New_Orleans: City of New Orleans (New Orleans Union Passenger Terminal – Chicago Union Station)\nroute amtrak_Sunset_Limited: Sunset Limited (New Orleans Union Passenger Terminal – Los Angeles)\nroute via_Vancouver_-_Toronto: Vancouver - Toronto (Toronto – Vancouver)\nroute via_Winnipeg_-_Churchill: Winnipeg - Churchill (Winnipeg – Churchill)\nroute via_Montréal_-_Halifax: Montréal - Halifax (Montréal – Halifax)\nstation Lorton Amtrak Auto Train Station (amtrak)\nstation Sanford Amtrak Auto Train Station (amtrak)\nstation New Orleans Union Passenger Terminal (amtrak)\nstation Slidell Amtrak Station (amtrak)\nstation Picayune Amtrak Station (amtrak)\nstation Hattiesburg Amtrak Station (amtrak)\nstation Laurel Amtrak Station (amtrak)\nstation Meridian Union Station (amtrak)\nstation Tuscaloosa Amtrak Station (amtrak)\nstation Birmingham (amtrak)\nstation Anniston Amtrak Station (amtrak)\nstation Atlanta (amtrak…",
+  "title": "New Routes and Stations Added from Trusted Sources",
+  "summary": "Fifteen new train routes and 466 stations have been auto-approved from trusted sources. Notable routes include the Auto Train from Lorton to Sanford, Crescent from New Orleans to New York, and the Coast Starlight from Seattle to Los Angeles. Additional routes connect various cities across North America.",
   "target": {
     "routeKey": "trusted-2026-07-09",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
