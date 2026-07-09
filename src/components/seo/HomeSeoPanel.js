@@ -87,12 +87,13 @@ export default function HomeSeoPanel({
 
   return (
     <>
-      {/* Fixed disclosure, bottom-left, above the map. Collapsed by default so
-          the map stays the focus; content is still in the DOM for crawlers. */}
-      <details className="group fixed bottom-4 left-4 z-[1000] w-[min(92vw,26rem)] rounded-xl border border-white/10 bg-black/85 backdrop-blur-md text-white shadow-xl">
-        <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 text-sm font-medium">
+      {/* Fixed disclosure, bottom-left, above the map. Collapsed it shrinks to
+          a small dimmed "About" chip so the map stays clean; the full content
+          is still in the DOM for crawlers. */}
+      <details className="group fixed bottom-4 left-4 z-[1000] w-fit open:w-[min(92vw,26rem)] rounded-xl border border-white/10 bg-black/60 open:bg-black/85 opacity-70 hover:opacity-100 focus-within:opacity-100 open:opacity-100 transition-opacity backdrop-blur-md text-white shadow-xl">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-xs font-medium">
           <FaChevronDown className="h-3 w-3 shrink-0 text-white/50 transition-transform group-open:rotate-180" />
-          <span>About this map &amp; browse routes</span>
+          <span>About</span>
           {/* Close button: dismiss for good. preventDefault stops the click from
               toggling the <details> open/closed. */}
           <button
