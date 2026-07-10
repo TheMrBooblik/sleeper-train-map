@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: Lake Shore Limited (Chicago Union Station – Boston)",
-  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026/07/05-07/24: Daily\" → \"2027/03/14-07/05: Daily\"",
+  "title": "Update: Lake Shore Limited Operating Days Changed",
+  "summary": "The operating days for the Lake Shore Limited train from Chicago Union Station to Boston have been updated. The new outbound schedule is from March 14, 2027, to July 5, 2027, operating daily. This replaces the previous schedule of July 5, 2026, to July 24, 2026, also operating daily.",
   "target": {
     "routeKey": "amtrak_Lake_Shore_Limited",
     "agencyId": "AMTK",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
