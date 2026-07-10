@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_amtrak-empire-builder",
+  "createdAt": "2026-07-10T06:37:53.173Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: Empire Builder (Chicago Union Station – Seattle)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2027/03/13-03/13: Sat\" → \"2026/07/05-10/06: Daily\"",
+  "target": {
+    "routeKey": "amtrak_Empire_Builder",
+    "agencyId": "AMTK",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2027/03/13-03/13: Sat"
+  },
+  "after": {
+    "operating days (outbound)": "2026/07/05-10/06: Daily"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
