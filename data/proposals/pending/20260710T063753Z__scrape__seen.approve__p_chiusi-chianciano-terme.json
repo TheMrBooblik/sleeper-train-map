@@ -1,0 +1,28 @@
+{
+  "v": 1,
+  "id": "p_chiusi-chianciano-terme",
+  "createdAt": "2026-07-10T06:37:53.173Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "seen.approve",
+  "title": "New station: Chiusi-Chianciano Terme",
+  "summary": "Station \"Chiusi-Chianciano Terme\" was injected by an operator source for the first time. Its marker is hidden until approved (routes through it still render).",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Chiusi-Chianciano Terme"
+  },
+  "before": null,
+  "after": null,
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "stationName": "Chiusi-Chianciano Terme"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
