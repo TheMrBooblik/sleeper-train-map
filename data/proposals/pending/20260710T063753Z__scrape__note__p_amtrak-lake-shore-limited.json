@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_amtrak-lake-shore-limited",
+  "createdAt": "2026-07-10T06:37:53.173Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: Lake Shore Limited (Chicago Union Station – Boston)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026/07/05-07/24: Daily\" → \"2027/03/14-07/05: Daily\"",
+  "target": {
+    "routeKey": "amtrak_Lake_Shore_Limited",
+    "agencyId": "AMTK",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2026/07/05-07/24: Daily"
+  },
+  "after": {
+    "operating days (outbound)": "2027/03/14-07/05: Daily"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
