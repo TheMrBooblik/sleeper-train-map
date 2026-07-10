@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: Silver Meteor (Ny Moynihan Train Hall At Penn Station – Miami Amtrak Station)",
-  "summary": "Material change on an approved route (already live — FYI): origin: \"Miami Amtrak Station\" → \"Ny Moynihan Train Hall At Penn Station\"; destination: \"Ny Moynihan Train Hall At Penn Station\" → \"Miami Amtrak Station\"; operating days (outbound): \"2026/07/05-08/28: Mon, Tue, Wed, Thu, Fri, Sun\" → \"2026/07/05-10/15: Daily\"",
+  "title": "Silver Meteor Route Change: Penn Station to Miami",
+  "summary": "The Silver Meteor train route has been updated. The new origin is Ny Moynihan Train Hall At Penn Station, and the destination is Miami Amtrak Station. The operating days for outbound trips have changed from July 5 to August 28, 2026 (Mon, Tue, Wed, Thu, Fri, Sun) to daily service from July 5 to October 15, 2026.",
   "target": {
     "routeKey": "amtrak_Silver_Meteor",
     "agencyId": "AMTK",
@@ -27,5 +27,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
