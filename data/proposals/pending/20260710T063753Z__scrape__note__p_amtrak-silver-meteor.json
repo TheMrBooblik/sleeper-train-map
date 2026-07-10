@@ -1,0 +1,31 @@
+{
+  "v": 1,
+  "id": "p_amtrak-silver-meteor",
+  "createdAt": "2026-07-10T06:37:53.173Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: Silver Meteor (Ny Moynihan Train Hall At Penn Station – Miami Amtrak Station)",
+  "summary": "Material change on an approved route (already live — FYI): origin: \"Miami Amtrak Station\" → \"Ny Moynihan Train Hall At Penn Station\"; destination: \"Ny Moynihan Train Hall At Penn Station\" → \"Miami Amtrak Station\"; operating days (outbound): \"2026/07/05-08/28: Mon, Tue, Wed, Thu, Fri, Sun\" → \"2026/07/05-10/15: Daily\"",
+  "target": {
+    "routeKey": "amtrak_Silver_Meteor",
+    "agencyId": "AMTK",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "origin": "Miami Amtrak Station",
+    "destination": "Ny Moynihan Train Hall At Penn Station",
+    "operating days (outbound)": "2026/07/05-08/28: Mon, Tue, Wed, Thu, Fri, Sun"
+  },
+  "after": {
+    "origin": "Ny Moynihan Train Hall At Penn Station",
+    "destination": "Miami Amtrak Station",
+    "operating days (outbound)": "2026/07/05-10/15: Daily"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
