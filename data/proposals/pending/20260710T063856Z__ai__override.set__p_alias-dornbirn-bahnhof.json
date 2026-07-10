@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-dornbirn-bahnhof",
+  "createdAt": "2026-07-10T06:38:56.884Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Dornbirn Bahnhof\" → \"Dornbirn\"",
+  "summary": "The operator-injected station \"Dornbirn Bahnhof\" appears to be the same as Back-on-Track's \"Dornbirn\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Dornbirn Bahnhof"
+  },
+  "before": null,
+  "after": {
+    "alias": "dornbirn bahnhof",
+    "canonical": "Dornbirn"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Dornbirn Bahnhof",
+        "canonical": "Dornbirn"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
