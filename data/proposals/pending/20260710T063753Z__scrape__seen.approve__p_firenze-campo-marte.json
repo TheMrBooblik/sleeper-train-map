@@ -1,0 +1,28 @@
+{
+  "v": 1,
+  "id": "p_firenze-campo-marte",
+  "createdAt": "2026-07-10T06:37:53.173Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "seen.approve",
+  "title": "New station: Firenze Campo Marte",
+  "summary": "Station \"Firenze Campo Marte\" was injected by an operator source for the first time. Its marker is hidden until approved (routes through it still render).",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Firenze Campo Marte"
+  },
+  "before": null,
+  "after": null,
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "stationName": "Firenze Campo Marte"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
