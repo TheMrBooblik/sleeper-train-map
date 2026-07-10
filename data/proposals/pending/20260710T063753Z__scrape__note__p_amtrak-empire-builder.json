@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: Empire Builder (Chicago Union Station – Seattle)",
-  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2027/03/13-03/13: Sat\" → \"2026/07/05-10/06: Daily\"",
+  "title": "Updated Schedule for Empire Builder (Chicago to Seattle)",
+  "summary": "The operating days for the Empire Builder train (Chicago Union Station to Seattle) have changed. Previously scheduled for March 13, 2027 (Saturday), it will now operate daily from July 5, 2026, to October 6, 2026.",
   "target": {
     "routeKey": "amtrak_Empire_Builder",
     "agencyId": "AMTK",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
