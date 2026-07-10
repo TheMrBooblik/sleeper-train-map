@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "seen.approve",
-  "title": "New station: Chiusi-Chianciano Terme",
-  "summary": "Station \"Chiusi-Chianciano Terme\" was injected by an operator source for the first time. Its marker is hidden until approved (routes through it still render).",
+  "title": "New station added: Chiusi-Chianciano Terme",
+  "summary": "A new station named \"Chiusi-Chianciano Terme\" has been added to the map. Its marker is currently hidden and will be visible once approved, but routes passing through it are still displayed.",
   "target": {
     "routeKey": null,
     "agencyId": null,
@@ -24,5 +24,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
