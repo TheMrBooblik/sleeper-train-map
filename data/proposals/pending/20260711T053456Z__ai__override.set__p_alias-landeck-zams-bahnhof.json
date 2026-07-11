@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-landeck-zams-bahnhof",
+  "createdAt": "2026-07-11T05:34:56.222Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Landeck-Zams Bahnhof\" → \"Landeck-Zams\"",
+  "summary": "The operator-injected station \"Landeck-Zams Bahnhof\" appears to be the same as Back-on-Track's \"Landeck-Zams\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Landeck-Zams Bahnhof"
+  },
+  "before": null,
+  "after": {
+    "alias": "landeck-zams bahnhof",
+    "canonical": "Landeck-Zams"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Landeck-Zams Bahnhof",
+        "canonical": "Landeck-Zams"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
