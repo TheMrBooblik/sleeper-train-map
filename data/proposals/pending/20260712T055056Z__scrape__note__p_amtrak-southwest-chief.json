@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: Southwest Chief (Los Angeles – Chicago Union Station)",
-  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026/07/05-10/07: Daily\" → \"2027/03/14-07/05: Daily\"; operating days (return): \"2026/07/05-10/27: Tue, Fri, Sun\" → \"2027/03/12-07/05: Tue, Fri, Sun\"",
+  "title": "Update: Southwest Chief Schedule Changes",
+  "summary": "The operating days for the Southwest Chief train (Los Angeles to Chicago Union Station) have been updated. Outbound service will now run daily from March 14, 2027, to July 5, 2027, instead of July 5, 2026, to October 7, 2026. Return service will operate on Tuesdays, Fridays, and Sundays from March 12, 2027, to July 5, 2027, instead of July 5, 2026, to October 27, 2026.",
   "target": {
     "routeKey": "amtrak_Southwest_Chief",
     "agencyId": "AMTK",
@@ -25,5 +25,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
