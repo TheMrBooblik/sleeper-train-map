@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: Sunset Limited (New Orleans Union Passenger Terminal – Los Angeles)",
-  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026/07/05-10/28: Mon, Wed, Sat\" → \"2027/03/13-07/05: Mon, Wed, Sat\"",
+  "title": "Updated Operating Days for Sunset Limited",
+  "summary": "The operating days for the Sunset Limited train, running from New Orleans Union Passenger Terminal to Los Angeles, have changed. The new outbound schedule is from March 13, 2027, to July 5, 2027, on Mondays, Wednesdays, and Saturdays.",
   "target": {
     "routeKey": "amtrak_Sunset_Limited",
     "agencyId": "AMTK",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
