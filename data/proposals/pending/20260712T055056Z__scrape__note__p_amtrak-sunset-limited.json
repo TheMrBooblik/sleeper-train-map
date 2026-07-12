@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_amtrak-sunset-limited",
+  "createdAt": "2026-07-12T05:50:56.909Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: Sunset Limited (New Orleans Union Passenger Terminal – Los Angeles)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026/07/05-10/28: Mon, Wed, Sat\" → \"2027/03/13-07/05: Mon, Wed, Sat\"",
+  "target": {
+    "routeKey": "amtrak_Sunset_Limited",
+    "agencyId": "AMTK",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2026/07/05-10/28: Mon, Wed, Sat"
+  },
+  "after": {
+    "operating days (outbound)": "2027/03/13-07/05: Mon, Wed, Sat"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
