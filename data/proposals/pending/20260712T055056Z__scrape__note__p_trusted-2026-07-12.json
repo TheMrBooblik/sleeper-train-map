@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (0 routes, 2 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation Brugg AG (nightjet)\nstation East Glacier Park Amtrak Station (amtrak)",
+  "title": "New Stations Added from Trusted Sources",
+  "summary": "Two stations have been auto-approved from trusted official sources: Brugg AG (nightjet) and East Glacier Park Amtrak Station (amtrak). These stations are already live.",
   "target": {
     "routeKey": "trusted-2026-07-12",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
