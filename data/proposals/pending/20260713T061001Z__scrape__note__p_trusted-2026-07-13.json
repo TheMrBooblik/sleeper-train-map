@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (0 routes, 1 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation Browning Amtrak (amtrak)",
+  "title": "New Station Added: Browning Amtrak",
+  "summary": "A new station, Browning Amtrak, has been auto-approved from trusted official sources. This station is already live and operational.",
   "target": {
     "routeKey": "trusted-2026-07-13",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
