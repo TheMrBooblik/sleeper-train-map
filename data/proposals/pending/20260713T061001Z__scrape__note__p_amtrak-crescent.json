@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: Crescent (New Orleans Union Passenger Terminal – Ny Moynihan Train Hall At Penn Station)",
-  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2027/01/03-07/05: Mon, Tue, Wed, Thu, Sun\" → \"2027/01/03-07/12: Mon, Tue, Wed, Thu, Sun\"",
+  "title": "Crescent Train Schedule Update",
+  "summary": "The operating days for the Crescent train (New Orleans Union Passenger Terminal to Moynihan Train Hall at Penn Station) have been updated. The new schedule for outbound trips is from January 3, 2027, to July 12, 2027, on Mondays, Tuesdays, Wednesdays, Thursdays, and Sundays.",
   "target": {
     "routeKey": "amtrak_Crescent",
     "agencyId": "AMTK",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
