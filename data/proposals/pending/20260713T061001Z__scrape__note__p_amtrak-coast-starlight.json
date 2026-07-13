@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_amtrak-coast-starlight",
+  "createdAt": "2026-07-13T06:10:01.244Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: Coast Starlight (Seattle – Los Angeles)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2027/03/14-07/05: Daily\" → \"2027/03/14-07/12: Daily\"",
+  "target": {
+    "routeKey": "amtrak_Coast_Starlight",
+    "agencyId": "AMTK",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2027/03/14-07/05: Daily"
+  },
+  "after": {
+    "operating days (outbound)": "2027/03/14-07/12: Daily"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
