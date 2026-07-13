@@ -1,0 +1,28 @@
+{
+  "v": 1,
+  "id": "p_patti-s-piero-patti",
+  "createdAt": "2026-07-13T06:10:01.244Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "seen.approve",
+  "title": "New station: Patti-S.piero Patti",
+  "summary": "Station \"Patti-S.piero Patti\" was injected by an operator source for the first time. Its marker is hidden until approved (routes through it still render).",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Patti-S.piero Patti"
+  },
+  "before": null,
+  "after": null,
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "stationName": "Patti-S.piero Patti"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
