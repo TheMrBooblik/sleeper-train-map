@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_amtrak-auto-train",
+  "createdAt": "2026-07-13T06:10:01.243Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: Auto Train (Lorton Amtrak Auto Train Station – Sanford Amtrak Auto Train Station)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026-07-05 – 2027-07-05: Daily\" → \"2026-07-12 – 2027-07-12: Daily\"",
+  "target": {
+    "routeKey": "amtrak_Auto_Train",
+    "agencyId": "AMTK",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2026-07-05 – 2027-07-05: Daily"
+  },
+  "after": {
+    "operating days (outbound)": "2026-07-12 – 2027-07-12: Daily"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
