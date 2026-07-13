@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "seen.approve",
-  "title": "New station: Patti-S.piero Patti",
-  "summary": "Station \"Patti-S.piero Patti\" was injected by an operator source for the first time. Its marker is hidden until approved (routes through it still render).",
+  "title": "New station added: Patti-S.piero Patti",
+  "summary": "The station \"Patti-S.piero Patti\" has been added for the first time by an operator. Its marker will remain hidden until it is approved, but routes passing through this station are still visible.",
   "target": {
     "routeKey": null,
     "agencyId": null,
@@ -24,5 +24,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
