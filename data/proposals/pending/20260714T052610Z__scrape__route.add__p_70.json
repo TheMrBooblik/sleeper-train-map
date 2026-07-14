@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_70",
+  "createdAt": "2026-07-14T05:26:10.809Z",
+  "source": "scrape",
+  "sourceDetail": "backontrack",
+  "kind": "route.add",
+  "title": "New train: 405 (Oslo S – Trondheim S)",
+  "summary": "Route \"70\" appeared in tonight's scrape and is withheld from the map until approved. Via: Hamar - Lillehammer",
+  "target": {
+    "routeKey": "70",
+    "agencyId": "SJN",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "405",
+    "returnTrain": "406",
+    "origin": "Oslo S",
+    "destination": "Trondheim S",
+    "operator": "SJN",
+    "operatingDays": "2026: Daily, except Sat"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "70"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
