@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-754",
+  "createdAt": "2026-07-14T05:26:10.812Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: ICN 754 (Lecce – Torino Porta Nuova)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"ICN 754|ICN 757\" → \"ICN 754\"",
+  "target": {
+    "routeKey": "icn_ICN_754",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "ICN 754|ICN 757"
+  },
+  "after": {
+    "train numbers": "ICN 754"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
