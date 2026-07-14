@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-bludenz-bahnhof",
+  "createdAt": "2026-07-14T05:27:14.400Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Bludenz Bahnhof\" → \"Bludenz\"",
+  "summary": "The operator-injected station \"Bludenz Bahnhof\" appears to be the same as Back-on-Track's \"Bludenz\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Bludenz Bahnhof"
+  },
+  "before": null,
+  "after": {
+    "alias": "bludenz bahnhof",
+    "canonical": "Bludenz"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Bludenz Bahnhof",
+        "canonical": "Bludenz"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
