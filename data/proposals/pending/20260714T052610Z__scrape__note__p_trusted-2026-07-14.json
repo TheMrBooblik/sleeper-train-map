@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-07-14",
+  "createdAt": "2026-07-14T05:26:10.813Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (0 routes, 1 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation East Glacier Park Amtrak Station (amtrak)",
+  "target": {
+    "routeKey": "trusted-2026-07-14",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
