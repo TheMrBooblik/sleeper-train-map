@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": "backontrack",
   "kind": "route.add",
-  "title": "New train: 405 (Oslo S – Trondheim S)",
-  "summary": "Route \"70\" appeared in tonight's scrape and is withheld from the map until approved. Via: Hamar - Lillehammer",
+  "title": "New train 405: Oslo S to Trondheim S",
+  "summary": "A new train service, number 405, has been added from Oslo S to Trondheim S. It operates daily except Saturdays, with a return train number 406. The route includes stops at Hamar and Lillehammer. This route is currently under review and not yet visible on the map.",
   "target": {
     "routeKey": "70",
     "agencyId": "SJN",
@@ -31,5 +31,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
