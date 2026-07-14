@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "seen.approve",
-  "title": "New station: Armavir",
-  "summary": "Station \"Armavir\" was injected by an operator source for the first time. Its marker is hidden until approved (routes through it still render).",
+  "title": "New station added: Armavir",
+  "summary": "The station \"Armavir\" has been introduced for the first time by an operator. Its marker is currently hidden and will remain so until it is approved, but routes passing through it are still displayed.",
   "target": {
     "routeKey": null,
     "agencyId": null,
@@ -24,5 +24,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
