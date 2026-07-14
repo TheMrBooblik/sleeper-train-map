@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_caucasus-gr-371",
+  "createdAt": "2026-07-14T05:26:10.812Z",
+  "source": "scrape",
+  "sourceDetail": "caucasus",
+  "kind": "route.add",
+  "title": "New train: GR 371 (Tbilisi – Yerevan)",
+  "summary": "Route \"caucasus_GR_371\" appeared in tonight's scrape and is withheld from the map until approved. Via: Ponichala - Marabda - Marneuli - Shulaveri - Sadakhlo - Airum - Sanain - Shagal - Pampak - Vanadzor - Giumr - Armavir",
+  "target": {
+    "routeKey": "caucasus_GR_371",
+    "agencyId": "SCR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "GR 371",
+    "returnTrain": "GR 372",
+    "origin": "Tbilisi",
+    "destination": "Yerevan",
+    "operator": "SCR",
+    "operatingDays": "Mon, Wed, Fri, Sun"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "caucasus_GR_371"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
