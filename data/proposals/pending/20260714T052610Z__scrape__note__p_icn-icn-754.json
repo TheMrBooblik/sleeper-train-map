@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: ICN 754 (Lecce – Torino Porta Nuova)",
-  "summary": "Material change on an approved route (already live — FYI): train numbers: \"ICN 754|ICN 757\" → \"ICN 754\"",
+  "title": "Update on ICN 754 (Lecce – Torino Porta Nuova)",
+  "summary": "The train numbers for the route ICN 754 have been updated. Previously listed as \"ICN 754|ICN 757\", it is now confirmed to only include \"ICN 754\". This change is for your information as the route is already live.",
   "target": {
     "routeKey": "icn_ICN_754",
     "agencyId": "FS",
@@ -23,5 +23,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
