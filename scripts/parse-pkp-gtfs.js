@@ -49,6 +49,19 @@ function extractKeysFromTripLabel(label) {
   return keys;
 }
 
+// Canonicalize a GTFS stop name to its Back-on-Track spelling via the shared
+// alias table (data/overrides/station-aliases.json). The Polish feed carries
+// foreign stops ASCII-folded ("Kolin", "Praha Hlavni Nadrazi"); folding them to
+// the BoT form ("Kolín") is what lets those stations match BoT's coordinate-
+// bearing stops on the map — otherwise "Kolin" resolves to an unrelated Polish
+// placeholder stop. Unmapped names pass through unchanged. Mirrors
+// canonicalizeStationName (pkp-plk.mjs) / resolveCanonicalStationName.
+const STATION_ALIASES = require("../data/overrides/station-aliases.json");
+function canonicalizeStationName(name) {
+  if (!name) return name;
+  return STATION_ALIASES[String(name).toLowerCase().trim()] ?? name;
+}
+
 // Keep in sync with normalizeCity in src/lib/pkpTrainKeyExtract.js — used to
 // tell distinct corridors of a reused train number apart.
 function normalizeCityLocal(name) {
@@ -612,7 +625,7 @@ async function main() {
   const stopCoordsById = new Map();
   stopsCsv.forEach((row) => {
     if (!row.stop_id) return;
-    stopsById.set(row.stop_id, row.stop_name || row.stop_id);
+    stopsById.set(row.stop_id, canonicalizeStationName(row.stop_name || row.stop_id));
     const lat = Number.parseFloat(row.stop_lat);
     const lon = Number.parseFloat(row.stop_lon);
     if (Number.isFinite(lat) && Number.isFinite(lon)) {
