@@ -944,11 +944,17 @@ const TrainDetailPanel = ({
                 // were merged onto the route in pkpGtfsMerge. Pick the direction
                 // whose origin matches this trip's origin.
                 const tripRoute = routes?.[trip.route_id?.toString()];
-                // The viewMap row carries the true (possibly compound) agency
-                // id; synthetic fallback trips may carry the ÖBB default.
-                const effectiveAgencyId =
-                  tripRoute?.agency_id || trip.agency_id;
-                const agency = agencies[effectiveAgencyId];
+                // Two agency ids per route: who SELLS through our main CTA
+                // (the route row's styling agency — ÖBB for synthetic NJ/EN
+                // rows, whose nightjet deep link is the best booking path) vs
+                // who OPERATES the train (BoT's attribution, carried through
+                // the dedup as bot_agency_id — e.g. "PKP/ČD" for partner
+                // EuroNights). Logos and the operator name follow BoT.
+                const bookingAgencyId = tripRoute?.agency_id || trip.agency_id;
+                const operatorAgencyId =
+                  tripRoute?.bot_agency_id || bookingAgencyId;
+                const agency =
+                  agencies[operatorAgencyId] || agencies[bookingAgencyId];
                 const viaSummary = selectMajorViaStations(
                   trip.via,
                   majorViaContext,
@@ -1037,12 +1043,20 @@ const TrainDetailPanel = ({
                 // ticket through (deep link → booking page → fare portal →
                 // homepage) — the logos below double as booking links.
                 const operatorComponents = resolveOperatorComponents({
-                  agencyId: effectiveAgencyId,
+                  agencyId: operatorAgencyId,
                   agencies,
                   origin: bookingOrigin,
                   dest: trip.trip_headsign,
                 });
+                // BoT's attribution wins when the route carries it — official
+                // NJ/EN data labels partner trains with brand strings like
+                // "EuroNight", not the operating companies.
+                const botOperatorName =
+                  tripRoute?.bot_agency_id && operatorComponents.length
+                    ? operatorComponents.map((c) => c.name).join(" + ")
+                    : null;
                 const operatorName =
+                  botOperatorName ||
                   nightjetTrain?.operator ||
                   crTrain?.operator ||
                   caucasusTrain?.operator ||
@@ -1536,9 +1550,9 @@ const TrainDetailPanel = ({
 
                     {/* Booking: deep link with preselected stations + fare */}
                     <BookingActions
-                      agencyId={effectiveAgencyId}
+                      agencyId={bookingAgencyId}
                       agencies={agencies}
-                      agencyUrl={agency?.agency_url}
+                      agencyUrl={agencies[bookingAgencyId]?.agency_url}
                       origin={bookingOrigin}
                       dest={trip.trip_headsign}
                       pricing={pricing}
