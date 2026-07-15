@@ -145,6 +145,11 @@ export function applyOverrideMutation(resource, action, payload, current) {
         obj[agencyId] = {
           // Empty strings are normalized to null so the UI can fall back cleanly.
           urlTemplate: p.urlTemplate ? String(p.urlTemplate) : null,
+          // Precise connection deep-link template (e.g. ÖBB EVA + datetimes).
+          // Preserved across URL edits since the editor doesn't expose it yet.
+          connectionUrlTemplate: p.connectionUrlTemplate
+            ? String(p.connectionUrlTemplate)
+            : existing.connectionUrlTemplate ?? null,
           dealsUrl: p.dealsUrl ? String(p.dealsUrl) : null,
           dealsLabel: p.dealsLabel ? String(p.dealsLabel) : null,
           // Preserve the curated station-name map across URL edits.

@@ -2,7 +2,12 @@
 
 import React from "react";
 import { FiExternalLink } from "react-icons/fi";
-import { buildBookingUrl, getDealsLink, getBookingPageUrl } from "../../lib/operatorBooking";
+import {
+  buildBookingUrl,
+  buildConnectionBookingUrl,
+  getDealsLink,
+  getBookingPageUrl,
+} from "../../lib/operatorBooking";
 import {
   buildNorthAmericaBookingUrl,
   isNorthAmericaAgency,
@@ -33,6 +38,7 @@ export default function BookingActions({
   livePrice, // reserved for future live-price fetching; unused for now
   routeId,
   scheduleStops,
+  bookingStations,
 }) {
   let deepLink = null;
   let href = null;
@@ -48,7 +54,16 @@ export default function BookingActions({
     href = na.url;
     if (na.isStationDeepLink) deepLink = na.url;
   } else {
-    deepLink = buildBookingUrl({ agencyId, origin, dest });
+    // Prefer a precise connection deep link (e.g. ÖBB shop opening the exact
+    // train) when we have EVA codes + times; otherwise fall back to the
+    // name-prefilled search, then the operator's booking/homepage.
+    const connLink = buildConnectionBookingUrl({
+      agencyId,
+      stations: bookingStations,
+      origin,
+      dest,
+    });
+    deepLink = connLink || buildBookingUrl({ agencyId, origin, dest });
     const bookingPageUrl = getBookingPageUrl(agencyId);
     href = deepLink || bookingPageUrl || agencyUrl || null;
   }

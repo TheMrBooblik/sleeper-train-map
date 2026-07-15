@@ -1,6 +1,7 @@
 {
   "ÖBB": {
     "urlTemplate": "https://shop.oebbtickets.at/en/ticket?stationOrigName={origin}&stationDestName={dest}&cref=pingwi",
+    "connectionUrlTemplate": "https://shop.oebbtickets.at/en/ticket?stationOrigEva={origEva}&stationDestEva={destEva}&connectionOrigEva={origEva}&connectionDestEva={destEva}&connectionDatetimeDeparture={depLocal}&connectionDatetimeArrival={arrLocal}&cref=pingwi",
     "dealsUrl": null,
     "dealsLabel": null,
     "stationNames": {

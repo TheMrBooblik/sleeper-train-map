@@ -1489,6 +1489,7 @@ const TrainDetailPanel = ({
                       pricing={pricing}
                       routeId={trip.route_id}
                       scheduleStops={schedule?.stops}
+                      bookingStations={nightjetStations}
                     />
 
                     {/* Community corrections feed the admin review queue */}

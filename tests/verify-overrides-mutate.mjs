@@ -149,6 +149,7 @@ check("booking set creates record with empty stationNames", () => {
   );
   assert.deepStrictEqual(out["ÖBB"], {
     urlTemplate: "https://x?o={origin}&d={dest}",
+    connectionUrlTemplate: null,
     dealsUrl: null,
     dealsLabel: null,
     stationNames: {},
@@ -163,6 +164,15 @@ check("booking set preserves existing stationNames", () => {
   );
   assert.strictEqual(out["ÖBB"].urlTemplate, "https://new");
   assert.deepStrictEqual(out["ÖBB"].stationNames, { A: "a" });
+});
+check("booking set preserves existing connectionUrlTemplate", () => {
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "set",
+    { agencyId: "ÖBB", urlTemplate: "https://new" },
+    { "ÖBB": { urlTemplate: "old", connectionUrlTemplate: "https://conn" } },
+  );
+  assert.strictEqual(out["ÖBB"].connectionUrlTemplate, "https://conn");
 });
 check("booking set with deals link", () => {
   const out = applyOverrideMutation(
