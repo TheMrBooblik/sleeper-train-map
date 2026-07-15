@@ -1190,11 +1190,20 @@ const TrainDetailPanel = ({
                         {logoComponents.length > 0 && (
                           <div className="flex flex-wrap items-center gap-3">
                             {logoComponents.map((c) => {
+                              // With multiple operators each logo gets at most
+                              // half the row (minus its share of the gap) so
+                              // they sit side by side instead of stacking.
+                              const halfWidth =
+                                logoComponents.length > 1
+                                  ? "max-w-[calc(50%-0.375rem)]"
+                                  : "";
                               const logoImg = (
                                 <img
                                   src={c.logoUrl}
                                   alt={c.name}
-                                  className="h-9 object-contain"
+                                  className={`h-9 max-w-full object-contain object-left ${
+                                    c.linkUrl ? "" : halfWidth
+                                  }`}
                                   loading="lazy"
                                   onError={(e) => {
                                     // Hide the link wrapper too, not just the img,
@@ -1224,7 +1233,7 @@ const TrainDetailPanel = ({
                                   rel="noopener noreferrer"
                                   title={label}
                                   aria-label={label}
-                                  className="inline-flex rounded-sm hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 transition-opacity"
+                                  className={`inline-flex rounded-sm hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 transition-opacity ${halfWidth}`}
                                 >
                                   {logoImg}
                                 </a>
