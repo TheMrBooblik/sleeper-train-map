@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "updatedAt": "2026-07-14T05:26:10.808Z",
+  "updatedAt": "2026-07-15",
   "routes": {
     "3": {
       "firstSeen": "2026-06-10",
@@ -6939,6 +6939,16 @@
       "firstSeen": "2026-07-09",
       "approved": true,
       "autoApproved": "2026-07-09"
+    },
+    "San Bernardino, CA": {
+      "firstSeen": "2026-07-15",
+      "approved": true,
+      "autoApproved": "2026-07-15"
+    },
+    "Salinas, CA": {
+      "firstSeen": "2026-07-15",
+      "approved": true,
+      "autoApproved": "2026-07-15"
     }
   }
 }
