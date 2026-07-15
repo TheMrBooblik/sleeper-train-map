@@ -1,14 +1,16 @@
 import { Html, Head, Main, NextScript } from 'next/document'
 
 /**
- * Custom document to inject global scripts (e.g. TradeTracker PageTools)
- * before the closing </body> tag.
+ * Custom document to inject global head/body snippets
+ * (Awin ownership verification + TradeTracker PageTools).
  */
 export default function Document() {
   return (
     <Html lang="en">
       <Head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
+        {/* Awin publisher check: word "Awin" must appear in live page source. Invisible to visitors. */}
+        <meta name="awin-site-verification" content="Awin" />
       </Head>
       <body>
         <Main />
