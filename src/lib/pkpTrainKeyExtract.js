@@ -89,6 +89,49 @@ function stopCity(stop) {
 }
 
 /**
+ * A leg traversed end-to-start: stops and polyline reversed together, bus
+ * connectors' from/to swapped. Needed because the GTFS feed stores a train in
+ * one orientation regardless of the direction a compound journey rides it — the
+ * Hel→Bohumín return uses TLK 402, which the feed stores Bohumín→Łeba, so it
+ * must be ridden Gdynia→Bohumín (its reverse).
+ * @param {object} leg  bundle entry
+ * @returns {object}
+ */
+function reverseLeg(leg) {
+  return {
+    ...leg,
+    stops: [...leg.stops].reverse(),
+    positions: [...leg.positions].reverse(),
+    bus_segments: (leg.bus_segments || []).map((b) => ({
+      ...b,
+      from: b.to,
+      to: b.from,
+    })),
+  };
+}
+
+/**
+ * Orient a chosen leg so that, ridden from its junction with the chain, it
+ * heads toward the journey's destination. Prefers the orientation whose far
+ * end IS the destination (the leg that completes the chain); otherwise keeps
+ * the junction at the leg's start. Leaves the leg untouched when the junction
+ * sits mid-leg and neither end is the destination (a through-corridor leg).
+ * @param {object} leg  bundle entry
+ * @param {string} junctionCity
+ * @param {string} destinationCity
+ * @returns {object}
+ */
+function orientLegToward(leg, junctionCity, destinationCity) {
+  const headCity = stopCity(leg.stops[0]);
+  const tailCity = stopCity(leg.stops[leg.stops.length - 1]);
+  if (tailCity === destinationCity) return leg;
+  if (headCity === destinationCity) return reverseLeg(leg);
+  if (headCity === junctionCity) return leg;
+  if (tailCity === junctionCity) return reverseLeg(leg);
+  return leg;
+}
+
+/**
  * All corridor variants of a bundle entry: the entry itself plus any
  * `variants` the parser recorded when several distinct trains share one
  * number (e.g. "406" = München→Warszawa AND the Bohumín→Warszawa portion of
@@ -161,17 +204,25 @@ function truncateLeg(leg, startJunctionCity, endJunctionCity) {
   const keptStops = leg.stops.slice(lo, hi + 1);
   const loStop = leg.stops[lo];
   const hiStop = leg.stops[hi];
-  let pLo = 0;
-  let pHi = leg.positions.length - 1;
-  if (startJunctionCity && loStop.lat != null && loStop.lon != null) {
-    pLo = closestPositionIndex(leg.positions, loStop.lat, loStop.lon);
-  }
-  if (endJunctionCity && hiStop.lat != null && hiStop.lon != null) {
-    pHi = closestPositionIndex(leg.positions, hiStop.lat, hiStop.lon);
-  }
-  if (pHi < pLo) return null;
 
-  const keptPositions = leg.positions.slice(pLo, pHi + 1);
+  // Cut the polyline at the vertices nearest the kept span's first and last
+  // stop, then orient the slice to run loStop→hiStop. Both cut points come from
+  // coordinates (not positions[0]/[last]) because the feed occasionally stores a
+  // train's polyline in the opposite orientation to its stop list — e.g. TLK 402
+  // lists its stops Bohumín→Łeba but stores its geometry Łeba→Bohumín, so a
+  // naive slice would keep only the wrong 150-point tail.
+  const pA =
+    loStop.lat != null && loStop.lon != null
+      ? closestPositionIndex(leg.positions, loStop.lat, loStop.lon)
+      : 0;
+  const pB =
+    hiStop.lat != null && hiStop.lon != null
+      ? closestPositionIndex(leg.positions, hiStop.lat, hiStop.lon)
+      : leg.positions.length - 1;
+  const keptPositions =
+    pA <= pB
+      ? leg.positions.slice(pA, pB + 1)
+      : leg.positions.slice(pB, pA + 1).reverse();
   if (keptPositions.length < 2) return null;
 
   // Keep only bus connectors that stay within this truncated leg (drops the
@@ -272,10 +323,14 @@ function stitchCompoundEntry(label, byTrainKey, origin, destination) {
       }
     }
     if (!chosen || !junction) return null;
+    // Ride the leg from the junction toward the destination — reversing it when
+    // the feed stored it in the opposite orientation (e.g. TLK 402, stored
+    // Bohumín→Łeba, ridden Gdynia→Bohumín on the Hel→Bohumín return).
+    const oriented = orientLegToward(chosen, junction, d);
     junctions.push(junction);
-    legs.push(chosen);
+    legs.push(oriented);
     remaining.splice(remaining.indexOf(chosen), 1);
-    current = chosen;
+    current = oriented;
     if (legs.length > pool.length) return null; // safety against cycles
   }
   if (legs.length < 2) return null;
