@@ -41,10 +41,11 @@ const MISSING = { uploadedAt: null, count: 0, status: "missing", hoursAgo: null 
 // ─── Per-kind dataset builders ────────────────────────────────────────────────
 
 async function backontrackDatasets() {
-  const [stopsBlob, routesBlob, tripsBlob] = await Promise.all([
+  const [stopsBlob, routesBlob, tripsBlob, agenciesBlob] = await Promise.all([
     getBlobData("stops"),
     getBlobData("view_ontd_map"),
     getBlobData("trips"),
+    getBlobData("agencies"),
   ]);
 
   const countOf = (blob) =>
@@ -79,6 +80,9 @@ async function backontrackDatasets() {
     tripsBlob
       ? dataset("Trips", tripsBlob.uploadedAt, countOf(tripsBlob))
       : { label: "Trips", ...MISSING },
+    agenciesBlob
+      ? dataset("Agencies", agenciesBlob.uploadedAt, countOf(agenciesBlob))
+      : { label: "Agencies", ...MISSING },
   ];
 }
 

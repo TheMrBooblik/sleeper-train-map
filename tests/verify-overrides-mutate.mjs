@@ -151,8 +151,50 @@ check("booking set creates record with empty stationNames", () => {
     urlTemplate: "https://x?o={origin}&d={dest}",
     dealsUrl: null,
     dealsLabel: null,
+    bookingPageUrl: null,
     stationNames: {},
   });
+});
+check("booking set preserves bookingPageUrl/requireStationMapping/routePages", () => {
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "set",
+    { agencyId: "AMTK", urlTemplate: "https://new" },
+    {
+      AMTK: {
+        urlTemplate: "old",
+        bookingPageUrl: "https://www.amtrak.com/tickets-reservations",
+        requireStationMapping: true,
+        routePages: { amtrak_Cardinal: "https://www.amtrak.com/routes/cardinal-train.html" },
+        stationNames: { A: "a" },
+      },
+    },
+  );
+  assert.strictEqual(out.AMTK.urlTemplate, "https://new");
+  assert.strictEqual(
+    out.AMTK.bookingPageUrl,
+    "https://www.amtrak.com/tickets-reservations",
+  );
+  assert.strictEqual(out.AMTK.requireStationMapping, true);
+  assert.deepStrictEqual(out.AMTK.routePages, {
+    amtrak_Cardinal: "https://www.amtrak.com/routes/cardinal-train.html",
+  });
+});
+check("booking set can update and clear bookingPageUrl explicitly", () => {
+  const updated = applyOverrideMutation(
+    "operator-booking",
+    "set",
+    { agencyId: "PKP", bookingPageUrl: "https://ebilet.intercity.pl/" },
+    { PKP: { bookingPageUrl: "https://old" } },
+  );
+  assert.strictEqual(updated.PKP.bookingPageUrl, "https://ebilet.intercity.pl/");
+  const cleared = applyOverrideMutation(
+    "operator-booking",
+    "set",
+    { agencyId: "PKP", bookingPageUrl: "" },
+    { PKP: { bookingPageUrl: "https://old" } },
+  );
+  assert.strictEqual(cleared.PKP.bookingPageUrl, null);
 });
 check("booking set preserves existing stationNames", () => {
   const out = applyOverrideMutation(

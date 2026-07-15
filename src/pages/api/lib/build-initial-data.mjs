@@ -244,7 +244,7 @@ function applyStationRenames(trains, renames) {
 function appendSyntheticRoutes(
   viewMap,
   trainList,
-  { idPrefix, agency, resolveName, withService = false },
+  { idPrefix, agency, resolveName, withService = false, botAgencyByTrain = {} },
 ) {
   const paired = new Set();
   trainList.forEach(([lineName, data]) => {
@@ -259,9 +259,17 @@ function appendSyntheticRoutes(
         resolveName(v.stations?.[v.stations.length - 1]?.name) === origin,
     );
     const safeId = lineName.replace(/\s+/g, "_");
+    // BoT's operator attribution for the row this synthetic route replaced
+    // (either direction) — e.g. "PKP/ČD" for a partner EuroNight the nightjet
+    // source styles as ÖBB. Consumed by the operator display in the panel.
+    const botAgency =
+      botAgencyByTrain[lineName] ||
+      (reversePair ? botAgencyByTrain[reversePair[0]] : null) ||
+      null;
     const entry = {
       route_id: `${idPrefix}${safeId}`,
       agency_id: agency(data),
+      ...(botAgency ? { bot_agency_id: botAgency } : {}),
       trip_short_name_0: lineName,
       origin_trip_0: origin,
       destination_trip_0: dest,
@@ -303,36 +311,56 @@ function withPolylineAndStations([, data]) {
 // ─── Per-source BoT-row dedup strategies ─────────────────────────────────────
 // When official operator data covers a train, the matching (stale) Back-on-Track
 // row is dropped in favour of the synthetic route built from the official data.
+// Each strategy returns { officialTrainKey: botAgencyId } for the dropped rows,
+// so the synthetic replacement can keep BoT's operator attribution (partner
+// EuroNight trains are operated by e.g. PKP/ČD, not by the ÖBB default the
+// synthetic source carries for styling).
 
 // "exact": BoT trip_short_name matches the official train key verbatim (NJ/EN).
 function dropBotRowsExact(filteredViewMap, trains) {
   const apiTrainNumbers = new Set(Object.keys(trains));
+  const botAgencyByTrain = {};
   Object.keys(filteredViewMap).forEach((key) => {
     const route = filteredViewMap[key];
     const t0 = (route?.trip_short_name_0 || "").trim();
     const t1 = (route?.trip_short_name_1 || "").trim();
     if (apiTrainNumbers.has(t0) || apiTrainNumbers.has(t1)) {
+      const botAgency = (route?.agency_id || "").trim();
+      if (botAgency) {
+        if (apiTrainNumbers.has(t0)) botAgencyByTrain[t0] = botAgency;
+        if (apiTrainNumbers.has(t1)) botAgencyByTrain[t1] = botAgency;
+      }
       delete filteredViewMap[key];
     }
   });
+  return botAgencyByTrain;
 }
 
 // "icn": BoT uses "IC Notte 770"; our data uses "ICN 770" — compare bare numbers.
 function dropBotRowsIcn(filteredViewMap, trains, idPrefix) {
   const bareNumber = (n) =>
     n.replace(/^IC\s+Notte\s+/i, "").replace(/\s*\([^)]*\)$/, "").trim();
-  const apiTrainNumbers = new Set(
-    Object.keys(trains).map((n) => n.replace(/^ICN\s+/i, "").trim()),
+  const apiKeyByBareNumber = new Map(
+    Object.keys(trains).map((n) => [n.replace(/^ICN\s+/i, "").trim(), n]),
   );
+  const botAgencyByTrain = {};
   Object.keys(filteredViewMap).forEach((key) => {
     if (key.startsWith(idPrefix)) return;
     const route = filteredViewMap[key];
     const t0 = bareNumber((route?.trip_short_name_0 || "").toString());
     const t1 = bareNumber((route?.trip_short_name_1 || "").toString());
-    if (apiTrainNumbers.has(t0) || apiTrainNumbers.has(t1)) {
+    if (apiKeyByBareNumber.has(t0) || apiKeyByBareNumber.has(t1)) {
+      const botAgency = (route?.agency_id || "").trim();
+      if (botAgency) {
+        for (const t of [t0, t1]) {
+          const apiKey = apiKeyByBareNumber.get(t);
+          if (apiKey) botAgencyByTrain[apiKey] = botAgency;
+        }
+      }
       delete filteredViewMap[key];
     }
   });
+  return botAgencyByTrain;
 }
 
 const DEDUP_STRATEGIES = {
@@ -413,7 +441,9 @@ export function buildInitialData({
     }
 
     const dedup = DEDUP_STRATEGIES[synthetic.dedupStrategy];
-    if (dedup) dedup(filteredViewMap, trains, synthetic);
+    const botAgencyByTrain = dedup
+      ? dedup(filteredViewMap, trains, synthetic) || {}
+      : {};
 
     // Source attribution for the classifier's trusted-station auto-approval.
     const gateForEntry = {
@@ -447,6 +477,7 @@ export function buildInitialData({
           : () => synthetic.agency?.value,
       resolveName: synthetic.resolveAliases ? resolveCanonicalStationName : identity,
       withService: !!synthetic.withService,
+      botAgencyByTrain,
     });
   }
 
