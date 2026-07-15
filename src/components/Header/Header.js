@@ -1,6 +1,15 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaBars, FaEyeSlash, FaInfo, FaLayerGroup, FaRoute, FaExternalLinkAlt, FaCog, FaTrain } from "react-icons/fa";
+import {
+  FaBars,
+  FaEyeSlash,
+  FaInfo,
+  FaLayerGroup,
+  FaRoute,
+  FaExternalLinkAlt,
+  FaCog,
+  FaTrain,
+} from "react-icons/fa";
 
 import Container from "@components/Container";
 import Legend from "@components/Legend";
@@ -74,10 +83,16 @@ function usePopover() {
   useEffect(() => {
     if (!open) return undefined;
     const onPointerDown = (e) => {
-      if (panelRef.current?.contains(e.target) || buttonRef.current?.contains(e.target)) return;
+      if (
+        panelRef.current?.contains(e.target) ||
+        buttonRef.current?.contains(e.target)
+      )
+        return;
       setOpen(false);
     };
-    const onKeyDown = (e) => { if (e.key === "Escape") setOpen(false); };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
     document.addEventListener("pointerdown", onPointerDown, true);
     document.addEventListener("keydown", onKeyDown, true);
     return () => {
@@ -108,7 +123,16 @@ const Header = ({
   const mobileMenu = usePopover();
   const settings = usePopover();
 
-  const props = { isGrouped, setIsGrouped, showRoutes, setShowRoutes, hideIntermediateStations, setHideIntermediateStations, showRailwayOverlay, setShowRailwayOverlay };
+  const props = {
+    isGrouped,
+    setIsGrouped,
+    showRoutes,
+    setShowRoutes,
+    hideIntermediateStations,
+    setHideIntermediateStations,
+    showRailwayOverlay,
+    setShowRailwayOverlay,
+  };
 
   const showMobileTooltip = useCallback((id) => {
     setMobileTooltipId(id);
@@ -127,11 +151,11 @@ const Header = ({
       style={{ position: "relative", zIndex: 1002 }}
     >
       <Container className="flex flex-wrap justify-between items-center gap-y-2 gap-x-2">
-        <p className="text-sm leading-none whitespace-nowrap min-[640px]:text-base shrink-0">
+        <h1 className="text-sm leading-none whitespace-nowrap min-[640px]:text-base shrink-0">
           <Link href="/">
             Pingwi <i>sleeper train</i> map
           </Link>
-        </p>
+        </h1>
         {onSearchSelect && (
           <div className="flex-1 min-w-0 max-w-xs mx-2 hidden sm:block">
             <StationSearchBar
@@ -142,7 +166,6 @@ const Header = ({
           </div>
         )}
         <div className="ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end list-none gap-2 min-[640px]:gap-3">
-
           {/* Mobile: single ≡ button opening controls + about — hidden on sm+ */}
           <div className="relative shrink-0 min-[640px]:hidden">
             <button
@@ -239,9 +262,14 @@ const Header = ({
             <button
               ref={legend.buttonRef}
               type="button"
-              onClick={() => { legend.setOpen((v) => !v); showMobileTooltip("mapLegend"); }}
+              onClick={() => {
+                legend.setOpen((v) => !v);
+                showMobileTooltip("mapLegend");
+              }}
               className={`icon-toggle-button shrink-0 ${
-                mobileTooltipId === "mapLegend" ? "icon-toggle-button--show-tooltip-mobile" : ""
+                mobileTooltipId === "mapLegend"
+                  ? "icon-toggle-button--show-tooltip-mobile"
+                  : ""
               } ${legend.open ? "is-active" : ""}`}
               aria-expanded={legend.open}
               aria-controls="map-legend-popover"
