@@ -1,6 +1,6 @@
 // scripts/adapters/backontrack.mjs
-// Back-on-Track community dataset: stops, view_ontd_map, trips (raw JSON on GitHub).
-// Writes stops + trips immediately; view_ontd_map is held on ctx.shared so the
+// Back-on-Track community dataset: stops, view_ontd_map, trips, agencies (raw JSON on GitHub).
+// Writes stops + trips + agencies immediately; view_ontd_map is held on ctx.shared so the
 // runner can merge NightJet polylines + synthetic standalone routes into it
 // before writing (post-step in scrape-data.mjs).
 
@@ -56,13 +56,15 @@ async function fetchBackontrack(baseUrl, type, ctx) {
 
 export async function run(entry, ctx) {
   const baseUrl = entry.params?.baseUrl;
-  const [stops, view_ontd_map, trips] = await Promise.all([
+  const [stops, view_ontd_map, trips, agencies] = await Promise.all([
     fetchBackontrack(baseUrl, "stops", ctx),
     fetchBackontrack(baseUrl, "view_ontd_map", ctx),
     fetchBackontrack(baseUrl, "trips", ctx),
+    fetchBackontrack(baseUrl, "agencies", ctx),
   ]);
   ctx.write("backontrack-stops.json", stops);
   ctx.write("backontrack-trips.json", trips);
+  ctx.write("backontrack-agencies.json", agencies);
   ctx.shared.viewMap = view_ontd_map;
   ctx.shared.trips = trips;
   ctx.shared.stops = stops; // station-name → coords lookups in later adapters

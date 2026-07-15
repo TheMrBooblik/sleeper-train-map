@@ -18,7 +18,7 @@ export {
   keepViewMapRowForTripActivity,
 };
 
-const BLOB_SUPPORTED_TYPES = ["stops", "view_ontd_map", "trips"];
+const BLOB_SUPPORTED_TYPES = ["stops", "view_ontd_map", "trips", "agencies"];
 
 /** Same rules as the trips response: inactive + NJ/EN/T4y removed. */
 function filterTripsTrainsResponse(data) {

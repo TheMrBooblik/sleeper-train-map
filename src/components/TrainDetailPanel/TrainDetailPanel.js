@@ -22,6 +22,7 @@ import {
   formatPricingLabel,
   getPricingBadgeStyle,
 } from "../../lib/operatorPricing";
+import { resolveOperatorComponents } from "../../lib/operatorAgencies.mjs";
 import BookingActions from "./BookingActions";
 import SuggestEditModal from "../SuggestEdit/SuggestEditModal";
 import {
@@ -930,8 +931,6 @@ const TrainDetailPanel = ({
               )}
 
               {orderedTrips.map((trip, index) => {
-                // Trip list uses trip fields; route rows from useRoutes are only for GTFS-kind detection.
-                const agency = agencies[trip.agency_id];
                 // Operator brand color for accent styling
                 const operatorColor = getOperatorBaseColor(trip);
                 const normalizedTrainNumber = normalizeTrainNumber(
@@ -945,6 +944,11 @@ const TrainDetailPanel = ({
                 // were merged onto the route in pkpGtfsMerge. Pick the direction
                 // whose origin matches this trip's origin.
                 const tripRoute = routes?.[trip.route_id?.toString()];
+                // The viewMap row carries the true (possibly compound) agency
+                // id; synthetic fallback trips may carry the ÖBB default.
+                const effectiveAgencyId =
+                  tripRoute?.agency_id || trip.agency_id;
+                const agency = agencies[effectiveAgencyId];
                 const viaSummary = selectMajorViaStations(
                   trip.via,
                   majorViaContext,
@@ -1021,22 +1025,45 @@ const TrainDetailPanel = ({
                   naTrainData?.trains?.[trip.trip_short_name] ||
                   naTrainData?.trains?.[normalizedTrainNumber] ||
                   null;
+                // Booking origin: prefer the station the user clicked on the map
+                // (so the deep link starts from where they are), but only when it
+                // isn't the destination. Otherwise use the train's own origin.
+                const bookingOrigin =
+                  selectedStation && selectedStation !== trip.trip_headsign
+                    ? selectedStation
+                    : trip.trip_origin;
+                // One entry per operating company ("PKP/ČD" → PKP + ČD), each
+                // carrying its logo plus the best link that operator sells this
+                // ticket through (deep link → booking page → fare portal →
+                // homepage) — the logos below double as booking links.
+                const operatorComponents = resolveOperatorComponents({
+                  agencyId: effectiveAgencyId,
+                  agencies,
+                  origin: bookingOrigin,
+                  dest: trip.trip_headsign,
+                });
                 const operatorName =
                   nightjetTrain?.operator ||
                   crTrain?.operator ||
                   caucasusTrain?.operator ||
                   curatedTrain?.operator ||
                   naTrain?.operator ||
-                  agency?.agency_name ||
+                  (operatorComponents.length > 1
+                    ? operatorComponents.map((c) => c.name).join(" + ")
+                    : agency?.agency_name) ||
                   "Operator";
-                // Synthetic NJ/EN trips use agency_id="ÖBB" for styling, but the actual
-                // operator can be different (e.g. partner EuroNight trains).
-                // Avoid showing a misleading ÖBB logo when we have a better operator label.
-                const shouldShowAgencyLogo =
-                  !!agency?.agency_logo_url &&
-                  !!agency?.agency_name &&
-                  (!nightjetTrain?.operator ||
-                    nightjetTrain.operator === agency.agency_name);
+                // Synthetic trips without a route row default agency_id="ÖBB",
+                // but the actual operator can differ (partner EuroNight trains).
+                // Suppress logos only in that misleading case; rows with a real
+                // agency id always show their operators' logos.
+                const suppressSyntheticObbLogo =
+                  !tripRoute?.agency_id &&
+                  trip.agency_id === "ÖBB" &&
+                  !!nightjetTrain?.operator &&
+                  nightjetTrain.operator !== agency?.agency_name;
+                const logoComponents = suppressSyntheticObbLogo
+                  ? []
+                  : operatorComponents.filter((c) => c.logoUrl);
                 const nightjetStations = Array.isArray(nightjetTrain?.stations)
                   ? nightjetTrain.stations
                   : [];
@@ -1134,14 +1161,6 @@ const TrainDetailPanel = ({
                 const pricingLabel = formatPricingLabel(pricing);
                 const pricingBadgeStyle = getPricingBadgeStyle(pricing);
 
-                // Booking origin: prefer the station the user clicked on the map
-                // (so the deep link starts from where they are), but only when it
-                // isn't the destination. Otherwise use the train's own origin.
-                const bookingOrigin =
-                  selectedStation && selectedStation !== trip.trip_headsign
-                    ? selectedStation
-                    : trip.trip_origin;
-
                 return (
                   <div
                     key={`${trip.trip_id}-${index}`}
@@ -1154,15 +1173,50 @@ const TrainDetailPanel = ({
                     {/* Header: operator + train number */}
                     <div className="flex items-center justify-between gap-3">
                       <div className="space-y-2 min-w-0">
-                        {shouldShowAgencyLogo && (
-                          <img
-                            src={agency.agency_logo_url}
-                            alt={agency.agency_name}
-                            className="h-9 object-contain"
-                            onError={(e) => {
-                              e.target.style.display = "none";
-                            }}
-                          />
+                        {logoComponents.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-3">
+                            {logoComponents.map((c) => {
+                              const logoImg = (
+                                <img
+                                  src={c.logoUrl}
+                                  alt={c.name}
+                                  className="h-9 object-contain"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    // Hide the link wrapper too, not just the img,
+                                    // so no empty clickable box remains.
+                                    const wrapper =
+                                      e.target.closest("a") || e.target;
+                                    wrapper.style.display = "none";
+                                  }}
+                                />
+                              );
+                              if (!c.linkUrl) {
+                                return (
+                                  <React.Fragment key={c.id}>
+                                    {logoImg}
+                                  </React.Fragment>
+                                );
+                              }
+                              const label =
+                                c.linkKind === "home"
+                                  ? `Visit ${c.name}`
+                                  : `Book with ${c.name}`;
+                              return (
+                                <a
+                                  key={c.id}
+                                  href={c.linkUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={label}
+                                  aria-label={label}
+                                  className="inline-flex rounded-sm hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 transition-opacity"
+                                >
+                                  {logoImg}
+                                </a>
+                              );
+                            })}
+                          </div>
                         )}
                         <div className="text-sm font-medium text-gray-900 truncate">
                           {operatorName}
@@ -1482,7 +1536,8 @@ const TrainDetailPanel = ({
 
                     {/* Booking: deep link with preselected stations + fare */}
                     <BookingActions
-                      agencyId={trip.agency_id}
+                      agencyId={effectiveAgencyId}
+                      agencies={agencies}
                       agencyUrl={agency?.agency_url}
                       origin={bookingOrigin}
                       dest={trip.trip_headsign}

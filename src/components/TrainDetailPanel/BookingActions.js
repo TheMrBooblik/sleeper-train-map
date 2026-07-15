@@ -2,7 +2,8 @@
 
 import React from "react";
 import { FiExternalLink } from "react-icons/fi";
-import { buildBookingUrl, getDealsLink, getBookingPageUrl } from "../../lib/operatorBooking";
+import { getDealsLink } from "../../lib/operatorBooking";
+import { resolveBookingHref } from "../../lib/operatorAgencies.mjs";
 import {
   buildNorthAmericaBookingUrl,
   isNorthAmericaAgency,
@@ -14,9 +15,11 @@ import { abbreviateStationName } from "../Map/utils/stationNameUtils";
  * Booking section shown at the bottom of each trip card.
  *
  * - Primary CTA deep-links to the operator's booking site with the origin and
- *   destination preselected. If we have no deep-link template for the operator,
- *   it falls back to the generic operator homepage (agencyUrl) — same behavior
- *   as before this feature.
+ *   destination preselected. Compound agency ids ("PKP/ČD") are resolved per
+ *   component operator, tiered by link quality: deep link → curated booking
+ *   page → BoT booking portal (agency_fare_url) → operator homepage — so every
+ *   route gets a booking CTA. For compounds, a caption names the operator
+ *   whose shop opens.
  * - When a deep link is used, a small caption shows which stations will be
  *   prefilled so the user knows what to expect.
  * - A fare line shows the live price (future) or the fixed "from" price.
@@ -26,6 +29,7 @@ import { abbreviateStationName } from "../Map/utils/stationNameUtils";
  */
 export default function BookingActions({
   agencyId,
+  agencies,
   agencyUrl,
   origin,
   dest,
@@ -36,6 +40,8 @@ export default function BookingActions({
 }) {
   let deepLink = null;
   let href = null;
+  let dealsLink = null;
+  let sellerName = null;
 
   if (isNorthAmericaAgency(agencyId)) {
     const na = buildNorthAmericaBookingUrl({
@@ -47,13 +53,24 @@ export default function BookingActions({
     });
     href = na.url;
     if (na.isStationDeepLink) deepLink = na.url;
+    dealsLink = getDealsLink(agencyId);
   } else {
-    deepLink = buildBookingUrl({ agencyId, origin, dest });
-    const bookingPageUrl = getBookingPageUrl(agencyId);
-    href = deepLink || bookingPageUrl || agencyUrl || null;
+    const resolved = resolveBookingHref({
+      agencyId,
+      agencies,
+      agencyUrl,
+      origin,
+      dest,
+    });
+    href = resolved.href;
+    deepLink = resolved.deepLink;
+    dealsLink = resolved.dealsLink;
+    // Name the seller when the id is compound so the user knows which
+    // operator's shop the button opens.
+    if (resolved.componentName && (agencyId || "").includes("/")) {
+      sellerName = resolved.componentName;
+    }
   }
-
-  const dealsLink = getDealsLink(agencyId);
 
   // Fare to show next to the button: prefer a live price once available,
   // otherwise fall back to the curated fixed "from" price.
@@ -92,11 +109,17 @@ export default function BookingActions({
         </a>
       )}
 
-      {/* Caption: which stations are prefilled (deep link only) */}
+      {/* Caption: which stations are prefilled (deep link only), and for
+          jointly-operated trains which operator's shop the button opens */}
       {deepLink && origin && dest && (
         <div className="text-center text-xs text-gray-500">
           Preselects {abbreviateStationName(origin)} {"->"}{" "}
           {abbreviateStationName(dest)}
+        </div>
+      )}
+      {!deepLink && sellerName && href && (
+        <div className="text-center text-xs text-gray-500">
+          Opens {sellerName}
         </div>
       )}
 

@@ -147,11 +147,26 @@ export function applyOverrideMutation(resource, action, payload, current) {
           urlTemplate: p.urlTemplate ? String(p.urlTemplate) : null,
           dealsUrl: p.dealsUrl ? String(p.dealsUrl) : null,
           dealsLabel: p.dealsLabel ? String(p.dealsLabel) : null,
+          // bookingPageUrl is editable here too, defaulting to the existing
+          // value so URL-template edits don't wipe the curated booking page.
+          bookingPageUrl:
+            p.bookingPageUrl !== undefined
+              ? p.bookingPageUrl
+                ? String(p.bookingPageUrl)
+                : null
+              : (existing.bookingPageUrl ?? null),
           // Preserve the curated station-name map across URL edits.
           stationNames:
             existing.stationNames && typeof existing.stationNames === "object"
               ? existing.stationNames
               : {},
+          // Preserve flags/maps the form doesn't edit.
+          ...(existing.requireStationMapping !== undefined && {
+            requireStationMapping: existing.requireStationMapping,
+          }),
+          ...(existing.routePages !== undefined && {
+            routePages: existing.routePages,
+          }),
         };
         return obj;
       }

@@ -15,7 +15,8 @@
     "outputs": [
       "backontrack-stops.json",
       "backontrack-view_ontd_map.json",
-      "backontrack-trips.json"
+      "backontrack-trips.json",
+      "backontrack-agencies.json"
     ],
     "synthetic": null,
     "params": {

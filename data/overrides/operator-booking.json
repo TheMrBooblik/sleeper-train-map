@@ -28,6 +28,18 @@
     }
   },
   "SNCF": { "bookingPageUrl": "https://www.sncf-connect.com/en-en/train-ticket" },
+  "PKP":  { "bookingPageUrl": "https://ebilet.intercity.pl/" },
+  "ČD":   { "bookingPageUrl": "https://www.cd.cz/en/eshop/" },
+  "SJ":   { "bookingPageUrl": "https://www.sj.se/en" },
+  "FS":   { "bookingPageUrl": "https://www.trenitalia.com/en.html" },
+  "CS":   { "bookingPageUrl": "https://www.sleeper.scot/booking/" },
+  "TCDD": { "bookingPageUrl": "https://ebilet.tcddtasimacilik.gov.tr/" },
+  "ZSSK": { "bookingPageUrl": "https://predaj.zssk.sk/" },
+  "HŽPP": { "bookingPageUrl": "https://prodaja.hzpp.hr/en/Ticket" },
+  "BDŽ":  { "bookingPageUrl": "https://bileti.bdz.bg/" },
+  "ST":   { "bookingPageUrl": "https://www.snalltaget.se/en" },
+  "OTE":  { "bookingPageUrl": "https://www.optimatours.de/" },
+  "SCR":  { "bookingPageUrl": "https://ticket.railway.am/en/schedule" },
   "MÁV": {
     "urlTemplate": "https://jegy.mav.hu/?honnan={origin}&hova={dest}",
     "stationNames": {
