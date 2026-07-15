@@ -279,7 +279,11 @@
       "withService": true,
       "excludeBotMatched": false,
       "dedupStrategy": null,
-      "stationRenames": { "Vancouver": "Vancouver, WA" }
+      "stationRenames": {
+        "Vancouver": "Vancouver, WA",
+        "San Bernardino": "San Bernardino, CA",
+        "Salinas": "Salinas, CA"
+      }
     },
     "params": {
       "feedUrl": "https://content.amtrak.com/content/gtfs/GTFS.zip",
