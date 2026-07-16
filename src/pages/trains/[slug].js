@@ -8,6 +8,7 @@ import RouteTimetable from "@components/seo/RouteTimetable";
 import RouteFactsGrid from "@components/seo/RouteFactsGrid";
 import RouteCardLink from "@components/seo/RouteCardLink";
 import RouteMapIsland from "@components/seo/RouteMapIsland";
+import BookingCta from "@components/seo/BookingCta";
 import JsonLd from "@components/seo/JsonLd";
 
 import {
@@ -145,6 +146,16 @@ export default function TrainPage({ detail, related, cityPair }) {
             <RouteFactsGrid detail={detail} />
           </div>
 
+          {detail.booking && (
+            <div className="mt-8">
+              <BookingCta
+                booking={detail.booking}
+                origin={detail.origin}
+                destination={detail.destination}
+              />
+            </div>
+          )}
+
           <div className="mt-8">
             <RouteMapIsland map={detail.map} agencyId={detail.agencyId} />
           </div>
@@ -168,10 +179,22 @@ export default function TrainPage({ detail, related, cityPair }) {
             </div>
           )}
 
-          <div className="mt-10 flex flex-wrap gap-3">
+          <div className="mt-10 flex flex-wrap items-center gap-3">
+            {detail.booking && (
+              <BookingCta
+                booking={detail.booking}
+                origin={detail.origin}
+                destination={detail.destination}
+                compact
+              />
+            )}
             <Link
               href="/"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary-green hover:bg-primary-green-light text-black font-semibold text-sm transition-colors"
+              className={
+                detail.booking
+                  ? "inline-flex items-center gap-2 px-6 py-3 rounded-full border border-white/15 text-white/90 hover:bg-white/5 hover:border-white/30 font-semibold text-sm transition-colors"
+                  : "inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary-green hover:bg-primary-green-light text-black font-semibold text-sm transition-colors"
+              }
             >
               Open the interactive map
               <FaArrowRight className="w-3.5 h-3.5" />

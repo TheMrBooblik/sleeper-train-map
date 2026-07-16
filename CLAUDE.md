@@ -24,7 +24,8 @@ npm run test:smoke   # Run smoke tests (separate config)
 npm run verify-registry && npm run verify-build-parity && npm run verify-overrides && \
 npm run verify-proposals && npm run verify-classify && npm run verify-calendar && \
 npm run verify-canonical-routes && npm run verify-ai && npm run verify-enrich && \
-npm run verify-route-geometry && npm run verify-es && npm run verify-na-gtfs
+npm run verify-route-geometry && npm run verify-es && npm run verify-na-gtfs && \
+npm run verify-seo-booking
 ```
 
 ## Architecture Overview
