@@ -2,12 +2,7 @@
 
 import React from "react";
 import { FiExternalLink } from "react-icons/fi";
-import { getDealsLink } from "../../lib/operatorBooking";
-import { resolveBookingHref } from "../../lib/operatorAgencies.mjs";
-import {
-  buildNorthAmericaBookingUrl,
-  isNorthAmericaAgency,
-} from "../../lib/naBooking.mjs";
+import { resolveRouteBooking } from "../../lib/routeBooking.mjs";
 import { formatFromPrice } from "../../lib/operatorPricing";
 import { abbreviateStationName } from "../Map/utils/stationNameUtils";
 
@@ -38,46 +33,23 @@ export default function BookingActions({
   routeId,
   scheduleStops,
 }) {
-  let deepLink = null;
-  let href = null;
-  let dealsLink = null;
-  let sellerName = null;
+  const booking = resolveRouteBooking({
+    agencyId,
+    agencies,
+    agencyUrl,
+    origin,
+    dest,
+    routeId,
+    scheduleStops,
+  });
 
-  if (isNorthAmericaAgency(agencyId)) {
-    const na = buildNorthAmericaBookingUrl({
-      agencyId,
-      routeId,
-      origin,
-      dest,
-      scheduleStops,
-    });
-    href = na.url;
-    if (na.isStationDeepLink) deepLink = na.url;
-    dealsLink = getDealsLink(agencyId);
-  } else {
-    const resolved = resolveBookingHref({
-      agencyId,
-      agencies,
-      agencyUrl,
-      origin,
-      dest,
-    });
-    href = resolved.href;
-    deepLink = resolved.deepLink;
-    dealsLink = resolved.dealsLink;
-    // Name the seller when the id is compound so the user knows which
-    // operator's shop the button opens.
-    if (resolved.componentName && (agencyId || "").includes("/")) {
-      sellerName = resolved.componentName;
-    }
-  }
+  // Nothing to link to and nothing to show — render nothing.
+  if (!booking) return null;
+  const { href, preselects, sellerName, dealsUrl, dealsLabel } = booking;
 
   // Fare to show next to the button: prefer a live price once available,
   // otherwise fall back to the curated fixed "from" price.
   const fareLabel = livePrice || formatFromPrice(pricing);
-
-  // Nothing to link to and nothing to show — render nothing.
-  if (!href && !dealsLink) return null;
 
   return (
     <div className="space-y-1.5">
@@ -111,28 +83,28 @@ export default function BookingActions({
 
       {/* Caption: which stations are prefilled (deep link only), and for
           jointly-operated trains which operator's shop the button opens */}
-      {deepLink && origin && dest && (
+      {preselects && origin && dest && (
         <div className="text-center text-xs text-gray-500">
           Preselects {abbreviateStationName(origin)} {"->"}{" "}
           {abbreviateStationName(dest)}
         </div>
       )}
-      {!deepLink && sellerName && href && (
+      {!preselects && sellerName && href && (
         <div className="text-center text-xs text-gray-500">
           Opens {sellerName}
         </div>
       )}
 
       {/* Secondary: flexible / last-minute deals */}
-      {dealsLink && (
+      {dealsUrl && (
         <a
-          href={dealsLink.url}
+          href={dealsUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="group block w-full text-center text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline py-1"
         >
           <span className="inline-flex items-center gap-1">
-            {dealsLink.label}&nbsp;
+            {dealsLabel || "View deals"}&nbsp;
             <FiExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
           </span>
         </a>

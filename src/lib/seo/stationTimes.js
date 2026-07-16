@@ -61,6 +61,9 @@ function cleanStations(entry) {
       const lon = s?.location?.longitude ?? s?.lon ?? null;
       return {
         name: s?.name || s?.id || "",
+        // GTFS stop code where the feed carries one (Amtrak/VIA) — used to
+        // build station-preselected booking deep links.
+        code: s?.code || null,
         lat: Number.isFinite(lat) ? lat : null,
         lon: Number.isFinite(lon) ? lon : null,
         arrival: s?.arrival || "",
@@ -107,7 +110,7 @@ function loadIndex() {
  *
  * @param {string} trainNumber
  * @param {{ origin?: string, destination?: string }} [endpoints]
- * @returns {{ name:string, lat:number|null, lon:number|null, arrival:string, departure:string }[] | null}
+ * @returns {{ name:string, code:string|null, lat:number|null, lon:number|null, arrival:string, departure:string }[] | null}
  */
 export function getStationTimesForTrain(trainNumber, { origin, destination } = {}) {
   const stations = loadIndex().get(normNumber(trainNumber));

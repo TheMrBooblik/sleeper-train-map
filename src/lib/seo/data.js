@@ -34,6 +34,7 @@ import {
   formatFutureFrom,
 } from "./format";
 import { getOperatorPricing, formatFromPrice } from "../operatorPricing";
+import { resolveRouteBooking } from "../routeBooking.mjs";
 import { splitAgencyIds, getOperatorMeta } from "./operators";
 import {
   normalizeCountryCode,
@@ -43,10 +44,12 @@ import {
 
 const PUBLISHED_PATH = "public/data/published/initial-data.json";
 const RAW_STOPS_PATH = "public/data/scraped/backontrack-stops.json";
+const AGENCIES_PATH = "public/data/scraped/backontrack-agencies.json";
 
 let _publishedFull;
 let _stopCoords;
 let _stopCountry;
+let _agencies;
 let _tripsByRoute;
 let _slugMaps;
 let _summaries;
@@ -121,6 +124,23 @@ function getStopCountryIndex() {
 export function getStationCountryCode(name) {
   if (!name) return "";
   return getStopCountryIndex().get(String(name).toLowerCase()) || "";
+}
+
+/**
+ * BoT agencies map (agency_id → record) from the committed snapshot, memoized.
+ * Feeds the booking-CTA tiering with agency_fare_url / agency_url so the static
+ * pages resolve the same link the map's detail panel would. Missing file → {}
+ * (curated booking config still applies).
+ */
+function getAgencies() {
+  if (!_agencies) {
+    try {
+      _agencies = readJson(AGENCIES_PATH).data || {};
+    } catch {
+      _agencies = {};
+    }
+  }
+  return _agencies;
 }
 
 /** routeId(string) → trips[] (memoized). */
@@ -367,6 +387,7 @@ export function getRouteDetail(routeId) {
     if (raw) {
       stops = raw.map((s) => ({
         name: s.name,
+        code: s.code || null,
         lat: Number.isFinite(s.lat) ? s.lat : null,
         lon: Number.isFinite(s.lon) ? s.lon : null,
         departure: formatAnyTime(s.departure),
@@ -381,6 +402,7 @@ export function getRouteDetail(routeId) {
         const c = coords.get(name);
         return {
           name,
+          code: null,
           lat: c ? c[0] : null,
           lon: c ? c[1] : null,
           departure: i === 0 ? vmDeparture : "",
@@ -418,6 +440,23 @@ export function getRouteDetail(routeId) {
     .filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon))
     .map((s) => ({ name: s.name, lat: s.lat, lon: s.lon }));
 
+  // Booking CTA: the same tiered resolution the map's detail panel runs, but
+  // at build time against the committed agencies snapshot, so the static HTML
+  // carries the link. Enriched with the curated "from" price for display.
+  const agencies = getAgencies();
+  const resolvedBooking = resolveRouteBooking({
+    agencyId: route.agency_id || "",
+    agencies,
+    agencyUrl: agencies[route.agency_id]?.agency_url ?? null,
+    origin: primary.origin || summary.origin,
+    dest: primary.destination || summary.destination,
+    routeId: String(routeId),
+    scheduleStops: primary.stops || [],
+  });
+  const booking = resolvedBooking
+    ? { ...resolvedBooking, fromPrice: summary.fromPrice || null }
+    : null;
+
   return {
     routeId: String(routeId),
     slug: summary.slug,
@@ -431,6 +470,7 @@ export function getRouteDetail(routeId) {
     agencyId: route.agency_id || "",
     operators: summary.operators,
     pricing: route.pricing || null,
+    booking,
     countryCodes: summary.countries,
     countries: summary.countries.map(getSeoCountry).filter(Boolean),
     directions,
