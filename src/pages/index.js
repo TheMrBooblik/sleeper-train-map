@@ -1,6 +1,5 @@
 import Head from "next/head";
 import Layout from "@components/Layout";
-import HomeSeoPanel from "@components/seo/HomeSeoPanel";
 import { organizationLd, webSiteLd } from "../lib/seo/schema";
 import { OG_IMAGE } from "../lib/seo/site";
 
@@ -22,7 +21,7 @@ const structuredData = {
 
 export default function Home({ seo }) {
   return (
-    <Layout>
+    <Layout tourSeo={seo}>
       <Head>
         <title>Sleeper Train Map 2026 (interactive)</title>
         <meta
@@ -75,14 +74,6 @@ export default function Home({ seo }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteLd()) }}
         />
       </Head>
-
-      <HomeSeoPanel
-        countries={seo?.countries ?? []}
-        operators={seo?.operators ?? []}
-        connections={seo?.connections ?? []}
-        routeCount={seo?.routeCount ?? 0}
-        countryCount={seo?.countryCount ?? 0}
-      />
     </Layout>
   );
 }

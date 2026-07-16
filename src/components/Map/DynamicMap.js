@@ -72,6 +72,7 @@ const TrainMap = ({
   showRailwayOverlay = false,
   searchTarget,
   onSearchProcessed,
+  onStationSelect,
   ...rest
 }) => {
   const [sidebarDisabled, setSidebarDisabled] = useState(false);
@@ -177,6 +178,8 @@ const TrainMap = ({
 
   const handleMarkerClick = useCallback(
     (filteredStop) => {
+      // First real map interaction — lets the welcome tour dismiss itself.
+      onStationSelect?.();
       const { stop_id } = filteredStop;
       // Close filter only when user clicks the *same logical station* again.
       // Compare against the previously selected stopId using the name matcher.
@@ -285,6 +288,7 @@ const TrainMap = ({
       matchStationNamesBound,
       normalizeStationNameForLookup,
       normalizeStationNameForDisplay,
+      onStationSelect,
     ],
   );
 
