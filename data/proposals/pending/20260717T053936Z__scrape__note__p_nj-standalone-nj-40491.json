@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-40491",
+  "createdAt": "2026-07-17T05:39:36.264Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 40491 (Hamburg Altona – Innsbruck Hbf)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 40491|NJ 40420\" → \"NJ 40491\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_40491",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "NJ 40491|NJ 40420"
+  },
+  "after": {
+    "train numbers": "NJ 40491"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
