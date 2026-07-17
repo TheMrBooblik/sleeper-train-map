@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-v-cklabruck-bahnhof",
+  "createdAt": "2026-07-17T05:40:10.696Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Vöcklabruck Bahnhof\" → \"Vöcklabruck\"",
+  "summary": "The operator-injected station \"Vöcklabruck Bahnhof\" appears to be the same as Back-on-Track's \"Vöcklabruck\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Vöcklabruck Bahnhof"
+  },
+  "before": null,
+  "after": {
+    "alias": "vöcklabruck bahnhof",
+    "canonical": "Vöcklabruck"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Vöcklabruck Bahnhof",
+        "canonical": "Vöcklabruck"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
