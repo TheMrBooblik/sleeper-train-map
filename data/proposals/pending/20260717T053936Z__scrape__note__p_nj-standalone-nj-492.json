@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-492",
+  "createdAt": "2026-07-17T05:39:36.264Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 492 (Wien Hbf – Hamburg Harburg)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Hamburg Altona\" → \"Hamburg Harburg\"; train numbers: \"NJ 492|NJ 493\" → \"NJ 492\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_492",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Hamburg Altona",
+    "train numbers": "NJ 492|NJ 493"
+  },
+  "after": {
+    "destination": "Hamburg Harburg",
+    "train numbers": "NJ 492"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
