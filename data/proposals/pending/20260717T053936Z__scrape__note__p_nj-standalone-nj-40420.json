@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-40420",
+  "createdAt": "2026-07-17T05:39:36.264Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 40420 (Innsbruck Hbf – Hamburg Harburg)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Hamburg Altona\" → \"Hamburg Harburg\"; train numbers: \"NJ 40420|NJ 40491\" → \"NJ 40420\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_40420",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Hamburg Altona",
+    "train numbers": "NJ 40420|NJ 40491"
+  },
+  "after": {
+    "destination": "Hamburg Harburg",
+    "train numbers": "NJ 40420"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
