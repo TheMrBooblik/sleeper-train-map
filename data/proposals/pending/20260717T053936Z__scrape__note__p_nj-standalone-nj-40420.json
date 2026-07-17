@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: NJ 40420 (Innsbruck Hbf – Hamburg Harburg)",
-  "summary": "Material change on an approved route (already live — FYI): destination: \"Hamburg Altona\" → \"Hamburg Harburg\"; train numbers: \"NJ 40420|NJ 40491\" → \"NJ 40420\"",
+  "title": "Update: NJ 40420 Route Change to Hamburg Harburg",
+  "summary": "The route for train NJ 40420 has been updated. The destination has changed from \"Hamburg Altona\" to \"Hamburg Harburg.\" The train number remains NJ 40420, and NJ 40491 is no longer part of this route.",
   "target": {
     "routeKey": "nj_standalone_NJ_40420",
     "agencyId": "ÖBB",
@@ -25,5 +25,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
