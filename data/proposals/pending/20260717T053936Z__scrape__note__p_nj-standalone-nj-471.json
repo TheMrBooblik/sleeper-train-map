@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-471",
+  "createdAt": "2026-07-17T05:39:36.264Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 471 (Hamburg Altona – Zürich HB)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 471|NJ 470\" → \"NJ 471\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_471",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "NJ 471|NJ 470"
+  },
+  "after": {
+    "train numbers": "NJ 471"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
