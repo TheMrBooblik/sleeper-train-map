@@ -715,6 +715,42 @@
       "telecode": "JGK",
       "lat": 36.669,
       "lon": 116.892
+    },
+    {
+      "name": "Chabuga",
+      "nameZh": "查布嘎",
+      "lat": 43.8554283,
+      "lon": 120.062971
+    },
+    {
+      "name": "Yangzhou",
+      "nameZh": "扬州",
+      "lat": 32.3919,
+      "lon": 119.345
+    },
+    {
+      "name": "Dongtai",
+      "nameZh": "东台",
+      "lat": 32.87611111111111,
+      "lon": 120.33916666666667
+    },
+    {
+      "name": "Huaian",
+      "nameZh": "淮安",
+      "lat": 33.65027777777778,
+      "lon": 119.02777777777777
+    },
+    {
+      "name": "Ninglingxian",
+      "nameZh": "宁陵县",
+      "lat": 34.5755,
+      "lon": 115.3123
+    },
+    {
+      "name": "Xiaohezhen",
+      "nameZh": "小河镇",
+      "lat": 33.11433020214831,
+      "lon": 109.15197791676499
     }
   ],
   "trains": [
@@ -1078,6 +1114,97 @@
       "returnLineName": "D 26",
       "fromTelecode": "BJP",
       "toTelecode": "QDK",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 351",
+      "returnLineName": "K 352",
+      "fromTelecode": "SHH",
+      "toTelecode": "CDW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 282",
+      "returnLineName": "K 284",
+      "fromTelecode": "SHH",
+      "toTelecode": "CDW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 511",
+      "returnLineName": "K 512",
+      "fromTelecode": "SHH",
+      "toTelecode": "GZQ",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 202",
+      "returnLineName": "K 201",
+      "fromTelecode": "GZQ",
+      "toTelecode": "CQW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 814",
+      "returnLineName": "K 813",
+      "fromTelecode": "GZQ",
+      "toTelecode": "CQW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 1096",
+      "returnLineName": "K 1095",
+      "fromTelecode": "GZQ",
+      "toTelecode": "CQW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 1172",
+      "returnLineName": "K 1171",
+      "fromTelecode": "GZQ",
+      "toTelecode": "CQW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 1453",
+      "returnLineName": "K 1454",
+      "fromTelecode": "BXP",
+      "toTelecode": "NCG",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 571",
+      "returnLineName": "K 572",
+      "fromTelecode": "BXP",
+      "toTelecode": "NCG",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 4531",
+      "returnLineName": "K 4532",
+      "fromTelecode": "BXP",
+      "toTelecode": "XAY",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 998",
+      "returnLineName": "K 997",
+      "fromTelecode": "CDW",
+      "toTelecode": "XAY",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 246",
+      "returnLineName": "K 245",
+      "fromTelecode": "CDW",
+      "toTelecode": "XAY",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 82",
+      "returnLineName": "K 84",
+      "fromTelecode": "GZQ",
+      "toTelecode": "XAY",
       "frequency": "Daily"
     }
   ]

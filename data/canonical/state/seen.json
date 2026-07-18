@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "updatedAt": "2026-07-18T05:28:27.283Z",
+  "updatedAt": "2026-07-18T17:03:25.567Z",
   "routes": {
     "3": {
       "firstSeen": "2026-06-10",
@@ -4279,10 +4279,10 @@
         "o": "Shanghai(上海)",
         "d": "Chengdu West(成都西)",
         "days0": "Daily",
-        "days1": null,
+        "days1": "Daily",
         "agency": "CR",
-        "trains": "K 1156",
-        "stopsHash": "a4628b54"
+        "trains": "K 1156|K 284",
+        "stopsHash": "54ca7612"
       }
     },
     "cr_K_599": {
@@ -4613,6 +4613,231 @@
         "agency": "CR",
         "trains": "D 25|D 26",
         "stopsHash": "e4a0afe5"
+      }
+    },
+    "cr_K_351": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Shanghai Songjiang(上海松江)",
+        "d": "Chengdu West(成都西)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 351|K 352",
+        "stopsHash": "e2bdd768"
+      }
+    },
+    "cr_K_282": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Shanghai(上海)",
+        "d": "Chengdu West(成都西)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "K 282",
+        "stopsHash": "f07ae75a"
+      }
+    },
+    "cr_K_511": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Shanghai Songjiang(上海松江)",
+        "d": "Haikou(海口)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 511|K 512",
+        "stopsHash": "513de987"
+      }
+    },
+    "cr_K_202": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Guangzhou Baiyun(广州白云)",
+        "d": "Chongqingbei(重庆北)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "K 202",
+        "stopsHash": "e4d07d04"
+      }
+    },
+    "cr_K_201": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Langzhong(阆中)",
+        "d": "Guangzhou Baiyun(广州白云)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "K 201",
+        "stopsHash": "6b620bf9"
+      }
+    },
+    "cr_K_814": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Guangzhou Baiyun(广州白云)",
+        "d": "Dazhou(达州)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 814|K 813",
+        "stopsHash": "400c6bb9"
+      }
+    },
+    "cr_K_1096": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Guangzhou Baiyun(广州白云)",
+        "d": "Chongqingdong(重庆东)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 1096|K 1095",
+        "stopsHash": "98879043"
+      }
+    },
+    "cr_K_1172": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Huizhou(惠州)",
+        "d": "Chongqingdong(重庆东)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 1172|K 1171",
+        "stopsHash": "33435c4d"
+      }
+    },
+    "cr_K_1453": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing Fengtai(北京丰台)",
+        "d": "Ganzhou(赣州)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 1453|K 1454",
+        "stopsHash": "4dc69a0f"
+      }
+    },
+    "cr_K_571": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing Fengtai(北京丰台)",
+        "d": "Xiamenbei(厦门北)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 571|K 572",
+        "stopsHash": "d34c8810"
+      }
+    },
+    "cr_K_4531": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing Fengtai(北京丰台)",
+        "d": "Lanzhouxi(兰州西)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "K 4531",
+        "stopsHash": "e09a7483"
+      }
+    },
+    "cr_K_4532": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Lanzhou(兰州)",
+        "d": "Beijing Fengtai(北京丰台)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "K 4532",
+        "stopsHash": "be9fdb79"
+      }
+    },
+    "cr_K_998": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Chengdu West(成都西)",
+        "d": "Qiqihar(齐齐哈尔)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 998|K 997",
+        "stopsHash": "db29a970"
+      }
+    },
+    "cr_K_246": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Chengdu West(成都西)",
+        "d": "Yangzhou(扬州)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 246|K 245",
+        "stopsHash": "e77b7e39"
+      }
+    },
+    "cr_K_82": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Guangzhou Baiyun(广州白云)",
+        "d": "Baoji(宝鸡)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 82|K 84",
+        "stopsHash": "f4792b76"
       }
     }
   },
@@ -8854,6 +9079,606 @@
       "autoApproved": "2026-07-18"
     },
     "Qingdaobei(青岛北)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Ruichang(瑞昌)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Yangxin(阳新)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Huangshi(黄石)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Ezhou(鄂州)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Gucheng(谷城)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Baihedong(白河东)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Xunyang(旬阳)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Baihexian(白河县)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Shiyan(十堰)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Suizhou(随州)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Anlu(安陆)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Yunmeng(云梦)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Dangshan(砀山)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Kaifeng(开封)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Yanshi(偃师)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Lankao(兰考)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Shangqiu(商丘)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Hengshan(衡山)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Xuwen(徐闻)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Leizhou(雷州)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Lechang(乐昌)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Pingshi(坪石)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Leiyang(耒阳)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Liling(醴陵)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Zhangshu(樟树)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Xiangxiang(湘乡)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Qianjiang(黔江)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Pengshui(彭水)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Wulong(武隆)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Langzhong(阆中)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Nanbu(南部)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Nanchongbei(南充北)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Wusheng(武胜)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Fuling(涪陵)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Youyang(酉阳)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Xiushan(秀山)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Tongren(铜仁)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Gaoxing(高兴)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Guangan(广安)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Quxian(渠县)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Shaoyang(邵阳)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Longhui(隆回)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Dongkou(洞口)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Anjiangdong(安江东)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Huaihuanan(怀化南)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Songtao(松桃)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Chongqingdong(重庆东)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Shaodong(邵东)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Guangzhoubei(广州北)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Guan(固安)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Raoyang(饶阳)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Qinghecheng(清河城)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Huaibin(淮滨)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Huangchuan(潢川)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Guangshan(光山)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Xinxian(新县)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Xiangtang(向塘)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Xingan(新干)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Xingguo(兴国)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Wuxue(武穴)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Xishui(浠水)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Huangzhou(黄州)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Shenzhou(深州)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Suning(肃宁)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Bazhou(霸州)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Renqiu(任丘)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Zaoqiang(枣强)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Yudu(于都)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Ruijin(瑞金)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Changtingnan(长汀南)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Longyan(龙岩)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Zhangzhou(漳州)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Xiamenbei(厦门北)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Caoxian(曹县)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Yanggu(阳谷)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Linqing(临清)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Dayingzhen(大营镇)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Tangyin(汤阴)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Jiaozuo(焦作)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Mianchi(渑池)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Sanmenxia(三门峡)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Wushan(武山)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Lingbao(灵宝)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Xinanxian(新安县)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Huaikounan(淮口南)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Huanglingnan(黄陵南)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Fuxiandong(富县东)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Zichang(子长)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Qingjianxian(清涧县)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Suide(绥德)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Yulin(榆林)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Shenmuxi(神木西)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Eerduosi(鄂尔多斯)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Zhuozidong(卓资东)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Shangdu(商都)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Zhengxiangbaiqi(正镶白旗)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Sanggendalai(桑根达来)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Jingpeng(经棚)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Linxi(林西)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Daban(大板)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Chabuga(查布嘎)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Kailu(开鲁)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Tongliao(通辽)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Aolibugao(敖力布告)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Taipingchuan(太平川)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Tongyu(通榆)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Taonan(洮南)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Baicheng(白城)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Zhenlai(镇赉)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Tailai(泰来)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Jiangqiao(江桥)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Daxing(大兴)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Zhungeer(准格尔)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Yingshan(营山)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Pengan(蓬安)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Pengxi(蓬溪)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Minquan(民权)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Xinyi(新沂)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Shuyang(沭阳)": {
+      "firstSeen": "2026-07-18",
+      "approved": true,
+      "autoApproved": "2026-07-18"
+    },
+    "Taizhou(泰州)": {
       "firstSeen": "2026-07-18",
       "approved": true,
       "autoApproved": "2026-07-18"
