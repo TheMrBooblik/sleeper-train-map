@@ -137,6 +137,54 @@ export function normalizeStationNameForDisplay(stationName) {
   if (stationName.includes("Košice"))      return "Košice";
   if (stationName.includes("Žilina"))      return "Žilina";
 
+  // China Railway — group terminus variants (West/South/Hongqiao/bei/dong/…)
+  // the same way European Hbfs collapse to one city marker.
+  if (stationName.includes("Beijing")) return "Beijing";
+  if (stationName.includes("Shanghai")) return "Shanghai";
+  if (stationName.includes("Guangzhou")) return "Guangzhou";
+  if (stationName.includes("Chengdu")) return "Chengdu";
+  if (stationName.includes("Chongqing")) return "Chongqing";
+  // Xiandong = 西安东; avoid bare "Xian" (matches Xiangyang, Xianyang, …).
+  if (
+    stationName.includes("Xi'an") ||
+    stationName.includes("Xi’an") ||
+    /^Xiandong([\s(]|$)/i.test(stationName) ||
+    /^Xianxi([\s(]|$)/i.test(stationName) ||
+    /^Xianbei([\s(]|$)/i.test(stationName) ||
+    /^Xiannan([\s(]|$)/i.test(stationName)
+  ) {
+    return "Xi'an";
+  }
+  if (stationName.includes("Harbin") || stationName.includes("Haerbin")) {
+    return "Harbin";
+  }
+  if (
+    stationName.includes("Wuhan") ||
+    stationName.includes("Hankou") ||
+    stationName.includes("Wuchang")
+  ) {
+    return "Wuhan";
+  }
+  if (stationName.includes("Zhengzhou")) return "Zhengzhou";
+  if (stationName.includes("Hangzhou")) return "Hangzhou";
+  if (stationName.includes("Shenzhen")) return "Shenzhen";
+  if (stationName.includes("Nanning")) return "Nanning";
+  if (stationName.includes("Guiyang")) return "Guiyang";
+  if (stationName.includes("Taiyuan")) return "Taiyuan";
+  if (stationName.includes("Lanzhou")) return "Lanzhou";
+  if (stationName.includes("Hohhot")) return "Hohhot";
+  if (stationName.includes("Baotou")) return "Baotou";
+  if (stationName.includes("Tianjin")) return "Tianjin";
+  if (stationName.includes("Nanjing")) return "Nanjing";
+  if (stationName.includes("Kunming")) return "Kunming";
+  if (stationName.includes("Qingdao")) return "Qingdao";
+  if (stationName.includes("Shenyang")) return "Shenyang";
+  if (stationName.includes("Changsha")) return "Changsha";
+  if (stationName.includes("Nanchang")) return "Nanchang";
+  if (stationName.includes("Urumqi") || stationName.includes("Wulumuqi")) {
+    return "Urumqi";
+  }
+
   // Strip common station-type suffixes so "City" and "City Centraal" / "City Hbf" group together.
   // "hl.n." = Czech "hlavní nádraží" (main station), equivalent to German "Hbf".
   const stripped = stationName.replace(/\s+(centraal|hbf|hauptbahnhof|central|hb|hl\.n\.)$/i, "").trim();
