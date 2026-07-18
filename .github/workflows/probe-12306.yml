@@ -1,0 +1,29 @@
+name: Probe 12306 source
+
+# One-shot reconnaissance for the chinese (China Railway / 12306) adapter.
+# Dispatch it, download the artifact, confirm leftTicket + queryByTrainNo
+# parsers in scripts/lib/12306.mjs, then flip the registry chinese entry to
+# enabled:true (see scripts/adapters/chinese.mjs).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: node scripts/probe-12306.mjs probe-output
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: 12306-probe-output
+          path: probe-output/
+          retention-days: 7

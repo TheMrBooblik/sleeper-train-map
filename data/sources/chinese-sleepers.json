@@ -1,0 +1,944 @@
+{
+  "note": "China Railway overnight sleepers scraped nightly from kyfw.12306.cn. Each train needs commercial lineName (+ optional returnLineName) and endpoint telecodes for leftTicket → queryByTrainNo. The stations[] catalog maps Chinese stop names to English labels + coordinates (12306 returns Chinese names only). Edit this file to add/remove corridors; no adapter code change needed.",
+  "source": "https://kyfw.12306.cn",
+  "stations": [
+    {
+      "name": "Beijing",
+      "nameZh": "北京",
+      "telecode": "BJP",
+      "lat": 39.9027,
+      "lon": 116.4279
+    },
+    {
+      "name": "Beijing West",
+      "nameZh": "北京西",
+      "telecode": "BXP",
+      "lat": 39.8972,
+      "lon": 116.3221
+    },
+    {
+      "name": "Beijing South",
+      "nameZh": "北京南",
+      "telecode": "VNP",
+      "lat": 39.8652,
+      "lon": 116.3785
+    },
+    {
+      "name": "Beijing North",
+      "nameZh": "北京北",
+      "telecode": "VAP",
+      "lat": 39.945,
+      "lon": 116.353
+    },
+    {
+      "name": "Shanghai",
+      "nameZh": "上海",
+      "telecode": "SHH",
+      "lat": 31.2495,
+      "lon": 121.4557
+    },
+    {
+      "name": "Shanghai Hongqiao",
+      "nameZh": "上海虹桥",
+      "telecode": "AOH",
+      "lat": 31.1945,
+      "lon": 121.32
+    },
+    {
+      "name": "Guangzhou",
+      "nameZh": "广州",
+      "telecode": "GZQ",
+      "lat": 23.1254,
+      "lon": 113.2601
+    },
+    {
+      "name": "Guangzhou East",
+      "nameZh": "广州东",
+      "telecode": "GGQ",
+      "lat": 23.155,
+      "lon": 113.325
+    },
+    {
+      "name": "Guangzhou South",
+      "nameZh": "广州南",
+      "telecode": "IZQ",
+      "lat": 22.988,
+      "lon": 113.269
+    },
+    {
+      "name": "Lhasa",
+      "nameZh": "拉萨",
+      "telecode": "LSO",
+      "lat": 29.6466,
+      "lon": 91.1038
+    },
+    {
+      "name": "Wuhan",
+      "nameZh": "武汉",
+      "telecode": "WHN",
+      "lat": 30.5928,
+      "lon": 114.305
+    },
+    {
+      "name": "Xi'an",
+      "nameZh": "西安",
+      "telecode": "XAY",
+      "lat": 34.2601,
+      "lon": 108.9478
+    },
+    {
+      "name": "Xi'an North",
+      "nameZh": "西安北",
+      "telecode": "EAY",
+      "lat": 34.376,
+      "lon": 108.939
+    },
+    {
+      "name": "Lanzhou",
+      "nameZh": "兰州",
+      "telecode": "LZJ",
+      "lat": 36.0595,
+      "lon": 103.8343
+    },
+    {
+      "name": "Xining",
+      "nameZh": "西宁",
+      "telecode": "XNO",
+      "lat": 36.6176,
+      "lon": 101.7761
+    },
+    {
+      "name": "Golmud",
+      "nameZh": "格尔木",
+      "telecode": "GRO",
+      "lat": 36.407,
+      "lon": 94.903
+    },
+    {
+      "name": "Delingha",
+      "nameZh": "德令哈",
+      "telecode": "DHO",
+      "lat": 37.37,
+      "lon": 97.37
+    },
+    {
+      "name": "Nagqu",
+      "nameZh": "那曲",
+      "telecode": "NQO",
+      "lat": 31.482,
+      "lon": 92.0581
+    },
+    {
+      "name": "Shijiazhuang",
+      "nameZh": "石家庄",
+      "telecode": "SJP",
+      "lat": 38.0454,
+      "lon": 114.5022
+    },
+    {
+      "name": "Shijiazhuang North",
+      "nameZh": "石家庄北",
+      "telecode": "VVP",
+      "lat": 38.074,
+      "lon": 114.469
+    },
+    {
+      "name": "Taiyuan",
+      "nameZh": "太原",
+      "telecode": "TYV",
+      "lat": 37.859,
+      "lon": 112.555
+    },
+    {
+      "name": "Zhongwei",
+      "nameZh": "中卫",
+      "telecode": "ZWJ",
+      "lat": 37.5,
+      "lon": 105.19
+    },
+    {
+      "name": "Zhengzhou",
+      "nameZh": "郑州",
+      "telecode": "ZZF",
+      "lat": 34.7522,
+      "lon": 113.6487
+    },
+    {
+      "name": "Changsha",
+      "nameZh": "长沙",
+      "telecode": "CSQ",
+      "lat": 28.2008,
+      "lon": 113.0134
+    },
+    {
+      "name": "Urumqi",
+      "nameZh": "乌鲁木齐",
+      "telecode": "WAR",
+      "lat": 43.8063,
+      "lon": 87.6183
+    },
+    {
+      "name": "Hami",
+      "nameZh": "哈密",
+      "telecode": "HMR",
+      "lat": 42.8342,
+      "lon": 93.5184
+    },
+    {
+      "name": "Turpan",
+      "nameZh": "吐鲁番",
+      "telecode": "TFR",
+      "lat": 42.9406,
+      "lon": 89.1575
+    },
+    {
+      "name": "Jiayuguan",
+      "nameZh": "嘉峪关",
+      "telecode": "JGJ",
+      "lat": 39.7861,
+      "lon": 98.2993
+    },
+    {
+      "name": "Yinchuan",
+      "nameZh": "银川",
+      "telecode": "YIJ",
+      "lat": 38.4873,
+      "lon": 106.2309
+    },
+    {
+      "name": "Baotou",
+      "nameZh": "包头",
+      "telecode": "BTC",
+      "lat": 40.6527,
+      "lon": 109.8399
+    },
+    {
+      "name": "Hohhot",
+      "nameZh": "呼和浩特",
+      "telecode": "HHC",
+      "lat": 40.8158,
+      "lon": 111.6517
+    },
+    {
+      "name": "Datong",
+      "nameZh": "大同",
+      "telecode": "DTV",
+      "lat": 40.0774,
+      "lon": 113.3001
+    },
+    {
+      "name": "Kunming",
+      "nameZh": "昆明",
+      "telecode": "KMM",
+      "lat": 25.0472,
+      "lon": 102.728
+    },
+    {
+      "name": "Guiyang",
+      "nameZh": "贵阳",
+      "telecode": "GIW",
+      "lat": 26.5803,
+      "lon": 106.721
+    },
+    {
+      "name": "Nanchang",
+      "nameZh": "南昌",
+      "telecode": "NCG",
+      "lat": 28.663,
+      "lon": 115.909
+    },
+    {
+      "name": "Yingtan",
+      "nameZh": "鹰潭",
+      "telecode": "YTG",
+      "lat": 28.2642,
+      "lon": 116.9542
+    },
+    {
+      "name": "Zhuzhou",
+      "nameZh": "株洲",
+      "telecode": "ZZQ",
+      "lat": 27.8322,
+      "lon": 113.1517
+    },
+    {
+      "name": "Hangzhou",
+      "nameZh": "杭州",
+      "telecode": "HZH",
+      "lat": 30.2741,
+      "lon": 120.1551
+    },
+    {
+      "name": "Nanjing",
+      "nameZh": "南京",
+      "telecode": "NJH",
+      "lat": 32.0863,
+      "lon": 118.8041
+    },
+    {
+      "name": "Tianjin",
+      "nameZh": "天津",
+      "telecode": "TJP",
+      "lat": 39.1423,
+      "lon": 117.1769
+    },
+    {
+      "name": "Jinan",
+      "nameZh": "济南",
+      "telecode": "JNK",
+      "lat": 36.6697,
+      "lon": 116.997
+    },
+    {
+      "name": "Nanning",
+      "nameZh": "南宁",
+      "telecode": "NNZ",
+      "lat": 22.8089,
+      "lon": 108.3664
+    },
+    {
+      "name": "Chengdu",
+      "nameZh": "成都",
+      "telecode": "CDW",
+      "lat": 30.63,
+      "lon": 104.067
+    },
+    {
+      "name": "Chongqing",
+      "nameZh": "重庆",
+      "telecode": "CQW",
+      "lat": 29.55,
+      "lon": 106.55
+    },
+    {
+      "name": "Harbin",
+      "nameZh": "哈尔滨",
+      "telecode": "HBB",
+      "lat": 45.759,
+      "lon": 126.636
+    },
+    {
+      "name": "Changchun",
+      "nameZh": "长春",
+      "telecode": "CCT",
+      "lat": 43.91,
+      "lon": 125.32
+    },
+    {
+      "name": "Shenyang",
+      "nameZh": "沈阳",
+      "telecode": "SYT",
+      "lat": 41.8,
+      "lon": 123.4
+    },
+    {
+      "name": "Jining South",
+      "nameZh": "集宁南",
+      "telecode": "JAC",
+      "lat": 40.9536,
+      "lon": 113.1003
+    },
+    {
+      "name": "Erlian",
+      "nameZh": "二连",
+      "telecode": "RLC",
+      "lat": 43.6531,
+      "lon": 111.9776
+    },
+    {
+      "name": "Pingxiang",
+      "nameZh": "凭祥",
+      "telecode": "PXZ",
+      "lat": 22.0992,
+      "lon": 106.7532
+    },
+    {
+      "name": "Xiamen",
+      "nameZh": "厦门",
+      "telecode": "XMS",
+      "lat": 24.479,
+      "lon": 118.089
+    },
+    {
+      "name": "Fuzhou",
+      "nameZh": "福州",
+      "telecode": "FZS",
+      "lat": 26.074,
+      "lon": 119.306
+    },
+    {
+      "name": "Qingdao",
+      "nameZh": "青岛",
+      "telecode": "QDK",
+      "lat": 36.066,
+      "lon": 120.383
+    },
+    {
+      "name": "Dalian",
+      "nameZh": "大连",
+      "telecode": "DLT",
+      "lat": 38.92,
+      "lon": 121.64
+    },
+    {
+      "name": "Qiqihar",
+      "nameZh": "齐齐哈尔",
+      "telecode": "QHX",
+      "lat": 47.34,
+      "lon": 123.95
+    },
+    {
+      "name": "Shanhaiguan",
+      "nameZh": "山海关",
+      "telecode": "SHD",
+      "lat": 40.009,
+      "lon": 119.753
+    },
+    {
+      "name": "Wuchang",
+      "nameZh": "武昌",
+      "telecode": "WCN",
+      "lat": 30.528,
+      "lon": 114.317
+    },
+    {
+      "name": "Baoding",
+      "nameZh": "保定",
+      "telecode": "BDP",
+      "lat": 38.862,
+      "lon": 115.474
+    },
+    {
+      "name": "Beijing Fengtai",
+      "nameZh": "北京丰台",
+      "telecode": "FTP",
+      "lat": 39.85,
+      "lon": 116.304
+    },
+    {
+      "name": "Guangzhou Baiyun",
+      "nameZh": "广州白云",
+      "telecode": "GBA",
+      "lat": 23.19,
+      "lon": 113.267
+    },
+    {
+      "name": "Hengyang",
+      "nameZh": "衡阳",
+      "telecode": "HYQ",
+      "lat": 26.894,
+      "lon": 112.598
+    },
+    {
+      "name": "Wuxi",
+      "nameZh": "无锡",
+      "telecode": "WXH",
+      "lat": 31.574,
+      "lon": 120.302
+    },
+    {
+      "name": "Suzhou",
+      "nameZh": "苏州",
+      "telecode": "SZH",
+      "lat": 31.311,
+      "lon": 120.606
+    },
+    {
+      "name": "Shanghai Songjiang",
+      "nameZh": "上海松江",
+      "telecode": "IMH",
+      "lat": 31,
+      "lon": 121.23
+    },
+    {
+      "name": "Jiaxing",
+      "nameZh": "嘉兴",
+      "telecode": "JXH",
+      "lat": 30.764,
+      "lon": 120.758
+    },
+    {
+      "name": "Handan",
+      "nameZh": "邯郸",
+      "telecode": "HDP",
+      "lat": 36.603,
+      "lon": 114.477
+    },
+    {
+      "name": "Tangshan North",
+      "nameZh": "唐山北",
+      "telecode": "FUP",
+      "lat": 39.717,
+      "lon": 118.137
+    },
+    {
+      "name": "Hohhot East",
+      "nameZh": "呼和浩特东",
+      "telecode": "NDC",
+      "lat": 40.848,
+      "lon": 111.773
+    },
+    {
+      "name": "Zhangjiakou",
+      "nameZh": "张家口",
+      "telecode": "ZMP",
+      "lat": 40.765,
+      "lon": 114.879
+    },
+    {
+      "name": "Xuzhou",
+      "nameZh": "徐州",
+      "telecode": "XCH",
+      "lat": 34.267,
+      "lon": 117.196
+    },
+    {
+      "name": "Changzhou",
+      "nameZh": "常州",
+      "telecode": "CZH",
+      "lat": 31.785,
+      "lon": 119.969
+    },
+    {
+      "name": "Haining",
+      "nameZh": "海宁",
+      "telecode": "HNH",
+      "lat": 30.482,
+      "lon": 120.688
+    },
+    {
+      "name": "Anyang",
+      "nameZh": "安阳",
+      "telecode": "AYF",
+      "lat": 36.103,
+      "lon": 114.352
+    },
+    {
+      "name": "Chenzhou",
+      "nameZh": "郴州",
+      "telecode": "CZQ",
+      "lat": 25.794,
+      "lon": 113.033
+    },
+    {
+      "name": "Shenyang North",
+      "nameZh": "沈阳北",
+      "telecode": "SBT",
+      "lat": 41.816,
+      "lon": 123.429
+    },
+    {
+      "name": "Qinhuangdao",
+      "nameZh": "秦皇岛",
+      "telecode": "QTP",
+      "lat": 39.941,
+      "lon": 119.595
+    },
+    {
+      "name": "Tianjin West",
+      "nameZh": "天津西",
+      "telecode": "TXP",
+      "lat": 39.157,
+      "lon": 117.164
+    },
+    {
+      "name": "Shaoguan East",
+      "nameZh": "韶关东",
+      "telecode": "SGQ",
+      "lat": 24.802,
+      "lon": 113.583
+    },
+    {
+      "name": "Salaqi",
+      "nameZh": "萨拉齐",
+      "telecode": "SLC",
+      "lat": 40.568,
+      "lon": 110.518
+    },
+    {
+      "name": "Cangzhou",
+      "nameZh": "沧州",
+      "telecode": "COP",
+      "lat": 38.317,
+      "lon": 116.867
+    },
+    {
+      "name": "Zhenjiang",
+      "nameZh": "镇江",
+      "telecode": "ZJH",
+      "lat": 32.198,
+      "lon": 119.43
+    },
+    {
+      "name": "Dingzhou",
+      "nameZh": "定州",
+      "telecode": "DXP",
+      "lat": 38.511,
+      "lon": 114.985
+    },
+    {
+      "name": "Xinxiang",
+      "nameZh": "新乡",
+      "telecode": "XXF",
+      "lat": 35.304,
+      "lon": 113.875
+    },
+    {
+      "name": "Guilin North",
+      "nameZh": "桂林北",
+      "telecode": "GBZ",
+      "lat": 25.328,
+      "lon": 110.301
+    },
+    {
+      "name": "Liuzhou",
+      "nameZh": "柳州",
+      "telecode": "LZZ",
+      "lat": 24.314,
+      "lon": 109.408
+    },
+    {
+      "name": "Ankang",
+      "nameZh": "安康",
+      "telecode": "AKY",
+      "lat": 32.687,
+      "lon": 109.027
+    },
+    {
+      "name": "Chengdu West",
+      "nameZh": "成都西",
+      "telecode": "CNW",
+      "lat": 30.686,
+      "lon": 103.96
+    },
+    {
+      "name": "Luoyang",
+      "nameZh": "洛阳",
+      "telecode": "LYF",
+      "lat": 34.685,
+      "lon": 112.434
+    },
+    {
+      "name": "Baoji",
+      "nameZh": "宝鸡",
+      "telecode": "BJY",
+      "lat": 34.377,
+      "lon": 107.147
+    },
+    {
+      "name": "Xianyang",
+      "nameZh": "咸阳",
+      "telecode": "XYY",
+      "lat": 34.37,
+      "lon": 108.709
+    },
+    {
+      "name": "Xinyang",
+      "nameZh": "信阳",
+      "telecode": "XUN",
+      "lat": 32.151,
+      "lon": 114.067
+    },
+    {
+      "name": "Baotou East",
+      "nameZh": "包头东",
+      "telecode": "BDC",
+      "lat": 40.578,
+      "lon": 110.044
+    },
+    {
+      "name": "Chasuqi",
+      "nameZh": "察素齐",
+      "telecode": "CSC",
+      "lat": 40.682,
+      "lon": 110.863
+    },
+    {
+      "name": "Bengbu",
+      "nameZh": "蚌埠",
+      "telecode": "BBH",
+      "lat": 32.945,
+      "lon": 117.367
+    },
+    {
+      "name": "Dezhou",
+      "nameZh": "德州",
+      "telecode": "DZP",
+      "lat": 37.449,
+      "lon": 116.313
+    },
+    {
+      "name": "Hangzhou South",
+      "nameZh": "杭州南",
+      "telecode": "XHH",
+      "lat": 30.177,
+      "lon": 120.258
+    },
+    {
+      "name": "Yongzhou",
+      "nameZh": "永州",
+      "telecode": "AOQ",
+      "lat": 26.227,
+      "lon": 111.569
+    },
+    {
+      "name": "Panjin North",
+      "nameZh": "盘锦北",
+      "telecode": "PBD",
+      "lat": 41.238,
+      "lon": 122.068
+    },
+    {
+      "name": "Jinzhou South",
+      "nameZh": "锦州南",
+      "telecode": "JOD",
+      "lat": 40.989,
+      "lon": 121.098
+    },
+    {
+      "name": "Huludao North",
+      "nameZh": "葫芦岛北",
+      "telecode": "HPD",
+      "lat": 40.75,
+      "lon": 120.836
+    },
+    {
+      "name": "Suizhong North",
+      "nameZh": "绥中北",
+      "telecode": "SND",
+      "lat": 40.306,
+      "lon": 120.07
+    },
+    {
+      "name": "Jinan West",
+      "nameZh": "济南西",
+      "telecode": "JGK",
+      "lat": 36.669,
+      "lon": 116.892
+    }
+  ],
+  "trains": [
+    {
+      "lineName": "Z 21",
+      "returnLineName": "Z 22",
+      "fromTelecode": "BXP",
+      "toTelecode": "LSO",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 264",
+      "returnLineName": "Z 266",
+      "fromTelecode": "GZQ",
+      "toTelecode": "LSO",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 13",
+      "returnLineName": "Z 14",
+      "fromTelecode": "BXP",
+      "toTelecode": "GZQ",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 501",
+      "returnLineName": "Z 502",
+      "fromTelecode": "BXP",
+      "toTelecode": "GZQ",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 111",
+      "fromTelecode": "BXP",
+      "toTelecode": "GZQ",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 281",
+      "returnLineName": "Z 282",
+      "fromTelecode": "BJP",
+      "toTelecode": "AOH",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "T 109",
+      "returnLineName": "T 110",
+      "fromTelecode": "BJP",
+      "toTelecode": "AOH",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 179",
+      "returnLineName": "Z 180",
+      "fromTelecode": "BJP",
+      "toTelecode": "WAR",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 79",
+      "returnLineName": "K 80",
+      "fromTelecode": "SHH",
+      "toTelecode": "KMM",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 739",
+      "returnLineName": "K 740",
+      "fromTelecode": "SHH",
+      "toTelecode": "KMM",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 5",
+      "returnLineName": "Z 6",
+      "fromTelecode": "BXP",
+      "toTelecode": "NNZ",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 285",
+      "returnLineName": "Z 286",
+      "fromTelecode": "BXP",
+      "toTelecode": "NNZ",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "T 21",
+      "fromTelecode": "BXP",
+      "toTelecode": "NNZ",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 183",
+      "returnLineName": "Z 184",
+      "fromTelecode": "BJP",
+      "toTelecode": "HHC",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 283",
+      "returnLineName": "Z 284",
+      "fromTelecode": "BJP",
+      "toTelecode": "HHC",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 15",
+      "returnLineName": "Z 16",
+      "fromTelecode": "BJP",
+      "toTelecode": "HBB",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 17",
+      "returnLineName": "Z 18",
+      "fromTelecode": "BJP",
+      "toTelecode": "HBB",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 83",
+      "returnLineName": "Z 84",
+      "fromTelecode": "BJP",
+      "toTelecode": "HBB",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 203",
+      "returnLineName": "Z 204",
+      "fromTelecode": "BJP",
+      "toTelecode": "HBB",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 67",
+      "fromTelecode": "BJP",
+      "toTelecode": "HBB",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "T 17",
+      "fromTelecode": "BJP",
+      "toTelecode": "HBB",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 117",
+      "returnLineName": "K 118",
+      "fromTelecode": "BXP",
+      "toTelecode": "CDW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 545",
+      "returnLineName": "K 546",
+      "fromTelecode": "BXP",
+      "toTelecode": "CDW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 1156",
+      "fromTelecode": "SHH",
+      "toTelecode": "CDW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 599",
+      "fromTelecode": "BXP",
+      "toTelecode": "GZQ",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "Z 165",
+      "fromTelecode": "ZZF",
+      "toTelecode": "LSO",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "K 23",
+      "returnLineName": "K 24",
+      "fromTelecode": "BJP",
+      "toTelecode": "RLC",
+      "frequency": "Mon, Wed, Fri, Sat",
+      "seedStations": [
+        {
+          "name": "Beijing",
+          "nameZh": "北京",
+          "lat": 39.9027,
+          "lon": 116.4279
+        },
+        {
+          "name": "Jining South",
+          "nameZh": "集宁南",
+          "lat": 40.9536,
+          "lon": 113.1003
+        },
+        {
+          "name": "Erlian",
+          "nameZh": "二连",
+          "lat": 43.6531,
+          "lon": 111.9776
+        },
+        {
+          "name": "Zamyn-Üüd",
+          "lat": 43.7156,
+          "lon": 111.8967
+        },
+        {
+          "name": "Saynshand",
+          "lat": 44.8917,
+          "lon": 110.1372
+        },
+        {
+          "name": "Choir",
+          "lat": 46.3606,
+          "lon": 108.3636
+        },
+        {
+          "name": "Ulaanbaatar",
+          "lat": 47.9077,
+          "lon": 106.8832
+        }
+      ]
+    }
+  ]
+}

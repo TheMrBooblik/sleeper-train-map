@@ -29,6 +29,7 @@
     "verify-enrich": "node tests/verify-enrich-view-map.mjs",
     "verify-route-geometry": "node tests/verify-route-geometry.mjs",
     "verify-es": "node tests/verify-es-normalize.mjs",
+    "verify-chinese-12306": "node tests/verify-chinese-12306.mjs",
     "verify-calendar": "node tests/verify-calendar.mjs",
     "verify-canonical-routes": "node tests/verify-canonical-routes.mjs",
     "verify-ai": "node tests/verify-ai-prompts.mjs",

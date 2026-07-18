@@ -145,11 +145,12 @@
     "v": 1,
     "id": "chinese",
     "label": "China Railway",
-    "description": "Curated overnight routes (static config — no live API)",
-    "kind": "static-config",
-    "adapter": "static-config",
+    "description": "Official kyfw.12306.cn schedule JSON — curated sleeper allowlist (data/sources/chinese-sleepers.json) with live stop lists + times; geometry from the OSM-backed route-geometry cache. Probe workflow: 'Probe 12306 source'.",
+    "kind": "json-api",
+    "adapter": "chinese",
     "enabled": true,
-    "official": false,
+    "official": true,
+    "trusted": true,
     "critical": false,
     "schedule": "daily",
     "homepage": "https://www.12306.cn",
@@ -160,12 +161,13 @@
       "idPrefix": "cr_",
       "agency": { "from": "fixed", "value": "CR" },
       "resolveAliases": false,
-      "withService": false,
+      "withService": true,
       "excludeBotMatched": false,
       "dedupStrategy": null
     },
     "params": {
-      "configPath": "scripts/chinese-routes-config.json"
+      "configPath": "data/sources/chinese-sleepers.json",
+      "dateOffsetDays": 3
     },
     "freshness": { "ttlHours": 25 }
   },
