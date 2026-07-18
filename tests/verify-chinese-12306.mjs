@@ -19,8 +19,13 @@ import {
 } from "../scripts/lib/12306.mjs";
 import {
   buildChineseTrains,
+  densifyChinesePolylines,
   expandAllowlistLegs,
 } from "../scripts/adapters/chinese.mjs";
+import {
+  densifyPathWithSiblings,
+} from "../scripts/lib/sibling-path.mjs";
+import polyline from "@mapbox/polyline";
 
 let passed = 0;
 function check(name, fn) {
@@ -250,6 +255,72 @@ check("buildChineseTrains: live stops win; seedStations on miss", async () => {
   assert.strictEqual(trains["K 23"].stations[0].arrival, null);
   assert.strictEqual(trains["Z 21"].frequency, "Daily");
   assert.strictEqual(trains["Z 21"].agency_id, "CR");
+});
+
+check("sibling densify: borrows intermediates across a long jump", () => {
+  // Sparse Beijing → Shanghai (~1060 km chord).
+  const sparse = [
+    [39.9, 116.4],
+    [31.25, 121.46],
+  ];
+  // Denser corridor with Tianjin + Nanjing between the same ends.
+  const dense = [
+    [39.9, 116.4],
+    [39.13, 117.2],
+    [32.07, 118.8],
+    [31.25, 121.46],
+  ];
+  const out = densifyPathWithSiblings(sparse, [dense], { gapKm: 400, matchKm: 50 });
+  assert.ok(out.length > sparse.length, "should insert sibling waypoints");
+  assert.deepStrictEqual(out[0], sparse[0]);
+  assert.deepStrictEqual(out[out.length - 1], sparse[1]);
+  // Tianjin / Nanjing should appear as hidden path points.
+  assert.ok(out.some((p) => Math.abs(p[0] - 39.13) < 0.01));
+  assert.ok(out.some((p) => Math.abs(p[0] - 32.07) < 0.01));
+});
+
+check("sibling densify: leaves short hops alone", () => {
+  const short = [
+    [39.9, 116.4],
+    [39.13, 117.2],
+  ];
+  const dense = [
+    [39.9, 116.4],
+    [39.5, 116.8],
+    [39.13, 117.2],
+  ];
+  const out = densifyPathWithSiblings(short, [dense], { gapKm: 400, matchKm: 50 });
+  assert.strictEqual(out.length, short.length);
+});
+
+check("densifyChinesePolylines: path-only, stations unchanged", () => {
+  const trains = {
+    "D 5": {
+      stations: [
+        { name: "Beijing", location: { latitude: 39.9, longitude: 116.4 } },
+        { name: "Shanghai", location: { latitude: 31.25, longitude: 121.46 } },
+      ],
+      polyline: polyline.encode([
+        [39.9, 116.4],
+        [31.25, 121.46],
+      ]),
+    },
+    "D 7": {
+      stations: [
+        { name: "Beijing", location: { latitude: 39.9, longitude: 116.4 } },
+        { name: "Tianjin", location: { latitude: 39.13, longitude: 117.2 } },
+        { name: "Nanjing", location: { latitude: 32.07, longitude: 118.8 } },
+        { name: "Shanghai", location: { latitude: 31.25, longitude: 121.46 } },
+      ],
+      polyline: null,
+    },
+  };
+  const beforeStations = JSON.stringify(trains["D 5"].stations);
+  const n = densifyChinesePolylines(trains);
+  assert.strictEqual(n, 1);
+  assert.strictEqual(JSON.stringify(trains["D 5"].stations), beforeStations);
+  const decoded = polyline.decode(trains["D 5"].polyline);
+  assert.ok(decoded.length >= 4);
 });
 
 console.log(`\n[verify-chinese-12306] ${passed} checks passed`);

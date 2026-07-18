@@ -6,6 +6,8 @@
 //   2. queryByTrainNo → ordered stops with arrive/depart wall-clock times
 //   3. Map Chinese station names → English + coords via the allowlist catalog
 //   4. Polyline from the OSM-backed route-geometry cache (hash-gated)
+//   5. Long jumps densified from denser sibling trains (path-only hidden
+//      waypoints — never added to stations[] / map markers)
 //
 // Probe: dispatch "Probe 12306 source" (scripts/probe-12306.mjs). Local + CI
 // probes confirmed the parsers in scripts/lib/12306.mjs — registry may be
@@ -15,6 +17,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import polyline from "@mapbox/polyline";
 import {
   createCookieJar,
   datePlusDays,
@@ -35,7 +38,16 @@ import {
   emptyGeometryCache,
   resolveRouteGeometry,
 } from "../lib/route-geometry.mjs";
+import {
+  coordPathFromStations,
+  densifyPathWithSiblings,
+  haversineKm,
+} from "../lib/sibling-path.mjs";
 import { relationCoordsFromOverpass } from "../../src/pages/api/lib/osm-geo.mjs";
+
+// Gaps longer than this get optional sibling waypoints for the polyline only.
+const SIBLING_GAP_KM = 400;
+const SIBLING_MATCH_KM = 50;
 
 const GEOMETRY_CACHE_FILE = "route-geometry.json";
 const COORDS_CACHE_FILE = "chinese-station-coords.json";
@@ -389,7 +401,67 @@ export async function run(entry, ctx) {
     train.polyline = resolved.polyline;
   }
 
+  // Path-only densify: borrow coords from denser siblings across long jumps
+  // so the map line follows the corridor without adding stations/markers.
+  const densified = densifyChinesePolylines(trains);
+  if (densified > 0) {
+    console.log(`[scrape] chinese: densified ${densified} polyline(s) from sibling paths`);
+  }
+
   ctx.write(GEOMETRY_CACHE_FILE, cache);
   ctx.write(entry.output, { uploadedAt: ctx.today, trains });
   console.log(`[scrape] stored ${Object.keys(trains).length} chinese trains (query date ${date})`);
+}
+
+/**
+ * Rewrite sparse stop-chain polylines using intermediate coords from other
+ * Chinese trains on the same corridor. Stations[] unchanged (no map clutter).
+ * Returns how many trains got a denser polyline.
+ *
+ * Runs multiple passes so a train densified from A can later help B fill a
+ * different gap (composite corridors), still without adding map stations.
+ */
+export function densifyChinesePolylines(trains) {
+  const entries = Object.entries(trains ?? {});
+  const pathsByKey = new Map(
+    entries.map(([key, train]) => [key, coordPathFromStations(train.stations)]),
+  );
+  let changed = 0;
+  // Cap rounds — each pass only keeps paths that shrink the worst jump.
+  for (let round = 0; round < 5; round++) {
+    let roundChanged = 0;
+    // Sparse trains first so denser siblings act as donors.
+    const ordered = [...entries].sort(
+      (a, b) => (pathsByKey.get(a[0])?.length ?? 0) - (pathsByKey.get(b[0])?.length ?? 0),
+    );
+    for (const [key, train] of ordered) {
+      const own = pathsByKey.get(key) ?? [];
+      if (own.length < 2) continue;
+      const siblings = [];
+      for (const [otherKey, otherPath] of pathsByKey) {
+        if (otherKey === key) continue;
+        siblings.push(otherPath);
+      }
+      const densified = densifyPathWithSiblings(own, siblings, {
+        gapKm: SIBLING_GAP_KM,
+        matchKm: SIBLING_MATCH_KM,
+      });
+      if (densified.length <= own.length) continue;
+      if (maxSegmentKm(densified) >= maxSegmentKm(own)) continue;
+      train.polyline = polyline.encode(densified);
+      pathsByKey.set(key, densified);
+      roundChanged++;
+    }
+    changed += roundChanged;
+    if (!roundChanged) break;
+  }
+  return changed;
+}
+
+function maxSegmentKm(path) {
+  let max = 0;
+  for (let i = 0; i < path.length - 1; i++) {
+    max = Math.max(max, haversineKm(path[i], path[i + 1]));
+  }
+  return max;
 }
