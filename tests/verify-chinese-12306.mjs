@@ -24,6 +24,7 @@ import {
 } from "../scripts/adapters/chinese.mjs";
 import {
   densifyPathWithSiblings,
+  reverseMidpointKm,
 } from "../scripts/lib/sibling-path.mjs";
 import polyline from "@mapbox/polyline";
 
@@ -321,6 +322,44 @@ check("densifyChinesePolylines: path-only, stations unchanged", () => {
   assert.strictEqual(JSON.stringify(trains["D 5"].stations), beforeStations);
   const decoded = polyline.decode(trains["D 5"].polyline);
   assert.ok(decoded.length >= 4);
+});
+
+check("outbound/return pairs share one corridor after densify", () => {
+  // Outbound sparse + return with a different denser fill → align forces reverse match.
+  const trains = {
+    "D 5": {
+      stations: [
+        { name: "Beijing", location: { latitude: 39.9, longitude: 116.4 } },
+        { name: "Shanghai", location: { latitude: 31.25, longitude: 121.46 } },
+      ],
+    },
+    "D 6": {
+      stations: [
+        { name: "Shanghai", location: { latitude: 31.25, longitude: 121.46 } },
+        { name: "Beijing", location: { latitude: 39.9, longitude: 116.4 } },
+      ],
+    },
+    // Donor corridor (via Tianjin + Nanjing) — only densifies D 5/D 6 gaps.
+    "D 9": {
+      stations: [
+        { name: "Beijing", location: { latitude: 39.9, longitude: 116.4 } },
+        { name: "Tianjin", location: { latitude: 39.13, longitude: 117.2 } },
+        { name: "Nanjing", location: { latitude: 32.07, longitude: 118.8 } },
+        { name: "Shanghai", location: { latitude: 31.25, longitude: 121.46 } },
+      ],
+    },
+  };
+  densifyChinesePolylines(trains, { pairs: [["D 5", "D 6"]] });
+  const a = polyline.decode(trains["D 5"].polyline);
+  const b = polyline.decode(trains["D 6"].polyline);
+  assert.ok(a.length >= 4);
+  assert.strictEqual(a.length, b.length);
+  // Return must be the reverse corridor (endpoints may snap to official ends).
+  for (let i = 1; i < a.length - 1; i++) {
+    assert.ok(Math.abs(a[i][0] - b[b.length - 1 - i][0]) < 0.01);
+    assert.ok(Math.abs(a[i][1] - b[b.length - 1 - i][1]) < 0.01);
+  }
+  assert.ok(reverseMidpointKm(a, b) < 1);
 });
 
 console.log(`\n[verify-chinese-12306] ${passed} checks passed`);

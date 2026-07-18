@@ -39,15 +39,18 @@ import {
   resolveRouteGeometry,
 } from "../lib/route-geometry.mjs";
 import {
+  alignPairedPaths,
   coordPathFromStations,
   densifyPathWithSiblings,
-  haversineKm,
+  maxSegmentKm,
 } from "../lib/sibling-path.mjs";
 import { relationCoordsFromOverpass } from "../../src/pages/api/lib/osm-geo.mjs";
 
 // Gaps longer than this get optional sibling waypoints for the polyline only.
 const SIBLING_GAP_KM = 400;
 const SIBLING_MATCH_KM = 50;
+// There-and-back midpoints farther apart than this → force a shared corridor.
+const PAIR_DIVERGE_MID_KM = 80;
 
 const GEOMETRY_CACHE_FILE = "route-geometry.json";
 const COORDS_CACHE_FILE = "chinese-station-coords.json";
@@ -403,7 +406,9 @@ export async function run(entry, ctx) {
 
   // Path-only densify: borrow coords from denser siblings across long jumps
   // so the map line follows the corridor without adding stations/markers.
-  const densified = densifyChinesePolylines(trains);
+  // Outbound/return pairs then share one corridor (return = reverse).
+  const pairs = allowlistPairs(allowlist.trains);
+  const densified = densifyChinesePolylines(trains, { pairs });
   if (densified > 0) {
     console.log(`[scrape] chinese: densified ${densified} polyline(s) from sibling paths`);
   }
@@ -413,19 +418,35 @@ export async function run(entry, ctx) {
   console.log(`[scrape] stored ${Object.keys(trains).length} chinese trains (query date ${date})`);
 }
 
+/** Allowlist outbound↔return keys for shared-corridor alignment. */
+export function allowlistPairs(trains) {
+  const pairs = [];
+  for (const t of trains ?? []) {
+    if (!t?.lineName || !t?.returnLineName) continue;
+    pairs.push([
+      displayTrainCode(t.lineName) ?? t.lineName,
+      displayTrainCode(t.returnLineName) ?? t.returnLineName,
+    ]);
+  }
+  return pairs;
+}
+
 /**
  * Rewrite sparse stop-chain polylines using intermediate coords from other
  * Chinese trains on the same corridor. Stations[] unchanged (no map clutter).
- * Returns how many trains got a denser polyline.
+ * Returns how many trains got a denser (or pair-aligned) polyline.
  *
  * Runs multiple passes so a train densified from A can later help B fill a
  * different gap (composite corridors), still without adding map stations.
+ * Then forces each outbound/return pair onto one shared corridor so there and
+ * back don't pick different sibling fills.
  */
-export function densifyChinesePolylines(trains) {
+export function densifyChinesePolylines(trains, { pairs = [] } = {}) {
   const entries = Object.entries(trains ?? {});
   const pathsByKey = new Map(
     entries.map(([key, train]) => [key, coordPathFromStations(train.stations)]),
   );
+  const densifiedKeys = new Set();
   let changed = 0;
   // Cap rounds — each pass only keeps paths that shrink the worst jump.
   for (let round = 0; round < 5; round++) {
@@ -434,7 +455,7 @@ export function densifyChinesePolylines(trains) {
     const ordered = [...entries].sort(
       (a, b) => (pathsByKey.get(a[0])?.length ?? 0) - (pathsByKey.get(b[0])?.length ?? 0),
     );
-    for (const [key, train] of ordered) {
+    for (const [key] of ordered) {
       const own = pathsByKey.get(key) ?? [];
       if (own.length < 2) continue;
       const siblings = [];
@@ -448,20 +469,28 @@ export function densifyChinesePolylines(trains) {
       });
       if (densified.length <= own.length) continue;
       if (maxSegmentKm(densified) >= maxSegmentKm(own)) continue;
-      train.polyline = polyline.encode(densified);
       pathsByKey.set(key, densified);
+      densifiedKeys.add(key);
       roundChanged++;
     }
     changed += roundChanged;
     if (!roundChanged) break;
   }
-  return changed;
-}
 
-function maxSegmentKm(path) {
-  let max = 0;
-  for (let i = 0; i < path.length - 1; i++) {
-    max = Math.max(max, haversineKm(path[i], path[i + 1]));
+  // There-and-back: only force a shared corridor when sibling densify touched
+  // at least one leg (don't erase real stop-list differences otherwise).
+  const pairsToAlign = (pairs ?? []).filter(
+    ([a, b]) => densifiedKeys.has(a) || densifiedKeys.has(b),
+  );
+  const aligned = alignPairedPaths(pathsByKey, pairsToAlign, {
+    divergeMidKm: PAIR_DIVERGE_MID_KM,
+  });
+  changed += aligned;
+
+  for (const [key, train] of entries) {
+    const pathPts = pathsByKey.get(key);
+    if (!pathPts || pathPts.length < 2) continue;
+    train.polyline = polyline.encode(pathPts);
   }
-  return max;
+  return changed;
 }

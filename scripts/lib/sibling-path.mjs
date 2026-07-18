@@ -50,9 +50,25 @@ export function siblingSliceBetween(a, b, siblingPath, matchKm) {
   return mid.length ? mid : null;
 }
 
+/** Stable string for tie-breaking donor choice (same gap → same donor). */
+function pathFingerprint(path) {
+  return (path ?? [])
+    .map(([lat, lon]) => `${Number(lat).toFixed(3)},${Number(lon).toFixed(3)}`)
+    .join(";");
+}
+
+export function maxSegmentKm(path) {
+  let max = 0;
+  for (let i = 0; i < (path?.length ?? 0) - 1; i++) {
+    max = Math.max(max, haversineKm(path[i], path[i + 1]));
+  }
+  return max;
+}
+
 /**
  * Fill long consecutive jumps in `path` using points from `siblingPaths`.
  * Does not mutate inputs. gapKm = minimum jump to try filling.
+ * Donor ties break on fingerprint so outbound/return gaps prefer the same fill.
  */
 export function densifyPathWithSiblings(
   path,
@@ -72,18 +88,84 @@ export function densifyPathWithSiblings(
     const gap = haversineKm(a, b);
     let mid = [];
     if (gap > gapKm) {
-      // Prefer the densest bridging sibling (most intermediates).
+      // Densest bridge wins; equal density → stable fingerprint (deterministic).
       let best = null;
+      let bestFp = null;
       for (const donor of donors) {
         const slice = siblingSliceBetween(a, b, donor, matchKm);
         if (!slice?.length) continue;
-        if (!best || slice.length > best.length) best = slice;
+        const fp = pathFingerprint(slice);
+        if (
+          !best ||
+          slice.length > best.length ||
+          (slice.length === best.length && fp < bestFp)
+        ) {
+          best = slice;
+          bestFp = fp;
+        }
       }
       if (best) mid = best;
     }
     out.push(...mid, b);
   }
   return out;
+}
+
+/**
+ * Midpoint distance between path and reversed other — used to detect
+ * there-and-back corridor drift after independent densify.
+ */
+export function reverseMidpointKm(pathA, pathB) {
+  if (!pathA?.length || !pathB?.length) return Infinity;
+  const rev = [...pathB].reverse();
+  const midA = pathA[Math.floor(pathA.length / 2)];
+  const midB = rev[Math.floor(rev.length / 2)];
+  return haversineKm(midA, midB);
+}
+
+/**
+ * Mirror `winner` onto the return direction: reverse the shared corridor and
+ * snap endpoints to the return train's official first/last coords.
+ */
+export function mirrorPathForReturn(winnerPath, returnEndPoints) {
+  if (!winnerPath?.length || returnEndPoints?.length < 2) return null;
+  const mirrored = winnerPath.map((p) => [p[0], p[1]]);
+  mirrored.reverse();
+  mirrored[0] = [returnEndPoints[0][0], returnEndPoints[0][1]];
+  mirrored[mirrored.length - 1] = [
+    returnEndPoints[returnEndPoints.length - 1][0],
+    returnEndPoints[returnEndPoints.length - 1][1],
+  ];
+  return mirrored;
+}
+
+/**
+ * Force each outbound/return pair to share one corridor polyline (return =
+ * reverse of the better densified leg). Stations[] stay per-direction.
+ * `pairs` is [[outKey, returnKey], ...]. Returns how many trains were rewritten.
+ */
+export function alignPairedPaths(pathsByKey, pairs, { divergeMidKm = 80 } = {}) {
+  let rewritten = 0;
+  for (const [aKey, bKey] of pairs ?? []) {
+    const pathA = pathsByKey.get(aKey);
+    const pathB = pathsByKey.get(bKey);
+    if (!pathA || pathA.length < 2 || !pathB || pathB.length < 2) continue;
+    if (reverseMidpointKm(pathA, pathB) <= divergeMidKm) continue;
+
+    // Prefer the smoother densified leg (smaller worst jump, then more points).
+    const aBetter =
+      maxSegmentKm(pathA) < maxSegmentKm(pathB) ||
+      (maxSegmentKm(pathA) === maxSegmentKm(pathB) && pathA.length >= pathB.length);
+    const winnerKey = aBetter ? aKey : bKey;
+    const loserKey = aBetter ? bKey : aKey;
+    const winner = pathsByKey.get(winnerKey);
+    const loserEnds = pathsByKey.get(loserKey);
+    const mirrored = mirrorPathForReturn(winner, loserEnds);
+    if (!mirrored) continue;
+    pathsByKey.set(loserKey, mirrored);
+    rewritten++;
+  }
+  return rewritten;
 }
 
 /**
