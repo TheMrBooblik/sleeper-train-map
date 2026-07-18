@@ -76,7 +76,7 @@ export function maxSegmentKm(path) {
 export function densifyPathWithSiblings(
   path,
   siblingPaths,
-  { gapKm = 400, matchKm = 50, preferredDonors = [] } = {},
+  { gapKm = 180, matchKm = 70, preferredDonors = [] } = {},
 ) {
   if (!Array.isArray(path) || path.length < 2) return path ?? [];
   const preferred = (preferredDonors ?? []).filter(
@@ -106,17 +106,25 @@ export function densifyPathWithSiblings(
 
 function pickSlice(a, b, donors, matchKm) {
   let best = null;
+  let bestMax = Infinity;
   let bestFp = null;
   for (const donor of donors) {
     const slice = siblingSliceBetween(a, b, donor, matchKm);
     if (!slice?.length) continue;
+    // Prefer the fill that shortens the worst hop the most; tie-break denser,
+    // then stable fingerprint so outbound/return pick the same corridor.
+    const filledMax = maxSegmentKm([a, ...slice, b]);
     const fp = pathFingerprint(slice);
     if (
       !best ||
-      slice.length > best.length ||
-      (slice.length === best.length && fp < bestFp)
+      filledMax < bestMax - 0.5 ||
+      (Math.abs(filledMax - bestMax) <= 0.5 && slice.length > best.length) ||
+      (Math.abs(filledMax - bestMax) <= 0.5 &&
+        slice.length === best.length &&
+        fp < bestFp)
     ) {
       best = slice;
+      bestMax = filledMax;
       bestFp = fp;
     }
   }
@@ -169,7 +177,7 @@ export function alignPairedPaths(
   pathsByKey,
   pairs,
   officialByKey,
-  { divergeMidKm = 80, matchKm = 80 } = {},
+  { divergeMidKm = 80, matchKm = 80, gapKm = 180 } = {},
 ) {
   let rewritten = 0;
   for (const [aKey, bKey] of pairs ?? []) {
@@ -193,12 +201,12 @@ export function alignPairedPaths(
     // Re-densify each leg from its OWN official stops, preferring the shared
     // guide — never replace the whole path with reverse(winner).
     const nextA = densifyPathWithSiblings(officialA, [guide, guideRev], {
-      gapKm: 400,
+      gapKm,
       matchKm,
       preferredDonors: [guide, guideRev],
     });
     const nextB = densifyPathWithSiblings(officialB, [guide, guideRev], {
-      gapKm: 400,
+      gapKm,
       matchKm,
       preferredDonors: [guide, guideRev],
     });

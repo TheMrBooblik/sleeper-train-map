@@ -48,8 +48,9 @@ import {
 import { relationCoordsFromOverpass } from "../../src/pages/api/lib/osm-geo.mjs";
 
 // Gaps longer than this get optional sibling waypoints for the polyline only.
-const SIBLING_GAP_KM = 400;
-const SIBLING_MATCH_KM = 50;
+// ~180 km still fills corridor chords without inventing geometry for short hops.
+const SIBLING_GAP_KM = 180;
+const SIBLING_MATCH_KM = 70;
 // There-and-back midpoints farther apart than this → force a shared corridor.
 const PAIR_DIVERGE_MID_KM = 80;
 
@@ -454,7 +455,8 @@ export function densifyChinesePolylines(trains, { pairs = [] } = {}) {
   const densifiedKeys = new Set();
   let changed = 0;
 
-  for (let round = 0; round < 5; round++) {
+  // Cap rounds — denser donors unlock shorter fills on later passes.
+  for (let round = 0; round < 8; round++) {
     let roundChanged = 0;
     const ordered = [...entries].sort(
       (a, b) =>
@@ -492,6 +494,7 @@ export function densifyChinesePolylines(trains, { pairs = [] } = {}) {
   const aligned = alignPairedPaths(pathsByKey, pairsToAlign, officialByKey, {
     divergeMidKm: PAIR_DIVERGE_MID_KM,
     matchKm: SIBLING_MATCH_KM,
+    gapKm: SIBLING_GAP_KM,
   });
   changed += aligned;
 
