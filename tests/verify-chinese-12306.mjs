@@ -24,7 +24,9 @@ import {
 } from "../scripts/adapters/chinese.mjs";
 import {
   densifyPathWithSiblings,
-  reverseMidpointKm,
+  maxStationDeviationKm,
+  stitchPathThroughStations,
+  coordPathFromStations,
 } from "../scripts/lib/sibling-path.mjs";
 import polyline from "@mapbox/polyline";
 
@@ -324,22 +326,22 @@ check("densifyChinesePolylines: path-only, stations unchanged", () => {
   assert.ok(decoded.length >= 4);
 });
 
-check("outbound/return pairs share one corridor after densify", () => {
-  // Outbound sparse + return with a different denser fill → align forces reverse match.
+check("outbound/return densify keeps every official station on the path", () => {
   const trains = {
     "D 5": {
       stations: [
         { name: "Beijing", location: { latitude: 39.9, longitude: 116.4 } },
+        { name: "Mingguang", location: { latitude: 32.78, longitude: 117.98 } },
         { name: "Shanghai", location: { latitude: 31.25, longitude: 121.46 } },
       ],
     },
     "D 6": {
       stations: [
         { name: "Shanghai", location: { latitude: 31.25, longitude: 121.46 } },
+        { name: "Nanjing", location: { latitude: 32.07, longitude: 118.8 } },
         { name: "Beijing", location: { latitude: 39.9, longitude: 116.4 } },
       ],
     },
-    // Donor corridor (via Tianjin + Nanjing) — only densifies D 5/D 6 gaps.
     "D 9": {
       stations: [
         { name: "Beijing", location: { latitude: 39.9, longitude: 116.4 } },
@@ -350,16 +352,38 @@ check("outbound/return pairs share one corridor after densify", () => {
     },
   };
   densifyChinesePolylines(trains, { pairs: [["D 5", "D 6"]] });
-  const a = polyline.decode(trains["D 5"].polyline);
-  const b = polyline.decode(trains["D 6"].polyline);
-  assert.ok(a.length >= 4);
-  assert.strictEqual(a.length, b.length);
-  // Return must be the reverse corridor (endpoints may snap to official ends).
-  for (let i = 1; i < a.length - 1; i++) {
-    assert.ok(Math.abs(a[i][0] - b[b.length - 1 - i][0]) < 0.01);
-    assert.ok(Math.abs(a[i][1] - b[b.length - 1 - i][1]) < 0.01);
+  for (const code of ["D 5", "D 6"]) {
+    const official = coordPathFromStations(trains[code].stations);
+    const path = polyline.decode(trains[code].polyline);
+    assert.ok(
+      maxStationDeviationKm(official, path) < 0.01,
+      `${code} stations must lie on polyline`,
+    );
+    // Mingguang / Nanjing must appear as exact vertices.
+    for (const pt of official) {
+      assert.ok(path.some((p) => Math.abs(p[0] - pt[0]) < 1e-6 && Math.abs(p[1] - pt[1]) < 1e-6));
+    }
   }
-  assert.ok(reverseMidpointKm(a, b) < 1);
+});
+
+check("stitchPathThroughStations always keeps official vertices", () => {
+  const official = [
+    [39.9, 116.4],
+    [32.78, 117.98],
+    [31.25, 121.46],
+  ];
+  // Guide corridor that skips Mingguang (goes via Nanjing instead).
+  const guide = [
+    [39.9, 116.4],
+    [39.13, 117.2],
+    [32.07, 118.8],
+    [31.25, 121.46],
+  ];
+  const out = stitchPathThroughStations(official, guide, { matchKm: 50 });
+  assert.strictEqual(out.length >= official.length, true);
+  for (const pt of official) {
+    assert.ok(out.some((p) => p[0] === pt[0] && p[1] === pt[1]));
+  }
 });
 
 console.log(`\n[verify-chinese-12306] ${passed} checks passed`);

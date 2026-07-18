@@ -43,6 +43,7 @@ import {
   coordPathFromStations,
   densifyPathWithSiblings,
   maxSegmentKm,
+  stitchPathThroughStations,
 } from "../lib/sibling-path.mjs";
 import { relationCoordsFromOverpass } from "../../src/pages/api/lib/osm-geo.mjs";
 
@@ -436,40 +437,48 @@ export function allowlistPairs(trains) {
  * Chinese trains on the same corridor. Stations[] unchanged (no map clutter).
  * Returns how many trains got a denser (or pair-aligned) polyline.
  *
- * Runs multiple passes so a train densified from A can later help B fill a
- * different gap (composite corridors), still without adding map stations.
- * Then forces each outbound/return pair onto one shared corridor so there and
- * back don't pick different sibling fills.
+ * Always densifies from each train's official stop coords (never drops them).
+ * Sibling geometry is only inserted between consecutive official stops.
+ * Outbound/return pairs prefer a shared guide corridor the same way.
  */
 export function densifyChinesePolylines(trains, { pairs = [] } = {}) {
   const entries = Object.entries(trains ?? {});
-  const pathsByKey = new Map(
+  // Frozen official station paths — densify/align may never remove these vertices.
+  const officialByKey = new Map(
     entries.map(([key, train]) => [key, coordPathFromStations(train.stations)]),
+  );
+  // Working polylines (may include sibling waypoints between official stops).
+  const pathsByKey = new Map(
+    [...officialByKey.entries()].map(([k, p]) => [k, p.map((c) => [c[0], c[1]])]),
   );
   const densifiedKeys = new Set();
   let changed = 0;
-  // Cap rounds — each pass only keeps paths that shrink the worst jump.
+
   for (let round = 0; round < 5; round++) {
     let roundChanged = 0;
-    // Sparse trains first so denser siblings act as donors.
     const ordered = [...entries].sort(
-      (a, b) => (pathsByKey.get(a[0])?.length ?? 0) - (pathsByKey.get(b[0])?.length ?? 0),
+      (a, b) =>
+        (officialByKey.get(a[0])?.length ?? 0) - (officialByKey.get(b[0])?.length ?? 0),
     );
     for (const [key] of ordered) {
-      const own = pathsByKey.get(key) ?? [];
-      if (own.length < 2) continue;
+      const official = officialByKey.get(key) ?? [];
+      if (official.length < 2) continue;
       const siblings = [];
       for (const [otherKey, otherPath] of pathsByKey) {
         if (otherKey === key) continue;
         siblings.push(otherPath);
       }
-      const densified = densifyPathWithSiblings(own, siblings, {
+      // Always start from official stops so stations cannot fall off the line.
+      const densified = densifyPathWithSiblings(official, siblings, {
         gapKm: SIBLING_GAP_KM,
         matchKm: SIBLING_MATCH_KM,
       });
-      if (densified.length <= own.length) continue;
-      if (maxSegmentKm(densified) >= maxSegmentKm(own)) continue;
-      pathsByKey.set(key, densified);
+      const stitched = stitchPathThroughStations(official, densified, {
+        matchKm: SIBLING_MATCH_KM,
+      });
+      if (stitched.length <= (pathsByKey.get(key)?.length ?? 0)) continue;
+      if (maxSegmentKm(stitched) >= maxSegmentKm(pathsByKey.get(key))) continue;
+      pathsByKey.set(key, stitched);
       densifiedKeys.add(key);
       roundChanged++;
     }
@@ -477,20 +486,24 @@ export function densifyChinesePolylines(trains, { pairs = [] } = {}) {
     if (!roundChanged) break;
   }
 
-  // There-and-back: only force a shared corridor when sibling densify touched
-  // at least one leg (don't erase real stop-list differences otherwise).
   const pairsToAlign = (pairs ?? []).filter(
     ([a, b]) => densifiedKeys.has(a) || densifiedKeys.has(b),
   );
-  const aligned = alignPairedPaths(pathsByKey, pairsToAlign, {
+  const aligned = alignPairedPaths(pathsByKey, pairsToAlign, officialByKey, {
     divergeMidKm: PAIR_DIVERGE_MID_KM,
+    matchKm: SIBLING_MATCH_KM,
   });
   changed += aligned;
 
   for (const [key, train] of entries) {
+    const official = officialByKey.get(key);
     const pathPts = pathsByKey.get(key);
-    if (!pathPts || pathPts.length < 2) continue;
-    train.polyline = polyline.encode(pathPts);
+    if (!official || official.length < 2) continue;
+    // Final safety: every official station is an exact polyline vertex.
+    const finalPath = stitchPathThroughStations(official, pathPts ?? official, {
+      matchKm: Math.max(SIBLING_MATCH_KM, 80),
+    });
+    train.polyline = polyline.encode(finalPath);
   }
   return changed;
 }

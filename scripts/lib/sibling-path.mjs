@@ -3,6 +3,9 @@
 // the country in long chords. This module borrows intermediate coordinates
 // from denser sibling routes that pass near both ends of a long gap — path
 // only, never as visible stations (detail panel / map markers stay clean).
+//
+// Rule: every official coord station must remain a vertex of the polyline.
+// Sibling geometry is only inserted BETWEEN consecutive official stops.
 
 /** Great-circle distance in km between [lat, lon] points. */
 export function haversineKm([lat1, lon1], [lat2, lon2]) {
@@ -67,19 +70,22 @@ export function maxSegmentKm(path) {
 
 /**
  * Fill long consecutive jumps in `path` using points from `siblingPaths`.
- * Does not mutate inputs. gapKm = minimum jump to try filling.
- * Donor ties break on fingerprint so outbound/return gaps prefer the same fill.
+ * Keeps every input vertex (official stations). gapKm = min jump to fill.
+ * preferredDonors are tried first so outbound/return can share a corridor.
  */
 export function densifyPathWithSiblings(
   path,
   siblingPaths,
-  { gapKm = 400, matchKm = 50 } = {},
+  { gapKm = 400, matchKm = 50, preferredDonors = [] } = {},
 ) {
   if (!Array.isArray(path) || path.length < 2) return path ?? [];
+  const preferred = (preferredDonors ?? []).filter(
+    (p) => Array.isArray(p) && p.length >= 3,
+  );
   const donors = (siblingPaths ?? []).filter(
     (p) => Array.isArray(p) && p.length >= 3,
   );
-  if (!donors.length) return path;
+  if (!preferred.length && !donors.length) return path;
 
   const out = [path[0]];
   for (let i = 0; i < path.length - 1; i++) {
@@ -88,25 +94,56 @@ export function densifyPathWithSiblings(
     const gap = haversineKm(a, b);
     let mid = [];
     if (gap > gapKm) {
-      // Densest bridge wins; equal density → stable fingerprint (deterministic).
-      let best = null;
-      let bestFp = null;
-      for (const donor of donors) {
-        const slice = siblingSliceBetween(a, b, donor, matchKm);
-        if (!slice?.length) continue;
-        const fp = pathFingerprint(slice);
-        if (
-          !best ||
-          slice.length > best.length ||
-          (slice.length === best.length && fp < bestFp)
-        ) {
-          best = slice;
-          bestFp = fp;
-        }
-      }
-      if (best) mid = best;
+      mid =
+        pickSlice(a, b, preferred, matchKm) ??
+        pickSlice(a, b, donors, matchKm) ??
+        [];
     }
     out.push(...mid, b);
+  }
+  return out;
+}
+
+function pickSlice(a, b, donors, matchKm) {
+  let best = null;
+  let bestFp = null;
+  for (const donor of donors) {
+    const slice = siblingSliceBetween(a, b, donor, matchKm);
+    if (!slice?.length) continue;
+    const fp = pathFingerprint(slice);
+    if (
+      !best ||
+      slice.length > best.length ||
+      (slice.length === best.length && fp < bestFp)
+    ) {
+      best = slice;
+      bestFp = fp;
+    }
+  }
+  return best;
+}
+
+/**
+ * Rebuild a polyline that visits every official station in order, borrowing
+ * only the guide's geometry between consecutive stops that lie near the guide.
+ * Official coords are exact vertices — stations cannot fall off the route.
+ */
+export function stitchPathThroughStations(
+  official,
+  guide,
+  { matchKm = 80 } = {},
+) {
+  if (!Array.isArray(official) || official.length < 2) return official ?? [];
+  if (!Array.isArray(guide) || guide.length < 2) {
+    return official.map((p) => [p[0], p[1]]);
+  }
+
+  const out = [[official[0][0], official[0][1]]];
+  for (let i = 0; i < official.length - 1; i++) {
+    const a = official[i];
+    const b = official[i + 1];
+    const mid = siblingSliceBetween(a, b, guide, matchKm) ?? [];
+    out.push(...mid.map((p) => [p[0], p[1]]), [b[0], b[1]]);
   }
   return out;
 }
@@ -124,46 +161,50 @@ export function reverseMidpointKm(pathA, pathB) {
 }
 
 /**
- * Mirror `winner` onto the return direction: reverse the shared corridor and
- * snap endpoints to the return train's official first/last coords.
+ * Align outbound/return onto a shared guide corridor without dropping either
+ * train's official stations. Each leg is re-stitched through its own stops.
+ * `officialByKey` + `pathsByKey` are Maps of [lat,lon][]; pairs is [[a,b],...].
  */
-export function mirrorPathForReturn(winnerPath, returnEndPoints) {
-  if (!winnerPath?.length || returnEndPoints?.length < 2) return null;
-  const mirrored = winnerPath.map((p) => [p[0], p[1]]);
-  mirrored.reverse();
-  mirrored[0] = [returnEndPoints[0][0], returnEndPoints[0][1]];
-  mirrored[mirrored.length - 1] = [
-    returnEndPoints[returnEndPoints.length - 1][0],
-    returnEndPoints[returnEndPoints.length - 1][1],
-  ];
-  return mirrored;
-}
-
-/**
- * Force each outbound/return pair to share one corridor polyline (return =
- * reverse of the better densified leg). Stations[] stay per-direction.
- * `pairs` is [[outKey, returnKey], ...]. Returns how many trains were rewritten.
- */
-export function alignPairedPaths(pathsByKey, pairs, { divergeMidKm = 80 } = {}) {
+export function alignPairedPaths(
+  pathsByKey,
+  pairs,
+  officialByKey,
+  { divergeMidKm = 80, matchKm = 80 } = {},
+) {
   let rewritten = 0;
   for (const [aKey, bKey] of pairs ?? []) {
     const pathA = pathsByKey.get(aKey);
     const pathB = pathsByKey.get(bKey);
+    const officialA = officialByKey?.get(aKey);
+    const officialB = officialByKey?.get(bKey);
     if (!pathA || pathA.length < 2 || !pathB || pathB.length < 2) continue;
+    if (!officialA || officialA.length < 2 || !officialB || officialB.length < 2) {
+      continue;
+    }
     if (reverseMidpointKm(pathA, pathB) <= divergeMidKm) continue;
 
-    // Prefer the smoother densified leg (smaller worst jump, then more points).
+    // Prefer the smoother densified leg as the shared guide corridor.
     const aBetter =
       maxSegmentKm(pathA) < maxSegmentKm(pathB) ||
       (maxSegmentKm(pathA) === maxSegmentKm(pathB) && pathA.length >= pathB.length);
-    const winnerKey = aBetter ? aKey : bKey;
-    const loserKey = aBetter ? bKey : aKey;
-    const winner = pathsByKey.get(winnerKey);
-    const loserEnds = pathsByKey.get(loserKey);
-    const mirrored = mirrorPathForReturn(winner, loserEnds);
-    if (!mirrored) continue;
-    pathsByKey.set(loserKey, mirrored);
-    rewritten++;
+    const guide = aBetter ? pathA : pathB;
+    const guideRev = [...guide].reverse();
+
+    // Re-densify each leg from its OWN official stops, preferring the shared
+    // guide — never replace the whole path with reverse(winner).
+    const nextA = densifyPathWithSiblings(officialA, [guide, guideRev], {
+      gapKm: 400,
+      matchKm,
+      preferredDonors: [guide, guideRev],
+    });
+    const nextB = densifyPathWithSiblings(officialB, [guide, guideRev], {
+      gapKm: 400,
+      matchKm,
+      preferredDonors: [guide, guideRev],
+    });
+    pathsByKey.set(aKey, stitchPathThroughStations(officialA, nextA, { matchKm }));
+    pathsByKey.set(bKey, stitchPathThroughStations(officialB, nextB, { matchKm }));
+    rewritten += 2;
   }
   return rewritten;
 }
@@ -179,4 +220,14 @@ export function coordPathFromStations(stations) {
     if (Number.isFinite(lat) && Number.isFinite(lon)) path.push([lat, lon]);
   }
   return path;
+}
+
+/** Max distance from any official station to the nearest polyline vertex. */
+export function maxStationDeviationKm(official, path) {
+  if (!official?.length || !path?.length) return Infinity;
+  let max = 0;
+  for (const pt of official) {
+    max = Math.max(max, nearestIdx(path, pt).km);
+  }
+  return max;
 }
