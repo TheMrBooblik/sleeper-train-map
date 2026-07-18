@@ -1,5 +1,5 @@
 {
-  "note": "China Railway overnight sleepers scraped nightly from kyfw.12306.cn. Each train needs commercial lineName (+ optional returnLineName) and endpoint telecodes for leftTicket → queryByTrainNo. The stations[] catalog maps Chinese stop names to English labels + coordinates (12306 returns Chinese names only). Edit this file to add/remove corridors; no adapter code change needed.",
+  "note": "China Railway overnight sleepers scraped nightly from kyfw.12306.cn. Includes classic Z/T/K sleepers and D-class EMU sleepers (动卧). Each train needs commercial lineName (+ optional returnLineName) and endpoint telecodes for leftTicket → queryByTrainNo. The stations[] catalog maps Chinese stop names to English labels + coordinates.",
   "source": "https://kyfw.12306.cn",
   "stations": [
     {
@@ -939,6 +939,146 @@
           "lon": 106.8832
         }
       ]
+    },
+    {
+      "lineName": "D 5",
+      "returnLineName": "D 6",
+      "fromTelecode": "BJP",
+      "toTelecode": "AOH",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 7",
+      "returnLineName": "D 8",
+      "fromTelecode": "BJP",
+      "toTelecode": "AOH",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 9",
+      "returnLineName": "D 10",
+      "fromTelecode": "BJP",
+      "toTelecode": "AOH",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 11",
+      "returnLineName": "D 12",
+      "fromTelecode": "BJP",
+      "toTelecode": "AOH",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 17",
+      "returnLineName": "D 18",
+      "fromTelecode": "BJP",
+      "toTelecode": "AOH",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 35",
+      "returnLineName": "D 36",
+      "fromTelecode": "BXP",
+      "toTelecode": "GZQ",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 15",
+      "returnLineName": "D 16",
+      "fromTelecode": "BXP",
+      "toTelecode": "CDW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 49",
+      "returnLineName": "D 50",
+      "fromTelecode": "BXP",
+      "toTelecode": "CDW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 117",
+      "returnLineName": "D 118",
+      "fromTelecode": "BXP",
+      "toTelecode": "CDW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 995",
+      "returnLineName": "D 996",
+      "fromTelecode": "BXP",
+      "toTelecode": "CDW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 997",
+      "returnLineName": "D 998",
+      "fromTelecode": "BXP",
+      "toTelecode": "CDW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 972",
+      "returnLineName": "D 974",
+      "fromTelecode": "SHH",
+      "toTelecode": "CDW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 976",
+      "returnLineName": "D 978",
+      "fromTelecode": "SHH",
+      "toTelecode": "CDW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 948",
+      "returnLineName": "D 947",
+      "fromTelecode": "GZQ",
+      "toTelecode": "CQW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 964",
+      "returnLineName": "D 963",
+      "fromTelecode": "GZQ",
+      "toTelecode": "CQW",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 19",
+      "returnLineName": "D 20",
+      "fromTelecode": "BXP",
+      "toTelecode": "XAY",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 39",
+      "returnLineName": "D 40",
+      "fromTelecode": "BXP",
+      "toTelecode": "XAY",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 41",
+      "returnLineName": "D 42",
+      "fromTelecode": "BXP",
+      "toTelecode": "XAY",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 43",
+      "returnLineName": "D 44",
+      "fromTelecode": "BXP",
+      "toTelecode": "XAY",
+      "frequency": "Daily"
+    },
+    {
+      "lineName": "D 25",
+      "returnLineName": "D 26",
+      "fromTelecode": "BJP",
+      "toTelecode": "QDK",
+      "frequency": "Daily"
     }
   ]
 }

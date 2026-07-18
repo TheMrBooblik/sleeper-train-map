@@ -101,8 +101,8 @@ function isNightJetOrEuroNightTrainNumber(value) {
 }
 
 function isChinaRailwayTrainNumber(value) {
-  // Z/T/K overnight classes from the chinese allowlist (12306 scrape).
-  return /^\s*(Z|T|K)\s+\d+/i.test((value || "").toString());
+  // Z/T/K classic sleepers + D EMU sleepers (动卧) from the chinese allowlist.
+  return /^\s*(Z|T|K|D)\s+\d+/i.test((value || "").toString());
 }
 
 function isItalianICNTrainNumber(value) {
