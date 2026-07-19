@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (0 routes, 6 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation Brugg AG (nightjet)\nstation Yangzhou(扬州) (chinese)\nstation Dongtai(东台) (chinese)\nstation Huaian(淮安) (chinese)\nstation Ninglingxian(宁陵县) (chinese)\nstation Xiaohezhen(小河镇) (chinese)",
+  "title": "New Stations Added from Trusted Sources",
+  "summary": "Six new stations have been auto-approved from trusted sources: Brugg AG (nightjet), Yangzhou (扬州), Dongtai (东台), Huaian (淮安), Ninglingxian (宁陵县), and Xiaohezhen (小河镇). These stations are already live.",
   "target": {
     "routeKey": "trusted-2026-07-19",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
