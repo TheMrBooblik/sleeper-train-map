@@ -33,6 +33,39 @@ export default function WelcomeTour({
 }) {
   const [phase, setPhase] = useState("static");
   const regionRef = useRef(null);
+  const sheetRef = useRef(null);
+  // Tracks a downward drag on the sheet header to dismiss (mobile only).
+  const dragRef = useRef({ active: false, startY: 0, pointerId: null });
+
+  const onSheetDragStart = (e) => {
+    if (window.matchMedia("(min-width: 640px)").matches) return;
+    if ((sheetRef.current?.scrollTop ?? 0) > 0) return;
+    dragRef.current = { active: true, startY: e.clientY, pointerId: e.pointerId };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onSheetDragMove = (e) => {
+    if (!dragRef.current.active || !sheetRef.current) return;
+    const dy = e.clientY - dragRef.current.startY;
+    if (dy <= 0 || sheetRef.current.scrollTop > 0) {
+      sheetRef.current.style.transform = "";
+      return;
+    }
+    sheetRef.current.style.transition = "none";
+    sheetRef.current.style.transform = `translateY(${dy}px)`;
+  };
+
+  const onSheetDragEnd = (e) => {
+    if (!dragRef.current.active || !sheetRef.current) return;
+    const dy = e.clientY - dragRef.current.startY;
+    dragRef.current.active = false;
+    sheetRef.current.style.transition = "";
+    sheetRef.current.style.transform = "";
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    if (dy > 72) onDismiss?.();
+  };
 
   useEffect(() => {
     setPhase(loading ? "waiting" : "enter");
@@ -73,9 +106,45 @@ export default function WelcomeTour({
         phase === "waiting" ? "opacity-0" : ""
       }`}
     >
-      {/* Mobile (<640px): cards stack in a scrollable bottom sheet.
+      {/* Mobile (<640px): compact scrollable bottom sheet — hero + close visible
+          by default; SEO cards (browse hubs, legend) stay in DOM below the fold.
           Desktop: the wrapper dissolves and cards break out to absolute anchors. */}
-      <div className="pointer-events-auto absolute inset-x-0 bottom-0 max-h-[45vh] overflow-y-auto p-2 space-y-2 min-[640px]:pointer-events-none min-[640px]:static min-[640px]:max-h-none min-[640px]:overflow-visible min-[640px]:p-0 min-[640px]:space-y-0">
+      <div
+        ref={sheetRef}
+        className="tour-mobile-sheet pointer-events-auto absolute inset-x-0 bottom-0 max-h-[42vh] overflow-y-auto overscroll-y-contain rounded-t-2xl border-t border-white/10 bg-black/90 shadow-2xl min-[640px]:pointer-events-none min-[640px]:static min-[640px]:max-h-none min-[640px]:overflow-visible min-[640px]:rounded-none min-[640px]:border-t-0 min-[640px]:bg-transparent min-[640px]:shadow-none"
+      >
+        {/* Mobile-only sticky header: drag down to close + X button. */}
+        <div
+          className="tour-sheet-drag sticky top-0 z-10 flex touch-none cursor-grab active:cursor-grabbing items-center justify-center border-b border-white/10 bg-black/90 px-4 py-3 min-[640px]:hidden"
+          onPointerDown={onSheetDragStart}
+          onPointerMove={onSheetDragMove}
+          onPointerUp={onSheetDragEnd}
+          onPointerCancel={onSheetDragEnd}
+        >
+          <div
+            className="h-1 w-10 rounded-full bg-white/30"
+            aria-hidden
+          />
+          <button
+            type="button"
+            onClick={onDismiss}
+            onPointerDown={(e) => e.stopPropagation()}
+            aria-label="Close tour"
+            className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="h-5 w-5"
+              aria-hidden
+            >
+              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="space-y-2 px-3 pb-3 min-[640px]:space-y-0 min-[640px]:p-0">
         {/* ① Hero: the crawlable h1 + primary dismiss */}
         <TourCard
           className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:top-4 min-[640px]:left-16 min-[640px]:w-80"
@@ -174,18 +243,19 @@ export default function WelcomeTour({
               All night train routes →
             </Link>
           </div>
-          <div className="mt-2 max-h-40 min-[640px]:max-h-[40vh] overflow-y-auto pr-1">
+          <div className="mt-2 min-[640px]:max-h-[40vh] min-[640px]:overflow-y-auto min-[640px]:pr-1">
             {countries.length > 0 && (
               <div>
                 <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
                   By country
                 </h3>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {/* Mobile: swipeable row; desktop: wrapped chip grid. */}
+                <div className="tour-country-carousel mt-1.5 flex gap-1.5 max-[639px]:-mx-3 max-[639px]:flex-nowrap max-[639px]:overflow-x-auto max-[639px]:px-3 max-[639px]:pb-0.5 min-[640px]:flex-wrap">
                   {countries.map((c) => (
                     <Link
                       key={c.slug}
                       href={`/night-trains/${c.slug}`}
-                      className={chipClass}
+                      className={`${chipClass} shrink-0`}
                     >
                       <span className="mr-1">{getFlagEmoji(c.code)}</span>
                       {c.name}
@@ -195,7 +265,7 @@ export default function WelcomeTour({
               </div>
             )}
             {operators.length > 0 && (
-              <div className="mt-2.5">
+              <div className="mt-2.5 hidden min-[640px]:block">
                 <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
                   By operator
                 </h3>
@@ -213,7 +283,7 @@ export default function WelcomeTour({
               </div>
             )}
             {connections.length > 0 && (
-              <div className="mt-2.5">
+              <div className="mt-2.5 hidden min-[640px]:block">
                 <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
                   Popular connections
                 </h3>
@@ -248,7 +318,7 @@ export default function WelcomeTour({
           style={delay(5)}
         >
           <h2 className="text-sm font-semibold">Map legend</h2>
-          <div className="mt-2 max-h-40 min-[640px]:max-h-[45vh] overflow-y-auto pr-1">
+          <div className="mt-2 min-[640px]:max-h-[45vh] min-[640px]:overflow-y-auto min-[640px]:pr-1">
             <Legend variant="panel" />
           </div>
           <button
@@ -259,6 +329,7 @@ export default function WelcomeTour({
             Start exploring →
           </button>
         </TourCard>
+        </div>
       </div>
     </div>
   );

@@ -415,3 +415,18 @@ abbr {
   left: auto;
   right: 28px;
 }
+
+/* Mobile welcome tour sheet — keep content above the iOS home indicator. */
+.tour-mobile-sheet {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Country chip row on mobile: horizontal swipe, no nested scrollbar chrome. */
+.tour-country-carousel {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tour-country-carousel::-webkit-scrollbar {
+  display: none;
+}
