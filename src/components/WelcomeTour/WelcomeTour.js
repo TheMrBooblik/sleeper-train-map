@@ -82,32 +82,52 @@ export default function WelcomeTour({
           animate={animate}
           style={delay(0)}
         >
-          <h1 className="text-base font-bold tracking-tight">Night Train Map</h1>
+          <h1 className="text-base font-bold tracking-tight">
+            Night Train Map
+          </h1>
           <p className="mt-1.5 text-xs leading-relaxed text-white/70">
             {routeCount} night and sleeper train routes across {countryCount}{" "}
-            countries, with timetables, stops and booking links. The map is
-            live — go poke it.
+            countries, with timetables, stops and booking links. The map is live
+            — go poke it.
           </p>
         </TourCard>
 
-        {/* ② Station dots explainer — the notch points at a big endpoint dot
-            just below-left of the map centre (≈München at the default view;
-            the initial centre is fixed, so the calc() offsets hold). */}
+        {/* ② Station dots explainer — sits just BELOW a big endpoint dot
+            (≈München at the default view) so the up-notch on top points at it.
+            The initial centre is fixed, so the calc() offsets hold. */}
         <TourCard
-          className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:left-[calc(50%-61px)] min-[640px]:bottom-[calc(50%-35px)] min-[640px]:w-64"
-          notch="down"
+          className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:left-[calc(50%-62px)] min-[640px]:top-[calc(50%+38px)] min-[640px]:w-64"
+          notch="up"
           animate={animate}
           style={delay(1)}
         >
           <h2 className="text-sm font-semibold">Click any glowing dot</h2>
-          <p className="mt-1 text-xs leading-relaxed text-white/70">
-            Big <span className="text-sky-400">blue dots</span> like this one
-            are route endpoints — cities where night trains start or end.
-            Small <span className="text-green-400">green dots</span> are
-            intermediate stops along the way, and an{" "}
-            <span className="text-orange-400">orange badge</span> bundles
-            nearby stations — zoom in to split them.
-          </p>
+          <ul className="mt-1.5 space-y-1.5 text-xs leading-relaxed text-white/70">
+            <li className="flex items-start gap-1.5">
+              <div
+                className="mt-0.5 h-3 w-3 shrink-0 rounded-full border border-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] bg-gradient-to-br from-[#2196f3] to-[#1976d2] min-[1280px]:mt-1 min-[1280px]:h-3.5 min-[1280px]:w-3.5"
+                aria-hidden
+              />
+              <span>
+                Big <span className="text-sky-400">blue dots</span> are route
+                endpoints — cities where night trains start or end.
+              </span>
+            </li>
+            <li className="flex items-start gap-1.5">
+              <div
+                className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full border border-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] bg-gradient-to-br from-[#4caf50] to-[#388e3c] min-[1280px]:mt-1 min-[1280px]:h-3 min-[1280px]:w-3"
+                aria-hidden
+              />
+              <span>
+                Small <span className="text-green-400">green dots</span> are
+                intermediate stops along the way.
+              </span>
+            </li>
+            <li>
+              An <span className="text-orange-400">orange badge</span> bundles
+              nearby stations, posssible to split them in the settings.
+            </li>
+          </ul>
         </TourCard>
 
         {/* ③ Search hint (desktop only: the search bar is hidden on mobile) */}
@@ -125,7 +145,7 @@ export default function WelcomeTour({
 
         {/* ④ Settings hint (desktop only: the gear is hidden on mobile) */}
         <TourCard
-          className="hidden min-[640px]:block min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:top-2 min-[640px]:right-32 min-[640px]:w-60 tour-notch-right-side"
+          className="hidden min-[640px]:block min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:top-2 min-[640px]:right-35 min-[640px]:w-60 tour-notch-right-side"
           notch="up"
           animate={animate}
           style={delay(3)}
@@ -228,13 +248,13 @@ export default function WelcomeTour({
           style={delay(5)}
         >
           <h2 className="text-sm font-semibold">Map legend</h2>
-          <div className="mt-2 max-h-40 min-[640px]:max-h-[40vh] overflow-y-auto pr-1">
+          <div className="mt-2 max-h-40 min-[640px]:max-h-[45vh] overflow-y-auto pr-1">
             <Legend variant="panel" />
           </div>
           <button
             type="button"
             onClick={onDismiss}
-            className="mt-3 w-full rounded-lg bg-primary-green px-3 py-2 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors"
+            className="mt-3 w-full cursor-pointer rounded-lg bg-primary-green px-3 py-2 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors"
           >
             Start exploring →
           </button>

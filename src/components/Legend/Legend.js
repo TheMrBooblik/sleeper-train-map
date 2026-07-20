@@ -59,8 +59,9 @@ const Legend = ({ variant = "inline" }) => {
     ? "flex flex-col gap-2 border-b border-white/15 pb-3 last:border-0 last:pb-0"
     : "flex flex-wrap items-center gap-x-3 gap-y-1.5 max-[1200px]:max-w-[min(100%,22rem)]";
 
-  const labelClass =
-    "text-[11px] text-white/90 leading-snug min-[1280px]:text-xs";
+  // Match the welcome-tour card body copy so the legend reads the same as the
+  // other tour cards (size / leading / muted colour).
+  const labelClass = "text-xs leading-relaxed text-white/70";
 
   const linkClass =
     "rounded-sm font-medium text-sky-300 underline decoration-sky-300 decoration-2 underline-offset-2 outline-offset-2 hover:text-sky-200 hover:decoration-sky-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400/70";
@@ -87,9 +88,10 @@ const Legend = ({ variant = "inline" }) => {
           This interactive map visualizes the{" "}
           <span className="text-white">night train routes</span> connecting
           major European cities, helping travelers plan sustainable
-          long-distance journeys without flying.{" "}
-          <span className="text-white">Click on any station</span> to see its
-          connections!
+          long-distance journeys without flying. <br />
+          <br />
+          <span className="text-white">Click on any station</span> to see direct
+          sleeper trains from that station!
         </p>
       </div>
 
