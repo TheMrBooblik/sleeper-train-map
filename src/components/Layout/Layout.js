@@ -60,7 +60,17 @@ const Layout = ({ children, tourSeo }) => {
     }
   }, []);
 
-  const reopenTour = useCallback(() => setTourOpen(true), []);
+  // Header "i" button: instant open/close. Closing this way also counts as
+  // "seen" (dismissTour), so the tour still shows only once for new visitors.
+  const toggleTour = useCallback(() => {
+    if (tourOpenRef.current) {
+      // Closing from the "i" button itself — no need to pulse it afterwards.
+      pulseShownRef.current = true;
+      dismissTour();
+    } else {
+      setTourOpen(true);
+    }
+  }, [dismissTour]);
 
   // Handle country zoom from URL params
   const { country, lat, lng, zoom: zoomParam } = router.query;
@@ -185,7 +195,8 @@ const Layout = ({ children, tourSeo }) => {
         stops={stops}
         stopsLoading={stopsLoading}
         onSearchSelect={setSearchTarget}
-        onShowTour={tourSeo ? reopenTour : undefined}
+        onToggleTour={tourSeo ? toggleTour : undefined}
+        tourOpen={tourOpen}
         legendPulse={legendPulse}
       />
       <main className="relative">

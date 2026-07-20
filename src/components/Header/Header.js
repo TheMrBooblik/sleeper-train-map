@@ -116,7 +116,8 @@ const Header = ({
   stops,
   stopsLoading,
   onSearchSelect,
-  onShowTour,
+  onToggleTour,
+  tourOpen,
   legendPulse,
 }) => {
   const [mobileTooltipId, setMobileTooltipId] = useState(null);
@@ -259,30 +260,35 @@ const Header = ({
             ) : null}
           </div>
 
-          {/* Legend button */}
+          {/* Info button: toggles the welcome tour (which includes the legend
+              card). Falls back to the legend popover on pages without a tour. */}
           <div className="relative shrink-0">
             <button
               ref={legend.buttonRef}
               type="button"
               onClick={() => {
-                legend.setOpen((v) => !v);
+                if (onToggleTour) {
+                  onToggleTour();
+                } else {
+                  legend.setOpen((v) => !v);
+                }
                 showMobileTooltip("mapLegend");
               }}
               className={`icon-toggle-button shrink-0 ${
                 mobileTooltipId === "mapLegend"
                   ? "icon-toggle-button--show-tooltip-mobile"
                   : ""
-              } ${legend.open ? "is-active" : ""} ${
+              } ${(onToggleTour ? tourOpen : legend.open) ? "is-active" : ""} ${
                 legendPulse ? "icon-toggle-button--attention" : ""
               }`}
-              aria-expanded={legend.open}
-              aria-controls="map-legend-popover"
+              aria-expanded={onToggleTour ? !!tourOpen : legend.open}
+              aria-controls={onToggleTour ? undefined : "map-legend-popover"}
               aria-label="Map legend"
               data-tooltip="Map legend"
             >
               <FaInfo size={14} />
             </button>
-            {legend.open ? (
+            {!onToggleTour && legend.open ? (
               <div
                 ref={legend.panelRef}
                 id="map-legend-popover"
@@ -291,18 +297,6 @@ const Header = ({
                 role="dialog"
                 aria-label="Map legend"
               >
-                {onShowTour && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onShowTour();
-                      legend.setOpen(false);
-                    }}
-                    className="mb-3 flex w-full items-center gap-2 rounded-lg border border-primary-green/40 bg-primary-green/10 px-3 py-2 text-sm font-medium text-white hover:bg-primary-green/20 transition-colors"
-                  >
-                    Show welcome tour
-                  </button>
-                )}
                 <Legend variant="panel" />
               </div>
             ) : null}
