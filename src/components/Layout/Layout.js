@@ -1,5 +1,6 @@
 import Header from "@components/Header";
-import { useState, useCallback, startTransition, useEffect } from "react";
+import WelcomeTour from "@components/WelcomeTour";
+import { useState, useCallback, startTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import Container from "@components/Container";
 import Map from "@components/Map";
@@ -14,8 +15,12 @@ const STORAGE_KEY_IS_GROUPED = "train-map:isGrouped";
 const STORAGE_KEY_SHOW_ROUTES = "train-map:showRoutes";
 const STORAGE_KEY_HIDE_INTERMEDIATE = "train-map:hideIntermediateStations";
 const STORAGE_KEY_RAILWAY_OVERLAY = "train-map:showRailwayOverlay";
+const STORAGE_KEY_TOUR_SEEN = "train-map:tourSeen";
+// Dismiss flag of the old HomeSeoPanel chip — returning visitors who closed
+// that are treated as having seen the tour.
+const LEGACY_SEO_DISMISS_KEY = "train-map:homeSeoDismissed";
 
-const Layout = ({ children }) => {
+const Layout = ({ children, tourSeo }) => {
   const router = useRouter();
   const { stops, isLoading: stopsLoading } = useInitialData();
   const [searchTarget, setSearchTarget] = useState(null);
@@ -25,7 +30,47 @@ const Layout = ({ children }) => {
   const [hideIntermediateStations, setHideIntermediateStations] =
     useState(false); // Filter to hide intermediate stations
   const [hasLoadedPreferences, setHasLoadedPreferences] = useState(false);
+  // Welcome tour: starts open so the SSG HTML always carries its (SEO) content;
+  // hidden after mount for visitors who already saw it (see preferences effect).
+  const [tourOpen, setTourOpen] = useState(true);
+  const [legendPulse, setLegendPulse] = useState(false);
+  const tourOpenRef = useRef(true);
+  const pulseShownRef = useRef(false);
   const { width, height } = useWindowSize();
+
+  useEffect(() => {
+    tourOpenRef.current = tourOpen;
+  }, [tourOpen]);
+
+  const dismissTour = useCallback(() => {
+    // Ref guard: station clicks keep calling this after the tour is gone.
+    if (!tourOpenRef.current) return;
+    setTourOpen(false);
+    try {
+      localStorage.setItem(STORAGE_KEY_TOUR_SEEN, "true");
+    } catch {
+      // Ignore storage errors (private mode, blocked storage, etc.)
+    }
+    // Blink the header "i" button once per page load so the user learns where
+    // to reopen the tour.
+    if (!pulseShownRef.current) {
+      pulseShownRef.current = true;
+      setLegendPulse(true);
+      setTimeout(() => setLegendPulse(false), 3200);
+    }
+  }, []);
+
+  // Header "i" button: instant open/close. Closing this way also counts as
+  // "seen" (dismissTour), so the tour still shows only once for new visitors.
+  const toggleTour = useCallback(() => {
+    if (tourOpenRef.current) {
+      // Closing from the "i" button itself — no need to pulse it afterwards.
+      pulseShownRef.current = true;
+      dismissTour();
+    } else {
+      setTourOpen(true);
+    }
+  }, [dismissTour]);
 
   // Handle country zoom from URL params
   const { country, lat, lng, zoom: zoomParam } = router.query;
@@ -99,6 +144,12 @@ const Layout = ({ children }) => {
       if (storedRailwayOverlay !== null) {
         setShowRailwayOverlay(storedRailwayOverlay === "true");
       }
+      if (
+        localStorage.getItem(STORAGE_KEY_TOUR_SEEN) === "true" ||
+        localStorage.getItem(LEGACY_SEO_DISMISS_KEY) === "true"
+      ) {
+        setTourOpen(false);
+      }
     } catch {
       // Ignore storage errors (private mode, blocked storage, etc.)
     } finally {
@@ -144,9 +195,19 @@ const Layout = ({ children }) => {
         stops={stops}
         stopsLoading={stopsLoading}
         onSearchSelect={setSearchTarget}
+        onToggleTour={tourSeo ? toggleTour : undefined}
+        tourOpen={tourOpen}
+        legendPulse={legendPulse}
       />
       <main className="relative">
         {children}
+        {tourSeo && tourOpen && (
+          <WelcomeTour
+            {...tourSeo}
+            loading={stopsLoading}
+            onDismiss={dismissTour}
+          />
+        )}
         <Container>
           <Map
             width={width}
@@ -160,6 +221,7 @@ const Layout = ({ children }) => {
             showRailwayOverlay={showRailwayOverlay}
             searchTarget={searchTarget}
             onSearchProcessed={() => setSearchTarget(null)}
+            onStationSelect={dismissTour}
           />
         </Container>
       </main>

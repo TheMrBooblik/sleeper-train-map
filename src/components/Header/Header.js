@@ -116,6 +116,9 @@ const Header = ({
   stops,
   stopsLoading,
   onSearchSelect,
+  onToggleTour,
+  tourOpen,
+  legendPulse,
 }) => {
   const [mobileTooltipId, setMobileTooltipId] = useState(null);
   const [mobileTooltipSession, setMobileTooltipSession] = useState(0);
@@ -257,28 +260,35 @@ const Header = ({
             ) : null}
           </div>
 
-          {/* Legend button */}
+          {/* Info button: toggles the welcome tour (which includes the legend
+              card). Falls back to the legend popover on pages without a tour. */}
           <div className="relative shrink-0">
             <button
               ref={legend.buttonRef}
               type="button"
               onClick={() => {
-                legend.setOpen((v) => !v);
+                if (onToggleTour) {
+                  onToggleTour();
+                } else {
+                  legend.setOpen((v) => !v);
+                }
                 showMobileTooltip("mapLegend");
               }}
               className={`icon-toggle-button shrink-0 ${
                 mobileTooltipId === "mapLegend"
                   ? "icon-toggle-button--show-tooltip-mobile"
                   : ""
-              } ${legend.open ? "is-active" : ""}`}
-              aria-expanded={legend.open}
-              aria-controls="map-legend-popover"
+              } ${(onToggleTour ? tourOpen : legend.open) ? "is-active" : ""} ${
+                legendPulse ? "icon-toggle-button--attention" : ""
+              }`}
+              aria-expanded={onToggleTour ? !!tourOpen : legend.open}
+              aria-controls={onToggleTour ? undefined : "map-legend-popover"}
               aria-label="Map legend"
               data-tooltip="Map legend"
             >
               <FaInfo size={14} />
             </button>
-            {legend.open ? (
+            {!onToggleTour && legend.open ? (
               <div
                 ref={legend.panelRef}
                 id="map-legend-popover"

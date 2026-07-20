@@ -332,3 +332,101 @@ abbr {
       0 0;
   }
 }
+
+/* Welcome tour card entrance — staggered pop-in */
+@keyframes tour-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.tour-card-enter {
+  animation: tour-card-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+  animation-delay: var(--tour-delay, 0s);
+}
+
+/* Legend "i" button attention pulse — shown once after the welcome tour closes,
+   teaching that the tour can be reopened from this button. */
+@keyframes attention-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(95, 187, 157, 0);
+  }
+  40% {
+    box-shadow: 0 0 0 8px rgba(95, 187, 157, 0.28);
+    background-color: rgba(95, 187, 157, 0.35);
+    color: #fff;
+  }
+}
+
+.icon-toggle-button--attention {
+  animation: attention-pulse 1s ease-in-out 3;
+}
+
+/* Notch: small rotated square poking out of a tour card toward its target.
+   Desktop-only — in the mobile bottom-sheet stack the cards point at nothing.
+   (Cards get position via Tailwind utilities; no position rule here or it
+   would override the responsive `absolute` placement.) */
+@media (min-width: 640px) {
+  .tour-notch-up::before,
+  .tour-notch-down::before {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: inherit;
+    border: inherit;
+    transform: rotate(45deg);
+    left: 28px;
+  }
+
+  .tour-notch-up::before {
+    top: -7px;
+    border-bottom: 0;
+    border-right: 0;
+  }
+
+  .tour-notch-down::before {
+    bottom: -7px;
+    border-top: 0;
+    border-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-card-enter {
+    animation: none;
+  }
+
+  .icon-toggle-button--attention {
+    animation: none;
+    /* Static highlight instead of the pulse; cleared by the same timeout. */
+    background-color: rgba(95, 187, 157, 0.3);
+  }
+}
+
+/* Notch variant for right-anchored cards (settings hint under the gear). */
+.tour-notch-right-side::before {
+  left: auto;
+  right: 28px;
+}
+
+/* Mobile welcome tour sheet — keep content above the iOS home indicator. */
+.tour-mobile-sheet {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Country chip row on mobile: horizontal swipe, no nested scrollbar chrome. */
+.tour-country-carousel {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tour-country-carousel::-webkit-scrollbar {
+  display: none;
+}

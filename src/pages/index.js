@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Layout from "@components/Layout";
-import HomeSeoPanel from "@components/seo/HomeSeoPanel";
 import { organizationLd, webSiteLd } from "../lib/seo/schema";
+import { OG_IMAGE } from "../lib/seo/site";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -21,7 +21,7 @@ const structuredData = {
 
 export default function Home({ seo }) {
   return (
-    <Layout>
+    <Layout tourSeo={seo}>
       <Head>
         <title>Sleeper Train Map 2026 (interactive)</title>
         <meta
@@ -48,6 +48,8 @@ export default function Home({ seo }) {
           property="og:url"
           content="https://sleeper-train-map.pingwi.com"
         />
+        <meta property="og:image" content={OG_IMAGE} />
+        <meta property="og:site_name" content="Pingwi Sleeper Train Map" />
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
@@ -56,6 +58,7 @@ export default function Home({ seo }) {
           name="twitter:description"
           content="Interactive map of all European sleeper train routes. Discover overnight connections across 24+ countries."
         />
+        <meta name="twitter:image" content={OG_IMAGE} />
 
         {/* JSON-LD Structured Data */}
         <script
@@ -73,4 +76,51 @@ export default function Home({ seo }) {
       </Head>
     </Layout>
   );
+}
+
+// How many "popular connections" chips the homepage panel links to.
+const HOME_CONNECTION_LIMIT = 10;
+// Operators shown on the homepage; the /trains directory lists the rest.
+const HOME_OPERATOR_LIMIT = 12;
+
+export async function getStaticProps() {
+  // Dynamic imports keep the fs-reading SEO data layer out of the client
+  // bundle (same pattern as about.js).
+  const { getAllCountryHubs, getAllOperatorHubs, getAllCityPairs } =
+    await import("../lib/seo/aggregate");
+  const { getAllRouteSummaries } = await import("../lib/seo/data");
+
+  const countryHubs = getAllCountryHubs();
+  const countries = countryHubs.map(({ country, routeCount }) => ({
+    slug: country.slug,
+    name: country.name,
+    code: country.code,
+    routeCount,
+  }));
+
+  const operators = getAllOperatorHubs()
+    .sort((a, b) => b.routeCount - a.routeCount)
+    .slice(0, HOME_OPERATOR_LIMIT)
+    .map(({ operator, routeCount }) => ({
+      slug: operator.slug,
+      name: operator.name,
+      routeCount,
+    }));
+
+  const connections = getAllCityPairs()
+    .sort((a, b) => b.routeCount - a.routeCount || a.slug.localeCompare(b.slug))
+    .slice(0, HOME_CONNECTION_LIMIT)
+    .map((p) => ({ slug: p.slug, label: `${p.originCity} → ${p.destCity}` }));
+
+  return {
+    props: {
+      seo: {
+        countries,
+        operators,
+        connections,
+        routeCount: getAllRouteSummaries().length,
+        countryCount: countries.length,
+      },
+    },
+  };
 }
