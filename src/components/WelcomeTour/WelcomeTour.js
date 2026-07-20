@@ -82,37 +82,31 @@ export default function WelcomeTour({
           animate={animate}
           style={delay(0)}
         >
-          <h1 className="text-base font-bold tracking-tight">
-            Sleeper Train Map — European Night Train Routes
-          </h1>
+          <h1 className="text-base font-bold tracking-tight">Night Train Map</h1>
           <p className="mt-1.5 text-xs leading-relaxed text-white/70">
             {routeCount} night and sleeper train routes across {countryCount}{" "}
             countries, with timetables, stops and booking links. The map is
             live — go poke it.
           </p>
-          <button
-            type="button"
-            onClick={onDismiss}
-            className="mt-3 w-full rounded-lg bg-primary-green px-3 py-2 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors"
-          >
-            Start exploring →
-          </button>
         </TourCard>
 
-        {/* ② Station dots explainer, pointing at the map */}
+        {/* ② Station dots explainer — the notch points at a big endpoint dot
+            just below-left of the map centre (≈München at the default view;
+            the initial centre is fixed, so the calc() offsets hold). */}
         <TourCard
-          className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:left-1/2 min-[640px]:top-[38%] min-[640px]:-translate-x-1/2 min-[640px]:w-64"
+          className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:left-[calc(50%-61px)] min-[640px]:bottom-[calc(50%-35px)] min-[640px]:w-64"
           notch="down"
           animate={animate}
           style={delay(1)}
         >
           <h2 className="text-sm font-semibold">Click any glowing dot</h2>
           <p className="mt-1 text-xs leading-relaxed text-white/70">
-            Every <span className="text-sky-400">blue dot</span> is a station
-            served by a night train — click one to see its overnight
-            connections. An{" "}
-            <span className="text-orange-400">orange badge</span> groups
-            several nearby stations; zoom in to split them.
+            Big <span className="text-sky-400">blue dots</span> like this one
+            are route endpoints — cities where night trains start or end.
+            Small <span className="text-green-400">green dots</span> are
+            intermediate stops along the way, and an{" "}
+            <span className="text-orange-400">orange badge</span> bundles
+            nearby stations — zoom in to split them.
           </p>
         </TourCard>
 
@@ -234,9 +228,16 @@ export default function WelcomeTour({
           style={delay(5)}
         >
           <h2 className="text-sm font-semibold">Map legend</h2>
-          <div className="mt-2 max-h-40 min-[640px]:max-h-[45vh] overflow-y-auto pr-1">
+          <div className="mt-2 max-h-40 min-[640px]:max-h-[40vh] overflow-y-auto pr-1">
             <Legend variant="panel" />
           </div>
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="mt-3 w-full rounded-lg bg-primary-green px-3 py-2 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors"
+          >
+            Start exploring →
+          </button>
         </TourCard>
       </div>
     </div>
