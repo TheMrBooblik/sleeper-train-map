@@ -102,6 +102,28 @@ export default function PrivacyPage() {
             </p>
           </PolicySection>
 
+          <PolicySection title="Accuracy of information">
+            <p>
+              We work hard to keep the map accurate — routes and timetables are
+              refreshed regularly and community-submitted corrections are
+              reviewed before they go live. Even so, train schedules, routes,
+              stops, prices and availability change frequently and can contain
+              errors or omissions. We therefore provide all information{" "}
+              <strong className="text-white/80">
+                “as is”, for general guidance only, with no warranty
+              </strong>{" "}
+              that it is complete, current or entirely accurate.
+            </p>
+            <p>
+              Always confirm times, routes and prices directly with the relevant
+              railway operator before planning or booking a journey. To the
+              extent permitted by law, Pingwi is not liable for any loss or
+              inconvenience arising from reliance on the information shown here.
+              Spotted something wrong? Use “Suggest an edit” on any route — every
+              report is reviewed.
+            </p>
+          </PolicySection>
+
           <PolicySection title="Affiliate links">
             <p>
               Some of the outbound booking links on this site are affiliate
