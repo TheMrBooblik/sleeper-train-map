@@ -195,7 +195,7 @@ export default function WelcomeTour({
               </li>
               <li>
                 An <span className="text-orange-400">orange badge</span> bundles
-                nearby stations, posssible to split them in the settings.
+                nearby stations, possible to split them in the settings.
               </li>
             </ul>
           </TourCard>
