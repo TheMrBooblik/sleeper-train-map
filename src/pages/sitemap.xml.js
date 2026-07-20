@@ -27,6 +27,7 @@ function generateSiteMap() {
   // data layer can't load (e.g. the committed payload is missing from the lambda).
   entries.push(urlEntry(SITE_URL, staticLastmod, "weekly", "1.0"));
   entries.push(urlEntry(`${SITE_URL}/about`, staticLastmod, "monthly", "0.9"));
+  entries.push(urlEntry(`${SITE_URL}/privacy`, staticLastmod, "yearly", "0.3"));
 
   // Data-derived pages. Wrapped so a read failure degrades to the core sitemap
   // (HTTP 200) instead of throwing a 500 and giving crawlers nothing at all.
