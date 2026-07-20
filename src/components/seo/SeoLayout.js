@@ -64,6 +64,12 @@ export default function SeoLayout({ children }) {
             >
               About
             </Link>
+            <Link
+              href="/privacy"
+              className="text-sm text-white/40 hover:text-white/70 transition-colors"
+            >
+              Privacy
+            </Link>
           </nav>
         </div>
       </footer>
