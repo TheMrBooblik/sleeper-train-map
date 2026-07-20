@@ -40,7 +40,11 @@ export default function WelcomeTour({
   const onSheetDragStart = (e) => {
     if (window.matchMedia("(min-width: 640px)").matches) return;
     if ((sheetRef.current?.scrollTop ?? 0) > 0) return;
-    dragRef.current = { active: true, startY: e.clientY, pointerId: e.pointerId };
+    dragRef.current = {
+      active: true,
+      startY: e.clientY,
+      pointerId: e.pointerId,
+    };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
@@ -121,10 +125,7 @@ export default function WelcomeTour({
           onPointerUp={onSheetDragEnd}
           onPointerCancel={onSheetDragEnd}
         >
-          <div
-            className="h-1 w-10 rounded-full bg-white/30"
-            aria-hidden
-          />
+          <div className="h-1 w-10 rounded-full bg-white/30" aria-hidden />
           <button
             type="button"
             onClick={onDismiss}
@@ -145,190 +146,190 @@ export default function WelcomeTour({
         </div>
 
         <div className="space-y-2 px-3 pb-3 min-[640px]:space-y-0 min-[640px]:p-0">
-        {/* ① Hero: the crawlable h1 + primary dismiss */}
-        <TourCard
-          className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:top-4 min-[640px]:left-16 min-[640px]:w-80"
-          animate={animate}
-          style={delay(0)}
-        >
-          <h1 className="text-base font-bold tracking-tight">
-            Night Train Map
-          </h1>
-          <p className="mt-1.5 text-xs leading-relaxed text-white/70">
-            {routeCount} night and sleeper train routes across {countryCount}{" "}
-            countries, with timetables, stops and booking links. The map is live
-            — go poke it.
-          </p>
-        </TourCard>
+          {/* ① Hero: the crawlable h1 + primary dismiss */}
+          <TourCard
+            className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:top-4 min-[640px]:left-16 min-[640px]:w-80"
+            animate={animate}
+            style={delay(0)}
+          >
+            <h1 className="text-base font-bold tracking-tight">
+              Night Train Map
+            </h1>
+            <p className="mt-1.5 text-xs leading-relaxed text-white/70">
+              {routeCount} night and sleeper train routes across {countryCount}{" "}
+              countries, with timetables, stops and booking links. The map is
+              live — go poke it.
+            </p>
+          </TourCard>
 
-        {/* ② Station dots explainer — sits just BELOW a big endpoint dot
+          {/* ② Station dots explainer — sits just BELOW a big endpoint dot
             (≈München at the default view) so the up-notch on top points at it.
             The initial centre is fixed, so the calc() offsets hold. */}
-        <TourCard
-          className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:left-[calc(50%-62px)] min-[640px]:top-[calc(50%+38px)] min-[640px]:w-64"
-          notch="up"
-          animate={animate}
-          style={delay(1)}
-        >
-          <h2 className="text-sm font-semibold">Click any glowing dot</h2>
-          <ul className="mt-1.5 space-y-1.5 text-xs leading-relaxed text-white/70">
-            <li className="flex items-start gap-1.5">
-              <div
-                className="mt-0.5 h-3 w-3 shrink-0 rounded-full border border-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] bg-gradient-to-br from-[#2196f3] to-[#1976d2] min-[1280px]:mt-1 min-[1280px]:h-3.5 min-[1280px]:w-3.5"
-                aria-hidden
-              />
-              <span>
-                Big <span className="text-sky-400">blue dots</span> are route
-                endpoints — cities where night trains start or end.
-              </span>
-            </li>
-            <li className="flex items-start gap-1.5">
-              <div
-                className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full border border-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] bg-gradient-to-br from-[#4caf50] to-[#388e3c] min-[1280px]:mt-1 min-[1280px]:h-3 min-[1280px]:w-3"
-                aria-hidden
-              />
-              <span>
-                Small <span className="text-green-400">green dots</span> are
-                intermediate stops along the way.
-              </span>
-            </li>
-            <li>
-              An <span className="text-orange-400">orange badge</span> bundles
-              nearby stations, posssible to split them in the settings.
-            </li>
-          </ul>
-        </TourCard>
-
-        {/* ③ Search hint (desktop only: the search bar is hidden on mobile) */}
-        <TourCard
-          className="hidden min-[640px]:block min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:top-2 min-[640px]:left-[25rem] min-[640px]:w-56"
-          notch="up"
-          animate={animate}
-          style={delay(2)}
-        >
-          <h2 className="text-sm font-semibold">Find your station</h2>
-          <p className="mt-1 text-xs leading-relaxed text-white/70">
-            Type any city or station up here to jump straight to it.
-          </p>
-        </TourCard>
-
-        {/* ④ Settings hint (desktop only: the gear is hidden on mobile) */}
-        <TourCard
-          className="hidden min-[640px]:block min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:top-2 min-[640px]:right-35 min-[640px]:w-60 tour-notch-right-side"
-          notch="up"
-          animate={animate}
-          style={delay(3)}
-        >
-          <h2 className="text-sm font-semibold">Make it yours</h2>
-          <p className="mt-1 text-xs leading-relaxed text-white/70">
-            The ⚙ up there toggles all routes at once, station grouping and a
-            railway-track overlay.
-          </p>
-        </TourCard>
-
-        {/* ⑤ Browse hubs: the SEO link block (country/operator/connection pages) */}
-        <TourCard
-          className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:bottom-4 min-[640px]:left-4 min-[640px]:w-[min(92vw,26rem)]"
-          animate={animate}
-          style={delay(4)}
-        >
-          <h2 className="text-sm font-semibold">
-            Prefer a list? Browse every route
-          </h2>
-          <div className="mt-1.5">
-            <Link
-              href="/trains"
-              className="text-xs font-semibold text-primary-green hover:text-primary-green-light"
-            >
-              All night train routes →
-            </Link>
-          </div>
-          <div className="mt-2 min-[640px]:max-h-[40vh] min-[640px]:overflow-y-auto min-[640px]:pr-1">
-            {countries.length > 0 && (
-              <div>
-                <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                  By country
-                </h3>
-                {/* Mobile: swipeable row; desktop: wrapped chip grid. */}
-                <div className="tour-country-carousel mt-1.5 flex gap-1.5 max-[639px]:-mx-3 max-[639px]:flex-nowrap max-[639px]:overflow-x-auto max-[639px]:px-3 max-[639px]:pb-0.5 min-[640px]:flex-wrap">
-                  {countries.map((c) => (
-                    <Link
-                      key={c.slug}
-                      href={`/night-trains/${c.slug}`}
-                      className={`${chipClass} shrink-0`}
-                    >
-                      <span className="mr-1">{getFlagEmoji(c.code)}</span>
-                      {c.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-            {operators.length > 0 && (
-              <div className="mt-2.5 hidden min-[640px]:block">
-                <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                  By operator
-                </h3>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {operators.map((o) => (
-                    <Link
-                      key={o.slug}
-                      href={`/operators/${o.slug}`}
-                      className={chipClass}
-                    >
-                      {o.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-            {connections.length > 0 && (
-              <div className="mt-2.5 hidden min-[640px]:block">
-                <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
-                  Popular connections
-                </h3>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {connections.map((p) => (
-                    <Link
-                      key={p.slug}
-                      href={`/connections/${p.slug}`}
-                      className={chipClass}
-                    >
-                      {p.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="mt-2 border-t border-white/10 pt-2">
-            <Link
-              href="/about"
-              className="text-xs text-white/50 hover:text-white transition-colors"
-            >
-              About this map
-            </Link>
-          </div>
-        </TourCard>
-
-        {/* ⑥ Map legend — lives here since the "i" button now opens the tour */}
-        <TourCard
-          className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:bottom-4 min-[640px]:right-4 min-[640px]:w-72"
-          animate={animate}
-          style={delay(5)}
-        >
-          <h2 className="text-sm font-semibold">Map legend</h2>
-          <div className="mt-2 min-[640px]:max-h-[45vh] min-[640px]:overflow-y-auto min-[640px]:pr-1">
-            <Legend variant="panel" />
-          </div>
-          <button
-            type="button"
-            onClick={onDismiss}
-            className="mt-3 w-full cursor-pointer rounded-lg bg-primary-green px-3 py-2 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors"
+          <TourCard
+            className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:left-[calc(50%-61px)] min-[640px]:top-[calc(50%+62px)] min-[640px]:w-64"
+            notch="up"
+            animate={animate}
+            style={delay(1)}
           >
-            Start exploring →
-          </button>
-        </TourCard>
+            <h2 className="text-sm font-semibold">Click any glowing dot</h2>
+            <ul className="mt-1.5 space-y-1.5 text-xs leading-relaxed text-white/70">
+              <li className="flex items-start gap-1.5">
+                <div
+                  className="mt-0.5 h-3 w-3 shrink-0 rounded-full border border-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] bg-gradient-to-br from-[#2196f3] to-[#1976d2] min-[1280px]:mt-1 min-[1280px]:h-3.5 min-[1280px]:w-3.5"
+                  aria-hidden
+                />
+                <span>
+                  Big <span className="text-sky-400">blue dots</span> are route
+                  endpoints — cities where night trains start or end.
+                </span>
+              </li>
+              <li className="flex items-start gap-1.5">
+                <div
+                  className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full border border-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] bg-gradient-to-br from-[#4caf50] to-[#388e3c] min-[1280px]:mt-1 min-[1280px]:h-3 min-[1280px]:w-3"
+                  aria-hidden
+                />
+                <span>
+                  Small <span className="text-green-400">green dots</span> are
+                  intermediate stops along the way.
+                </span>
+              </li>
+              <li>
+                An <span className="text-orange-400">orange badge</span> bundles
+                nearby stations, posssible to split them in the settings.
+              </li>
+            </ul>
+          </TourCard>
+
+          {/* ③ Search hint (desktop only: the search bar is hidden on mobile) */}
+          <TourCard
+            className="hidden min-[640px]:block min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:top-2 min-[640px]:left-[25rem] min-[640px]:w-56"
+            notch="up"
+            animate={animate}
+            style={delay(2)}
+          >
+            <h2 className="text-sm font-semibold">Find your station</h2>
+            <p className="mt-1 text-xs leading-relaxed text-white/70">
+              Type any city or station up here to jump straight to it.
+            </p>
+          </TourCard>
+
+          {/* ④ Settings hint (desktop only: the gear is hidden on mobile) */}
+          <TourCard
+            className="hidden min-[640px]:block min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:top-2 min-[640px]:right-35 min-[640px]:w-60 tour-notch-right-side"
+            notch="up"
+            animate={animate}
+            style={delay(3)}
+          >
+            <h2 className="text-sm font-semibold">Make it yours</h2>
+            <p className="mt-1 text-xs leading-relaxed text-white/70">
+              The ⚙ up there toggles all routes at once, station grouping and a
+              railway-track overlay.
+            </p>
+          </TourCard>
+
+          {/* ⑤ Browse hubs: the SEO link block (country/operator/connection pages) */}
+          <TourCard
+            className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:bottom-4 min-[640px]:left-4 min-[640px]:w-[min(92vw,26rem)]"
+            animate={animate}
+            style={delay(4)}
+          >
+            <h2 className="text-sm font-semibold">
+              Prefer a list? Browse every route
+            </h2>
+            <div className="mt-1.5">
+              <Link
+                href="/trains"
+                className="text-xs font-semibold text-primary-green hover:text-primary-green-light"
+              >
+                All night train routes →
+              </Link>
+            </div>
+            <div className="mt-2 min-[640px]:max-h-[40vh] min-[640px]:overflow-y-auto min-[640px]:pr-1">
+              {countries.length > 0 && (
+                <div>
+                  <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                    By country
+                  </h3>
+                  {/* Mobile: swipeable row; desktop: wrapped chip grid. */}
+                  <div className="tour-country-carousel mt-1.5 flex gap-1.5 max-[639px]:-mx-3 max-[639px]:flex-nowrap max-[639px]:overflow-x-auto max-[639px]:px-3 max-[639px]:pb-0.5 min-[640px]:flex-wrap">
+                    {countries.map((c) => (
+                      <Link
+                        key={c.slug}
+                        href={`/night-trains/${c.slug}`}
+                        className={`${chipClass} shrink-0`}
+                      >
+                        <span className="mr-1">{getFlagEmoji(c.code)}</span>
+                        {c.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {operators.length > 0 && (
+                <div className="mt-2.5 hidden min-[640px]:block">
+                  <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                    By operator
+                  </h3>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {operators.map((o) => (
+                      <Link
+                        key={o.slug}
+                        href={`/operators/${o.slug}`}
+                        className={chipClass}
+                      >
+                        {o.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {connections.length > 0 && (
+                <div className="mt-2.5 hidden min-[640px]:block">
+                  <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                    Popular connections
+                  </h3>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {connections.map((p) => (
+                      <Link
+                        key={p.slug}
+                        href={`/connections/${p.slug}`}
+                        className={chipClass}
+                      >
+                        {p.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="mt-2 border-t border-white/10 pt-2">
+              <Link
+                href="/about"
+                className="text-xs text-white/50 hover:text-white transition-colors"
+              >
+                About this map
+              </Link>
+            </div>
+          </TourCard>
+
+          {/* ⑥ Map legend — lives here since the "i" button now opens the tour */}
+          <TourCard
+            className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:bottom-4 min-[640px]:right-4 min-[640px]:w-72"
+            animate={animate}
+            style={delay(5)}
+          >
+            <h2 className="text-sm font-semibold">Map legend</h2>
+            <div className="mt-2 min-[640px]:max-h-[45vh] min-[640px]:overflow-y-auto min-[640px]:pr-1">
+              <Legend variant="panel" />
+            </div>
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="mt-3 w-full cursor-pointer rounded-lg bg-primary-green px-3 py-2 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors"
+            >
+              Start exploring →
+            </button>
+          </TourCard>
         </div>
       </div>
     </div>
