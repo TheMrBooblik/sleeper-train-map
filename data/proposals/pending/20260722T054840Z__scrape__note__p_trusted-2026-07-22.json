@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (1 routes, 8 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute cr_K_24: K 24 (Ulaanbaatar – Beijing(北京))\nstation Zhurihe(朱日和) (chinese)\nstation Queshan(确山) (chinese)\nstation Xiping(西平) (chinese)\nstation Pingdingshan(平顶山) (chinese)\nstation Mengyuan(孟塬) (chinese)\nstation Lintong(临潼) (chinese)\nstation Huazhou(华州) (chinese)\nstation Tongguan(潼关) (chinese)",
+  "title": "New Route K 24 from Ulaanbaatar to Beijing",
+  "summary": "A new train route has been added: K 24, operating between Ulaanbaatar and Beijing. The route includes the following stations: Zhurihe, Queshan, Xiping, Pingdingshan, Mengyuan, Lintong, Huazhou, and Tongguan. This information is sourced from trusted official channels and is already live.",
   "target": {
     "routeKey": "trusted-2026-07-22",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
