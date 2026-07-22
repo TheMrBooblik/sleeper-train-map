@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Changed: K 23 (Beijing(北京) – Erlian(二连))",
-  "summary": "Material change on an approved route (already live — FYI): destination: \"Ulaanbaatar\" → \"Erlian(二连)\"; operating days (return): \"Mon, Wed, Fri, Sat\" → \"null\"; train numbers: \"K 23|K 24\" → \"K 23\"",
+  "title": "Update: K 23 Train Route Change",
+  "summary": "The K 23 train from Beijing (北京) now has a new destination: Erlian (二连) instead of Ulaanbaatar. The return operating days have been removed, and the train number is now solely K 23, previously listed as K 23|K 24.",
   "target": {
     "routeKey": "cr_K_23",
     "agencyId": "CR",
@@ -27,5 +27,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
