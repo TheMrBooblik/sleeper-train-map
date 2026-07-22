@@ -1,0 +1,31 @@
+{
+  "v": 1,
+  "id": "p_cr-k-23",
+  "createdAt": "2026-07-22T05:48:40.605Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: K 23 (Beijing(北京) – Erlian(二连))",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Ulaanbaatar\" → \"Erlian(二连)\"; operating days (return): \"Mon, Wed, Fri, Sat\" → \"null\"; train numbers: \"K 23|K 24\" → \"K 23\"",
+  "target": {
+    "routeKey": "cr_K_23",
+    "agencyId": "CR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Ulaanbaatar",
+    "operating days (return)": "Mon, Wed, Fri, Sat",
+    "train numbers": "K 23|K 24"
+  },
+  "after": {
+    "destination": "Erlian(二连)",
+    "operating days (return)": null,
+    "train numbers": "K 23"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
