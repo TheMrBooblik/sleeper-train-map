@@ -57,6 +57,29 @@ img {
   color: #007aff !important;
 }
 
+/*
+ * Touch-friendly Leaflet control buttons (zoom + location).
+ * Default Leaflet size is ~26–30px; bump to 44px on narrow/touch viewports.
+ */
+.leaflet-bar a {
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  font-size: 18px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+  .leaflet-bar a {
+    width: 34px !important;
+    height: 34px !important;
+    line-height: 34px !important;
+    font-size: 16px !important;
+  }
+}
+
 /* Bottom bar scroll fade — gradient hint that more route pills exist to the right */
 .bottom-bar-scroll-fade::after {
   content: "";
@@ -406,7 +429,7 @@ abbr {
    Desktop-only — in the mobile bottom-sheet stack the cards point at nothing.
    (Cards get position via Tailwind utilities; no position rule here or it
    would override the responsive `absolute` placement.) */
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .tour-notch-up::before,
   .tour-notch-down::before {
     content: "";
@@ -449,6 +472,19 @@ abbr {
   left: auto;
   right: 28px;
 }
+
+/*
+ * Bottom-sheet / overlay z-index stack (map homepage):
+ *   999  — TrainDetailPanel / NearbyStations backdrop
+ *  1000  — TrainBottomBar, TrainDetailPanel sheet
+ *  1001  — WelcomeTour
+ *  1002  — Header
+ *  1003  — Header popovers / mobile menu
+ *  1100  — NearbyStations backdrop + MobileSearch (above header chrome)
+ *  1101  — NearbyStations sheet
+ *  1200  — MobileSearchOverlay (full-screen)
+ *  1300  — SuggestEditModal
+ */
 
 /* Mobile welcome tour sheet — keep content above the iOS home indicator. */
 .tour-mobile-sheet {

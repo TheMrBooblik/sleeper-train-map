@@ -146,9 +146,9 @@ const LocationControl = () => {
       </svg>
     `;
 
-    link.style.width = "30px";
-    link.style.height = "30px";
-    link.style.lineHeight = "30px";
+    link.style.width = "44px";
+    link.style.height = "44px";
+    link.style.lineHeight = "44px";
     link.style.textAlign = "center";
     link.style.textDecoration = "none";
     // Dynamic coloring based on state
@@ -233,21 +233,23 @@ const LocationControl = () => {
 
   return (
     <>
-      {/* Add loading message to UI */}
+      {/* Toast sits under the header, not over the bottom route bar. */}
       {loadingMessage && (
         <div
           style={{
             position: "absolute",
-            bottom: "20px",
+            top: "12px",
             left: "50%",
             transform: "translateX(-50%)",
-            backgroundColor: "rgba(0,0,0,0.7)",
+            backgroundColor: "rgba(0,0,0,0.75)",
             color: "white",
             padding: "8px 12px",
-            borderRadius: "4px",
+            borderRadius: "8px",
             fontSize: "14px",
             zIndex: 1000,
             pointerEvents: "none",
+            maxWidth: "min(90vw, 20rem)",
+            textAlign: "center",
           }}
         >
           {loadingMessage}

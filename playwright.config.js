@@ -16,6 +16,13 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: '**/mobile-ux.spec.js',
+    },
+    {
+      // Mobile-viewport project for touch UX specs (search overlay, nearby, PWA).
+      name: 'mobile-chrome',
+      use: { ...devices['Pixel 5'] },
+      testMatch: '**/mobile-ux.spec.js',
     },
   ],
 

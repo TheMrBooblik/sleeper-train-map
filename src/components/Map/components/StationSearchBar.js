@@ -13,7 +13,13 @@ import { normalizeStationNameForDisplay } from "../utils/stationNameUtils";
 const MAX_CITIES = 6;
 const MAX_STATIONS_PER_CITY = 4;
 
-export default function StationSearchBar({ stops, isLoading, onSelect }) {
+export default function StationSearchBar({
+  stops,
+  isLoading,
+  onSelect,
+  autoFocus = false,
+  variant = "header",
+}) {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -24,6 +30,13 @@ export default function StationSearchBar({ stops, isLoading, onSelect }) {
     const timer = setTimeout(() => setDebouncedQuery(query), 150);
     return () => clearTimeout(timer);
   }, [query]);
+
+  // Autofocus when opened as a mobile overlay.
+  useEffect(() => {
+    if (autoFocus) {
+      inputRef.current?.focus();
+    }
+  }, [autoFocus]);
 
   // Pre-group ALL stops by display city name and pre-compute normalized strings.
   // Runs once when stops change — never per keystroke.
@@ -184,6 +197,14 @@ export default function StationSearchBar({ stops, isLoading, onSelect }) {
     }
   };
 
+  const isMobileVariant = variant === "mobile";
+  const inputClass = isMobileVariant
+    ? "w-full rounded-lg border border-white/25 bg-white/15 px-3 py-3 text-base text-white placeholder-white/50 focus:outline-none focus:border-white/60 focus:bg-white/25 disabled:opacity-40 transition-colors"
+    : "w-full rounded border border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white placeholder-white/50 focus:outline-none focus:border-white/60 focus:bg-white/20 disabled:opacity-40 transition-colors";
+  const listClass = isMobileVariant
+    ? "absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-y-auto max-h-[70vh] z-[1100]"
+    : "absolute left-0 right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-100 overflow-y-auto max-h-80 z-[1100]";
+
   return (
     <div ref={containerRef} className="relative w-full">
       <div className="relative">
@@ -196,11 +217,16 @@ export default function StationSearchBar({ stops, isLoading, onSelect }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="w-full rounded border border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white placeholder-white/50 focus:outline-none focus:border-white/60 focus:bg-white/20 disabled:opacity-40 transition-colors"
+          className={inputClass}
           aria-label="Search stations"
           aria-autocomplete="list"
           aria-expanded={isOpen}
           role="combobox"
+          // Larger tap-friendly input on mobile overlay; avoid iOS zoom (<16px).
+          enterKeyHint="search"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
         />
         {query && (
           <button
@@ -210,7 +236,7 @@ export default function StationSearchBar({ stops, isLoading, onSelect }) {
               setActiveIndex(-1);
               inputRef.current?.focus();
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-white/50 hover:text-white text-lg leading-none cursor-pointer"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-white/50 hover:text-white text-lg leading-none cursor-pointer p-2"
             aria-label="Clear search"
             tabIndex={-1}
           >
@@ -220,17 +246,14 @@ export default function StationSearchBar({ stops, isLoading, onSelect }) {
       </div>
 
       {isOpen && (
-        <ul
-          className="absolute left-0 right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-100 overflow-y-auto max-h-80 z-[1100]"
-          role="listbox"
-        >
+        <ul className={listClass} role="listbox">
           {items.map((item, i) =>
             item.type === "city" ? (
               <li
                 key={`city-${item.displayName}`}
                 role="option"
                 aria-selected={i === activeIndex}
-                className={`px-3 py-2 cursor-pointer flex justify-between items-center gap-2 ${
+                className={`px-3 py-3 cursor-pointer flex justify-between items-center gap-2 ${
                   i === activeIndex ? "bg-blue-50" : "hover:bg-gray-50"
                 }`}
                 onPointerDown={(e) => {
@@ -248,7 +271,7 @@ export default function StationSearchBar({ stops, isLoading, onSelect }) {
                 key={`station-${item.stop.stop_id}`}
                 role="option"
                 aria-selected={i === activeIndex}
-                className={`pl-6 pr-3 py-1.5 cursor-pointer flex justify-between items-center gap-2 border-t border-gray-50 ${
+                className={`pl-6 pr-3 py-2.5 cursor-pointer flex justify-between items-center gap-2 border-t border-gray-50 ${
                   i === activeIndex
                     ? "bg-blue-50 text-blue-900"
                     : "text-gray-600 hover:bg-gray-50"
@@ -258,7 +281,7 @@ export default function StationSearchBar({ stops, isLoading, onSelect }) {
                   handleSelect(item);
                 }}
               >
-                <span className="truncate text-xs">{item.stop.stop_id}</span>
+                <span className="truncate text-sm">{item.stop.stop_id}</span>
                 {item.stop.stop_country && (
                   <span className="text-xs text-gray-400 shrink-0">
                     {item.stop.stop_country}

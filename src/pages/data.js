@@ -25,7 +25,7 @@ function AdminHeader({ onLogout }) {
       className="shrink-0 bg-black px-2 py-2 text-white flex items-center justify-between"
       style={{ height: HEADER_HEIGHT }}
     >
-      <p className="text-sm leading-none whitespace-nowrap min-[640px]:text-base">
+      <p className="text-sm leading-none whitespace-nowrap md:text-base">
         <Link href="/">
           Pingwi <i>night trains</i> map
         </Link>

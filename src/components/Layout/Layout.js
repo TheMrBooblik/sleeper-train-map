@@ -1,5 +1,6 @@
 import Header from "@components/Header";
 import WelcomeTour from "@components/WelcomeTour";
+import NearbyStationsSheet from "@components/NearbyStations/NearbyStationsSheet";
 import { useState, useCallback, startTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import Container from "@components/Container";
@@ -34,6 +35,7 @@ const Layout = ({ children, tourSeo }) => {
   // hidden after mount for visitors who already saw it (see preferences effect).
   const [tourOpen, setTourOpen] = useState(true);
   const [legendPulse, setLegendPulse] = useState(false);
+  const [nearbyOpen, setNearbyOpen] = useState(false);
   const tourOpenRef = useRef(true);
   const pulseShownRef = useRef(false);
   const { width, height } = useWindowSize();
@@ -198,6 +200,10 @@ const Layout = ({ children, tourSeo }) => {
         onToggleTour={tourSeo ? toggleTour : undefined}
         tourOpen={tourOpen}
         legendPulse={legendPulse}
+        onNearbyOpen={() => {
+          dismissTour();
+          setNearbyOpen(true);
+        }}
       />
       <main className="relative">
         {children}
@@ -208,6 +214,12 @@ const Layout = ({ children, tourSeo }) => {
             onDismiss={dismissTour}
           />
         )}
+        <NearbyStationsSheet
+          open={nearbyOpen}
+          onClose={() => setNearbyOpen(false)}
+          stops={stops}
+          onSelect={setSearchTarget}
+        />
         <Container>
           <Map
             width={width}

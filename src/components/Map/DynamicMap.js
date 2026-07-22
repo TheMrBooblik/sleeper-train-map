@@ -142,7 +142,14 @@ const TrainMap = ({
     setSelectedTrainRouteIds([]);
   }, []);
 
+  // Hover preview is desktop-only — touch has no meaningful hover state.
   const handleRouteHover = useCallback((routeId) => {
+    if (typeof window !== "undefined") {
+      const finePointer = window.matchMedia(
+        "(hover: hover) and (pointer: fine)",
+      ).matches;
+      if (!finePointer) return;
+    }
     setHoveredRouteId(routeId ? String(routeId) : null);
   }, []);
 
@@ -698,7 +705,7 @@ const TrainMap = ({
                     },
                   }}
                 >
-                  <Tooltip sticky>
+                  <Tooltip sticky={false}>
                     {(() => {
                       if (path.isBusConnector) {
                         return path.busFrom && path.busTo

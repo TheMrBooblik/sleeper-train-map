@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useMemo, useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { FiChevronDown, FiExternalLink } from "react-icons/fi";
 import { useAgencies } from "../../hooks/requests/useAgencies";
@@ -29,6 +29,7 @@ import {
   buildMajorViaContext,
   selectMajorViaStations,
 } from "../../lib/viaDisplay.mjs";
+import { MOBILE_MQ } from "../../hooks/useIsMobile";
 
 const GTFS_ROUTE_KIND = {
   chop: "chop",
@@ -187,6 +188,43 @@ const TrainDetailPanel = ({
   const [naLoadFailed, setNaLoadFailed] = useState(false);
   const [naLoading, setNaLoading] = useState(false);
   const [suggestContext, setSuggestContext] = useState(null);
+  const sheetRef = useRef(null);
+  // Tracks a downward drag on the sheet handle to dismiss (mobile only).
+  const dragRef = useRef({ active: false, startY: 0, pointerId: null });
+
+  const onSheetDragStart = (e) => {
+    if (!window.matchMedia(MOBILE_MQ).matches) return;
+    if ((sheetRef.current?.scrollTop ?? 0) > 0) return;
+    dragRef.current = {
+      active: true,
+      startY: e.clientY,
+      pointerId: e.pointerId,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onSheetDragMove = (e) => {
+    if (!dragRef.current.active || !sheetRef.current) return;
+    const dy = e.clientY - dragRef.current.startY;
+    if (dy <= 0 || sheetRef.current.scrollTop > 0) {
+      sheetRef.current.style.transform = "";
+      return;
+    }
+    sheetRef.current.style.transition = "none";
+    sheetRef.current.style.transform = `translateY(${dy}px)`;
+  };
+
+  const onSheetDragEnd = (e) => {
+    if (!dragRef.current.active || !sheetRef.current) return;
+    const dy = e.clientY - dragRef.current.startY;
+    dragRef.current.active = false;
+    sheetRef.current.style.transition = "";
+    sheetRef.current.style.transform = "";
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    if (dy > 72) onClose?.();
+  };
 
   // IMPORTANT: `useRoutes()` fetches `/api/trains?type=view_ontd_map` which filters out NJ/EN.
   // For NJ/EN fallback we must use unfiltered `viewMapData` from `/api/initial-data` when provided.
@@ -838,15 +876,22 @@ const TrainDetailPanel = ({
         />
       )}
       <div
-        className={`fixed z-[1000] bg-white shadow-lg transition-transform duration-300 overflow-y-auto overscroll-y-none bottom-0 left-0 right-0 rounded-t-2xl h-[80vh] md:top-13 md:right-0 md:bottom-auto md:left-auto md:rounded-none md:h-[calc(100vh-3rem)] md:w-[300px] md:translate-y-0 ${
+        ref={sheetRef}
+        className={`fixed z-[1000] bg-white shadow-lg transition-transform duration-300 overflow-y-auto overscroll-y-none bottom-0 left-0 right-0 rounded-t-2xl h-[80vh] pb-[env(safe-area-inset-bottom,0px)] md:top-13 md:right-0 md:bottom-auto md:left-auto md:rounded-none md:h-[calc(100vh-3rem)] md:w-[300px] md:translate-y-0 md:pb-0 ${
           isOpen
             ? "translate-y-0 md:translate-x-0"
             : "translate-y-full md:translate-x-full"
         }`}
       >
-        {/* Mobile drag handle */}
-        <div className="md:hidden flex justify-center pt-2 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-gray-300" />
+        {/* Mobile drag handle — swipe down to dismiss (same pattern as WelcomeTour). */}
+        <div
+          className="md:hidden sticky top-0 z-20 flex touch-none cursor-grab active:cursor-grabbing justify-center pt-2 pb-1 shrink-0 bg-white"
+          onPointerDown={onSheetDragStart}
+          onPointerMove={onSheetDragMove}
+          onPointerUp={onSheetDragEnd}
+          onPointerCancel={onSheetDragEnd}
+        >
+          <div className="w-10 h-1 rounded-full bg-gray-300" aria-hidden />
         </div>
         {/* Header */}
         <div className="sticky bg-white border-b border-gray-200 pl-5 py-1 flex items-center justify-between z-10">

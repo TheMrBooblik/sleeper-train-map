@@ -95,7 +95,7 @@ const TrainBottomBar = ({
 
   return (
     <div
-      className="absolute bottom-bar-scroll-fade bottom-0 w-full h-12 md:h-auto md:max-h-7 bg-white shadow-[-2px_0_8px_rgba(0,0,0,0.1)] z-[1000] overflow-y-hidden overflow-x-scroll p-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+      className="absolute bottom-bar-scroll-fade bottom-0 w-full h-12 pb-[env(safe-area-inset-bottom,0px)] md:h-auto md:max-h-7 md:pb-0 bg-white shadow-[-2px_0_8px_rgba(0,0,0,0.1)] z-[1000] overflow-y-hidden overflow-x-scroll p-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
     >
       <div className="flex min-w-max p-1">
         {!hasBackOnTrackRoutes ? (
@@ -117,7 +117,15 @@ const TrainBottomBar = ({
               onClick={() => onRouteClick?.(route.routeId)}
               onMouseEnter={() => onRouteHover?.(route.routeId)}
               onMouseLeave={() => onRouteLeave?.()}
-              onFocus={() => onRouteHover?.(route.routeId)}
+              onFocus={() => {
+                // Focus preview only on fine pointers (desktop keyboard).
+                if (
+                  typeof window !== "undefined" &&
+                  window.matchMedia("(hover: hover) and (pointer: fine)").matches
+                ) {
+                  onRouteHover?.(route.routeId);
+                }
+              }}
               onBlur={() => onRouteLeave?.()}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {

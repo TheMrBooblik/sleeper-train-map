@@ -8,6 +8,12 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
+        <meta name="theme-color" content="#000000" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Night Trains" />
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         {/* Awin publisher check: word "Awin" must appear in live page source. Invisible to visitors. */}
         <meta name="awin-site-verification" content="Awin" />

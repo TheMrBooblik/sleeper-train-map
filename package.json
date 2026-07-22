@@ -33,6 +33,7 @@
     "verify-calendar": "node tests/verify-calendar.mjs",
     "verify-canonical-routes": "node tests/verify-canonical-routes.mjs",
     "verify-ai": "node tests/verify-ai-prompts.mjs",
+    "verify-geo": "node tests/verify-geo.mjs",
     "ai-tasks": "node scripts/ai-tasks.mjs",
     "probe-prices": "node scripts/probe-prices.mjs",
     "classify": "node scripts/classify-changes.mjs",
