@@ -220,16 +220,28 @@ function countryCodesForRoute(route, allStopNames, operatorIds) {
     }
   }
   if (codes.size === 0) {
-    const idx = getStopCountryIndex();
-    for (const name of allStopNames) {
-      const code = idx.get(String(name).toLowerCase());
-      if (code) codes.add(code);
+    // Synthetic operators (Amtrak, VIA Rail, …) declare their own countries via
+    // OPERATOR_COUNTRY_FALLBACK. Their stations are NOT in the Back-on-Track
+    // stop index, so looking their names up there only yields FALSE hits from
+    // same-named European stations (e.g. the Amtrak stop "Toledo" matching
+    // Toledo, Spain, which used to spawn a bogus /night-trains/spain hub). So
+    // for these operators we trust the fallback and never look up their
+    // American (or other synthetic) stations in Back-on-Track.
+    const fallback = [];
+    for (const opId of operatorIds) {
+      for (const code of OPERATOR_COUNTRY_FALLBACK[opId] || []) {
+        fallback.push(normalizeCountryCode(code));
+      }
     }
-    if (codes.size === 0) {
-      for (const opId of operatorIds) {
-        for (const code of OPERATOR_COUNTRY_FALLBACK[opId] || []) {
-          codes.add(normalizeCountryCode(code));
-        }
+    if (fallback.length) {
+      for (const code of fallback) codes.add(code);
+    } else {
+      // Regular operators: derive the countries from the stations they pass
+      // through, using the Back-on-Track stop→country index.
+      const idx = getStopCountryIndex();
+      for (const name of allStopNames) {
+        const code = idx.get(String(name).toLowerCase());
+        if (code) codes.add(code);
       }
     }
   }
