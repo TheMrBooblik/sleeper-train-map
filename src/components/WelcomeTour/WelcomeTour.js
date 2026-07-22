@@ -16,11 +16,12 @@ import TourCard from "./TourCard";
  * every country/operator/connection hub), so it must always be present in the
  * server-rendered HTML. Visibility for returning visitors is decided by the
  * parent (Layout) after mount; this component only stages the client-side
- * reveal so the cards don't compete with the initial-data loading overlay:
- *   "static"  — SSR + first client render: fully visible, no animation
- *   "waiting" — client, data still loading: hidden (client-only, so the
- *               static HTML never carries opacity-0)
- *   "enter"   — data ready: cards pop in with a small stagger
+ * reveal so the cards don't compete with the initial-data loading overlay.
+ * The region is invisible by default (opacity-0) and only reveals on "enter",
+ * so there's no flash of the tour before data has loaded:
+ *   "static"  — SSR + first client render: hidden (in DOM for SEO), no animation
+ *   "waiting" — client, data still loading: hidden
+ *   "enter"   — data ready: region reveals and cards pop in with a small stagger
  */
 export default function WelcomeTour({
   countries = [],
@@ -107,7 +108,10 @@ export default function WelcomeTour({
       role="region"
       aria-label="Welcome tour"
       className={`pointer-events-none absolute inset-0 z-[1001] overflow-hidden ${
-        phase === "waiting" ? "opacity-0" : ""
+        // Hidden by default (SSR + "static" + "waiting"): the content stays in
+        // the DOM for SEO/crawlers, but is invisible until data is ready. This
+        // avoids the flash where the tour showed briefly then hid while loading.
+        phase === "enter" ? "" : "opacity-0"
       }`}
     >
       {/* Mobile (<640px): compact scrollable bottom sheet — hero + close visible
