@@ -194,6 +194,40 @@ abbr {
   cursor: help;
 }
 
+/* Map legend operator badges: full name on hover (above badge so popover doesn't clip). */
+.legend-operator-badge {
+  position: relative;
+  cursor: help;
+}
+
+.legend-operator-badge[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  /* Align to badge start so long names (e.g. "European Sleeper") are not
+     clipped by the legend card's left edge / overflow container. */
+  left: 0;
+  transform: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.9);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 1200;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .legend-operator-badge:hover[data-tooltip]::after,
+  .legend-operator-badge:focus-visible[data-tooltip]::after {
+    opacity: 1;
+  }
+}
+
 /* Map marker styles */
 .station-dot {
   background: transparent !important;

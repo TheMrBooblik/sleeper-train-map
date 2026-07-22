@@ -78,16 +78,77 @@ export default function Home({ seo }) {
   );
 }
 
-// How many "popular connections" chips the homepage panel links to.
-const HOME_CONNECTION_LIMIT = 10;
 // Operators shown on the homepage; the /trains directory lists the rest.
 const HOME_OPERATOR_LIMIT = 12;
+// Pin these three first in the tour's "By operator" chips.
+const PINNED_OPERATOR_SLUGS = ["european-sleeper", "trenitalia", "regiojet"];
+
+// Curated homepage connections (static; slugs are stable across rebuilds).
+// Order: European Sleeper → Trenitalia → RegioJet → other EU → one CN + one CA.
+const HOME_CONNECTIONS = [
+  // European Sleeper corridors — single-train pages where no /connections hub exists
+  {
+    key: "es-bru-praha",
+    label: "Brussels → Prague",
+    href: "/trains/praha-hl-n-to-bruxelles-midi-brussel-zuid-452",
+  },
+  {
+    key: "es-ber-par",
+    label: "Berlin → Paris",
+    href: "/trains/berlin-hbf-to-paris-gare-du-nord-474",
+  },
+  {
+    key: "es-bru-mil",
+    label: "Brussels → Milan",
+    href: "/connections/brussels-to-milan",
+  },
+  // Trenitalia
+  {
+    key: "fs-rome-sir",
+    label: "Rome → Siracusa",
+    href: "/connections/rome-to-siracusa",
+  },
+  // RegioJet
+  {
+    key: "rj-prg-prz",
+    label: "Prague → Przemyśl",
+    href: "/connections/prague-to-przemysl-gl",
+  },
+  // Other European hubs
+  {
+    key: "ber-sto",
+    label: "Berlin → Stockholm",
+    href: "/connections/berlin-to-stockholm",
+  },
+  {
+    key: "buc-bud",
+    label: "Bucharest → Budapest",
+    href: "/connections/bucharest-to-budapest",
+  },
+  {
+    key: "grz-zur",
+    label: "Graz → Zurich",
+    href: "/connections/graz-to-zurich",
+  },
+  // One Chinese + one Canadian showcase
+  {
+    key: "cn-bei-sha",
+    label: "Beijing → Shanghai",
+    href: "/connections/beijing-to-shanghai",
+  },
+  {
+    key: "ca-tor-van",
+    label: "Toronto → Vancouver",
+    href: "/trains/toronto-to-vancouver-vancouver-toronto",
+  },
+];
 
 export async function getStaticProps() {
   // Dynamic imports keep the fs-reading SEO data layer out of the client
   // bundle (same pattern as about.js).
-  const { getAllCountryHubs, getAllOperatorHubs, getAllCityPairs } =
-    await import("../lib/seo/aggregate");
+  const { getAllCountryHubs, getAllOperatorHubs } = await import(
+    "../lib/seo/aggregate"
+  );
   const { getAllRouteSummaries } = await import("../lib/seo/data");
 
   const countryHubs = getAllCountryHubs();
@@ -98,8 +159,17 @@ export async function getStaticProps() {
     routeCount,
   }));
 
-  const operators = getAllOperatorHubs()
-    .sort((a, b) => b.routeCount - a.routeCount)
+  // European Sleeper, Trenitalia, RegioJet first; then everyone else by count.
+  const hubs = getAllOperatorHubs();
+  const bySlug = new Map(hubs.map((h) => [h.operator.slug, h]));
+  const pinned = PINNED_OPERATOR_SLUGS.map((s) => bySlug.get(s)).filter(
+    Boolean,
+  );
+  const pinnedSet = new Set(PINNED_OPERATOR_SLUGS);
+  const rest = hubs
+    .filter((h) => !pinnedSet.has(h.operator.slug))
+    .sort((a, b) => b.routeCount - a.routeCount);
+  const operators = [...pinned, ...rest]
     .slice(0, HOME_OPERATOR_LIMIT)
     .map(({ operator, routeCount }) => ({
       slug: operator.slug,
@@ -107,17 +177,12 @@ export async function getStaticProps() {
       routeCount,
     }));
 
-  const connections = getAllCityPairs()
-    .sort((a, b) => b.routeCount - a.routeCount || a.slug.localeCompare(b.slug))
-    .slice(0, HOME_CONNECTION_LIMIT)
-    .map((p) => ({ slug: p.slug, label: `${p.originCity} → ${p.destCity}` }));
-
   return {
     props: {
       seo: {
         countries,
         operators,
-        connections,
+        connections: HOME_CONNECTIONS,
         routeCount: getAllRouteSummaries().length,
         countryCount: countries.length,
       },

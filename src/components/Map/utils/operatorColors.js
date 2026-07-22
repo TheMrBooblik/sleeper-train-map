@@ -57,13 +57,13 @@ export const OPERATOR_BRAND_COLORS = {
   CR: "#C8102E", // China Railway – China red
 
   // Caucasus
-  GR: "#D4380D",  // Georgian Railway – Georgian red-orange
+  GR: "#D4380D", // Georgian Railway – Georgian red-orange
   ADY: "#0080C8", // ADY (Azerbaijan Railways) – ADY blue
   SCR: "#7B2D8B", // South Caucasus Railway (Armenia) – violet
 
   // North America
   AMTK: "#003E7A", // Amtrak – Amtrak blue
-  VIA: "#FFC72C",  // VIA Rail Canada – VIA yellow
+  VIA: "#FFC72C", // VIA Rail Canada – VIA yellow
 };
 
 // Optional secondary accent colors for operators with many routes.
@@ -205,7 +205,10 @@ export function buildRouteColorMap(routesToShow, routeMap) {
       const secondHalf = routeIds.slice(splitIndex);
 
       firstHalf.forEach((routeId, index) => {
-        colorMap.set(routeId, generateShade(baseColor, index, firstHalf.length));
+        colorMap.set(
+          routeId,
+          generateShade(baseColor, index, firstHalf.length),
+        );
       });
       secondHalf.forEach((routeId, index) => {
         colorMap.set(

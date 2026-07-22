@@ -3,6 +3,7 @@
     "id": "240_dec14",
     "supersedesRouteId": "240",
     "activeFrom": "2026-12-14",
+    "drawAsActive": true,
     "infoUrl": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=LGG&u=%2Fmilan",
     "extraStops": [
       { "stop_id": "Breda", "stop_name": "Breda", "stop_lat": 51.5956, "stop_lon": 4.7799 }

@@ -1250,6 +1250,8 @@ const TrainDetailPanel = ({
                         (trainPageSlug ? (
                           <Link
                             href={`/trains/${trainPageSlug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="shrink-0 rounded-md px-2 py-1 text-sm font-semibold underline decoration-transparent underline-offset-2 transition hover:decoration-current hover:opacity-90"
                             style={{
                               backgroundColor: hexWithAlpha(operatorColor, 0.12),

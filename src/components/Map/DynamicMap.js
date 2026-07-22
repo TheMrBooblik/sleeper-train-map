@@ -730,7 +730,7 @@ const TrainMap = ({
                         ? `${trainNumber}: ${segment}`
                         : `Route: ${segment}`;
                       return path.isFuture
-                        ? `${label} · opens ${formatFutureDate(path.futureStartDate)}`
+                        ? `${label} · from ${formatFutureDate(path.futureStartDate)}`
                         : label;
                     })()}
                   </Tooltip>

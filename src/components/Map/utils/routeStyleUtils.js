@@ -87,6 +87,30 @@ export const MAP_LEGEND_LINE_BASE_STYLES = {
 };
 
 /**
+ * European Sleeper Brussels–Milano variants that are already on sale.
+ * Keep the "from …" hover date, but draw them at full opacity (not the ghost fade).
+ * Keys match viewMap route_id (BoT 240 + Dec-14 preview with Breda).
+ */
+const FUTURE_DRAW_AS_ACTIVE_ROUTE_IDS = new Set(["240", "240_dec14"]);
+
+/**
+ * Whether a not-yet-running route should still look "active" on the map
+ * (tickets already sell; start date is informational on hover only).
+ * @param {object|string|number|null} routeOrId - viewMap row or route_id
+ * @returns {boolean}
+ */
+export function shouldDrawFutureRouteAsActive(routeOrId) {
+  if (routeOrId == null) return false;
+  if (typeof routeOrId === "object") {
+    if (routeOrId.draw_as_active === true) return true;
+    return FUTURE_DRAW_AS_ACTIVE_ROUTE_IDS.has(
+      String(routeOrId.route_id ?? ""),
+    );
+  }
+  return FUTURE_DRAW_AS_ACTIVE_ROUTE_IDS.has(String(routeOrId));
+}
+
+/**
  * Infer one trip's cadence rank from BoT `service_id` + `irregularities`.
  * Returns null when neither field gives a usable signal (caller may substitute a fallback).
  * @param {object} trip
@@ -522,7 +546,9 @@ export const REGIOJET_COLOR = "#F0AB00";
  * Hide route in lists/markers when every trip uses a service_id calendar range
  * (YYYY/MM/DD-YYYY/MM/DD) and today is outside all ranges.
  * Future routes (those with a "From YYYY-MM-DD" or "Postponed to YYYY" date) are
- * shown as normal lines; the tooltip carries the "opens [date]" text.
+ * shown as normal lines; the tooltip carries the "from [date]" text.
+ * Bookable-but-future corridors (see shouldDrawFutureRouteAsActive) keep full
+ * opacity; others use the faded futureGhost style.
  * @param {string} routeId - Route ID
  * @param {Object} trips - Trips data
  * @returns {boolean}

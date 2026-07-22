@@ -243,6 +243,8 @@ export default function WelcomeTour({
             <div className="mt-1.5">
               <Link
                 href="/trains"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-xs font-semibold text-primary-green hover:text-primary-green-light"
               >
                 All night train routes →
@@ -260,6 +262,8 @@ export default function WelcomeTour({
                       <Link
                         key={c.slug}
                         href={`/night-trains/${c.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className={`${chipClass} shrink-0`}
                       >
                         <span className="mr-1">{getFlagEmoji(c.code)}</span>
@@ -279,6 +283,8 @@ export default function WelcomeTour({
                       <Link
                         key={o.slug}
                         href={`/operators/${o.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className={chipClass}
                       >
                         {o.name}
@@ -295,8 +301,10 @@ export default function WelcomeTour({
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {connections.map((p) => (
                       <Link
-                        key={p.slug}
-                        href={`/connections/${p.slug}`}
+                        key={p.key || p.slug}
+                        href={p.href || `/connections/${p.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className={chipClass}
                       >
                         {p.label}
@@ -309,6 +317,8 @@ export default function WelcomeTour({
             <div className="mt-2 border-t border-white/10 pt-2">
               <Link
                 href="/about"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-xs text-white/50 hover:text-white transition-colors"
               >
                 About this map

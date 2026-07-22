@@ -64,6 +64,13 @@ function applyFutureRoutePreviews(viewMap, trips, stops, now, previews) {
       const superseded = viewMap[preview.supersedesRouteId];
       if (superseded) superseded.info_url = preview.infoUrl;
     }
+    // Tickets already on sale before the first running day: keep full map
+    // opacity and only surface the start date on hover (see shouldDrawFutureRouteAsActive).
+    if (preview.drawAsActive) {
+      viewMap[preview.id].draw_as_active = true;
+      const superseded = viewMap[preview.supersedesRouteId];
+      if (superseded) superseded.draw_as_active = true;
+    }
     // Once the new routing is live, retire the routing it replaces so the same
     // train never shows two physical paths at once.
     const startsAt = preview.activeFrom ? Date.parse(preview.activeFrom) : NaN;

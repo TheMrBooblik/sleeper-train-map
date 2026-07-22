@@ -1,11 +1,22 @@
 import React from "react";
 
+import { getOperatorName } from "../../lib/seo/operators";
 import { OPERATOR_BRAND_COLORS } from "../Map/utils/operatorColors";
 import {
   MAP_LEGEND_LINE_BASE_STYLES,
   PKP_COLOR,
   REGIOJET_COLOR,
 } from "../Map/utils/routeStyleUtils";
+
+/** Short badge labels + colors shown in the map legend (sample of operators). */
+const OPERATOR_SAMPLES = [
+  { id: "ES", label: "ES", color: OPERATOR_BRAND_COLORS.ES },
+  { id: "ČD", label: "ČD", color: OPERATOR_BRAND_COLORS.ČD },
+  { id: "FS", label: "FS", color: OPERATOR_BRAND_COLORS.FS },
+  { id: "PKP", label: "PKP", color: PKP_COLOR },
+  { id: "RJ", label: "RJ", color: REGIOJET_COLOR },
+  { id: "ÖBB", label: "ÖBB", color: OPERATOR_BRAND_COLORS.ÖBB },
+];
 
 /** Official Back-on-Track night train map (overview + database context). */
 const BACK_ON_TRACK_NIGHT_TRAIN_MAP =
@@ -48,12 +59,6 @@ function FrequencyLineSample({ weight, dashArray, opacity = 1 }) {
  */
 const Legend = ({ variant = "inline" }) => {
   const isPanel = variant === "panel";
-
-  const operatorSamples = [
-    { label: "ÖBB", color: OPERATOR_BRAND_COLORS.ÖBB },
-    { label: "ES", color: OPERATOR_BRAND_COLORS.ES },
-    { label: "ČD", color: OPERATOR_BRAND_COLORS.ČD },
-  ];
 
   const sectionClass = isPanel
     ? "flex flex-col gap-2 border-b border-white/15 pb-3 last:border-0 last:pb-0"
@@ -107,37 +112,27 @@ const Legend = ({ variant = "inline" }) => {
           brand.
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          {operatorSamples.map(({ label, color }) => (
-            <span
-              key={label}
-              className="inline-flex items-center gap-1.5 rounded border border-white/20 bg-white/5 px-1.5 py-0.5"
-            >
+          {OPERATOR_SAMPLES.map(({ id, label, color }) => {
+            const fullName = getOperatorName(id);
+            return (
               <span
-                className="h-2 w-6 shrink-0 rounded-sm"
-                style={{ backgroundColor: color }}
-                aria-hidden
-              />
-              <span className="text-[11px] font-medium text-white/80">
-                {label}
+                key={id}
+                className="legend-operator-badge inline-flex items-center gap-1.5 rounded border border-white/20 bg-white/5 px-1.5 py-0.5"
+                data-tooltip={fullName}
+                aria-label={fullName}
+                tabIndex={0}
+              >
+                <span
+                  className="h-2 w-6 shrink-0 rounded-sm"
+                  style={{ backgroundColor: color }}
+                  aria-hidden
+                />
+                <span className="text-[11px] font-medium text-white/80">
+                  {label}
+                </span>
               </span>
-            </span>
-          ))}
-          <span className="inline-flex items-center gap-1.5 rounded border border-white/20 bg-white/5 px-1.5 py-0.5">
-            <span
-              className="h-2 w-6 shrink-0 rounded-sm"
-              style={{ backgroundColor: PKP_COLOR }}
-              aria-hidden
-            />
-            <span className="text-[11px] font-medium text-white/80">PKP</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded border border-white/20 bg-white/5 px-1.5 py-0.5">
-            <span
-              className="h-2 w-6 shrink-0 rounded-sm"
-              style={{ backgroundColor: REGIOJET_COLOR }}
-              aria-hidden
-            />
-            <span className="text-[11px] font-medium text-white/80">RJ</span>
-          </span>
+            );
+          })}
         </div>
       </div>
 

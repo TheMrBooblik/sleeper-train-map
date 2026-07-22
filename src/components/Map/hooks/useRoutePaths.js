@@ -18,6 +18,7 @@ import {
   checkWarszawaBudapestRoute,
   getFutureRouteStartDate,
   isRouteOutsideServiceIdSeason,
+  shouldDrawFutureRouteAsActive,
   MAP_LEGEND_LINE_BASE_STYLES,
   arePositionsReverseEqual,
 } from "../utils/routeStyleUtils";
@@ -218,6 +219,9 @@ export function useRoutePaths({
 
       const futureStartDate = getFutureRouteStartDate(routeId, trips);
       const isFuture = futureStartDate !== null;
+      // Tickets already on sale (e.g. ES Brussels–Milano): full opacity, date on hover only.
+      const fadeAsFuture =
+        isFuture && !shouldDrawFutureRouteAsActive(route);
 
       const routeColor = routeColorMap.get(routeId) || NEUTRAL_FALLBACK_COLOR;
       const style = getRouteStyleFromFrequency(routeId, trips);
@@ -225,7 +229,7 @@ export function useRoutePaths({
         color: routeColor,
         weight: style.weight,
         // Not-yet-running routes only fade out; weight/dash still encode frequency.
-        opacity: isFuture
+        opacity: fadeAsFuture
           ? MAP_LEGEND_LINE_BASE_STYLES.futureGhost.opacity
           : (style.opacity ?? 0.92),
         dashArray: style.dashArray || undefined,
