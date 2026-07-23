@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Disappeared: Z 53|Z 54",
-  "summary": "Route \"cr_Z_53\" (Shanghai – Kunming) has been missing from the sources for 7 days and is no longer shown. No action needed if the train was discontinued.",
+  "title": "Discontinued: Z 53|Z 54",
+  "summary": "The train route Z 53 (Shanghai – Kunming) has not been available for 7 days and is no longer listed. If this train has been discontinued, no further action is required.",
   "target": {
     "routeKey": "cr_Z_53",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
