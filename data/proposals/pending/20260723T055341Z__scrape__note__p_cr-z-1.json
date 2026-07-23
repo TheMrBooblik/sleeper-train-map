@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Disappeared: Z 1|Z 2",
-  "summary": "Route \"cr_Z_1\" (Beijing – Shanghai) has been missing from the sources for 7 days and is no longer shown. No action needed if the train was discontinued.",
+  "title": "Route Z 1 Discontinued",
+  "summary": "The train route Z 1 (Beijing – Shanghai) has been missing from the sources for 7 days and is no longer displayed on the map. No further action is required if this train has been officially discontinued.",
   "target": {
     "routeKey": "cr_Z_1",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
