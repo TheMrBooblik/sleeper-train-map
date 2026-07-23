@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Disappeared: Z 69|Z 70",
-  "summary": "Route \"cr_Z_69\" (Beijing – Urumqi) has been missing from the sources for 7 days and is no longer shown. No action needed if the train was discontinued.",
+  "title": "Train Z 69 Discontinued",
+  "summary": "The route for train Z 69 (Beijing – Urumqi) has been missing for 7 days and is no longer displayed. No further action is required if the train has been officially discontinued.",
   "target": {
     "routeKey": "cr_Z_69",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
