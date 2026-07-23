@@ -23,7 +23,7 @@ const LEGACY_SEO_DISMISS_KEY = "train-map:homeSeoDismissed";
 
 const Layout = ({ children, tourSeo }) => {
   const router = useRouter();
-  const { stops, isLoading: stopsLoading } = useInitialData();
+  const { stops, cities, isLoading: stopsLoading } = useInitialData();
   const [searchTarget, setSearchTarget] = useState(null);
   const [showRailwayOverlay, setShowRailwayOverlay] = useState(false); // OpenRailwayMap tile overlay
   const [isGrouped, setIsGrouped] = useState(true);
@@ -218,6 +218,7 @@ const Layout = ({ children, tourSeo }) => {
           open={nearbyOpen}
           onClose={() => setNearbyOpen(false)}
           stops={stops}
+          cities={cities}
           onSelect={setSearchTarget}
         />
         <Container>

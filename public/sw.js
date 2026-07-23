@@ -71,7 +71,26 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (isStaticAsset(url) || url.pathname === "/") {
+  // Network-first for HTML navigations (the app shell). Cache-first would freeze
+  // returning visitors on a stale build whose hashed JS chunks may 404 after a
+  // deploy — a white screen. Fall back to the cached shell only when offline.
+  if (req.mode === "navigate" || url.pathname === "/") {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_VERSION).then((c) => c.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req).then((cached) => cached || caches.match("/"))),
+    );
+    return;
+  }
+
+  // Cache-first for immutable/static assets (content-hashed chunks, icons, CSS).
+  if (isStaticAsset(url)) {
     event.respondWith(
       caches.match(req).then(
         (cached) =>

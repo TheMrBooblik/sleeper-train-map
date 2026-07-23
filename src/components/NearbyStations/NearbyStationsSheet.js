@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatDistanceKm, nearestStops } from "../../lib/geo";
-import { normalizeStationNameForDisplay } from "../Map/utils/stationNameUtils";
+import { normalizeStationNameForLookup } from "../../hooks/requests/useCities";
 import { MOBILE_MQ } from "../../hooks/useIsMobile";
 
 /**
@@ -13,6 +13,7 @@ export default function NearbyStationsSheet({
   open,
   onClose,
   stops,
+  cities,
   onSelect,
 }) {
   const sheetRef = useRef(null);
@@ -21,6 +22,34 @@ export default function NearbyStationsSheet({
   const [message, setMessage] = useState("");
   const [results, setResults] = useState([]);
   const [userPos, setUserPos] = useState(null);
+
+  // Only rank stations actually served by a sleeper route — the same membership
+  // test the map uses (a `cities` entry with route ids). This drops the ~28k
+  // intermediate/GTFS stops (and any mislabeled coordinates) that would
+  // otherwise dominate the list. Co-located platforms are collapsed by rounded
+  // location, keeping the shortest name (usually the main terminal).
+  const sleeperStops = useMemo(() => {
+    if (!Array.isArray(stops) || !cities) return [];
+    const byLoc = new Map();
+    for (const s of stops) {
+      if (
+        !s?.stop_id ||
+        !Number.isFinite(s.stop_lat) ||
+        !Number.isFinite(s.stop_lon)
+      ) {
+        continue;
+      }
+      const n = normalizeStationNameForLookup(s.stop_id);
+      const info = cities[n] || cities[s.stop_id];
+      if (!info?.stop_route_ids) continue;
+      const key = `${s.stop_lat.toFixed(3)},${s.stop_lon.toFixed(3)}`;
+      const existing = byLoc.get(key);
+      if (!existing || (s.stop_id || "").length < (existing.stop_id || "").length) {
+        byLoc.set(key, s);
+      }
+    }
+    return [...byLoc.values()];
+  }, [stops, cities]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -41,7 +70,7 @@ export default function NearbyStationsSheet({
         if (cancelled) return;
         const { latitude, longitude } = pos.coords;
         setUserPos([latitude, longitude]);
-        const ranked = nearestStops(stops, latitude, longitude, 10);
+        const ranked = nearestStops(sleeperStops, latitude, longitude, 10);
         setResults(ranked);
         setStatus("ready");
         setMessage(
@@ -80,7 +109,7 @@ export default function NearbyStationsSheet({
     return () => {
       cancelled = true;
     };
-  }, [open, stops]);
+  }, [open, sleeperStops]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -183,8 +212,7 @@ export default function NearbyStationsSheet({
           {status === "ready" && results.length > 0 && (
             <ul className="mt-3 divide-y divide-gray-100">
               {results.map(({ stop, distanceKm }) => {
-                const label =
-                  normalizeStationNameForDisplay(stop.stop_id) || stop.stop_id;
+                const label = stop.stop_id;
                 return (
                   <li key={stop.stop_id}>
                     <button
