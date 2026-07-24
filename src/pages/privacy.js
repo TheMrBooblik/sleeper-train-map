@@ -6,7 +6,7 @@ const SITE_URL = "https://sleeper-train-map.pingwi.com";
 // Placeholder contact — replace with the address you want to publish for
 // privacy requests (see the note in the "Contact us" section below).
 const CONTACT_EMAIL = "privacy@pingwi.com";
-const LAST_UPDATED = "20 July 2026";
+const LAST_UPDATED = "24 July 2026";
 
 /** A titled policy section with a subtle divider, matching the dark SEO theme. */
 const PolicySection = ({ title, children }) => (
@@ -128,12 +128,13 @@ export default function PrivacyPage() {
             <p>
               Some of the outbound booking links on this site are affiliate
               links, served through the affiliate networks{" "}
-              <A href="https://www.tradetracker.com/">TradeTracker</A> and{" "}
-              <A href="https://www.awin.com/">Awin</A>. If you follow one of
-              these links and later make a booking, we may earn a small
-              commission from the operator — at no extra cost to you. This helps
-              cover the cost of running the site. Affiliate relationships never
-              change which routes we show or how they are ranked.
+              <A href="https://www.tradetracker.com/">TradeTracker</A>,{" "}
+              <A href="https://www.awin.com/">Awin</A> and{" "}
+              <A href="https://www.effiliation.com/">Effiliation</A>. If you
+              follow one of these links and later make a booking, we may earn a
+              small commission from the operator — at no extra cost to you. This
+              helps cover the cost of running the site. Affiliate relationships
+              never change which routes we show or how they are ranked.
             </p>
             <p>
               To attribute a booking, these networks may set their own cookies
@@ -205,11 +206,11 @@ export default function PrivacyPage() {
               </li>
               <li>
                 <strong className="text-white/80">Affiliate cookies.</strong>{" "}
-                As noted above, our affiliate partners (TradeTracker and Awin)
-                may set cookies to attribute a booking when you click an outbound
-                link to an operator. These are governed by those networks’ own
-                privacy and cookie policies. You can clear or block cookies at
-                any time in your browser settings.
+                As noted above, our affiliate partners (TradeTracker, Awin and
+                Effiliation) may set cookies to attribute a booking when you
+                click an outbound link to an operator. These are governed by
+                those networks’ own privacy and cookie policies. You can clear
+                or block cookies at any time in your browser settings.
               </li>
             </ul>
           </PolicySection>
@@ -235,9 +236,10 @@ export default function PrivacyPage() {
                 the map background and optional railway overlay tiles.
               </li>
               <li>
-                <A href="https://www.tradetracker.com/">TradeTracker</A> and{" "}
-                <A href="https://www.awin.com/">Awin</A> — affiliate link
-                tracking for outbound booking links.
+                <A href="https://www.tradetracker.com/">TradeTracker</A>,{" "}
+                <A href="https://www.awin.com/">Awin</A> and{" "}
+                <A href="https://www.effiliation.com/">Effiliation</A> —
+                affiliate link tracking for outbound booking links.
               </li>
               <li>
                 <A href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">

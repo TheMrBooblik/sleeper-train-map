@@ -27,7 +27,7 @@
       "Chop":        "7122881001"
     }
   },
-  "SNCF": { "bookingPageUrl": "https://www.sncf-connect.com/en-en/train-ticket" },
+  "SNCF": { "bookingPageUrl": "https://track.effiliation.com/servlet/effi.redir?id_compteur=23298544&url=https%3A%2F%2Fwww.sncf-connect.com%2Fen-en%2Ftrain-ticket" },
   "PKP":  { "bookingPageUrl": "https://ebilet.intercity.pl/" },
   "ČD":   { "bookingPageUrl": "https://www.cd.cz/en/eshop/" },
   "SJ":   { "bookingPageUrl": "https://www.sj.se/en" },
