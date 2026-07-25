@@ -1,0 +1,36 @@
+{
+  "v": 1,
+  "id": "p_alias-tullnerfeld-bahnhof",
+  "createdAt": "2026-07-25T05:41:52.028Z",
+  "source": "ai",
+  "sourceDetail": "station-matcher",
+  "kind": "override.set",
+  "title": "Alias station \"Tullnerfeld Bahnhof\" → \"Tullnerfeld\"",
+  "summary": "The operator-injected station \"Tullnerfeld Bahnhof\" appears to be the same as Back-on-Track's \"Tullnerfeld\" (AI confidence 0.9). Approving merges the duplicate marker.",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Tullnerfeld Bahnhof"
+  },
+  "before": null,
+  "after": {
+    "alias": "tullnerfeld bahnhof",
+    "canonical": "Tullnerfeld"
+  },
+  "apply": {
+    "type": "override.set",
+    "payload": {
+      "resource": "station-aliases",
+      "action": "set",
+      "payload": {
+        "alias": "Tullnerfeld Bahnhof",
+        "canonical": "Tullnerfeld"
+      }
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
