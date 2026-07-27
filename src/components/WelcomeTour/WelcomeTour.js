@@ -114,16 +114,17 @@ export default function WelcomeTour({
         phase === "enter" ? "" : "opacity-0"
       }`}
     >
-      {/* Mobile (<768px): compact scrollable bottom sheet — hero + close visible
-          by default; SEO cards (browse hubs, legend) stay in DOM below the fold.
+      {/* Mobile (<768px): scrollable bottom sheet — drag handle and the primary
+          CTA stay pinned (sticky top/bottom) so they are reachable at any scroll
+          offset; SEO cards (browse hubs, legend) stay in DOM below the fold.
           Desktop: the wrapper dissolves and cards break out to absolute anchors. */}
       <div
         ref={sheetRef}
-        className="tour-mobile-sheet pointer-events-auto absolute inset-x-0 bottom-0 max-h-[42vh] overflow-y-auto overscroll-y-contain rounded-t-2xl border-t border-white/10 bg-black/90 shadow-2xl md:pointer-events-none md:static md:max-h-none md:overflow-visible md:rounded-none md:border-t-0 md:bg-transparent md:shadow-none"
+        className="tour-mobile-sheet pointer-events-auto absolute inset-x-0 bottom-0 max-h-[65vh] overflow-y-auto overscroll-y-contain rounded-t-2xl border-t border-white/10 bg-black/95 backdrop-blur-lg shadow-2xl md:pointer-events-none md:static md:max-h-none md:overflow-visible md:rounded-none md:border-t-0 md:bg-transparent md:backdrop-blur-none md:shadow-none"
       >
         {/* Mobile-only sticky header: drag down to close + X button. */}
         <div
-          className="tour-sheet-drag sticky top-0 z-10 flex touch-none cursor-grab active:cursor-grabbing items-center justify-center border-b border-white/10 bg-black/90 px-4 py-3 md:hidden"
+          className="tour-sheet-drag sticky top-0 z-10 flex touch-none cursor-grab active:cursor-grabbing items-center justify-center border-b border-white/10 bg-black/95 px-4 py-3 md:hidden"
           onPointerDown={onSheetDragStart}
           onPointerMove={onSheetDragMove}
           onPointerUp={onSheetDragEnd}
@@ -149,7 +150,7 @@ export default function WelcomeTour({
           </button>
         </div>
 
-        <div className="space-y-2 px-3 pb-3 md:space-y-0 md:p-0">
+        <div className="px-4 max-md:divide-y max-md:divide-white/10 md:space-y-0 md:p-0">
           {/* ① Hero: the crawlable h1 + primary dismiss */}
           <TourCard
             className="md:pointer-events-auto md:absolute md:top-4 md:left-16 md:w-80"
@@ -337,14 +338,28 @@ export default function WelcomeTour({
             <div className="mt-2 md:max-h-[45vh] md:overflow-y-auto md:pr-1">
               <Legend variant="panel" />
             </div>
+            {/* Mobile gets this CTA pinned to the sheet instead (see below), so
+                it is reachable without scrolling past every card. */}
             <button
               type="button"
               onClick={onDismiss}
-              className="mt-3 w-full cursor-pointer rounded-lg bg-primary-green px-3 py-2 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors"
+              className="mt-3 hidden w-full cursor-pointer rounded-lg bg-primary-green px-3 py-2 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors md:block"
             >
               Start exploring →
             </button>
           </TourCard>
+        </div>
+
+        {/* Mobile-only pinned CTA: the tour is a tall scroll, so the primary
+            dismiss must not depend on reaching the last card. */}
+        <div className="sticky bottom-0 z-10 border-t border-white/10 bg-black/95 px-4 py-3 md:hidden">
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="w-full cursor-pointer rounded-lg bg-primary-green px-3 py-2.5 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors"
+          >
+            Start exploring →
+          </button>
         </div>
       </div>
     </div>

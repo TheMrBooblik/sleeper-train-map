@@ -1,26 +1,34 @@
 import React from "react";
 
 /**
- * Chip shown when a station filter is active.
- * Truncates long names on narrow screens; close button is a 44px tap target.
+ * Chip shown when a station/route filter is active.
+ *
+ * Sits to the right of the Leaflet zoom stack and shares its chrome
+ * (`leaflet-bar`) so it reads as a native map control. Geometry is pinned to
+ * Leaflet's own control metrics: controls get `margin: 10px`, and the zoom bar
+ * is 48px wide (44px button + 2px border each side) — so `top-[10px]` aligns
+ * the chip's top edge with the zoom bar's, and `left-[66px]` clears its right
+ * edge (10 + 48) with an 8px gutter. Long route labels truncate rather than
+ * running off screen.
  */
 const Filter = ({ selected, filterName, onClose }) => {
   return (
     <div
-      className={`flex items-center gap-1 text-sm absolute !z-999 left-14 top-3 max-w-[calc(100vw-5.5rem)] bg-white rounded shadow-sm ${
+      className={`absolute !z-999 left-[66px] top-[10px] h-11 max-w-[calc(100vw-76px)] items-center overflow-hidden rounded bg-white text-sm leaflet-bar ${
         selected ? "flex" : "hidden"
-      } leaflet-bar`}
+      }`}
     >
       <button
         type="button"
         onClick={onClose}
-        className="flex h-11 w-11 shrink-0 items-center justify-center cursor-pointer text-gray-600 hover:bg-gray-100 rounded-l"
+        className="flex h-full w-10 shrink-0 cursor-pointer items-center justify-center text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
         aria-label="Clear filter"
       >
         ✖
       </button>
-      <span className="pr-3 py-2 min-w-0 truncate">
-        Filter:&nbsp;<strong>{filterName}</strong>
+      <span className="min-w-0 truncate pr-3 text-gray-900">
+        <span className="hidden text-gray-500 md:inline">Filter:&nbsp;</span>
+        <strong>{filterName}</strong>
       </span>
     </div>
   );

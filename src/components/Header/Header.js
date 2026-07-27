@@ -160,7 +160,9 @@ const Header = ({
     >
       <Container className="flex flex-wrap justify-between items-center gap-y-2 gap-x-2">
         <h1 className="text-sm leading-none whitespace-nowrap md:text-base shrink-0">
-          <Link href="/">
+          {/* Negative margin keeps the header height while giving the link a
+              taller hit area than its 16px text box. */}
+          <Link href="/" className="-my-2.5 inline-block py-2.5">
             Pingwi <i>sleeper train</i> map
           </Link>
         </h1>
@@ -222,7 +224,9 @@ const Header = ({
                     />
                   ))}
                 </div>
-                <div className="mt-3 flex flex-col gap-2 border-t border-white/15 pt-3">
+                {/* Same 44px full-width row geometry as the toggles above —
+                    these were 16px-tall inline links, too small to tap. */}
+                <div className="mt-2 flex flex-col gap-0.5 border-t border-white/15 pt-2">
                   {onNearbyOpen && (
                     <button
                       type="button"
@@ -230,24 +234,30 @@ const Header = ({
                         mobileMenu.setOpen(false);
                         onNearbyOpen();
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-sm text-left text-xs font-medium text-sky-400 underline decoration-sky-400 underline-offset-2 hover:text-sky-300"
+                      className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-sky-400 transition-colors hover:bg-white/10 hover:text-sky-300"
                     >
-                      <FaMapMarkerAlt size={10} />
+                      <span className="text-sky-400/70">
+                        <FaMapMarkerAlt size={14} />
+                      </span>
                       Trains near me
                     </button>
                   )}
                   <Link
                     href="/trains"
-                    className="inline-flex items-center gap-1.5 rounded-sm text-xs font-medium text-sky-400 underline decoration-sky-400 underline-offset-2 hover:text-sky-300"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-sky-400 transition-colors hover:bg-white/10 hover:text-sky-300"
                   >
-                    <FaRoute size={10} />
+                    <span className="text-sky-400/70">
+                      <FaRoute size={14} />
+                    </span>
                     Browse all night train routes
                   </Link>
                   <Link
                     href="/about"
-                    className="inline-flex items-center gap-1.5 rounded-sm text-xs font-medium text-sky-400 underline decoration-sky-400 underline-offset-2 hover:text-sky-300"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-sky-400 transition-colors hover:bg-white/10 hover:text-sky-300"
                   >
-                    <FaExternalLinkAlt size={10} />
+                    <span className="text-sky-400/70">
+                      <FaExternalLinkAlt size={14} />
+                    </span>
                     About this map
                   </Link>
                 </div>
