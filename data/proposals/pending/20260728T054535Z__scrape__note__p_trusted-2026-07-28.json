@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (0 routes, 1 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation Frankfurt(M) Flughafen Fernbf (nightjet)",
+  "title": "New Station Added: Frankfurt(M) Flughafen Fernbf",
+  "summary": "A new station, Frankfurt(M) Flughafen Fernbf, has been auto-approved from trusted official sources. This station is already live and is part of the nightjet service.",
   "target": {
     "routeKey": "trusted-2026-07-28",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
