@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (0 routes, 25 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation Zhurihe(朱日和) (chinese)\nstation Xingtaidong(邢台东) (chinese)\nstation Zhengzhoudong(郑州东) (chinese)\nstation Xi'an North(西安北) (chinese)\nstation Gaobeidiandong(高碑店东) (chinese)\nstation Gaoyixi(高邑西) (chinese)\nstation Chongqingxi(重庆西) (chinese)\nstation Zunyi(遵义) (chinese)\nstation Guiyangbei(贵阳北) (chinese)\nstation Baodingdong(保定东) (chinese)\nstation Shanghai Hongqiao(上海虹桥) (chinese)\nstation Nantongxi(南通西) (chinese)\nstation Huaiandong(淮安东) (chinese)\nstation Suqian(宿迁) (chinese)\nstation Xuzhoudong(徐州东) (chinese)\nstation Leshan(乐山) (chinese)\nstation Yibin(宜宾) (chinese)\nstation Meishandong(眉山东) (chinese)\nstation Zhuhai(珠海) (chinese)\nstation Zhongshan(中山) (chinese)\nstation Guangzhou South(广州南) (chinese)\nstation Guilinxi(桂林西) (chinese)\nstation Guiyangdong(贵阳东) (chinese)\nstation Foshanxi(佛山西) (chinese)\nstation Shenzhenbei(深圳北) (chinese)",
+  "title": "New Stations Added from Trusted Sources",
+  "summary": "25 new stations have been auto-approved from trusted official sources. These include Zhurihe, Xingtaidong, Zhengzhoudong, Xi'an North, Gaobeidiandong, Gaoyixi, Chongqingxi, Zunyi, Guiyangbei, Baodingdong, Shanghai Hongqiao, Nantongxi, Huaiandong, Suqian, Xuzhoudong, Leshan, Yibin, Meishandong, Zhuhai, Zhongshan, Guangzhou South, Guilinxi, Guiyangdong, Foshanxi, and Shenzhenbei.",
   "target": {
     "routeKey": "trusted-2026-07-29",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
