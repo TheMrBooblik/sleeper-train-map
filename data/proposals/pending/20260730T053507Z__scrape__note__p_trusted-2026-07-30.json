@@ -5,8 +5,8 @@
   "source": "scrape",
   "sourceDetail": null,
   "kind": "note",
-  "title": "Auto-added from trusted sources (1 routes, 0 stations)",
-  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute amtrak_Texas_Eagle: Texas Eagle (Chicago Union Station – Los Angeles)",
+  "title": "New Route Added: Texas Eagle",
+  "summary": "A new route has been added from trusted sources: the Texas Eagle, which runs from Chicago Union Station to Los Angeles. This route is already live.",
   "target": {
     "routeKey": "trusted-2026-07-30",
     "agencyId": null,
@@ -19,5 +19,6 @@
   "evidence": null,
   "submitter": null,
   "status": "pending",
-  "resolution": null
+  "resolution": null,
+  "aiEnriched": true
 }
