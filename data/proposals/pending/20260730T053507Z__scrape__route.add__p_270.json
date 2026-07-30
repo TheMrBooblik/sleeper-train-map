@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_270",
+  "createdAt": "2026-07-30T05:35:07.514Z",
+  "source": "scrape",
+  "sourceDetail": "backontrack",
+  "kind": "route.add",
+  "title": "New train: LE 232 (Przemyśl Gł. – Frankfurt (Main) Flughafen Fernbahnhof)",
+  "summary": "Route \"270\" appeared in tonight's scrape and is withheld from the map until approved. Via: Rzeszow Gł. - Kraków Gł. - Bohumín - Ostrava hl.n. - Olomouc hl.n. - Pardubice hl.n. - Praha hl.n. - Ústí nad Labem hl.n. - Děčín hl.n. - Erfurt Hbf - Fulda - Hanau Hbf - Hanau Hbf",
+  "target": {
+    "routeKey": "270",
+    "agencyId": "LE",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "LE 232",
+    "returnTrain": "LE 235",
+    "origin": "Przemyśl Gł.",
+    "destination": "Frankfurt (Main) Flughafen Fernbahnhof",
+    "operator": "LE",
+    "operatingDays": "2026: Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "270"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
