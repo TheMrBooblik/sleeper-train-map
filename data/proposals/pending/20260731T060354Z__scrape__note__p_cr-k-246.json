@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_cr-k-246",
+  "createdAt": "2026-07-31T06:03:54.428Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: K 246 (Chengdu West(成都西) – Yangzhou(扬州))",
+  "summary": "Material change on an approved route (already live — FYI): operating days (return): \"Daily\" → \"null\"; train numbers: \"K 246|K 245\" → \"K 246\"",
+  "target": {
+    "routeKey": "cr_K_246",
+    "agencyId": "CR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (return)": "Daily",
+    "train numbers": "K 246|K 245"
+  },
+  "after": {
+    "operating days (return)": null,
+    "train numbers": "K 246"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
