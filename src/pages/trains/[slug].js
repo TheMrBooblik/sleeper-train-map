@@ -9,6 +9,7 @@ import RouteFactsGrid from "@components/seo/RouteFactsGrid";
 import RouteCardLink from "@components/seo/RouteCardLink";
 import RouteMapIsland from "@components/seo/RouteMapIsland";
 import BookingCta from "@components/seo/BookingCta";
+import FaqSection from "@components/seo/FaqSection";
 import JsonLd from "@components/seo/JsonLd";
 
 import {
@@ -21,6 +22,7 @@ import {
   getRelatedRoutes,
   getCityPairSlugForRoute,
 } from "../../lib/seo/aggregate";
+import { buildRouteFaq } from "../../lib/seo/routeFaq.mjs";
 import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
 function buildIntro(detail) {
@@ -50,11 +52,12 @@ function buildDescription(detail) {
   if (detail.facts.durationText) bits.push(`Journey time ${detail.facts.durationText}.`);
   const dep = detail.directions[0]?.departureTime;
   if (dep) bits.push(`Departs ${dep}.`);
+  if (detail.booking?.fromPrice) bits.push(`Tickets ${detail.booking.fromPrice}.`);
   if (detail.operators.length) bits.push(`Operated by ${detail.operators.map((o) => o.name).join(", ")}.`);
   return bits.join(" ").slice(0, 320);
 }
 
-export default function TrainPage({ detail, related, cityPair }) {
+export default function TrainPage({ detail, related, cityPair, faq }) {
   const canonical = absoluteUrl(`/trains/${detail.slug}`);
   const title = `Night Train ${detail.origin} to ${detail.destination}${
     detail.primaryTrainNumber ? ` (${detail.primaryTrainNumber})` : ""
@@ -95,6 +98,19 @@ export default function TrainPage({ detail, related, cityPair }) {
     ...(itinerary ? { itinerary } : {}),
     url: canonical,
   };
+
+  const faqLd =
+    faq && faq.length
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faq.map((f) => ({
+            "@type": "Question",
+            name: f.q,
+            acceptedAnswer: { "@type": "Answer", text: f.a },
+          })),
+        }
+      : null;
 
   return (
     <>
@@ -201,6 +217,8 @@ export default function TrainPage({ detail, related, cityPair }) {
             </Link>
           </div>
 
+          <FaqSection items={faq} />
+
           {related.length > 0 && (
             <section className="mt-14 border-t border-white/10 pt-10">
               <h2 className="text-xl font-semibold text-white">
@@ -217,6 +235,7 @@ export default function TrainPage({ detail, related, cityPair }) {
       </SeoLayout>
 
       <JsonLd data={trainTripLd} />
+      {faqLd && <JsonLd data={faqLd} />}
     </>
   );
 }
@@ -244,5 +263,18 @@ export async function getStaticProps({ params }) {
     ? { slug: pairSlug, originCity: summary.originCity, destCity: summary.destinationCity }
     : null;
 
-  return { props: { detail, related, cityPair } };
+  const primary = detail.directions[0] || {};
+  const faq = buildRouteFaq({
+    origin: detail.originCity || detail.origin,
+    destination: detail.destinationCity || detail.destination,
+    operators: detail.operators.map((o) => o.name),
+    durationText: detail.facts.durationText,
+    departureTime: primary.departureTime || "",
+    arrivalTime: primary.arrivalTime || "",
+    fromPrice: detail.booking?.fromPrice || "",
+    classes: detail.facts.classes,
+    trainNumbers: detail.directions.map((d) => d.trainNumber).filter(Boolean),
+  });
+
+  return { props: { detail, related, cityPair, faq } };
 }

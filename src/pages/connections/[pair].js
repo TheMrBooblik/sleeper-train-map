@@ -4,14 +4,16 @@ import Link from "next/link";
 import SeoLayout from "@components/seo/SeoLayout";
 import Breadcrumbs from "@components/seo/Breadcrumbs";
 import RouteCardLink from "@components/seo/RouteCardLink";
+import FaqSection from "@components/seo/FaqSection";
 import JsonLd from "@components/seo/JsonLd";
 
 import { getAllCityPairs, getCityPair } from "../../lib/seo/aggregate";
 import { toCardRoute } from "../../lib/seo/data";
+import { buildConnectionFaq } from "../../lib/seo/routeFaq.mjs";
 import { getFlagEmoji } from "../../lib/countries";
 import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
-export default function ConnectionPage({ slug, originCity, destCity, routes, operators, countries }) {
+export default function ConnectionPage({ slug, originCity, destCity, routes, operators, countries, faq }) {
   const canonical = absoluteUrl(`/connections/${slug}`);
   const title = `Night Train ${originCity} to ${destCity} — Sleeper Connections | Pingwi`;
   const operatorNames = operators.map((o) => o.name).join(", ");
@@ -32,6 +34,19 @@ export default function ConnectionPage({ slug, originCity, destCity, routes, ope
       name: r.title,
     })),
   };
+
+  const faqLd =
+    faq && faq.length
+      ? {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: faq.map((f) => ({
+            "@type": "Question",
+            name: f.q,
+            acceptedAnswer: { "@type": "Answer", text: f.a },
+          })),
+        }
+      : null;
 
   return (
     <>
@@ -102,10 +117,13 @@ export default function ConnectionPage({ slug, originCity, destCity, routes, ope
               ))}
             </div>
           </section>
+
+          <FaqSection items={faq} />
         </div>
       </SeoLayout>
 
       <JsonLd data={itemListLd} />
+      {faqLd && <JsonLd data={faqLd} />}
     </>
   );
 }
@@ -121,6 +139,26 @@ export async function getStaticProps({ params }) {
   const pair = getCityPair(params.pair);
   if (!pair) return { notFound: true };
   const routes = pair.routes.map(toCardRoute);
+
+  // Fastest journey + cheapest known "from" price across the pair's trains.
+  const timed = pair.routes.filter((r) => r.durationMinutes > 0);
+  const fastest = timed.length
+    ? timed.reduce((a, b) => (a.durationMinutes <= b.durationMinutes ? a : b))
+    : null;
+  const priced = pair.routes.filter((r) => r.pricing && r.pricing.fromPrice != null);
+  const cheapest = priced.length
+    ? priced.reduce((a, b) => (a.pricing.fromPrice <= b.pricing.fromPrice ? a : b))
+    : null;
+
+  const faq = buildConnectionFaq({
+    originCity: pair.originCity,
+    destCity: pair.destCity,
+    trainCount: pair.routes.length,
+    operators: pair.operators.map((o) => o.name),
+    fastestDurationText: fastest?.durationText || "",
+    fromPrice: cheapest?.fromPrice || "",
+  });
+
   return {
     props: {
       slug: pair.slug,
@@ -129,6 +167,7 @@ export async function getStaticProps({ params }) {
       routes,
       operators: pair.operators,
       countries: pair.countries,
+      faq,
     },
   };
 }

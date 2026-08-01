@@ -15,9 +15,9 @@ import {
 import { getFlagEmoji } from "../../lib/countries";
 import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
-const TITLE = "All European Night Train Routes — Sleeper Train Directory | Pingwi";
+const TITLE = "Sleeper & Night Train Routes — Europe & Beyond | Pingwi";
 const DESCRIPTION =
-  "Browse every European night and sleeper train route on the map: search by country, operator or city connection, with timetables, stops and prices for each train.";
+  "Browse every night and sleeper train route on the map — across Europe and beyond. Search by country, operator or city connection, with timetables, stops and prices for each train.";
 
 function ChipLink({ href, children, count }) {
   return (
@@ -36,7 +36,7 @@ export default function TrainsIndex({ routes, countries, operators, cityPairs })
   const collectionLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "European Night Train Routes",
+    name: "Sleeper & Night Train Routes",
     description: DESCRIPTION,
     url: canonical,
     isPartOf: { "@type": "WebSite", name: "Pingwi Sleeper Train Map", url: SITE_URL },
@@ -78,12 +78,13 @@ export default function TrainsIndex({ routes, countries, operators, cityPairs })
 
           <header className="mt-6 max-w-3xl">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight">
-              European Night Train Routes
+              Sleeper &amp; Night Train Routes
             </h1>
             <p className="mt-4 text-white/60 leading-relaxed">
               {routes.length} sleeper and overnight train routes across {countries.length}{" "}
-              countries. Explore them by country, operator or popular city connection — each
-              with a full timetable, stops and onward booking links.
+              countries — from across Europe and beyond. Explore them by country, operator or
+              popular city connection — each with a full timetable, stops and onward booking
+              links.
             </p>
           </header>
 

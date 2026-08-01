@@ -158,12 +158,13 @@ export default function WelcomeTour({
             style={delay(0)}
           >
             <h1 className="text-base font-bold tracking-tight">
-              Night Train Map
+              Sleeper Train Map: Night Trains Across Europe &amp; Beyond
             </h1>
             <p className="mt-1.5 text-xs leading-relaxed text-white/70">
-              {routeCount} night and sleeper train routes across {countryCount}{" "}
-              countries, with timetables, stops and booking links. The map is
-              live — go poke it.
+              {routeCount} night and sleeper train routes in {countryCount}{" "}
+              countries — Nightjet, European Sleeper, Trenitalia, RegioJet and
+              more — with timetables, stops and booking links. The map is live:
+              go poke it.
             </p>
           </TourCard>
 
