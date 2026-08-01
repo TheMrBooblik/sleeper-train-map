@@ -162,7 +162,7 @@ export default function NearbyStationsSheet({
       />
       <div
         ref={sheetRef}
-        className="fixed bottom-0 left-0 right-0 z-[1101] max-h-[70vh] overflow-y-auto overscroll-y-contain rounded-t-2xl bg-white shadow-2xl pb-[env(safe-area-inset-bottom,0px)]"
+        className="fixed bottom-0 left-0 right-0 z-[1101] max-h-[70dvh] overflow-y-auto overscroll-y-contain rounded-t-2xl bg-white shadow-2xl pb-[env(safe-area-inset-bottom,0px)]"
         role="dialog"
         aria-modal="true"
         aria-label="Sleeper stations near you"

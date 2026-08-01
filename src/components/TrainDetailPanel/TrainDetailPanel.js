@@ -877,7 +877,7 @@ const TrainDetailPanel = ({
       )}
       <div
         ref={sheetRef}
-        className={`fixed z-[1000] bg-white shadow-lg transition-transform duration-300 overflow-y-auto overscroll-y-none bottom-0 left-0 right-0 rounded-t-2xl h-[80vh] pb-[env(safe-area-inset-bottom,0px)] md:top-13 md:right-0 md:bottom-auto md:left-auto md:rounded-none md:h-[calc(100vh-3rem)] md:w-[300px] md:translate-y-0 md:pb-0 ${
+        className={`fixed z-[1000] bg-white shadow-lg transition-transform duration-300 overflow-y-auto overscroll-y-none bottom-0 left-0 right-0 rounded-t-2xl h-[80dvh] pb-[env(safe-area-inset-bottom,0px)] md:top-13 md:right-0 md:bottom-auto md:left-auto md:rounded-none md:h-[calc(100vh-3rem)] md:w-[300px] md:translate-y-0 md:pb-0 ${
           isOpen
             ? "translate-y-0 md:translate-x-0"
             : "translate-y-full md:translate-x-full"

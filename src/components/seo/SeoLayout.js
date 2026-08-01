@@ -7,8 +7,11 @@ import { FaArrowRight } from "react-icons/fa";
  * existing about/homepage are never touched. Each page renders its own <Head>.
  */
 export default function SeoLayout({ children }) {
+  // h-dvh, not h-screen: on iOS Safari 100vh exceeds the visible area, so the
+  // bottom of this scroll container (and the footer in it) stays under the
+  // browser toolbar no matter how far you scroll.
   return (
-    <div className="h-screen overflow-y-auto bg-black">
+    <div className="h-dvh overflow-y-auto bg-black">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

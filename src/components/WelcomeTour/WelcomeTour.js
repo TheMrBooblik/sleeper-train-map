@@ -120,7 +120,7 @@ export default function WelcomeTour({
           Desktop: the wrapper dissolves and cards break out to absolute anchors. */}
       <div
         ref={sheetRef}
-        className="tour-mobile-sheet pointer-events-auto absolute inset-x-0 bottom-0 max-h-[65vh] overflow-y-auto overscroll-y-contain rounded-t-2xl border-t border-white/10 bg-black/95 backdrop-blur-lg shadow-2xl md:pointer-events-none md:static md:max-h-none md:overflow-visible md:rounded-none md:border-t-0 md:bg-transparent md:backdrop-blur-none md:shadow-none"
+        className="tour-mobile-sheet pointer-events-auto absolute inset-x-0 bottom-0 max-h-[65dvh] overflow-y-auto overscroll-y-contain rounded-t-2xl border-t border-white/10 bg-black/95 backdrop-blur-lg shadow-2xl md:pointer-events-none md:static md:max-h-none md:overflow-visible md:rounded-none md:border-t-0 md:bg-transparent md:backdrop-blur-none md:shadow-none"
       >
         {/* Mobile-only sticky header: drag down to close + X button. */}
         <div

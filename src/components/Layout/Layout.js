@@ -183,8 +183,14 @@ const Layout = ({ children, tourSeo }) => {
     showRailwayOverlay,
   ]);
 
+  // min-h-dvh, not min-h-screen: iOS Safari resolves 100vh to the *large*
+  // viewport (as if the bottom toolbar were collapsed), while html/body's
+  // height:100% tracks the visible area. The 100vh shell was therefore taller
+  // than the body, body's overflow-hidden clipped the difference, and anything
+  // anchored to the bottom of <main> (the tour's sticky CTA) sat in that
+  // clipped strip behind the toolbar. dvh tracks the currently visible height.
   return (
-    <div className="grid grid-rows-[auto_1fr_auto] overflow-hidden min-h-screen">
+    <div className="grid grid-rows-[auto_1fr_auto] overflow-hidden min-h-dvh">
       <Header
         isGrouped={isGrouped}
         setIsGrouped={setIsGrouped}

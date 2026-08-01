@@ -108,7 +108,9 @@ export default function AboutPage({ hubCountryCodes = [] }) {
         <meta name="twitter:image" content={OG_IMAGE} />
       </Head>
 
-      <div className="h-screen overflow-y-auto bg-black">
+      {/* h-dvh, not h-screen — see SeoLayout: 100vh overshoots iOS Safari's
+          visible area and buries the end of the scroll under the toolbar. */}
+      <div className="h-dvh overflow-y-auto bg-black">
         {/* Navigation */}
         <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -202,7 +202,7 @@ export default function StationSearchBar({
     ? "w-full rounded-lg border border-white/25 bg-white/15 px-3 py-3 text-base text-white placeholder-white/50 focus:outline-none focus:border-white/60 focus:bg-white/25 disabled:opacity-40 transition-colors"
     : "w-full rounded border border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white placeholder-white/50 focus:outline-none focus:border-white/60 focus:bg-white/20 disabled:opacity-40 transition-colors";
   const listClass = isMobileVariant
-    ? "absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-y-auto max-h-[70vh] z-[1100]"
+    ? "absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-y-auto max-h-[70dvh] z-[1100]"
     : "absolute left-0 right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-100 overflow-y-auto max-h-80 z-[1100]";
 
   return (
