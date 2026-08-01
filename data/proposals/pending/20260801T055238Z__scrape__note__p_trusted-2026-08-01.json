@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-08-01",
+  "createdAt": "2026-08-01T05:52:38.697Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (0 routes, 7 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation Shaheshi(沙河市) (chinese)\nstation Guanlin(关林) (chinese)\nstation Dongtai(东台) (chinese)\nstation Huaian(淮安) (chinese)\nstation Ninglingxian(宁陵县) (chinese)\nstation Xiaohezhen(小河镇) (chinese)\nstation East Glacier Park Amtrak Station (amtrak)",
+  "target": {
+    "routeKey": "trusted-2026-08-01",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
