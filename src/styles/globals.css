@@ -57,6 +57,29 @@ img {
   color: #007aff !important;
 }
 
+/*
+ * Touch-friendly Leaflet control buttons (zoom + location).
+ * Default Leaflet size is ~26–30px; bump to 44px on narrow/touch viewports.
+ */
+.leaflet-bar a {
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  font-size: 18px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
+  .leaflet-bar a {
+    width: 34px !important;
+    height: 34px !important;
+    line-height: 34px !important;
+    font-size: 16px !important;
+  }
+}
+
 /* Bottom bar scroll fade — gradient hint that more route pills exist to the right */
 .bottom-bar-scroll-fade::after {
   content: "";
@@ -228,7 +251,14 @@ abbr {
   }
 }
 
-/* Map marker styles */
+/*
+ * Map marker styles.
+ *
+ * Each marker's HTML is a 44×44 transparent touch wrapper containing the small
+ * visual dot (and, for grouped markers, a count badge). Shadows/backgrounds
+ * MUST target only the inner dot — `> div > div` skips the wrapper. Matching a
+ * bare descendant `div` would paint a square shadow/border on the 44px wrapper.
+ */
 .station-dot {
   background: transparent !important;
   border: none !important;
@@ -240,7 +270,7 @@ abbr {
   transform: scale(1.3);
 }
 
-.station-dot div {
+.station-dot > div > div {
   transition: all 0.3s ease;
   /* Default blue shadow (matches green dot style) */
   box-shadow:
@@ -248,7 +278,7 @@ abbr {
     0 0 0 1px rgba(33, 150, 243, 0.2);
 }
 
-.station-dot:hover div {
+.station-dot:hover > div > div {
   background: linear-gradient(135deg, #1976d2, #1565c0) !important;
   box-shadow:
     0 4px 12px rgba(33, 150, 243, 0.6),
@@ -266,11 +296,11 @@ abbr {
   transform: scale(1.2);
 }
 
-.selected-station-dot div {
+.selected-station-dot > div > div {
   transition: all 0.3s ease;
 }
 
-.selected-station-dot:hover div {
+.selected-station-dot:hover > div > div {
   background: linear-gradient(135deg, #e64a19, #d84315) !important;
   box-shadow:
     0 5px 15px rgba(255, 87, 34, 0.7),
@@ -288,7 +318,7 @@ abbr {
   transform: scale(1.3);
 }
 
-.via-dot div {
+.via-dot > div > div {
   transition: all 0.3s ease;
   /* Default green shadow (matches Pingwi-style sleeper map) */
   box-shadow:
@@ -296,7 +326,7 @@ abbr {
     0 0 0 1px rgba(76, 175, 80, 0.2);
 }
 
-.via-dot:hover div {
+.via-dot:hover > div > div {
   background: linear-gradient(135deg, #388e3c, #2e7d32) !important;
   box-shadow:
     0 3px 10px rgba(76, 175, 80, 0.6),
@@ -314,11 +344,12 @@ abbr {
   transform: scale(1.2);
 }
 
-.grouped-station-dot div {
+/* Grouped markers nest one level deeper: wrapper > dot > count badge. */
+.grouped-station-dot > div > div {
   transition: all 0.3s ease;
 }
 
-.grouped-station-dot:hover div {
+.grouped-station-dot:hover > div > div {
   background: linear-gradient(135deg, #1976d2, #1565c0) !important;
   box-shadow:
     0 4px 12px rgba(33, 150, 243, 0.6),
@@ -326,7 +357,7 @@ abbr {
 }
 
 /* Keep selected grouped markers orange on hover */
-.grouped-station-dot.selected:hover div {
+.grouped-station-dot.selected:hover > div > div {
   background: linear-gradient(135deg, #f57c00, #e65100) !important;
   box-shadow:
     0 5px 15px rgba(255, 152, 0, 0.7),
@@ -334,7 +365,7 @@ abbr {
 }
 
 /* Orange badge hover effect */
-.grouped-station-dot:hover div div {
+.grouped-station-dot:hover > div > div > div {
   background: linear-gradient(135deg, #f57c00, #e65100) !important;
   box-shadow: 0 3px 8px rgba(255, 152, 0, 0.7) !important;
 }
@@ -406,7 +437,7 @@ abbr {
    Desktop-only — in the mobile bottom-sheet stack the cards point at nothing.
    (Cards get position via Tailwind utilities; no position rule here or it
    would override the responsive `absolute` placement.) */
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .tour-notch-up::before,
   .tour-notch-down::before {
     content: "";
@@ -449,6 +480,19 @@ abbr {
   left: auto;
   right: 28px;
 }
+
+/*
+ * Bottom-sheet / overlay z-index stack (map homepage):
+ *   999  — TrainDetailPanel / NearbyStations backdrop
+ *  1000  — TrainBottomBar, TrainDetailPanel sheet
+ *  1001  — WelcomeTour
+ *  1002  — Header
+ *  1003  — Header popovers / mobile menu
+ *  1100  — NearbyStations backdrop + MobileSearch (above header chrome)
+ *  1101  — NearbyStations sheet
+ *  1200  — MobileSearchOverlay (full-screen)
+ *  1300  — SuggestEditModal
+ */
 
 /* Mobile welcome tour sheet — keep content above the iOS home indicator. */
 .tour-mobile-sheet {

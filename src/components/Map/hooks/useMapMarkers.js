@@ -295,13 +295,15 @@ export function useMapMarkers({
             className: isSelected
               ? "grouped-station-dot selected"
               : "grouped-station-dot",
-            html: `<div style="width: 20px; height: 20px; background: ${bgGradient}; border-radius: 50%; border: 3px solid white; box-shadow: ${shadow}; transition: all 0.3s ease; cursor: pointer; z-index: 1000; position: relative;">
-              <div style="position: absolute; top: -8px; left: -8px; background: linear-gradient(135deg, #FF9800, #F57C00); color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(255, 152, 0, 0.5); z-index: 2000;">
+            // 44×44 hit area around the 20px visual dot (same as createMapIcons).
+            html: `<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+              <div style="width:20px;height:20px;background:${bgGradient};border-radius:50%;border:3px solid white;box-shadow:${shadow};transition:all 0.3s ease;z-index:1000;position:relative;">
+              <div style="position:absolute;top:-8px;left:-8px;background:linear-gradient(135deg,#FF9800,#F57C00);color:white;border-radius:50%;width:16px;height:16px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:bold;border:2px solid white;box-shadow:0 2px 6px rgba(255,152,0,0.5);z-index:2000;">
                 ${filteredStop.groupSize}
               </div>
-            </div>`,
-            iconSize: [20, 20],
-            iconAnchor: [10, 10],
+            </div></div>`,
+            iconSize: [44, 44],
+            iconAnchor: [22, 22],
           });
           iconToUse = groupIcon;
         }

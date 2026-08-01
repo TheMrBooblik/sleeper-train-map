@@ -39,7 +39,7 @@ export default function WelcomeTour({
   const dragRef = useRef({ active: false, startY: 0, pointerId: null });
 
   const onSheetDragStart = (e) => {
-    if (window.matchMedia("(min-width: 640px)").matches) return;
+    if (window.matchMedia("(min-width: 768px)").matches) return;
     if ((sheetRef.current?.scrollTop ?? 0) > 0) return;
     dragRef.current = {
       active: true,
@@ -114,16 +114,17 @@ export default function WelcomeTour({
         phase === "enter" ? "" : "opacity-0"
       }`}
     >
-      {/* Mobile (<640px): compact scrollable bottom sheet — hero + close visible
-          by default; SEO cards (browse hubs, legend) stay in DOM below the fold.
+      {/* Mobile (<768px): scrollable bottom sheet — drag handle and the primary
+          CTA stay pinned (sticky top/bottom) so they are reachable at any scroll
+          offset; SEO cards (browse hubs, legend) stay in DOM below the fold.
           Desktop: the wrapper dissolves and cards break out to absolute anchors. */}
       <div
         ref={sheetRef}
-        className="tour-mobile-sheet pointer-events-auto absolute inset-x-0 bottom-0 max-h-[42vh] overflow-y-auto overscroll-y-contain rounded-t-2xl border-t border-white/10 bg-black/90 shadow-2xl min-[640px]:pointer-events-none min-[640px]:static min-[640px]:max-h-none min-[640px]:overflow-visible min-[640px]:rounded-none min-[640px]:border-t-0 min-[640px]:bg-transparent min-[640px]:shadow-none"
+        className="tour-mobile-sheet pointer-events-auto absolute inset-x-0 bottom-0 max-h-[65dvh] overflow-y-auto overscroll-y-contain rounded-t-2xl border-t border-white/10 bg-black/95 backdrop-blur-lg shadow-2xl md:pointer-events-none md:static md:max-h-none md:overflow-visible md:rounded-none md:border-t-0 md:bg-transparent md:backdrop-blur-none md:shadow-none"
       >
         {/* Mobile-only sticky header: drag down to close + X button. */}
         <div
-          className="tour-sheet-drag sticky top-0 z-10 flex touch-none cursor-grab active:cursor-grabbing items-center justify-center border-b border-white/10 bg-black/90 px-4 py-3 min-[640px]:hidden"
+          className="tour-sheet-drag sticky top-0 z-10 flex touch-none cursor-grab active:cursor-grabbing items-center justify-center border-b border-white/10 bg-black/95 px-4 py-3 md:hidden"
           onPointerDown={onSheetDragStart}
           onPointerMove={onSheetDragMove}
           onPointerUp={onSheetDragEnd}
@@ -149,10 +150,10 @@ export default function WelcomeTour({
           </button>
         </div>
 
-        <div className="space-y-2 px-3 pb-3 min-[640px]:space-y-0 min-[640px]:p-0">
+        <div className="px-4 max-md:divide-y max-md:divide-white/10 md:space-y-0 md:p-0">
           {/* ① Hero: the crawlable h1 + primary dismiss */}
           <TourCard
-            className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:top-4 min-[640px]:left-16 min-[640px]:w-80"
+            className="md:pointer-events-auto md:absolute md:top-4 md:left-16 md:w-80"
             animate={animate}
             style={delay(0)}
           >
@@ -170,7 +171,7 @@ export default function WelcomeTour({
             (≈München at the default view) so the up-notch on top points at it.
             The initial centre is fixed, so the calc() offsets hold. */}
           <TourCard
-            className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:left-[calc(50%-61px)] min-[640px]:top-[calc(50%+62px)] min-[640px]:w-64"
+            className="md:pointer-events-auto md:absolute md:left-[calc(50%-61px)] md:top-[calc(50%+62px)] md:w-64"
             notch="up"
             animate={animate}
             style={delay(1)}
@@ -204,22 +205,23 @@ export default function WelcomeTour({
             </ul>
           </TourCard>
 
-          {/* ③ Search hint (desktop only: the search bar is hidden on mobile) */}
+          {/* ③ Search hint — on mobile the search icon is in the header */}
           <TourCard
-            className="hidden min-[640px]:block min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:top-2 min-[640px]:left-[25rem] min-[640px]:w-56"
+            className="md:pointer-events-auto md:absolute md:top-2 md:left-[25rem] md:w-56"
             notch="up"
             animate={animate}
             style={delay(2)}
           >
             <h2 className="text-sm font-semibold">Find your station</h2>
             <p className="mt-1 text-xs leading-relaxed text-white/70">
-              Type any city or station up here to jump straight to it.
+              Tap the search icon in the header (or type in the bar on desktop)
+              to jump straight to any city or station.
             </p>
           </TourCard>
 
           {/* ④ Settings hint (desktop only: the gear is hidden on mobile) */}
           <TourCard
-            className="hidden min-[640px]:block min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:top-2 min-[640px]:right-35 min-[640px]:w-60 tour-notch-right-side"
+            className="hidden md:block md:pointer-events-auto md:absolute md:top-2 md:right-35 md:w-60 tour-notch-right-side"
             notch="up"
             animate={animate}
             style={delay(3)}
@@ -233,7 +235,7 @@ export default function WelcomeTour({
 
           {/* ⑤ Browse hubs: the SEO link block (country/operator/connection pages) */}
           <TourCard
-            className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:bottom-4 min-[640px]:left-4 min-[640px]:w-[min(92vw,26rem)]"
+            className="md:pointer-events-auto md:absolute md:bottom-4 md:left-4 md:w-[min(92vw,26rem)]"
             animate={animate}
             style={delay(4)}
           >
@@ -250,14 +252,14 @@ export default function WelcomeTour({
                 All night train routes →
               </Link>
             </div>
-            <div className="mt-2 min-[640px]:max-h-[40vh] min-[640px]:overflow-y-auto min-[640px]:pr-1">
+            <div className="mt-2 md:max-h-[40vh] md:overflow-y-auto md:pr-1">
               {countries.length > 0 && (
                 <div>
                   <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
                     By country
                   </h3>
                   {/* Mobile: swipeable row; desktop: wrapped chip grid. */}
-                  <div className="tour-country-carousel mt-1.5 flex gap-1.5 max-[639px]:-mx-3 max-[639px]:flex-nowrap max-[639px]:overflow-x-auto max-[639px]:px-3 max-[639px]:pb-0.5 min-[640px]:flex-wrap">
+                  <div className="tour-country-carousel mt-1.5 flex gap-1.5 max-md:-mx-3 max-md:flex-nowrap max-md:overflow-x-auto max-md:px-3 max-md:pb-0.5 md:flex-wrap">
                     {countries.map((c) => (
                       <Link
                         key={c.slug}
@@ -274,7 +276,7 @@ export default function WelcomeTour({
                 </div>
               )}
               {operators.length > 0 && (
-                <div className="mt-2.5 hidden min-[640px]:block">
+                <div className="mt-2.5 hidden md:block">
                   <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
                     By operator
                   </h3>
@@ -294,7 +296,7 @@ export default function WelcomeTour({
                 </div>
               )}
               {connections.length > 0 && (
-                <div className="mt-2.5 hidden min-[640px]:block">
+                <div className="mt-2.5 hidden md:block">
                   <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
                     Popular connections
                   </h3>
@@ -328,22 +330,36 @@ export default function WelcomeTour({
 
           {/* ⑥ Map legend — lives here since the "i" button now opens the tour */}
           <TourCard
-            className="min-[640px]:pointer-events-auto min-[640px]:absolute min-[640px]:bottom-4 min-[640px]:right-4 min-[640px]:w-72"
+            className="md:pointer-events-auto md:absolute md:bottom-4 md:right-4 md:w-72"
             animate={animate}
             style={delay(5)}
           >
             <h2 className="text-sm font-semibold">Map legend</h2>
-            <div className="mt-2 min-[640px]:max-h-[45vh] min-[640px]:overflow-y-auto min-[640px]:pr-1">
+            <div className="mt-2 md:max-h-[45vh] md:overflow-y-auto md:pr-1">
               <Legend variant="panel" />
             </div>
+            {/* Mobile gets this CTA pinned to the sheet instead (see below), so
+                it is reachable without scrolling past every card. */}
             <button
               type="button"
               onClick={onDismiss}
-              className="mt-3 w-full cursor-pointer rounded-lg bg-primary-green px-3 py-2 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors"
+              className="mt-3 hidden w-full cursor-pointer rounded-lg bg-primary-green px-3 py-2 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors md:block"
             >
               Start exploring →
             </button>
           </TourCard>
+        </div>
+
+        {/* Mobile-only pinned CTA: the tour is a tall scroll, so the primary
+            dismiss must not depend on reaching the last card. */}
+        <div className="sticky bottom-0 z-10 border-t border-white/10 bg-black/95 px-4 py-3 md:hidden">
+          <button
+            type="button"
+            onClick={onDismiss}
+            className="w-full cursor-pointer rounded-lg bg-primary-green px-3 py-2.5 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors"
+          >
+            Start exploring →
+          </button>
         </div>
       </div>
     </div>

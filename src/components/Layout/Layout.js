@@ -1,5 +1,6 @@
 import Header from "@components/Header";
 import WelcomeTour from "@components/WelcomeTour";
+import NearbyStationsSheet from "@components/NearbyStations/NearbyStationsSheet";
 import { useState, useCallback, startTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import Container from "@components/Container";
@@ -22,7 +23,7 @@ const LEGACY_SEO_DISMISS_KEY = "train-map:homeSeoDismissed";
 
 const Layout = ({ children, tourSeo }) => {
   const router = useRouter();
-  const { stops, isLoading: stopsLoading } = useInitialData();
+  const { stops, cities, isLoading: stopsLoading } = useInitialData();
   const [searchTarget, setSearchTarget] = useState(null);
   const [showRailwayOverlay, setShowRailwayOverlay] = useState(false); // OpenRailwayMap tile overlay
   const [isGrouped, setIsGrouped] = useState(true);
@@ -34,6 +35,7 @@ const Layout = ({ children, tourSeo }) => {
   // hidden after mount for visitors who already saw it (see preferences effect).
   const [tourOpen, setTourOpen] = useState(true);
   const [legendPulse, setLegendPulse] = useState(false);
+  const [nearbyOpen, setNearbyOpen] = useState(false);
   const tourOpenRef = useRef(true);
   const pulseShownRef = useRef(false);
   const { width, height } = useWindowSize();
@@ -181,8 +183,14 @@ const Layout = ({ children, tourSeo }) => {
     showRailwayOverlay,
   ]);
 
+  // min-h-dvh, not min-h-screen: iOS Safari resolves 100vh to the *large*
+  // viewport (as if the bottom toolbar were collapsed), while html/body's
+  // height:100% tracks the visible area. The 100vh shell was therefore taller
+  // than the body, body's overflow-hidden clipped the difference, and anything
+  // anchored to the bottom of <main> (the tour's sticky CTA) sat in that
+  // clipped strip behind the toolbar. dvh tracks the currently visible height.
   return (
-    <div className="grid grid-rows-[auto_1fr_auto] overflow-hidden min-h-screen">
+    <div className="grid grid-rows-[auto_1fr_auto] overflow-hidden min-h-dvh">
       <Header
         isGrouped={isGrouped}
         setIsGrouped={setIsGrouped}
@@ -198,6 +206,10 @@ const Layout = ({ children, tourSeo }) => {
         onToggleTour={tourSeo ? toggleTour : undefined}
         tourOpen={tourOpen}
         legendPulse={legendPulse}
+        onNearbyOpen={() => {
+          dismissTour();
+          setNearbyOpen(true);
+        }}
       />
       <main className="relative">
         {children}
@@ -208,6 +220,13 @@ const Layout = ({ children, tourSeo }) => {
             onDismiss={dismissTour}
           />
         )}
+        <NearbyStationsSheet
+          open={nearbyOpen}
+          onClose={() => setNearbyOpen(false)}
+          stops={stops}
+          cities={cities}
+          onSelect={setSearchTarget}
+        />
         <Container>
           <Map
             width={width}

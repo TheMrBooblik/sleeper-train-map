@@ -9,11 +9,14 @@ import {
   FaExternalLinkAlt,
   FaCog,
   FaTrain,
+  FaSearch,
+  FaMapMarkerAlt,
 } from "react-icons/fa";
 
 import Container from "@components/Container";
 import Legend from "@components/Legend";
 import StationSearchBar from "../Map/components/StationSearchBar";
+import MobileSearchOverlay from "../Map/components/MobileSearchOverlay";
 
 import { HEADER_HEIGHT } from "../../constants/header";
 
@@ -119,9 +122,11 @@ const Header = ({
   onToggleTour,
   tourOpen,
   legendPulse,
+  onNearbyOpen,
 }) => {
   const [mobileTooltipId, setMobileTooltipId] = useState(null);
   const [mobileTooltipSession, setMobileTooltipSession] = useState(0);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const legend = usePopover();
   const mobileMenu = usePopover();
   const settings = usePopover();
@@ -150,17 +155,19 @@ const Header = ({
 
   return (
     <header
-      className={`h-[${HEADER_HEIGHT}px] bg-black px-2 py-2 min-[640px]:px-4 text-white`}
+      className={`h-[${HEADER_HEIGHT}px] bg-black px-2 py-2 md:px-4 text-white`}
       style={{ position: "relative", zIndex: 1002 }}
     >
       <Container className="flex flex-wrap justify-between items-center gap-y-2 gap-x-2">
-        <h1 className="text-sm leading-none whitespace-nowrap min-[640px]:text-base shrink-0">
-          <Link href="/">
+        <h1 className="text-sm leading-none whitespace-nowrap md:text-base shrink-0">
+          {/* Negative margin keeps the header height while giving the link a
+              taller hit area than its 16px text box. */}
+          <Link href="/" className="-my-2.5 inline-block py-2.5">
             Pingwi <i>sleeper train</i> map
           </Link>
         </h1>
         {onSearchSelect && (
-          <div className="flex-1 min-w-0 max-w-xs mx-2 hidden sm:block">
+          <div className="flex-1 min-w-0 max-w-xs mx-2 hidden md:block">
             <StationSearchBar
               stops={stops}
               isLoading={stopsLoading}
@@ -168,9 +175,24 @@ const Header = ({
             />
           </div>
         )}
-        <div className="ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end list-none gap-2 min-[640px]:gap-3">
-          {/* Mobile: single ≡ button opening controls + about — hidden on sm+ */}
-          <div className="relative shrink-0 min-[640px]:hidden">
+        <div className="ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end list-none gap-2 md:gap-3">
+          {/* Mobile search — opens a full-screen overlay (desktop keeps the header bar). */}
+          {onSearchSelect && (
+            <button
+              type="button"
+              onClick={() => setMobileSearchOpen(true)}
+              className={`icon-toggle-button md:hidden shrink-0 ${
+                mobileSearchOpen ? "is-active" : ""
+              }`}
+              aria-label="Search stations"
+              data-tooltip="Search stations"
+            >
+              <FaSearch size={14} />
+            </button>
+          )}
+
+          {/* Mobile: single ≡ button opening controls + about — hidden on md+ */}
+          <div className="relative shrink-0 md:hidden">
             <button
               ref={mobileMenu.buttonRef}
               type="button"
@@ -202,19 +224,40 @@ const Header = ({
                     />
                   ))}
                 </div>
-                <div className="mt-3 flex flex-col gap-2 border-t border-white/15 pt-3">
+                {/* Same 44px full-width row geometry as the toggles above —
+                    these were 16px-tall inline links, too small to tap. */}
+                <div className="mt-2 flex flex-col gap-0.5 border-t border-white/15 pt-2">
+                  {onNearbyOpen && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        mobileMenu.setOpen(false);
+                        onNearbyOpen();
+                      }}
+                      className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium text-sky-400 transition-colors hover:bg-white/10 hover:text-sky-300"
+                    >
+                      <span className="text-sky-400/70">
+                        <FaMapMarkerAlt size={14} />
+                      </span>
+                      Trains near me
+                    </button>
+                  )}
                   <Link
                     href="/trains"
-                    className="inline-flex items-center gap-1.5 rounded-sm text-xs font-medium text-sky-400 underline decoration-sky-400 underline-offset-2 hover:text-sky-300"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-sky-400 transition-colors hover:bg-white/10 hover:text-sky-300"
                   >
-                    <FaRoute size={10} />
+                    <span className="text-sky-400/70">
+                      <FaRoute size={14} />
+                    </span>
                     Browse all night train routes
                   </Link>
                   <Link
                     href="/about"
-                    className="inline-flex items-center gap-1.5 rounded-sm text-xs font-medium text-sky-400 underline decoration-sky-400 underline-offset-2 hover:text-sky-300"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-sky-400 transition-colors hover:bg-white/10 hover:text-sky-300"
                   >
-                    <FaExternalLinkAlt size={10} />
+                    <span className="text-sky-400/70">
+                      <FaExternalLinkAlt size={14} />
+                    </span>
                     About this map
                   </Link>
                 </div>
@@ -223,7 +266,7 @@ const Header = ({
           </div>
 
           {/* Desktop: settings gear opening a popover with all toggles — hidden on mobile */}
-          <div className="relative hidden min-[640px]:block shrink-0">
+          <div className="relative hidden md:block shrink-0">
             <button
               ref={settings.buttonRef}
               type="button"
@@ -240,7 +283,7 @@ const Header = ({
               <div
                 ref={settings.panelRef}
                 id="map-settings-popover"
-                className="fixed right-2 min-[640px]:right-4 z-[1003] w-[min(calc(100vw-1rem),20rem)] rounded-lg border border-white/15 bg-zinc-900 p-3 shadow-xl"
+                className="fixed right-2 md:right-4 z-[1003] w-[min(calc(100vw-1rem),20rem)] rounded-lg border border-white/15 bg-zinc-900 p-3 shadow-xl"
                 style={{ top: HEADER_HEIGHT + 8 }}
                 role="dialog"
                 aria-label="Map settings"
@@ -292,7 +335,7 @@ const Header = ({
               <div
                 ref={legend.panelRef}
                 id="map-legend-popover"
-                className="fixed bottom-2 right-2 min-[640px]:bottom-4 min-[640px]:right-4 z-[1003] w-[min(calc(100vw-1rem),22rem)] overflow-y-auto overscroll-contain rounded-lg border border-white/15 bg-zinc-900 p-4 shadow-xl"
+                className="fixed bottom-2 right-2 md:bottom-4 md:right-4 z-[1003] w-[min(calc(100vw-1rem),22rem)] overflow-y-auto overscroll-contain rounded-lg border border-white/15 bg-zinc-900 p-4 shadow-xl"
                 style={{ top: HEADER_HEIGHT + 16 }}
                 role="dialog"
                 aria-label="Map legend"
@@ -303,7 +346,7 @@ const Header = ({
           </div>
 
           {/* Browse routes + About — hidden on mobile (surfaced in mobile controls menu instead) */}
-          <div className="hidden min-[640px]:flex shrink-0 items-center gap-1.5 min-[640px]:gap-2">
+          <div className="hidden md:flex shrink-0 items-center gap-1.5 md:gap-2">
             <Link
               href="/trains"
               className="icon-toggle-button"
@@ -323,6 +366,16 @@ const Header = ({
           </div>
         </div>
       </Container>
+
+      {onSearchSelect && (
+        <MobileSearchOverlay
+          open={mobileSearchOpen}
+          onClose={() => setMobileSearchOpen(false)}
+          stops={stops}
+          isLoading={stopsLoading}
+          onSelect={onSearchSelect}
+        />
+      )}
     </header>
   );
 };
