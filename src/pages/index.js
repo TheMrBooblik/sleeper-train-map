@@ -3,12 +3,16 @@ import Layout from "@components/Layout";
 import { organizationLd, webSiteLd } from "../lib/seo/schema";
 import { OG_IMAGE } from "../lib/seo/site";
 
+const TITLE = "Sleeper Train Map — Night Trains Across Europe & Beyond | Pingwi";
+const DESCRIPTION =
+  "Interactive sleeper train map: night and overnight train routes across Europe and beyond. Click any station to see timetables, stops and where to book each connection.";
+
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
   name: "Sleeper Train Map 2026 (interactive)",
   description:
-    "Interactive map of European sleeper train routes. Click any station to discover overnight train connections across 24+ countries.",
+    "Interactive map of sleeper and night train routes across Europe and beyond. Click any station to discover overnight train connections and timetables.",
   url: "https://sleeper-train-map.pingwi.com",
   applicationCategory: "TravelApplication",
   operatingSystem: "Web Browser",
@@ -23,26 +27,17 @@ export default function Home({ seo }) {
   return (
     <Layout tourSeo={seo}>
       <Head>
-        <title>Sleeper Train Map 2026 (interactive)</title>
-        <meta
-          name="description"
-          content="Interactive sleeper train map. Click any station to discover all night train routes and overnight connections across 24+ countries. Plan your spontaneous train travel."
-        />
+        <title>{TITLE}</title>
+        <meta name="description" content={DESCRIPTION} />
         <meta
           name="keywords"
-          content="sleeper train map, night train Europe, European sleeper trains, overnight train routes, train travel Europe, night train map"
+          content="sleeper train map, night train map, night trains Europe, European sleeper trains, overnight train routes, sleeper train routes"
         />
         <link rel="canonical" href="https://sleeper-train-map.pingwi.com" />
 
         {/* Open Graph */}
-        <meta
-          property="og:title"
-          content="Sleeper Train Map 2026 (interactive)"
-        />
-        <meta
-          property="og:description"
-          content="Interactive map of all European sleeper train routes. Click any station to discover overnight connections across 24+ countries."
-        />
+        <meta property="og:title" content={TITLE} />
+        <meta property="og:description" content={DESCRIPTION} />
         <meta property="og:type" content="website" />
         <meta
           property="og:url"
@@ -53,11 +48,8 @@ export default function Home({ seo }) {
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Pingwi Sleeper Train Map" />
-        <meta
-          name="twitter:description"
-          content="Interactive map of all European sleeper train routes. Discover overnight connections across 24+ countries."
-        />
+        <meta name="twitter:title" content={TITLE} />
+        <meta name="twitter:description" content={DESCRIPTION} />
         <meta name="twitter:image" content={OG_IMAGE} />
 
         {/* JSON-LD Structured Data */}
