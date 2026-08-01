@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_cr-k-998",
+  "createdAt": "2026-08-01T05:52:38.695Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: K 998 (Chengdu West(成都西) – Qiqihar(齐齐哈尔))",
+  "summary": "Material change on an approved route (already live — FYI): operating days (return): \"Daily\" → \"null\"; train numbers: \"K 998|K 997\" → \"K 998\"",
+  "target": {
+    "routeKey": "cr_K_998",
+    "agencyId": "CR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (return)": "Daily",
+    "train numbers": "K 998|K 997"
+  },
+  "after": {
+    "operating days (return)": null,
+    "train numbers": "K 998"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
