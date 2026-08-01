@@ -22,6 +22,7 @@ export const OPERATOR_BRAND_COLORS = {
   CFR: "#003366", // CFR Călători – navy blue
   ATC: "#1B6B93", // Astra Trans Carpatic – steel blue
   HŽPP: "#1A3FA0", // HŽ Putnički prijevoz – blue
+  LE: "#C9A227", // Leo Express – gold on black livery (darker than RegioJet)
 
   // Western Europe
   ÖBB: "#B76FCF", // ÖBB – violet

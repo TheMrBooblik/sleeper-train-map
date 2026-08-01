@@ -1,72 +1,20 @@
 /**
  * Operator display names and URL slugs for the SEO operator hub pages.
  *
- * agency_name is not committed to the repo (it is fetched live from Back-on-Track),
- * so this curated table is the build-time source of truth. It is seeded from the
- * human-readable comments in src/components/Map/utils/operatorColors.js (the canonical
- * agency_id set) plus registry labels. Names are chosen to read well in SEO titles
- * such as "{name} Night Train Routes & Destinations".
+ * The curated table lives in operatorNames.mjs (raw-node importable). Prefer
+ * those names for SEO titles. When an agency_id is missing from the table,
+ * fall back to the Back-on-Track long name from the committed agencies
+ * snapshot (public/data/scraped/backontrack-agencies.json) so a newly added
+ * operator never shows as a bare id like "LE".
  *
- * agency_id is frequently compound ("PKP/ČD", "TCDD/BDŽ/CFR") — always run it through
- * splitAgencyIds() before looking an operator up here.
+ * agency_id is frequently compound ("PKP/ČD", "TCDD/BDŽ/CFR") — always run it
+ * through splitAgencyIds() before looking an operator up here.
  */
 
 import { slugify } from "./slugify";
+import { OPERATORS } from "./operatorNames.mjs";
 
-/** @type {Record<string, { name: string, slug: string }>} */
-export const OPERATORS = {
-  // Central / Eastern Europe
-  RJ: { name: "RegioJet", slug: "regiojet" },
-  "ČD": { name: "Czech Railways", slug: "czech-railways" },
-  ZSSK: { name: "ZSSK", slug: "zssk" },
-  PKP: { name: "PKP Intercity", slug: "pkp-intercity" },
-  "MÁV": { name: "MÁV-START", slug: "mav-start" },
-  CFR: { name: "CFR Călători", slug: "cfr-calatori" },
-  ATC: { name: "Astra Trans Carpatic", slug: "astra-trans-carpatic" },
-  "HŽPP": { name: "Croatian Railways", slug: "croatian-railways" },
-
-  // Western Europe
-  "ÖBB": { name: "Nightjet", slug: "nightjet" },
-  SNCF: { name: "SNCF", slug: "sncf" },
-  FS: { name: "Trenitalia", slug: "trenitalia" },
-  ES: { name: "European Sleeper", slug: "european-sleeper" },
-  CS: { name: "Caledonian Sleeper", slug: "caledonian-sleeper" },
-  GWR: { name: "Great Western Railway", slug: "great-western-railway" },
-  MT: { name: "Midnight Trains", slug: "midnight-trains" },
-
-  // Scandinavia
-  SJ: { name: "SJ", slug: "sj" },
-  SJN: { name: "SJ Nord", slug: "sj-nord" },
-  ST: { name: "Snälltåget", slug: "snalltaget" },
-  VY: { name: "Vy", slug: "vy" },
-  GA: { name: "Go-Ahead Nordic", slug: "go-ahead-nordic" },
-  VR: { name: "VR", slug: "vr" },
-  RDC: { name: "RDC / BahnTouristikExpress", slug: "rdc" },
-
-  // Southeast Europe / Balkans
-  "BDŽ": { name: "Bulgarian Railways", slug: "bulgarian-railways" },
-  "ŽPCG": { name: "Montenegro Railways", slug: "montenegro-railways" },
-  "ŽS": { name: "Serbian Railways", slug: "serbian-railways" },
-
-  // Other
-  TCDD: { name: "Turkish State Railways", slug: "tcdd" },
-  UZ: { name: "Ukrainian Railways", slug: "ukrainian-railways" },
-  CFM: { name: "Moldovan Railways", slug: "moldovan-railways" },
-  OTE: { name: "Optima Tours", slug: "optima-tours" },
-  UEX: { name: "Urlaubs-Express", slug: "urlaubs-express" },
-
-  // China
-  CR: { name: "China Railway", slug: "china-railway" },
-
-  // Caucasus
-  GR: { name: "Georgian Railway", slug: "georgian-railway" },
-  ADY: { name: "Azerbaijan Railways", slug: "azerbaijan-railways" },
-  SCR: { name: "South Caucasus Railway", slug: "south-caucasus-railway" },
-
-  // North America
-  AMTK: { name: "Amtrak", slug: "amtrak" },
-  VIA: { name: "VIA Rail", slug: "via-rail" },
-};
+export { OPERATORS };
 
 // Inverse slug → agency_id map (built once).
 const SLUG_TO_ID = new Map(
@@ -90,18 +38,27 @@ export function splitAgencyIds(agencyId) {
 /**
  * Resolve an agency_id to its display metadata, with a graceful fallback so an
  * unknown operator never breaks the build.
+ *
  * @param {string} id
+ * @param {Record<string, { agency_name?: string, agency_name_romanized?: string }>|undefined} agencies
+ *   Optional BoT agencies map. When the curated table has no entry, we prefer
+ *   the romanized / official agency_name over the bare id.
  * @returns {{ id: string, name: string, slug: string }}
  */
-export function getOperatorMeta(id) {
+export function getOperatorMeta(id, agencies) {
   const meta = OPERATORS[id];
   if (meta) return { id, ...meta };
-  return { id, name: id, slug: slugify(id) || "operator" };
+  // No curated entry yet: use the Back-on-Track long name so a newly added
+  // operator reads as "Leo Express", not "LE". Slug stays derived from the id
+  // so the hub URL is stable even if the operator is renamed upstream.
+  const bot = agencies?.[id];
+  const name = bot?.agency_name_romanized || bot?.agency_name || id;
+  return { id, name, slug: slugify(id) || "operator" };
 }
 
 /** Human-readable operator name for an agency_id (falls back to the id). */
-export function getOperatorName(id) {
-  return getOperatorMeta(id).name;
+export function getOperatorName(id, agencies) {
+  return getOperatorMeta(id, agencies).name;
 }
 
 /** URL slug for an agency_id. */

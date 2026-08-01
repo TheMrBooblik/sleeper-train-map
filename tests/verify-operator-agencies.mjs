@@ -198,6 +198,8 @@ check(
 // ── every published agency id yields a CTA (with agencies data present) ─────
 // Uses the committed seed file so the test exercises real BoT data.
 import fs from "node:fs";
+import { OPERATORS } from "../src/lib/seo/operatorNames.mjs";
+
 const seeded = JSON.parse(
   fs.readFileSync(
     new URL("../public/data/scraped/backontrack-agencies.json", import.meta.url),
@@ -225,6 +227,26 @@ for (const id of agencyIds) {
   });
   check(r.href != null, `coverage: agency "${id}" has no booking CTA`);
 }
+
+// ── every published agency component has a long display name ────────────────
+// Prefer the curated OPERATORS table; otherwise the BoT agency_name. Missing
+// both means SEO would fall back to a bare id (the Leo Express / "LE" bug).
+for (const compound of agencyIds) {
+  for (const id of splitAgencyIds(compound)) {
+    const curated = OPERATORS[id]?.name;
+    const botName =
+      seeded.data[id]?.agency_name_romanized || seeded.data[id]?.agency_name;
+    check(
+      Boolean(curated || botName),
+      `coverage: agency "${id}" has no long name (add to operatorNames.mjs or BoT agencies)`,
+    );
+  }
+}
+
+// Explicit Leo Express check so the curated slug/name stay intentional.
+check(OPERATORS.LE?.name === "Leo Express", 'LE curated name is "Leo Express"');
+check(OPERATORS.LE?.slug === "leo-express", 'LE curated slug is "leo-express"');
+
 
 if (problems.length) {
   console.error(`verify-operator-agencies: ${problems.length} problem(s)`);

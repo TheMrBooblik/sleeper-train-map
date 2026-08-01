@@ -7,7 +7,6 @@
 
 import { getAllRouteSummaries, getStationCountryCode } from "./data";
 import { getSeoCountry, getSeoCountryBySlug } from "./countries";
-import { getOperatorMeta } from "./operators";
 import { buildPairSlug, slugify } from "./slugify";
 
 // Minimum distinct trains a directed city pair needs before it earns its own page.
@@ -50,9 +49,11 @@ function getOperatorMap() {
     _operatorMap = new Map();
     _operatorSlugToId = new Map();
     for (const s of getAllRouteSummaries()) {
-      for (const opId of s.operatorIds) {
+      // Reuse operators already resolved on the summary (curated name + BoT
+      // fallback) so hub pages never re-resolve without the agencies snapshot.
+      for (const operator of s.operators || []) {
+        const opId = operator.id;
         if (!_operatorMap.has(opId)) {
-          const operator = getOperatorMeta(opId);
           _operatorMap.set(opId, { operator, routes: [] });
           _operatorSlugToId.set(operator.slug, opId);
         }

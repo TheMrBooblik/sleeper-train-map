@@ -316,7 +316,9 @@ function buildSummary(route) {
     trainNumber,
     trainNumbers,
     agencyId: route.agency_id || "",
-    operators: operatorIds.map(getOperatorMeta),
+    // Pass the committed BoT agencies snapshot so getOperatorMeta can fall
+    // back to agency_name when an id is missing from the curated table.
+    operators: operatorIds.map((id) => getOperatorMeta(id, getAgencies())),
     operatorIds,
     countries,
     cityPairs,
