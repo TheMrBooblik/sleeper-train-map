@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_cr-k-545",
+  "createdAt": "2026-08-01T05:52:38.695Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: K 545 (Jiamusi(佳木斯) – Chengdu West(成都西))",
+  "summary": "Material change on an approved route (already live — FYI): operating days (return): \"Daily\" → \"null\"; train numbers: \"K 545|K 546\" → \"K 545\"",
+  "target": {
+    "routeKey": "cr_K_545",
+    "agencyId": "CR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (return)": "Daily",
+    "train numbers": "K 545|K 546"
+  },
+  "after": {
+    "operating days (return)": null,
+    "train numbers": "K 545"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
