@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-794",
+  "createdAt": "2026-08-01T05:52:38.696Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: ICN 794 (Reggio Di Calabria Centrale – Torino Porta Nuova)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"ICN 794|ICN 795\" → \"ICN 794\"",
+  "target": {
+    "routeKey": "icn_ICN_794",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "ICN 794|ICN 795"
+  },
+  "after": {
+    "train numbers": "ICN 794"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
