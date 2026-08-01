@@ -19,7 +19,11 @@ import { useInitialData } from "../../hooks/requests/useInitialData";
 import { normalizeStationNameForLookup } from "../../hooks/requests/useCities";
 import { normalizeCity } from "../../lib/pkpTrainKeyExtract";
 import TrainBottomBar from "@components/TrainBottomBar";
-import TrainDetailPanel from "@components/TrainDetailPanel";
+import TrainDetailPanel, {
+  MOBILE_SHEET_PEEK_VH,
+  DESKTOP_PANEL_WIDTH_PX,
+} from "@components/TrainDetailPanel";
+import { MOBILE_MQ } from "../../hooks/useIsMobile";
 import ZoomControl from "@components/ZoomControl";
 import LocationControl from "@components/LocationControl";
 import { stationsToSkip } from "../../data/stationsToSkip";
@@ -61,6 +65,47 @@ function MapFlyController({ target, onDone }) {
     map.flyTo([target.lat, target.lon], target.zoom ?? 8, { duration: 1.2 });
     onDone();
   }, [target, map, onDone]);
+  return null;
+}
+
+/**
+ * Frames the selected route into the part of the map the detail panel does not
+ * cover. Clicking a line used to open the panel over the very line you clicked
+ * — on mobile the sheet takes the lower half, on desktop a right sidebar — so
+ * the fit is padded by that geometry instead of centring on the full viewport.
+ * Fits once per route (the ref guard), since `positions` is a fresh array on
+ * every recompute of the paths.
+ */
+function FitSelectedRoute({ routeId, positions }) {
+  const map = useMap();
+  const fittedRef = useRef(null);
+
+  useEffect(() => {
+    if (!routeId) {
+      fittedRef.current = null;
+      return;
+    }
+    if (!positions?.length || fittedRef.current === routeId) return;
+
+    const bounds = Leaflet.latLngBounds(positions);
+    if (!bounds.isValid()) return;
+    fittedRef.current = routeId;
+
+    const isMobile = window.matchMedia(MOBILE_MQ).matches;
+    const paddingBottomRight = isMobile
+      ? [16, Math.round(window.innerHeight * MOBILE_SHEET_PEEK_VH) + 16]
+      : [DESKTOP_PANEL_WIDTH_PX + 16, 16];
+
+    map.fitBounds(bounds, {
+      paddingTopLeft: [16, 16],
+      paddingBottomRight,
+      // Short routes should not slam the map to street level.
+      maxZoom: 9,
+      animate: true,
+      duration: 0.8,
+    });
+  }, [routeId, positions, map]);
+
   return null;
 }
 
@@ -627,6 +672,22 @@ const TrainMap = ({
   const shouldApplyHoverPreview =
     !!hoveredRouteId && selected && !isTrainDetailPanelOpen;
 
+  // Every coordinate of the selected route, so the map can frame it clear of
+  // the detail panel. `useRoutePaths` already narrows to the selection, but
+  // filter by id anyway: a route can contribute several path segments.
+  const activeRouteId = hasRouteFilter
+    ? String(selectedTrainRouteIds[0])
+    : null;
+  const selectedRoutePositions = useMemo(() => {
+    if (!activeRouteId || !routePaths?.length) return null;
+    const points = [];
+    routePaths.forEach((path) => {
+      if (String(path.routeId) !== activeRouteId) return;
+      if (Array.isArray(path.positions)) points.push(...path.positions);
+    });
+    return points.length ? points : null;
+  }, [activeRouteId, routePaths]);
+
   return (
     <>
       {/* Initial fast overlay: only blocks while GTFS (stations/routes) load (~1-2s) */}
@@ -660,6 +721,10 @@ const TrainMap = ({
         <MapFlyController
           target={flyToTarget}
           onDone={() => setFlyToTarget(null)}
+        />
+        <FitSelectedRoute
+          routeId={activeRouteId}
+          positions={selectedRoutePositions}
         />
         <Filter
           selected={hasSelection}
