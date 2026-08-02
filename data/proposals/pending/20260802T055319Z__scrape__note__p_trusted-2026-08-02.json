@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-08-02",
+  "createdAt": "2026-08-02T05:53:19.996Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (0 routes, 12 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation Brugg AG (nightjet)\nstation Fenyang(汾阳) (chinese)\nstation Taiyuannan(太原南) (chinese)\nstation Yutianxian(玉田县) (chinese)\nstation Gongzhuling(公主岭) (chinese)\nstation Dailing(带岭) (chinese)\nstation Daxing(大兴) (chinese)\nstation Huade(化德) (chinese)\nstation Zhungeer(准格尔) (chinese)\nstation Yingshan(营山) (chinese)\nstation Pengan(蓬安) (chinese)\nstation Pengxi(蓬溪) (chinese)",
+  "target": {
+    "routeKey": "trusted-2026-08-02",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
