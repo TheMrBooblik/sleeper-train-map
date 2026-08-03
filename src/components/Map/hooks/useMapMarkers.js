@@ -6,7 +6,7 @@ import { Marker, Tooltip } from "react-leaflet";
 import { groupCityMarkers } from "../utils/groupCityMarkers";
 import { StationTooltipContent } from "../utils/stationTooltip";
 import { shouldHideRouteDueToFutureDate } from "../utils/routeStyleUtils";
-import { createMapIcons } from "../utils/mapIcons";
+import { createMapIcons, stationHitSize } from "../utils/mapIcons";
 import { thinStationsByViewport } from "../utils/thinStationsByViewport";
 import { alwaysShowStations } from "../../../data/alwaysShowStations";
 
@@ -37,6 +37,8 @@ export function useMapMarkers({
     () => createMapIcons(Leaflet),
     [],
   );
+  // Grouped markers build their icon inline below, so they need the same size.
+  const hitSize = useMemo(() => stationHitSize(), []);
   const previousZoomRef = useRef(null);
   const previousVisibleStopKeysRef = useRef(new Set());
 
@@ -295,15 +297,16 @@ export function useMapMarkers({
             className: isSelected
               ? "grouped-station-dot selected"
               : "grouped-station-dot",
-            // 44×44 hit area around the 20px visual dot (same as createMapIcons).
-            html: `<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            // Hit area around the 20px visual dot — wide on touch, tight for a
+            // mouse (same pointer-aware size as createMapIcons).
+            html: `<div style="width:${hitSize}px;height:${hitSize}px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
               <div style="width:20px;height:20px;background:${bgGradient};border-radius:50%;border:3px solid white;box-shadow:${shadow};transition:all 0.3s ease;z-index:1000;position:relative;">
               <div style="position:absolute;top:-8px;left:-8px;background:linear-gradient(135deg,#FF9800,#F57C00);color:white;border-radius:50%;width:16px;height:16px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:bold;border:2px solid white;box-shadow:0 2px 6px rgba(255,152,0,0.5);z-index:2000;">
                 ${filteredStop.groupSize}
               </div>
             </div></div>`,
-            iconSize: [44, 44],
-            iconAnchor: [22, 22],
+            iconSize: [hitSize, hitSize],
+            iconAnchor: [hitSize / 2, hitSize / 2],
           });
           iconToUse = groupIcon;
         }
@@ -362,5 +365,6 @@ export function useMapMarkers({
     defaultIcon,
     selectedIcon,
     viaIcon,
+    hitSize,
   ]);
 }

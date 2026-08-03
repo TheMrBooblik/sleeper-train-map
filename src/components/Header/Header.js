@@ -176,19 +176,25 @@ const Header = ({
           </div>
         )}
         <div className="ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end list-none gap-2 md:gap-3">
-          {/* Mobile search — opens a full-screen overlay (desktop keeps the header bar). */}
+          {/* Mobile search — opens a full-screen overlay (desktop keeps the header bar).
+              `md:hidden` must sit on this wrapper, NOT on the button: the
+              unlayered `.icon-toggle-button { display: inline-flex }` rule in
+              globals.css beats Tailwind's layered utilities, so `md:hidden` on
+              the button itself does nothing. Same pattern as the ≡ menu below. */}
           {onSearchSelect && (
-            <button
-              type="button"
-              onClick={() => setMobileSearchOpen(true)}
-              className={`icon-toggle-button md:hidden shrink-0 ${
-                mobileSearchOpen ? "is-active" : ""
-              }`}
-              aria-label="Search stations"
-              data-tooltip="Search stations"
-            >
-              <FaSearch size={14} />
-            </button>
+            <div className="md:hidden shrink-0">
+              <button
+                type="button"
+                onClick={() => setMobileSearchOpen(true)}
+                className={`icon-toggle-button ${
+                  mobileSearchOpen ? "is-active" : ""
+                }`}
+                aria-label="Search stations"
+                data-tooltip="Search stations"
+              >
+                <FaSearch size={14} />
+              </button>
+            </div>
           )}
 
           {/* Mobile: single ≡ button opening controls + about — hidden on md+ */}

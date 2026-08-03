@@ -58,6 +58,17 @@ function formatFutureDate(dateStr) {
   }
 }
 
+/**
+ * True on devices with a real pointer (desktop mouse / trackpad).
+ * Used for hover-only behaviour: route highlighting and cursor-following
+ * line tooltips. Touch devices have no cursor, so they keep the tooltip
+ * anchored to the line instead of popping it up under the finger.
+ */
+function hasFinePointer() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+}
+
 function MapFlyController({ target, onDone }) {
   const map = useMap();
   useEffect(() => {
@@ -189,12 +200,7 @@ const TrainMap = ({
 
   // Hover preview is desktop-only — touch has no meaningful hover state.
   const handleRouteHover = useCallback((routeId) => {
-    if (typeof window !== "undefined") {
-      const finePointer = window.matchMedia(
-        "(hover: hover) and (pointer: fine)",
-      ).matches;
-      if (!finePointer) return;
-    }
+    if (!hasFinePointer()) return;
     setHoveredRouteId(routeId ? String(routeId) : null);
   }, []);
 
@@ -672,6 +678,15 @@ const TrainMap = ({
   const shouldApplyHoverPreview =
     !!hoveredRouteId && selected && !isTrainDetailPanelOpen;
 
+  // Desktop: the line tooltip follows the cursor (Leaflet `sticky`), so it
+  // shows up right where you point. Without it Leaflet anchors the tooltip to
+  // the middle of the line, which can be far off screen on long routes.
+  // Computed once per mount, and at render time on purpose: Leaflet reads
+  // tooltip options only when the tooltip is created, so a value arriving
+  // later from an effect would be ignored. Safe because the map is
+  // client-only (`ssr: false`), so `window` exists on the first render.
+  const stickyLineTooltip = useMemo(() => hasFinePointer(), []);
+
   // Every coordinate of the selected route, so the map can frame it clear of
   // the detail panel. `useRoutePaths` already narrows to the selection, but
   // filter by id anyway: a route can contribute several path segments.
@@ -770,7 +785,7 @@ const TrainMap = ({
                     },
                   }}
                 >
-                  <Tooltip sticky={false}>
+                  <Tooltip sticky={stickyLineTooltip}>
                     {(() => {
                       if (path.isBusConnector) {
                         return path.busFrom && path.busTo
