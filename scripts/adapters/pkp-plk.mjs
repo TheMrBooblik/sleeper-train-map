@@ -92,6 +92,14 @@ export const FIELDS = {
       : asArray(pick(v, "routes", "schedules", "items", "data")),
   routeTrainNumber: (r) =>
     pick(r, "nationalNumber", "trainNumber", "number", "commercialNumber"),
+  // An international train carries a Polish national number AND the commercial
+  // EN/EC number the rest of Europe (and our trip labels) use — e.g. EN 443 is
+  // national 45402. Reading both lets us match by number instead of relying on
+  // the endpoint-city fallback.
+  routeInternationalNumbers: (r) => [
+    pick(r, "internationalArrivalNumber"),
+    pick(r, "internationalDepartureNumber"),
+  ],
   routeCarrier: (r) => pick(r, "carrierCode", "carrier"),
   routeStations: (r) => asArray(pick(r, "stations", "stops", "points")),
   routeOperatingDates: (r) => asArray(pick(r, "operatingDates")),
@@ -108,6 +116,24 @@ export const FIELDS = {
       "plannedDepartureTime",
     ),
   stopOrder: (s) => pick(s, "orderNumber", "sequence", "order"),
+  // The /schedules response embeds its own station dictionary. The shape is
+  // documented only as "object", so accept the three plausible encodings:
+  // an array of {id,name}, or an id-keyed map to either a name or a {name}.
+  inlineStations: (v) => {
+    const dict = v?.dictionaries?.stations;
+    const out = {};
+    if (Array.isArray(dict)) {
+      for (const st of dict) {
+        const id = FIELDS.stationId(st);
+        if (id != null) out[String(id)] = { name: FIELDS.stationName(st) };
+      }
+    } else if (dict && typeof dict === "object") {
+      for (const [id, val] of Object.entries(dict)) {
+        out[id] = typeof val === "string" ? { name: val } : { name: FIELDS.stationName(val) };
+      }
+    }
+    return out;
+  },
   stationList: (v) =>
     Array.isArray(v) ? v : asArray(pick(v, "stations", "items", "data")),
   stationTotalPages: (v) => pick(v, "totalPages", "pages", "pageCount"),
@@ -162,6 +188,18 @@ export function normalizeStops(rawStops, stationsById = {}) {
     });
   }
   return out;
+}
+
+/**
+ * Every train number a candidate answers to (national + international), as
+ * trimmed strings. Falls back to the single `number` so candidate lists cached
+ * by an older run keep matching.
+ * @param {{number?: string, numbers?: string[]}} candidate
+ * @returns {string[]}
+ */
+export function candidateNumbers(candidate) {
+  const all = candidate?.numbers ?? [candidate?.number];
+  return [...new Set(all.map((n) => String(n ?? "").trim()).filter(Boolean))];
 }
 
 /** Order-independent: do two stop lists share the same endpoint cities? */
@@ -231,10 +269,13 @@ export function mergePlkIntoBundle(
   const list = asArray(candidates).filter((c) => c?.stops?.length >= 2);
   const byNumber = new Map();
   for (const c of list) {
-    const n = c.number != null ? String(c.number) : "";
-    if (!n) continue;
-    if (!byNumber.has(n)) byNumber.set(n, []);
-    byNumber.get(n).push(c);
+    // Indexed under every number the train answers to, so a bundle key holding
+    // the commercial number (443) finds a candidate filed under the national
+    // one (45402) without falling back to endpoint matching.
+    for (const n of candidateNumbers(c)) {
+      if (!byNumber.has(n)) byNumber.set(n, []);
+      byNumber.get(n).push(c);
+    }
   }
 
   const bestMatch = (pool, existingStops) => {
@@ -319,7 +360,7 @@ export function plkScheduleForRow(row, candidates, canonicalize = (s) => s) {
       // Oriented match keeps the arrival/departure times for THIS direction.
       if (normalizeCity(c.stops[0]?.name) !== o) continue;
       if (normalizeCity(c.stops[c.stops.length - 1]?.name) !== z) continue;
-      const preferred = keys.has(String(c.number));
+      const preferred = candidateNumbers(c).some((n) => keys.has(n));
       if (
         !best ||
         (preferred && !bestPreferred) ||
@@ -373,6 +414,13 @@ function stampOfficialSource(route, sourceId) {
 // ── I/O + network ────────────────────────────────────────────────────────────
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+/** ISO date `days` after `from` (the API accepts a window of up to 31 days). */
+function datePlus(from, days) {
+  const d = new Date(`${from}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 
 function readScrapedData(rootDir, relPath) {
   try {
@@ -430,9 +478,6 @@ async function loadStationNames({ apiKey, budget, params, log }) {
     }
     totalPages = Number(FIELDS.stationTotalPages(resp.json)) || 1;
   }
-  log(
-    `stations: ${Object.keys(stationsById).length} names (${totalPages} page(s))`,
-  );
   return stationsById;
 }
 
@@ -450,10 +495,15 @@ async function fetchScoped({
   log,
 }) {
   const dateFrom = params.date || today();
-  const dateTo = params.dateTo || dateFrom;
+  // A single-day pull only sees trains running today, so a night train that
+  // runs three times a week is invisible on the other four. Cover a window
+  // instead (the API allows up to 31 days) — still one request.
+  const dateTo =
+    params.dateTo || datePlus(dateFrom, Math.min(params.dayWindow ?? 7, 30));
   const carrier = params.carriersInclude || "IC";
   const resp = await getJson(
-    `${BASE_URL}/schedules?carriersInclude=${encodeURIComponent(carrier)}&dateFrom=${dateFrom}&dateTo=${dateTo}`,
+    `${BASE_URL}/schedules?carriersInclude=${encodeURIComponent(carrier)}` +
+      `&dateFrom=${dateFrom}&dateTo=${dateTo}&fullRoute=true`,
     apiKey,
     budget,
   );
@@ -467,7 +517,14 @@ async function fetchScoped({
     return [];
   }
 
-  const stationsById = await loadStationNames({ apiKey, budget, params, log });
+  // The response ships the station dictionary inline (dictionaries=true is the
+  // API default), so the paginated /dictionaries/stations call is only needed
+  // when that is missing — one fewer request on a normal night.
+  const inline = FIELDS.inlineStations(resp.json);
+  const stationsById = Object.keys(inline).length
+    ? inline
+    : await loadStationNames({ apiKey, budget, params, log });
+  log(`stations: ${Object.keys(stationsById).length} names`);
 
   const candidates = [];
   for (const r of routes) {
@@ -476,16 +533,23 @@ async function fetchScoped({
     const stops = normalizeStops(stations, stationsById);
     if (stops.length < 2) continue;
     const number = String(FIELDS.routeTrainNumber(r) ?? "").trim();
-    if (scopedNumbers.has(number) || scopedEpKeys.has(endpointKey(stops))) {
+    const numbers = candidateNumbers({
+      numbers: [number, ...FIELDS.routeInternationalNumbers(r)],
+    });
+    if (
+      numbers.some((n) => scopedNumbers.has(n)) ||
+      scopedEpKeys.has(endpointKey(stops))
+    ) {
       candidates.push({
         number,
+        numbers,
         stops,
         operatingDates: FIELDS.routeOperatingDates(r),
       });
     }
   }
   log(
-    `bulk: ${routes.length} IC route(s) → ${candidates.length} scoped candidate(s)`,
+    `bulk ${dateFrom}..${dateTo}: ${routes.length} ${carrier} route(s) → ${candidates.length} scoped candidate(s)`,
   );
   return candidates;
 }

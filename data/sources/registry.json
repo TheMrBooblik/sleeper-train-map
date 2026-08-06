@@ -382,6 +382,7 @@
     "synthetic": null,
     "params": {
       "carriersInclude": "IC",
+      "dayWindow": 7,
       "maxRequestsPerRun": 80,
       "rateFloor": 10,
       "stationsPageSize": 5000
