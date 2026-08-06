@@ -21,12 +21,20 @@ import {
   extractKeysFromTripLabel,
 } from "../../src/lib/pkpTrainKeyExtract.js";
 import { buildVia } from "../../src/lib/pkpGtfsMerge.js";
+import { stopsRunBetween, sliceToJourney } from "./station-city.mjs";
 
-// "2026-06-11T18:13:00.000Z" → "18:13" (BoT rows carry plain HH:MM strings).
-function toHHMM(iso) {
-  if (!iso || typeof iso !== "string") return null;
-  const m = iso.match(/T(\d{2}:\d{2})/);
-  return m ? m[1] : null;
+// BoT rows carry plain HH:MM strings. Sources give either an ISO timestamp
+// (NightJet: "2026-06-11T18:13:00.000Z") or an already-plain clock reading
+// (ČD: "22:16", and "9:41" without the leading zero).
+function toHHMM(value) {
+  if (!value || typeof value !== "string") return null;
+  const iso = value.match(/T(\d{2}:\d{2})/);
+  if (iso) return iso[1];
+  const plain = value.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!plain) return null;
+  const h = Number(plain[1]);
+  if (h > 23 || Number(plain[2]) > 59) return null;
+  return `${String(h).padStart(2, "0")}:${plain[2]}`;
 }
 
 // Recomputed from a fresh BoT view map every night, so stamps never
@@ -43,19 +51,42 @@ function inAgencyScope(route, agencyIds) {
   return agencyIds.includes((route?.agency_id ?? "").toString().trim());
 }
 
+// Sources name their stop list differently: NightJet writes `stations`, the ČD
+// scrape writes `stops`. Same shape otherwise — {name, arrival, departure}.
+function stopListOf(match) {
+  const list = match?.stations ?? match?.stops;
+  return Array.isArray(list) ? list : [];
+}
+
+// Sources key their trains differently too: NightJet by the full label it was
+// matched on ("NJ 403"), ČD by the bare number it fetched ("442"). Try the
+// label first so an exact key always wins, then the number inside it.
+function lookupTrain(trains, label) {
+  const key = (label ?? "").toString().trim();
+  if (!key) return null;
+  if (trains[key]) return trains[key];
+  const number = key.match(/\d{3,6}/)?.[0];
+  return number ? (trains[number] ?? null) : null;
+}
+
 function trainsByNumber({ entry, viewMap, trains, log }) {
   const opts = entry.enrich;
   let touched = 0;
 
   Object.values(viewMap).forEach((route) => {
     if (!inAgencyScope(route, opts.agencyIds)) return;
+    // Fallback sources fill only what better ones left empty. `official_sources`
+    // is the claim marker: it is recomputed from a fresh view map every night,
+    // and the registry order puts the sources with real geometry first, so a
+    // row already stamped by PKP or NightJet keeps their data.
+    if (opts.onlyUnclaimed && route.official_sources?.length) return;
 
     // Legacy polyline merge (NightJet): one nj_polyline field, first matching
     // direction wins — byte-compatible with the original finalizeViewMap.
     if (opts.setPolyline && (opts.polylineMode ?? "legacy") === "legacy") {
       const names = [route.trip_short_name_0, route.trip_short_name_1].filter(Boolean);
       for (const name of names) {
-        const match = trains[name.toString().trim()];
+        const match = lookupTrain(trains, name);
         if (match?.polyline) {
           route.nj_polyline = match.polyline;
           break;
@@ -66,24 +97,41 @@ function trainsByNumber({ entry, viewMap, trains, log }) {
     let matchedAny = false;
     for (const d of [0, 1]) {
       const name = route[`trip_short_name_${d}`];
-      const match = name ? trains[name.toString().trim()] : null;
+      const match = lookupTrain(trains, name);
       if (!match) continue;
-      matchedAny = true;
 
+      let stopList = stopListOf(match);
+      const origin = route[`origin_trip_${d}`];
+      const destination = route[`destination_trip_${d}`];
+      // Defence in depth for number-ambiguous sources: the adapter already
+      // discards a response that doesn't serve the requesting row, but the
+      // committed file may predate that check, so never write a stop list that
+      // runs somewhere else.
+      if (opts.validateEndpoints) {
+        if (!stopsRunBetween(stopList, origin, destination)) continue;
+        // Keep only the row's own journey, so a list that runs past the
+        // endpoints can't hand the row someone else's arrival time.
+        const journey =
+          sliceToJourney(stopList, origin, destination) ??
+          sliceToJourney([...stopList].reverse(), origin, destination);
+        if (!journey) continue;
+        stopList = journey;
+      }
+      matchedAny = true;
       if (opts.setPolyline && opts.polylineMode === "perDirection" && match.polyline) {
         route[`nj_polyline_${d}`] = match.polyline;
       }
-      if (opts.updateVia && match.stations?.length >= 2) {
-        const via = match.stations
+      if (opts.updateVia && stopList.length >= 2) {
+        const via = stopList
           .slice(1, -1)
           .map((s) => s?.name)
           .filter(Boolean)
           .join(" - ");
         if (via) route[`via_${d}`] = via;
       }
-      if (opts.setTimes && match.stations?.length >= 2) {
-        const dep = toHHMM(match.stations[0]?.departure);
-        const arr = toHHMM(match.stations[match.stations.length - 1]?.arrival);
+      if (opts.setTimes && stopList.length >= 2) {
+        const dep = toHHMM(stopList[0]?.departure);
+        const arr = toHHMM(stopList[stopList.length - 1]?.arrival);
         if (dep) route[`origin_departure_time_${d}`] = dep;
         if (arr) route[`destination_arrival_time_${d}`] = arr;
       }

@@ -121,28 +121,6 @@
   },
   {
     "v": 1,
-    "id": "cd",
-    "label": "Czech Railways (ČD)",
-    "description": "Official cd.cz EC train timetables",
-    "kind": "html",
-    "adapter": "cd",
-    "enabled": true,
-    "official": true,
-    "critical": false,
-    "schedule": "daily",
-    "homepage": "https://www.cd.cz",
-    "output": "cd-trains.json",
-    "missingResponse": "404",
-    "agencyDefaults": { "agencyId": "ČD", "operatorName": "Czech Railways" },
-    "synthetic": null,
-    "params": {
-      "trainNumberPrefixes": ["EC", "EN"],
-      "concurrency": 6
-    },
-    "freshness": { "ttlHours": 25 }
-  },
-  {
-    "v": 1,
     "id": "chinese",
     "label": "China Railway",
     "description": "Official kyfw.12306.cn schedule JSON — curated sleeper allowlist (data/sources/chinese-sleepers.json) with live stop lists + times; geometry from the OSM-backed route-geometry cache. Probe workflow: 'Probe 12306 source'.",
@@ -406,5 +384,40 @@
     "synthetic": null,
     "params": {},
     "freshness": null
+  },
+  {
+    "v": 1,
+    "id": "cd",
+    "label": "Czech Railways (ČD)",
+    "description": "Official cd.cz EC/EN train timetables. LAST RESORT for stop lists: enriches only rows no better source claimed (enrich.onlyUnclaimed), so PKP and NightJet — which also carry geometry — always win. Listed last because the enrichment runs in registry order. cd.cz answers a bare /vlak/{number} with whichever operator's train matched first, so responses are endpoint-validated against the requesting row and params.trainUrls pins the full deep link where the bare number resolves wrong.",
+    "kind": "html",
+    "adapter": "cd",
+    "enabled": true,
+    "official": true,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.cd.cz",
+    "output": "cd-trains.json",
+    "missingResponse": "404",
+    "agencyDefaults": { "agencyId": "ČD", "operatorName": "Czech Railways" },
+    "synthetic": null,
+    "enrich": {
+      "strategy": "trainsByNumber",
+      "agencyIds": ["ČD", "PKP/ČD"],
+      "updateVia": true,
+      "setTimes": true,
+      "stamp": true,
+      "onlyUnclaimed": true,
+      "validateEndpoints": true
+    },
+    "params": {
+      "trainNumberPrefixes": ["EC", "EN"],
+      "concurrency": 6,
+      "trainUrls": {
+        "10443": "10443/_DATE_/5457076/22.16/5100065/8.04/",
+        "10407": "10407/_DATE_/5100065/19.05/5457076/7.26/"
+      }
+    },
+    "freshness": { "ttlHours": 25 }
   }
 ]

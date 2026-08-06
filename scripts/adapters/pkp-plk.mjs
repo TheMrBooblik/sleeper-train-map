@@ -175,6 +175,52 @@ export function endpointsMatch(a, b) {
   return (a0 === b0 && a1 === b1) || (a0 === b1 && a1 === b0);
 }
 
+// Two different trains can share a corridor AND its endpoint cities: Praha →
+// Warszawa is served by an overnight EuroNight and by daytime EuroCitys. PLK's
+// international trains carry a national number that rarely equals the
+// commercial EN/EC number, so the endpoint fallback is often the only match
+// available — and with nothing else to separate them it stamped a daytime EC's
+// stop list and times onto the sleeper, giving EN 11443 six stations it does
+// not call at and a timetable eight hours out. The clock tells them apart.
+const ENDPOINT_TIME_TOLERANCE_MIN = 90;
+
+/** "22:16" → minutes since midnight; null when there is no usable time. */
+export function parseClock(value) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(value ?? "").trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  return h * 60 + min;
+}
+
+/** Minutes between two clock readings, the short way round midnight. */
+export function clockGapMinutes(a, b) {
+  const d = Math.abs(a - b) % 1440;
+  return Math.min(d, 1440 - d);
+}
+
+/**
+ * Whether a candidate's endpoint times are close enough to a route's own that
+ * they can be the same service. Null when either side has no time to compare —
+ * callers treat "unknown" as "not corroborated" for candidates matched on
+ * endpoints alone, since that match carries no other evidence of identity.
+ *
+ * @returns {boolean|null}
+ */
+export function endpointTimesAgree(candidateStops, departure, arrival) {
+  const stops = asArray(candidateStops);
+  if (stops.length < 2) return null;
+  const first = stops[0];
+  const last = stops[stops.length - 1];
+  const pairs = [
+    [parseClock(first?.dep ?? first?.arr), parseClock(departure)],
+    [parseClock(last?.arr ?? last?.dep), parseClock(arrival)],
+  ].filter(([x, y]) => x != null && y != null);
+  if (pairs.length === 0) return null;
+  return pairs.every(([x, y]) => clockGapMinutes(x, y) <= ENDPOINT_TIME_TOLERANCE_MIN);
+}
+
 /** Order-independent endpoint-city key for a stop list ("a|b", sorted). */
 export function endpointKey(stops) {
   if (!stops || stops.length < 2) return "";
@@ -237,16 +283,27 @@ export function mergePlkIntoBundle(
     byNumber.get(n).push(c);
   }
 
-  const bestMatch = (pool, existingStops) => {
+  const bestMatch = (pool, existingStops, requireTimeAgreement) => {
     let best = null;
     for (const c of pool) {
-      if (
-        endpointsMatch(c.stops, existingStops) &&
-        c.stops.length >= existingStops.length &&
-        (!best || c.stops.length > best.stops.length)
-      ) {
-        best = c;
+      if (!endpointsMatch(c.stops, existingStops)) continue;
+      if (c.stops.length < existingStops.length) continue;
+      // Same guard as plkScheduleForRow: an endpoints-only match must also land
+      // at the same times, or a daytime service can overwrite a night train's
+      // stop list on a corridor they share.
+      if (requireTimeAgreement) {
+        const first = existingStops[0];
+        const last = existingStops[existingStops.length - 1];
+        const oriented = endpointsMatch(c.stops, [first, last])
+          ? c.stops
+          : [...c.stops].reverse();
+        if (
+          endpointTimesAgree(oriented, first?.dep ?? first?.arr, last?.arr ?? last?.dep) !== true
+        ) {
+          continue;
+        }
       }
+      if (!best || c.stops.length > best.stops.length) best = c;
     }
     return best;
   };
@@ -256,8 +313,8 @@ export function mergePlkIntoBundle(
     // Prefer a candidate carrying the same national number, then any candidate
     // whose endpoints match (covers international national-number mismatches).
     return (
-      bestMatch(byNumber.get(key) ?? [], existingStops) ??
-      bestMatch(list, existingStops)
+      bestMatch(byNumber.get(key) ?? [], existingStops, false) ??
+      bestMatch(list, existingStops, true)
     );
   };
 
@@ -320,6 +377,18 @@ export function plkScheduleForRow(row, candidates, canonicalize = (s) => s) {
       if (normalizeCity(c.stops[0]?.name) !== o) continue;
       if (normalizeCity(c.stops[c.stops.length - 1]?.name) !== z) continue;
       const preferred = keys.has(String(c.number));
+      // Sharing two endpoint cities is not being the same train. A candidate
+      // that does not carry this train's number has to agree on the clock.
+      if (
+        !preferred &&
+        endpointTimesAgree(
+          c.stops,
+          row[`origin_departure_time_${d}`],
+          row[`destination_arrival_time_${d}`],
+        ) !== true
+      ) {
+        continue;
+      }
       if (
         !best ||
         (preferred && !bestPreferred) ||

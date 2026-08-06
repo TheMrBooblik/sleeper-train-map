@@ -349,4 +349,96 @@ await check("a failing source is isolated; later sources still enrich", async ()
   assert.ok(logs.some((m) => m.includes("broken") && m.includes("failed")));
 });
 
+
+// ── ČD as the last-resort stop-list source ──────────────────────────────────
+// Rule: a route with no PKP or NightJet data falls back to ČD. ČD carries no
+// geometry and cd.cz's bare-number lookup is ambiguous, so it only fills rows
+// nobody better claimed, and only with a stop list that actually runs the
+// journey the row describes.
+const cdEntry = {
+  id: "cd",
+  enabled: true,
+  enrich: {
+    strategy: "trainsByNumber",
+    agencyIds: ["ČD", "PKP/ČD"],
+    updateVia: true,
+    setTimes: true,
+    stamp: true,
+    onlyUnclaimed: true,
+    validateEndpoints: true,
+  },
+};
+// The ČD scrape keys by bare number and names the list `stops` (NightJet keys
+// by full label and names it `stations`) — both shapes must resolve.
+const cdTrains = {
+  442: {
+    stops: [
+      { name: "Humenné", departure: "19:31" },
+      { name: "Košice", arrival: "20:59", departure: "22:07" },
+      { name: "Praha hl.n.", arrival: "7:26", departure: "7:39" },
+      { name: "Praha-Michle autovlak", arrival: "8:38" },
+    ],
+  },
+  40417: {
+    // What cd.cz actually returns for this number: a Polish local service.
+    stops: [{ name: "Chorzow Batory", departure: "06:10" }, { name: "Lubliniec", arrival: "07:20" }],
+  },
+};
+
+await check("ČD fills an unclaimed row, keyed by bare number, from `stops`", async () => {
+  const viewMap = {
+    6: {
+      agency_id: "ČD",
+      trip_short_name_0: "EN 442",
+      origin_trip_0: "Humenné",
+      destination_trip_0: "Praha hl.n.",
+      origin_departure_time_0: "19:31",
+      destination_arrival_time_0: "07:46",
+    },
+  };
+  await enrichViewMap({
+    registry: [cdEntry],
+    viewMap,
+    getTrains: () => cdTrains,
+    readJson: () => null,
+  });
+  assert.deepStrictEqual(viewMap[6].official_sources, ["cd"]);
+  assert.ok(viewMap[6].via_0.includes("Košice"), "ČD's richer stop list is used");
+  assert.ok(!viewMap[6].via_0.includes("autovlak"), "stops past the destination are trimmed away");
+  // "7:26" is ČD's plain clock reading and belongs to Praha hl.n., not to the
+  // car-carrier terminal the list runs on to.
+  assert.strictEqual(viewMap[6].destination_arrival_time_0, "07:26");
+});
+
+await check("ČD leaves a row another source already claimed", async () => {
+  const viewMap = {
+    6: {
+      agency_id: "ČD",
+      trip_short_name_0: "EN 442",
+      origin_trip_0: "Humenné",
+      destination_trip_0: "Praha hl.n.",
+      via_0: "PKP's list",
+      official_sources: ["pkp-gtfs"],
+    },
+  };
+  await enrichViewMap({ registry: [cdEntry], viewMap, getTrains: () => cdTrains, readJson: () => null });
+  assert.strictEqual(viewMap[6].via_0, "PKP's list");
+  assert.deepStrictEqual(viewMap[6].official_sources, ["pkp-gtfs"]);
+});
+
+await check("ČD discards a response that runs somewhere else entirely", async () => {
+  const viewMap = {
+    118: {
+      agency_id: "PKP/ČD",
+      trip_short_name_0: "EN 40417",
+      origin_trip_0: "Przemyśl Gł.",
+      destination_trip_0: "München Hbf",
+      via_0: "original",
+    },
+  };
+  await enrichViewMap({ registry: [cdEntry], viewMap, getTrains: () => cdTrains, readJson: () => null });
+  assert.strictEqual(viewMap[118].via_0, "original", "Chorzów Batory–Lubliniec is not this train");
+  assert.strictEqual(viewMap[118].official_sources, undefined, "and it is never stamped");
+});
+
 console.log(`\n[verify-enrich] ${passed} checks passed`);

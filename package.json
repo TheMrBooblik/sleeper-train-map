@@ -44,7 +44,8 @@
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:smoke": "playwright test --config=playwright.smoke.config.js",
-    "prepare": "husky && git config merge.ours.driver true || true"
+    "prepare": "husky && git config merge.ours.driver true || true",
+    "verify-station-city": "node tests/verify-station-city.mjs"
   },
   "packageManager": "npm@10",
   "repository": {

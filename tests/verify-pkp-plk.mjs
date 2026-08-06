@@ -18,6 +18,9 @@ import {
   mergePlkIntoBundle,
   plkScheduleForRow,
   canonicalizeStationName,
+  parseClock,
+  clockGapMinutes,
+  endpointTimesAgree,
 } from "../scripts/adapters/pkp-plk.mjs";
 
 // Dictionary: id → { name } (no coordinates, exactly like the live API).
@@ -93,10 +96,13 @@ const richWarSzk = [
   { name: "Wrocław Główny" },
   { name: "Szklarska Poręba Górna" },
 ];
+// Times as the real feeds carry them (every live bundle entry and PLK
+// candidate has endpoint times): the endpoint fallback checks the clock, so a
+// same-corridor service running at a different hour is a different train.
 const richPraGdy = [
-  { name: "Praha Hlavni Nadrazi" },
-  { name: "Poznań Główny" },
-  { name: "Gdynia Główna" },
+  { name: "Praha Hlavni Nadrazi", dep: "18:49" },
+  { name: "Poznań Główny", arr: "01:12", dep: "01:20" },
+  { name: "Gdynia Główna", arr: "05:58" },
 ];
 const bundle = {
   16170: {
@@ -116,8 +122,8 @@ const bundle = {
       [54.52, 18.54],
     ],
     stops: [
-      { name: "Praha hl.n.", lat: 50.08, lon: 14.44 },
-      { name: "Gdynia Gł.", lat: 54.52, lon: 18.54 },
+      { name: "Praha hl.n.", lat: 50.08, lon: 14.44, dep: "18:49" },
+      { name: "Gdynia Gł.", lat: 54.52, lon: 18.54, arr: "05:58" },
     ],
   },
   406: {
@@ -131,6 +137,16 @@ const bundle = {
 const candidates = [
   { number: "16170", stops: richWarSzk }, // same-number match
   { number: "45402", stops: richPraGdy }, // international: number ≠ "460", endpoint fallback
+  // Same corridor, same endpoint cities, daytime — must NOT overwrite 460.
+  {
+    number: "45900",
+    stops: [
+      { name: "Praha Hlavni Nadrazi", dep: "06:10" },
+      { name: "Wrocław Główny", arr: "10:05", dep: "10:15" },
+      { name: "Poznań Główny", arr: "12:30", dep: "12:38" },
+      { name: "Gdynia Główna", arr: "16:44" },
+    ],
+  },
   {
     number: "406",
     stops: [{ name: "Praha hl.n." }, { name: "Warszawa Wschodnia" }],
@@ -171,9 +187,17 @@ const withVariant = {
       [50, 14],
       [54.5, 18.5],
     ],
-    stops: [{ name: "Praha hl.n." }, { name: "Gdynia Gł." }],
+    stops: [
+      { name: "Praha hl.n.", dep: "18:49" },
+      { name: "Gdynia Gł.", arr: "05:58" },
+    ],
     variants: [
-      { stops: [{ name: "Praha hl.n." }, { name: "Warszawa Wschodnia" }] },
+      {
+        stops: [
+          { name: "Praha hl.n.", dep: "22:16" },
+          { name: "Warszawa Wschodnia", arr: "08:15" },
+        ],
+      },
     ],
   },
 };
@@ -182,9 +206,9 @@ const vcands = [
   {
     number: "45410",
     stops: [
-      { name: "Praha Hlavni Nadrazi" },
-      { name: "Łódź Fabryczna" },
-      { name: "Warszawa Wschodnia" },
+      { name: "Praha Hlavni Nadrazi", dep: "22:16" },
+      { name: "Łódź Fabryczna", arr: "04:40", dep: "04:48" },
+      { name: "Warszawa Wschodnia", arr: "08:15" },
     ],
   },
 ];
@@ -344,6 +368,71 @@ assert.deepEqual(
   "bundle fold canonicalizes PLK names",
 );
 
+// ── Endpoint match alone is not identity ────────────────────────────────────
+// Praha → Warszawa is run by an overnight EuroNight AND by daytime EuroCitys.
+// PLK's international trains carry a national number that does not equal the
+// commercial one, so the endpoint fallback is the only match available — and
+// without a clock check it stamped a daytime EC's stop list and times onto
+// EN 11443, giving the sleeper six stations it does not call at.
+assert.equal(parseClock("22:16"), 22 * 60 + 16);
+assert.equal(parseClock("08:04:00"), 8 * 60 + 4);
+assert.equal(parseClock(""), null);
+assert.equal(parseClock("25:00"), null);
+// Shortest way round the clock face, so an overnight pair stays close.
+assert.equal(clockGapMinutes(parseClock("23:50"), parseClock("00:10")), 20);
+assert.equal(clockGapMinutes(parseClock("14:08"), parseClock("22:16")), 488);
+
+const nightTrainRow = {
+  agency_id: "PKP/ČD",
+  trip_short_name_0: "EN 11443",
+  origin_trip_0: "Praha hl.n.",
+  origin_departure_time_0: "22:16",
+  destination_trip_0: "Warszawa Wschodnia",
+  destination_arrival_time_0: "08:15",
+};
+const daytimeEc = {
+  number: "41000",
+  stops: [
+    { name: "Praha Hlavni Nadrazi", dep: "14:08" },
+    { name: "Tychy", arr: "19:36", dep: "19:41" },
+    { name: "Warszawa Wschodnia", arr: "23:23" },
+  ],
+};
+assert.equal(
+  endpointTimesAgree(daytimeEc.stops, "22:16", "08:15"),
+  false,
+  "a daytime EC must not read as the overnight service",
+);
+assert.equal(
+  plkScheduleForRow(nightTrainRow, [daytimeEc], canonicalizeStationName),
+  null,
+  "same endpoints + wrong clock = no match",
+);
+
+const overnight = {
+  number: "41500",
+  stops: [
+    { name: "Praha Hlavni Nadrazi", dep: "22:16" },
+    { name: "Katowice", arr: "05:19", dep: "05:24" },
+    { name: "Warszawa Wschodnia", arr: "08:15" },
+  ],
+};
+const okFields = plkScheduleForRow(nightTrainRow, [overnight], canonicalizeStationName);
+assert.ok(okFields?.pkp_schedule_0, "the service that runs at the right time still matches");
+assert.ok(okFields.via_0.includes("Katowice"), "its stop list drives the map dots");
+assert.ok(
+  !okFields.via_0.includes("Tychy"),
+  "and carries only the stations this train actually calls at",
+);
+
+// A candidate carrying this train's own number is trusted without the clock
+// check — the number is stronger evidence than the timetable it came with.
+const numbered = { ...overnight, number: "11443", stops: daytimeEc.stops };
+assert.ok(
+  plkScheduleForRow(nightTrainRow, [numbered], canonicalizeStationName)?.pkp_schedule_0,
+  "a same-number candidate is still accepted",
+);
+
 console.log(
-  "pkp-plk transforms OK — normalize/sort/times, endpoint match+key, coord reconcile, number+endpoint merge, variants, name canonicalization",
+  "pkp-plk transforms OK — normalize/sort/times, endpoint match+key, coord reconcile, number+endpoint merge, variants, name canonicalization, clock guard",
 );
