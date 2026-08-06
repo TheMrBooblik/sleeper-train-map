@@ -43,8 +43,12 @@ export function attachPkpGtfsPolylinesToViewMap(viewMap, bundle) {
 
   for (const key of Object.keys(viewMap)) {
     const route = viewMap[key];
-    const agency = route?.agency_id;
-    if (agency !== "PKP" && agency !== "PKP/ČD") {
+    // Any row PKP operates — alone or with a partner (PKP/ČD, MÁV/PKP), and
+    // including Nightjet-replaced rows that keep BoT's attribution in
+    // bot_agency_id. Geometry from the Polish GTFS bundle still applies; the
+    // station-list overwrite is gated separately by pkp_source_* below.
+    const agencies = `${route?.agency_id ?? ""}/${route?.bot_agency_id ?? ""}`;
+    if (!agencies.toUpperCase().includes("PKP")) {
       out[key] = route;
       continue;
     }
@@ -95,29 +99,36 @@ export function attachPkpGtfsPolylinesToViewMap(viewMap, bundle) {
     if (busSegs0) out[key].pkp_bus_segments_0 = busSegs0;
     if (busSegs1) out[key].pkp_bus_segments_1 = busSegs1;
 
-    // Full GTFS stop list as the "via" line so intermediate stations show when
-    // a route is selected on the map.
-    const via0 = buildVia(e0?.stops, route.origin_trip_0, route.destination_trip_0);
-    const via1 = buildVia(e1?.stops, route.origin_trip_1, route.destination_trip_1);
-    if (via0) out[key].via_0 = via0;
-    if (via1) out[key].via_1 = via1;
+    // Station list / via / calendar: PLK outranks the GTFS bundle. The
+    // nightly adapter stamps pkp_source_${d} = "pkp-plk" when it has already
+    // set those fields, so we keep them and only attach the missing geometry.
+    // Without that guard the browser would overwrite PLK's richer stop list.
+    const plkOwns0 = route.pkp_source_0 === "pkp-plk";
+    const plkOwns1 = route.pkp_source_1 === "pkp-plk";
 
-    // Per-station timetable + service calendar for the detail panel.
-    if (e0?.stops?.length) {
-      out[key].pkp_schedule_0 = e0.stops;
-      out[key].pkp_valid_0 = {
-        validFrom: e0.validFrom,
-        validUntil: e0.validUntil,
-        days: e0.days,
-      };
+    if (!plkOwns0) {
+      const via0 = buildVia(e0?.stops, route.origin_trip_0, route.destination_trip_0);
+      if (via0) out[key].via_0 = via0;
+      if (e0?.stops?.length) {
+        out[key].pkp_schedule_0 = e0.stops;
+        out[key].pkp_valid_0 = {
+          validFrom: e0.validFrom,
+          validUntil: e0.validUntil,
+          days: e0.days,
+        };
+      }
     }
-    if (e1?.stops?.length) {
-      out[key].pkp_schedule_1 = e1.stops;
-      out[key].pkp_valid_1 = {
-        validFrom: e1.validFrom,
-        validUntil: e1.validUntil,
-        days: e1.days,
-      };
+    if (!plkOwns1) {
+      const via1 = buildVia(e1?.stops, route.origin_trip_1, route.destination_trip_1);
+      if (via1) out[key].via_1 = via1;
+      if (e1?.stops?.length) {
+        out[key].pkp_schedule_1 = e1.stops;
+        out[key].pkp_valid_1 = {
+          validFrom: e1.validFrom,
+          validUntil: e1.validUntil,
+          days: e1.days,
+        };
+      }
     }
   }
 

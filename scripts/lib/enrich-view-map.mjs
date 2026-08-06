@@ -126,11 +126,22 @@ async function gtfsBundle({ entry, viewMap, bundle, stopCoords, resolveGeometry,
     );
 
     if (e0 || e1) {
+      // PLK outranks the GTFS bundle for the station list. The pkp-plk adapter
+      // runs before this post-step and stamps pkp_source_${d} when it has already
+      // set via_*; leave those directions alone.
       if (opts.updateVia) {
-        const via0 = e0 ? buildVia(e0.stops, route.origin_trip_0, route.destination_trip_0) : null;
-        const via1 = e1 ? buildVia(e1.stops, route.origin_trip_1, route.destination_trip_1) : null;
-        if (via0) route.via_0 = via0;
-        if (via1) route.via_1 = via1;
+        if (route.pkp_source_0 !== "pkp-plk") {
+          const via0 = e0
+            ? buildVia(e0.stops, route.origin_trip_0, route.destination_trip_0)
+            : null;
+          if (via0) route.via_0 = via0;
+        }
+        if (route.pkp_source_1 !== "pkp-plk") {
+          const via1 = e1
+            ? buildVia(e1.stops, route.origin_trip_1, route.destination_trip_1)
+            : null;
+          if (via1) route.via_1 = via1;
+        }
       }
       if (opts.stamp) {
         stampOfficialSource(route, entry.id);

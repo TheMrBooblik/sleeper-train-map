@@ -368,7 +368,7 @@
     "v": 1,
     "id": "pkp-plk",
     "label": "PKP / PLK Open Data (station info)",
-    "description": "Official PLK 'Otwarte Dane Kolejowe' API (pdp-api.plk-sa.pl) — the infrastructure manager's authoritative planned schedule, richest for international EN/EC station lists. SUPPLEMENT: folds PLK per-train stop lists (station names + times; coords reconciled from GTFS) into the existing pkpTrainShapes.json byTrainKey bundle, keeping the GTFS/OSM geometry. Gated on /data-version so a typical night is a single request. Runs after pkp-gtfs (which regenerates the bundle nightly). Requires the PLK_API_KEY secret (absent key is a safe no-op).",
+    "description": "Official PLK 'Otwarte Dane Kolejowe' API (pdp-api.plk-sa.pl) — the infrastructure manager's authoritative planned schedule. For every view-map row PKP operates (agency_id or bot_agency_id), PLK outranks the Polish GTFS bundle and Back-on-Track for station lists, times and calendar; Nightjet-covered trains are left untouched. Station names are resolved onto the map's stop table (PLK has no coordinates); GTFS/OSM geometry is kept. Also folds the same stop lists into pkpTrainShapes.json. Gated on /data-version so a typical night is a single request. Requires the PLK_API_KEY secret (absent key is a safe no-op).",
     "kind": "json-api",
     "adapter": "pkp-plk",
     "enabled": true,
@@ -383,6 +383,8 @@
     "params": {
       "carriersInclude": "IC",
       "dayWindow": 7,
+      "viewMapOperator": "PKP",
+      "skipTrainsFrom": ["nightjet-trains.json"],
       "maxRequestsPerRun": 80,
       "rateFloor": 10,
       "stationsPageSize": 5000

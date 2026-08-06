@@ -25,6 +25,7 @@ import {
 } from "./routeStyleUtils";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "./operatorColors";
 import { parseCoord } from "../../../helpers/enrichStationsWithCoordinates";
+import { buildPathForDirection } from "../../../lib/buildPathForDirection";
 import polyline from "@mapbox/polyline";
 
 function isInactiveRoute(route) {
@@ -111,30 +112,16 @@ export function buildAllRoutesPaths({
     return stationCoordsMap.get(n) || stationCoordsMap.get(stationName) || null;
   };
 
-  const buildPathForDirection = (origin, destination, viaStations) => {
-    if (isStationSkipped(origin) || isStationSkipped(destination)) return null;
-    const sequence = [];
-    if (origin && !isStationSkipped(origin)) {
-      const c = findStationCoords(origin);
-      if (c) sequence.push(c);
-    }
-    if (viaStations) {
-      viaStations
-        .split(" - ")
-        .map((s) => s.trim())
-        .forEach((via) => {
-          if (!isStationSkipped(via)) {
-            const c = findStationCoords(via);
-            if (c) sequence.push(c);
-          }
-        });
-    }
-    if (destination && !isStationSkipped(destination)) {
-      const c = findStationCoords(destination);
-      if (c) sequence.push(c);
-    }
-    return sequence.length >= 2 ? sequence : null;
-  };
+  // Shared with useRoutePaths so selected-route and show-all modes can never
+  // diverge on how a station chain becomes a line.
+  const pathForDirection = (origin, destination, viaStations) =>
+    buildPathForDirection(
+      origin,
+      destination,
+      viaStations,
+      findStationCoords,
+      isStationSkipped,
+    );
 
   // Build operator-based color map (brand colors with shade variation)
   const routeColorMap = buildRouteColorMap(routesToShow, routeMap);
@@ -233,7 +220,7 @@ export function buildAllRoutesPaths({
         route.pkp_gtfs_positions_0?.length >= 2
           ? route.pkp_gtfs_positions_0
           : null;
-      const path0 = buildPathForDirection(
+      const path0 = pathForDirection(
         route.origin_trip_0,
         route.destination_trip_0,
         route.via_0,
@@ -286,7 +273,7 @@ export function buildAllRoutesPaths({
           route.pkp_gtfs_positions_1?.length >= 2
             ? route.pkp_gtfs_positions_1
             : null;
-        const path1 = buildPathForDirection(
+        const path1 = pathForDirection(
           route.origin_trip_1,
           route.destination_trip_1,
           route.via_1,

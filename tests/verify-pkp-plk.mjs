@@ -297,7 +297,11 @@ const canonCands = [
     ],
   },
 ];
-const cf = plkScheduleForRow(canonRow, canonCands, canonicalizeStationName);
+// The third argument is now a stop-LIST resolver (it also supplies coordinates
+// the map's stop table holds). Here it only exercises name canonicalization.
+const canonNames = (list) =>
+  list.map((s) => ({ ...s, name: canonicalizeStationName(s.name) }));
+const cf = plkScheduleForRow(canonRow, canonCands, canonNames);
 assert.equal(
   cf.via_0,
   "Laško - Bohumín",
@@ -336,7 +340,7 @@ const cbRes = mergePlkIntoBundle(
       ],
     },
   ],
-  canonicalizeStationName,
+  canonNames,
 );
 assert.deepEqual(
   cbRes.byTrainKey["1276"].stops.map((s) => s.name),

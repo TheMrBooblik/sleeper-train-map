@@ -193,6 +193,29 @@ await check("gtfsBundle: endpoint-matched PKP row gets official via + stamp", as
   assert.deepStrictEqual(viewMap[126].official_sources, ["pkp-gtfs"]);
 });
 
+await check("gtfsBundle: leaves a PLK-owned via_ alone", async () => {
+  // The pkp-plk adapter runs before this post-step and stamps pkp_source_${d}
+  // when it has already set via_*. Enrichment must not overwrite that.
+  const viewMap = {
+    126: {
+      agency_id: "PKP",
+      origin_trip_0: "Przemyśl Główny",
+      destination_trip_0: "Świnoujście",
+      trip_short_name_0: "EN 430 / IC 28170",
+      via_0: "PLK richer stop list",
+      pkp_source_0: "pkp-plk",
+    },
+  };
+  await enrichViewMap({
+    registry: [pkpEntry],
+    viewMap,
+    getTrains: () => ({}),
+    readJson: (p) => (p === "public/data/gtfs/pkpTrainShapes.json" ? bundle : null),
+  });
+  assert.strictEqual(viewMap[126].via_0, "PLK richer stop list");
+  assert.deepStrictEqual(viewMap[126].official_sources, ["pkp-gtfs"]);
+});
+
 await check("gtfsBundle: wrong-corridor collision is not stamped", async () => {
   const viewMap = {
     99: {
