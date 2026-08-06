@@ -21,6 +21,8 @@
     "verify-seo-faq": "node tests/verify-seo-faq.mjs",
     "verify-via-display": "node tests/verify-via-display.mjs",
     "verify-pkp-plk": "node tests/verify-pkp-plk.mjs",
+    "verify-station-resolver": "node tests/verify-station-resolver.mjs",
+    "verify-pkp-poland": "node tests/verify-pkp-poland.mjs",
     "verify-overrides": "node tests/verify-overrides-mutate.mjs",
     "verify-disabled-routes": "node tests/verify-disabled-routes.mjs",
     "verify-registry": "node tests/verify-registry.mjs",
