@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-08-06",
+  "createdAt": "2026-08-06T05:47:05.554Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (2 routes, 24 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_456: NJ 456 (Graz Hbf – Berlin Hbf)\nroute cr_D_947: D 947 (Chengdudong(成都东) – Zhuhai(珠海))\nstation Xingtaidong(邢台东) (chinese)\nstation Zhengzhoudong(郑州东) (chinese)\nstation Xi'an North(西安北) (chinese)\nstation Gaobeidiandong(高碑店东) (chinese)\nstation Gaoyixi(高邑西) (chinese)\nstation Chongqingxi(重庆西) (chinese)\nstation Zunyi(遵义) (chinese)\nstation Guiyangbei(贵阳北) (chinese)\nstation Baodingdong(保定东) (chinese)\nstation Shanghai Hongqiao(上海虹桥) (chinese)\nstation Nantongxi(南通西) (chinese)\nstation Huaiandong(淮安东) (chinese)\nstation Suqian(宿迁) (chinese)\nstation Xuzhoudong(徐州东) (chinese)\nstation Leshan(乐山) (chinese)\nstation Yibin(宜宾) (chinese)\nstation Meishandong(眉山东) (chinese)\nstation Guiyangdong(贵阳东) (chinese)\nstation Guilinxi(桂林西) (chinese)\nstation Foshanxi(佛山西) (chinese)\nstation Guangzhou South(广州南) (chinese)\nstation Zhongshan(中山) (chinese)\nstation Zhuhai(珠海) (chinese)\nstation Shenzhenbei(深圳北) (chinese)",
+  "target": {
+    "routeKey": "trusted-2026-08-06",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
