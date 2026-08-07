@@ -209,6 +209,12 @@ export function abbreviateStationName(name) {
 /**
  * Heuristic matcher for station names (handles Centraal, Hbf, brackets, diacritics).
  * Uses normalizeForLookup for both sides before comparing.
+ *
+ * Bilingual "Primary / Secondary" labels (common in BE/CH/FI) are special-cased:
+ * a bare secondary-language name must not fuzzy-match the bilingual form when that
+ * secondary is a single word. Otherwise Dutch "Bergen" (Mons, BE) matches Norway's
+ * "Bergen" via word containment on "mons bergen".
+ *
  * @param {string} a - First station name
  * @param {string} b - Second station name
  * @param {function(string): string} normalizeForLookup - From useCities (normalizeStationNameForLookup)
@@ -216,6 +222,7 @@ export function abbreviateStationName(name) {
  */
 export function matchStationNames(a, b, normalizeForLookup) {
   if (!a || !b) return false;
+
   const simplify = (s) => {
     const n = (normalizeForLookup(String(s)) || "")
       .toLowerCase()
@@ -226,26 +233,72 @@ export function matchStationNames(a, b, normalizeForLookup) {
       .trim();
     return n;
   };
-  const A = simplify(a);
-  const B = simplify(b);
-  if (!A || !B) return false;
-  if (A === B) return true;
-  // For single-word station names (e.g. "Hove", "Eindhoven") require exact match only.
-  // This prevents accidental matches where one short name is a substring of another.
-  const wordsA = A.split(" ");
-  const wordsB = B.split(" ");
-  if (wordsA.length === 1 && wordsB.length === 1) {
-    return false;
-  }
-  // For multi-word names (e.g. "Bruxelles Midi", "Paris Gare de Lyon"),
-  // still allow "substring" matching, but ONLY when the shorter string appears
-  // as a full word inside the longer one. This prevents false matches like
-  // "Wien" matching "Wiener Neustadt".
+
+  // Shorter name appears as a whole word inside the longer one.
+  // Blocks false positives like "Wien" ⊆ "Wiener Neustadt".
   const containsAsWord = (text, sub) => {
     if (!text || !sub) return false;
     const pattern = new RegExp(`(^| )${sub}( |$)`);
     return pattern.test(text);
   };
 
-  return containsAsWord(A, B) || containsAsWord(B, A);
+  // Exact match, or word-containment when at least one side is multi-word.
+  // Single-word vs single-word stays exact-only (e.g. "Hove" vs "Eindhoven").
+  const fuzzyContain = (A, B) => {
+    if (!A || !B) return false;
+    if (A === B) return true;
+    const wordsA = A.split(" ");
+    const wordsB = B.split(" ");
+    if (wordsA.length === 1 && wordsB.length === 1) return false;
+    return containsAsWord(A, B) || containsAsWord(B, A);
+  };
+
+  // Split "Primary / Secondary" before "/" is stripped by simplify.
+  // Returns null when the name is not bilingual.
+  const bilingualHalves = (raw) => {
+    const parts = String(raw).split(/\s*\/\s*/);
+    if (parts.length < 2) return null;
+    const halves = parts.map((p) => simplify(p)).filter(Boolean);
+    return halves.length >= 2 ? halves : null;
+  };
+
+  const halvesA = bilingualHalves(a);
+  const halvesB = bilingualHalves(b);
+
+  // Match a non-bilingual (or other) name against bilingual halves.
+  // Primary half is always safe. Secondary half only when multi-word
+  // (e.g. "Brussel Zuid") — single-word secondaries collide with other cities.
+  const matchBilingual = (halves, otherRaw) => {
+    const other = simplify(otherRaw);
+    if (!other) return false;
+    const primary = halves[0];
+    const secondary = halves[1];
+    if (other === primary) return true;
+    if (
+      secondary &&
+      secondary.split(" ").length >= 2 &&
+      other === secondary
+    ) {
+      return true;
+    }
+    // Paris-style fuzzy match against the primary half only (never the full
+    // "mons bergen" string, which would reintroduce the Bergen collision).
+    return fuzzyContain(primary, other);
+  };
+
+  if (halvesA || halvesB) {
+    if (halvesA && halvesB) {
+      // Two bilingual labels: compare primary halves (and multi-word secondaries).
+      return (
+        fuzzyContain(halvesA[0], halvesB[0]) ||
+        (halvesA[1]?.split(" ").length >= 2 &&
+          halvesB[1]?.split(" ").length >= 2 &&
+          halvesA[1] === halvesB[1])
+      );
+    }
+    if (halvesA) return matchBilingual(halvesA, b);
+    return matchBilingual(halvesB, a);
+  }
+
+  return fuzzyContain(simplify(a), simplify(b));
 }

@@ -20,6 +20,7 @@
     "verify-seo-booking": "node tests/verify-seo-booking.mjs",
     "verify-seo-faq": "node tests/verify-seo-faq.mjs",
     "verify-via-display": "node tests/verify-via-display.mjs",
+    "verify-station-names": "node tests/verify-station-names.mjs",
     "verify-pkp-plk": "node tests/verify-pkp-plk.mjs",
     "verify-overrides": "node tests/verify-overrides-mutate.mjs",
     "verify-disabled-routes": "node tests/verify-disabled-routes.mjs",
