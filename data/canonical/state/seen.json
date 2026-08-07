@@ -3875,20 +3875,6 @@
         "stopsHash": "30263385"
       }
     },
-    "caucasus_GR_53": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-08-07",
-      "approved": true,
-      "fingerprint": {
-        "o": "Tbilisi Centraluri",
-        "d": "Zugdidi",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "GR",
-        "trains": "GR 53|GR 54",
-        "stopsHash": "73381c3d"
-      }
-    },
     "caucasus_ADY_101": {
       "firstSeen": "2026-06-10",
       "lastSeen": "2026-08-07",
