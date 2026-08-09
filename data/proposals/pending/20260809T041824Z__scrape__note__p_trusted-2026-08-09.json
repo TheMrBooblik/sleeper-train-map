@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-08-09",
+  "createdAt": "2026-08-09T04:18:24.031Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (0 routes, 4 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation Dehui(德惠) (chinese)\nstation Luanxian(滦县) (chinese)\nstation Wubu(吴堡) (chinese)\nstation Xunyangbei(旬阳北) (chinese)",
+  "target": {
+    "routeKey": "trusted-2026-08-09",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
