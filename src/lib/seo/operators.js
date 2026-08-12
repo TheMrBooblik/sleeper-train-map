@@ -11,7 +11,7 @@
  * through splitAgencyIds() before looking an operator up here.
  */
 
-import { slugify } from "./slugify";
+import { slugify } from "./slugify.mjs";
 import { OPERATORS } from "./operatorNames.mjs";
 
 export { OPERATORS };

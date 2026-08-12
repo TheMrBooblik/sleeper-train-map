@@ -1,37 +1,68 @@
 import Head from "next/head";
 import Link from "next/link";
+import { FaArrowRight } from "react-icons/fa";
 
 import SeoLayout from "@components/seo/SeoLayout";
 import Breadcrumbs from "@components/seo/Breadcrumbs";
-import RouteCardLink from "@components/seo/RouteCardLink";
+import RouteTimetable from "@components/seo/RouteTimetable";
+import RouteFactsGrid from "@components/seo/RouteFactsGrid";
+import RouteMapIsland from "@components/seo/RouteMapIsland";
+import BookingCta from "@components/seo/BookingCta";
 import FaqSection from "@components/seo/FaqSection";
 import JsonLd from "@components/seo/JsonLd";
 
-import { getAllCityPairs, getCityPair } from "../../lib/seo/aggregate";
-import { toCardRoute } from "../../lib/seo/data";
+import {
+  getAllCityPairs,
+  getCityPair,
+  getRelatedConnections,
+} from "../../lib/seo/aggregate";
+import { getRouteDetail } from "../../lib/seo/data";
 import { buildConnectionFaq } from "../../lib/seo/routeFaq.mjs";
 import { getFlagEmoji } from "../../lib/countries";
-import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
+import { OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
-export default function ConnectionPage({ slug, originCity, destCity, routes, operators, countries, faq }) {
+/**
+ * The canonical route page type. One page per UNDIRECTED city pair carrying every
+ * train on the corridor in both directions — this absorbed the retired
+ * /trains/[slug] pages, so it must show everything they did: facts, map,
+ * per-train timetables and a booking CTA.
+ */
+export default function ConnectionPage({
+  slug,
+  cityA,
+  cityB,
+  trains,
+  operators,
+  countries,
+  related,
+  faq,
+}) {
   const canonical = absoluteUrl(`/connections/${slug}`);
-  const title = `Night Train ${originCity} to ${destCity} — Sleeper Connections | Pingwi`;
+  const title = `Night Trains ${cityA} to ${cityB} — Times, Stops & Tickets | Pingwi`;
   const operatorNames = operators.map((o) => o.name).join(", ");
   const description =
-    `${routes.length} night trains connect ${originCity} and ${destCity}` +
+    `${trains.length} night ${trains.length === 1 ? "train connects" : "trains connect"} ${cityA} and ${cityB}` +
     (operatorNames ? `, run by ${operatorNames}.` : ".") +
-    " Compare timetables, stops and operators for the overnight journey.";
+    " Compare timetables, stops, journey time and where to book.";
 
   const itemListLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: `Night trains from ${originCity} to ${destCity}`,
-    numberOfItems: routes.length,
-    itemListElement: routes.map((r, i) => ({
+    name: `Night trains between ${cityA} and ${cityB}`,
+    numberOfItems: trains.length,
+    itemListElement: trains.map((t, i) => ({
       "@type": "ListItem",
       position: i + 1,
-      url: absoluteUrl(`/trains/${r.slug}`),
-      name: r.title,
+      item: {
+        "@type": "TrainTrip",
+        name: t.title,
+        ...(t.primaryTrainNumber ? { trainNumber: t.primaryTrainNumber } : {}),
+        ...(t.operators[0]
+          ? { provider: { "@type": "Organization", name: t.operators[0].name } }
+          : {}),
+        departureStation: { "@type": "TrainStation", name: t.origin },
+        arrivalStation: { "@type": "TrainStation", name: t.destination },
+      },
     })),
   };
 
@@ -67,23 +98,27 @@ export default function ConnectionPage({ slug, originCity, destCity, routes, ope
       </Head>
 
       <SeoLayout>
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
+        <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
           <Breadcrumbs
             items={[
               { name: "Home", href: "/" },
-              { name: "Night trains", href: "/trains" },
-              { name: `${originCity} → ${destCity}` },
+              { name: "Connections", href: "/connections" },
+              { name: `${cityA} ↔ ${cityB}` },
             ]}
           />
 
           <header className="mt-6 max-w-3xl">
-            <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight text-balance">
-              Night Trains from {originCity} to {destCity}
+            <p className="text-sm text-primary-green">{operatorNames}</p>
+            <h1 className="mt-2 text-3xl sm:text-4xl font-bold text-white tracking-tight text-balance">
+              Night Trains from {cityA} to {cityB}
             </h1>
-            <p className="mt-4 text-white/60 leading-relaxed">{description}</p>
+            <p className="mt-4 text-white/70 leading-relaxed text-pretty">
+              {description} Trains run in both directions — {cityA} to {cityB} and{" "}
+              {cityB} to {cityA}.
+            </p>
           </header>
 
-          {(operators.length > 0 || countries.length > 0) && (
+          {(countries.length > 0 || operators.length > 0) && (
             <div className="mt-6 flex flex-wrap gap-2">
               {countries.map((c) => (
                 <Link
@@ -107,19 +142,90 @@ export default function ConnectionPage({ slug, originCity, destCity, routes, ope
             </div>
           )}
 
-          <section className="mt-10">
-            <h2 className="text-lg font-semibold text-white">
-              {routes.length} trains on this route
-            </h2>
-            <div className="mt-4 grid sm:grid-cols-2 gap-3">
-              {routes.map((r) => (
-                <RouteCardLink key={r.routeId} route={r} />
-              ))}
+          {/* Corridor geometry comes from the first train that has any. */}
+          {trains.find((t) => t.map) && (
+            <div className="mt-8">
+              <RouteMapIsland
+                map={trains.find((t) => t.map).map}
+                agencyId={trains.find((t) => t.map).agencyId}
+              />
             </div>
+          )}
+
+          <section className="mt-10 space-y-12">
+            <h2 className="text-xl font-semibold text-white">
+              {trains.length} {trains.length === 1 ? "train" : "trains"} on this route
+            </h2>
+
+            {trains.map((t) => (
+              <div key={t.routeId} className="border-t border-white/10 pt-8 first:border-0 first:pt-0">
+                <h3 className="text-lg font-semibold text-white">
+                  {t.origin} <span className="text-white/40">→</span> {t.destination}
+                  {t.trainNumbers.length > 0 && (
+                    <span className="font-semibold text-white/50">
+                      {" "}
+                      ({t.trainNumbers.join(" / ")})
+                    </span>
+                  )}
+                </h3>
+
+                <div className="mt-5">
+                  <RouteFactsGrid detail={t} />
+                </div>
+
+                {t.booking && (
+                  <div className="mt-6">
+                    <BookingCta
+                      booking={t.booking}
+                      origin={t.origin}
+                      destination={t.destination}
+                    />
+                  </div>
+                )}
+
+                <div className="mt-6 space-y-5">
+                  {t.directions.map((dir, i) => (
+                    <RouteTimetable key={i} direction={dir} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </section>
 
+          <div className="mt-10">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-white/15 text-white/90 hover:bg-white/5 hover:border-white/30 font-semibold text-sm transition-colors"
+            >
+              Open the interactive map
+              <FaArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
           <FaqSection items={faq} />
-        </div>
+
+          {related.length > 0 && (
+            <section className="mt-14 border-t border-white/10 pt-10">
+              <h2 className="text-xl font-semibold text-white">Related connections</h2>
+              <div className="mt-5 grid sm:grid-cols-2 gap-2">
+                {related.map((r) => (
+                  <Link
+                    key={r.slug}
+                    href={`/connections/${r.slug}`}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-white/80 hover:text-white hover:border-primary-green/50 transition-colors"
+                  >
+                    <span>
+                      {r.cityA} <span className="text-white/40">↔</span> {r.cityB}
+                    </span>
+                    <span className="text-xs text-white/40">
+                      {r.routeCount} {r.routeCount === 1 ? "train" : "trains"}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+        </article>
       </SeoLayout>
 
       <JsonLd data={itemListLd} />
@@ -138,7 +244,34 @@ export async function getStaticPaths() {
 export async function getStaticProps({ params }) {
   const pair = getCityPair(params.pair);
   if (!pair) return { notFound: true };
-  const routes = pair.routes.map(toCardRoute);
+
+  // Full per-train detail (timetable, stops, booking, geometry) — the content
+  // that used to live on /trains/[slug].
+  const trains = pair.routes
+    .map((r) => getRouteDetail(r.routeId))
+    .filter(Boolean)
+    .map((d) => ({
+      routeId: d.routeId,
+      title: d.title,
+      origin: d.origin,
+      destination: d.destination,
+      primaryTrainNumber: d.primaryTrainNumber,
+      trainNumbers: d.directions.map((x) => x.trainNumber).filter(Boolean),
+      agencyId: d.agencyId,
+      operators: d.operators,
+      pricing: d.pricing,
+      booking: d.booking,
+      countries: d.countries,
+      countryCodes: d.countryCodes,
+      directions: d.directions,
+      facts: d.facts,
+      // Only the first train with geometry renders a map; drop the rest so the
+      // page payload doesn't carry a polyline per train.
+      map:
+        d.map && (d.map.polyline0 || d.map.polyline1 || d.map.stops.length >= 2)
+          ? d.map
+          : null,
+    }));
 
   // Fastest journey + cheapest known "from" price across the pair's trains.
   const timed = pair.routes.filter((r) => r.durationMinutes > 0);
@@ -151,22 +284,30 @@ export async function getStaticProps({ params }) {
     : null;
 
   const faq = buildConnectionFaq({
-    originCity: pair.originCity,
-    destCity: pair.destCity,
+    originCity: pair.cityA,
+    destCity: pair.cityB,
     trainCount: pair.routes.length,
     operators: pair.operators.map((o) => o.name),
     fastestDurationText: fastest?.durationText || "",
     fromPrice: cheapest?.fromPrice || "",
   });
 
+  // Drop the map from all but the first train that has one.
+  let mapUsed = false;
+  for (const t of trains) {
+    if (t.map && !mapUsed) mapUsed = true;
+    else t.map = null;
+  }
+
   return {
     props: {
       slug: pair.slug,
-      originCity: pair.originCity,
-      destCity: pair.destCity,
-      routes,
+      cityA: pair.cityA,
+      cityB: pair.cityB,
+      trains,
       operators: pair.operators,
       countries: pair.countries,
+      related: getRelatedConnections(pair.slug, 8),
       faq,
     },
   };

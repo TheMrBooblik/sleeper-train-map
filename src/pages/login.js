@@ -32,6 +32,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 [&_button:not(:disabled)]:cursor-pointer">
       <Head>
         <title>Login – Pingwi</title>
+        <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">

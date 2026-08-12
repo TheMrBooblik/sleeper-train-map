@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Layout from "@components/Layout";
 import { organizationLd, webSiteLd } from "../lib/seo/schema";
-import { OG_IMAGE } from "../lib/seo/site";
+import { OG_IMAGE, SITE_URL } from "../lib/seo/site";
 
 const TITLE = "Sleeper Train Map — Night Trains Across Europe & Beyond | Pingwi";
 const DESCRIPTION =
@@ -13,7 +13,7 @@ const structuredData = {
   name: "Sleeper Train Map 2026 (interactive)",
   description:
     "Interactive map of sleeper and night train routes across Europe and beyond. Click any station to discover overnight train connections and timetables.",
-  url: "https://sleeper-train-map.pingwi.com",
+  url: SITE_URL,
   applicationCategory: "TravelApplication",
   operatingSystem: "Web Browser",
   offers: {
@@ -33,16 +33,13 @@ export default function Home({ seo }) {
           name="keywords"
           content="sleeper train map, night train map, night trains Europe, European sleeper trains, overnight train routes, sleeper train routes"
         />
-        <link rel="canonical" href="https://sleeper-train-map.pingwi.com" />
+        <link rel="canonical" href={SITE_URL} />
 
         {/* Open Graph */}
         <meta property="og:title" content={TITLE} />
         <meta property="og:description" content={DESCRIPTION} />
         <meta property="og:type" content="website" />
-        <meta
-          property="og:url"
-          content="https://sleeper-train-map.pingwi.com"
-        />
+        <meta property="og:url" content={SITE_URL} />
         <meta property="og:image" content={OG_IMAGE} />
         <meta property="og:site_name" content="Pingwi Sleeper Train Map" />
 
@@ -70,75 +67,19 @@ export default function Home({ seo }) {
   );
 }
 
-// Operators shown on the homepage; the /trains directory lists the rest.
+// Operators shown on the homepage; the /connections directory lists the rest.
 const HOME_OPERATOR_LIMIT = 12;
+// Connections linked directly from the homepage. Under crawl starvation the
+// homepage is the strongest internal signal the site has, so it points at the
+// busiest corridors rather than a hand-picked handful.
+const HOME_CONNECTION_LIMIT = 50;
 // Pin these three first in the tour's "By operator" chips.
 const PINNED_OPERATOR_SLUGS = ["european-sleeper", "trenitalia", "regiojet"];
-
-// Curated homepage connections (static; slugs are stable across rebuilds).
-// Order: European Sleeper → Trenitalia → RegioJet → other EU → one CN + one CA.
-const HOME_CONNECTIONS = [
-  // European Sleeper corridors — single-train pages where no /connections hub exists
-  {
-    key: "es-bru-praha",
-    label: "Brussels → Prague",
-    href: "/trains/praha-hl-n-to-bruxelles-midi-brussel-zuid-452",
-  },
-  {
-    key: "es-ber-par",
-    label: "Berlin → Paris",
-    href: "/trains/berlin-hbf-to-paris-gare-du-nord-474",
-  },
-  {
-    key: "es-bru-mil",
-    label: "Brussels → Milan",
-    href: "/connections/brussels-to-milan",
-  },
-  // Trenitalia
-  {
-    key: "fs-rome-sir",
-    label: "Rome → Siracusa",
-    href: "/connections/rome-to-siracusa",
-  },
-  // RegioJet
-  {
-    key: "rj-prg-prz",
-    label: "Prague → Przemyśl",
-    href: "/connections/prague-to-przemysl-gl",
-  },
-  // Other European hubs
-  {
-    key: "ber-sto",
-    label: "Berlin → Stockholm",
-    href: "/connections/berlin-to-stockholm",
-  },
-  {
-    key: "buc-bud",
-    label: "Bucharest → Budapest",
-    href: "/connections/bucharest-to-budapest",
-  },
-  {
-    key: "grz-zur",
-    label: "Graz → Zurich",
-    href: "/connections/graz-to-zurich",
-  },
-  // One Chinese + one Canadian showcase
-  {
-    key: "cn-bei-sha",
-    label: "Beijing → Shanghai",
-    href: "/connections/beijing-to-shanghai",
-  },
-  {
-    key: "ca-tor-van",
-    label: "Toronto → Vancouver",
-    href: "/trains/toronto-to-vancouver-vancouver-toronto",
-  },
-];
 
 export async function getStaticProps() {
   // Dynamic imports keep the fs-reading SEO data layer out of the client
   // bundle (same pattern as about.js).
-  const { getAllCountryHubs, getAllOperatorHubs } = await import(
+  const { getAllCountryHubs, getAllOperatorHubs, getTopCityPairs } = await import(
     "../lib/seo/aggregate"
   );
   const { getAllRouteSummaries } = await import("../lib/seo/data");
@@ -174,7 +115,10 @@ export async function getStaticProps() {
       seo: {
         countries,
         operators,
-        connections: HOME_CONNECTIONS,
+        connections: getTopCityPairs(HOME_CONNECTION_LIMIT).map((p) => ({
+          slug: p.slug,
+          label: `${p.cityA} → ${p.cityB}`,
+        })),
         routeCount: getAllRouteSummaries().length,
         countryCount: countries.length,
       },

@@ -3,21 +3,20 @@ import Link from "next/link";
 
 import SeoLayout from "@components/seo/SeoLayout";
 import Breadcrumbs from "@components/seo/Breadcrumbs";
-import RouteCardLink from "@components/seo/RouteCardLink";
 import JsonLd from "@components/seo/JsonLd";
 
-import { getAllRouteSummaries, toCardRoute } from "../../lib/seo/data";
 import {
   getAllCountryHubs,
   getAllOperatorHubs,
   getAllCityPairs,
 } from "../../lib/seo/aggregate";
+import { getAllRouteSummaries } from "../../lib/seo/data";
 import { getFlagEmoji } from "../../lib/countries";
 import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
-const TITLE = "Sleeper & Night Train Routes — Europe & Beyond | Pingwi";
+const TITLE = "Night Train Connections — Every Sleeper Route | Pingwi";
 const DESCRIPTION =
-  "Browse every night and sleeper train route on the map — across Europe and beyond. Search by country, operator or city connection, with timetables, stops and prices for each train.";
+  "Every night and sleeper train connection on the map, city pair by city pair — across Europe and beyond. Timetables, stops, journey times and where to book each one.";
 
 function ChipLink({ href, children, count }) {
   return (
@@ -31,23 +30,28 @@ function ChipLink({ href, children, count }) {
   );
 }
 
-export default function TrainsIndex({ routes, countries, operators, cityPairs }) {
-  const canonical = absoluteUrl("/trains");
+/**
+ * The hub-of-hubs. Replaced /trains, which listed one card per train; connections
+ * are now the only route page type, so this lists every city pair. It is the
+ * single page that links to all of them — the main crawl path into the long tail.
+ */
+export default function ConnectionsIndex({ countries, operators, cityPairs, routeCount }) {
+  const canonical = absoluteUrl("/connections");
   const collectionLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "Sleeper & Night Train Routes",
+    name: "Night Train Connections",
     description: DESCRIPTION,
     url: canonical,
     isPartOf: { "@type": "WebSite", name: "Pingwi Sleeper Train Map", url: SITE_URL },
     mainEntity: {
       "@type": "ItemList",
-      numberOfItems: routes.length,
-      itemListElement: routes.map((r, i) => ({
+      numberOfItems: cityPairs.length,
+      itemListElement: cityPairs.map((p, i) => ({
         "@type": "ListItem",
         position: i + 1,
-        url: absoluteUrl(`/trains/${r.slug}`),
-        name: r.title,
+        url: absoluteUrl(`/connections/${p.slug}`),
+        name: `${p.cityA} to ${p.cityB}`,
       })),
     },
   };
@@ -72,27 +76,25 @@ export default function TrainsIndex({ routes, countries, operators, cityPairs })
 
       <SeoLayout>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
-          <Breadcrumbs
-            items={[{ name: "Home", href: "/" }, { name: "Night trains" }]}
-          />
+          <Breadcrumbs items={[{ name: "Home", href: "/" }, { name: "Connections" }]} />
 
           <header className="mt-6 max-w-3xl">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight">
-              Sleeper &amp; Night Train Routes
+              Night Train Connections
             </h1>
             <p className="mt-4 text-white/60 leading-relaxed">
-              {routes.length} sleeper and overnight train routes across {countries.length}{" "}
-              countries — from across Europe and beyond. Explore them by country, operator or
-              popular city connection — each with a full timetable, stops and onward booking
-              links.
+              {cityPairs.length} city connections served by {routeCount} sleeper and overnight
+              trains across {countries.length} countries. Browse by country, operator, or jump
+              straight to a route — each page has the full timetable, every stop and onward
+              booking links.
             </p>
           </header>
 
           <section className="mt-12">
             <h2 className="text-xl font-semibold text-white">Night trains by country</h2>
             <div className="mt-4 flex flex-wrap gap-2">
-              {countries.map(({ country, routeCount }) => (
-                <ChipLink key={country.code} href={`/night-trains/${country.slug}`} count={routeCount}>
+              {countries.map(({ country, routeCount: n }) => (
+                <ChipLink key={country.code} href={`/night-trains/${country.slug}`} count={n}>
                   <span>{getFlagEmoji(country.code)}</span>
                   {country.name}
                 </ChipLink>
@@ -103,32 +105,28 @@ export default function TrainsIndex({ routes, countries, operators, cityPairs })
           <section className="mt-12">
             <h2 className="text-xl font-semibold text-white">Night trains by operator</h2>
             <div className="mt-4 flex flex-wrap gap-2">
-              {operators.map(({ operator, routeCount }) => (
-                <ChipLink key={operator.id} href={`/operators/${operator.slug}`} count={routeCount}>
+              {operators.map(({ operator, routeCount: n }) => (
+                <ChipLink key={operator.id} href={`/operators/${operator.slug}`} count={n}>
                   {operator.name}
                 </ChipLink>
               ))}
             </div>
           </section>
 
-          {cityPairs.length > 0 && (
-            <section className="mt-12">
-              <h2 className="text-xl font-semibold text-white">Popular connections</h2>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {cityPairs.map((p) => (
-                  <ChipLink key={p.slug} href={`/connections/${p.slug}`} count={p.routeCount}>
-                    {p.originCity} → {p.destCity}
-                  </ChipLink>
-                ))}
-              </div>
-            </section>
-          )}
-
           <section className="mt-12">
-            <h2 className="text-xl font-semibold text-white">All routes</h2>
-            <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {routes.map((r) => (
-                <RouteCardLink key={r.routeId} route={r} />
+            <h2 className="text-xl font-semibold text-white">All connections</h2>
+            <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {cityPairs.map((p) => (
+                <Link
+                  key={p.slug}
+                  href={`/connections/${p.slug}`}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-white/80 hover:text-white hover:border-primary-green/50 transition-colors"
+                >
+                  <span>
+                    {p.cityA} <span className="text-white/40">↔</span> {p.cityB}
+                  </span>
+                  <span className="text-xs text-white/40">{p.routeCount}</span>
+                </Link>
               ))}
             </div>
           </section>
@@ -141,14 +139,12 @@ export default function TrainsIndex({ routes, countries, operators, cityPairs })
 }
 
 export async function getStaticProps() {
-  // Trim summaries to just what the cards/JSON need (keep props lean).
-  const routes = getAllRouteSummaries().map(toCardRoute);
   return {
     props: {
-      routes,
       countries: getAllCountryHubs(),
       operators: getAllOperatorHubs(),
       cityPairs: getAllCityPairs(),
+      routeCount: getAllRouteSummaries().length,
     },
   };
 }

@@ -3,12 +3,13 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://sleeper-train-map.pingwi.com/sitemap.xml
+Sitemap: https://pingwi.com/sitemap.xml
 
-# Block API routes
+# Block API routes and the admin panel
 Disallow: /api/
+Disallow: /data
+Disallow: /login
 
 # Allow all static assets
 Allow: /_next/static/
 Allow: /images/
-Allow: /data/
