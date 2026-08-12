@@ -32,7 +32,7 @@ export default function CountryHub({
   faq,
 }) {
   const canonical = absoluteUrl(`/night-trains/${country.slug}`);
-  const title = `Night Trains in ${country.name} — Routes & Sleeper Connections | Pingwi`;
+  const title = `Night Trains in ${country.name} - Routes & Sleeper Connections | Pingwi`;
   const operatorNames = operators.map((o) => o.name).join(", ");
   const description =
     `All ${routes.length} night and sleeper train routes serving ${country.name}` +
@@ -143,7 +143,9 @@ export default function CountryHub({
 
           {stations.length > 0 && (
             <section className="mt-10">
-              <h2 className="text-lg font-semibold text-white">Departure stations</h2>
+              <h2 className="text-lg font-semibold text-white">
+                Departure stations
+              </h2>
               <div className="mt-3 flex flex-wrap gap-2">
                 {stations.map((st) => (
                   <Link
@@ -152,7 +154,9 @@ export default function CountryHub({
                     className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.02] px-3.5 py-1.5 text-sm text-white/70 hover:text-white hover:border-primary-green/50 transition-colors"
                   >
                     {st.name}
-                    <span className="text-xs text-white/40">{st.routeCount}</span>
+                    <span className="text-xs text-white/40">
+                      {st.routeCount}
+                    </span>
                   </Link>
                 ))}
               </div>
@@ -172,10 +176,12 @@ export default function CountryHub({
 
           {connections.length > 0 && (
             <section className="mt-12">
-              <h2 className="text-lg font-semibold text-white">All connections</h2>
+              <h2 className="text-lg font-semibold text-white">
+                All connections
+              </h2>
               <p className="mt-1 text-sm text-white/50">
-                Every city pair reached by a night train from here — timetables, stops
-                and operators on each.
+                Every city pair reached by a night train from here — timetables,
+                stops and operators on each.
               </p>
               <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {connections.map((c) => (
@@ -198,7 +204,9 @@ export default function CountryHub({
 
           {connectedCountries.length > 0 && (
             <section className="mt-12">
-              <h2 className="text-lg font-semibold text-white">Travel onward</h2>
+              <h2 className="text-lg font-semibold text-white">
+                Travel onward
+              </h2>
               <p className="mt-1 text-sm text-white/50">
                 Countries you can reach by night train from {country.name}.
               </p>
@@ -229,7 +237,9 @@ export default function CountryHub({
 
 export async function getStaticPaths() {
   return {
-    paths: getAllCountryHubs().map((h) => ({ params: { country: h.country.slug } })),
+    paths: getAllCountryHubs().map((h) => ({
+      params: { country: h.country.slug },
+    })),
     fallback: false,
   };
 }
