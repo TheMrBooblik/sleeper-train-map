@@ -3,7 +3,8 @@ import Layout from "@components/Layout";
 import { organizationLd, webSiteLd } from "../lib/seo/schema";
 import { OG_IMAGE, SITE_URL } from "../lib/seo/site";
 
-const TITLE = "Sleeper Train Map — Night Trains Across Europe & Beyond | Pingwi";
+const TITLE =
+  "Sleeper Train Map - Night Trains Across Europe & Beyond | Pingwi";
 const DESCRIPTION =
   "Interactive sleeper train map: night and overnight train routes across Europe and beyond. Click any station to see timetables, stops and where to book each connection.";
 
@@ -79,9 +80,8 @@ const PINNED_OPERATOR_SLUGS = ["european-sleeper", "trenitalia", "regiojet"];
 export async function getStaticProps() {
   // Dynamic imports keep the fs-reading SEO data layer out of the client
   // bundle (same pattern as about.js).
-  const { getAllCountryHubs, getAllOperatorHubs, getTopCityPairs } = await import(
-    "../lib/seo/aggregate"
-  );
+  const { getAllCountryHubs, getAllOperatorHubs, getTopCityPairs } =
+    await import("../lib/seo/aggregate");
   const { getAllRouteSummaries } = await import("../lib/seo/data");
 
   const countryHubs = getAllCountryHubs();

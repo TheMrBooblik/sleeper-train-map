@@ -159,13 +159,13 @@ const Header = ({
       style={{ position: "relative", zIndex: 1002 }}
     >
       <Container className="flex flex-wrap justify-between items-center gap-y-2 gap-x-2">
-        <h1 className="text-sm leading-none whitespace-nowrap md:text-base shrink-0">
+        <h2 className="text-sm leading-none whitespace-nowrap md:text-base shrink-0">
           {/* Negative margin keeps the header height while giving the link a
               taller hit area than its 16px text box. */}
           <Link href="/" className="-my-2.5 inline-block py-2.5">
             Pingwi <i>sleeper train</i> map
           </Link>
-        </h1>
+        </h2>
         {onSearchSelect && (
           <div className="flex-1 min-w-0 max-w-xs mx-2 hidden md:block">
             <StationSearchBar
