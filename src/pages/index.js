@@ -3,10 +3,9 @@ import Layout from "@components/Layout";
 import { organizationLd, webSiteLd } from "../lib/seo/schema";
 import { OG_IMAGE, SITE_URL } from "../lib/seo/site";
 
-const TITLE =
-  "Sleeper Train Map - Night Trains Across Europe & Beyond | Pingwi";
+const TITLE = "Pingwi | Sleeper Train Map Across Europe & Beyond";
 const DESCRIPTION =
-  "Interactive sleeper train map: night and overnight train routes across Europe and beyond. Click any station to see timetables, stops and where to book each connection.";
+  "Interactive sleeper train map: night and overnight train routes across Europe and beyond. Click any station to see timetables, stops and connections.";
 
 const structuredData = {
   "@context": "https://schema.org",

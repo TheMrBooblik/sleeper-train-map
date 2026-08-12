@@ -14,9 +14,9 @@ import { getAllRouteSummaries } from "../../lib/seo/data";
 import { getFlagEmoji } from "../../lib/countries";
 import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
-const TITLE = "Night Train Connections - Every Sleeper Route | Pingwi";
+const TITLE = "Night Train Connections - Sleeper Routes | Pingwi";
 const DESCRIPTION =
-  "Every night and sleeper train connection on the map, city pair by city pair — across Europe and beyond. Timetables, stops, journey times and where to book each one.";
+  "Every night and sleeper train connection on the map, city pair by city pair — across Europe and beyond. Timetables, stops, journey times and where to book.";
 
 function ChipLink({ href, children, count }) {
   return (
