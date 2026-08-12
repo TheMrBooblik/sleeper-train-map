@@ -1,0 +1,31 @@
+{
+  "v": 1,
+  "id": "p_amtrak-texas-eagle",
+  "createdAt": "2026-08-12T04:47:19.233Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: Texas Eagle (Chicago Union Station – Los Angeles)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026/07/26-10/27: Tue, Fri, Sun\" → \"2026/08/09-10/27: Tue, Fri, Sun\"; operating days (return): \"null\" → \"2026/08/11-10/07: Daily\"; train numbers: \"Texas Eagle\" → \"Texas Eagle|Southwest Chief\"",
+  "target": {
+    "routeKey": "amtrak_Texas_Eagle",
+    "agencyId": "AMTK",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2026/07/26-10/27: Tue, Fri, Sun",
+    "operating days (return)": null,
+    "train numbers": "Texas Eagle"
+  },
+  "after": {
+    "operating days (outbound)": "2026/08/09-10/27: Tue, Fri, Sun",
+    "operating days (return)": "2026/08/11-10/07: Daily",
+    "train numbers": "Texas Eagle|Southwest Chief"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
