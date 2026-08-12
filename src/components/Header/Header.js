@@ -249,7 +249,7 @@ const Header = ({
                     </button>
                   )}
                   <Link
-                    href="/trains"
+                    href="/connections"
                     className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-sky-400 transition-colors hover:bg-white/10 hover:text-sky-300"
                   >
                     <span className="text-sky-400/70">
@@ -354,7 +354,7 @@ const Header = ({
           {/* Browse routes + About — hidden on mobile (surfaced in mobile controls menu instead) */}
           <div className="hidden md:flex shrink-0 items-center gap-1.5 md:gap-2">
             <Link
-              href="/trains"
+              href="/connections"
               className="icon-toggle-button"
               aria-label="Browse all night train routes"
               data-tooltip="All night train routes"

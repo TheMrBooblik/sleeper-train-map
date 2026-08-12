@@ -15,13 +15,14 @@ import fs from "fs";
 import path from "path";
 
 import { parseBotServiceString, renderCalendar } from "../../pages/api/lib/calendar.mjs";
-import { normalizeStationNameForDisplay } from "../../components/Map/utils/stationNameUtils";
 // Reuse the exact "not yet running" detection the map hover uses, so a route is
 // flagged "future" here in the same way (irregularities "From …", postponed
 // notes, or an upcoming service_id season).
 import { getFutureRouteStartDate } from "../../components/Map/utils/routeStyleUtils";
 import { getRouteFrequencyOverride } from "../routeFrequencyOverrides";
-import { slugify, buildTrainSlug } from "./slugify";
+import { buildPairSlug } from "./slugify.mjs";
+import { routeEndpoints, buildRouteSlugMaps } from "./routeSlugs.mjs";
+import { cityForStation } from "./cities.mjs";
 import { getStationTimesForTrain } from "./stationTimes";
 import {
   deriveTitle,
@@ -156,40 +157,9 @@ function getTripsByRoute() {
   return _tripsByRoute;
 }
 
-function routeEndpoints(route) {
-  return {
-    origin: route.origin_trip_0 || route.origin_trip_1 || "",
-    destination: route.destination_trip_0 || route.destination_trip_1 || "",
-    trainNumber: route.trip_short_name_0 || route.trip_short_name_1 || "",
-  };
-}
-
-/** { byRouteId: Map, bySlug: Map } with deterministic collision handling. */
+/** { byRouteId, bySlug } legacy per-train slug maps (memoized). */
 function getSlugMaps() {
-  if (!_slugMaps) {
-    const { viewMap } = getPublished();
-    const byRouteId = new Map();
-    const bySlug = new Map();
-    const used = new Set();
-    for (const key of Object.keys(viewMap).sort()) {
-      const route = viewMap[key];
-      const routeId = String(route.route_id);
-      if (byRouteId.has(routeId)) continue;
-      const { origin, destination, trainNumber } = routeEndpoints(route);
-      let slug =
-        buildTrainSlug({ origin, destination, trainNumber }) ||
-        `route-${slugify(routeId)}`;
-      if (used.has(slug)) {
-        let n = 2;
-        while (used.has(`${slug}-${n}`)) n += 1;
-        slug = `${slug}-${n}`;
-      }
-      used.add(slug);
-      byRouteId.set(routeId, slug);
-      bySlug.set(slug, routeId);
-    }
-    _slugMaps = { byRouteId, bySlug };
-  }
+  if (!_slugMaps) _slugMaps = buildRouteSlugMaps(getPublished().viewMap);
   return _slugMaps;
 }
 
@@ -268,8 +238,8 @@ function buildSummary(route) {
     for (const v of parseViaList(route[`via_${dir}`])) stopNames.add(v);
     if (o && d) {
       cityPairs.push({
-        originCity: normalizeStationNameForDisplay(o),
-        destCity: normalizeStationNameForDisplay(d),
+        originCity: cityForStation(o),
+        destCity: cityForStation(d),
         // Physical country of each endpoint, so we can filter city-pair
         // connections down to those touching a given country hub.
         originCountry: getStationCountryCode(o),
@@ -303,16 +273,26 @@ function buildSummary(route) {
   // Future ("not yet running") flag — reuses the map's detector verbatim.
   const futureStartDate = getFutureRouteStartDate(routeId, getPublished().trips);
 
+  // The connection page this route lives on. Computed here rather than via
+  // aggregate.js (which imports this module) so route cards can link to
+  // /connections/ without a circular import. Every route has one — see
+  // MIN_TRAINS_PER_PAIR in aggregate.js.
+  const firstPair = cityPairs.find(
+    (p) => p.originCity && p.destCity && p.originCity !== p.destCity,
+  );
+  const pairSlug = firstPair ? buildPairSlug(firstPair.originCity, firstPair.destCity) : "";
+
   return {
     routeId,
     slug,
+    pairSlug,
     title: deriveTitle(route, origin, destination),
     endpointTitle,
     routeName,
     origin,
     destination,
-    originCity: normalizeStationNameForDisplay(origin),
-    destinationCity: normalizeStationNameForDisplay(destination),
+    originCity: cityForStation(origin),
+    destinationCity: cityForStation(destination),
     trainNumber,
     trainNumbers,
     agencyId: route.agency_id || "",
@@ -342,6 +322,7 @@ export function toCardRoute(s) {
   return {
     routeId: s.routeId,
     slug: s.slug,
+    pairSlug: s.pairSlug || "",
     title: s.endpointTitle || s.title, // city "A – B" title on the card
     routeName: s.routeName || "",
     trainNumbers: s.trainNumbers,

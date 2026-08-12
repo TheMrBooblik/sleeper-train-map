@@ -55,6 +55,11 @@ jobs:
       # withheld here (review gate).
       - run: npm run canonicalize
 
+      # Refresh the old-URL → new-URL map from tonight's routes. Append-only, so a
+      # route that vanished still redirects; a new route gets its /trains/ source
+      # recorded the night it appears.
+      - run: npm run build-redirects
+
       # AI assist (GitHub Models, free tier): enrich tonight's proposals,
       # suggest station aliases, extract prices from configured pages.
       # Strictly best-effort and budget-capped — never blocks the pipeline.
@@ -92,7 +97,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/data/scraped/*.json public/data/published/*.json public/data/gtfs/pkpTrainShapes.json data/canonical/state/*.json
+          git add public/data/scraped/*.json public/data/published/*.json public/data/gtfs/pkpTrainShapes.json data/canonical/state/*.json data/seo/redirects.json
           if git diff --cached --quiet; then
             echo "No data changes to commit."
             exit 0

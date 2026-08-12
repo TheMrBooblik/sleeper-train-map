@@ -25,7 +25,7 @@ export default function SeoLayout({ children }) {
             </Link>
             <div className="flex items-center gap-4 sm:gap-6">
               <Link
-                href="/trains"
+                href="/connections"
                 className="hidden sm:inline text-sm text-white/70 hover:text-white transition-colors"
               >
                 All routes
@@ -56,7 +56,7 @@ export default function SeoLayout({ children }) {
               Map
             </Link>
             <Link
-              href="/trains"
+              href="/connections"
               className="text-sm text-white/40 hover:text-white/70 transition-colors"
             >
               All routes

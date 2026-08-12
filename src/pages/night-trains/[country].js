@@ -56,7 +56,7 @@ export default function CountryHub({
       itemListElement: routes.map((r, i) => ({
         "@type": "ListItem",
         position: i + 1,
-        url: absoluteUrl(`/trains/${r.slug}`),
+        url: absoluteUrl(`/connections/${r.pairSlug}`),
         name: r.title,
       })),
     },
@@ -97,7 +97,7 @@ export default function CountryHub({
           <Breadcrumbs
             items={[
               { name: "Home", href: "/" },
-              { name: "Night trains", href: "/trains" },
+              { name: "Connections", href: "/connections" },
               { name: country.name },
             ]}
           />
@@ -172,10 +172,10 @@ export default function CountryHub({
 
           {connections.length > 0 && (
             <section className="mt-12">
-              <h2 className="text-lg font-semibold text-white">Popular connections</h2>
+              <h2 className="text-lg font-semibold text-white">All connections</h2>
               <p className="mt-1 text-sm text-white/50">
-                City pairs with more than one night train — compare timetables and
-                operators.
+                Every city pair reached by a night train from here — timetables, stops
+                and operators on each.
               </p>
               <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {connections.map((c) => (
@@ -185,7 +185,7 @@ export default function CountryHub({
                     className="group flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 hover:bg-white/[0.05] transition-colors"
                   >
                     <span className="text-sm font-medium text-white group-hover:text-primary-green transition-colors">
-                      {c.originCity} &harr; {c.destCity}
+                      {c.cityA} &harr; {c.cityB}
                     </span>
                     <span className="shrink-0 text-xs text-white/40">
                       {c.routeCount} trains

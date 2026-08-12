@@ -1,6 +1,6 @@
 {
   "name": "next-leaflet-starter",
-  "homepage": "https://next-leaflet-starter.netlify.app",
+  "homepage": "https://pingwi.com",
   "version": "0.1.0",
   "license": "MIT",
   "author": "Colby Fayock <hello@colbyfayock.com>",
@@ -11,6 +11,7 @@
     "start": "next start",
     "scrape": "node scripts/scrape-data.mjs",
     "canonicalize": "node scripts/canonicalize.mjs",
+    "build-redirects": "node scripts/build-seo-redirects.mjs",
     "parse-gtfs": "node scripts/parse-regiojet-gtfs.js",
     "parse-pkp-gtfs": "node scripts/parse-pkp-gtfs.js",
     "verify-pkp-bundle": "node tests/verify-pkp-train-shapes.mjs",
@@ -18,6 +19,7 @@
     "verify-na-booking": "node tests/verify-na-booking.mjs",
     "verify-operator-agencies": "node tests/verify-operator-agencies.mjs",
     "verify-seo-booking": "node tests/verify-seo-booking.mjs",
+    "verify-seo-urls": "node tests/verify-seo-urls.mjs",
     "verify-seo-faq": "node tests/verify-seo-faq.mjs",
     "verify-via-display": "node tests/verify-via-display.mjs",
     "verify-station-names": "node tests/verify-station-names.mjs",

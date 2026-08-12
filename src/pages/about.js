@@ -2,8 +2,8 @@ import Head from "next/head";
 import Link from "next/link";
 import { FaTrain, FaMapMarkerAlt, FaMoon, FaArrowRight } from "react-icons/fa";
 import { COUNTRIES, getFlagEmoji } from "../lib/countries";
-import { slugify } from "../lib/seo/slugify";
-import { OG_IMAGE } from "../lib/seo/site";
+import { slugify } from "../lib/seo/slugify.mjs";
+import { OG_IMAGE, SITE_URL, absoluteUrl } from "../lib/seo/site";
 
 const FeatureCard = ({ icon: Icon, title, description }) => (
   <div className="flex flex-col items-start gap-4 p-6 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
@@ -76,10 +76,7 @@ export default function AboutPage({ hubCountryCodes = [] }) {
           name="keywords"
           content="sleeper train map, night train Europe, European sleeper trains, overnight train routes, train travel Europe"
         />
-        <link
-          rel="canonical"
-          href="https://sleeper-train-map.pingwi.com/about"
-        />
+        <link rel="canonical" href={absoluteUrl("/about")} />
 
         {/* Open Graph */}
         <meta
@@ -91,10 +88,7 @@ export default function AboutPage({ hubCountryCodes = [] }) {
           content="Interactive map of all European sleeper train routes. Click any station to discover overnight connections across 24+ countries."
         />
         <meta property="og:type" content="website" />
-        <meta
-          property="og:url"
-          content="https://sleeper-train-map.pingwi.com/about"
-        />
+        <meta property="og:url" content={absoluteUrl("/about")} />
         <meta property="og:image" content={OG_IMAGE} />
         <meta property="og:site_name" content="Pingwi Sleeper Train Map" />
 
@@ -319,7 +313,7 @@ export default function AboutPage({ hubCountryCodes = [] }) {
                 Map
               </Link>
               <Link
-                href="/trains"
+                href="/connections"
                 className="text-sm text-white/40 hover:text-white/70 transition-colors"
               >
                 Night trains
@@ -351,7 +345,7 @@ export default function AboutPage({ hubCountryCodes = [] }) {
             name: "Pingwi Sleeper Train Map",
             description:
               "Interactive map of European sleeper train routes. Click any station to discover overnight train connections across 24+ countries.",
-            url: "https://sleeper-train-map.pingwi.com",
+            url: SITE_URL,
             applicationCategory: "TravelApplication",
             operatingSystem: "Web Browser",
             offers: {

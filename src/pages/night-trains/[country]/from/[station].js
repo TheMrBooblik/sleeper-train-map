@@ -11,12 +11,13 @@ import {
   getAllCountryHubs,
   getStationHubsForCountry,
   getStationHub,
+  getConnectionsForCity,
 } from "../../../../lib/seo/aggregate";
 import { toCardRoute } from "../../../../lib/seo/data";
 import { getFlagEmoji } from "../../../../lib/countries";
 import { OG_IMAGE, absoluteUrl } from "../../../../lib/seo/site";
 
-export default function StationHub({ country, station, routes, operators }) {
+export default function StationHub({ country, station, routes, operators, connections }) {
   const canonical = absoluteUrl(`/night-trains/${country.slug}/from/${station.slug}`);
   const title = `Night Trains from ${station.name} (${country.name}) | Pingwi`;
   const operatorNames = operators.map((o) => o.name).join(", ");
@@ -33,7 +34,7 @@ export default function StationHub({ country, station, routes, operators }) {
     itemListElement: routes.map((r, i) => ({
       "@type": "ListItem",
       position: i + 1,
-      url: absoluteUrl(`/trains/${r.slug}`),
+      url: absoluteUrl(`/connections/${r.pairSlug}`),
       name: r.title,
     })),
   };
@@ -61,7 +62,7 @@ export default function StationHub({ country, station, routes, operators }) {
           <Breadcrumbs
             items={[
               { name: "Home", href: "/" },
-              { name: "Night trains", href: "/trains" },
+              { name: "Connections", href: "/connections" },
               { name: country.name, href: `/night-trains/${country.slug}` },
               { name: station.name },
             ]}
@@ -111,6 +112,28 @@ export default function StationHub({ country, station, routes, operators }) {
               ))}
             </div>
           </section>
+
+          {connections.length > 0 && (
+            <section className="mt-12">
+              <h2 className="text-lg font-semibold text-white">
+                Where you can go from {station.name}
+              </h2>
+              <div className="mt-4 grid sm:grid-cols-2 gap-2">
+                {connections.map((c) => (
+                  <Link
+                    key={c.slug}
+                    href={`/connections/${c.slug}`}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-white/80 hover:text-white hover:border-primary-green/50 transition-colors"
+                  >
+                    <span>
+                      {c.cityA} <span className="text-white/40">&harr;</span> {c.cityB}
+                    </span>
+                    <span className="shrink-0 text-xs text-white/40">{c.routeCount}</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </SeoLayout>
 
@@ -139,6 +162,7 @@ export async function getStaticProps({ params }) {
       station: hub.station,
       routes,
       operators: hub.operators,
+      connections: getConnectionsForCity(hub.station.name),
     },
   };
 }

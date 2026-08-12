@@ -1,8 +1,8 @@
 import Head from "next/head";
 import Link from "next/link";
 import SeoLayout from "../components/seo/SeoLayout";
+import { SITE_URL } from "../lib/seo/site";
 
-const SITE_URL = "https://sleeper-train-map.pingwi.com";
 // Placeholder contact — replace with the address you want to publish for
 // privacy requests (see the note in the "Contact us" section below).
 const CONTACT_EMAIL = "privacy@pingwi.com";
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
           <PolicySection title="Who we are">
             <p>
               The Sleeper Train Map (
-              <A href={SITE_URL}>sleeper-train-map.pingwi.com</A>) is an
+              <A href={SITE_URL}>pingwi.com</A>) is an
               independent travel-discovery website operated by{" "}
               <strong className="text-white/80">Pingwi</strong>, a business
               registered in the Netherlands. For the purposes of the EU General

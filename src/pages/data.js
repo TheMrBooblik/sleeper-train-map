@@ -319,6 +319,7 @@ export default function DataPage() {
     <div className={`h-screen flex flex-col overflow-hidden bg-gray-50 ${ADMIN_INTERACTIVE}`}>
       <Head>
         <title>Admin – Pingwi</title>
+        <meta name="robots" content="noindex, nofollow" />
       </Head>
       <AdminHeader onLogout={handleLogout} />
 

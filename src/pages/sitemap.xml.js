@@ -1,12 +1,25 @@
-import { getAllRouteSummaries, getDataGeneratedAt } from "../lib/seo/data";
+import { getDataGeneratedAt } from "../lib/seo/data";
 import {
   getAllCountryHubs,
   getAllOperatorHubs,
   getAllCityPairs,
   getStationHubsForCountry,
 } from "../lib/seo/aggregate";
+import { SITE_URL } from "../lib/seo/site";
 
-const SITE_URL = "https://sleeper-train-map.pingwi.com";
+/**
+ * Staged indexation. At ~25 crawls/month Google samples and rations, so shipping
+ * every URL at once just spreads a thin crawl budget across the whole site.
+ *
+ *   1 → homepage, /connections, /about, all country + operator hubs, and the
+ *       BATCH_1_CONNECTIONS busiest connections (~145 URLs).
+ *   2 → everything: the remaining connections plus the per-station hubs.
+ *
+ * Flip to 2 once Search Console shows batch 1 indexing. That is the whole
+ * migration step — one line.
+ */
+const SITEMAP_BATCH = 1;
+const BATCH_1_CONNECTIONS = 80;
 
 function urlEntry(loc, lastmod, changefreq, priority) {
   return `
@@ -19,47 +32,60 @@ function urlEntry(loc, lastmod, changefreq, priority) {
 }
 
 function generateSiteMap() {
-  const staticLastmod = new Date().toISOString();
-
   const entries = [];
 
   // Core pages — emitted unconditionally so the sitemap is always valid even if the
   // data layer can't load (e.g. the committed payload is missing from the lambda).
-  entries.push(urlEntry(SITE_URL, staticLastmod, "weekly", "1.0"));
-  entries.push(urlEntry(`${SITE_URL}/about`, staticLastmod, "monthly", "0.9"));
-  entries.push(urlEntry(`${SITE_URL}/privacy`, staticLastmod, "yearly", "0.3"));
+  // lastmod tracks the data, not the request: stamping "now" on every fetch told
+  // crawlers the homepage had just changed, every single time.
+  let lastmod;
+  try {
+    lastmod = getDataGeneratedAt();
+  } catch {
+    lastmod = new Date().toISOString();
+  }
+
+  entries.push(urlEntry(SITE_URL, lastmod, "weekly", "1.0"));
+  entries.push(urlEntry(`${SITE_URL}/about`, lastmod, "monthly", "0.9"));
+  entries.push(urlEntry(`${SITE_URL}/privacy`, lastmod, "yearly", "0.3"));
 
   // Data-derived pages. Wrapped so a read failure degrades to the core sitemap
   // (HTTP 200) instead of throwing a 500 and giving crawlers nothing at all.
+  //
+  // Only canonical, indexable, 200-returning URLs belong here — nothing that
+  // redirects. The retired /trains/* pages are therefore absent: they 301 into
+  // their /connections/ parent (see next.config.js).
   try {
-    const lastmod = getDataGeneratedAt();
+    entries.push(urlEntry(`${SITE_URL}/connections`, lastmod, "weekly", "0.9"));
 
-    entries.push(urlEntry(`${SITE_URL}/trains`, lastmod, "weekly", "0.9"));
-
-    // Country hubs (replace the old /?country= deep-link entries)
     for (const { country } of getAllCountryHubs()) {
       entries.push(urlEntry(`${SITE_URL}/night-trains/${country.slug}`, lastmod, "weekly", "0.8"));
-      // Per-station "/from" hubs nested under each country.
-      for (const st of getStationHubsForCountry(country.slug)) {
-        entries.push(
-          urlEntry(`${SITE_URL}/night-trains/${country.slug}/from/${st.slug}`, lastmod, "weekly", "0.6"),
-        );
+      if (SITEMAP_BATCH >= 2) {
+        for (const st of getStationHubsForCountry(country.slug)) {
+          entries.push(
+            urlEntry(
+              `${SITE_URL}/night-trains/${country.slug}/from/${st.slug}`,
+              lastmod,
+              "weekly",
+              "0.5",
+            ),
+          );
+        }
       }
     }
 
-    // Operator hubs
     for (const { operator } of getAllOperatorHubs()) {
       entries.push(urlEntry(`${SITE_URL}/operators/${operator.slug}`, lastmod, "weekly", "0.7"));
     }
 
-    // Per-train pages
-    for (const route of getAllRouteSummaries()) {
-      entries.push(urlEntry(`${SITE_URL}/trains/${route.slug}`, lastmod, "weekly", "0.7"));
-    }
-
-    // City-pair connections
-    for (const pair of getAllCityPairs()) {
-      entries.push(urlEntry(`${SITE_URL}/connections/${pair.slug}`, lastmod, "weekly", "0.6"));
+    // Connections are the money pages, so they outrank the station hubs. In
+    // batch 1 only the busiest corridors ship.
+    const pairs = [...getAllCityPairs()].sort(
+      (a, b) => b.routeCount - a.routeCount || a.slug.localeCompare(b.slug),
+    );
+    const shipped = SITEMAP_BATCH >= 2 ? pairs : pairs.slice(0, BATCH_1_CONNECTIONS);
+    for (const pair of shipped) {
+      entries.push(urlEntry(`${SITE_URL}/connections/${pair.slug}`, lastmod, "weekly", "0.8"));
     }
   } catch (err) {
     console.error("[sitemap] failed to build data-derived URLs:", err);

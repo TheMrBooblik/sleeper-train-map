@@ -245,7 +245,7 @@ export default function WelcomeTour({
             </h2>
             <div className="mt-1.5">
               <Link
-                href="/trains"
+                href="/connections"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs font-semibold text-primary-green hover:text-primary-green-light"

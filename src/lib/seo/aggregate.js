@@ -7,11 +7,13 @@
 
 import { getAllRouteSummaries, getStationCountryCode } from "./data";
 import { getSeoCountry, getSeoCountryBySlug } from "./countries";
-import { buildPairSlug, slugify } from "./slugify";
+import { buildPairSlug, orderCityPair, slugify } from "./slugify.mjs";
 
-// Minimum distinct trains a directed city pair needs before it earns its own page.
-// Single-train pairs are already covered by the train page (avoids thin/duplicate content).
-const MIN_TRAINS_PER_PAIR = 2;
+// Every city pair earns a page. /connections/ is now the only route page type —
+// /trains/[slug] was retired into it — so gating here would leave routes with no
+// page at all. Thin content is no longer a risk either: a pair page carries the
+// full timetable, stops and booking CTA for every train on the corridor.
+const MIN_TRAINS_PER_PAIR = 1;
 
 // Minimum routes a station needs before it earns its own "/from" page. A
 // single-route station would just duplicate that train page, so we gate it.
@@ -64,7 +66,15 @@ function getOperatorMap() {
   return _operatorMap;
 }
 
-/** pairSlug → { slug, originCity, destCity, countryCodes:Set, routes[] } (pre-threshold). */
+/**
+ * pairSlug → { slug, cityA, cityB, countryCodes:Set, routes[] }.
+ *
+ * Pairs are UNDIRECTED: a night train that runs Paris→Vienna also runs
+ * Vienna→Paris, so both directions collapse onto one page. Previously each
+ * direction got its own near-identical page, self-canonical, doubling the crawl
+ * surface for zero extra coverage. cityA/cityB are in canonical (slug) order so
+ * the URL and the page heading always agree.
+ */
 function getPairMap() {
   if (!_pairMap) {
     _pairMap = new Map();
@@ -73,11 +83,12 @@ function getPairMap() {
         if (!p.originCity || !p.destCity || p.originCity === p.destCity) continue;
         const slug = buildPairSlug(p.originCity, p.destCity);
         if (!slug) continue;
+        const [cityA, cityB] = orderCityPair(p.originCity, p.destCity);
         if (!_pairMap.has(slug)) {
           _pairMap.set(slug, {
             slug,
-            originCity: p.originCity,
-            destCity: p.destCity,
+            cityA,
+            cityB,
             // Which countries this pair's endpoints sit in, so a country hub can
             // surface the connections that touch it.
             countryCodes: new Set(),
@@ -158,8 +169,9 @@ function countryFacts(routes, operators) {
 }
 
 /**
- * City-pair connections (that clear the per-pair threshold) whose endpoints
- * touch this country — links straight to the existing /connections pages.
+ * Every city-pair connection whose endpoints touch this country. Country hubs
+ * link to ALL of them (not a "popular" subset) — they are the main crawl path
+ * into the long tail of connection pages.
  * Sorted by how many trains serve the pair, then alphabetically.
  */
 export function getConnectionsForCountry(countrySlug) {
@@ -171,8 +183,46 @@ export function getConnectionsForCountry(countrySlug) {
     )
     .map((p) => ({
       slug: p.slug,
-      originCity: p.originCity,
-      destCity: p.destCity,
+      cityA: p.cityA,
+      cityB: p.cityB,
+      routeCount: p.routes.length,
+    }))
+    .sort((a, b) => b.routeCount - a.routeCount || a.slug.localeCompare(b.slug));
+}
+
+/** Every connection served by an operator — closes the operator→connection link gap. */
+export function getConnectionsForOperator(operatorSlug) {
+  getOperatorMap();
+  const opId = _operatorSlugToId.get(operatorSlug);
+  if (!opId) return [];
+  return [...getPairMap().values()]
+    .filter(
+      (p) =>
+        p.routes.length >= MIN_TRAINS_PER_PAIR &&
+        p.routes.some((r) => r.operatorIds.includes(opId)),
+    )
+    .map((p) => ({
+      slug: p.slug,
+      cityA: p.cityA,
+      cityB: p.cityB,
+      routeCount: p.routes.length,
+    }))
+    .sort((a, b) => b.routeCount - a.routeCount || a.slug.localeCompare(b.slug));
+}
+
+/** Every connection touching a city — closes the station-hub→connection link gap. */
+export function getConnectionsForCity(cityName) {
+  if (!cityName) return [];
+  return [...getPairMap().values()]
+    .filter(
+      (p) =>
+        p.routes.length >= MIN_TRAINS_PER_PAIR &&
+        (p.cityA === cityName || p.cityB === cityName),
+    )
+    .map((p) => ({
+      slug: p.slug,
+      cityA: p.cityA,
+      cityB: p.cityB,
       routeCount: p.routes.length,
     }))
     .sort((a, b) => b.routeCount - a.routeCount || a.slug.localeCompare(b.slug));
@@ -212,31 +262,86 @@ export function getOperatorHub(slug) {
 
 // --- City-pair connections --------------------------------------------------
 
-/** [{ slug, originCity, destCity, routeCount }] for pairs that clear the threshold. */
+/** [{ slug, cityA, cityB, routeCount }] for every city pair, alphabetical. */
 export function getAllCityPairs() {
   return [...getPairMap().values()]
     .filter((p) => p.routes.length >= MIN_TRAINS_PER_PAIR)
     .map((p) => ({
       slug: p.slug,
-      originCity: p.originCity,
-      destCity: p.destCity,
+      cityA: p.cityA,
+      cityB: p.cityB,
       routeCount: p.routes.length,
     }))
     .sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
-/** { originCity, destCity, routes[], operators[], countries[] } for a pair slug, or null. */
+/** [{ slug, cityA, cityB, routeCount }] sorted by how many trains serve the pair. */
+export function getTopCityPairs(limit = 50) {
+  return getAllCityPairs()
+    .sort((a, b) => b.routeCount - a.routeCount || a.slug.localeCompare(b.slug))
+    .slice(0, limit);
+}
+
+/** { cityA, cityB, routes[], operators[], countries[] } for a pair slug, or null. */
 export function getCityPair(slug) {
   const pair = getPairMap().get(slug);
   if (!pair || pair.routes.length < MIN_TRAINS_PER_PAIR) return null;
   return {
     slug: pair.slug,
-    originCity: pair.originCity,
-    destCity: pair.destCity,
+    cityA: pair.cityA,
+    cityB: pair.cityB,
     routes: sortByTitle(pair.routes),
     operators: uniqueOperators(pair.routes),
     countries: uniqueCountries(pair.routes),
   };
+}
+
+/**
+ * Related connections for a pair page, best-first: pairs sharing an endpoint city,
+ * then pairs served by the same operator, then pairs in the same country. Under
+ * crawl starvation these links are what get the long tail discovered at all — the
+ * sitemap alone is the weakest possible signal.
+ * @param {string} slug - the pair to find neighbours for
+ * @param {number} limit
+ */
+export function getRelatedConnections(slug, limit = 8) {
+  const pair = getPairMap().get(slug);
+  if (!pair) return [];
+
+  const opIds = new Set();
+  for (const r of pair.routes) for (const id of r.operatorIds) opIds.add(id);
+
+  const scored = [];
+  for (const other of getPairMap().values()) {
+    if (other.slug === slug || other.routes.length < MIN_TRAINS_PER_PAIR) continue;
+    const sharesEndpoint =
+      other.cityA === pair.cityA ||
+      other.cityA === pair.cityB ||
+      other.cityB === pair.cityA ||
+      other.cityB === pair.cityB;
+    const sharesOperator = other.routes.some((r) =>
+      r.operatorIds.some((id) => opIds.has(id)),
+    );
+    const sharesCountry = [...other.countryCodes].some((c) => pair.countryCodes.has(c));
+    if (!sharesEndpoint && !sharesOperator && !sharesCountry) continue;
+    const rank = sharesEndpoint ? 0 : sharesOperator ? 1 : 2;
+    scored.push({ rank, other });
+  }
+
+  return scored
+    .sort(
+      (a, b) =>
+        a.rank - b.rank ||
+        b.other.routes.length - a.other.routes.length ||
+        a.other.slug.localeCompare(b.other.slug),
+    )
+    .slice(0, limit)
+    .map(({ other }) => ({
+      slug: other.slug,
+      cityA: other.cityA,
+      cityB: other.cityB,
+      routeCount: other.routes.length,
+    }));
 }
 
 // --- Station hubs (nested under country: /night-trains/{country}/from/{station}) ---
@@ -323,13 +428,21 @@ export function getRelatedRoutes(summary, limit = 6) {
   return related;
 }
 
-/** The city-pair slug for a route's primary direction, if such a hub exists. */
+/**
+ * The connection page a route belongs to. Every route has one now (the pair map
+ * is built from the same summaries and no longer gates on train count), which is
+ * what makes retiring /trains/[slug] into a 301 safe — see
+ * scripts/build-seo-redirects.mjs, which resolves the redirect targets through
+ * exactly this function.
+ * @returns {string|null} pair slug, or null for a route with no usable endpoints
+ */
 export function getCityPairSlugForRoute(summary) {
-  const p = summary.cityPairs && summary.cityPairs[0];
-  if (!p || !p.originCity || !p.destCity || p.originCity === p.destCity) return null;
-  const slug = buildPairSlug(p.originCity, p.destCity);
-  const pair = getPairMap().get(slug);
-  return pair && pair.routes.length >= MIN_TRAINS_PER_PAIR ? slug : null;
+  for (const p of summary.cityPairs || []) {
+    if (!p.originCity || !p.destCity || p.originCity === p.destCity) continue;
+    const slug = buildPairSlug(p.originCity, p.destCity);
+    if (getPairMap().has(slug)) return slug;
+  }
+  return null;
 }
 
 // --- internal ---------------------------------------------------------------

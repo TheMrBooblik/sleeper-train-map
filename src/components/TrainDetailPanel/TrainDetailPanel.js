@@ -7,7 +7,8 @@ import { useAgencies } from "../../hooks/requests/useAgencies";
 import { useRoutes } from "../../hooks/requests/useRoutes";
 import { useTrips } from "../../hooks/requests/useTrips";
 import { getRouteFrequencyOverride } from "../../lib/routeFrequencyOverrides";
-import { buildTrainSlug } from "../../lib/seo/slugify";
+import { buildPairSlug } from "../../lib/seo/slugify.mjs";
+import { cityForStation } from "../../lib/seo/cities.mjs";
 import {
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
@@ -1034,24 +1035,22 @@ const TrainDetailPanel = ({
                   majorViaContext,
                 );
 
-                // SEO per-train page slug. Built strictly from the route row's
-                // endpoints (mirroring routeEndpoints() in src/lib/seo/data.js) so
-                // it matches the statically generated /trains/[slug] page exactly.
-                // Only routes present in the viewMap have a page, so we link only
-                // when a route row exists (no link for orphan/legacy trip rows).
+                // SEO connection-page slug. Built from the route row's endpoints
+                // (mirroring buildSummary() in src/lib/seo/data.js) so it matches
+                // the statically generated /connections/[pair] page exactly. Only
+                // routes present in the viewMap have a page, so we link only when
+                // a route row exists (no link for orphan/legacy trip rows).
                 const trainPageSlug = tripRoute
-                  ? buildTrainSlug({
-                      origin:
+                  ? buildPairSlug(
+                      cityForStation(
                         tripRoute.origin_trip_0 || tripRoute.origin_trip_1 || "",
-                      destination:
+                      ),
+                      cityForStation(
                         tripRoute.destination_trip_0 ||
-                        tripRoute.destination_trip_1 ||
-                        "",
-                      trainNumber:
-                        tripRoute.trip_short_name_0 ||
-                        tripRoute.trip_short_name_1 ||
-                        "",
-                    })
+                          tripRoute.destination_trip_1 ||
+                          "",
+                      ),
+                    )
                   : "";
                 const isDir1 =
                   tripRoute &&
@@ -1322,7 +1321,7 @@ const TrainDetailPanel = ({
                       {trip.trip_short_name &&
                         (trainPageSlug ? (
                           <Link
-                            href={`/trains/${trainPageSlug}`}
+                            href={`/connections/${trainPageSlug}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="shrink-0 rounded-md px-2 py-1 text-sm font-semibold underline decoration-transparent underline-offset-2 transition hover:decoration-current hover:opacity-90"

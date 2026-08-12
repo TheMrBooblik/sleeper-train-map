@@ -7,7 +7,7 @@
  */
 
 import { COUNTRIES } from "../countries";
-import { slugify } from "./slugify";
+import { slugify } from "./slugify.mjs";
 
 // United Kingdom is not in the map's region list but has real night-train content.
 const SEO_ONLY_COUNTRIES = [
