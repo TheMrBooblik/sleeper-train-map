@@ -38,6 +38,8 @@ function extractKeysFromTripLabel(label) {
   if (en) push(en[1]);
   const ec = s.match(/\bEC\s+(\d{3,6})\b/i);
   if (ec) push(ec[1]);
+  const le = s.match(/\bLE\s+(\d{3,6})\b/i);
+  if (le) push(le[1]);
   (s.match(/\d{4,6}/g) || []).forEach((n) => push(n));
   return keys;
 }
@@ -98,6 +100,9 @@ const EXPECTED_GTFS_KEYS = [
   "53190",
   "403",
   "402",
+  // Leo Express Frankfurt ↔ Przemyśl sleeper (mkuran LEO agency).
+  "1248",
+  "1249",
 ];
 
 const GAP_THRESHOLD_KM = 30;

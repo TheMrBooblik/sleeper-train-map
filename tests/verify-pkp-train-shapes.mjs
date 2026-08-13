@@ -12,7 +12,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { pkpEntryForRoute } from "../src/lib/pkpTrainKeyExtract.js";
+import { pkpEntryForRoute, gtfsEntryForRoute } from "../src/lib/pkpTrainKeyExtract.js";
+import { attachPkpGtfsPolylinesToViewMap } from "../src/lib/pkpGtfsMerge.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
@@ -151,6 +152,85 @@ for (const [label, origin, dest, expectedLast] of stitchCases) {
   if (!(pathKm(e.positions) > 300)) {
     fail(`"${label}" path only ${pathKm(e.positions).toFixed(0)} km — chord fallback?`);
   }
+}
+
+// 5) Leo Express Frankfurt↔Przemyśl sleeper: mkuran stores operational numbers
+//    (currently 1248/1249; discovered from overnight LEO trips, not an allowlist).
+//    Back-on-Track uses commercial labels LE 232/235. The bundle must carry the
+//    full-corridor shapes, and gtfsEntryForRoute must attach them by endpoint city.
+for (const key of ["1248", "1249"]) {
+  const e = byTrainKey[key];
+  if (!(e?.positions?.length > 1000)) {
+    fail(`byTrainKey[${key}] should have a full-corridor polyline (1000+ pts)`);
+  }
+  const names = (e.stops || []).map((s) => s?.name || "");
+  const hasFrankfurt = names.some((n) => /frankfurt/i.test(n));
+  const hasPrzemysl = names.some((n) => /przemy/i.test(n));
+  if (!hasFrankfurt || !hasPrzemysl) {
+    fail(`byTrainKey[${key}] should span Frankfurt and Przemyśl, got ${names[0]} → ${names[names.length - 1]}`);
+  }
+  // Official terminus is Frankfurt Süd, not the airport Fernbahnhof.
+  const frankfurtStop = names.find((n) => /frankfurt/i.test(n));
+  if (!/süd|sud/i.test(frankfurtStop || "")) {
+    fail(`byTrainKey[${key}] Frankfurt stop should be Süd, got ${frankfurtStop}`);
+  }
+}
+
+const leWest = gtfsEntryForRoute(
+  "LE 232",
+  byTrainKey,
+  "Przemyśl Gł.",
+  "Frankfurt (Main) Flughafen Fernbahnhof",
+  "LE",
+);
+if (!leWest) fail("LE 232 Przemyśl→Frankfurt should match by endpoints");
+if (!/przemy/i.test(leWest.stops[0]?.name || "")) {
+  fail(`LE 232 should be oriented Przemyśl→Frankfurt, started at ${leWest.stops[0]?.name}`);
+}
+if (!/frankfurt/i.test(leWest.stops[leWest.stops.length - 1]?.name || "")) {
+  fail(`LE 232 should end in Frankfurt, got ${leWest.stops[leWest.stops.length - 1]?.name}`);
+}
+
+const leEast = gtfsEntryForRoute(
+  "LE 235",
+  byTrainKey,
+  "Frankfurt (Main) Flughafen Fernbahnhof",
+  "Przemyśl Gł.",
+  "LE",
+);
+if (!leEast) fail("LE 235 Frankfurt→Przemyśl should match by endpoints");
+if (!/frankfurt/i.test(leEast.stops[0]?.name || "")) {
+  fail(`LE 235 should be oriented Frankfurt→Przemyśl, started at ${leEast.stops[0]?.name}`);
+}
+
+// Keyed PKP lookup must NOT steal the Leo Express shape via a global scan.
+const pkpMiss = pkpEntryForRoute(
+  "LE 232",
+  byTrainKey,
+  "Przemyśl Gł.",
+  "Frankfurt (Main) Flughafen Fernbahnhof",
+);
+if (pkpMiss) fail("pkpEntryForRoute (no endpoint fallback) should not match LE 232");
+
+const merged = attachPkpGtfsPolylinesToViewMap(
+  {
+    270: {
+      agency_id: "LE",
+      trip_short_name_0: "LE 232",
+      origin_trip_0: "Przemyśl Gł.",
+      destination_trip_0: "Frankfurt (Main) Flughafen Fernbahnhof",
+      trip_short_name_1: "LE 235",
+      origin_trip_1: "Frankfurt (Main) Flughafen Fernbahnhof",
+      destination_trip_1: "Przemyśl Gł.",
+    },
+  },
+  data,
+);
+if (!(merged[270]?.pkp_gtfs_positions_0?.length > 1000)) {
+  fail("Leo Express view-map row should receive pkp_gtfs_positions_0");
+}
+if (!(merged[270]?.pkp_gtfs_positions_1?.length > 1000)) {
+  fail("Leo Express view-map row should receive pkp_gtfs_positions_1");
 }
 
 console.log(

@@ -241,7 +241,7 @@ export function useRoutePaths({
       // European Sleeper 453: single OSM relation.
       // RegioJet routes and Zemplín: pre-computed static polylines (avoids
       // double-track / scattered-approach issues in raw OSM relations).
-      // PKP polylines: pkp_gtfs_positions_* from GTFS bundle (merged in useInitialData).
+      // PKP / Leo Express polylines: pkp_gtfs_positions_* from the mkuran GTFS bundle.
       let osmRelationId = null;
       if (checkEuropeanSleeper453(route)) {
         osmRelationId = "18616102";

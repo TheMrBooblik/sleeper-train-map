@@ -1,7 +1,7 @@
 /**
  * Derive GTFS train-number lookup keys from a Back-on-Track trip label
  * (trip_short_name / trip_short_name_0 / _1). Order matters: prefer IC, then TLK,
- * slash-suffixed numbers, EN/EC, then any 4–6 digit run (for compound labels).
+ * slash-suffixed numbers, EN/EC/LE, then any 4–6 digit run (for compound labels).
  *
  * Used by the PKP GTFS parse script and by the API when attaching polylines to viewMap.
  */
@@ -32,6 +32,11 @@ export function extractKeysFromTripLabel(label) {
 
   const ec = s.match(/\bEC\s+(\d{3,6})\b/i);
   if (ec) push(ec[1]);
+
+  // Leo Express commercial labels ("LE 232") and mkuran operational
+  // numbers ("LE 1248"). 3-digit is allowed — LE numbers are often short.
+  const le = s.match(/\bLE\s+(\d{3,6})\b/i);
+  if (le) push(le[1]);
 
   const longRuns = s.match(/\d{4,6}/g) || [];
   longRuns.forEach((n) => push(n));
@@ -401,4 +406,69 @@ export function pkpEntryForRoute(label, byTrainKey, origin, destination) {
     }
   }
   return stitchCompoundEntry(label, byTrainKey, origin, destination);
+}
+
+/**
+ * Pick the bundle shape whose endpoints are the same two cities as origin /
+ * destination, ignoring train number. Prefers the variant already oriented
+ * origin→destination (so stop times stay in running order); otherwise reverses
+ * the longest matching shape.
+ *
+ * Used for Leo Express: BoT labels the Frankfurt–Przemyśl sleeper "LE 232/235"
+ * while mkuran stores operational numbers 1248/1249. Must NOT be used as a
+ * global PKP fallback — reused numbers on different corridors would attach
+ * the wrong shape (see the IC 406 München vs Praha collision).
+ *
+ * @param {Record<string, object>} byTrainKey
+ * @param {string} origin
+ * @param {string} destination
+ * @returns {object | null}
+ */
+export function pkpEntryForEndpoints(byTrainKey, origin, destination) {
+  if (!byTrainKey) return null;
+  const o = normalizeCity(origin);
+  if (!o) return null;
+
+  let bestForward = null;
+  let bestForwardPts = 0;
+  let bestAny = null;
+  let bestAnyPts = 0;
+  for (const entry of Object.values(byTrainKey)) {
+    for (const variant of entryVariants(entry)) {
+      if (!entryMatchesEndpoints(variant, origin, destination)) continue;
+      const pts = variant.positions.length;
+      if (pts > bestAnyPts) {
+        bestAny = variant;
+        bestAnyPts = pts;
+      }
+      if (stopCity(variant.stops[0]) === o && pts > bestForwardPts) {
+        bestForward = variant;
+        bestForwardPts = pts;
+      }
+    }
+  }
+  if (bestForward) return bestForward;
+  if (bestAny && stopCity(bestAny.stops[bestAny.stops.length - 1]) === o) {
+    return reverseLeg(bestAny);
+  }
+  return bestAny;
+}
+
+/**
+ * Resolve a GTFS bundle entry for a view-map row. Keyed match first (PKP);
+ * Leo Express falls back to corridor endpoints because BoT commercial numbers
+ * don't match the mkuran operational numbers.
+ *
+ * @param {string} label
+ * @param {Record<string, object>} byTrainKey
+ * @param {string} origin
+ * @param {string} destination
+ * @param {string} [agency]
+ * @returns {object | null}
+ */
+export function gtfsEntryForRoute(label, byTrainKey, origin, destination, agency) {
+  const keyed = pkpEntryForRoute(label, byTrainKey, origin, destination);
+  if (keyed) return keyed;
+  if (agency === "LE") return pkpEntryForEndpoints(byTrainKey, origin, destination);
+  return null;
 }

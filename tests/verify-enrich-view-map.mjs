@@ -349,4 +349,45 @@ await check("a failing source is isolated; later sources still enrich", async ()
   assert.ok(logs.some((m) => m.includes("broken") && m.includes("failed")));
 });
 
+await check("gtfsBundle: Leo Express matches by corridor when train numbers differ", async () => {
+  const leoBundle = {
+    byTrainKey: {
+      1249: {
+        positions: [
+          [49.78, 22.77],
+          [50.1, 8.66],
+        ],
+        stops: [
+          { name: "Przemyśl Główny" },
+          { name: "Praha hl.n." },
+          { name: "Frankfurt (Main) Süd" },
+        ],
+      },
+    },
+  };
+  const viewMap = {
+    270: {
+      agency_id: "LE",
+      // BoT commercial number — not present as a bundle key.
+      trip_short_name_0: "LE 232",
+      origin_trip_0: "Przemyśl Główny",
+      destination_trip_0: "Frankfurt (Main) Süd",
+      via_0: "stale - bot - stops",
+    },
+  };
+  await enrichViewMap({
+    registry: [
+      {
+        ...pkpEntry,
+        enrich: { ...pkpEntry.enrich, agencyIds: ["PKP", "PKP/ČD", "LE"] },
+      },
+    ],
+    viewMap,
+    getTrains: () => ({}),
+    readJson: () => leoBundle,
+  });
+  assert.strictEqual(viewMap[270].via_0, "Praha hl.n.");
+  assert.deepStrictEqual(viewMap[270].official_sources, ["pkp-gtfs"]);
+});
+
 console.log(`\n[verify-enrich] ${passed} checks passed`);

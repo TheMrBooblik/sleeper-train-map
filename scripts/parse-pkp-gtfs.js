@@ -3,10 +3,13 @@
  * Checked-in artifact (like parse-regiojet-gtfs): regenerate, then commit the JSON.
  *
  * Builds public/data/gtfs/pkpTrainShapes.json from the Polish GTFS feed (shapes.txt)
- * plus PKP / PKP/ČD trip labels from Back-on-Track trips.json (night-train scope).
+ * plus PKP / PKP/ČD trip labels from Back-on-Track trips.json (night-train scope)
+ * and Leo Express sleeper numbers discovered from the same mkuran feed.
  *
- * BoT defines *which* train numbers we care about; GTFS (mkuran polish_trains) supplies
- * geometry. Keep extractKeysFromTripLabel in sync with src/lib/pkpTrainKeyExtract.js.
+ * BoT defines *which* PKP train numbers we care about; GTFS (mkuran polish_trains)
+ * supplies geometry. Leo Express sleepers are discovered from LEO stop times
+ * (overnight + 12h+) because BoT uses different commercial numbers (LE 232/235)
+ * than the feed. Keep extractKeysFromTripLabel in sync with pkpTrainKeyExtract.js.
  *
  * Prerequisites: unzip on PATH. Default: downloads feed to gtfs-data/polish-trains.zip
  * and extracts to gtfs-data/polish-trains-unpacked/
@@ -44,6 +47,9 @@ function extractKeysFromTripLabel(label) {
   if (en) push(en[1]);
   const ec = s.match(/\bEC\s+(\d{3,6})\b/i);
   if (ec) push(ec[1]);
+  // Keep in sync with src/lib/pkpTrainKeyExtract.js (Leo Express labels).
+  const le = s.match(/\bLE\s+(\d{3,6})\b/i);
+  if (le) push(le[1]);
   const longRuns = s.match(/\d{4,6}/g) || [];
   longRuns.forEach((n) => push(n));
   return keys;
@@ -93,6 +99,15 @@ function fetchJson(url) {
       })
       .on("error", reject);
   });
+}
+
+// Nightly scrape has a committed copy; use it when GitHub raw is unreachable
+// (dev machines, rate limits) so parse-pkp-gtfs still produces Leo Express keys.
+function loadLocalBotTrips(root) {
+  const local = path.join(root, "public", "data", "scraped", "backontrack-trips.json");
+  if (!fs.existsSync(local)) return null;
+  const envelope = JSON.parse(fs.readFileSync(local, "utf8"));
+  return envelope?.data ?? envelope;
 }
 
 function downloadFile(url, destPath) {
@@ -280,7 +295,7 @@ function findTrainDataForKey(
   const candidates = [];
   for (const t of icTrips) {
     const route = routesById.get(t.route_id);
-    if (!route || route.agency_id !== "IC") continue;
+    if (!route || (route.agency_id !== "IC" && route.agency_id !== "LEO")) continue;
     if (String(t.route_id).includes("_BUS")) continue;
     const sid = t.shape_id || "";
     if (!sid.startsWith("RAIL_")) continue;
@@ -542,6 +557,49 @@ function findTrainDataForKey(
   };
 }
 
+/** Parse a GTFS clock ("HH:MM:SS", hours may be ≥ 24) to minutes from midnight. */
+function gtfsTimeToMinutes(t) {
+  if (!t) return null;
+  const parts = String(t).split(":");
+  if (parts.length < 2) return null;
+  const h = Number.parseInt(parts[0], 10);
+  const m = Number.parseInt(parts[1], 10);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  return h * 60 + m;
+}
+
+// Praha–Warszawa Leo Express seating trains overnight in ~9h. The Frankfurt–
+// Przemyśl couchette sleeper is ~19–20h. 12h is the gap between those classes.
+const LEO_SLEEPER_MIN_MINUTES = 12 * 60;
+
+/**
+ * Find Leo Express sleeper train numbers in the mkuran feed.
+ * The feed lumps every LE train under one route_id, so we look at stop times:
+ * a sleeper arrives the next calendar day (GTFS hour ≥ 24) and runs ≥ 12h.
+ * Returns trip_short_name keys (e.g. "1248") for findTrainDataForKey.
+ */
+function discoverLeoSleeperKeys(icTrips, routesById, stopTimesByTripId) {
+  const keys = new Set();
+  for (const t of icTrips) {
+    const route = routesById.get(t.route_id);
+    if (!route || route.agency_id !== "LEO") continue;
+    if (String(t.route_id).includes("_BUS")) continue;
+    const sts = stopTimesByTripId.get(t.trip_id);
+    if (!sts || sts.length < 2) continue;
+    const ordered = [...sts].sort((a, b) => a.seq - b.seq);
+    const first = gtfsTimeToMinutes(ordered[0].departure || ordered[0].arrival);
+    const last = gtfsTimeToMinutes(
+      ordered[ordered.length - 1].arrival || ordered[ordered.length - 1].departure,
+    );
+    if (first == null || last == null) continue;
+    if (last < 24 * 60) continue;
+    if (last - first < LEO_SLEEPER_MIN_MINUTES) continue;
+    const num = String(t.trip_short_name || "").split("/")[0].trim();
+    if (/^\d{3,6}$/.test(num)) keys.add(num);
+  }
+  return [...keys];
+}
+
 async function main() {
   const root = process.cwd();
   const manualGtfsDir = process.argv[2];
@@ -567,7 +625,14 @@ async function main() {
   }
 
   console.log("Fetching BoT trips for PKP key set…");
-  const botTrips = await fetchJson(BOT_TRIPS_URL);
+  let botTrips;
+  try {
+    botTrips = await fetchJson(BOT_TRIPS_URL);
+  } catch (err) {
+    botTrips = loadLocalBotTrips(root);
+    if (!botTrips) throw err;
+    console.warn("BoT URL failed, using local scraped trips:", err.message);
+  }
   const neededKeys = new Set();
   for (const trip of Object.values(botTrips)) {
     // Any operator combo involving PKP (PKP, PKP/ČD, MÁV/PKP, …) — their
@@ -600,7 +665,7 @@ async function main() {
 
   const icTrips = trips.filter((t) => {
     const route = routesById.get(t.route_id);
-    return route && route.agency_id === "IC";
+    return route && (route.agency_id === "IC" || route.agency_id === "LEO");
   });
 
   const shapePoints = new Map();
@@ -647,6 +712,14 @@ async function main() {
       departure: row.departure_time,
     });
   });
+
+  // Leo Express: BoT commercial numbers (LE 232/235) are not in this feed.
+  // Discover sleeper keys from LEO stop times instead of a hardcoded list.
+  const leoKeys = discoverLeoSleeperKeys(icTrips, routesById, stopTimesByTripId);
+  for (const k of leoKeys) neededKeys.add(k);
+  if (leoKeys.length) {
+    console.log("Leo Express sleeper keys from GTFS:", leoKeys.join(", "));
+  }
 
   // Index BUS legs by parent trip prefix so findTrainDataForKey can look up
   // authoritative stop names from the explicit bus leg rather than inferring them.

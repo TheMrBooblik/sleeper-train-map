@@ -366,7 +366,7 @@
     "v": 1,
     "id": "pkp-gtfs",
     "label": "PKP Intercity (Polish GTFS)",
-    "description": "Official PKP Intercity timetable data (mkuran.pl is a mechanical daily conversion of the official NAP feed). Committed as public/data/gtfs/pkpTrainShapes.json; regenerated nightly inside the scrape (npm run parse-pkp-gtfs, scoped by BoT PKP trips). Enriches PKP rows with official stop lists and stamps them for trusted auto-approval.",
+    "description": "Official PKP Intercity timetable data (mkuran.pl is a mechanical daily conversion of the official NAP feed), plus Leo Express sleeper shapes discovered from the same polish_trains.zip (overnight LEO trips of 12h+). Committed as public/data/gtfs/pkpTrainShapes.json; regenerated nightly inside the scrape (npm run parse-pkp-gtfs). Enriches PKP and Leo Express rows with official stop lists and stamps them for trusted auto-approval.",
     "kind": "gtfs",
     "adapter": null,
     "runner": "external",
@@ -381,7 +381,7 @@
     "synthetic": null,
     "enrich": {
       "strategy": "gtfsBundle",
-      "agencyIds": ["PKP", "PKP/ČD", "MÁV/PKP"],
+      "agencyIds": ["PKP", "PKP/ČD", "MÁV/PKP", "LE"],
       "updateVia": true,
       "stamp": true,
       "geometryFallback": {

@@ -58,6 +58,7 @@ const redirects = JSON.parse(
   const cases = [
     [["Praha hl.n.", "Bruxelles Midi / Brussel Zuid"], "brussels-to-prague"],
     [["Przemyśl Gł.", "Frankfurt (Main) Flughafen Fernbahnhof"], "frankfurt-to-przemysl"],
+    [["Przemyśl Gł.", "Frankfurt (Main) Süd"], "frankfurt-to-przemysl"],
     [["Messina Centrale", "Palermo Centrale"], "messina-to-palermo"],
     [["Salerno", "Torino Porta Nuova"], "salerno-to-turin"],
   ];
