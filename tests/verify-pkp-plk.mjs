@@ -278,6 +278,17 @@ assert.equal(
   "unmapped name passes through unchanged",
 );
 assert.equal(canonicalizeStationName(""), "", "empty passes through");
+assert.equal(
+  canonicalizeStationName("Praha Hlavni Nadrazi"),
+  "Praha hl.n.",
+  "PLK Czech ASCII origin aliases to BoT",
+);
+assert.equal(canonicalizeStationName("Praha-Liben"), "Praha-Libeň");
+assert.equal(canonicalizeStationName("Pardubice Hlavni Nadrazi"), "Pardubice hl.n.");
+assert.equal(canonicalizeStationName("Ceska Trebova"), "Česká Třebová");
+assert.equal(canonicalizeStationName("Zabreh na Morave"), "Zábřeh na Moravě");
+assert.equal(canonicalizeStationName("Olomouc Hlavni Nadrazi"), "Olomouc hl.n.");
+assert.equal(canonicalizeStationName("Ostrava Hlavni Nadrazi"), "Ostrava hl.n.");
 
 // 9) plkScheduleForRow threads the canonicalizer through via_ AND pkp_schedule_.
 const canonRow = {

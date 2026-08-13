@@ -39,7 +39,7 @@
     "output": null,
     "synthetic": null,
     "params": {
-      "relationIds": ["18616102", "3779843", "8737075"]
+      "relationIds": ["18616102", "3779843"]
     },
     "freshness": { "ttlHours": 25 }
   },
@@ -384,14 +384,7 @@
       "agencyIds": ["PKP", "PKP/ČD", "MÁV/PKP", "LE"],
       "updateVia": true,
       "stamp": true,
-      "geometryFallback": {
-        "pinnedRelations": {
-          "406": ["8737075"],
-          "407": ["8737075"],
-          "442": ["8737075"],
-          "443": ["8737075"]
-        }
-      }
+      "geometryFallback": {}
     },
     "params": {
       "statusFile": "public/data/gtfs/pkpTrainShapes.json"

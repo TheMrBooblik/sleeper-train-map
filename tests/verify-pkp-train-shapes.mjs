@@ -76,8 +76,8 @@ const cases = [
   ["TLK 403", "Bohumín", "Łeba", "403"],
   ["TLK 402", "Łeba", "Bohumín", "402"],
   // Collision: the reused number maps to a different corridor and the partner
-  // key is absent from the feed → must reject (the row falls back to pinned
-  // OSM geometry via the enrichment geometry fallback / client checks).
+  // key is absent from the feed → must reject. The renderer then chains
+  // station coords (OSM 8737075 is the Oświęcim corridor, not Katowice).
   ["EN 443 / IC 406", "Praha hl.n.", "Warszawa Wschodnia", null], // 406 = München corridor, 443 absent
 ];
 
