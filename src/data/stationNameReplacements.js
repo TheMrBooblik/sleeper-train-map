@@ -1,130 +1,154 @@
 /**
- * Station name corrections applied to route data (viewMap) and stops.
+ * Station name corrections applied to route data (viewMap), trips, and stops.
  *
  * The data lives in data/overrides/station-name-replacements.json so it can be
  * edited through the admin panel and committed as a structured override:
- *   routeReplacements: { "old name": { newName, routeIds? } | "new name" }
+ *   routeReplacements: { "old name": { newName, routeIds?, agencies? } | "new name" }
  *   stopReplacements:   { "old name": "new name" }
  */
-import replacements from "../../data/overrides/station-name-replacements.json";
+import replacements from "../../data/overrides/station-name-replacements.json" with { type: "json" };
 
 export const stationNameReplacements = replacements.routeReplacements;
 export const stopNameReplacements = replacements.stopReplacements;
 
 /**
- * Check if replacement should be applied based on agency_id
- * @param {string} stationName - Station name to check
- * @param {string} agencyId - Agency ID from route
- * @returns {string|null} - New station name if replacement should be applied, null otherwise
+ * Decide whether this station name should be rewritten for this route.
+ * String entries apply everywhere. Object entries may limit by agency_id
+ * and/or route_id (both must match when both are set).
+ *
+ * @param {string} stationName
+ * @param {{ routeId?: string|number|null, agencyId?: string|null }} ctx
+ * @returns {string|null} new name, or null to keep the original
  */
-function shouldReplaceStation(stationName, agencyId) {
+function shouldReplaceStation(stationName, ctx = {}) {
   const replacement = stationNameReplacements[stationName];
   if (!replacement) return null;
 
-  // If replacement is a string (old format), apply it
-  if (typeof replacement === "string") {
-    return replacement;
+  if (typeof replacement === "string") return replacement;
+
+  const agencies = Array.isArray(replacement.agencies) ? replacement.agencies : null;
+  if (agencies && agencies.length > 0) {
+    if (!ctx.agencyId || !agencies.includes(ctx.agencyId)) return null;
   }
 
-  // If replacement is an object with agencies restriction
-  if (replacement.agencies && Array.isArray(replacement.agencies)) {
-    // If agencies array is empty, apply to all
-    if (replacement.agencies.length === 0) {
-      return replacement.newName;
-    }
-    // Check if agency_id matches
-    if (agencyId && replacement.agencies.includes(agencyId)) {
-      return replacement.newName;
-    }
-    // Agency doesn't match, don't replace
-    return null;
+  const routeIds = Array.isArray(replacement.routeIds) ? replacement.routeIds : null;
+  if (routeIds && routeIds.length > 0) {
+    const rid = ctx.routeId == null ? "" : String(ctx.routeId);
+    const hit = routeIds.some((id) => String(id) === rid);
+    if (!hit) return null;
   }
 
-  // If no agencies restriction, apply to all
-  return replacement.newName || replacement;
+  return replacement.newName || null;
+}
+
+/** Rewrite a station field: exact match, or each " - "-separated via stop. */
+function replaceStationField(value, ctx) {
+  if (typeof value !== "string" || !value) return value;
+  const exact = shouldReplaceStation(value, ctx);
+  if (exact) return exact;
+  return value
+    .split(" - ")
+    .map((part) => shouldReplaceStation(part.trim(), ctx) || part)
+    .join(" - ");
 }
 
 /**
- * Apply station name replacements to a route object
- * @param {Object} route - Route object from Open Night Train Database
- * @returns {Object} - Route object with replaced station names
+ * Apply station name replacements to a viewMap route row.
+ * @param {Object} route
+ * @returns {Object}
  */
 export function applyStationNameReplacements(route) {
-  if (!route || typeof route !== "object") {
-    return route;
-  }
+  if (!route || typeof route !== "object") return route;
 
-  // Get route_id from route
-  const routeId = route.route_id || route.routeId || null;
-
-  // Create a copy to avoid mutating the original
+  const ctx = {
+    routeId: route.route_id ?? route.routeId ?? null,
+    agencyId: route.agency_id ?? null,
+  };
   const replacedRoute = { ...route };
-
-  // List of fields that may contain station names
-  const stationFields = [
+  for (const field of [
     "origin_trip_0",
     "destination_trip_0",
     "origin_trip_1",
     "destination_trip_1",
     "via_0",
     "via_1",
-  ];
-
-  // Apply replacements to each field
-  stationFields.forEach((field) => {
+  ]) {
     if (replacedRoute[field]) {
-      let value = replacedRoute[field];
-
-      // Handle string values (single station name or multiple stations separated by " - ")
-      if (typeof value === "string") {
-        // Check if this exact station name needs replacement
-        const exactReplacement = shouldReplaceStation(value, routeId);
-        if (exactReplacement) {
-          replacedRoute[field] = exactReplacement;
-        } else {
-          // Check if station name appears in a string (e.g., "Station1 - Station2")
-          // Split by " - " to handle multiple stations
-          const stations = value.split(" - ");
-          const replacedStations = stations.map((station) => {
-            const trimmedStation = station.trim();
-            // Check if this exact station name needs replacement
-            const replacement = shouldReplaceStation(trimmedStation, routeId);
-            if (replacement) {
-              return replacement;
-            }
-            // Otherwise keep original
-            return station;
-          });
-          replacedRoute[field] = replacedStations.join(" - ");
-        }
-      }
+      replacedRoute[field] = replaceStationField(replacedRoute[field], ctx);
     }
-  });
-
+  }
+  // After an endpoint rename (e.g. Flughafen → Süd), a GTFS via list built
+  // against the old name can still start/end with the new terminus. Drop those.
+  replacedRoute.via_0 = dropViaEndpoints(
+    replacedRoute.via_0,
+    replacedRoute.origin_trip_0,
+    replacedRoute.destination_trip_0,
+  );
+  replacedRoute.via_1 = dropViaEndpoints(
+    replacedRoute.via_1,
+    replacedRoute.origin_trip_1,
+    replacedRoute.destination_trip_1,
+  );
   return replacedRoute;
 }
 
+/** Strip via stops that duplicate the origin or destination. */
+function dropViaEndpoints(via, origin, dest) {
+  if (typeof via !== "string" || !via) return via;
+  const norm = (s) => (s || "").toLowerCase().trim();
+  let parts = via.split(" - ");
+  if (parts.length && norm(parts[0]) === norm(origin)) parts = parts.slice(1);
+  if (parts.length && norm(parts[parts.length - 1]) === norm(dest)) {
+    parts = parts.slice(0, -1);
+  }
+  return parts.join(" - ");
+}
+
 /**
- * Apply station name replacements to route data object
- * @param {Object} routeData - Route data object (viewMap) from Open Night Train Database
- * @returns {Object} - Route data object with replaced station names
+ * Apply station name replacements to every viewMap row.
+ * @param {Object|Array} routeData
+ * @returns {Object|Array}
  */
 export function applyReplacementsToRouteData(routeData) {
-  if (!routeData || typeof routeData !== "object") {
-    return routeData;
-  }
-
-  // If it's an array, process each route
-  if (Array.isArray(routeData)) {
-    return routeData.map(applyStationNameReplacements);
-  }
-
-  // If it's an object with routes, process each route
+  if (!routeData || typeof routeData !== "object") return routeData;
+  if (Array.isArray(routeData)) return routeData.map(applyStationNameReplacements);
   const processedData = {};
-  Object.keys(routeData).forEach((key) => {
-    const route = routeData[key];
-    processedData[key] = applyStationNameReplacements(route);
-  });
-
+  for (const key of Object.keys(routeData)) {
+    processedData[key] = applyStationNameReplacements(routeData[key]);
+  }
   return processedData;
+}
+
+/**
+ * Apply the same replacements to trips (booking + detail-panel endpoints).
+ * Agency comes from the trip, falling back to its viewMap row.
+ *
+ * @param {Object} trips
+ * @param {Object} [viewMap]
+ * @returns {Object}
+ */
+export function applyReplacementsToTrips(trips, viewMap) {
+  if (!trips || typeof trips !== "object") return trips;
+  const out = {};
+  for (const [key, trip] of Object.entries(trips)) {
+    if (!trip || typeof trip !== "object") {
+      out[key] = trip;
+      continue;
+    }
+    const route =
+      viewMap?.[trip.route_id] ?? viewMap?.[String(trip.route_id)] ?? null;
+    const ctx = {
+      routeId: trip.route_id ?? route?.route_id ?? null,
+      agencyId: trip.agency_id ?? route?.agency_id ?? null,
+    };
+    const trip_origin = replaceStationField(trip.trip_origin, ctx);
+    const trip_headsign = replaceStationField(trip.trip_headsign, ctx);
+    out[key] = {
+      ...trip,
+      trip_origin,
+      trip_headsign,
+      via: dropViaEndpoints(replaceStationField(trip.via, ctx), trip_origin, trip_headsign),
+    };
+  }
+  return out;
 }

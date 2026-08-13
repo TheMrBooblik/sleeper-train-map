@@ -5,6 +5,10 @@
       "routeIds": [
         142
       ]
+    },
+    "Frankfurt (Main) Flughafen Fernbahnhof": {
+      "newName": "Frankfurt (Main) Süd",
+      "agencies": ["LE"]
     }
   },
   "stopReplacements": {

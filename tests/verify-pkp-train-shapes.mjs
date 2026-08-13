@@ -155,9 +155,9 @@ for (const [label, origin, dest, expectedLast] of stitchCases) {
 }
 
 // 5) Leo Express Frankfurt↔Przemyśl sleeper: mkuran stores operational numbers
-//    1248/1249, Back-on-Track uses commercial labels LE 232/235. The bundle
-//    must carry the full-corridor shapes, and gtfsEntryForRoute must attach
-//    them by endpoint city (not by the BoT number).
+//    (currently 1248/1249; discovered from overnight LEO trips, not an allowlist).
+//    Back-on-Track uses commercial labels LE 232/235. The bundle must carry the
+//    full-corridor shapes, and gtfsEntryForRoute must attach them by endpoint city.
 for (const key of ["1248", "1249"]) {
   const e = byTrainKey[key];
   if (!(e?.positions?.length > 1000)) {
@@ -168,6 +168,11 @@ for (const key of ["1248", "1249"]) {
   const hasPrzemysl = names.some((n) => /przemy/i.test(n));
   if (!hasFrankfurt || !hasPrzemysl) {
     fail(`byTrainKey[${key}] should span Frankfurt and Przemyśl, got ${names[0]} → ${names[names.length - 1]}`);
+  }
+  // Official terminus is Frankfurt Süd, not the airport Fernbahnhof.
+  const frankfurtStop = names.find((n) => /frankfurt/i.test(n));
+  if (!/süd|sud/i.test(frankfurtStop || "")) {
+    fail(`byTrainKey[${key}] Frankfurt stop should be Süd, got ${frankfurtStop}`);
   }
 }
 

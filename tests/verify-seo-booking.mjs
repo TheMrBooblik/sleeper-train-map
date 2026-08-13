@@ -122,6 +122,44 @@ const published = JSON.parse(
   check(r?.href === OPERATOR_BOOKING.VIA.bookingPageUrl, "VIA: booking entry fallback");
 }
 
+// ── Leo Express: station codes + display names + date ───────────────────────
+{
+  const r = resolveRouteBooking({
+    agencyId: "LE",
+    agencies,
+    agencyUrl: "https://www.leoexpress.com/en",
+    origin: "Frankfurt (Main) Süd",
+    dest: "Przemyśl Gł.",
+    routeId: "270",
+    scheduleStops: [],
+  });
+  check(r != null, "LE: booking resolves");
+  check(r?.preselects === true, "LE: station-preselecting deep link");
+  check(
+    r?.href.includes("from=8002041") && r?.href.includes("to=5100234"),
+    `LE: levis_ids substituted, got ${r?.href}`,
+  );
+  check(
+    r?.href.includes("fromName=Frankfurt") && !r?.href.includes("fromName=8002041"),
+    "LE: display names are not replaced by the station ids",
+  );
+  check(/\d{2}\.\d{2}\.\d{4}/.test(r?.href || ""), "LE: date placeholder filled");
+}
+
+{
+  const r = resolveRouteBooking({
+    agencyId: "LE",
+    agencies,
+    origin: "Unknown Halt",
+    dest: "Przemyśl Gł.",
+  });
+  check(
+    r?.href === OPERATOR_BOOKING.LE.bookingPageUrl,
+    "LE: unmapped origin falls back to booking page",
+  );
+  check(r?.preselects === false, "LE: fallback is not a deep link");
+}
+
 // ── nothing to link to → null so pages render no button ─────────────────────
 {
   const r = resolveRouteBooking({

@@ -1,5 +1,0 @@
-{
-  "note": "Leo Express trains in the mkuran polish_trains GTFS that offer couchettes / sleepers. The feed lumps every LE train under one route_id, so we match by trip_short_name rather than route name. Day trains (Praha–Kraków/Warszawa 410–419) are seating-only and excluded. Back-on-Track uses different commercial numbers (LE 232/235 for Frankfurt–Przemyśl); polylines attach by endpoint city match, not by those labels.",
-  "source": "https://mkuran.pl/gtfs/polish_trains.zip",
-  "routes": ["1248", "1249"]
-}
