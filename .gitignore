@@ -46,3 +46,5 @@ gtfs-data/polish-trains-unpacked/
 # Playwright
 .playwright-mcp/
 .playwright-cli/
+# Downloaded GTFS feeds unpacked by the scrape (regenerated each run)
+gtfs-data/*-unpacked/

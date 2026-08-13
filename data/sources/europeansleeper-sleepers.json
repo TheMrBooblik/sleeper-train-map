@@ -1,0 +1,12 @@
+{
+  "note": "European Sleeper routes to put on the map. The europeansleeper adapter keeps only feed routes whose route_short_name matches one of these (case- and whitespace-insensitive); this feed leaves route_long_name empty, so route_short_name is the train's identity. Every ES route is a sleeper, so this list is really 'which trains exist' — it doubles as the discovery index that used to come from Back-on-Track. Numbers here are the operator's own: the feed calls the Brussels-Milan train ES 400/401, which supersedes the outdated 456/457 in the Back-on-Track dataset. Edit this list when European Sleeper adds or drops a service; no code change needed.",
+  "source": "https://mobilitydatabase.org/feeds/gtfs/mdb-3107",
+  "routes": [
+    "ES 400",
+    "ES 401",
+    "ES 452",
+    "ES 453",
+    "ES 474",
+    "ES 475"
+  ]
+}

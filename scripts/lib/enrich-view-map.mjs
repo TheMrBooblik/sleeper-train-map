@@ -8,7 +8,7 @@
 //
 // Strategies (entry.enrich.strategy):
 //   • trainsByNumber — match rows by trip_short_name_0/1 against a per-source
-//     trains file (nightjet today, europeansleeper next). Options: setPolyline
+//     trains file (nightjet, europeansleeper). Options: setPolyline
 //     (+ polylineMode "legacy"|"perDirection"), updateVia, setTimes, stamp,
 //     agencyIds scope, addSyntheticLeftovers.
 //   • gtfsBundle — match rows against a committed GTFS bundle keyed by train
@@ -21,6 +21,7 @@ import {
   extractKeysFromTripLabel,
 } from "../../src/lib/pkpTrainKeyExtract.js";
 import { buildVia } from "../../src/lib/pkpGtfsMerge.js";
+import { inAgencyScope } from "../../src/pages/api/lib/primitives.mjs";
 
 // "2026-06-11T18:13:00.000Z" → "18:13" (BoT rows carry plain HH:MM strings).
 function toHHMM(iso) {
@@ -38,10 +39,6 @@ function stampOfficialSource(route, sourceId) {
   route.official_sources = [...new Set([...existing, sourceId])].sort();
 }
 
-function inAgencyScope(route, agencyIds) {
-  if (!Array.isArray(agencyIds) || agencyIds.length === 0) return true;
-  return agencyIds.includes((route?.agency_id ?? "").toString().trim());
-}
 
 function trainsByNumber({ entry, viewMap, trains, log }) {
   const opts = entry.enrich;
@@ -230,12 +227,17 @@ export function appendSyntheticLeftovers({ entry, viewMap, trains, log = () => {
   const synthetic = entry?.synthetic;
   if (!synthetic?.idPrefix) return;
 
+  // Scoped like excludeBotMatched in build-initial-data: a bare number is only
+  // unique within an operator, so an unscoped match lets e.g. BoT's CFM/CFR 401
+  // swallow European Sleeper's ES 401 (and break its reverse pairing).
   const matched = new Set();
-  Object.values(viewMap).forEach((route) => {
-    [route.trip_short_name_0, route.trip_short_name_1]
-      .filter(Boolean)
-      .forEach((n) => matched.add(n.toString().trim()));
-  });
+  Object.values(viewMap)
+    .filter((route) => inAgencyScope(route, synthetic.botMatchAgencies))
+    .forEach((route) => {
+      [route.trip_short_name_0, route.trip_short_name_1]
+        .filter(Boolean)
+        .forEach((n) => matched.add(n.toString().trim()));
+    });
 
   const agencyOf =
     synthetic.agency?.from === "data"

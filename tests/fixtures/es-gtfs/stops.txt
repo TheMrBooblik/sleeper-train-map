@@ -1,0 +1,9 @@
+stop_name,stop_id,stop_lat,stop_lon
+Praha hl.n.,Praha hl.n.,50.082962,14.436094
+Dresden Hbf,Dresden Hbf,51.040245,13.732077
+Bad Schandau,Bad Schandau,50.918922,14.138930
+Antwerpen-Centraal,Antwerpen-Centraal,51.215996,4.421101
+Bruxelles-Midi - Brussel-Zuid,Bruxelles-Midi,50.835777,4.336054
+Berlin Hbf,Berlin Hbf,52.524944,13.369661
+Gare du Nord,Paris Nord,48.880400,2.354973
+Roosendaal,Roosendaal,51.540330,4.458470

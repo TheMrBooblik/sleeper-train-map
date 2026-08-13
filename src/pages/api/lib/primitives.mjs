@@ -15,6 +15,21 @@ export function isActiveRecord(record) {
   return (record?.is_active || "Y").toString().toUpperCase() !== "N";
 }
 
+// ─── Agency scoping for bare train numbers ──────────────────────────────────
+
+// Bare train numbers are only unique within an operator: Back-on-Track carries
+// a CFM/CFR 401 (Prietenia) and an SJN 475 (Trondheim–Bodø) alongside European
+// Sleeper's ES 401 and ES 475. A source that matches BoT rows by bare number
+// must therefore be able to say which operators' rows can legitimately match,
+// or an unrelated namesake silently swallows its train.
+//
+// An empty/absent list means "any row", which is the historical behaviour and
+// stays correct for sources whose keys are already operator-prefixed ("NJ 403").
+export function inAgencyScope(route, agencyIds) {
+  if (!Array.isArray(agencyIds) || agencyIds.length === 0) return true;
+  return agencyIds.includes((route?.agency_id ?? "").toString().trim());
+}
+
 // ─── Train4you (Urlaubs-Express / UEX) detection ────────────────────────────
 
 export const TRAIN4YOU_AGENCY_ID = "UEX";

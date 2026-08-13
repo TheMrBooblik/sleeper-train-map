@@ -78,6 +78,39 @@ await check("NJ leftovers: synthetic rows for unmatched trains, reverse paired",
   assert.strictEqual(viewMap.nj_standalone_NJ_300, undefined);
 });
 
+await check("leftovers: botMatchAgencies stops a namesake swallowing a train", () => {
+  // Back-on-Track carries a CFM/CFR 401 (Prietenia) alongside European
+  // Sleeper's ES 401. Unscoped, the namesake marks 401 as already covered, so
+  // ES 401 is dropped and ES 400 loses its reverse pairing.
+  const esEntry = (botMatchAgencies) => ({
+    id: "europeansleeper",
+    enabled: true,
+    output: "europeansleeper-trains.json",
+    synthetic: {
+      idPrefix: "es_",
+      agency: { from: "fixed", value: "ES" },
+      ...(botMatchAgencies ? { botMatchAgencies } : {}),
+    },
+  });
+  const viewMap = () => ({
+    22: { agency_id: "CFM/CFR", trip_short_name_0: "401", trip_short_name_1: "402" },
+  });
+  const trains = {
+    400: { polyline: "p400", stations: [station("Milano"), station("Köln"), station("Bruxelles")] },
+    401: { polyline: "p401", stations: [station("Bruxelles"), station("Köln"), station("Milano")] },
+  };
+
+  const unscoped = viewMap();
+  appendSyntheticLeftovers({ entry: esEntry(null), viewMap: unscoped, trains });
+  assert.strictEqual(unscoped.es_400.trip_short_name_1, undefined, "namesake breaks pairing");
+
+  const scoped = viewMap();
+  appendSyntheticLeftovers({ entry: esEntry(["ES"]), viewMap: scoped, trains });
+  assert.strictEqual(scoped.es_400.trip_short_name_1, "401");
+  assert.strictEqual(scoped.es_400.destination_trip_1, "Milano");
+  assert.strictEqual(scoped.es_401, undefined, "reverse folded in, not a second row");
+});
+
 await check("trainsByNumber full options: via/times/per-direction polyline/stamp", async () => {
   const entry = {
     id: "europeansleeper",

@@ -6,6 +6,7 @@
 // construction. ESM/.mjs so raw `node` can run it; no external dependencies.
 
 import {
+  inAgencyScope,
   isActiveRecord,
   isTrain4you,
   resolveCanonicalStationName,
@@ -468,11 +469,21 @@ export function buildInitialData({
       // Only add synthetic routes for trains BoT doesn't already cover
       // (computed after dedup, so surviving BoT rows win).
       const botMatched = new Set();
-      Object.values(filteredViewMap).forEach((route) => {
-        [route.trip_short_name_0, route.trip_short_name_1]
-          .filter(Boolean)
-          .forEach((n) => botMatched.add(n.trim()));
-      });
+      Object.entries(filteredViewMap)
+        .filter(
+          ([key, route]) =>
+            // Never let our own synthetic rows answer "does BoT cover this?" —
+            // the scrape runner's leftover rows carry this source's idPrefix and
+            // would otherwise mark every train as covered, shadowing the richer
+            // row appendSyntheticRoutes builds below (same rule as dropBotRowsIcn).
+            !key.startsWith(synthetic.idPrefix) &&
+            inAgencyScope(route, synthetic.botMatchAgencies),
+        )
+        .forEach(([, route]) => {
+          [route.trip_short_name_0, route.trip_short_name_1]
+            .filter(Boolean)
+            .forEach((n) => botMatched.add(n.trim()));
+        });
       trainList = trainList.filter(([lineName]) => !botMatched.has(lineName));
     }
 
