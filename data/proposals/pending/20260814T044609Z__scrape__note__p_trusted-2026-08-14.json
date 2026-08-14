@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-08-14",
+  "createdAt": "2026-08-14T04:46:09.501Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (3 routes, 1 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute 270: LE 232 (Przemyśl Gł. – Frankfurt (Main) Flughafen Fernbahnhof)\nroute nj_standalone_NJ_19947: NJ 19947 (Bregenz Bahnhof – Wien Hbf (Autoreisezuganlage))\nroute nj_standalone_NJ_13486: NJ 13486 (Wien Hbf – Zürich HB)\nstation East Glacier Park Amtrak Station (amtrak)",
+  "target": {
+    "routeKey": "trusted-2026-08-14",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
