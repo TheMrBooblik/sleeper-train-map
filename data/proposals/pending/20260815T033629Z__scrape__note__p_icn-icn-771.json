@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-771",
+  "createdAt": "2026-08-15T03:36:29.020Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Disappeared: ICN 771|ICN 775",
+  "summary": "Route \"icn_ICN_771\" (Trieste Centrale – Roma Termini) has been missing from the sources for 7 days and is no longer shown. No action needed if the train was discontinued.",
+  "target": {
+    "routeKey": "icn_ICN_771",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
