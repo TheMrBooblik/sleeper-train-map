@@ -4,6 +4,10 @@ import { stationCoordinates } from "../../data/stationCoordinates";
 import { normalizeStationNameForLookup } from "./useCities";
 import { attachPkpGtfsPolylinesToViewMap } from "../../lib/pkpGtfsMerge";
 import { attachRjGtfsToViewMap } from "../../lib/rjGtfsMerge";
+import {
+  applyReplacementsToRouteData,
+  applyReplacementsToTrips,
+} from "../../data/stationNameReplacements";
 
 // Module-level cache: shared across all component instances, 1 hour TTL
 const CACHE_DURATION = 60 * 60 * 1000;
@@ -154,6 +158,11 @@ export function useInitialData() {
           }
         }
 
+        // BoT sometimes names the wrong terminus (Leo Express Frankfurt
+        // Flughafen vs Süd). Rewrite before cities and booking see the names.
+        viewMapRaw = applyReplacementsToRouteData(viewMapRaw);
+        const tripsRaw = applyReplacementsToTrips(data.trips || {}, viewMapRaw);
+
         // Derive cities from viewMap (same logic as useCities)
         const citiesMap = deriveCities(viewMapRaw);
 
@@ -162,7 +171,7 @@ export function useInitialData() {
           stops: stopsArray,
           cities: citiesMap,
           viewMapData: viewMapRaw,
-          trips: data.trips || {},
+          trips: tripsRaw,
         };
         cache.timestamp = now;
 
@@ -170,7 +179,7 @@ export function useInitialData() {
         setFilteredStops(stopsArray);
         setCities(citiesMap);
         setViewMapData(viewMapRaw);
-        setTrips(data.trips || {});
+        setTrips(tripsRaw);
       } catch (err) {
         console.error("[useInitialData] Error:", err);
         setStops([]);
@@ -230,13 +239,17 @@ export function useInitialData() {
         }
       }
 
+      // Same terminus rewrites as the initial load (see comment above).
+      viewMapRaw = applyReplacementsToRouteData(viewMapRaw);
+      const tripsRaw = applyReplacementsToTrips(data.trips || {}, viewMapRaw);
+
       const citiesMap = deriveCities(viewMapRaw);
 
       cache.data = {
         stops: stopsArray,
         cities: citiesMap,
         viewMapData: viewMapRaw,
-        trips: data.trips || {},
+        trips: tripsRaw,
       };
       cache.timestamp = Date.now();
 
@@ -244,7 +257,7 @@ export function useInitialData() {
       setFilteredStops(stopsArray);
       setCities(citiesMap);
       setViewMapData(viewMapRaw);
-      setTrips(data.trips || {});
+      setTrips(tripsRaw);
     } catch (err) {
       console.error("[useInitialData] Refresh error:", err);
     } finally {

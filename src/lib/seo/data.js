@@ -42,12 +42,17 @@ import {
   getSeoCountry,
   OPERATOR_COUNTRY_FALLBACK,
 } from "./countries";
+import {
+  applyReplacementsToRouteData,
+  applyReplacementsToTrips,
+} from "../../data/stationNameReplacements";
 
 const PUBLISHED_PATH = "public/data/published/initial-data.json";
 const RAW_STOPS_PATH = "public/data/scraped/backontrack-stops.json";
 const AGENCIES_PATH = "public/data/scraped/backontrack-agencies.json";
 
 let _publishedFull;
+let _publishedNormalized;
 let _stopCoords;
 let _stopCountry;
 let _agencies;
@@ -68,7 +73,18 @@ function getPublishedFull() {
 
 /** The published { stops, viewMap, trips } payload. */
 function getPublished() {
-  return getPublishedFull().data;
+  if (!_publishedNormalized) {
+    const data = getPublishedFull().data;
+    // Same terminus rewrites the live map applies (e.g. Leo Express Frankfurt
+    // Flughafen → Süd). Done here so SEO pages match without re-canonicalizing.
+    const viewMap = applyReplacementsToRouteData(data.viewMap);
+    _publishedNormalized = {
+      ...data,
+      viewMap,
+      trips: applyReplacementsToTrips(data.trips, viewMap),
+    };
+  }
+  return _publishedNormalized;
 }
 
 /** ISO timestamp of the data's last generation (for sitemap lastmod). */

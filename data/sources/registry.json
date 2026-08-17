@@ -39,7 +39,7 @@
     "output": null,
     "synthetic": null,
     "params": {
-      "relationIds": ["18616102", "3779843", "8737075"]
+      "relationIds": ["18616102", "3779843"]
     },
     "freshness": { "ttlHours": 25 }
   },
@@ -330,9 +330,43 @@
   },
   {
     "v": 1,
+    "id": "oncf",
+    "label": "ONCF (Morocco)",
+    "description": "Official ONCF night trains (Marrakech–Tanger, Casablanca–Oujda), both with couchettes and sleeper cabins. DISABLED until the 'Probe ONCF source' workflow identifies a stable machine-readable surface — the published community GTFS (MobilityDatabase mdb-3049) expired 2025-12-31 and models zero overnight service, so it is unusable. The probe checks the oncf-voyages.ma booking API, the official timetable downloads, and the legacy /fr/Horaires search; implement scripts/adapters/oncf.mjs against the artifact, switch kind to json-api if a JSON feed exists, then enable. Until then Morocco is covered by curated routes.",
+    "kind": "html",
+    "adapter": "oncf",
+    "enabled": false,
+    "official": true,
+    "trusted": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.oncf.ma",
+    "output": "oncf-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": {
+      "agencyId": "ONCF",
+      "operatorName": "ONCF"
+    },
+    "synthetic": {
+      "idPrefix": "oncf_",
+      "agency": { "from": "fixed", "value": "ONCF" },
+      "resolveAliases": true,
+      "withService": true,
+      "excludeBotMatched": false,
+      "dedupStrategy": null
+    },
+    "params": {
+      "bookingBase": "https://www.oncf-voyages.ma",
+      "scheduleSearchBase": "https://www.oncf.ma/fr/Horaires",
+      "timetableDownloads": "https://www.oncf-voyages.ma/telechargement-des-horaires"
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
     "id": "pkp-gtfs",
     "label": "PKP Intercity (Polish GTFS)",
-    "description": "Official PKP Intercity timetable data (mkuran.pl is a mechanical daily conversion of the official NAP feed). Committed as public/data/gtfs/pkpTrainShapes.json; regenerated nightly inside the scrape (npm run parse-pkp-gtfs, scoped by BoT PKP trips). Enriches PKP rows with official stop lists and stamps them for trusted auto-approval.",
+    "description": "Official PKP Intercity timetable data (mkuran.pl is a mechanical daily conversion of the official NAP feed), plus Leo Express sleeper shapes discovered from the same polish_trains.zip (overnight LEO trips of 12h+). Committed as public/data/gtfs/pkpTrainShapes.json; regenerated nightly inside the scrape (npm run parse-pkp-gtfs). Enriches PKP and Leo Express rows with official stop lists and stamps them for trusted auto-approval.",
     "kind": "gtfs",
     "adapter": null,
     "runner": "external",
@@ -347,17 +381,10 @@
     "synthetic": null,
     "enrich": {
       "strategy": "gtfsBundle",
-      "agencyIds": ["PKP", "PKP/ČD", "MÁV/PKP"],
+      "agencyIds": ["PKP", "PKP/ČD", "MÁV/PKP", "LE"],
       "updateVia": true,
       "stamp": true,
-      "geometryFallback": {
-        "pinnedRelations": {
-          "406": ["8737075"],
-          "407": ["8737075"],
-          "442": ["8737075"],
-          "443": ["8737075"]
-        }
-      }
+      "geometryFallback": {}
     },
     "params": {
       "statusFile": "public/data/gtfs/pkpTrainShapes.json"

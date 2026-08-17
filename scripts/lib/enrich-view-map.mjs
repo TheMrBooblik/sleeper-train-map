@@ -12,12 +12,13 @@
 //     (+ polylineMode "legacy"|"perDirection"), updateVia, setTimes, stamp,
 //     agencyIds scope, addSyntheticLeftovers.
 //   • gtfsBundle — match rows against a committed GTFS bundle keyed by train
-//     number (pkp-gtfs), endpoint-validated via pkpEntryForRoute so reused
-//     train numbers can't stamp wrong-corridor rows. Options: updateVia,
-//     stamp, agencyIds.
+//     number (pkp-gtfs), endpoint-validated via gtfsEntryForRoute so reused
+//     train numbers can't stamp wrong-corridor rows. Leo Express also matches
+//     by corridor when BoT commercial numbers differ from mkuran keys.
+//     Options: updateVia, stamp, agencyIds.
 
 import {
-  pkpEntryForRoute,
+  gtfsEntryForRoute,
   extractKeysFromTripLabel,
 } from "../../src/lib/pkpTrainKeyExtract.js";
 import { buildVia } from "../../src/lib/pkpGtfsMerge.js";
@@ -109,17 +110,22 @@ async function gtfsBundle({ entry, viewMap, bundle, stopCoords, resolveGeometry,
 
     // Endpoint-validated per direction: a reused train number whose shape
     // serves a different corridor resolves to null and the row stays as-is.
-    const e0 = pkpEntryForRoute(
+    // Leo Express also matches by corridor when BoT commercial numbers
+    // (LE 232/235) differ from mkuran operational numbers (1248/1249).
+    const agency = (route?.agency_id ?? "").toString().trim();
+    const e0 = gtfsEntryForRoute(
       route.trip_short_name_0,
       byTrainKey,
       route.origin_trip_0,
       route.destination_trip_0,
+      agency,
     );
-    const e1 = pkpEntryForRoute(
+    const e1 = gtfsEntryForRoute(
       route.trip_short_name_1,
       byTrainKey,
       route.origin_trip_1,
       route.destination_trip_1,
+      agency,
     );
 
     if (e0 || e1) {

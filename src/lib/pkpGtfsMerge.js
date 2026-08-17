@@ -1,16 +1,22 @@
 // Merges GTFS-derived polylines + timetables into Back-on-Track viewMap rows
-// (PKP / PKP/ČD only). Bundle: public/data/gtfs/pkpTrainShapes.json from
-// scripts/parse-pkp-gtfs.js.
+// (PKP / PKP/ČD / Leo Express). Bundle: public/data/gtfs/pkpTrainShapes.json
+// from scripts/parse-pkp-gtfs.js (mkuran polish_trains.zip, which also carries
+// Leo Express sleepers).
 //
 // Collisions (a reused train number matching the wrong shape) are handled
-// generically: pkpEntryForRoute only returns a shape whose endpoints match the
+// generically: gtfsEntryForRoute only returns a shape whose endpoints match the
 // route's own origin/destination, so wrong-corridor shapes are skipped and the
 // map falls back to OSM / static / station-coord geometry. No per-route
 // hardcoding — new routes work automatically.
 
 // Explicit extension so raw-node scripts (scripts/lib/enrich-view-map.mjs)
 // can import this module too, not just the webpack bundle.
-import { pkpEntryForRoute } from "./pkpTrainKeyExtract.js";
+import { gtfsEntryForRoute } from "./pkpTrainKeyExtract.js";
+
+// Agencies whose rows get mkuran GTFS polylines. Leo Express ("LE") uses the
+// same feed; BoT commercial numbers don't match GTFS keys, so the lookup
+// falls back to corridor endpoints (see gtfsEntryForRoute).
+const GTFS_POLYLINE_AGENCIES = new Set(["PKP", "PKP/ČD", "LE"]);
 
 /**
  * Build the "via" string from a GTFS stop list, dropping the endpoints when
@@ -44,24 +50,26 @@ export function attachPkpGtfsPolylinesToViewMap(viewMap, bundle) {
   for (const key of Object.keys(viewMap)) {
     const route = viewMap[key];
     const agency = route?.agency_id;
-    if (agency !== "PKP" && agency !== "PKP/ČD") {
+    if (!GTFS_POLYLINE_AGENCIES.has(agency)) {
       out[key] = route;
       continue;
     }
 
     // Resolve one GTFS entry per direction, validated against that direction's
     // endpoints (rejects wrong-corridor shapes from reused train numbers).
-    const e0 = pkpEntryForRoute(
+    const e0 = gtfsEntryForRoute(
       route.trip_short_name_0,
       byTrainKey,
       route.origin_trip_0,
       route.destination_trip_0,
+      agency,
     );
-    const e1 = pkpEntryForRoute(
+    const e1 = gtfsEntryForRoute(
       route.trip_short_name_1,
       byTrainKey,
       route.origin_trip_1,
       route.destination_trip_1,
+      agency,
     );
 
     if (!e0 && !e1) {

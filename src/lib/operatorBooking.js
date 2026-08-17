@@ -5,7 +5,10 @@
  *
  * Data lives in data/overrides/operator-booking.json (editable through the
  * admin panel). Each entry is keyed by agency_id and may hold:
- *   - urlTemplate: deep link with {origin}/{dest} placeholders (or null)
+ *   - urlTemplate: deep link with {origin}/{dest} placeholders (or null).
+ *     Optional extras: {originName}/{destName} (our display names, not the
+ *     mapped codes) and {date} (dd.MM.yyyy, default +7 days). Replace the
+ *     longer name placeholders first so "{origin}" cannot eat "{originName}".
  *   - dealsUrl / dealsLabel: optional secondary "last-minute deals" link
  *   - stationNames: map of our station name -> the booking site's expected name
  *
@@ -37,18 +40,34 @@ function lookupStationName(booking, name) {
   return { value: name, mapped: false };
 }
 
+/** dd.MM.yyyy — Leo Express search-results date format. */
+function formatDayMonthYear(d) {
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}.${mm}.${d.getFullYear()}`;
+}
+
+function defaultBookingDate() {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  return formatDayMonthYear(d);
+}
+
 /**
  * Build a deep-link booking URL with preselected origin/destination.
  *
  * Returns null when the operator has no urlTemplate, so the caller can fall
  * back to the generic operator homepage (agency_url).
  *
- * Some operators (e.g. European Sleeper) need their own numeric station codes,
- * not names. For those we set `requireStationMapping: true`: if either station
- * has no code mapping, we return null so the caller falls back to the homepage
- * instead of building a broken deep link.
+ * Some operators (e.g. European Sleeper, Leo Express) need their own station
+ * codes, not names. For those we set `requireStationMapping: true`: if either
+ * station has no code mapping, we return null so the caller falls back to the
+ * homepage instead of building a broken deep link.
+ *
+ * @param {object} args
+ * @param {string} [args.date] - optional dd.MM.yyyy for templates with {date}
  */
-export function buildBookingUrl({ agencyId, origin, dest }) {
+export function buildBookingUrl({ agencyId, origin, dest, date }) {
   const booking = getOperatorBooking(agencyId);
   if (!booking?.urlTemplate) return null;
 
@@ -57,9 +76,13 @@ export function buildBookingUrl({ agencyId, origin, dest }) {
 
   if (booking.requireStationMapping && (!o.mapped || !d.mapped)) return null;
 
+  // Longer placeholders first: "{origin}" must not consume "{originName}".
   return booking.urlTemplate
+    .replaceAll("{originName}", encodeURIComponent(origin || ""))
+    .replaceAll("{destName}", encodeURIComponent(dest || ""))
     .replaceAll("{origin}", encodeURIComponent(o.value))
-    .replaceAll("{dest}", encodeURIComponent(d.value));
+    .replaceAll("{dest}", encodeURIComponent(d.value))
+    .replaceAll("{date}", date || defaultBookingDate());
 }
 
 /**

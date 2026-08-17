@@ -1,9 +1,8 @@
 // tests/verify-route-geometry.mjs
 // Unit tests for the OSM-backed route geometry builder
 // (scripts/lib/route-geometry.mjs): the hash-gated cache (regenerate ONLY when
-// the stop list changed — zero network on hits), endpoint validation +
-// orientation of OSM candidates, Overpass discovery pick, and the
-// straight-line fallback. Run: npm run verify-route-geometry
+// the stop list changed — zero network on hits), endpoint + via-stop validation
+// of OSM candidates, Overpass discovery pick, and the straight-line fallback. Run: npm run verify-route-geometry
 import assert from "node:assert";
 import polyline from "@mapbox/polyline";
 import {
@@ -137,6 +136,85 @@ await check("wrong-corridor pinned relation rejected → stops-chain fallback", 
   });
   assert.strictEqual(out.method, "stops-chain");
   assert.strictEqual(out.polyline, polyline.encode(STOPS.map((s) => [s.lat, s.lon])));
+});
+
+// Chopin case: OSM 8737075 hits Praha + Warszawa but runs via Oświęcim, ~27 km
+// south of Katowice. Endpoint-only validation used to accept it; via check must
+// not. PKP geometryFallback sets allowChain: false, so the result is "none"
+// and the renderer chains station coords instead.
+await check("pinned relation that misses a via stop is rejected (allowChain false → none)", async () => {
+  const chopinStops = [
+    { name: "Praha hl.n.", lat: 50.083, lon: 14.435 },
+    { name: "Katowice", lat: 50.258, lon: 19.017 },
+    { name: "Warszawa Wschodnia", lat: 52.251, lon: 21.052 },
+  ];
+  // Praha → Oświęcim → Warszawa. Ends are right; Katowice is ~27 km off.
+  const oswiecimTrack = [
+    [50.083, 14.436],
+    [50.042, 19.200],
+    [52.251, 21.052],
+  ];
+  const out = await resolveRouteGeometry({
+    key: "pkp-gtfs:9:0",
+    stops: chopinStops,
+    pinnedRelationIds: ["8737075"],
+    cache: emptyGeometryCache(),
+    readScrapedRelation: () => oswiecimTrack,
+    fetchImpl: null,
+    allowChain: false,
+    now: NOW,
+  });
+  assert.strictEqual(out.method, "none");
+  assert.strictEqual(out.polyline, null);
+});
+
+await check("Overpass discovery rejects a longer relation that misses a via stop", async () => {
+  const chopinStops = [
+    { name: "Praha hl.n.", lat: 50.083, lon: 14.435 },
+    { name: "Katowice", lat: 50.258, lon: 19.017 },
+    { name: "Warszawa Wschodnia", lat: 52.251, lon: 21.052 },
+  ];
+  const viaKatowice = [
+    [50.083, 14.436],
+    [50.258, 19.017],
+    [52.251, 21.052],
+  ];
+  const viaOswiecimLonger = [
+    [50.083, 14.436],
+    [50.5, 16.0],
+    [50.042, 19.200],
+    [51.0, 20.0],
+    [52.251, 21.052],
+  ];
+  const overpassResponse = {
+    elements: [
+      {
+        type: "relation",
+        id: 8737075,
+        members: [
+          { type: "way", geometry: viaOswiecimLonger.map(([lat, lon]) => ({ lat, lon })) },
+        ],
+      },
+      {
+        type: "relation",
+        id: 999,
+        members: [
+          { type: "way", geometry: viaKatowice.map(([lat, lon]) => ({ lat, lon })) },
+        ],
+      },
+    ],
+  };
+  const out = await resolveRouteGeometry({
+    key: "pkp-gtfs:9:overpass",
+    stops: chopinStops,
+    refCandidates: ["443"],
+    cache: emptyGeometryCache(),
+    fetchImpl: async () => ({ ok: true, json: async () => overpassResponse }),
+    allowChain: false,
+    now: NOW,
+  });
+  assert.strictEqual(out.method, "overpass");
+  assert.strictEqual(out.relationId, "999");
 });
 
 await check("Overpass discovery picks the longest endpoint-valid relation", async () => {
