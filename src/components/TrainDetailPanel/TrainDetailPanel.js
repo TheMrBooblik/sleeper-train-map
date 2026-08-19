@@ -139,11 +139,43 @@ function isEuropeanSleeperRoute(routeId) {
   return String(routeId || "").startsWith("es_");
 }
 
+// The feed covers both shapes of European Sleeper route: the synthetic `es_`
+// rows built entirely from it, and the Back-on-Track rows it only enriches,
+// which keep BoT's numeric route ids and carry the operator on the trip. The
+// latter have real trips, so they never reach the synthetic fallback path —
+// matching on the agency is what gets them their stop lists too.
+function isEuropeanSleeperTrip(trip) {
+  return (
+    isEuropeanSleeperRoute(trip?.route_id) ||
+    String(trip?.agency_id || "").trim().toUpperCase() === "ES"
+  );
+}
+
 // A route the feed knows replaces the current one at the next timetable change
 // (build-initial-data appends `_from_YYYYMMDD`). It reuses the same train
 // numbers, so its timetable has to be looked up separately.
 function isUpcomingTimetableRoute(routeId) {
   return String(routeId || "").includes("_from_");
+}
+
+/**
+ * Journey length between two wall-clock "HH:MM" strings.
+ *
+ * Sleepers arrive the next morning, so a plain subtraction goes negative; the
+ * wrap assumes under 24 hours, which holds for every night train that reaches
+ * this helper (the longest European Sleeper run is under 20).
+ */
+function durationBetween(departure, arrival) {
+  const minutes = (value) => {
+    const match = /^(\d{1,2}):(\d{2})/.exec(String(value || ""));
+    return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+  };
+  const from = minutes(departure);
+  const to = minutes(arrival);
+  if (from === null || to === null) return null;
+  const span = (to - from + 24 * 60) % (24 * 60);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(Math.floor(span / 60))}:${pad(span % 60)}`;
 }
 
 function normalizeStationToken(value) {
@@ -510,9 +542,10 @@ const TrainDetailPanel = ({
   const hasNAFallback = fallbackTrips.some((t) =>
     isNorthAmericaRoute(t.route_id),
   );
-  const hasESFallback = fallbackTrips.some((t) =>
-    isEuropeanSleeperRoute(t.route_id),
-  );
+  // Unlike the flags above, this reads the trips actually being rendered:
+  // European Sleeper appears both as synthetic rows and as enriched
+  // Back-on-Track ones, and only the former go through fallbackTrips.
+  const hasESTrips = tripsToRender.some(isEuropeanSleeperTrip);
 
   useEffect(() => {
     if (!isOpen || !hasNJFallback) {
@@ -730,7 +763,7 @@ const TrainDetailPanel = ({
 
   // European Sleeper: the GTFS-derived trains file, keyed by bare train number.
   useEffect(() => {
-    if (!isOpen || !hasESFallback) {
+    if (!isOpen || !hasESTrips) {
       setEsTrainData(null);
       setEsLoadFailed(false);
       setEsLoading(false);
@@ -762,7 +795,7 @@ const TrainDetailPanel = ({
     return () => {
       active = false;
     };
-  }, [isOpen, hasESFallback]);
+  }, [isOpen, hasESTrips]);
 
   const nightjetTrainByNumber = useMemo(() => {
     const trains = nightjetData?.trains || {};
@@ -960,7 +993,7 @@ const TrainDetailPanel = ({
     // Times are ISO here, but tolerate plain "HH:MM" the way the other sources do.
     const asTime = (value) =>
       value ? (String(value).includes("T") ? formatTime(value) : value) : null;
-    const toSchedule = (key, stations) => ({
+    const toSchedule = (key, stations, days) => ({
       tripId: key,
       stops: stations.map((s, i) => ({
         stopId: s.id || s.name || String(i),
@@ -969,6 +1002,9 @@ const TrainDetailPanel = ({
         arrival: asTime(s.arrival),
         departure: asTime(s.departure),
       })),
+      // The feed's own service string, already in the display format Frequency
+      // renders ("2026/08/20-12/10: Tue, Thu, Sun").
+      days: days || null,
       validFrom: null,
       validUntil: null,
       source: "europeansleeper",
@@ -978,15 +1014,18 @@ const TrainDetailPanel = ({
     Object.entries(esTrainData.trains).forEach(([key, train]) => {
       const number = normalizeTrainNumber(key);
       const stations = Array.isArray(train?.stations) ? train.stations : [];
-      if (stations.length > 0) current.set(number, toSchedule(key, stations));
+      if (stations.length > 0) {
+        current.set(number, toSchedule(key, stations, train.frequency));
+      }
 
       const future = Array.isArray(train?.future?.stations)
         ? train.future.stations
         : [];
       // Falling back to the current period keeps a route that only some
       // directions have a future timetable for from rendering half-empty.
-      if (future.length > 0) upcoming.set(number, toSchedule(key, future));
-      else if (stations.length > 0) upcoming.set(number, current.get(number));
+      if (future.length > 0) {
+        upcoming.set(number, toSchedule(key, future, train.future.frequency));
+      } else if (stations.length > 0) upcoming.set(number, current.get(number));
     });
     return empty;
   }, [esTrainData]);
@@ -1107,7 +1146,7 @@ const TrainDetailPanel = ({
                   Amtrak / VIA Rail timetable is currently unavailable.
                 </div>
               )}
-              {esLoadFailed && hasESFallback && (
+              {esLoadFailed && hasESTrips && (
                 <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
                   European Sleeper timetable is currently unavailable.
                 </div>
@@ -1122,6 +1161,47 @@ const TrainDetailPanel = ({
                 const numericTrainNumber = extractTrainNumberDigits(
                   trip.trip_short_name,
                 );
+
+                const esSchedule =
+                  (isUpcomingTimetableRoute(trip.route_id)
+                    ? esScheduleByTrainNumber.upcoming
+                    : esScheduleByTrainNumber.current
+                  ).get(normalizedTrainNumber) || null;
+                // Already formatted "HH:MM" in the schedule's stops, so used
+                // directly like PKP and Amtrak/VIA rather than via formatTime.
+                const esStops = esSchedule?.stops || [];
+                const esOriginDeparture =
+                  esStops[0]?.departure || esStops[0]?.arrival || null;
+                const esDestinationArrival =
+                  esStops[esStops.length - 1]?.arrival ||
+                  esStops[esStops.length - 1]?.departure ||
+                  null;
+                // The feed is the operator's own timetable, so where it covers a
+                // train it supersedes Back-on-Track's copy throughout — not just
+                // in the stop list. BoT still routes ES 452 via Dresden Neustadt
+                // and Berlin Hbf (the feed calls at Berlin Gesundbrunnen, Den
+                // Haag and Roosendaal), and its duration predates the times
+                // above, so leaving either in place would contradict the rest of
+                // the card. Trains the feed does not carry — ES 454/455, still
+                // postponed — keep BoT's values.
+                const esVia =
+                  esStops.length > 2
+                    ? esStops
+                        .slice(1, -1)
+                        .map((s) => s.name)
+                        .join(" - ")
+                    : null;
+                const esDuration = durationBetween(
+                  esOriginDeparture,
+                  esDestinationArrival,
+                );
+                // Endpoints too, so one card doesn't end at "Bruxelles Midi /
+                // Brussel Zuid" in the route line and "Bruxelles Midi" in the
+                // stop list below it. Display only — booking links, connection
+                // slugs and endpoint matching keep the canonical names, which
+                // are what the rest of the app indexes stations by.
+                const esOrigin = esStops[0]?.name || null;
+                const esDestination = esStops[esStops.length - 1]?.name || null;
 
                 // PKP (Polish GTFS): per-station timetable + service calendar
                 // were merged onto the route in pkpGtfsMerge. Pick the direction
@@ -1139,7 +1219,7 @@ const TrainDetailPanel = ({
                 const agency =
                   agencies[operatorAgencyId] || agencies[bookingAgencyId];
                 const viaSummary = selectMajorViaStations(
-                  trip.via,
+                  esVia || trip.via,
                   majorViaContext,
                 );
 
@@ -1329,11 +1409,6 @@ const TrainDetailPanel = ({
                   null;
                 const naSchedule =
                   naScheduleByTrainNumber.get(normalizedTrainNumber) || null;
-                const esSchedule =
-                  (isUpcomingTimetableRoute(trip.route_id)
-                    ? esScheduleByTrainNumber.upcoming
-                    : esScheduleByTrainNumber.current
-                  ).get(normalizedTrainNumber) || null;
                 const schedule =
                   // PKP GTFS is the source of truth for Polish trains.
                   pkpSchedule ||
@@ -1346,15 +1421,6 @@ const TrainDetailPanel = ({
                   curatedSchedule ||
                   naSchedule ||
                   esSchedule;
-                // Already formatted "HH:MM" in the schedule's stops, so used
-                // directly like PKP and Amtrak/VIA rather than via formatTime.
-                const esStops = esSchedule?.stops || [];
-                const esOriginDeparture =
-                  esStops[0]?.departure || esStops[0]?.arrival || null;
-                const esDestinationArrival =
-                  esStops[esStops.length - 1]?.arrival ||
-                  esStops[esStops.length - 1]?.departure ||
-                  null;
                 const validFrom = formatCalendarDate(schedule?.validFrom);
                 const validUntil = formatCalendarDate(schedule?.validUntil);
 
@@ -1492,8 +1558,11 @@ const TrainDetailPanel = ({
                         Route
                       </div>
                       <div className="text-sm font-medium text-gray-900">
-                        {abbreviateStationName(trip.trip_origin)} {"->"}{" "}
-                        {abbreviateStationName(trip.trip_headsign)}
+                        {abbreviateStationName(esOrigin || trip.trip_origin)}{" "}
+                        {"->"}{" "}
+                        {abbreviateStationName(
+                          esDestination || trip.trip_headsign,
+                        )}
                       </div>
                       {viaSummary && (
                         <div className="text-xs text-gray-600">
@@ -1599,14 +1668,15 @@ const TrainDetailPanel = ({
                       </div>
                     )}
 
-                    {trip.duration && (
+                    {(esDuration || trip.duration) && (
                       <div className="text-xs text-gray-600">
-                        Duration: {formatTime(trip.duration)}
+                        Duration: {esDuration || formatTime(trip.duration)}
                       </div>
                     )}
 
                     {/* Frequency — PKP GTFS run-days win; BoT/override fallback */}
                     {(pkpSchedule?.days ||
+                      esSchedule?.days ||
                       trip.service_id ||
                       getRouteFrequencyOverride(trip.route_id)) && (
                       <div className="space-y-1">
@@ -1641,7 +1711,9 @@ const TrainDetailPanel = ({
                                 </>
                               );
                             }
-                            return trip.service_id;
+                            // The feed's own service days, which carry the
+                            // period they apply to; BoT's copy is undated.
+                            return esSchedule?.days || trip.service_id;
                           })()}
                         </div>
                       </div>
