@@ -16,9 +16,13 @@
 //     the identity of a train is route_short_name ("ES 452");
 //   • the feed is date-expanded: one trip and one service_id per operating date,
 //     with only calendar_dates.txt (no calendar.txt), and it retains past dates;
-//   • each date can carry its own stop sequence and its own shape (engineering
-//     diversions), so the map routing is the MODAL sequence, not the longest —
-//     the longest is sometimes a diversion that runs once a year.
+//   • each date can carry its own stop sequence and its own shape, for two very
+//     different reasons: one-off engineering diversions (which must be ignored —
+//     the longest sequence is sometimes a diversion that runs once a year) and
+//     the December timetable change, where a train legitimately switches routing
+//     AND operating days. Trips are therefore grouped into timetable PERIODS:
+//     the one running now drives the route, and the next one (if the feed
+//     already has it) rides along as `future` so the map can show both.
 //
 // This is why the generic buildSleeperTrains() in ../lib/gtfs.mjs is not reused:
 // it keys by route name, reads the calendar off a single representative trip,
@@ -31,6 +35,7 @@ import polyline from "@mapbox/polyline";
 import { downloadGtfs, loadGtfsDir } from "../lib/gtfs.mjs";
 import { renderCalendar, DAY_KEYS } from "../../src/pages/api/lib/calendar.mjs";
 import { resolveCanonicalStationName } from "../../src/pages/api/lib/primitives.mjs";
+import { cityForStation } from "../../src/lib/seo/cities.mjs";
 
 function readJsonSafe(filePath) {
   try {
@@ -86,14 +91,15 @@ export function makeStationResolver({ botStops = {}, overrides = {}, fallback = 
 /**
  * Normalize parsed official journeys into the standard trains-file shape.
  * Journeys: [{ train, stops: [{name, arrival: "HH:MM"|null, departure}],
- * calendar: string | calendar.mjs object | null, polyline?: string|null }]
+ * calendar: string | calendar.mjs object | null, polyline?: string|null,
+ * future?: {activeFrom, stops, calendar, polyline} }]
+ *
+ * `future` is carried through onto the train so the merge can emit the upcoming
+ * timetable as its own map route (see appendSyntheticRoutes).
  */
 export function normalizeEsTrains(journeys, { resolveStation, today }) {
-  const trains = {};
-  for (const j of journeys ?? []) {
-    const number = String(j?.train ?? "").match(/(\d{3,5})/)?.[1];
-    if (!number || !(j?.stops?.length >= 2)) continue;
-    const stations = j.stops.map((s) => {
+  const toStations = (stops) =>
+    (stops ?? []).map((s) => {
       const coords = resolveStation(s?.name);
       return {
         id: null,
@@ -108,16 +114,30 @@ export function normalizeEsTrains(journeys, { resolveStation, today }) {
         dropoff: true,
       };
     });
+  const toFrequency = (calendar) =>
+    typeof calendar === "string" ? calendar : (renderCalendar(calendar) ?? null);
+
+  const trains = {};
+  for (const j of journeys ?? []) {
+    const number = String(j?.train ?? "").match(/(\d{3,5})/)?.[1];
+    if (!number || !(j?.stops?.length >= 2)) continue;
     trains[number] = {
       lineName: number,
       operator: "European Sleeper",
       polyline: j?.polyline ?? null,
-      stations,
-      frequency:
-        typeof j?.calendar === "string"
-          ? j.calendar
-          : (renderCalendar(j?.calendar) ?? null),
+      stations: toStations(j.stops),
+      frequency: toFrequency(j?.calendar),
     };
+    // The next timetable period, when the feed already carries it. Same shape as
+    // the train itself so the merge can build a second row from it directly.
+    if (j?.future?.activeFrom && j.future.stops?.length >= 2) {
+      trains[number].future = {
+        activeFrom: j.future.activeFrom,
+        polyline: j.future.polyline ?? null,
+        stations: toStations(j.future.stops),
+        frequency: toFrequency(j.future.calendar),
+      };
+    }
   }
   return trains;
 }
@@ -146,6 +166,157 @@ function dayKeyOf(yyyymmdd) {
   return DAY_KEYS[(d.getUTCDay() + 6) % 7];
 }
 
+// Timetable periods.
+//
+// The feed spans the European timetable change — the second Sunday in December —
+// and on that date a train can switch both its routing and its operating days.
+// Reading the whole future window as one timetable merges the two: that is how
+// ES 400 came to advertise four weekdays when it runs three in each period, and
+// to show the December routing four months early.
+//
+// So trips are split at the change date, and each side is summarised on its own.
+// Splitting by date rather than by stop sequence matters: within one period a
+// train still has minor variants (a Sunday that skips a stop, an engineering
+// diversion), and grouping on the sequence would fragment the weekday set.
+// A handful of stray dates after the change date is not a new timetable, so the
+// upcoming period has to be substantial before it earns its own line. The
+// current period has no such floor: a train still running even once should show.
+const MIN_FUTURE_PERIOD_TRIPS = 3;
+
+/** Second Sunday in December of `year`, as "YYYYMMDD". */
+function decemberTimetableChange(year) {
+  const dec1 = new Date(Date.UTC(year, 11, 1));
+  const firstSunday = 1 + ((7 - dec1.getUTCDay()) % 7);
+  const day = firstSunday + 7;
+  return `${year}${"12"}${String(day).padStart(2, "0")}`;
+}
+
+/** The next timetable change strictly after "YYYYMMDD", or null if none is near. */
+function nextTimetableChangeAfter(yyyymmdd) {
+  const year = Number(yyyymmdd.slice(0, 4));
+  for (const y of [year, year + 1]) {
+    const change = decemberTimetableChange(y);
+    if (change > yyyymmdd) return change;
+  }
+  return null;
+}
+
+/**
+ * Split a route's future trips into [current, next?] timetable periods.
+ * Each period carries its trips, the dates they run, and the modal stop
+ * sequence within that period (so a one-off diversion cannot define a routing).
+ */
+function periodsForRoute(trips, { gtfs, datesOf, todayCompact }) {
+  const change = nextTimetableChangeAfter(todayCompact);
+
+  const buckets = [[], []];
+  for (const trip of trips) {
+    const stopTimes = gtfs.stopTimesByTrip.get(trip.trip_id) ?? [];
+    if (stopTimes.length < 2) continue;
+    for (const date of datesOf(trip)) {
+      if (date < todayCompact) continue;
+      const idx = change && date >= change ? 1 : 0;
+      buckets[idx].push({ trip, stopTimes, date });
+    }
+  }
+
+  const summarise = (runs, minRuns) => {
+    if (runs.length < minRuns) return null;
+    // Modal stop sequence within the period: the routing most departures use,
+    // so an engineering diversion running a handful of times cannot win.
+    const bySequence = new Map();
+    for (const run of runs) {
+      const key = run.stopTimes.map((st) => st.stop_id).join(" ");
+      if (!bySequence.has(key)) bySequence.set(key, { stopTimes: run.stopTimes, trips: [], count: 0 });
+      const g = bySequence.get(key);
+      g.count += 1;
+      g.trips.push(run.trip);
+    }
+    const [, modal] = [...bySequence.entries()].sort(
+      (a, b) => b[1].count - a[1].count || b[1].stopTimes.length - a[1].stopTimes.length,
+    )[0];
+    // Weekdays come from every run in the period, not just the modal routing —
+    // a Sunday departure that skips one stop still means the train runs Sundays.
+    const dates = runs.map((r) => r.date).sort();
+    return { stopTimes: modal.stopTimes, trips: modal.trips, dates };
+  };
+
+  return [
+    summarise(buckets[0], 1),
+    summarise(buckets[1], MIN_FUTURE_PERIOD_TRIPS),
+  ].filter(Boolean);
+}
+
+// Summarise one period into the journey shape: canonicalised stops with
+// wall-clock times, a calendar covering just that period, and its own geometry.
+function summarisePeriod(period, gtfs) {
+  const stops = period.stopTimes
+    .map((st) => {
+      const stop = gtfs.stopsById.get(st.stop_id);
+      if (!stop) return null;
+      return {
+        // Canonicalize here, not downstream: enrich-view-map's updateVia writes
+        // these names straight into via_*, and only BoT spellings link a station
+        // to its route in deriveCities/buildAllRoutesPaths.
+        name: resolveCanonicalStationName(stop.name),
+        lat: stop.lat,
+        lon: stop.lon,
+        arrival: wallClock(st.arrival),
+        departure: wallClock(st.departure),
+      };
+    })
+    .filter(Boolean);
+
+  const days = new Set(period.dates.map(dayKeyOf).filter(Boolean));
+  const calendar = period.dates.length
+    ? {
+        validFrom: dashDate(period.dates[0]),
+        validUntil: dashDate(period.dates[period.dates.length - 1]),
+        daysOfWeek: DAY_KEYS.filter((d) => days.has(d)),
+        exceptions: [],
+        note: null,
+        raw: null,
+      }
+    : null;
+
+  const shapePts = period.trips[0]?.shape_id
+    ? gtfs.shapePoints.get(period.trips[0].shape_id)
+    : null;
+  const positions =
+    shapePts && shapePts.length >= 2
+      ? shapePts.map((p) => [p.lat, p.lon])
+      : stops
+          .filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon))
+          .map((s) => [s.lat, s.lon]);
+
+  return {
+    stops,
+    calendar,
+    polyline: positions.length >= 2 ? polyline.encode(positions) : null,
+    activeFrom: period.dates.length ? dashDate(period.dates[0]) : null,
+  };
+}
+
+// Whether the upcoming period deserves its own line on the map.
+//
+// Only when it changes WHEN the train runs or WHICH CITIES it links. A train
+// that keeps its days and endpoints but swaps an intermediate stop (ES 452 runs
+// through Berlin Gesundbrunnen today and Ostbahnhof + Hbf from December) would
+// draw a second line tracing almost exactly the first — visual noise that reads
+// as one thick line. Endpoints compare by city, so ES 474 starting from
+// Berlin-Spandau now and Berlin Gesundbrunnen later is one Berlin–Paris train,
+// not two. Suppressed changes are not lost: the nightly scrape rolls them in by
+// itself once it crosses the change date.
+function worthShowingSeparately(current, next) {
+  const days = (p) => (p.calendar?.daysOfWeek ?? []).join(",");
+  if (days(current) !== days(next)) return true;
+  const ends = (p) =>
+    [p.stops[0]?.name, p.stops[p.stops.length - 1]?.name]
+      .map((n) => cityForStation(n ?? "") || n)
+      .join(" → ");
+  return ends(current) !== ends(next);
+}
+
 /**
  * Build journeys from a loaded GTFS feed.
  *
@@ -154,7 +325,9 @@ function dayKeyOf(yyyymmdd) {
  * @param {string} args.today              "YYYY-MM-DD"; trips that never run
  *   again on or after this date are ignored, so a retired routing can't win
  * @param {object} [args.stats]            Out-param: { matched, unmatched, feedRouteCount }
- * @returns {{train, stops, calendar, polyline}[]}
+ * @returns {{train, stops, calendar, polyline, future?: object}[]} `future` is
+ *   present when the feed already contains the next timetable period, so the
+ *   map can show the current routing and the upcoming one side by side.
  */
 export function journeysFromGtfs(gtfs, { routeShortNames = [], today, stats = null }) {
   const wanted = new Map(
@@ -178,80 +351,27 @@ export function journeysFromGtfs(gtfs, { routeShortNames = [], today, stats = nu
     if (!wanted.has(allowKey)) continue;
     matched.add(wanted.get(allowKey));
 
-    // Service dates per trip, keeping only trips that still have a future run.
     const datesOf = (trip) => gtfs.addedDatesByService.get(trip.service_id) ?? [];
     const live = trips.filter((t) => datesOf(t).some((d) => d >= todayCompact));
     if (live.length === 0) continue; // route has finished running
 
-    // The map shows one routing per train, so pick the sequence most trips
-    // actually run. Ties break on the longer sequence (more detail wins).
-    const bySequence = new Map();
-    for (const trip of live) {
-      const stopTimes = gtfs.stopTimesByTrip.get(trip.trip_id) ?? [];
-      if (stopTimes.length < 2) continue;
-      const key = stopTimes.map((st) => st.stop_id).join(" ");
-      if (!bySequence.has(key)) bySequence.set(key, { trips: [], stopTimes });
-      bySequence.get(key).trips.push(trip);
-    }
-    if (bySequence.size === 0) continue;
-    const [, best] = [...bySequence.entries()].sort(
-      (a, b) =>
-        b[1].trips.length - a[1].trips.length ||
-        b[1].stopTimes.length - a[1].stopTimes.length,
-    )[0];
+    const periods = periodsForRoute(live, { gtfs, datesOf, todayCompact });
+    if (periods.length === 0) continue;
 
-    const stops = best.stopTimes
-      .map((st) => {
-        const stop = gtfs.stopsById.get(st.stop_id);
-        if (!stop) return null;
-        return {
-          // Canonicalize here, not downstream: enrich-view-map's updateVia
-          // writes these names straight into via_*, and only BoT spellings
-          // link a station to its route in deriveCities/buildAllRoutesPaths.
-          name: resolveCanonicalStationName(stop.name),
-          lat: stop.lat,
-          lon: stop.lon,
-          arrival: wallClock(st.arrival),
-          departure: wallClock(st.departure),
-        };
-      })
-      .filter(Boolean);
-
-    // Service days: the union across ALL of the route's future trips. Reading
-    // one representative trip would render a single weekday, because this feed
-    // gives every operating date its own service_id.
-    const futureDates = live
-      .flatMap(datesOf)
-      .filter((d) => d >= todayCompact)
-      .sort();
-    const days = new Set(futureDates.map(dayKeyOf).filter(Boolean));
-    const calendar = futureDates.length
-      ? {
-          validFrom: dashDate(futureDates[0]),
-          validUntil: dashDate(futureDates[futureDates.length - 1]),
-          daysOfWeek: DAY_KEYS.filter((d) => days.has(d)),
-          exceptions: [],
-          note: null,
-          raw: null,
-        }
-      : null;
-
-    const shapePts = best.trips[0].shape_id
-      ? gtfs.shapePoints.get(best.trips[0].shape_id)
-      : null;
-    const positions =
-      shapePts && shapePts.length >= 2
-        ? shapePts.map((p) => [p.lat, p.lon])
-        : stops
-            .filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon))
-            .map((s) => [s.lat, s.lon]);
-
-    journeys.push({
+    const current = summarisePeriod(periods[0], gtfs);
+    const journey = {
       train: shortName,
-      stops,
-      calendar,
-      polyline: positions.length >= 2 ? polyline.encode(positions) : null,
-    });
+      stops: current.stops,
+      calendar: current.calendar,
+      polyline: current.polyline,
+    };
+    if (periods[1]) {
+      const next = summarisePeriod(periods[1], gtfs);
+      if (next.activeFrom && worthShowingSeparately(current, next)) {
+        journey.future = next;
+      }
+    }
+    journeys.push(journey);
   }
 
   if (stats) {

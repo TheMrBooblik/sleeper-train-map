@@ -3,3 +3,5 @@ route_long_name,route_short_name,agency_id,route_type,route_id
 ,ES 474,es,105,ES-474
 ,ES 999,es,105,ES-999
 ,ES 111,es,105,ES-111
+,ES 500,es,105,ES-500
+,ES 501,es,105,ES-501

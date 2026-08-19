@@ -309,7 +309,63 @@ function appendSyntheticRoutes(
     }
     paired.add(lineName);
     viewMap[entry.route_id] = entry;
+
+    // The upcoming timetable, when the source already knows it (a GTFS feed
+    // usually carries the next period months ahead). It rides along as its own
+    // row so the map can show today's routing and the one that replaces it side
+    // by side, the way the hand-authored future-route previews used to. Once the
+    // nightly scrape crosses the change date this period becomes `data` and the
+    // extra row disappears on its own.
+    const future = data.future;
+    const revFuture = reversePair?.[1]?.future;
+    if (future?.activeFrom && future.stations?.length >= 2) {
+      const fOrigin = resolveName(future.stations[0].name);
+      const fDest = resolveName(future.stations[future.stations.length - 1].name);
+      const futureEntry = {
+        route_id: `${entry.route_id}_from_${future.activeFrom.replace(/-/g, "")}`,
+        agency_id: agency(data),
+        ...(botAgency ? { bot_agency_id: botAgency } : {}),
+        trip_short_name_0: lineName,
+        origin_trip_0: fOrigin,
+        destination_trip_0: fDest,
+        via_0: future.stations
+          .slice(1, -1)
+          .map((s) => resolveName(s.name))
+          .filter(Boolean)
+          .join(" - "),
+        route_long_name: `${fOrigin} – ${fDest} (from ${formatActiveFrom(future.activeFrom)})`,
+        ...(withService ? { service_id_0: future.frequency || null } : {}),
+        nj_polyline_0: future.polyline || null,
+        is_active: "Y",
+        // Tickets are already on sale for the new timetable, so it draws at full
+        // opacity with the start date on hover — not as a faded ghost.
+        draw_as_active: true,
+      };
+      if (revFuture?.stations?.length >= 2) {
+        futureEntry.trip_short_name_1 = reversePair[0];
+        futureEntry.origin_trip_1 = resolveName(revFuture.stations[0].name);
+        futureEntry.destination_trip_1 = resolveName(
+          revFuture.stations[revFuture.stations.length - 1].name,
+        );
+        futureEntry.via_1 = revFuture.stations
+          .slice(1, -1)
+          .map((s) => resolveName(s.name))
+          .filter(Boolean)
+          .join(" - ");
+        if (withService) futureEntry.service_id_1 = revFuture.frequency || null;
+        futureEntry.nj_polyline_1 = revFuture.polyline || null;
+      }
+      viewMap[futureEntry.route_id] = futureEntry;
+    }
   });
+}
+
+// "2026-12-14" → "14 Dec", for the "(from …)" suffix on an upcoming timetable.
+const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function formatActiveFrom(iso) {
+  const m = String(iso ?? "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return iso;
+  return `${Number(m[3])} ${MONTH_ABBR[Number(m[2]) - 1] ?? m[2]}`;
 }
 
 function withPolylineAndStations([, data]) {

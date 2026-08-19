@@ -157,11 +157,11 @@ export function buildAllRoutesPaths({
       isFuture && !shouldDrawFutureRouteAsActive(route);
 
     const routeColor = routeColorMap.get(routeId) || NEUTRAL_FALLBACK_COLOR;
-    const style = getRouteStyleFromFrequency(routeId, trips);
+    const style = getRouteStyleFromFrequency(routeId, trips, route);
     const pathOptions = {
       color: routeColor,
       weight: style.weight,
-      // Not-yet-running routes only fade out; weight/dash still encode frequency.
+      // Not-yet-running routes only fade out; the dash still encodes frequency.
       opacity: fadeAsFuture
         ? MAP_LEGEND_LINE_BASE_STYLES.futureGhost.opacity
         : (style.opacity ?? 0.92),

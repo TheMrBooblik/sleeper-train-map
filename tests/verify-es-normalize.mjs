@@ -27,7 +27,7 @@ const FIXTURE = path.join(
   "es-gtfs",
 );
 const TODAY = "2026-06-12";
-const ALLOWLIST = ["ES 452", "ES 474", "ES 999", "ES 900"];
+const ALLOWLIST = ["ES 452", "ES 474", "ES 500", "ES 501", "ES 999", "ES 900"];
 
 let passed = 0;
 function check(name, fn) {
@@ -47,9 +47,9 @@ const byTrain = Object.fromEntries(journeys.map((j) => [j.train, j]));
 
 check("allowlist: only listed routes are taken; misses are reported", () => {
   // ES 111 is in the feed but not allowlisted; ES 900 is allowlisted but absent.
-  assert.deepStrictEqual(stats.matched.sort(), ["ES 452", "ES 474", "ES 999"]);
+  assert.deepStrictEqual(stats.matched.sort(), ["ES 452", "ES 474", "ES 500", "ES 501", "ES 999"]);
   assert.deepStrictEqual(stats.unmatched, ["ES 900"]);
-  assert.strictEqual(stats.feedRouteCount, 4);
+  assert.strictEqual(stats.feedRouteCount, 6);
 });
 
 check("a route whose dates have all passed is dropped", () => {
@@ -57,7 +57,7 @@ check("a route whose dates have all passed is dropped", () => {
   assert.ok(!("ES 999" in byTrain));
   assert.deepStrictEqual(
     journeys.map((j) => j.train).sort(),
-    ["ES 452", "ES 474"],
+    ["ES 452", "ES 474", "ES 500", "ES 501"],
   );
 });
 
@@ -144,7 +144,7 @@ check("end to end: GTFS → standard trains shape with bare-number keys", () => 
     resolveStation: makeStationResolver({ fallback: feedCoordIndex(gtfs) }),
     today: TODAY,
   });
-  assert.deepStrictEqual(Object.keys(trains).sort(), ["452", "474"]);
+  assert.deepStrictEqual(Object.keys(trains).sort(), ["452", "474", "500", "501"]);
 
   const t = trains["452"];
   assert.strictEqual(t.lineName, "452");
@@ -206,6 +206,47 @@ check("normalize: calendar objects render to BoT-style strings", () => {
     { resolveStation: () => null, today: "2026-06-12" },
   );
   assert.strictEqual(trains["452"].frequency, "2026: Mon, Wed, Fri");
+});
+
+check("the December timetable change splits a route into two periods", () => {
+  // ES 500 runs Mon/Wed/Fri via Bad Schandau until the change, then Tue/Thu/Sun
+  // via Roosendaal. Read as one window it would advertise six weekdays and the
+  // December routing; split, each period is itself.
+  const j = byTrain["ES 500"];
+  assert.deepStrictEqual(j.calendar.daysOfWeek, ["mon", "wed", "fri"]);
+  assert.deepStrictEqual(j.stops.map((s) => s.name), [
+    "Praha hl.n.",
+    "Bad Schandau",
+    "Bruxelles Midi",
+  ]);
+  assert.ok(j.future, "the upcoming period is carried alongside");
+  assert.strictEqual(j.future.activeFrom, "2026-12-15");
+  assert.deepStrictEqual(j.future.calendar.daysOfWeek, ["tue", "thu", "sun"]);
+  assert.deepStrictEqual(j.future.stops.map((s) => s.name), [
+    "Praha hl.n.",
+    "Roosendaal",
+    "Bruxelles Midi",
+  ]);
+});
+
+check("a change that keeps the days and endpoints is not a second line", () => {
+  // ES 501 swaps one intermediate stop in December but runs the same days
+  // between the same places. A second line would trace almost exactly the first.
+  const j = byTrain["ES 501"];
+  assert.deepStrictEqual(j.calendar.daysOfWeek, ["mon", "wed", "fri"]);
+  assert.strictEqual(j.future, undefined);
+});
+
+check("normalize carries the upcoming period onto the train", () => {
+  const trains = normalizeEsTrains(journeys, {
+    resolveStation: makeStationResolver({ fallback: feedCoordIndex(gtfs) }),
+    today: TODAY,
+  });
+  assert.strictEqual(trains["500"].future.activeFrom, "2026-12-15");
+  assert.strictEqual(trains["500"].future.stations.length, 3);
+  assert.ok(trains["500"].future.frequency.includes("Tue, Thu, Sun"));
+  assert.ok(trains["500"].frequency.includes("Mon, Wed, Fri"));
+  assert.strictEqual(trains["501"].future, undefined);
 });
 
 console.log(`\n[verify-es] ${passed} checks passed`);

@@ -1,6 +1,7 @@
 /**
  * Route styling and route-matching helpers for map polylines.
- * Used to determine line weight, dash array, and special cases (e.g. European Sleeper 453).
+ * Line weight says whether a route is real yet; the dash array says how often it
+ * runs. See MAP_LEGEND_LINE_BASE_STYLES for the full grammar.
  */
 
 // BoT calendar window in trip.service_id, e.g. "2026/06/26-2026/08/30: Daily"
@@ -71,27 +72,42 @@ export function isRouteOutsideServiceIdSeason(routeId, trips) {
  * If you change dash/weight on the map, update these so the legend stays accurate.
  */
 export const MAP_LEGEND_LINE_BASE_STYLES = {
+  /**
+   * Line weight and dash carry two DIFFERENT facts, and must not be conflated:
+   *   • dash  — how often the train runs (solid = daily, then progressively
+   *     shorter dashes). Every running route keeps the same full weight, so a
+   *     three-times-a-week train is as prominent as a daily one.
+   *   • weight — whether the route is real yet. Only a route with no announced
+   *     opening date is drawn thinner (see `unknownStart` / hasUnknownStart).
+   */
   /** FrequencyRank 0 — daily service */
   rank0: { weight: 4.5, dashArray: null },
   /** FrequencyRank 1 — less than daily */
-  rank1: { weight: 4.2, dashArray: "10,5" },
+  rank1: { weight: 4.5, dashArray: "10,5" },
   /** FrequencyRank 2 — infrequent (~weekly patterns in BoT text) */
-  rank2: { weight: 2.75, dashArray: "8,5" },
+  rank2: { weight: 4.5, dashArray: "8,5" },
   /**
-   * Not-yet-running routes ("From YYYY-MM-DD", postponed, or an upcoming season).
-   * Only the lowered opacity marks them as future — weight and dash still encode
-   * frequency exactly like a running route (see useRoutePaths / buildAllRoutesPaths,
-   * which apply just `.opacity`). The legend therefore shows a faded daily line.
+   * Announced but with no opening date ("Postponed to 2027"): drawn thinner so
+   * it reads as aspirational. Cadence still sets the dash.
+   */
+  unknownStart: { weight: 2.75 },
+  /**
+   * Not-yet-running routes ("From YYYY-MM-DD" or an upcoming season). Only the
+   * lowered opacity marks them as future — the dash still encodes frequency
+   * exactly like a running route (see useRoutePaths / buildAllRoutesPaths, which
+   * apply just `.opacity`). The legend therefore shows a faded daily line. A
+   * route with no announced date at all is handled by `unknownStart` instead.
    */
   futureGhost: { weight: 4.5, dashArray: null, opacity: 0.35 },
 };
 
 /**
- * European Sleeper Brussels–Milano variants that are already on sale.
- * Keep the "from …" hover date, but draw them at full opacity (not the ghost fade).
- * Keys match viewMap route_id (BoT 240 + Dec-14 preview with Breda).
+ * Routes that are bookable before their first running day keep full opacity and
+ * show the start date on hover only. Sources mark these with `draw_as_active` on
+ * the row itself — the merge sets it on an upcoming-timetable route it builds
+ * from operator data (see appendSyntheticRoutes).
  */
-const FUTURE_DRAW_AS_ACTIVE_ROUTE_IDS = new Set(["240", "240_dec14"]);
+const FUTURE_DRAW_AS_ACTIVE_ROUTE_IDS = new Set();
 
 /**
  * Whether a not-yet-running route should still look "active" on the map
@@ -111,11 +127,67 @@ export function shouldDrawFutureRouteAsActive(routeOrId) {
 }
 
 /**
+ * Routes that have never opened and have no announced opening date — e.g.
+ * European Sleeper's Amsterdam–Milano, flagged "Postponed to 2027". These are
+ * the only routes drawn thinner than the rest; weight is the "is this real yet"
+ * signal, while cadence lives in the dash.
+ *
+ * "Suspended" is deliberately NOT included: a suspended route has run before and
+ * is expected back, which is a different thing from one that has never started.
+ * @param {string|number} routeId
+ * @param {Record<string, object>} trips
+ * @returns {boolean}
+ */
+const NEVER_OPENED_RE =
+  /\b(postponed|planned|not yet|to be confirmed|tbc|tbd|expected)\b/i;
+const CONCRETE_DATE_RE = /\d{4}-\d{2}-\d{2}|\d{4}\/\d{1,2}\/\d{1,2}/;
+
+export function hasUnknownStart(routeId, trips) {
+  if (!trips || routeId == null) return false;
+  const routeTrips = Object.values(trips).filter(
+    (trip) => trip.route_id?.toString() === routeId.toString(),
+  );
+  if (routeTrips.length === 0) return false;
+  const blob = routeTrips
+    .map((t) => `${t.irregularities || ""} ${t.service_id || ""}`)
+    .join(" ");
+  // A real date means the opening IS known, however far off it is.
+  return NEVER_OPENED_RE.test(blob) && !CONCRETE_DATE_RE.test(blob);
+}
+
+/**
  * Infer one trip's cadence rank from BoT `service_id` + `irregularities`.
  * Returns null when neither field gives a usable signal (caller may substitute a fallback).
  * @param {object} trip
  * @returns {FrequencyRank|null}
  */
+const WEEKDAY_TOKEN_RE =
+  /\b(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)(day|sday|nesday|rsday|urday)?\b/gi;
+const WEEKDAY_CANONICAL = {
+  mon: "mon", tue: "tue", tues: "tue", wed: "wed", thu: "thu", thur: "thu",
+  thurs: "thu", fri: "fri", sat: "sat", sun: "sun",
+};
+
+/**
+ * How many distinct weekdays a service string lists, e.g. "2026: Mon, Wed, Fri"
+ * → 3. Returns 0 when the string is not a weekday list ("Daily", a range, or
+ * free text), so callers fall back to the phrase heuristics.
+ * @param {string} serviceId
+ * @returns {number}
+ */
+export function countListedWeekdays(serviceId) {
+  const text = (serviceId || "").toString().toLowerCase();
+  // "Daily, except Sat" is a 6-day service, not a 1-day one — the day named is
+  // an exclusion, so leave these to the phrase heuristics below.
+  if (/\bexcept\b/.test(text)) return 0;
+  const days = new Set();
+  for (const m of text.matchAll(WEEKDAY_TOKEN_RE)) {
+    const key = WEEKDAY_CANONICAL[m[1].toLowerCase()];
+    if (key) days.add(key);
+  }
+  return days.size;
+}
+
 export function inferTripFrequencyRank(trip) {
   if (!trip || typeof trip !== "object") return null;
 
@@ -147,6 +219,17 @@ export function inferTripFrequencyRank(trip) {
     /\bbi-?weekly\b/.test(blob);
 
   if (rareWeek) return 2;
+
+  // An explicit weekday list is the strongest signal there is — count it rather
+  // than guessing from which day names appear. "Mon, Wed, Fri" and
+  // "Tue, Thu, Sun" are the same cadence and must draw the same dash; the
+  // keyword heuristics below used to rank them differently purely because one
+  // mentions a weekend day.
+  const listedDays = countListedWeekdays(sid);
+  if (listedDays > 0) {
+    if (listedDays >= 7) return 0;
+    return listedDays <= 2 ? 2 : 1;
+  }
 
   // Fewer than seven calendar days per week (not the rare tier above).
   const subDailyText =
@@ -259,23 +342,39 @@ function styleFromFrequencyRank(rank, isSeasonal) {
  * @param {Object} trips - Trips data keyed by trip id
  * @returns {{ weight: number, dashArray: string|null, opacity?: number }}
  */
-export function getRouteStyleFromFrequency(routeId, trips) {
-  if (!trips || !routeId) {
-    return { weight: 4.5, dashArray: null };
+export function getRouteStyleFromFrequency(routeId, trips, route = null) {
+  // Synthetic routes (nj_standalone_, es_, amtrak_, …) have no trips: they are
+  // built straight from operator data and carry their cadence on the row as
+  // service_id_0/1. Without this they would all fall through to the daily
+  // default and be drawn solid however rarely they run.
+  const routeTrips =
+    trips && routeId
+      ? Object.values(trips).filter(
+          (trip) => trip.route_id?.toString() === routeId.toString(),
+        )
+      : [];
+  const fromRow =
+    routeTrips.length === 0 && route
+      ? [route.service_id_0, route.service_id_1]
+          .filter(Boolean)
+          .map((service_id) => ({
+            service_id,
+            irregularities: route.irregularities_0 || route.irregularities_1 || "",
+          }))
+      : [];
+  const effectiveTrips = routeTrips.length > 0 ? routeTrips : fromRow;
+
+  if (effectiveTrips.length === 0) {
+    return { weight: MAP_LEGEND_LINE_BASE_STYLES.rank0.weight, dashArray: null };
   }
 
-  const routeTrips = Object.values(trips).filter(
-    (trip) => trip.route_id?.toString() === routeId.toString(),
-  );
-
-  if (routeTrips.length === 0) {
-    return { weight: 4.5, dashArray: null };
-  }
-
-  const { rank, isSeasonal } = inferRouteFrequencyRank(routeTrips);
+  const { rank, isSeasonal } = inferRouteFrequencyRank(effectiveTrips);
   const style = styleFromFrequencyRank(rank, isSeasonal);
   return {
-    weight: style.weight,
+    // Cadence never changes the weight — only an unannounced opening does.
+    weight: hasUnknownStart(routeId, trips)
+      ? MAP_LEGEND_LINE_BASE_STYLES.unknownStart.weight
+      : style.weight,
     dashArray: style.dashArray,
     opacity: style.opacity ?? 0.92,
   };

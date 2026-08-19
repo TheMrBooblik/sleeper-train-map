@@ -143,4 +143,55 @@ check("our own leftover row never counts as Back-on-Track coverage", () => {
   assert.strictEqual(vm.es_400.service_id_1, "2026: Mon, Thu, Sat");
 });
 
+check("an upcoming timetable becomes its own route, drawn as active", () => {
+  // The feed already knows the routing that replaces this one in December, so
+  // the map shows both — replacing the hand-authored future-route previews.
+  const withFuture = {
+    ...trains,
+    400: {
+      ...trains[400],
+      future: {
+        activeFrom: "2026-12-14",
+        polyline: "p400dec",
+        frequency: "2026: Mon, Wed, Fri",
+        stations: [
+          station("Milano", 45.48, 9.18),
+          station("Eindhoven", 51.44, 5.47),
+          station("Bruxelles Midi", 50.83, 4.33),
+        ],
+      },
+    },
+  };
+  const { stops, viewMap, trips } = world();
+  const vm = buildInitialData({
+    stops,
+    viewMap,
+    trips,
+    operatorTrains: { europeansleeper: withFuture },
+    registry: [esEntry({ botMatchAgencies: ["ES"], withService: true })],
+    seenIndex: null,
+  }).viewMap;
+
+  const future = vm.es_400_from_20261214;
+  assert.ok(future, "the upcoming timetable gets its own row");
+  assert.strictEqual(future.nj_polyline_0, "p400dec");
+  assert.strictEqual(future.via_0, "Eindhoven");
+  assert.strictEqual(future.service_id_0, "2026: Mon, Wed, Fri");
+  assert.ok(
+    future.route_long_name.endsWith("(from 14 Dec)"),
+    `expected a "(from 14 Dec)" label, got ${future.route_long_name}`,
+  );
+  // Tickets are on sale, so it draws solid rather than as a faded ghost.
+  assert.strictEqual(future.draw_as_active, true);
+  // The route running today is untouched and keeps its own routing.
+  assert.strictEqual(vm.es_400.nj_polyline_0, "p400");
+  assert.strictEqual(vm.es_400.via_0, "");
+  assert.strictEqual(vm.es_400.draw_as_active, undefined);
+});
+
+check("no upcoming timetable means no extra route", () => {
+  const vm = build({ botMatchAgencies: ["ES"] });
+  assert.ok(!Object.keys(vm).some((k) => k.includes("_from_")));
+});
+
 console.log(`\n[verify-synthetic-scope] ${passed} checks passed`);
