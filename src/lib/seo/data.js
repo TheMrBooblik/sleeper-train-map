@@ -28,8 +28,8 @@ import {
   deriveTitle,
   formatAnyTime,
   parseViaList,
-  formatDuration,
-  durationToMinutes,
+  routeDurationMinutes,
+  formatDurationMinutes,
   formatDistanceKm,
   formatCo2,
   formatFutureFrom,
@@ -270,7 +270,7 @@ function buildSummary(route) {
   // badge and compute "fastest/longest/from" facts without a second data pass.
   const trips = getTripsByRoute().get(routeId) || [];
   const factTrip = trips.find((t) => Number(t.direction_id) === 0) || trips[0] || null;
-  const durationMinutes = factTrip ? durationToMinutes(factTrip.duration) : 0;
+  const durationMinutes = routeDurationMinutes(route, factTrip);
   const pricing = getOperatorPricing({
     agency_id: route.agency_id,
     pricing: route.pricing,
@@ -319,7 +319,7 @@ function buildSummary(route) {
     countries,
     cityPairs,
     durationMinutes,
-    durationText: factTrip ? formatDuration(factTrip.duration) : "",
+    durationText: formatDurationMinutes(durationMinutes),
     pricing,
     fromPrice: formatFromPrice(pricing),
     futureStartDate,
@@ -438,7 +438,7 @@ export function getRouteDetail(routeId) {
   // Facts come from the direction-0 trip when present.
   const factTrip = trips.find((t) => Number(t.direction_id) === 0) || trips[0] || null;
   const facts = {
-    durationText: factTrip ? formatDuration(factTrip.duration) : "",
+    durationText: formatDurationMinutes(routeDurationMinutes(route, factTrip)),
     distanceText: factTrip ? formatDistanceKm(factTrip.distance) : "",
     co2Text: factTrip ? formatCo2(factTrip.emissions_co2e) : "",
     classes: (factTrip && factTrip.classes ? String(factTrip.classes) : "").trim(),

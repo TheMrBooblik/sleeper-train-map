@@ -9,8 +9,9 @@
 // Strategies (entry.enrich.strategy):
 //   • trainsByNumber — match rows by trip_short_name_0/1 against a per-source
 //     trains file (nightjet, europeansleeper). Options: setPolyline
-//     (+ polylineMode "legacy"|"perDirection"), updateVia, setTimes, stamp,
-//     agencyIds scope, addSyntheticLeftovers.
+//     (+ polylineMode "legacy"|"perDirection"), updateVia, setTimes,
+//     updateEndpoints, updateServiceDays, stamp, agencyIds scope,
+//     addSyntheticLeftovers.
 //   • gtfsBundle — match rows against a committed GTFS bundle keyed by train
 //     number (pkp-gtfs), endpoint-validated via gtfsEntryForRoute so reused
 //     train numbers can't stamp wrong-corridor rows. Leo Express also matches
@@ -84,6 +85,24 @@ function trainsByNumber({ entry, viewMap, trains, log }) {
         const arr = toHHMM(match.stations[match.stations.length - 1]?.arrival);
         if (dep) route[`origin_departure_time_${d}`] = dep;
         if (arr) route[`destination_arrival_time_${d}`] = arr;
+      }
+      // Where the train actually starts and ends. Back-on-Track's endpoints go
+      // stale when an operator diverts: it still calls ES 474/475 "Berlin Hbf"
+      // while the feed runs them from Berlin-Spandau and into Berlin
+      // Gesundbrunnen — so the row's own polyline reached a different place
+      // than its endpoint marker. Off by default; a source opts in only when
+      // its feed is the operator's own timetable.
+      if (opts.updateEndpoints && match.stations?.length >= 2) {
+        const origin = match.stations[0]?.name;
+        const dest = match.stations[match.stations.length - 1]?.name;
+        if (origin) route[`origin_trip_${d}`] = origin;
+        if (dest) route[`destination_trip_${d}`] = dest;
+      }
+      // Service days, with the period they apply to. BoT's undated "2026: Mon,
+      // Wed, Fri" reads as the whole year even when the timetable changes in
+      // December; the feed dates its own window.
+      if (opts.updateServiceDays && match.frequency) {
+        route[`service_id_${d}`] = match.frequency;
       }
     }
 

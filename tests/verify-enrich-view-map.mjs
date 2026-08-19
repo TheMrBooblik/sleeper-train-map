@@ -160,6 +160,90 @@ await check("trainsByNumber full options: via/times/per-direction polyline/stamp
   assert.strictEqual(viewMap[9].official_sources, undefined);
 });
 
+await check("updateEndpoints: the feed's own endpoints replace stale BoT ones", async () => {
+  // Back-on-Track still calls ES 474/475 "Berlin Hbf" while the operator runs
+  // them out of Berlin-Spandau and into Berlin Gesundbrunnen. The row's own
+  // polyline already reached those places, so the endpoint marker sat where the
+  // line did not: the connection page's endpoint validation then rejected the
+  // feed's stop list and the page lost its timetable entirely.
+  const entry = {
+    id: "europeansleeper",
+    enabled: true,
+    output: "europeansleeper-trains.json",
+    enrich: {
+      strategy: "trainsByNumber",
+      agencyIds: ["ES"],
+      updateEndpoints: true,
+      stamp: true,
+    },
+  };
+  const viewMap = {
+    238: {
+      agency_id: "ES",
+      trip_short_name_0: "474",
+      trip_short_name_1: "475",
+      origin_trip_0: "Berlin Hbf",
+      destination_trip_0: "Paris Gare du Nord",
+      origin_trip_1: "Paris Gare du Nord",
+      destination_trip_1: "Berlin Hbf",
+    },
+    // Same operator, but tonight's feed has nothing for it: endpoints stand.
+    239: {
+      agency_id: "ES",
+      trip_short_name_0: "454",
+      origin_trip_0: "Amsterdam Centraal",
+      destination_trip_0: "Milano Centrale",
+    },
+  };
+  await enrichViewMap({
+    registry: [entry],
+    viewMap,
+    getTrains: () => ({
+      474: {
+        stations: [station("Berlin-Spandau"), station("Paris Gare du Nord")],
+      },
+      475: {
+        stations: [station("Paris Gare du Nord"), station("Berlin Gesundbrunnen")],
+      },
+    }),
+    readJson: () => null,
+  });
+  assert.strictEqual(viewMap[238].origin_trip_0, "Berlin-Spandau");
+  assert.strictEqual(viewMap[238].destination_trip_0, "Paris Gare du Nord");
+  assert.strictEqual(viewMap[238].origin_trip_1, "Paris Gare du Nord");
+  assert.strictEqual(viewMap[238].destination_trip_1, "Berlin Gesundbrunnen");
+  assert.strictEqual(viewMap[239].origin_trip_0, "Amsterdam Centraal");
+  assert.strictEqual(viewMap[239].destination_trip_0, "Milano Centrale");
+});
+
+await check("updateEndpoints is opt-in: without it endpoints are left alone", () => {
+  const viewMap = {
+    238: {
+      agency_id: "ES",
+      trip_short_name_0: "474",
+      origin_trip_0: "Berlin Hbf",
+      destination_trip_0: "Paris Gare du Nord",
+    },
+  };
+  return enrichViewMap({
+    registry: [
+      {
+        id: "europeansleeper",
+        enabled: true,
+        output: "europeansleeper-trains.json",
+        enrich: { strategy: "trainsByNumber", agencyIds: ["ES"], stamp: true },
+      },
+    ],
+    viewMap,
+    getTrains: () => ({
+      474: { stations: [station("Berlin-Spandau"), station("Paris Gare du Nord")] },
+    }),
+    readJson: () => null,
+  }).then(() => {
+    assert.strictEqual(viewMap[238].origin_trip_0, "Berlin Hbf");
+  });
+});
+
 await check("stamping is idempotent and sorted across sources", async () => {
   const entry = njEntry({
     id: "nightjet",

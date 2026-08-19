@@ -108,6 +108,8 @@
       "polylineMode": "perDirection",
       "updateVia": true,
       "setTimes": true,
+      "updateEndpoints": true,
+      "updateServiceDays": true,
       "stamp": true
     },
     "params": {
