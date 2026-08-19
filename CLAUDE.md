@@ -25,7 +25,7 @@ npm run verify-registry && npm run verify-build-parity && npm run verify-overrid
 npm run verify-proposals && npm run verify-classify && npm run verify-calendar && \
 npm run verify-canonical-routes && npm run verify-ai && npm run verify-enrich && \
 npm run verify-route-geometry && npm run verify-es && npm run verify-chinese-12306 && npm run verify-na-gtfs && \
-npm run verify-synthetic-scope && \
+npm run verify-synthetic-scope && npm run verify-return-branches && \
 npm run verify-seo-booking && npm run verify-seo-faq && npm run verify-seo-urls
 ```
 
@@ -102,6 +102,7 @@ The site is served from **`https://pingwi.com`** (moved from `sleeper-train-map.
 - **Station coordinates** are stored in `src/data/stationCoordinates.js` as a lookup table and merged via `src/helpers/enrichStationsWithCoordinates.js`.
 - **Route polylines** use `@mapbox/polyline` encoding. Route styling per operator is in `src/components/Map/utils/`.
 - **Line style carries two separate facts** (`routeStyleUtils.js`, `MAP_LEGEND_LINE_BASE_STYLES`): the **dash** is cadence (solid = daily, `10,5` = sub-daily, `8,5` = ~weekly), and the **weight** is whether the route is real yet — every running route draws at `4.5`, and only a route that has never opened with no announced date (`hasUnknownStart`, e.g. ES Amsterdam–Milano "Postponed to 2027") drops to `2.75`. "Suspended" is not an unknown start. Cadence ranks from an explicit weekday list by **count**, so "Mon, Wed, Fri" and "Tue, Thu, Sun" draw alike. Synthetic rows have no `trips`, so `getRouteStyleFromFrequency` takes an optional row argument and ranks them from `service_id_0/1` — without it all 118 of them fall through to the daily default.
+- **A route is drawn as one line, never two.** Both directions carry geometry (`nj_polyline_0/1`, or a station chain per direction), and drawing both laid a second dashed stroke over the first: the dashes filled each other's gaps, so the line read solid and the cadence signal above was lost (it also read heavier, which is half the "too thick" story). The renderers (`buildAllRoutesPaths.js` + its twin in `useRoutePaths.js`) now draw direction 0, then only the stretches where direction 1 genuinely leaves it — `returnGeometryBranches()` (`src/components/Map/utils/returnGeometryBranches.js`), a 2 km-tolerance corridor test over a grid index, memoised per route. It **densifies** the outbound path first, because the tolerance is meant against the outbound *line*: a station chain's vertices can be 100+ km apart, and a return leg calling at extra intermediate stops sits far from every vertex while riding identical track. Over the published payload this leaves 311 strokes for 281 routes; the exact-reverse fast path (`arePositionsReverseEqual`) still short-circuits the common station-chain case. Covered by `npm run verify-return-branches`.
 
 ### Data Storage (committed JSON, no managed services)
 

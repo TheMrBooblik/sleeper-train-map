@@ -132,6 +132,20 @@ function isNorthAmericaRoute(routeId) {
   return id.startsWith("amtrak_") || id.startsWith("via_");
 }
 
+// European Sleeper synthetic routes. Keyed by route-id prefix rather than a
+// train-number pattern: the GTFS feed's numbers are bare ("400", "401"), which
+// no operator regex can claim without also claiming everyone else's.
+function isEuropeanSleeperRoute(routeId) {
+  return String(routeId || "").startsWith("es_");
+}
+
+// A route the feed knows replaces the current one at the next timetable change
+// (build-initial-data appends `_from_YYYYMMDD`). It reuses the same train
+// numbers, so its timetable has to be looked up separately.
+function isUpcomingTimetableRoute(routeId) {
+  return String(routeId || "").includes("_from_");
+}
+
 function normalizeStationToken(value) {
   return (
     (value || "")
@@ -197,6 +211,9 @@ const TrainDetailPanel = ({
   const [naTrainData, setNaTrainData] = useState(null);
   const [naLoadFailed, setNaLoadFailed] = useState(false);
   const [naLoading, setNaLoading] = useState(false);
+  const [esTrainData, setEsTrainData] = useState(null);
+  const [esLoadFailed, setEsLoadFailed] = useState(false);
+  const [esLoading, setEsLoading] = useState(false);
   const [suggestContext, setSuggestContext] = useState(null);
   const sheetRef = useRef(null);
   // Tracks a drag on the sheet handle: down collapses/dismisses, up expands.
@@ -334,8 +351,8 @@ const TrainDetailPanel = ({
     });
 
     // Only keep trains we can recognize as NJ/EN, CR, Italian ICN, Caucasus,
-    // North American (Amtrak/VIA), or admin-curated routes; otherwise fall back
-    // to empty-state.
+    // North American (Amtrak/VIA), European Sleeper, or admin-curated routes;
+    // otherwise fall back to empty-state.
     return next.filter(
       (t) =>
         isNightJetOrEuroNightTrainNumber(t.trip_short_name) ||
@@ -343,6 +360,7 @@ const TrainDetailPanel = ({
         isItalianICNTrainNumber(t.trip_short_name) ||
         isCaucasusTrainNumber(t.trip_short_name) ||
         isNorthAmericaRoute(t.route_id) ||
+        isEuropeanSleeperRoute(t.route_id) ||
         String(t.route_id || "").startsWith("curated_"),
     );
   }, [selectedRouteIds, routes, relevantTrips.length]);
@@ -491,6 +509,9 @@ const TrainDetailPanel = ({
   );
   const hasNAFallback = fallbackTrips.some((t) =>
     isNorthAmericaRoute(t.route_id),
+  );
+  const hasESFallback = fallbackTrips.some((t) =>
+    isEuropeanSleeperRoute(t.route_id),
   );
 
   useEffect(() => {
@@ -707,6 +728,42 @@ const TrainDetailPanel = ({
     };
   }, [isOpen, hasNAFallback]);
 
+  // European Sleeper: the GTFS-derived trains file, keyed by bare train number.
+  useEffect(() => {
+    if (!isOpen || !hasESFallback) {
+      setEsTrainData(null);
+      setEsLoadFailed(false);
+      setEsLoading(false);
+      return;
+    }
+
+    let active = true;
+    const loadESTrains = async () => {
+      setEsLoading(true);
+      try {
+        setEsLoadFailed(false);
+        const response = await fetch(
+          "/api/operator-trains?source=europeansleeper",
+        );
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (active) setEsTrainData(data);
+      } catch {
+        if (active) {
+          setEsTrainData(null);
+          setEsLoadFailed(true);
+        }
+      } finally {
+        if (active) setEsLoading(false);
+      }
+    };
+
+    loadESTrains();
+    return () => {
+      active = false;
+    };
+  }, [isOpen, hasESFallback]);
+
   const nightjetTrainByNumber = useMemo(() => {
     const trains = nightjetData?.trains || {};
     const next = new Map();
@@ -889,6 +946,51 @@ const TrainDetailPanel = ({
     return next;
   }, [naTrainData]);
 
+  /**
+   * European Sleeper, in two maps rather than one.
+   *
+   * A train keeps its number across the December timetable change, so `es_400`
+   * and `es_400_from_20261214` both render trips 400 and 401 — but they are
+   * different journeys (September leaves Milan at 15:45 via Aachen; December at
+   * 17:12 via Eindhoven). One map per period lets each route show its own.
+   */
+  const esScheduleByTrainNumber = useMemo(() => {
+    const empty = { current: new Map(), upcoming: new Map() };
+    if (!esTrainData?.trains) return empty;
+    // Times are ISO here, but tolerate plain "HH:MM" the way the other sources do.
+    const asTime = (value) =>
+      value ? (String(value).includes("T") ? formatTime(value) : value) : null;
+    const toSchedule = (key, stations) => ({
+      tripId: key,
+      stops: stations.map((s, i) => ({
+        stopId: s.id || s.name || String(i),
+        sequence: i + 1,
+        name: s.name || "Station",
+        arrival: asTime(s.arrival),
+        departure: asTime(s.departure),
+      })),
+      validFrom: null,
+      validUntil: null,
+      source: "europeansleeper",
+    });
+
+    const { current, upcoming } = empty;
+    Object.entries(esTrainData.trains).forEach(([key, train]) => {
+      const number = normalizeTrainNumber(key);
+      const stations = Array.isArray(train?.stations) ? train.stations : [];
+      if (stations.length > 0) current.set(number, toSchedule(key, stations));
+
+      const future = Array.isArray(train?.future?.stations)
+        ? train.future.stations
+        : [];
+      // Falling back to the current period keeps a route that only some
+      // directions have a future timetable for from rendering half-empty.
+      if (future.length > 0) upcoming.set(number, toSchedule(key, future));
+      else if (stations.length > 0) upcoming.set(number, current.get(number));
+    });
+    return empty;
+  }, [esTrainData]);
+
   if (!isOpen) {
     return null;
   }
@@ -950,7 +1052,8 @@ const TrainDetailPanel = ({
               italianLoading ||
               caucasusLoading ||
               curatedLoading ||
-              naLoading ? (
+              naLoading ||
+              esLoading ? (
                 <span className="flex items-center gap-2">
                   <span
                     className="inline-block w-3.5 h-3.5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"
@@ -1002,6 +1105,11 @@ const TrainDetailPanel = ({
               {naLoadFailed && hasNAFallback && (
                 <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
                   Amtrak / VIA Rail timetable is currently unavailable.
+                </div>
+              )}
+              {esLoadFailed && hasESFallback && (
+                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                  European Sleeper timetable is currently unavailable.
                 </div>
               )}
 
@@ -1221,6 +1329,11 @@ const TrainDetailPanel = ({
                   null;
                 const naSchedule =
                   naScheduleByTrainNumber.get(normalizedTrainNumber) || null;
+                const esSchedule =
+                  (isUpcomingTimetableRoute(trip.route_id)
+                    ? esScheduleByTrainNumber.upcoming
+                    : esScheduleByTrainNumber.current
+                  ).get(normalizedTrainNumber) || null;
                 const schedule =
                   // PKP GTFS is the source of truth for Polish trains.
                   pkpSchedule ||
@@ -1231,7 +1344,17 @@ const TrainDetailPanel = ({
                   itSchedule ||
                   caucasusSchedule ||
                   curatedSchedule ||
-                  naSchedule;
+                  naSchedule ||
+                  esSchedule;
+                // Already formatted "HH:MM" in the schedule's stops, so used
+                // directly like PKP and Amtrak/VIA rather than via formatTime.
+                const esStops = esSchedule?.stops || [];
+                const esOriginDeparture =
+                  esStops[0]?.departure || esStops[0]?.arrival || null;
+                const esDestinationArrival =
+                  esStops[esStops.length - 1]?.arrival ||
+                  esStops[esStops.length - 1]?.departure ||
+                  null;
                 const validFrom = formatCalendarDate(schedule?.validFrom);
                 const validUntil = formatCalendarDate(schedule?.validUntil);
 
@@ -1430,6 +1553,8 @@ const TrainDetailPanel = ({
                       pkpDestinationArrival ||
                       naOriginDeparture ||
                       naDestinationArrival ||
+                      esOriginDeparture ||
+                      esDestinationArrival ||
                       formatTime(
                         trip.origin_departure_time ||
                           nightjetOriginDeparture ||
@@ -1448,6 +1573,7 @@ const TrainDetailPanel = ({
                           <div className="font-semibold text-gray-900">
                             {pkpOriginDeparture ||
                               naOriginDeparture ||
+                              esOriginDeparture ||
                               formatTime(
                                 trip.origin_departure_time ||
                                   nightjetOriginDeparture ||
@@ -1462,6 +1588,7 @@ const TrainDetailPanel = ({
                           <div className="font-semibold text-gray-900">
                             {pkpDestinationArrival ||
                               naDestinationArrival ||
+                              esDestinationArrival ||
                               formatTime(
                                 trip.destination_arrival_time ||
                                   nightjetDestinationArrival ||

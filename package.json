@@ -29,6 +29,7 @@
     "verify-registry": "node tests/verify-registry.mjs",
     "verify-build-parity": "node tests/verify-build-parity.mjs",
     "verify-synthetic-scope": "node tests/verify-synthetic-scope.mjs",
+    "verify-return-branches": "node tests/verify-return-branches.mjs",
     "verify-proposals": "node tests/verify-proposals-apply.mjs",
     "verify-classify": "node tests/verify-classify.mjs",
     "verify-enrich": "node tests/verify-enrich-view-map.mjs",

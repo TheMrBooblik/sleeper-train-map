@@ -26,6 +26,7 @@ import { parseCoord } from "../../../helpers/enrichStationsWithCoordinates";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../utils/operatorColors";
 import { buildAllRoutesPaths } from "../utils/buildAllRoutesPaths";
 import polyline from "@mapbox/polyline";
+import { cachedReturnGeometryBranches } from "../utils/returnGeometryBranches";
 
 // Number of leading coordinates to skip per OSM relation key.
 // Some OSM relations have station approach segments at the start
@@ -278,8 +279,9 @@ export function useRoutePaths({
       // Eindhoven). Fall back to legacy nj_polyline for old published files.
       const njPoly0 = route.nj_polyline_0 ?? route.nj_polyline;
       if (njPoly0) {
+        const positions0 = polyline.decode(njPoly0);
         paths.push({
-          positions: polyline.decode(njPoly0),
+          positions: positions0,
           routeId,
           key: `route-${stationKey}-${routeId}-0`,
           pathOptions,
@@ -288,16 +290,25 @@ export function useRoutePaths({
           futureStartDate,
           source: "nightjet",
         });
+        // The return leg usually retraces the outbound corridor. Drawing it in
+        // full would lay a second dashed line over the first, filling its gaps
+        // so the route reads solid — draw only where it genuinely diverges.
         if (route.nj_polyline_1) {
-          paths.push({
-            positions: polyline.decode(route.nj_polyline_1),
+          cachedReturnGeometryBranches(
             routeId,
-            key: `route-${stationKey}-${routeId}-1`,
-            pathOptions,
-            osmRelationId: null,
-            isFuture,
-            futureStartDate,
-            source: "nightjet",
+            positions0,
+            polyline.decode(route.nj_polyline_1),
+          ).forEach((branch, i) => {
+            paths.push({
+              positions: branch,
+              routeId,
+              key: `route-${stationKey}-${routeId}-1-branch-${i}`,
+              pathOptions,
+              osmRelationId: null,
+              isFuture,
+              futureStartDate,
+              source: "nightjet",
+            });
           });
         }
       } else {
@@ -383,7 +394,18 @@ export function useRoutePaths({
             segsToRender0.length === 1 &&
             segsToRender1.length === 1 &&
             arePositionsReverseEqual(segsToRender0[0], segsToRender1[0]);
-          const renderSegs1 = dir1IsReverseOfDir0 ? [] : segsToRender1;
+          // Not an exact reverse still usually means the same corridor, sampled
+          // differently — one direction stopping somewhere the other skips. Draw
+          // only the stretches that genuinely leave the outbound line.
+          const renderSegs1 = dir1IsReverseOfDir0
+            ? []
+            : segsToRender0.length === 1 && segsToRender1.length === 1
+              ? cachedReturnGeometryBranches(
+                  `${routeId}:chain`,
+                  segsToRender0[0],
+                  segsToRender1[0],
+                )
+              : segsToRender1;
           const renderBus1 = dir1IsReverseOfDir0
             ? []
             : route.pkp_bus_segments_1 || [];
