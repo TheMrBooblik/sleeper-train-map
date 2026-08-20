@@ -46,6 +46,31 @@ const published = JSON.parse(
   check(!!r?.dealsUrl && !!r?.dealsLabel, "ES: last-minute deals link present");
 }
 
+// ── Trenitalia (FS) affiliate deep link with stations prefilled ─────────────
+{
+  const r = resolveRouteBooking({
+    agencyId: "FS",
+    agencies,
+    agencyUrl: agencies.FS?.agency_url ?? null,
+    origin: "Roma Termini",
+    dest: "Trieste Centrale",
+    routeId: "icn_ICN_775",
+    scheduleStops: [],
+  });
+  check(r != null, "FS: booking resolves");
+  check(r?.preselects === true, "FS: station-preselecting deep link");
+  check(
+    r?.href.includes("minisitiCallBackId=60958"),
+    "FS: Trenitalia affiliate callback id present",
+  );
+  check(
+    r?.href.includes("departureStation=Roma%20Termini") &&
+      r?.href.includes("arrivalStation=Trieste%20Centrale"),
+    `FS: both stations substituted, got ${r?.href}`,
+  );
+  check(r?.sellerName === null, "FS: no seller caption for a single-operator id");
+}
+
 // ── compound id: best component wins and is named ───────────────────────────
 {
   const r = resolveRouteBooking({

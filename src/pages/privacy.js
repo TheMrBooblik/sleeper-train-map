@@ -6,7 +6,7 @@ import { SITE_URL } from "../lib/seo/site";
 // Placeholder contact — replace with the address you want to publish for
 // privacy requests (see the note in the "Contact us" section below).
 const CONTACT_EMAIL = "privacy@pingwi.com";
-const LAST_UPDATED = "24 July 2026";
+const LAST_UPDATED = "20 August 2026";
 
 /** A titled policy section with a subtle divider, matching the dark SEO theme. */
 const PolicySection = ({ title, children }) => (
@@ -130,16 +130,18 @@ export default function PrivacyPage() {
               links, served through the affiliate networks{" "}
               <A href="https://www.tradetracker.com/">TradeTracker</A>,{" "}
               <A href="https://www.awin.com/">Awin</A> and{" "}
-              <A href="https://www.effiliation.com/">Effiliation</A>. If you
-              follow one of these links and later make a booking, we may earn a
-              small commission from the operator — at no extra cost to you. This
-              helps cover the cost of running the site. Affiliate relationships
-              never change which routes we show or how they are ranked.
+              <A href="https://www.effiliation.com/">Effiliation</A>. Some
+              operators also run their own affiliate programme that we join
+              directly — currently Trenitalia. If you follow one of these links
+              and later make a booking, we may earn a small commission from the
+              operator — at no extra cost to you. This helps cover the cost of
+              running the site. Affiliate relationships never change which
+              routes we show or how they are ranked.
             </p>
             <p>
-              To attribute a booking, these networks may set their own cookies
-              in your browser when you click through to an operator. See{" "}
-              <em>Cookies and local storage</em> below.
+              To attribute a booking, these networks and programmes may set
+              their own cookies in your browser when you click through to an
+              operator. See <em>Cookies and local storage</em> below.
             </p>
           </PolicySection>
 
@@ -206,11 +208,12 @@ export default function PrivacyPage() {
               </li>
               <li>
                 <strong className="text-white/80">Affiliate cookies.</strong>{" "}
-                As noted above, our affiliate partners (TradeTracker, Awin and
-                Effiliation) may set cookies to attribute a booking when you
-                click an outbound link to an operator. These are governed by
-                those networks’ own privacy and cookie policies. You can clear
-                or block cookies at any time in your browser settings.
+                As noted above, our affiliate partners (TradeTracker, Awin,
+                Effiliation, and operators’ own programmes such as Trenitalia)
+                may set cookies to attribute a booking when you click an
+                outbound link to an operator. These are governed by those
+                partners’ own privacy and cookie policies. You can clear or
+                block cookies at any time in your browser settings.
               </li>
             </ul>
           </PolicySection>
@@ -237,8 +240,9 @@ export default function PrivacyPage() {
               </li>
               <li>
                 <A href="https://www.tradetracker.com/">TradeTracker</A>,{" "}
-                <A href="https://www.awin.com/">Awin</A> and{" "}
-                <A href="https://www.effiliation.com/">Effiliation</A> —
+                <A href="https://www.awin.com/">Awin</A>,{" "}
+                <A href="https://www.effiliation.com/">Effiliation</A>, and
+                operators’ own affiliate programmes (currently Trenitalia) —
                 affiliate link tracking for outbound booking links.
               </li>
               <li>

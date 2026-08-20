@@ -31,7 +31,9 @@
   "PKP":  { "bookingPageUrl": "https://ebilet.intercity.pl/" },
   "ČD":   { "bookingPageUrl": "https://www.cd.cz/en/eshop/" },
   "SJ":   { "bookingPageUrl": "https://www.sj.se/en" },
-  "FS":   { "bookingPageUrl": "https://www.trenitalia.com/en.html" },
+  "FS": {
+    "urlTemplate": "https://www.lefrecce.it/Channels.Website.WEB/#/white-label/MINISITI/?isRoundTrip=false&departureStation={origin}&arrivalStation={dest}&lang=en&minisitiCallBackId=60958&minisitiHeaderImageIt=&minisitiFooterImageIt=&minisitiHeaderImageEn=&minisitiFooterImageEn=&minisitiHeaderImageDe=&minisitiFooterImageDe=&minisitiHeaderImageFr=&minisitiFooterImageFr="
+  },
   "CS":   { "bookingPageUrl": "https://www.sleeper.scot/booking/" },
   "TCDD": { "bookingPageUrl": "https://ebilet.tcddtasimacilik.gov.tr/" },
   "ZSSK": { "bookingPageUrl": "https://predaj.zssk.sk/" },
