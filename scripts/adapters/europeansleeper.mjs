@@ -36,6 +36,7 @@ import { downloadGtfs, loadGtfsDir } from "../lib/gtfs.mjs";
 import { renderCalendar, DAY_KEYS } from "../../src/pages/api/lib/calendar.mjs";
 import { resolveCanonicalStationName } from "../../src/pages/api/lib/primitives.mjs";
 import { cityForStation } from "../../src/lib/seo/cities.mjs";
+import { parseTimetableHtml } from "../lib/es-timetable.mjs";
 
 function readJsonSafe(filePath) {
   try {
@@ -127,6 +128,9 @@ export function normalizeEsTrains(journeys, { resolveStation, today }) {
       polyline: j?.polyline ?? null,
       stations: toStations(j.stops),
       frequency: toFrequency(j?.calendar),
+      // Which source the stops and times came from, so provenance is visible
+      // without re-reading the page.
+      timetableSource: j?.timetableSource ?? "gtfs",
     };
     // The next timetable period, when the feed already carries it. Same shape as
     // the train itself so the merge can build a second row from it directly.
@@ -383,6 +387,66 @@ export function journeysFromGtfs(gtfs, { routeShortNames = [], today, stats = nu
 }
 
 // Station-name → coords straight from the feed, for the resolver's fallback layer.
+/**
+ * Lay the operator's published timetable over the feed's.
+ *
+ * European Sleeper publishes its own timetable, and where the two disagree the
+ * operator is right: the feed runs ES 474 out of Berlin-Spandau at 17:52 while
+ * the operator runs it out of Berlin Gesundbrunnen at 17:25, and Spandau appears
+ * nowhere on the published page.
+ *
+ * The page cannot be asked for a date, though — its picker is JS-driven — so a
+ * nightly fetch only sees the trains running now. ES 400/401 don't start until
+ * September and the December timetable isn't reachable at all, so the feed still
+ * fills those gaps and each train upgrades to operator data by itself on the day
+ * the page starts carrying it.
+ *
+ * The feed defines the set of trains (the allowlist gates it) and always keeps
+ * geometry; the page contributes stops, times and service days.
+ *
+ * @param {object[]} feedJourneys  from journeysFromGtfs
+ * @param {object[]} pageJourneys  from parseTimetableHtml
+ * @param {(msg: string) => void} [log]
+ * @returns {object[]} journeys carrying `timetableSource`
+ */
+export function mergePageOverFeed(feedJourneys, pageJourneys = [], log = () => {}) {
+  const numberOf = (value) => String(value ?? "").match(/(\d{3,5})/)?.[1] ?? null;
+
+  const page = new Map();
+  for (const p of pageJourneys ?? []) {
+    const n = numberOf(p?.number ?? p?.train);
+    if (n && p?.stops?.length >= 2) page.set(n, p);
+  }
+
+  const used = new Set();
+  const merged = (feedJourneys ?? []).map((j) => {
+    const n = numberOf(j?.train);
+    const p = n ? page.get(n) : null;
+    if (!p) return { ...j, timetableSource: "gtfs" };
+    used.add(n);
+
+    return {
+      ...j,
+      // Geometry and the upcoming period stay the feed's; stops and times do not.
+      stops: p.stops,
+      // The page states days but no validity window, so keep the feed's dates.
+      calendar: p.daysOfWeek?.length
+        ? { ...(j?.calendar ?? {}), daysOfWeek: p.daysOfWeek }
+        : j?.calendar,
+      timetableSource: "europeansleeper.eu",
+    };
+  });
+
+  const extra = [...page.keys()].filter((n) => !used.has(n));
+  if (extra.length) {
+    // A train the operator publishes but the feed has no route for: it would
+    // have no geometry, and the allowlist is what decides which routes we carry,
+    // so it is reported rather than invented.
+    log(`page lists ${extra.length} train(s) the feed does not carry: ${extra.join(", ")}`);
+  }
+  return merged;
+}
+
 export function feedCoordIndex(gtfs) {
   const index = {};
   for (const stop of gtfs.stopsById.values()) {
@@ -391,6 +455,42 @@ export function feedCoordIndex(gtfs) {
     if (name && !(name in index)) index[name] = { lat: stop.lat, lon: stop.lon };
   }
   return index;
+}
+
+const TIMETABLE_USER_AGENT =
+  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://github.com/TheMrBooblik/sleeper-train-map)";
+
+/**
+ * The operator's published timetable, or [] when it cannot be read.
+ *
+ * Deliberately never throws: the GTFS feed can carry a whole night on its own,
+ * so a page outage costs us the operator's times, not the operator's trains.
+ */
+async function fetchTimetableJourneys(url, log) {
+  if (!url) {
+    log("no params.timetableUrl — using GTFS times only");
+    return [];
+  }
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": TIMETABLE_USER_AGENT, Accept: "text/html" },
+      redirect: "follow",
+    });
+    if (!res.ok) {
+      log(`timetable page returned ${res.status} — using GTFS times only`);
+      return [];
+    }
+    const journeys = parseTimetableHtml(await res.text());
+    if (journeys.length === 0) {
+      // A 200 that parses to nothing means the markup moved, which is worth
+      // saying out loud: it looks identical to "no trains today" otherwise.
+      log(`timetable page parsed to 0 trains — markup may have changed (${url})`);
+    }
+    return journeys;
+  } catch (err) {
+    log(`timetable page fetch failed (${err.message}) — using GTFS times only`);
+    return [];
+  }
 }
 
 export async function run(entry, ctx) {
@@ -448,7 +548,19 @@ export async function run(entry, ctx) {
     overrides,
     fallback: feedCoordIndex(gtfs),
   });
-  const trains = normalizeEsTrains(journeys, { resolveStation, today: ctx.today });
+  // The operator's own timetable wins over the feed wherever it carries a train.
+  const pageJourneys = await fetchTimetableJourneys(entry.params?.timetableUrl, log);
+  const merged = mergePageOverFeed(journeys, pageJourneys, log);
+  const fromPage = merged
+    .filter((j) => j.timetableSource === "europeansleeper.eu")
+    .map((j) => j.train);
+  log(
+    fromPage.length
+      ? `timetable page supplied stops and times for ${fromPage.length}/${merged.length} train(s): ${fromPage.join(", ")}`
+      : `timetable page supplied nothing — all ${merged.length} train(s) on GTFS times`,
+  );
+
+  const trains = normalizeEsTrains(merged, { resolveStation, today: ctx.today });
 
   const built = Object.keys(trains).length;
 
@@ -462,6 +574,15 @@ export async function run(entry, ctx) {
     );
   }
 
-  ctx.write(entry.output, { uploadedAt: ctx.today, trains });
+  ctx.write(entry.output, {
+    uploadedAt: ctx.today,
+    trains,
+    // Compact provenance rather than the 87 KB page: which trains the operator
+    // supplied tonight, so a regression is visible in the committed diff.
+    timetable: {
+      url: entry.params?.timetableUrl ?? null,
+      trainsFromPage: fromPage,
+    },
+  });
   log(`stored ${built} trains`);
 }

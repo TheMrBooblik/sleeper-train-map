@@ -117,7 +117,8 @@
       "fallbackUrls": [
         "https://files.mobilitydatabase.org/mdb-3107/latest.zip"
       ],
-      "configPath": "data/sources/europeansleeper-sleepers.json"
+      "configPath": "data/sources/europeansleeper-sleepers.json",
+      "timetableUrl": "https://www.europeansleeper.eu/timetable"
     },
     "freshness": { "ttlHours": 25 }
   },

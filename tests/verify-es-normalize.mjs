@@ -18,6 +18,7 @@ import {
   feedCoordIndex,
   journeysFromGtfs,
   makeStationResolver,
+  mergePageOverFeed,
   normalizeEsTrains,
 } from "../scripts/adapters/europeansleeper.mjs";
 
@@ -247,6 +248,126 @@ check("normalize carries the upcoming period onto the train", () => {
   assert.ok(trains["500"].future.frequency.includes("Tue, Thu, Sun"));
   assert.ok(trains["500"].frequency.includes("Mon, Wed, Fri"));
   assert.strictEqual(trains["501"].future, undefined);
+});
+
+// ── The operator's page laid over the feed ──────────────────────────────────
+// europeansleeper.eu is the source of truth for stops and times; the feed keeps
+// geometry and fills in trains the page isn't showing yet.
+
+const feedJourney = (train, extra = {}) => ({
+  train,
+  polyline: `poly_${train.replace(/\D/g, "")}`,
+  stops: [
+    { name: "Berlin-Spandau", arrival: null, departure: "17:52" },
+    { name: "Paris Gare du Nord", arrival: "10:57", departure: null },
+  ],
+  calendar: { daysOfWeek: ["mon", "wed", "fri"], validFrom: "2026-08-19", validUntil: "2026-12-11" },
+  ...extra,
+});
+
+const pageJourney = {
+  train: "ES 474",
+  number: "474",
+  stops: [
+    { name: "Berlin Gesundbrunnen", arrival: null, departure: "17:25" },
+    { name: "Hamburg-Harburg", arrival: "21:47", departure: "21:55" },
+    { name: "Paris Nord", arrival: "11:23", departure: null },
+  ],
+  daysOfWeek: ["mon", "wed", "fri"],
+};
+
+check("merge: the page's stops and times replace the feed's", () => {
+  const [j] = mergePageOverFeed([feedJourney("ES 474")], [pageJourney]);
+  assert.strictEqual(j.timetableSource, "europeansleeper.eu");
+  assert.deepStrictEqual(j.stops.map((s) => s.name), [
+    "Berlin Gesundbrunnen",
+    "Hamburg-Harburg",
+    "Paris Nord",
+  ]);
+  assert.strictEqual(j.stops[0].departure, "17:25");
+  assert.strictEqual(j.stops[2].arrival, "11:23");
+  // Spandau is the feed's idea alone and must not survive the merge.
+  assert.ok(!j.stops.some((s) => s.name.includes("Spandau")));
+});
+
+check("merge: geometry stays the feed's", () => {
+  // The whole point of keeping GTFS: the page has stop names, not track.
+  const [j] = mergePageOverFeed([feedJourney("ES 474")], [pageJourney]);
+  assert.strictEqual(j.polyline, "poly_474");
+});
+
+check("merge: the feed's validity window survives the page's days", () => {
+  // The page states which weekdays a train runs but never a date range, so the
+  // range has to come from the feed or the frequency string loses its period.
+  const [j] = mergePageOverFeed(
+    [feedJourney("ES 474")],
+    [{ ...pageJourney, daysOfWeek: ["tue", "thu", "sun"] }],
+  );
+  assert.deepStrictEqual(j.calendar.daysOfWeek, ["tue", "thu", "sun"]);
+  assert.strictEqual(j.calendar.validFrom, "2026-08-19");
+  assert.strictEqual(j.calendar.validUntil, "2026-12-11");
+});
+
+check("merge: a page train with no stated days keeps the feed's", () => {
+  // The Brussels–Milan paragraph names no train number, so 400/401 parse with
+  // daysOfWeek null — that must not blank out the days the feed knows.
+  const [j] = mergePageOverFeed(
+    [feedJourney("ES 400")],
+    [{ ...pageJourney, train: "ES 400", number: "400", daysOfWeek: null }],
+  );
+  assert.deepStrictEqual(j.calendar.daysOfWeek, ["mon", "wed", "fri"]);
+});
+
+check("merge: a train the page omits is untouched", () => {
+  // ES 400/401 don't run until September, so the page renders nothing for them.
+  const feed = feedJourney("ES 400");
+  const [j] = mergePageOverFeed([feed], [pageJourney]);
+  assert.strictEqual(j.timetableSource, "gtfs");
+  assert.deepStrictEqual(j.stops, feed.stops);
+  assert.deepStrictEqual(j.calendar, feed.calendar);
+});
+
+check("merge: an unreachable page degrades to pure GTFS", () => {
+  const feed = [feedJourney("ES 474"), feedJourney("ES 452")];
+  for (const empty of [[], null, undefined]) {
+    const merged = mergePageOverFeed(feed, empty);
+    assert.strictEqual(merged.length, 2);
+    assert.ok(merged.every((j) => j.timetableSource === "gtfs"));
+    assert.ok(merged.every((j) => j.polyline));
+  }
+});
+
+check("merge: the upcoming December period stays the feed's", () => {
+  // The page can't be asked for a future date, so it has nothing to say here.
+  const future = { activeFrom: "2026-12-14", stops: [{ name: "A" }, { name: "B" }] };
+  const [j] = mergePageOverFeed([feedJourney("ES 474", { future })], [pageJourney]);
+  assert.deepStrictEqual(j.future, future);
+});
+
+check("merge: a page train the feed has no route for is reported, not invented", () => {
+  // It would have no geometry, and the allowlist is what decides which routes
+  // we carry — so it is logged rather than added.
+  const lines = [];
+  const merged = mergePageOverFeed(
+    [feedJourney("ES 474")],
+    [pageJourney, { train: "ES 999", number: "999", stops: pageJourney.stops }],
+    (m) => lines.push(m),
+  );
+  assert.strictEqual(merged.length, 1);
+  assert.ok(
+    lines.some((l) => l.includes("999")),
+    `expected a log line naming 999, got ${JSON.stringify(lines)}`,
+  );
+});
+
+check("merge: provenance reaches the built train", () => {
+  const merged = mergePageOverFeed(
+    [feedJourney("ES 474"), feedJourney("ES 400")],
+    [pageJourney],
+  );
+  const trains = normalizeEsTrains(merged, { resolveStation: () => null, today: "2026-08-20" });
+  assert.strictEqual(trains["474"].timetableSource, "europeansleeper.eu");
+  assert.strictEqual(trains["400"].timetableSource, "gtfs");
 });
 
 console.log(`\n[verify-es] ${passed} checks passed`);
