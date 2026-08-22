@@ -25,7 +25,7 @@ function cellKey(lat, lng, cell) {
  * compare against a small tolerance, and the cos(lat) term keeps longitude
  * honest at European and Chinese latitudes alike.
  */
-function distanceKm(aLat, aLng, bLat, bLng) {
+export function distanceKm(aLat, aLng, bLat, bLng) {
   const dLat = (aLat - bLat) * EARTH_KM_PER_DEG;
   const dLng =
     (aLng - bLng) * EARTH_KM_PER_DEG * Math.cos((aLat * Math.PI) / 180);
