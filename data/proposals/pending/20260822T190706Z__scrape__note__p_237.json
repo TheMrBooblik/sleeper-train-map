@@ -1,0 +1,31 @@
+{
+  "v": 1,
+  "id": "p_237",
+  "createdAt": "2026-08-22T19:07:06.898Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: 452 (Praha hl.n. – Bruxelles Midi)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Bruxelles Midi / Brussel Zuid\" → \"Bruxelles Midi\"; operating days (outbound): \"2026: Tue, Thu, Sun\" → \"2026/08/23-12/10: Tue, Thu, Sun\"; operating days (return): \"2026: Mon, Wed, Fri\" → \"2026/08/24-12/11: Mon, Wed, Fri\"",
+  "target": {
+    "routeKey": "237",
+    "agencyId": "ES",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Bruxelles Midi / Brussel Zuid",
+    "operating days (outbound)": "2026: Tue, Thu, Sun",
+    "operating days (return)": "2026: Mon, Wed, Fri"
+  },
+  "after": {
+    "destination": "Bruxelles Midi",
+    "operating days (outbound)": "2026/08/23-12/10: Tue, Thu, Sun",
+    "operating days (return)": "2026/08/24-12/11: Mon, Wed, Fri"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
