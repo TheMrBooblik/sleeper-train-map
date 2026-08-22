@@ -26,6 +26,7 @@ import {
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "./operatorColors";
 import { parseCoord } from "../../../helpers/enrichStationsWithCoordinates";
 import polyline from "@mapbox/polyline";
+import { cachedReturnGeometryBranches } from "./returnGeometryBranches";
 
 function isInactiveRoute(route) {
   return (route?.is_active || "Y").toString().toUpperCase() === "N";
@@ -157,11 +158,11 @@ export function buildAllRoutesPaths({
       isFuture && !shouldDrawFutureRouteAsActive(route);
 
     const routeColor = routeColorMap.get(routeId) || NEUTRAL_FALLBACK_COLOR;
-    const style = getRouteStyleFromFrequency(routeId, trips);
+    const style = getRouteStyleFromFrequency(routeId, trips, route);
     const pathOptions = {
       color: routeColor,
       weight: style.weight,
-      // Not-yet-running routes only fade out; weight/dash still encode frequency.
+      // Not-yet-running routes only fade out; the dash still encodes frequency.
       opacity: fadeAsFuture
         ? MAP_LEGEND_LINE_BASE_STYLES.futureGhost.opacity
         : (style.opacity ?? 0.92),
@@ -206,8 +207,9 @@ export function buildAllRoutesPaths({
     // old published files.
     const njPoly0 = route.nj_polyline_0 ?? route.nj_polyline;
     if (njPoly0) {
+      const positions0 = polyline.decode(njPoly0);
       paths.push({
-        positions: polyline.decode(njPoly0),
+        positions: positions0,
         routeId,
         key: `route-${stationKey}-${routeId}-0`,
         pathOptions,
@@ -216,16 +218,25 @@ export function buildAllRoutesPaths({
         futureStartDate,
         source: "nightjet",
       });
+      // The return leg usually retraces the outbound corridor. Drawing it in
+      // full would lay a second dashed line over the first, filling its gaps so
+      // the route reads solid — draw only where it genuinely diverges.
       if (route.nj_polyline_1) {
-        paths.push({
-          positions: polyline.decode(route.nj_polyline_1),
+        cachedReturnGeometryBranches(
           routeId,
-          key: `route-${stationKey}-${routeId}-1`,
-          pathOptions,
-          osmRelationId: null,
-          isFuture,
-          futureStartDate,
-          source: "nightjet",
+          positions0,
+          polyline.decode(route.nj_polyline_1),
+        ).forEach((branch, i) => {
+          paths.push({
+            positions: branch,
+            routeId,
+            key: `route-${stationKey}-${routeId}-1-branch-${i}`,
+            pathOptions,
+            osmRelationId: null,
+            isFuture,
+            futureStartDate,
+            source: "nightjet",
+          });
         });
       }
     } else {
@@ -305,7 +316,18 @@ export function buildAllRoutesPaths({
           segsToRender0.length === 1 &&
           segsToRender1.length === 1 &&
           arePositionsReverseEqual(segsToRender0[0], segsToRender1[0]);
-        const renderSegs1 = dir1IsReverseOfDir0 ? [] : segsToRender1;
+        // Not an exact reverse still usually means the same corridor, sampled
+        // differently — one direction stopping somewhere the other skips. Draw
+        // only the stretches that genuinely leave the outbound line.
+        const renderSegs1 = dir1IsReverseOfDir0
+          ? []
+          : segsToRender0.length === 1 && segsToRender1.length === 1
+            ? cachedReturnGeometryBranches(
+                `${routeId}:chain`,
+                segsToRender0[0],
+                segsToRender1[0],
+              )
+            : segsToRender1;
         const renderBus1 = dir1IsReverseOfDir0
           ? []
           : route.pkp_bus_segments_1 || [];

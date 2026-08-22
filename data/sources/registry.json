@@ -80,10 +80,10 @@
     "v": 1,
     "id": "europeansleeper",
     "label": "European Sleeper",
-    "description": "Official europeansleeper.eu timetable — authoritative stop lists for ES trains (discovery via BoT ES rows; geometry from the OSM-backed route-geometry cache, regenerated only when the stop list changes). DISABLED until the 'Probe European Sleeper source' workflow confirms the extraction strategy and parseTimetableHtml() is finalized — see scripts/adapters/europeansleeper.mjs.",
-    "kind": "html",
+    "description": "European Sleeper timetable from the Mobility Database GTFS feed mdb-3107 — stop coordinates, real track geometry (shapes.txt) and service calendars all come from the feed, so there is nothing to scrape and no OSM geometry lookup. Routes are taken per data/sources/europeansleeper-sleepers.json, matched on route_short_name. The feed is date-expanded (one trip per operating date, calendar_dates.txt only) and each date can carry its own diversion, so the map routing is the MODAL stop sequence across future trips — see scripts/adapters/europeansleeper.mjs.",
+    "kind": "gtfs",
     "adapter": "europeansleeper",
-    "enabled": false,
+    "enabled": true,
     "official": true,
     "trusted": true,
     "critical": false,
@@ -98,6 +98,7 @@
       "resolveAliases": true,
       "withService": true,
       "excludeBotMatched": true,
+      "botMatchAgencies": ["ES"],
       "dedupStrategy": null
     },
     "enrich": {
@@ -107,15 +108,17 @@
       "polylineMode": "perDirection",
       "updateVia": true,
       "setTimes": true,
+      "updateEndpoints": true,
+      "updateServiceDays": true,
       "stamp": true
     },
     "params": {
-      "timetableUrl": "https://www.europeansleeper.eu/timetable",
-      "bookingBase": "https://booking.europeansleeper.eu",
-      "pinnedRelations": {
-        "452": ["18616102"],
-        "453": ["18616102"]
-      }
+      "feedUrl": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-3107/latest.zip",
+      "fallbackUrls": [
+        "https://files.mobilitydatabase.org/mdb-3107/latest.zip"
+      ],
+      "configPath": "data/sources/europeansleeper-sleepers.json",
+      "timetableUrl": "https://www.europeansleeper.eu/timetable"
     },
     "freshness": { "ttlHours": 25 }
   },

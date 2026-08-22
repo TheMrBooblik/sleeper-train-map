@@ -62,6 +62,52 @@ export function formatDuration(value) {
 }
 
 /**
+ * Journey length in minutes for a route, preferring its own endpoint times.
+ *
+ * Trips carry Back-on-Track's duration, which goes stale independently of the
+ * times: European Sleeper's Berlin–Paris trip still claims 18h32 while the row's
+ * feed-enriched times say 17:52 → 10:57, i.e. 17h05. When an official source has
+ * stamped the row, its times are the authority, so the duration is measured from
+ * them; every other route keeps the trip's stated value. Across the published
+ * payload this changes exactly the two rows whose numbers contradict each other.
+ *
+ * @param {{ official_sources?: string[], origin_departure_time_0?: string, destination_arrival_time_0?: string }} route
+ * @param {{ duration?: string }} trip
+ * @returns {number} minutes, 0 when unknown
+ */
+export function routeDurationMinutes(route, trip) {
+  const stated = durationToMinutes(trip?.duration);
+  if (!route?.official_sources?.length) return stated;
+
+  const clock = (value) => {
+    const m = /^(\d{1,2}):(\d{2})/.exec(String(value || ""));
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  };
+  const from = clock(route.origin_departure_time_0);
+  const to = clock(route.destination_arrival_time_0);
+  if (from === null || to === null) return stated;
+
+  // Sleepers arrive the next morning; a same-clock arrival means no data, not a
+  // 24-hour ride, so fall back rather than invent a day.
+  const span = (to - from + 24 * 60) % (24 * 60);
+  return span > 0 ? span : stated;
+}
+
+/**
+ * Format a duration given in minutes as "12h 47m".
+ * @param {number} totalMinutes
+ * @returns {string}
+ */
+export function formatDurationMinutes(totalMinutes) {
+  if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) return "";
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes}m`;
+  if (minutes === 0) return `${hours}h`;
+  return `${hours}h ${minutes}m`;
+}
+
+/**
  * "604 km" or "" when distance is missing/zero.
  * @param {number} value
  * @returns {string}

@@ -111,6 +111,15 @@ export function validateRegistryEntry(entry) {
     if (synthetic.dedupStrategy != null && !KNOWN_DEDUP_STRATEGIES.has(synthetic.dedupStrategy)) {
       errors.push(`${tag} unknown dedupStrategy "${synthetic.dedupStrategy}"`);
     }
+    if (
+      synthetic.botMatchAgencies != null &&
+      !(
+        Array.isArray(synthetic.botMatchAgencies) &&
+        synthetic.botMatchAgencies.every((a) => typeof a === "string" && a)
+      )
+    ) {
+      errors.push(`${tag} synthetic.botMatchAgencies must be an array of non-empty strings`);
+    }
     if (!entry?.output) {
       errors.push(`${tag} synthetic entries must declare an output trains file`);
     }
