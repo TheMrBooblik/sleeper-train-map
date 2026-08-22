@@ -1,0 +1,33 @@
+{
+  "v": 1,
+  "id": "p_238",
+  "createdAt": "2026-08-22T19:07:06.899Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: 474 (Berlin Gesundbrunnen – Paris Nord)",
+  "summary": "Material change on an approved route (already live — FYI): origin: \"Berlin Hbf\" → \"Berlin Gesundbrunnen\"; destination: \"Paris Gare du Nord\" → \"Paris Nord\"; operating days (outbound): \"2026: Mon, Wed, Fri\" → \"2026/08/24-12/11: Mon, Wed, Fri\"; operating days (return): \"2026: Tue, Thu, Sun\" → \"2026/08/23-12/10: Tue, Thu, Sun\"",
+  "target": {
+    "routeKey": "238",
+    "agencyId": "ES",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "origin": "Berlin Hbf",
+    "destination": "Paris Gare du Nord",
+    "operating days (outbound)": "2026: Mon, Wed, Fri",
+    "operating days (return)": "2026: Tue, Thu, Sun"
+  },
+  "after": {
+    "origin": "Berlin Gesundbrunnen",
+    "destination": "Paris Nord",
+    "operating days (outbound)": "2026/08/24-12/11: Mon, Wed, Fri",
+    "operating days (return)": "2026/08/23-12/10: Tue, Thu, Sun"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
