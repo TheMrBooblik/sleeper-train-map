@@ -35,6 +35,7 @@ import polyline from "@mapbox/polyline";
 import { downloadGtfs, loadGtfsDir } from "../lib/gtfs.mjs";
 import { renderCalendar, DAY_KEYS } from "../../src/pages/api/lib/calendar.mjs";
 import { resolveCanonicalStationName } from "../../src/pages/api/lib/primitives.mjs";
+import { distanceKm } from "../../src/components/Map/utils/returnGeometryBranches.js";
 import { cityForStation } from "../../src/lib/seo/cities.mjs";
 import { parseTimetableHtml } from "../lib/es-timetable.mjs";
 
@@ -409,7 +410,46 @@ export function journeysFromGtfs(gtfs, { routeShortNames = [], today, stats = nu
  * @param {(msg: string) => void} [log]
  * @returns {object[]} journeys carrying `timetableSource`
  */
-export function mergePageOverFeed(feedJourneys, pageJourneys = [], log = () => {}) {
+/**
+ * Extend a GTFS shape so it reaches the stations the operator actually names.
+ *
+ * Stops come from the page and geometry from the feed, and when the two disagree
+ * about a terminus the drawn line stops short of its own marker: the feed runs
+ * ES 474 out of Berlin-Spandau, the operator out of Berlin Gesundbrunnen, 13 km
+ * away. Rather than discard a 7,000-point real-track shape over that gap, or
+ * leave the line detached from its endpoint, the missing leg is drawn straight.
+ * It reads honestly — the operator starts here, the feed's track starts there.
+ *
+ * Returns the input untouched when both ends already sit on the shape, so a
+ * train whose sources agree keeps a byte-identical polyline.
+ */
+function stitchGeometryToStops(encoded, stops, resolveStation, toleranceKm = 2) {
+  if (!encoded || typeof resolveStation !== "function") return encoded;
+  const points = polyline.decode(encoded);
+  if (points.length < 2 || !stops?.length) return encoded;
+
+  const ends = [
+    { coords: resolveStation(stops[0]?.name), at: 0 },
+    { coords: resolveStation(stops[stops.length - 1]?.name), at: points.length - 1 },
+  ];
+  const out = [...points];
+  let extended = false;
+  for (const { coords, at } of ends) {
+    if (!coords) continue;
+    const [lat, lng] = points[at];
+    if (distanceKm(coords.lat, coords.lon, lat, lng) <= toleranceKm) continue;
+    if (at === 0) out.unshift([coords.lat, coords.lon]);
+    else out.push([coords.lat, coords.lon]);
+    extended = true;
+  }
+  return extended ? polyline.encode(out) : encoded;
+}
+
+export function mergePageOverFeed(
+  feedJourneys,
+  pageJourneys = [],
+  { log = () => {}, resolveStation = null } = {},
+) {
   const numberOf = (value) => String(value ?? "").match(/(\d{3,5})/)?.[1] ?? null;
 
   const page = new Map();
@@ -425,10 +465,20 @@ export function mergePageOverFeed(feedJourneys, pageJourneys = [], log = () => {
     if (!p) return { ...j, timetableSource: "gtfs" };
     used.add(n);
 
+    // Canonicalize here, at the one boundary where page names start being used
+    // as keys. The parser keeps the operator's spelling so drift stays visible,
+    // but "Hamburg-Harburg" matches no station: it resolves to no coordinates,
+    // drops off the map, and reaches via_* in a form deriveCities cannot link.
+    const stops = p.stops.map((s) => ({
+      ...s,
+      name: resolveCanonicalStationName(s.name),
+    }));
+
     return {
       ...j,
       // Geometry and the upcoming period stay the feed's; stops and times do not.
-      stops: p.stops,
+      stops,
+      polyline: stitchGeometryToStops(j?.polyline, stops, resolveStation),
       // The page states days but no validity window, so keep the feed's dates.
       calendar: p.daysOfWeek?.length
         ? { ...(j?.calendar ?? {}), daysOfWeek: p.daysOfWeek }
@@ -550,7 +600,7 @@ export async function run(entry, ctx) {
   });
   // The operator's own timetable wins over the feed wherever it carries a train.
   const pageJourneys = await fetchTimetableJourneys(entry.params?.timetableUrl, log);
-  const merged = mergePageOverFeed(journeys, pageJourneys, log);
+  const merged = mergePageOverFeed(journeys, pageJourneys, { log, resolveStation });
   const fromPage = merged
     .filter((j) => j.timetableSource === "europeansleeper.eu")
     .map((j) => j.train);

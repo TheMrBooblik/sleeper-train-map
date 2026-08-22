@@ -279,10 +279,11 @@ const pageJourney = {
 check("merge: the page's stops and times replace the feed's", () => {
   const [j] = mergePageOverFeed([feedJourney("ES 474")], [pageJourney]);
   assert.strictEqual(j.timetableSource, "europeansleeper.eu");
+  // Names arrive canonicalized — the page's own spellings match no station.
   assert.deepStrictEqual(j.stops.map((s) => s.name), [
     "Berlin Gesundbrunnen",
-    "Hamburg-Harburg",
-    "Paris Nord",
+    "Hamburg Harburg",
+    "Paris Gare du Nord",
   ]);
   assert.strictEqual(j.stops[0].departure, "17:25");
   assert.strictEqual(j.stops[2].arrival, "11:23");
@@ -351,7 +352,7 @@ check("merge: a page train the feed has no route for is reported, not invented",
   const merged = mergePageOverFeed(
     [feedJourney("ES 474")],
     [pageJourney, { train: "ES 999", number: "999", stops: pageJourney.stops }],
-    (m) => lines.push(m),
+    { log: (m) => lines.push(m) },
   );
   assert.strictEqual(merged.length, 1);
   assert.ok(
@@ -368,6 +369,71 @@ check("merge: provenance reaches the built train", () => {
   const trains = normalizeEsTrains(merged, { resolveStation: () => null, today: "2026-08-20" });
   assert.strictEqual(trains["474"].timetableSource, "europeansleeper.eu");
   assert.strictEqual(trains["400"].timetableSource, "gtfs");
+});
+
+// ── Page names and geometry meet the rest of the map ────────────────────────
+
+check("merge: operator spellings are canonicalized so they resolve to stations", () => {
+  // The parser keeps "Paris Nord" and "Hamburg-Harburg" so drift stays visible,
+  // but those match no station: they resolve to no coordinates, vanish from the
+  // connection map, and reach via_* in a form deriveCities cannot link.
+  const [j] = mergePageOverFeed([feedJourney("ES 474")], [pageJourney]);
+  const names = j.stops.map((s) => s.name);
+  assert.ok(names.includes("Paris Gare du Nord"), `got ${names.join(", ")}`);
+  assert.ok(names.includes("Hamburg Harburg"), `got ${names.join(", ")}`);
+  assert.ok(!names.some((n) => n === "Paris Nord" || n === "Hamburg-Harburg"));
+});
+
+check("merge: canonicalized names then resolve to coordinates", () => {
+  const [j] = mergePageOverFeed([feedJourney("ES 474")], [pageJourney]);
+  const trains = normalizeEsTrains([j], {
+    resolveStation: (n) =>
+      n === "Paris Gare du Nord" ? { lat: 48.8808, lon: 2.3555 } : null,
+    today: "2026-08-20",
+  });
+  const paris = trains["474"].stations.find((s) => s.name === "Paris Gare du Nord");
+  assert.deepStrictEqual(paris.location, { latitude: 48.8808, longitude: 2.3555 });
+});
+
+check("merge: geometry is extended to reach the page's terminus", () => {
+  // Feed shape runs Berlin-Spandau -> Paris; the operator starts at Berlin
+  // Gesundbrunnen, 13 km away, so the line would stop short of its own marker.
+  const spandau = [52.5346, 13.1979];
+  const paris = [48.8809, 2.3553];
+  const feed = { ...feedJourney("ES 474"), polyline: polyline.encode([spandau, paris]) };
+  const [j] = mergePageOverFeed([feed], [pageJourney], {
+    resolveStation: (n) =>
+      n === "Berlin Gesundbrunnen"
+        ? { lat: 52.5488, lon: 13.3887 }
+        : n === "Paris Gare du Nord"
+          ? { lat: paris[0], lon: paris[1] }
+          : null,
+  });
+  const drawn = polyline.decode(j.polyline);
+  assert.strictEqual(drawn.length, 3, "one point prepended");
+  assert.ok(Math.abs(drawn[0][0] - 52.5488) < 1e-4, "starts at Gesundbrunnen");
+  assert.ok(Math.abs(drawn[0][1] - 13.3887) < 1e-4);
+  assert.ok(Math.abs(drawn[drawn.length - 1][0] - paris[0]) < 1e-4, "still ends at Paris");
+});
+
+check("merge: geometry already reaching its stops is left byte-identical", () => {
+  const encoded = polyline.encode([[52.5488, 13.3887], [48.8809, 2.3553]]);
+  const feed = { ...feedJourney("ES 474"), polyline: encoded };
+  const [j] = mergePageOverFeed([feed], [pageJourney], {
+    resolveStation: (n) =>
+      n === "Berlin Gesundbrunnen"
+        ? { lat: 52.5488, lon: 13.3887 }
+        : { lat: 48.8809, lon: 2.3553 },
+  });
+  assert.strictEqual(j.polyline, encoded, "no gratuitous re-encoding");
+});
+
+check("merge: without a resolver the feed's geometry is untouched", () => {
+  // normalizeEsTrains resolves coordinates later; the merge must not damage the
+  // shape just because it was called without one.
+  const feed = feedJourney("ES 474");
+  const [j] = mergePageOverFeed([feed], [pageJourney]);
+  assert.strictEqual(j.polyline, feed.polyline);
 });
 
 console.log(`\n[verify-es] ${passed} checks passed`);
