@@ -74,6 +74,19 @@ check("routing is the modal sequence, not the longest", () => {
   ]);
 });
 
+check("times come from the first departure, not whichever trip the feed lists first", () => {
+  // A 3x-weekly train keeps a different path per weekday: the real ES 401 leaves
+  // Brussels 19:06 on Thursdays, 18:17 on Saturdays and 17:17 on Mondays. Picking
+  // the modal ROUTING still leaves those timetables to choose between, and the
+  // feed lists trips in no useful order — so the fixture deliberately puts the
+  // latest run first. The operator advertises the opening departure, so that is
+  // the one that must survive.
+  const stops = byTrain["ES 452"].stops;
+  assert.strictEqual(stops[0].departure, "18:05", "should be 15 June, the earliest run");
+  assert.strictEqual(stops[1].arrival, "20:27");
+  assert.strictEqual(stops[1].departure, "20:31");
+});
+
 check("past-dated trips can't win, even in the majority", () => {
   // The retired routing has 4 trips against the modal routing's 3, so it would
   // win outright if the date filter regressed. Bad Schandau is its tell.

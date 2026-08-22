@@ -231,18 +231,33 @@ function periodsForRoute(trips, { gtfs, datesOf, todayCompact }) {
     const bySequence = new Map();
     for (const run of runs) {
       const key = run.stopTimes.map((st) => st.stop_id).join(" ");
-      if (!bySequence.has(key)) bySequence.set(key, { stopTimes: run.stopTimes, trips: [], count: 0 });
+      if (!bySequence.has(key)) bySequence.set(key, { runs: [], count: 0 });
       const g = bySequence.get(key);
       g.count += 1;
-      g.trips.push(run.trip);
+      g.runs.push(run);
     }
     const [, modal] = [...bySequence.entries()].sort(
-      (a, b) => b[1].count - a[1].count || b[1].stopTimes.length - a[1].stopTimes.length,
+      (a, b) =>
+        b[1].count - a[1].count ||
+        b[1].runs[0].stopTimes.length - a[1].runs[0].stopTimes.length,
     )[0];
+    // Times come from the EARLIEST run of that routing, not whichever trip
+    // happened to create the group. A 3x-weekly train keeps a different path per
+    // weekday — ES 401 leaves Brussels 19:06 on Thursdays, 18:17 on Saturdays and
+    // 17:17 on Mondays — so "the modal routing" still leaves ten candidate
+    // timetables, and the feed lists trips in no particular order. The operator
+    // advertises the first departure, so that is the one to show: for a service
+    // that has not started yet this is its opening run, and for one already
+    // running it is the next departure.
+    const ordered = [...modal.runs].sort((a, b) => a.date.localeCompare(b.date));
     // Weekdays come from every run in the period, not just the modal routing —
     // a Sunday departure that skips one stop still means the train runs Sundays.
     const dates = runs.map((r) => r.date).sort();
-    return { stopTimes: modal.stopTimes, trips: modal.trips, dates };
+    return {
+      stopTimes: ordered[0].stopTimes,
+      trips: ordered.map((r) => r.trip),
+      dates,
+    };
   };
 
   return [
