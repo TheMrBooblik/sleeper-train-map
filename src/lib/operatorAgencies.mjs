@@ -20,6 +20,7 @@ import {
   getBookingPageUrl,
   getDealsLink,
 } from "./operatorBooking.js";
+import { OPERATORS } from "./seo/operatorNames.mjs";
 
 /** "PKP/ČD" → ["PKP", "ČD"]; trims whitespace, drops empty segments. */
 export function splitAgencyIds(agencyId) {
@@ -27,6 +28,35 @@ export function splitAgencyIds(agencyId) {
     .split("/")
     .map((id) => id.trim())
     .filter(Boolean);
+}
+
+/**
+ * A train number as the operator writes it.
+ *
+ * Most feeds already carry the operator's own prefix ("NJ 421", "EN 40459",
+ * "ICN 752"), but some publish a bare number because that is what
+ * Back-on-Track's trip_short_name holds — European Sleeper's ES 400 arrives
+ * simply as "400", which is not how the operator, its tickets or its website
+ * name the train. Operators that need one declare a `numberPrefix` in the
+ * curated table (src/lib/seo/operatorNames.mjs); everyone else is untouched,
+ * which is why this never turns "NJ 421" into "ÖBB NJ 421".
+ *
+ * Display only. Never feed the result back into a lookup — the feeds, the
+ * review queue and the enrichment are all keyed by the raw value.
+ *
+ * @param {string} trainNumber  raw trip_short_name, e.g. "400" or "NJ 421"
+ * @param {string} agencyId     possibly compound, e.g. "ES" or "PKP/ČD"
+ * @returns {string}
+ */
+export function formatTrainNumber(trainNumber, agencyId) {
+  const raw = String(trainNumber ?? "").trim();
+  // Anything already carrying letters is the operator's own label — leave it.
+  if (!raw || !/^\d+$/.test(raw)) return raw;
+  for (const id of splitAgencyIds(agencyId)) {
+    const prefix = OPERATORS[id]?.numberPrefix;
+    if (prefix) return `${prefix} ${raw}`;
+  }
+  return raw;
 }
 
 const LINK_TIERS = ["deepLink", "bookingPageUrl", "fareUrl", "homeUrl"];

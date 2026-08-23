@@ -23,7 +23,10 @@ import {
   formatPricingLabel,
   getPricingBadgeStyle,
 } from "../../lib/operatorPricing";
-import { resolveOperatorComponents } from "../../lib/operatorAgencies.mjs";
+import {
+  formatTrainNumber,
+  resolveOperatorComponents,
+} from "../../lib/operatorAgencies.mjs";
 import {
   esScheduleForTrip,
   isEuropeanSleeperRoute,
@@ -1205,6 +1208,13 @@ const TrainDetailPanel = ({
                   tripRoute?.bot_agency_id || bookingAgencyId;
                 const agency =
                   agencies[operatorAgencyId] || agencies[bookingAgencyId];
+                // European Sleeper's feed publishes bare numbers ("400"); the
+                // operator writes them "ES 400". Display only — every lookup
+                // above still uses the raw trip_short_name.
+                const trainLabel = formatTrainNumber(
+                  trip.trip_short_name,
+                  operatorAgencyId,
+                );
                 const viaSummary = selectMajorViaStations(
                   esVia || trip.via,
                   majorViaContext,
@@ -1494,7 +1504,7 @@ const TrainDetailPanel = ({
                           {operatorName}
                         </div>
                       </div>
-                      {trip.trip_short_name &&
+                      {trainLabel &&
                         (trainPageSlug ? (
                           <Link
                             href={`/connections/${trainPageSlug}`}
@@ -1505,9 +1515,9 @@ const TrainDetailPanel = ({
                               backgroundColor: hexWithAlpha(operatorColor, 0.12),
                               color: operatorColor,
                             }}
-                            title={`View ${trip.trip_short_name} timetable & route`}
+                            title={`View ${trainLabel} timetable & route`}
                           >
-                            {trip.trip_short_name}
+                            {trainLabel}
                           </Link>
                         ) : (
                           <div
@@ -1517,7 +1527,7 @@ const TrainDetailPanel = ({
                               color: operatorColor,
                             }}
                           >
-                            {trip.trip_short_name}
+                            {trainLabel}
                           </div>
                         ))}
                     </div>

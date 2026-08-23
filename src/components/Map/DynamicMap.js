@@ -37,6 +37,7 @@ import {
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
 } from "./utils/routeStyleUtils";
+import { formatTrainNumber } from "../../lib/operatorAgencies.mjs";
 import { useRoutePaths } from "./hooks/useRoutePaths";
 import { useMapMarkers } from "./hooks/useMapMarkers";
 import LoadingOverlay from "./components/LoadingOverlay";
@@ -650,8 +651,10 @@ const TrainMap = ({
             )
           : null;
         if (!route) return "Route";
-        const trainNumber =
-          route.trip_short_name_0 || route.trip_short_name_1 || null;
+        const trainNumber = formatTrainNumber(
+          route.trip_short_name_0 || route.trip_short_name_1 || "",
+          route.bot_agency_id || route.agency_id,
+        );
         const segment = `${route.origin_trip_0 || "?"} → ${route.destination_trip_0 || "?"}`;
         return trainNumber ? `${trainNumber}: ${segment}` : `Route: ${segment}`;
       })()
@@ -808,9 +811,12 @@ const TrainMap = ({
                       const destination = isDirectionOne
                         ? route.destination_trip_1 || route.destination_trip_0
                         : route.destination_trip_0 || route.destination_trip_1;
-                      const trainNumber = isDirectionOne
-                        ? route.trip_short_name_1 || route.trip_short_name_0
-                        : route.trip_short_name_0 || route.trip_short_name_1;
+                      const trainNumber = formatTrainNumber(
+                        isDirectionOne
+                          ? route.trip_short_name_1 || route.trip_short_name_0
+                          : route.trip_short_name_0 || route.trip_short_name_1,
+                        route.bot_agency_id || route.agency_id,
+                      );
 
                       const segment = `${origin || "?"} → ${destination || "?"}`;
                       const label = trainNumber

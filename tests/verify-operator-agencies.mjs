@@ -6,6 +6,7 @@ import {
   splitAgencyIds,
   resolveOperatorComponents,
   resolveBookingHref,
+  formatTrainNumber,
 } from "../src/lib/operatorAgencies.mjs";
 import OPERATOR_BOOKING from "../data/overrides/operator-booking.json" with { type: "json" };
 
@@ -244,6 +245,30 @@ for (const compound of agencyIds) {
 }
 
 // Explicit Leo Express check so the curated slug/name stay intentional.
+// ── formatTrainNumber ───────────────────────────────────────────────────────
+// Most feeds carry the operator's own prefix; a few publish bare numbers
+// because that is what Back-on-Track's trip_short_name holds. European Sleeper
+// is the one that needs relabelling today — its ES 400 arrives as "400".
+
+check(formatTrainNumber("400", "ES") === "ES 400", 'ES "400" renders as "ES 400"');
+check(formatTrainNumber("452", "ES") === "ES 452", 'ES "452" renders as "ES 452"');
+// A number that already carries letters is the operator's own label.
+check(formatTrainNumber("NJ 421", "ÖBB") === "NJ 421", '"NJ 421" is left alone');
+check(formatTrainNumber("EN 40459", "ÖBB") === "EN 40459", '"EN 40459" is left alone');
+check(formatTrainNumber("ES 400", "ES") === "ES 400", "already-prefixed ES is idempotent");
+// An operator with no declared prefix keeps its bare number rather than being
+// dressed in its agency id: Back-on-Track's SJN 475 and CFM/CFR 401 collide
+// with European Sleeper's numbers and must not borrow its label either.
+check(formatTrainNumber("475", "SJN") === "475", "SJN 475 keeps its bare number");
+check(formatTrainNumber("401", "CFM/CFR") === "401", "CFM/CFR 401 keeps its bare number");
+check(formatTrainNumber("1020", "RJ") === "1020", "RJ 1020 keeps its bare number");
+// Degenerate input must not produce a stray prefix or throw.
+check(formatTrainNumber("", "ES") === "", "empty number stays empty");
+check(formatTrainNumber(null, "ES") === "", "null number stays empty");
+check(formatTrainNumber("400", "") === "400", "no agency → unchanged");
+check(formatTrainNumber("400", null) === "400", "null agency → unchanged");
+check(formatTrainNumber(" 400 ", "ES") === "ES 400", "surrounding whitespace is trimmed");
+
 check(OPERATORS.LE?.name === "Leo Express", 'LE curated name is "Leo Express"');
 check(OPERATORS.LE?.slug === "leo-express", 'LE curated slug is "leo-express"');
 
