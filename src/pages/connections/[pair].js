@@ -17,6 +17,7 @@ import {
   getRelatedConnections,
 } from "../../lib/seo/aggregate";
 import { getRouteDetail } from "../../lib/seo/data";
+import { formatTrainNumber } from "../../lib/operatorAgencies.mjs";
 import { buildConnectionFaq } from "../../lib/seo/routeFaq.mjs";
 import { getFlagEmoji } from "../../lib/countries";
 import { OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
@@ -255,15 +256,23 @@ export async function getStaticProps({ params }) {
       title: d.title,
       origin: d.origin,
       destination: d.destination,
+      // Already labelled by buildSummary.
       primaryTrainNumber: d.primaryTrainNumber,
-      trainNumbers: d.directions.map((x) => x.trainNumber).filter(Boolean),
+      // The directions keep the RAW number, because that is what the timetable
+      // lookup matched on; label it here, where it is only rendered.
+      trainNumbers: d.directions
+        .map((x) => formatTrainNumber(x.trainNumber, d.agencyId))
+        .filter(Boolean),
       agencyId: d.agencyId,
       operators: d.operators,
       pricing: d.pricing,
       booking: d.booking,
       countries: d.countries,
       countryCodes: d.countryCodes,
-      directions: d.directions,
+      directions: d.directions.map((x) => ({
+        ...x,
+        trainNumber: formatTrainNumber(x.trainNumber, d.agencyId),
+      })),
       facts: d.facts,
       // Only the first train with geometry renders a map; drop the rest so the
       // page payload doesn't carry a polyline per train.

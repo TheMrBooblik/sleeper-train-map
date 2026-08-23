@@ -13,7 +13,10 @@
  * agency_id is frequently compound ("PKP/ČD", "TCDD/BDŽ/CFR") — always run
  * it through splitAgencyIds() before looking an operator up here.
  *
- * @type {Record<string, { name: string, slug: string }>}
+ * `numberPrefix` is optional: set it for an operator whose feed publishes bare
+ * train numbers, so they render the way the operator writes them.
+ *
+ * @type {Record<string, { name: string, slug: string, numberPrefix?: string }>}
  */
 export const OPERATORS = {
   // Central / Eastern Europe
@@ -32,7 +35,10 @@ export const OPERATORS = {
   "ÖBB": { name: "Nightjet", slug: "nightjet" },
   SNCF: { name: "SNCF", slug: "sncf" },
   FS: { name: "Trenitalia", slug: "trenitalia" },
-  ES: { name: "European Sleeper", slug: "european-sleeper" },
+  // The GTFS feed and Back-on-Track both carry ES numbers bare ("400"); the
+  // operator writes them "ES 400" everywhere it sells them. See
+  // formatTrainNumber() in src/lib/operatorAgencies.mjs.
+  ES: { name: "European Sleeper", slug: "european-sleeper", numberPrefix: "ES" },
   CS: { name: "Caledonian Sleeper", slug: "caledonian-sleeper" },
   GWR: { name: "Great Western Railway", slug: "great-western-railway" },
   MT: { name: "Midnight Trains", slug: "midnight-trains" },

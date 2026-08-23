@@ -35,6 +35,7 @@ import {
   formatFutureFrom,
 } from "./format";
 import { getOperatorPricing, formatFromPrice } from "../operatorPricing";
+import { formatTrainNumber } from "../operatorAgencies.mjs";
 import { resolveRouteBooking } from "../routeBooking.mjs";
 import { splitAgencyIds, getOperatorMeta } from "./operators";
 import {
@@ -249,8 +250,11 @@ function buildSummary(route) {
   const slug = getSlugMaps().byRouteId.get(routeId);
   const { origin, destination, trainNumber } = routeEndpoints(route);
   const operatorIds = splitAgencyIds(route.agency_id);
+  // Labelled the way the operator writes the train — European Sleeper's feed
+  // publishes ES 400 bare as "400". Display only: the raw trip_short_name is
+  // what the timetable lookup and the enrichment match on.
   const trainNumbers = [route.trip_short_name_0, route.trip_short_name_1]
-    .map((t) => (t || "").trim())
+    .map((t) => formatTrainNumber(t, route.agency_id))
     .filter(Boolean);
 
   const stopNames = new Set();
@@ -318,7 +322,7 @@ function buildSummary(route) {
     destination,
     originCity: cityForStation(origin),
     destinationCity: cityForStation(destination),
-    trainNumber,
+    trainNumber: formatTrainNumber(trainNumber, route.agency_id),
     trainNumbers,
     agencyId: route.agency_id || "",
     // Pass the committed BoT agencies snapshot so getOperatorMeta can fall
