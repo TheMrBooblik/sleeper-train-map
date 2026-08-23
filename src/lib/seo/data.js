@@ -23,7 +23,7 @@ import { getRouteFrequencyOverride } from "../routeFrequencyOverrides";
 import { buildPairSlug } from "./slugify.mjs";
 import { routeEndpoints, buildRouteSlugMaps } from "./routeSlugs.mjs";
 import { cityForStation } from "./cities.mjs";
-import { getStationTimesForTrain } from "./stationTimes";
+import { getStationTimesForTrain } from "./stationTimes.mjs";
 import {
   deriveTitle,
   formatAnyTime,
@@ -46,6 +46,13 @@ import {
   applyReplacementsToRouteData,
   applyReplacementsToTrips,
 } from "../../data/stationNameReplacements";
+// The map withholds admin-disabled routes per request (see /api/initial-data);
+// the static pages read the published artifact directly and so used to keep
+// serving them. That left Back-on-Track's retired European Sleeper 456/457
+// (Brussels-Milan via Zürich) with a live connection page after the operator's
+// own feed replaced it with ES 400/401 via Aarau.
+import { stripDisabledRoutes } from "../../pages/api/lib/build-initial-data.mjs";
+import DISABLED_ROUTES from "../../../data/overrides/disabled-routes.json";
 
 const PUBLISHED_PATH = "public/data/published/initial-data.json";
 const RAW_STOPS_PATH = "public/data/scraped/backontrack-stops.json";
@@ -71,10 +78,12 @@ function getPublishedFull() {
   return _publishedFull;
 }
 
-/** The published { stops, viewMap, trips } payload. */
+/** The published { stops, viewMap, trips } payload, as the map serves it. */
 function getPublished() {
   if (!_publishedNormalized) {
-    const data = getPublishedFull().data;
+    // Disabled routes come off first, so nothing downstream — summaries, hubs,
+    // city pairs, the sitemap — can build a page for a route the map hides.
+    const data = stripDisabledRoutes(getPublishedFull().data, DISABLED_ROUTES);
     // Same terminus rewrites the live map applies (e.g. Leo Express Frankfurt
     // Flughafen → Süd). Done here so SEO pages match without re-canonicalizing.
     const viewMap = applyReplacementsToRouteData(data.viewMap);

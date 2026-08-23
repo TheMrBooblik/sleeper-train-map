@@ -1,0 +1,15 @@
+{
+  "uploadedAt": "2026-08-23T03:00:00.000Z",
+  "data": {
+    "trains": {
+      "475": {
+        "stations": [
+          { "name": "Trondheim S", "departure": "23:05" },
+          { "name": "Steinkjer", "arrival": "01:12", "departure": "01:18" },
+          { "name": "Mo i Rana", "arrival": "06:40", "departure": "06:52" },
+          { "name": "Bodø", "arrival": "09:31" }
+        ]
+      }
+    }
+  }
+}
