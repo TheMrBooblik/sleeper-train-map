@@ -24,6 +24,11 @@ import {
   getPricingBadgeStyle,
 } from "../../lib/operatorPricing";
 import { resolveOperatorComponents } from "../../lib/operatorAgencies.mjs";
+import {
+  esScheduleForTrip,
+  isEuropeanSleeperRoute,
+  isEuropeanSleeperTrip,
+} from "../../lib/europeanSleeper.mjs";
 import BookingActions from "./BookingActions";
 import SuggestEditModal from "../SuggestEdit/SuggestEditModal";
 import {
@@ -130,32 +135,6 @@ function isCaucasusTrainNumber(value) {
 function isNorthAmericaRoute(routeId) {
   const id = String(routeId || "");
   return id.startsWith("amtrak_") || id.startsWith("via_");
-}
-
-// European Sleeper synthetic routes. Keyed by route-id prefix rather than a
-// train-number pattern: the GTFS feed's numbers are bare ("400", "401"), which
-// no operator regex can claim without also claiming everyone else's.
-function isEuropeanSleeperRoute(routeId) {
-  return String(routeId || "").startsWith("es_");
-}
-
-// The feed covers both shapes of European Sleeper route: the synthetic `es_`
-// rows built entirely from it, and the Back-on-Track rows it only enriches,
-// which keep BoT's numeric route ids and carry the operator on the trip. The
-// latter have real trips, so they never reach the synthetic fallback path —
-// matching on the agency is what gets them their stop lists too.
-function isEuropeanSleeperTrip(trip) {
-  return (
-    isEuropeanSleeperRoute(trip?.route_id) ||
-    String(trip?.agency_id || "").trim().toUpperCase() === "ES"
-  );
-}
-
-// A route the feed knows replaces the current one at the next timetable change
-// (build-initial-data appends `_from_YYYYMMDD`). It reuses the same train
-// numbers, so its timetable has to be looked up separately.
-function isUpcomingTimetableRoute(routeId) {
-  return String(routeId || "").includes("_from_");
 }
 
 /**
@@ -1162,11 +1141,19 @@ const TrainDetailPanel = ({
                   trip.trip_short_name,
                 );
 
-                const esSchedule =
-                  (isUpcomingTimetableRoute(trip.route_id)
-                    ? esScheduleByTrainNumber.upcoming
-                    : esScheduleByTrainNumber.current
-                  ).get(normalizedTrainNumber) || null;
+                // Keyed by BARE number, because Back-on-Track's
+                // trip_short_name is bare — and a bare number is only unique
+                // WITHIN an operator. Back-on-Track carries a CFM/CFR 401
+                // (Chişinău–București) and an SJN 475 (Trondheim–Bodø) next to
+                // European Sleeper's ES 401/475, so without the operator check
+                // those two trains rendered European Sleeper's stops, endpoints,
+                // duration and service days. Same hazard the registry names in
+                // `synthetic.botMatchAgencies`.
+                const esSchedule = esScheduleForTrip(
+                  trip,
+                  esScheduleByTrainNumber,
+                  normalizedTrainNumber,
+                );
                 // Already formatted "HH:MM" in the schedule's stops, so used
                 // directly like PKP and Amtrak/VIA rather than via formatTime.
                 const esStops = esSchedule?.stops || [];

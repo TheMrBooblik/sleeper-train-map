@@ -1,0 +1,21 @@
+{
+  "uploadedAt": "2026-08-23T03:00:00.000Z",
+  "data": {
+    "trains": {
+      "475": {
+        "stations": [
+          { "name": "Paris Gare du Nord", "departure": "18:03" },
+          { "name": "Bruxelles Midi", "arrival": "20:16", "departure": "20:32" },
+          { "name": "Berlin Gesundbrunnen", "arrival": "10:10" }
+        ]
+      },
+      "40459": {
+        "stations": [
+          { "name": "Zürich HB", "departure": "20:40" },
+          { "name": "Nürnberg Hbf", "arrival": "02:04", "departure": "02:20" },
+          { "name": "Prag Hbf", "arrival": "10:22" }
+        ]
+      }
+    }
+  }
+}
