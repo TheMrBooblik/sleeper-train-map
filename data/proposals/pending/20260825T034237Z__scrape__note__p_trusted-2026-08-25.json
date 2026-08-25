@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-08-25",
+  "createdAt": "2026-08-25T03:42:37.690Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (0 routes, 2 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation Amsterdam Bijlmer ArenA (europeansleeper)\nstation Browning Amtrak (amtrak)",
+  "target": {
+    "routeKey": "trusted-2026-08-25",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
