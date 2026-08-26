@@ -12,17 +12,12 @@ export default function useProposals() {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
-  const [expired, setExpired] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/admin/proposals");
-      if (res.status === 401) {
-        setExpired(true);
-        return;
-      }
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(json.error || `Failed to load queue (${res.status}).`);
@@ -46,10 +41,6 @@ export default function useProposals() {
     const res = await fetch(
       `/api/admin/proposals/${encodeURIComponent(id)}?filename=${encodeURIComponent(filename)}`,
     );
-    if (res.status === 401) {
-      setExpired(true);
-      return null;
-    }
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
       setError(json.error || `Failed to load proposal (${res.status}).`);
@@ -70,10 +61,6 @@ export default function useProposals() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ decision, note, editedApply, filename }),
         });
-        if (res.status === 401) {
-          setExpired(true);
-          return false;
-        }
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
           setError(json.error || `Decision failed (${res.status}).`);
@@ -102,7 +89,6 @@ export default function useProposals() {
     busy,
     error,
     notice,
-    expired,
     load,
     loadOne,
     decide,

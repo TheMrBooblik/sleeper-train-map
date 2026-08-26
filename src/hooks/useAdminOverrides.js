@@ -13,17 +13,12 @@ export default function useAdminOverrides() {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
-  const [expired, setExpired] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/admin/override");
-      if (res.status === 401) {
-        setExpired(true);
-        return;
-      }
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(json.error || `Failed to load (${res.status}).`);
@@ -60,10 +55,6 @@ export default function useAdminOverrides() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ resource, action, payload, message }),
         });
-        if (res.status === 401) {
-          setExpired(true);
-          return false;
-        }
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
           setError(json.error || `Save failed (${res.status}).`);
@@ -82,5 +73,5 @@ export default function useAdminOverrides() {
     [load],
   );
 
-  return { overrides, seenState, target, loading, busy, error, notice, expired, mutate };
+  return { overrides, seenState, target, loading, busy, error, notice, mutate };
 }

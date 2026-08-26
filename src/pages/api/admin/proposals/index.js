@@ -2,7 +2,7 @@
 // Lists the proposal queue (one Contents-API directory call — metadata is
 // encoded in the filenames). Auth + env model identical to admin/override.js.
 
-import { SESSION_COOKIE, verifySessionToken } from "../../../../lib/adminAuth";
+import { rejectUnlessLocalAdmin } from "../../../../lib/localAdmin.mjs";
 import {
   isGithubWriteConfigured,
   listDir,
@@ -16,9 +16,7 @@ export default async function handler(req, res) {
     res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!verifySessionToken(req.cookies?.[SESSION_COOKIE])) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  if (rejectUnlessLocalAdmin(req, res)) return;
   if (!isGithubWriteConfigured()) {
     return res.status(503).json({
       error: "GitHub access not configured (set ADMIN_GITHUB_TOKEN and ADMIN_REPO)",

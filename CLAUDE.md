@@ -22,7 +22,7 @@ npm test             # Run Playwright E2E tests
 npm run test:smoke   # Run smoke tests (separate config)
 # Pure-logic unit suites (raw node, no browser):
 npm run verify-registry && npm run verify-build-parity && npm run verify-overrides && \
-npm run verify-proposals && npm run verify-classify && npm run verify-calendar && \
+npm run verify-local-admin && npm run verify-proposals && npm run verify-classify && npm run verify-calendar && \
 npm run verify-canonical-routes && npm run verify-ai && npm run verify-enrich && \
 npm run verify-route-geometry && npm run verify-es && npm run verify-chinese-12306 && npm run verify-na-gtfs && \
 npm run verify-synthetic-scope && npm run verify-return-branches && npm run verify-es-timetable && \
@@ -61,7 +61,7 @@ Additional per-entry capabilities (all optional, all registry-driven):
 
 ### Review queue ("all new data verified first")
 
-Everything non-mechanical flows through a proposal queue the admin reviews in `/data` → Review tab:
+Everything non-mechanical flows through a proposal queue the admin reviews in `/data` → Review tab. `/data`, `/api/admin/*`, and `/api/data-status` are loopback-only (`src/lib/localAdmin.mjs`): they 404 on Vercel and on any non-localhost host. There is no login.
 
 - **Proposals** are single JSON files on the **`proposals` git branch** (`data/proposals/{pending,resolved}/`), metadata encoded in filenames so listing the queue is one GitHub Contents call. Envelope schema/codec: `src/pages/api/lib/proposals.mjs`. The branch never deploys (`vercel.json` → `git.deploymentEnabled.proposals: false`).
 - **Producers:** nightly classifier (`scripts/classify-changes.mjs` + pure `scripts/lib/classify.mjs`), AI tasks (`scripts/ai-tasks.mjs`), price probes (`scripts/probe-prices.mjs`), and the public `/api/suggest` endpoint (honeypot + rate-limited; "Suggest an edit" in the detail panel).
@@ -138,10 +138,10 @@ All data is committed to the repo. Git is the database and the audit log.
 | `operator-trains.js`      | Generic per-source trains: `?source={registry id}` (legacy `{nightjet,cd,chinese,italian,caucasus}-trains.js` are thin aliases) |
 | `trains.js`               | Generic Back-on-Track data fetcher — reads scraped file store, falls back to GitHub    |
 | `osm-relation.js`         | OSM relation geometry — reads scraped cache, falls back to Overpass API                |
-| `data-status.js`          | Freshness dashboard, derived from the registry                                          |
+| `data-status.js`          | Freshness dashboard for /data (loopback-only)                                           |
 | `suggest.js`              | Public suggestions → proposal queue (honeypot, rate limits, `SUGGEST_DRY_RUN=1` for CI) |
-| `admin/override.js`       | Admin direct edits to `data/overrides/*` + the registry (auth: `admin_session` cookie)  |
-| `admin/proposals/*`       | Review queue: list, fetch, approve/edit-approve/reject                                  |
+| `admin/override.js`       | Admin direct edits to `data/overrides/*` + the registry (loopback-only)                 |
+| `admin/proposals/*`       | Review queue: list, fetch, approve/edit-approve/reject (loopback-only)                  |
 
 ### Testing
 

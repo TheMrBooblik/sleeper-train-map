@@ -6,7 +6,7 @@
 //   proposals branch. Reject just moves the file. Sequential GitHub calls stay
 //   ≤5 so the handler fits Vercel Hobby's 10s budget.
 
-import { SESSION_COOKIE, verifySessionToken } from "../../../../lib/adminAuth";
+import { rejectUnlessLocalAdmin } from "../../../../lib/localAdmin.mjs";
 import {
   commitBranch,
   deleteFile,
@@ -40,9 +40,7 @@ export default async function handler(req, res) {
     res.setHeader("Allow", "GET, POST");
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!verifySessionToken(req.cookies?.[SESSION_COOKIE])) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  if (rejectUnlessLocalAdmin(req, res)) return;
   if (!isGithubWriteConfigured()) {
     return res.status(503).json({
       error: "GitHub access not configured (set ADMIN_GITHUB_TOKEN and ADMIN_REPO)",
