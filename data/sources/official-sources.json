@@ -1,0 +1,810 @@
+{
+  "v": 1,
+  "note": "Research catalogue for the integration dashboard (/data → Integrations). For each operator: the concrete official sources Pingwi could take data from, and how far that investigation has got. This file is PLANNING DATA ONLY — the scrape pipeline never reads it; a source only becomes real by getting a data/sources/registry.json entry. `integrationStatus` here is a fallback: the dashboard derives `integrated` / `needs-maintenance` from the registry and tonight's payload, so it can never claim Pingwi is fetching something it isn't. `lastChecked: null` means nobody has opened the URL and confirmed it since it was written down.",
+  "enums": {
+    "integrationStatus": [
+      "not-investigated",
+      "source-discovered",
+      "source-tested",
+      "in-progress",
+      "integrated",
+      "needs-maintenance"
+    ],
+    "sourceStatus": ["integrated", "working", "discovered", "broken"],
+    "difficulty": ["easy", "medium", "hard", "unknown"],
+    "auth": ["none", "api-key", "oauth", "account", "unknown"]
+  },
+  "difficultyGuide": {
+    "easy": "GTFS zip over plain HTTP — the generic gtfs-sleeper adapter already handles this shape; a registry entry plus a sleeper allowlist is the whole job.",
+    "medium": "Documented JSON/REST/GraphQL, or a standard XML dialect — needs a new adapter but no reverse engineering.",
+    "hard": "HTML scraping, an undocumented booking backend, or a feed behind registration/contract."
+  },
+  "operators": {
+    "UZ": {
+      "website": "https://www.uz.gov.ua/",
+      "countries": ["UA"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "hard",
+      "notes": "Biggest single block of Back-on-Track routes on the map. Ukrzaliznytsia publishes no open data and no GTFS; searched data.gov.ua and the UZ site and found only human-readable timetables. The only machine-readable surface is the booking backend behind booking.uz.gov.ua — same category as the ÖBB nightjet.com API we already use, so it is a real option, just an undocumented one.",
+      "sources": [
+        {
+          "name": "UZ booking backend (undocumented)",
+          "url": "https://booking.uz.gov.ua/",
+          "docsUrl": null,
+          "format": "JSON API (undocumented)",
+          "provides": ["trains", "stops", "times", "availability"],
+          "auth": "unknown",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Not documented and not licensed as open data. Needs a probe run before committing to it; terms of use must be checked."
+        },
+        {
+          "name": "UZ passenger timetable (HTML)",
+          "url": "https://www.uz.gov.ua/passengers/timetable/",
+          "docsUrl": null,
+          "format": "HTML",
+          "provides": ["trains", "stops", "times"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Official but human-readable only. Fallback if the booking backend is unusable."
+        }
+      ]
+    },
+    "CFR": {
+      "website": "https://www.cfrcalatori.ro",
+      "countries": ["RO"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "medium",
+      "notes": "Romania publishes the annual national timetable as open data on data.gov.ro — one dataset per licensed carrier, valid 12 months from the second Sunday in December. Static planning data, not live running info. XML, so it needs a parser, but it is genuinely official and covers every Romanian carrier including ATC.",
+      "sources": [
+        {
+          "name": "data.gov.ro — Mers tren, SNTFC \"CFR Calatori\" S.A.",
+          "url": "https://data.gov.ro/dataset/mers-tren-sntfc-cfr-calatori-s-a",
+          "docsUrl": "https://data.gov.ro/dataset?tags=mers+tren",
+          "format": "XML",
+          "provides": ["trains", "stops", "times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Current resource (2025–2026): https://data.gov.ro/dataset/mers-tren-sntfc-cfr-calatori-s-a/resource/0f67143e-bb88-4a06-8e7a-b35b1eb91329 — the resource UUID changes each timetable year, so resolve it from the dataset page rather than pinning it."
+        }
+      ]
+    },
+    "TCDD": {
+      "website": "https://www.tcddtasimacilik.gov.tr/",
+      "countries": ["TR"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "hard",
+      "notes": "No open data programme and no GTFS found for TCDD Taşımacılık. The e-bilet reservation backend is the only machine-readable surface — the same undocumented-booking-API pattern as Nightjet, so it is workable but needs a probe first.",
+      "sources": [
+        {
+          "name": "TCDD e-bilet reservation backend (undocumented)",
+          "url": "https://ebilet.tcddtasimacilik.gov.tr/",
+          "docsUrl": null,
+          "format": "JSON API (undocumented)",
+          "provides": ["trains", "stops", "times", "availability"],
+          "auth": "unknown",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Undocumented. Probe from Actions before writing an adapter (see .github/workflows/probe-oncf.yml for the pattern)."
+        }
+      ]
+    },
+    "SNCF": {
+      "website": "https://www.sncf.com",
+      "countries": ["FR"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "easy",
+      "notes": "The cheapest real win on the board: a plain GTFS zip, no key, covering TGV/Intercités/TER for the next ~151 days. The generic gtfs-sleeper adapter already reads this shape — a registry entry plus a sleeper allowlist (Intercités de Nuit) should be most of the work.",
+      "sources": [
+        {
+          "name": "SNCF Open Data — theoretical timetables (GTFS)",
+          "url": "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip",
+          "docsUrl": "https://ressources.data.sncf.com/explore/dataset/horaires-sncf/",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Also mirrored on the French national access point: https://transport.data.gouv.fr/datasets/horaires-sncf"
+        },
+        {
+          "name": "SNCF Open Data — theoretical timetables (NeTEx)",
+          "url": "https://eu.ftp.opendatasoft.com/sncf/plandata/export-opendata-sncf-netex.zip",
+          "docsUrl": "https://ressources.data.sncf.com/explore/",
+          "format": "NeTEx",
+          "provides": ["routes", "trips", "stops", "times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Same content as the GTFS export in the European standard format. Only worth it if the GTFS export turns out to be missing something."
+        }
+      ]
+    },
+    "MÁV": {
+      "website": "https://www.mavcsoport.hu",
+      "countries": ["HU"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "medium",
+      "notes": "MÁV has published an official GTFS database since 2016, but it is release-on-request: you submit a form and get a download. That one-off registration step is the only thing between us and a clean feed.",
+      "sources": [
+        {
+          "name": "MÁV GTFS — download request form",
+          "url": "https://www.mavcsoport.hu/gtfs-igenybejelento",
+          "docsUrl": null,
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "account",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Request access first; the resulting download URL is what the registry entry would point at. Once obtained, this is gtfs-sleeper adapter work."
+        }
+      ]
+    },
+    "BDŽ": {
+      "website": "https://www.bdz.bg",
+      "countries": ["BG"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "hard",
+      "notes": "No official API and no GTFS — searched the BDŽ site and the Bulgarian open data portal. The official timetable exists only as a web search form, so anything here means HTML scraping the same way the cd adapter does for Czech Railways.",
+      "sources": [
+        {
+          "name": "BDŽ timetable search (HTML)",
+          "url": "https://razpisanie.bdz.bg/en",
+          "docsUrl": null,
+          "format": "HTML",
+          "provides": ["trains", "stops", "times"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Official operator timetable, human-readable only. Scraping it is the cd-adapter pattern (scripts/adapters/cd.mjs)."
+        }
+      ]
+    },
+    "CS": {
+      "website": "https://www.sleeper.scot",
+      "countries": ["GB"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "hard",
+      "notes": "GB rail data is centralised and gated: the industry timetable and Darwin feeds come through the National Rail Data Portal, behind registration and licence acceptance. The Rail Delivery Group is retiring NRDP in early 2026 in favour of the Rail Data Marketplace, so pick the target carefully before building.",
+      "sources": [
+        {
+          "name": "National Rail Data Portal (Darwin / DTD timetable feeds)",
+          "url": "https://opendata.nationalrail.co.uk/",
+          "docsUrl": "https://wiki.openraildata.com/index.php?title=National_Rail_Data_Portal",
+          "format": "Darwin Push Port / DTD (CIF)",
+          "provides": ["trains", "stops", "times", "calendar", "realtime"],
+          "auth": "account",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Registration required. Covers every GB operator, so one integration would serve both CS and GWR. NRDP is being retired in early 2026 — check whether to target the Rail Data Marketplace instead."
+        }
+      ]
+    },
+    "GWR": {
+      "website": "https://www.gwr.com",
+      "countries": ["GB"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "hard",
+      "notes": "Same GB pipeline as Caledonian Sleeper — one National Rail integration would cover both, so treat these two as a single piece of work.",
+      "sources": [
+        {
+          "name": "National Rail Data Portal (Darwin / DTD timetable feeds)",
+          "url": "https://opendata.nationalrail.co.uk/",
+          "docsUrl": "https://wiki.openraildata.com/index.php?title=National_Rail_Data_Portal",
+          "format": "Darwin Push Port / DTD (CIF)",
+          "provides": ["trains", "stops", "times", "calendar", "realtime"],
+          "auth": "account",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Shared with CS — see that entry."
+        }
+      ]
+    },
+    "VR": {
+      "website": "https://www.vr.fi",
+      "countries": ["FI"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "easy",
+      "notes": "Finland is the best-published railway on this list: Fintraffic's Digitraffic serves a daily-regenerated GTFS zip for passenger trains with no key and no registration, plus a documented REST API alongside it.",
+      "sources": [
+        {
+          "name": "Digitraffic — GTFS, passenger trains",
+          "url": "https://rata.digitraffic.fi/api/v1/trains/gtfs-passenger-stops.zip",
+          "docsUrl": "https://www.digitraffic.fi/en/railway-traffic/",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Regenerated daily around 05:00 local. Straight gtfs-sleeper adapter work."
+        },
+        {
+          "name": "Digitraffic railway REST API",
+          "url": "https://rata.digitraffic.fi/api/v1/",
+          "docsUrl": "https://rata.digitraffic.fi/api/v1/doc/index.html",
+          "format": "JSON API",
+          "provides": ["trains", "stops", "times", "realtime"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Documented alternative if the GTFS export lacks something. Source system is the Finnish Transport Agency's LIIKE."
+        }
+      ]
+    },
+    "SJ": {
+      "website": "https://www.sj.se",
+      "countries": ["SE"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "medium",
+      "notes": "Sweden publishes one national GTFS feed covering every operator, via Trafiklab. Free but key-gated, so the adapter needs a scrape secret the way pkp-plk needs PLK_API_KEY.",
+      "sources": [
+        {
+          "name": "Trafiklab — GTFS Sweden (national feed)",
+          "url": "https://www.trafiklab.se/api/gtfs-datasets/gtfs-sweden/",
+          "docsUrl": "https://www.trafiklab.se/api/gtfs-datasets/overview/",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "api-key",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Free registration for the key. The only feed with complete Swedish operator coverage, so one integration serves SJ and Snälltåget together."
+        }
+      ]
+    },
+    "ST": {
+      "website": "https://www.snalltaget.se",
+      "countries": ["SE", "DE"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "medium",
+      "notes": "Snälltåget has no feed of its own; it rides in the Swedish national GTFS. Covered by the same Trafiklab integration as SJ — build once, get both.",
+      "sources": [
+        {
+          "name": "Trafiklab — GTFS Sweden (national feed)",
+          "url": "https://www.trafiklab.se/api/gtfs-datasets/gtfs-sweden/",
+          "docsUrl": "https://www.trafiklab.se/api/gtfs-datasets/overview/",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "api-key",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Shared with SJ — see that entry. The Berlin leg may or may not be in the Swedish feed; check before relying on it."
+        }
+      ]
+    },
+    "VY": {
+      "website": "https://www.vy.no",
+      "countries": ["NO"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "medium",
+      "notes": "Norway is fully centralised on Entur, which aggregates every Norwegian operator and serves an open, documented GraphQL journey planner plus NeTEx/GTFS bulk exports. One Entur integration covers VY, SJ Norge and Go-Ahead Nordic.",
+      "sources": [
+        {
+          "name": "Entur Journey Planner v3 (GraphQL)",
+          "url": "https://api.entur.io/journey-planner/v3/graphql",
+          "docsUrl": "https://developer.entur.org/pages-journeyplanner-journeyplanner/",
+          "format": "GraphQL API",
+          "provides": ["trains", "stops", "times", "realtime"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Open, no key (an identifying ET-Client-Name header is expected). Transmodel vocabulary, so the adapter maps concepts rather than reading GTFS."
+        },
+        {
+          "name": "Entur open data (NeTEx / GTFS bulk)",
+          "url": "https://developer.entur.no/apis/open",
+          "docsUrl": "https://developer.entur.no/apis/open",
+          "format": "NeTEx / GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Bulk export of the national dataset. Resolve the current download URL from this page — do not pin a snapshot."
+        }
+      ]
+    },
+    "SJN": {
+      "website": "https://www.sj.no/",
+      "countries": ["NO"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "medium",
+      "notes": "SJ Nord runs the Trondheim–Bodø night trains under Norwegian franchise, so its data is in Entur, not in SJ's Swedish feed. Covered by the same Entur integration as VY.",
+      "sources": [
+        {
+          "name": "Entur Journey Planner v3 (GraphQL)",
+          "url": "https://api.entur.io/journey-planner/v3/graphql",
+          "docsUrl": "https://developer.entur.org/pages-journeyplanner-journeyplanner/",
+          "format": "GraphQL API",
+          "provides": ["trains", "stops", "times", "realtime"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Shared with VY and GA — see the VY entry."
+        }
+      ]
+    },
+    "GA": {
+      "website": "https://go-aheadnordic.com",
+      "countries": ["NO"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "medium",
+      "notes": "Go-Ahead Nordic's Oslo–Stavanger night train is in Entur like every other Norwegian service. Same integration as VY and SJ Nord.",
+      "sources": [
+        {
+          "name": "Entur Journey Planner v3 (GraphQL)",
+          "url": "https://api.entur.io/journey-planner/v3/graphql",
+          "docsUrl": "https://developer.entur.org/pages-journeyplanner-journeyplanner/",
+          "format": "GraphQL API",
+          "provides": ["trains", "stops", "times", "realtime"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Shared with VY and SJN — see the VY entry."
+        }
+      ]
+    },
+    "RJ": {
+      "website": "https://regiojet.com",
+      "countries": ["CZ", "SK", "UA"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "medium",
+      "notes": "Two routes in. The Czech infrastructure manager (Správa železnic) publishes the whole national timetable — every operator, RegioJet included — as CZPTT XML through the CIS JŘ portal. RegioJet's own booking API is already used for price probes (scripts/adapters/regiojet-api.mjs), so that surface is known to work.",
+      "sources": [
+        {
+          "name": "CIS JŘ — national rail timetable (CZPTT XML)",
+          "url": "https://portal.cisjr.cz/pub/draha/celostatni/szdc/",
+          "docsUrl": "https://portal.cisjr.cz/",
+          "format": "XML (CZPTT)",
+          "provides": ["trains", "stops", "times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Official and complete for Czech rail — one integration would cover RJ, ČD and Leo Express. CZPTT is a European standard dialect but needs its own parser."
+        },
+        {
+          "name": "RegioJet public booking API",
+          "url": "https://brn-ybus-pubapi.sa.cz/restapi/routes/search/simple",
+          "docsUrl": null,
+          "format": "JSON API (undocumented)",
+          "provides": ["trains", "times", "prices"],
+          "auth": "none",
+          "status": "working",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Already called by the weekly price probe, so the endpoint is known good — it just isn't wired to timetables yet."
+        }
+      ]
+    },
+    "ZSSK": {
+      "website": "https://www.zssk.sk",
+      "countries": ["SK"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "medium",
+      "notes": "A Slovak national rail GTFS exists (published via ZSR, covering ZSSK, RegioJet and Leo Express), but I could not confirm the official upstream download URL — only the aggregator page below. Confirm the primary source before building.",
+      "sources": [
+        {
+          "name": "Slovak rail GTFS (via Transitland aggregator)",
+          "url": "https://www.transit.land/feeds/f-eo0-zssk",
+          "docsUrl": "https://www.transit.land/operators/o-eo0-zssk",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Aggregator page — use it to find the official upstream URL, then point the registry entry at that, not at Transitland."
+        }
+      ]
+    },
+    "HŽPP": {
+      "website": "https://www.hzpp.hr",
+      "countries": ["HR"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "unknown",
+      "notes": "A GTFS feed for HŽPP is known to exist through aggregators, but I could not confirm an official Croatian publication URL. Next step is to find whether it comes from HŽPP itself or from the Croatian national access point.",
+      "sources": [
+        {
+          "name": "HŽPP GTFS (via Transitland aggregator)",
+          "url": "https://www.transit.land/operators/o-hzpp",
+          "docsUrl": null,
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Aggregator page — trace it back to the official publisher before wiring anything up."
+        }
+      ]
+    },
+    "RDC": {
+      "website": "https://www.rdc-deutschland.de",
+      "countries": ["DE", "AT", "IT"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "hard",
+      "notes": "The Alpen-Express is a private German long-distance service. Germany's national DELFI dataset does include long-distance rail, so it is the plausible route in — but it is registration-gated and enormous, and whether a charter operator like RDC appears in it needs checking first.",
+      "sources": [
+        {
+          "name": "OpenData ÖPNV — DELFI nationwide timetable (GTFS)",
+          "url": "https://www.opendata-oepnv.de/ht/de/organisation/delfi/startseite",
+          "docsUrl": "https://www.delfi.de/",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "account",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Registration required; GTFS/NeTEx refreshed weekly (Mondays). Includes rail long-distance. Check RDC is actually in the feed before committing."
+        }
+      ]
+    },
+    "ATC": {
+      "website": "https://astratranscarpatic.ro",
+      "countries": ["RO"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "medium",
+      "notes": "Romanian carriers each publish their annual timetable on data.gov.ro under the 'mers tren' tag. If ATC has a dataset there, it comes free with the CFR integration — the same parser, a second file.",
+      "sources": [
+        {
+          "name": "data.gov.ro — 'mers tren' datasets (all Romanian carriers)",
+          "url": "https://data.gov.ro/dataset?tags=mers+tren",
+          "docsUrl": null,
+          "format": "XML",
+          "provides": ["trains", "stops", "times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Confirm an Astra Trans Carpatic dataset exists under this tag; if not, this operator has no official machine-readable source."
+        }
+      ]
+    },
+    "CFM": {
+      "website": "http://railway.md",
+      "countries": ["MD"],
+      "integrationStatus": "source-discovered",
+      "difficulty": "hard",
+      "notes": "No open data, no GTFS and no documented API found for Calea Ferată din Moldova. Its two routes are joint services, so the partner operator's feed (UZ or CFR) may end up covering them instead — check that before spending effort here.",
+      "sources": []
+    },
+    "ŽS": {
+      "website": "https://srbijavoz.rs",
+      "countries": ["RS"],
+      "integrationStatus": "not-investigated",
+      "difficulty": "unknown",
+      "notes": "Srbija Voz — no official machine-readable source found yet. One route, so low value; revisit only if a Balkan feed turns up while working on a neighbour.",
+      "sources": []
+    },
+    "ŽPCG": {
+      "website": "https://www.zcg-prevoz.me",
+      "countries": ["ME"],
+      "integrationStatus": "not-investigated",
+      "difficulty": "unknown",
+      "notes": "Montenegro Railways — no official machine-readable source found yet. One route, jointly run with ŽS, so the two would sensibly be researched together.",
+      "sources": []
+    },
+    "OTE": {
+      "website": "https://www.optimatours.de",
+      "countries": ["DE"],
+      "integrationStatus": "not-investigated",
+      "difficulty": "unknown",
+      "notes": "Optima Tours is a tour operator running charter sleepers, not a railway — there is no timetable feed to integrate. Its single route is realistically a permanent curated entry (data/canonical/routes/) rather than an integration target.",
+      "sources": []
+    },
+    "ÖBB": {
+      "website": "https://personenverkehr.oebb.at",
+      "countries": ["AT"],
+      "integrationStatus": "integrated",
+      "difficulty": "medium",
+      "notes": "Integrated via the official Nightjet booking API since the nightjet registry entry. Two Back-on-Track rows remain — joint services whose train numbers the Nightjet API does not return.",
+      "sources": [
+        {
+          "name": "ÖBB Nightjet booking API",
+          "url": "https://www.nightjet.com/nj-booking-ocp/destinations/train/{train}/{date}",
+          "docsUrl": null,
+          "format": "JSON API (undocumented)",
+          "provides": ["trains", "stops", "times", "polylines", "prices"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Registry id `nightjet`. Also drives the weekly price probe via scripts/adapters/nightjet-offers.mjs."
+        },
+        {
+          "name": "ÖBB open data portal",
+          "url": "https://data.oebb.at/",
+          "docsUrl": null,
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "unknown",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Not used. Worth checking if the booking API ever stops returning the joint services that still fall back to Back-on-Track."
+        }
+      ]
+    },
+    "PKP": {
+      "website": "https://www.intercity.pl",
+      "countries": ["PL"],
+      "integrationStatus": "integrated",
+      "difficulty": "medium",
+      "notes": "Two official sources feed PKP: the Polish GTFS bundle for geometry and the PLK infrastructure manager's API for the authoritative stop lists, including cross-border stations the Polish feed omits.",
+      "sources": [
+        {
+          "name": "PLK Otwarte Dane Kolejowe API",
+          "url": "https://pdp-api.plk-sa.pl/api/v1/schedules",
+          "docsUrl": "https://pdp-api.plk-sa.pl/api-documentation",
+          "format": "JSON API",
+          "provides": ["trains", "stops", "times"],
+          "auth": "api-key",
+          "status": "integrated",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Registry id `pkp-plk`. Key supplied as the PLK_API_KEY scrape secret; no geometry of its own."
+        },
+        {
+          "name": "Polish rail GTFS bundle",
+          "url": "https://mkuran.pl/gtfs/polish_trains.zip",
+          "docsUrl": "https://mkuran.pl/gtfs/",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "shapes"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Registry id `pkp-gtfs`. Community-maintained republication of official Polish data — the polylines come from here."
+        }
+      ]
+    },
+    "ČD": {
+      "website": "https://www.cd.cz",
+      "countries": ["CZ"],
+      "integrationStatus": "integrated",
+      "difficulty": "medium",
+      "notes": "Integrated by scraping cd.cz train pages. The CIS JŘ national timetable would be a sturdier replacement and would cover RegioJet and Leo Express in the same pass.",
+      "sources": [
+        {
+          "name": "cd.cz train detail pages",
+          "url": "https://www.cd.cz/en/vlak/{trainNumber}",
+          "docsUrl": null,
+          "format": "HTML",
+          "provides": ["trains", "stops", "times"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Registry id `cd`. Operator's own pages, but HTML — brittle by nature."
+        },
+        {
+          "name": "CIS JŘ — national rail timetable (CZPTT XML)",
+          "url": "https://portal.cisjr.cz/pub/draha/celostatni/szdc/",
+          "docsUrl": "https://portal.cisjr.cz/",
+          "format": "XML (CZPTT)",
+          "provides": ["trains", "stops", "times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Shared with RJ and LE — a single CZPTT parser would replace the HTML scrape and cover three operators."
+        }
+      ]
+    },
+    "LE": {
+      "website": "https://www.le.cz",
+      "countries": ["CZ", "PL", "DE"],
+      "integrationStatus": "integrated",
+      "difficulty": "medium",
+      "notes": "Covered today through the Polish GTFS bundle (the Przemyśl–Frankfurt night train). CIS JŘ would be the Czech-side counterpart.",
+      "sources": [
+        {
+          "name": "Polish rail GTFS bundle",
+          "url": "https://mkuran.pl/gtfs/polish_trains.zip",
+          "docsUrl": "https://mkuran.pl/gtfs/",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "shapes"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Registry id `pkp-gtfs`; the enrich config lists LE among its agencyIds."
+        }
+      ]
+    },
+    "ES": {
+      "website": "https://www.europeansleeper.eu",
+      "countries": ["NL", "BE", "DE", "CZ", "CH", "IT"],
+      "integrationStatus": "integrated",
+      "difficulty": "easy",
+      "notes": "Fully first-party: GTFS from the Mobility Database for geometry and validity, the operator's own timetable page for stops, times and service days.",
+      "sources": [
+        {
+          "name": "Mobility Database — European Sleeper GTFS (mdb-3107)",
+          "url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-3107/latest.zip",
+          "docsUrl": "https://mobilitydatabase.org/feeds/gtfs/mdb-3107",
+          "format": "GTFS",
+          "provides": [
+            "routes",
+            "trips",
+            "stops",
+            "stop_times",
+            "shapes",
+            "calendar"
+          ],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Registry id `europeansleeper`. Use the self-updating `latest.zip` alias — the dated URLs are immutable snapshots."
+        },
+        {
+          "name": "European Sleeper timetable page",
+          "url": "https://www.europeansleeper.eu/timetable",
+          "docsUrl": null,
+          "format": "HTML",
+          "provides": ["stops", "times", "calendar"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": null,
+          "probeWorkflow": "probe-europeansleeper.yml",
+          "notes": "Laid over the feed by mergePageOverFeed(); the operator's page wins on stops/times/days, GTFS keeps the polyline. Never fatal — a page outage falls back to GTFS."
+        }
+      ]
+    },
+    "FS": {
+      "website": "https://www.trenitalia.com",
+      "countries": ["IT"],
+      "integrationStatus": "integrated",
+      "difficulty": "medium",
+      "notes": "Integrated via Trenitalia's own Viaggiatreno service. Italy publishes no national rail GTFS, so this is the official surface available.",
+      "sources": [
+        {
+          "name": "Viaggiatreno REST API",
+          "url": "http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno",
+          "docsUrl": null,
+          "format": "JSON API (undocumented)",
+          "provides": ["trains", "stops", "times", "realtime"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Registry id `italian`. Driven by an explicit ICN train-number list in the registry params."
+        }
+      ]
+    },
+    "CR": {
+      "website": "https://www.12306.cn",
+      "countries": ["CN"],
+      "integrationStatus": "integrated",
+      "difficulty": "hard",
+      "notes": "The largest automated block on the map (63 routes) — China Railway's official 12306 ticketing system, driven by a curated sleeper allowlist.",
+      "sources": [
+        {
+          "name": "China Railway 12306 ticketing API",
+          "url": "https://kyfw.12306.cn/otn/leftTicket/query",
+          "docsUrl": null,
+          "format": "JSON API (undocumented)",
+          "provides": ["trains", "stops", "times", "availability"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": null,
+          "probeWorkflow": "probe-12306.yml",
+          "notes": "Registry id `chinese`. leftTicket + queryByTrainNo; sticky merge keeps yesterday's trains on a total outage."
+        }
+      ]
+    },
+    "AMTK": {
+      "website": "https://www.amtrak.com",
+      "countries": ["US"],
+      "integrationStatus": "integrated",
+      "difficulty": "easy",
+      "notes": "Amtrak's own published GTFS, filtered to a curated sleeper allowlist by the generic gtfs-sleeper adapter.",
+      "sources": [
+        {
+          "name": "Amtrak GTFS",
+          "url": "https://content.amtrak.com/content/gtfs/GTFS.zip",
+          "docsUrl": null,
+          "format": "GTFS",
+          "provides": [
+            "routes",
+            "trips",
+            "stops",
+            "stop_times",
+            "shapes",
+            "calendar"
+          ],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Registry id `amtrak`; allowlist in data/sources/amtrak-sleepers.json."
+        }
+      ]
+    },
+    "VIA": {
+      "website": "https://www.viarail.ca",
+      "countries": ["CA"],
+      "integrationStatus": "integrated",
+      "difficulty": "easy",
+      "notes": "VIA Rail's own published GTFS, same generic adapter as Amtrak.",
+      "sources": [
+        {
+          "name": "VIA Rail GTFS",
+          "url": "https://www.viarail.ca/sites/all/files/gtfs/viarail.zip",
+          "docsUrl": null,
+          "format": "GTFS",
+          "provides": [
+            "routes",
+            "trips",
+            "stops",
+            "stop_times",
+            "shapes",
+            "calendar"
+          ],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Registry id `viarail`; allowlist in data/sources/viarail-sleepers.json."
+        }
+      ]
+    },
+    "GR": {
+      "website": "https://www.railway.ge",
+      "countries": ["GE"],
+      "integrationStatus": "integrated",
+      "difficulty": "hard",
+      "notes": "Georgian Railway's international-trains page is scraped and merged with a curated route config. Low volume, no better source known.",
+      "sources": [
+        {
+          "name": "Georgian Railway international trains page",
+          "url": "https://www.railway.ge/en/passenger-traffic/international-trains/",
+          "docsUrl": null,
+          "format": "HTML",
+          "provides": ["trains", "times"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Registry id `caucasus` (static config + this scrape)."
+        }
+      ]
+    },
+    "ADY": {
+      "website": "https://ady.az",
+      "countries": ["AZ"],
+      "integrationStatus": "integrated",
+      "difficulty": "hard",
+      "notes": "Served from the curated Caucasus route config; no official machine-readable source known for Azerbaijan Railways.",
+      "sources": []
+    },
+    "SCR": {
+      "website": "https://www.railway.am",
+      "countries": ["AM"],
+      "integrationStatus": "integrated",
+      "difficulty": "hard",
+      "notes": "Served from the curated Caucasus route config; no official machine-readable source known for South Caucasus Railway.",
+      "sources": []
+    }
+  }
+}

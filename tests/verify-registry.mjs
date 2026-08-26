@@ -31,6 +31,11 @@ const invalidEntries = [
     { ...base, enrich: { strategy: "trainsByNumber", agencyIds: [""] } },
     "empty enrich agencyIds entry",
   ],
+  [{ ...base, endpoint: "" }, "empty endpoint string"],
+  [
+    { ...base, endpoint: "https://a.example/feed.zip", params: { feedUrl: "https://b.example/feed.zip" } },
+    "endpoint drifted from params.feedUrl",
+  ],
 ];
 for (const [entry, label] of invalidEntries) {
   if (validateRegistryEntry(entry).length === 0) {
@@ -68,6 +73,15 @@ for (const entry of registry) {
   const file = path.join(ADAPTERS_DIR, `${entry.adapter}.mjs`);
   if (!fs.existsSync(file)) {
     problems.push(`[${entry.id}] adapter module missing: scripts/adapters/${entry.adapter}.mjs`);
+  }
+}
+
+// Every enabled source must name the concrete address it reads, so the
+// integration dashboard can print it instead of a category ("official API").
+for (const entry of registry) {
+  if (!entry.enabled) continue;
+  if (!entry.endpoint) {
+    problems.push(`[${entry.id}] enabled entry must declare an endpoint`);
   }
 }
 

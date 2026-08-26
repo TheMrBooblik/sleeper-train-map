@@ -20,15 +20,10 @@ import {
   getBookingPageUrl,
   getDealsLink,
 } from "./operatorBooking.js";
-import { OPERATORS } from "./seo/operatorNames.mjs";
+import { OPERATORS, splitAgencyIds } from "./seo/operatorNames.mjs";
 
 /** "PKP/ČD" → ["PKP", "ČD"]; trims whitespace, drops empty segments. */
-export function splitAgencyIds(agencyId) {
-  return (agencyId || "")
-    .split("/")
-    .map((id) => id.trim())
-    .filter(Boolean);
-}
+export { splitAgencyIds } from "./seo/operatorNames.mjs";
 
 /**
  * A train number as the operator writes it.

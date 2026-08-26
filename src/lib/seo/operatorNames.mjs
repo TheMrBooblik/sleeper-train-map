@@ -76,3 +76,22 @@ export const OPERATORS = {
   AMTK: { name: "Amtrak", slug: "amtrak" },
   VIA: { name: "VIA Rail", slug: "via-rail" },
 };
+
+/**
+ * Split a (possibly compound) agency_id into its component operator ids.
+ * "PKP/ČD" → ["PKP", "ČD"]; "ÖBB" → ["ÖBB"].
+ *
+ * Lives here, next to the table it feeds, so raw-node callers (the verify
+ * suites, the integration model) get it without pulling in a bundler-only
+ * module. seo/operators.js and operatorAgencies.mjs re-export it.
+ *
+ * @param {string} agencyId
+ * @returns {string[]}
+ */
+export function splitAgencyIds(agencyId) {
+  if (!agencyId) return [];
+  return String(agencyId)
+    .split("/")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}

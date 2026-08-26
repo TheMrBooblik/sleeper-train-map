@@ -167,6 +167,48 @@ async function finalizeViewMap(ctx, registry) {
   write("backontrack-view_ontd_map.json", view_ontd_map);
 }
 
+// ─── Source health log ──────────────────────────────────────────────────────
+// The runner has always collected per-source errors and then thrown them away
+// on exit, which is why "last failed fetch" existed nowhere. Persist them
+// instead, merged with the previous file so the history survives a night where
+// a source did not run at all (weekly steps, or a source turned off in the
+// registry). Read by /api/admin/integrations; committed by the daily workflow
+// along with everything else under public/data/scraped/.
+
+function writeSourceHealth(registry, results, runStartedAt) {
+  let previous = {};
+  try {
+    const raw = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "source-health.json"), "utf8"));
+    previous = raw?.data?.sources ?? {};
+  } catch {
+    previous = {};
+  }
+
+  const nowIso = new Date().toISOString();
+  const sources = { ...previous };
+  for (const entry of registry) {
+    const result = results[entry.id];
+    const prior = previous[entry.id] ?? {};
+    if (!result) {
+      // Not run tonight (disabled, or not scheduled) — carry the record forward
+      // untouched rather than inventing a success or a failure.
+      sources[entry.id] = { ...prior, enabled: !!entry.enabled };
+      continue;
+    }
+    sources[entry.id] = {
+      enabled: !!entry.enabled,
+      lastRunAt: nowIso,
+      lastSuccessAt: result.ok ? nowIso : (prior.lastSuccessAt ?? null),
+      lastFailureAt: result.ok ? (prior.lastFailureAt ?? null) : nowIso,
+      lastError: result.ok ? (prior.lastError ?? null) : result.error,
+      trainCount: result.trainCount ?? prior.trainCount ?? null,
+      consecutiveFailures: result.ok ? 0 : (prior.consecutiveFailures ?? 0) + 1,
+    };
+  }
+
+  write("source-health.json", { runStartedAt, runFinishedAt: nowIso, sources });
+}
+
 // Whether a scheduled external entry runs tonight (mirrors the old workflow
 // conditions: weekly = Mondays, or any manual workflow_dispatch / forced run).
 function shouldRunToday(schedule) {
@@ -193,6 +235,7 @@ async function main() {
 
   const errors = [];
   const today = new Date().toISOString().slice(0, 10);
+  const runStartedAt = new Date().toISOString();
 
   // Per-source trains files get the sticky merge; raw datasets write as-is.
   // The merged result is exposed on ctx.writtenTrains so adapters/post-steps
@@ -220,14 +263,25 @@ async function main() {
 
   console.log(`[scrape] starting — date: ${today}`);
 
+  const results = {};
+  const trainCountFor = (entry) =>
+    entry.output && writtenTrains[entry.output]
+      ? Object.keys(writtenTrains[entry.output]).length
+      : null;
+
   for (const entry of registry) {
     if (!entry.enabled) continue;
     if (entry.adapter) {
       try {
         const mod = await import(`./adapters/${entry.adapter}.mjs`);
         await mod.run(entry, ctx);
+        results[entry.id] = { ok: true, trainCount: trainCountFor(entry) };
       } catch (err) {
-        if (entry.critical) throw err;
+        results[entry.id] = { ok: false, error: err.message };
+        if (entry.critical) {
+          writeSourceHealth(registry, results, runStartedAt);
+          throw err;
+        }
         errors.push({ source: entry.id, error: err.message });
         console.error(`[scrape] ${entry.id} failed: ${err.message}`);
       }
@@ -241,7 +295,9 @@ async function main() {
       try {
         console.log(`[scrape] ${entry.id}: running "${entry.command}"`);
         execSync(entry.command, { cwd: ROOT_DIR, stdio: "inherit", timeout: 15 * 60 * 1000 });
+        results[entry.id] = { ok: true, trainCount: null };
       } catch (err) {
+        results[entry.id] = { ok: false, error: err.message };
         errors.push({ source: entry.id, error: err.message });
         console.error(`[scrape] ${entry.id} failed: ${err.message}`);
       }
@@ -249,6 +305,7 @@ async function main() {
   }
 
   await finalizeViewMap(ctx, registry);
+  writeSourceHealth(registry, results, runStartedAt);
 
   console.log(`[scrape] done. errors: ${errors.length}`);
   if (errors.length) console.error("[scrape] errors:", errors);
