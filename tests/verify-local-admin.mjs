@@ -40,10 +40,16 @@ check("missing host is denied", () => {
 check("Vercel is denied even with localhost Host", () => {
   assert.equal(isLocalAdmin({ host: "localhost:3000", vercel: true }), false);
 });
-check("spoofed localhost Host from a LAN IP is denied", () => {
+check("spoofed localhost Host from a LAN IP is denied in production", () => {
   assert.equal(
     isLocalAdmin({ host: "localhost:3000", ip: "192.168.1.20" }),
     false,
+  );
+});
+check("next dev allows loopback Host even if request.ip is a proxy address", () => {
+  assert.equal(
+    isLocalAdmin({ host: "localhost:3000", ip: "192.168.1.20", dev: true }),
+    true,
   );
 });
 

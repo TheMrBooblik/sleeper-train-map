@@ -1,14 +1,11 @@
 // Admin gate: /data and its APIs are loopback-only. No login, no cookies.
 //
-// Two independent checks, both required to pass:
-//   1. Never on Vercel (production and preview). VERCEL=1 is set by the
-//      platform, so a spoofed Host: localhost header cannot open the admin.
-//   2. The Host header must be a loopback name. When the connecting IP is
-//      known, it must be loopback too — otherwise someone on the LAN could
-//      send Host: localhost to a next dev server bound on 0.0.0.0.
+// Production lock: never on Vercel (VERCEL=1 is set by the platform).
+// Local lock: Host must be a loopback name.
 //
-// Missing IP is allowed: local Next middleware often has no request.ip.
-// Do not trust X-Forwarded-For; it is trivial to spoof.
+// Do not deny on request.ip during `next dev`. Next middleware often reports
+// a non-loopback ip for a localhost Host (proxy, IPv6, docker), which 404'd
+// /data and left browsers sitting on a cached /data → /login redirect.
 
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
 
@@ -32,12 +29,14 @@ function isLoopbackIp(ip) {
 }
 
 /**
- * Pure predicate. Pass `vercel` explicitly so tests do not touch process.env.
- * @param {{ host?: string, ip?: string, vercel?: boolean }} info
+ * Pure predicate. Pass `vercel` / `dev` explicitly so tests do not touch process.env.
+ * @param {{ host?: string, ip?: string, vercel?: boolean, dev?: boolean }} info
  */
-export function isLocalAdmin({ host, ip, vercel } = {}) {
+export function isLocalAdmin({ host, ip, vercel, dev } = {}) {
   if (vercel) return false;
   if (!LOOPBACK_HOSTS.has(hostnameOf(host))) return false;
+  // `next dev`: Host is enough. IP is only a spoof check for `next start`.
+  if (dev) return true;
   if (ip && !isLoopbackIp(ip)) return false;
   return true;
 }
@@ -53,6 +52,7 @@ export function isLocalAdminRequest(req) {
     host,
     ip,
     vercel: Boolean(process.env.VERCEL),
+    dev: process.env.NODE_ENV !== "production",
   });
 }
 

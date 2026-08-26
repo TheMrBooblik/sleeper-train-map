@@ -301,6 +301,14 @@ export default function DataPage() {
       .catch(() => {});
   }, []);
 
+  // Middleware sends cached /data→/login hops to /data?local=1 so the
+  // request misses the cached URL. Drop the query from the address bar.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.search !== "?local=1") return;
+    window.history.replaceState(null, "", "/data");
+  }, []);
+
   return (
     <div className={`h-screen flex flex-col overflow-hidden bg-gray-50 ${ADMIN_INTERACTIVE}`}>
       <Head>

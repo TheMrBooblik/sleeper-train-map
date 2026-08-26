@@ -78,11 +78,10 @@ test.describe("canonicals", () => {
     expect(res.headers()["location"] || "").not.toContain("/login");
   });
 
-  test("the retired login URL redirects to the map", async ({ request }) => {
+  test("the retired login URL returns to /data locally", async ({ request }) => {
     const res = await request.get("/login", { maxRedirects: 0 });
-    expect(res.status()).toBe(301);
-    expect((res.headers()["location"] || "").replace(/^https:\/\/pingwi\.com/, "")).toBe(
-      "/",
-    );
+    expect(res.status()).toBe(303);
+    expect(res.headers()["location"] || "").toContain("/data");
+    expect(res.headers()["location"] || "").not.toMatch(/\/login(?:\?|$)/);
   });
 });
