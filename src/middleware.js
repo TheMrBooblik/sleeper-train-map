@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isLocalAdminRequest } from "./lib/localAdmin.mjs";
 
 export function middleware(request) {
+  // Never send anyone to /login — that page is gone.
   if (isLocalAdminRequest(request)) return NextResponse.next();
 
   // Look like the path does not exist. Do not advertise an admin surface.

@@ -3,7 +3,7 @@
  * - Network-first for /api/initial-data (stale fallback if offline)
  * - Never cache admin / review / suggest write paths
  */
-const CACHE_VERSION = "train-map-v1";
+const CACHE_VERSION = "train-map-v2";
 const SHELL_URLS = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -26,6 +26,7 @@ function isNeverCache(url) {
     p.startsWith("/api/admin") ||
     p.startsWith("/api/suggest") ||
     p.startsWith("/data") ||
+    p === "/login" ||
     p.includes("proposals")
   );
 }

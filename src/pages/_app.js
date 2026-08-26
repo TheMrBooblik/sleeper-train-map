@@ -12,8 +12,16 @@ function MyApp({ Component, pageProps }) {
     // Skip SW on localhost during active development to avoid stale caches.
     const isLocal =
       window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1";
-    if (isLocal && process.env.NODE_ENV === "development") return;
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname === "[::1]";
+    if (isLocal) {
+      // Unregister leftover SW from a previous `next start`. An old worker
+      // could still replay a cached /data → /login redirect.
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((r) => r.unregister());
+      });
+      return;
+    }
 
     navigator.serviceWorker.register("/sw.js").catch(() => {
       // Installability still works via the manifest even if SW registration fails.

@@ -72,8 +72,17 @@ test.describe("canonicals", () => {
     expect(html).toMatch(/<meta[^>]+name="robots"[^>]+content="[^"]*noindex/);
   });
 
-  test("the retired login page is gone", async ({ request }) => {
-    const res = await request.get("/login");
-    expect(res.status()).toBe(404);
+  test("the admin page does not redirect to login", async ({ request }) => {
+    const res = await request.get("/data", { maxRedirects: 0 });
+    expect(res.status()).toBe(200);
+    expect(res.headers()["location"] || "").not.toContain("/login");
+  });
+
+  test("the retired login URL redirects to the map", async ({ request }) => {
+    const res = await request.get("/login", { maxRedirects: 0 });
+    expect(res.status()).toBe(301);
+    expect((res.headers()["location"] || "").replace(/^https:\/\/pingwi\.com/, "")).toBe(
+      "/",
+    );
   });
 });

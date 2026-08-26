@@ -34,6 +34,14 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // Retired admin login. Never render a credentials form; send leftover
+      // bookmarks and cached /data→/login hops to the public map.
+      {
+        source: '/login',
+        destination: dest('/'),
+        statusCode: 301,
+      },
+
       // 1. Retired URLs → their canonical page. Listed FIRST and with an absolute
       //    destination in production, so a request to the legacy host lands on the
       //    final URL in one hop instead of chaining through rule 3.
