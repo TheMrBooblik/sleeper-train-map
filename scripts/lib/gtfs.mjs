@@ -54,7 +54,10 @@ function parseCsvLine(line) {
 
 export function readCsv(filePath) {
   if (!fs.existsSync(filePath)) return [];
-  const raw = fs.readFileSync(filePath, "utf8").replace(/^﻿/, "").replace(/\r\n/g, "\n");
+  const raw = fs
+    .readFileSync(filePath, "utf8")
+    .replace(/^﻿/, "")
+    .replace(/\r\n/g, "\n");
   const lines = raw.split("\n").filter((line) => line.trim().length > 0);
   if (lines.length === 0) return [];
   const headers = parseCsvLine(lines[0]).map((h) => h.trim());
@@ -195,6 +198,99 @@ export function loadGtfsDir(dir) {
     calendarById,
     addedDatesByService,
   };
+}
+
+// ─── Overnight trip detection ────────────────────────────────────────────────
+// What actually makes a train a sleeper, in a form every GTFS feed can answer:
+// its stop_times cross midnight. GTFS encodes after-midnight as 24:xx/25:xx, so
+// the test is exact rather than heuristic — no reliance on route names, which
+// national feeds do not carry (SNCF's 711 routes are TER/Intercités *lines*
+// like "P53"; not one mentions "nuit").
+//
+// Crossing midnight alone is necessary but not sufficient: it also catches TER
+// running an hour past it and late TGV. Duration separates them with room to
+// spare — measured on the SNCF feed, the shortest real sleeper is 8h29
+// (Toulouse → Paris) and the longest false positive 5h34 (a Paris → Nice TGV),
+// so the 7h default sits in the gap.
+//
+// Kept here rather than in one adapter because it is the same question for
+// every national feed we have yet to integrate (CFR, MÁV, DELFI).
+
+/** "25:40:00" → 92400. Null for anything unparseable. */
+export function gtfsTimeToSeconds(value) {
+  const m = /^\s*(\d+):(\d{2}):(\d{2})\s*$/.exec(String(value ?? ""));
+  return m ? Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) : null;
+}
+
+/**
+ * Group a feed's overnight trips by an identifier field.
+ *
+ * @param {object}   args
+ * @param {object}   args.gtfs        loadGtfsDir() output
+ * @param {number}   [args.minSeconds]  minimum end-to-end duration (default 7h)
+ * @param {string[]} [args.routeTypes]  GTFS route_type values to keep (default rail)
+ * @param {string}   [args.keyField]    trip field holding the train number.
+ *   Defaults to trip_headsign: SNCF leaves trip_short_name empty on all 43,425
+ *   trips and puts the number in the headsign. Feeds that fill trip_short_name
+ *   pass it instead.
+ * @returns {Map<string, Array<{trip, route, stopTimes, origin, destination,
+ *   departure, arrival, seconds, stops, dates}>>}
+ */
+export function overnightTrips({
+  gtfs,
+  minSeconds = 7 * 3600,
+  routeTypes = ["2"],
+  keyField = "trip_headsign",
+} = {}) {
+  const allowedTypes = new Set(routeTypes.map(String));
+  const grouped = new Map();
+
+  for (const trip of gtfs.trips ?? []) {
+    const route = gtfs.routesById.get(trip.route_id);
+    if (!allowedTypes.has(String(route?.route_type))) continue;
+
+    const stopTimes = gtfs.stopTimesByTrip.get(trip.trip_id) ?? [];
+    if (stopTimes.length < 2) continue;
+
+    const crosses = stopTimes.some(
+      (st) =>
+        (gtfsTimeToSeconds(st.arrival) ?? 0) >= 86400 ||
+        (gtfsTimeToSeconds(st.departure) ?? 0) >= 86400,
+    );
+    if (!crosses) continue;
+
+    const departure = gtfsTimeToSeconds(
+      stopTimes[0].departure ?? stopTimes[0].arrival,
+    );
+    const last = stopTimes[stopTimes.length - 1];
+    const arrival = gtfsTimeToSeconds(last.arrival ?? last.departure);
+    if (
+      departure === null ||
+      arrival === null ||
+      arrival - departure < minSeconds
+    )
+      continue;
+
+    const key = String(trip[keyField] ?? "").trim();
+    if (!key) continue;
+
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push({
+      trip,
+      route,
+      stopTimes,
+      origin:
+        gtfs.stopsById.get(stopTimes[0].stop_id)?.name ?? stopTimes[0].stop_id,
+      destination: gtfs.stopsById.get(last.stop_id)?.name ?? last.stop_id,
+      departure,
+      arrival,
+      seconds: arrival - departure,
+      stops: stopTimes.length,
+      dates: gtfs.addedDatesByService.get(trip.service_id) ?? [],
+    });
+  }
+
+  return grouped;
 }
 
 // ─── Service calendar → display string ───────────────────────────────────────
@@ -369,7 +465,9 @@ export function buildSleeperTrains({
   const renameStations = (list) =>
     renameMap
       ? list.map((s) => {
-          const to = s?.name ? renameMap.get(String(s.name).toLowerCase()) : null;
+          const to = s?.name
+            ? renameMap.get(String(s.name).toLowerCase())
+            : null;
           return to && to !== s.name ? { ...s, name: to } : s;
         })
       : list;
@@ -407,7 +505,8 @@ export function buildSleeperTrains({
         const originNorm = normLabel(stations[0].name);
         const destNorm = normLabel(stations[stations.length - 1].name);
         for (const pe of pairEntries) {
-          if (pairMatches(originNorm, destNorm, pe.from, pe.to)) pairHits.push(pe);
+          if (pairMatches(originNorm, destNorm, pe.from, pe.to))
+            pairHits.push(pe);
         }
       }
     }

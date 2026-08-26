@@ -1,36 +1,115 @@
 {
-  "note": "Curated allowlist of SNCF Intercités de Nuit corridors, mirroring the nine Back-on-Track rows they are meant to replace. GTFS does not flag sleeper service, so the adapter needs to be told which routes carry it. `routes` is what scripts/lib/gtfs.mjs matches on (endpoint pairs, accent- and token-insensitive); `trainNumbers` is the operator's own numbering for the same nine corridors, used by scripts/probe-sncf.mjs and by the adapter if the dry run shows endpoint pairs alone also match daytime TGV services on the same city pairs.",
+  "note": "SNCF Intercités de Nuit, keyed the way the feed actually identifies trains. The first probe round assumed endpoint pairs and route names; both were wrong — see `disproved` below. The feed leaves trip_short_name empty on all 43,425 trips and carries the train number in trip_headsign, and its 711 routes are TER/Intercités lines ('P53', 'Bening - Sarreguemines') with not one mentioning 'nuit'. So the adapter selects by number, guarded by the objective overnight test in overnightTrips() (scripts/lib/gtfs.mjs): stop_times crossing midnight, >= 7h, route_type=2.",
   "source": "https://ressources.data.sncf.com/explore/dataset/horaires-sncf/",
-  "routes": [
-    { "from": "Paris", "to": "Briançon" },
-    { "from": "Paris", "to": "Nice" },
-    { "from": "Paris", "to": "Cerbère" },
-    { "from": "Paris", "to": "Tarbes" },
-    { "from": "Paris", "to": "Latour-de-Carol" },
-    { "from": "Paris", "to": "Rodez" },
-    { "from": "Paris", "to": "Albi" },
-    { "from": "Paris", "to": "Aurillac" },
-    { "from": "Paris", "to": "Toulouse" }
-  ],
+  "probedFeedVersion": "2026-08-25",
+
   "trainNumbers": [
-    "5789", "5790",
-    "5781", "5772",
-    "5737", "5738",
-    "3740", "3731",
-    "3970", "3971",
-    "3754", "3755",
-    "3789", "3790",
-    "3750", "3751"
+    "5781",
+    "5772",
+    "5789",
+    "5790",
+    "5792",
+    "5737",
+    "5738",
+    "3731",
+    "3740",
+    "3970",
+    "3971",
+    "3754",
+    "3755",
+    "3789",
+    "3790",
+    "3792",
+    "3798",
+    "3750",
+    "3751"
   ],
+
+  "selectionRule": "Every number Back-on-Track already lists is included unconditionally — those are the rows being enriched, and a pure trip-count threshold would have dropped two of them: BoT runs Paris–Aurillac as 3789/3790 (2 trips each in the feed) while the feed's dominant number on that corridor is 3792 (6 trips). Beyond those, a feed number is included when it runs >= 4 times in the ~160-day window, which is what separates a scheduled service from a one-off relief.",
+
   "corridors": [
-    { "trains": ["5789", "5790"], "route": "Paris Austerlitz – Briançon", "botRouteId": "107" },
-    { "trains": ["5781", "5772"], "route": "Paris Austerlitz – Nice Ville (Le Train Bleu)", "botRouteId": "108" },
-    { "trains": ["3754", "3755"], "route": "Paris Austerlitz – Albi Ville (L'Occitan, Sunday portion)", "botRouteId": "109" },
-    { "trains": ["5737", "5738"], "route": "Paris Austerlitz – Cerbère", "botRouteId": "110" },
-    { "trains": ["3740", "3731"], "route": "Paris Austerlitz – Tarbes (Le Pyrénéen)", "botRouteId": "111" },
-    { "trains": ["3970", "3971"], "route": "Paris Austerlitz – Latour-de-Carol (Le Pyrénéen)", "botRouteId": "112" },
-    { "trains": ["3754", "3755"], "route": "Paris Austerlitz – Rodez (L'Occitan)", "botRouteId": "119" },
-    { "trains": ["3789", "3790"], "route": "Paris Austerlitz – Aurillac", "botRouteId": "262" },
-    { "trains": ["3750", "3751"], "route": "Paris Austerlitz – Toulouse Matabiau", "botRouteId": "264" }
-  ]
+    {
+      "botRouteId": "107",
+      "trains": ["5789", "5790"],
+      "endpoint": "Briançon",
+      "botKeys": ["IC Nuit 5789", "IC Nuit 5790"]
+    },
+    {
+      "botRouteId": "108",
+      "trains": ["5781", "5772"],
+      "endpoint": "Nice",
+      "botKeys": ["IC Nuit 5781", "IC Nuit 5772"],
+      "name": "Le Train Bleu"
+    },
+    {
+      "botRouteId": "109",
+      "trains": ["3754", "3755"],
+      "endpoint": "Albi",
+      "botKeys": ["IC Nuit 3754 (Sun)", "IC Nuit 3755 (Sun)"],
+      "name": "L'Occitan (Albi portion)"
+    },
+    {
+      "botRouteId": "110",
+      "trains": ["5737", "5738"],
+      "endpoint": "Cerbère",
+      "botKeys": ["IC Nuit 5737", "IC Nuit 5738"]
+    },
+    {
+      "botRouteId": "111",
+      "trains": ["3740", "3731"],
+      "endpoint": "Tarbes",
+      "botKeys": ["IC Nuit 3740", "IC Nuit 3731"],
+      "name": "Le Pyrénéen"
+    },
+    {
+      "botRouteId": "112",
+      "trains": ["3970", "3971"],
+      "endpoint": "Latour-de-Carol",
+      "botKeys": ["IC Nuit 3970", "IC Nuit 3971"],
+      "name": "Le Pyrénéen"
+    },
+    {
+      "botRouteId": "119",
+      "trains": ["3754", "3755"],
+      "endpoint": "Rodez",
+      "botKeys": ["IC Nuit 3754", "IC Nuit 3755"],
+      "name": "L'Occitan (Rodez portion)"
+    },
+    {
+      "botRouteId": "262",
+      "trains": ["3789", "3790"],
+      "endpoint": "Aurillac",
+      "botKeys": ["IC Nuit 3789", "IC Nuit 3790"]
+    },
+    {
+      "botRouteId": "264",
+      "trains": ["3750", "3751"],
+      "endpoint": "Toulouse Matabiau",
+      "botKeys": ["IC Nuit 3750", "IC Nuit 3751"]
+    }
+  ],
+
+  "portionSplit": "Rows 109 and 119 both carry 3754/3755 — L'Occitan splits into Albi and Rodez portions, and the feed carries both under the same number (Rodez modal at 8 dates, Albi at 3). Keyed by number alone the Rodez data would land on the Albi row, so the adapter disambiguates on `endpoint` and emits the exact `botKeys` string each row expects. That is also why 109's keys carry the '(Sun)' suffix: enrich.trainsByNumber does an exact lookup on trip_short_name.",
+
+  "observedNotMapped": {
+    "note": "Night trains the feed carries that are not built into map routes, with their trip counts over the ~160-day window. Recorded rather than dropped silently: if any of these grows into a scheduled service, it belongs in trainNumbers.",
+    "5744": 3,
+    "3795": 2,
+    "5741": 1,
+    "5787": 1,
+    "64001": 1,
+    "64002": 1,
+    "64003": 1,
+    "64004": 1,
+    "64005": 1,
+    "64006": 1,
+    "reason": "5741/5744/5787/3795 are one-off or relief workings on corridors already covered by their scheduled number. The 64001–64006 block runs Paris↔Briançon once each with 6–7 stops, which does not look like a public timetable entry; what it actually is has not been established."
+  },
+
+  "disproved": {
+    "note": "Kept so the next national feed does not repeat the experiment.",
+    "endpointPairs": "Matching { from: 'Paris', to: <city> } built 13 'sleeper' routes instead of 9, four of them daytime TGV sharing a city pair (Paris Montparnasse → Tarbes, Gare de Lyon → Nice). 'Paris – Rodez' matched nothing.",
+    "routeNames": "buildSleeperTrains groups by route_id and emits one train per route. Here one route_id bundles several corridors — the 'Paris - Latour-de-Carol' route's representative trip runs Albi → Paris.",
+    "tripShortName": "Empty on all 43,425 trips. Round 1 reported all sixteen numbers 'NOT FOUND' because it read this field; they are all present in trip_headsign."
+  }
 }
