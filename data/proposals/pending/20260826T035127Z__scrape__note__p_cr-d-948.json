@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_cr-d-948",
+  "createdAt": "2026-08-26T03:51:27.372Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: D 948 (Zhuhai(珠海) – Chengdudong(成都东))",
+  "summary": "Material change on an approved route (already live — FYI): operating days (return): \"Daily\" → \"null\"; train numbers: \"D 948|D 947\" → \"D 948\"",
+  "target": {
+    "routeKey": "cr_D_948",
+    "agencyId": "CR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (return)": "Daily",
+    "train numbers": "D 948|D 947"
+  },
+  "after": {
+    "operating days (return)": null,
+    "train numbers": "D 948"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
