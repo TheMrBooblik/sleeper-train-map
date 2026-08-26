@@ -21,7 +21,29 @@ export const OVERRIDE_FILES = {
   // The source registry rides the same admin write path (array of entries,
   // mutated by entry id). Scrapes pick changes up on the next nightly run.
   "source-registry": "data/sources/registry.json",
+  // Research catalogue behind /data → Integrations: per operator, the concrete
+  // official sources we could integrate and how far that has got. Planning
+  // data — nothing in the scrape pipeline reads it.
+  "official-sources": "data/sources/official-sources.json",
 };
+
+// Kept in step with src/lib/integrations/model.mjs, which renders these.
+const INTEGRATION_STATUSES = new Set([
+  "not-investigated",
+  "source-discovered",
+  "source-tested",
+  "in-progress",
+  "integrated",
+  "needs-maintenance",
+]);
+const SOURCE_STATUSES = new Set([
+  "integrated",
+  "working",
+  "discovered",
+  "broken",
+]);
+const DIFFICULTIES = new Set(["easy", "medium", "hard", "unknown"]);
+const AUTH_KINDS = new Set(["none", "api-key", "oauth", "account", "unknown"]);
 
 function invalid(message) {
   const err = new Error(message);
@@ -257,6 +279,141 @@ export function applyOverrideMutation(resource, action, payload, current) {
         if (index === -1) throw invalid(`unknown source: ${id}`);
         arr.splice(index, 1);
         return arr;
+      }
+      throw invalid(`unknown action "${action}" for ${resource}`);
+    }
+
+    // Official-source research catalogue: { v, note, …, operators: { agencyId:
+    // { website, countries, integrationStatus, difficulty, notes, sources[] } } }.
+    // Sources are addressed by array index because two entries may legitimately
+    // share a name (a GTFS and a NeTEx export of the same dataset).
+    case "official-sources": {
+      const doc =
+        next && typeof next === "object" && !Array.isArray(next)
+          ? next
+          : { v: 1, operators: {} };
+      doc.operators =
+        doc.operators && typeof doc.operators === "object" ? doc.operators : {};
+      const agencyId = requireString(p.agencyId, "agencyId");
+      const existing =
+        doc.operators[agencyId] && typeof doc.operators[agencyId] === "object"
+          ? doc.operators[agencyId]
+          : {
+              website: null,
+              countries: [],
+              integrationStatus: "not-investigated",
+              difficulty: "unknown",
+              notes: null,
+              sources: [],
+            };
+      const sources = Array.isArray(existing.sources)
+        ? [...existing.sources]
+        : [];
+
+      if (action === "setOperator") {
+        const patch =
+          p.operator && typeof p.operator === "object" ? p.operator : {};
+        if (
+          patch.integrationStatus !== undefined &&
+          !INTEGRATION_STATUSES.has(patch.integrationStatus)
+        ) {
+          throw invalid(
+            `unknown integrationStatus "${patch.integrationStatus}"`,
+          );
+        }
+        if (
+          patch.difficulty !== undefined &&
+          !DIFFICULTIES.has(patch.difficulty)
+        ) {
+          throw invalid(`unknown difficulty "${patch.difficulty}"`);
+        }
+        if (
+          patch.countries !== undefined &&
+          !(
+            Array.isArray(patch.countries) &&
+            patch.countries.every((c) => typeof c === "string")
+          )
+        ) {
+          throw invalid('"countries" must be an array of strings');
+        }
+        doc.operators[agencyId] = {
+          ...existing,
+          ...(patch.website !== undefined && {
+            website: patch.website ? String(patch.website) : null,
+          }),
+          ...(patch.countries !== undefined && { countries: patch.countries }),
+          ...(patch.integrationStatus !== undefined && {
+            integrationStatus: patch.integrationStatus,
+          }),
+          ...(patch.difficulty !== undefined && {
+            difficulty: patch.difficulty,
+          }),
+          ...(patch.notes !== undefined && {
+            notes: patch.notes ? String(patch.notes) : null,
+          }),
+          // Sources are only ever touched by setSource/removeSource, so an
+          // operator edit can never silently drop the research under it.
+          sources,
+        };
+        return doc;
+      }
+
+      if (action === "setSource") {
+        const src = p.source && typeof p.source === "object" ? p.source : null;
+        if (!src) throw invalid('"source" must be an object');
+        const name = requireString(src.name, "source.name");
+        const url = requireString(src.url, "source.url");
+        const status = src.status ?? "discovered";
+        if (!SOURCE_STATUSES.has(status))
+          throw invalid(`unknown source status "${status}"`);
+        const auth = src.auth ?? "unknown";
+        if (!AUTH_KINDS.has(auth)) throw invalid(`unknown auth "${auth}"`);
+        if (
+          src.provides !== undefined &&
+          !(
+            Array.isArray(src.provides) &&
+            src.provides.every((v) => typeof v === "string")
+          )
+        ) {
+          throw invalid('"source.provides" must be an array of strings');
+        }
+        const record = {
+          name,
+          url,
+          docsUrl: src.docsUrl ? String(src.docsUrl) : null,
+          format: src.format ? String(src.format) : null,
+          provides: src.provides ?? [],
+          auth,
+          status,
+          lastChecked: src.lastChecked ? String(src.lastChecked) : null,
+          probeWorkflow: src.probeWorkflow ? String(src.probeWorkflow) : null,
+          notes: src.notes ? String(src.notes) : null,
+        };
+        const index = Number.isInteger(p.index) ? p.index : -1;
+        if (index >= 0) {
+          if (index >= sources.length)
+            throw invalid(`source index ${index} out of range`);
+          sources[index] = record;
+        } else {
+          sources.push(record);
+        }
+        doc.operators[agencyId] = { ...existing, sources };
+        return doc;
+      }
+
+      if (action === "removeSource") {
+        if (!Number.isInteger(p.index))
+          throw invalid('"index" must be an integer');
+        if (p.index < 0 || p.index >= sources.length)
+          throw invalid(`source index ${p.index} out of range`);
+        sources.splice(p.index, 1);
+        doc.operators[agencyId] = { ...existing, sources };
+        return doc;
+      }
+
+      if (action === "remove") {
+        delete doc.operators[agencyId];
+        return doc;
       }
       throw invalid(`unknown action "${action}" for ${resource}`);
     }

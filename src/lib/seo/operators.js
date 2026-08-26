@@ -14,26 +14,13 @@
 import { slugify } from "./slugify.mjs";
 import { OPERATORS } from "./operatorNames.mjs";
 
-export { OPERATORS };
+// Single definition lives with the table it feeds, so raw-node callers can use it.
+export { OPERATORS, splitAgencyIds } from "./operatorNames.mjs";
 
 // Inverse slug → agency_id map (built once).
 const SLUG_TO_ID = new Map(
   Object.entries(OPERATORS).map(([id, meta]) => [meta.slug, id]),
 );
-
-/**
- * Split a (possibly compound) agency_id into its component operator ids.
- * "PKP/ČD" → ["PKP", "ČD"]; "ÖBB" → ["ÖBB"].
- * @param {string} agencyId
- * @returns {string[]}
- */
-export function splitAgencyIds(agencyId) {
-  if (!agencyId) return [];
-  return String(agencyId)
-    .split("/")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
 
 /**
  * Resolve an agency_id to its display metadata, with a graceful fallback so an

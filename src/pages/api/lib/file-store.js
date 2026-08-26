@@ -72,11 +72,16 @@ export function putOsmRelation(cacheKey, data) {
 
 // ─── Generic per-source train data ─────────────────────────────────────────
 
+// Reads any enveloped file in public/data/scraped/ by name.
+export function getScrapedFile(fileName) {
+  return Promise.resolve(readEnvelope(fileName));
+}
+
 // Reads any per-source trains file declared in data/sources/registry.json
 // (entry.output, e.g. "nightjet-trains.json"). The named getters below are
 // kept as thin wrappers for existing callers.
 export function getTrainsBySource(fileName) {
-  return Promise.resolve(readEnvelope(fileName));
+  return getScrapedFile(fileName);
 }
 
 // ─── NightJet / EuroNight train data ──────────────────────────────────────

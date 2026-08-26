@@ -18,6 +18,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
 const SCRAPED_DIR = path.join(ROOT, "public", "data", "scraped");
 const PUBLISHED_DIR = path.join(ROOT, "public", "data", "published");
+const SEEN_PATH = path.join(ROOT, "data", "canonical", "state", "seen.json");
 
 function readEnvelope(name) {
   try {
@@ -43,6 +44,41 @@ function assert(condition, message) {
 
 function countByPrefix(viewMap, prefix) {
   return Object.keys(viewMap).filter((k) => k.startsWith(prefix)).length;
+}
+
+// ── Route history ────────────────────────────────────────────────────────────
+// A compact projection of the approval index for the integration dashboard:
+// when each published route was first seen and when its content last actually
+// changed. Lives under public/ so the (loopback-only) admin API can read it off
+// disk — API routes must not fs-read data/, and bundling the 240 KB seen.json
+// into the lambda to answer three dates per route would be silly.
+//
+// lastChanged is maintained by scripts/lib/classify.mjs; a route missing from
+// seen.json (classify has not run since it appeared) simply has no dates.
+function writeRouteHistory(viewMap, generatedAt) {
+  let seen = null;
+  try {
+    seen = JSON.parse(fs.readFileSync(SEEN_PATH, "utf8"));
+  } catch {
+    console.warn("[canonicalize] seen.json unreadable — route-history.json will be empty");
+  }
+
+  const routes = {};
+  for (const key of Object.keys(viewMap)) {
+    const entry = seen?.routes?.[key];
+    if (!entry) continue;
+    routes[key] = {
+      firstSeen: entry.firstSeen ?? null,
+      lastSeen: entry.lastSeen ?? null,
+      lastChanged: entry.lastChanged ?? entry.firstSeen ?? null,
+    };
+  }
+
+  fs.writeFileSync(
+    path.join(PUBLISHED_DIR, "route-history.json"),
+    JSON.stringify({ v: 1, generatedAt, seenUpdatedAt: seen?.updatedAt ?? null, routes }),
+  );
+  return Object.keys(routes).length;
 }
 
 function main() {
@@ -157,11 +193,14 @@ function main() {
     }),
   );
 
+  const historyCount = writeRouteHistory(payload.viewMap, now);
+
   console.log(
     `[canonicalize] wrote published/initial-data.json — ` +
       `${stopCount} stops, ${routeCount} routes, ${tripCount} trips ` +
       `(synthetic: ${syntheticCounts.join(", ")})`,
   );
+  console.log(`[canonicalize] wrote published/route-history.json — ${historyCount} routes`);
 }
 
 main();

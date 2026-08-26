@@ -10,8 +10,14 @@ import OperatorsTab from "../components/Admin/OperatorsTab";
 import StationsTab from "../components/Admin/StationsTab";
 import ReviewTab from "../components/Admin/ReviewTab";
 import SourcesTab from "../components/Admin/SourcesTab";
+import IntegrationsTab from "../components/Admin/IntegrationsTab";
+import RouteSourcesTab from "../components/Admin/RouteSourcesTab";
 
-const TABS = ["Review", "Data Sources", "Registry", "Timetables", "Routes", "Operators", "Stations", "Overrides"];
+// Integrations leads: the daily question is "what data is going stale and what
+// do I automate next". Review keeps the proposal queue (and its badge) at the
+// far end. "Routes" is the map hide/show editor — the coverage table is
+// "Route sources", which is a different job.
+const TABS = ["Integrations", "Route sources", "Data Sources", "Registry", "Timetables", "Routes", "Operators", "Stations", "Overrides", "Review"];
 
 // Pointer on every interactive control; disabled buttons keep not-allowed from their own classes.
 const ADMIN_INTERACTIVE =
@@ -336,6 +342,8 @@ export default function DataPage() {
       </div>
 
       <main className="flex-1 min-h-0 flex flex-col overflow-hidden w-full px-2 py-2">
+        {activeTab === "Integrations" && <IntegrationsTab />}
+        {activeTab === "Route sources" && <RouteSourcesTab />}
         {activeTab === "Review" && <ReviewTab onPendingCount={setPendingCount} />}
         {activeTab === "Data Sources" && <DataSourcesTab />}
         {activeTab === "Registry" && <SourcesTab />}

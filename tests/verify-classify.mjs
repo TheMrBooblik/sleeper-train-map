@@ -340,4 +340,77 @@ check("proposal cap respected", () => {
   assert.strictEqual(out.gatedRouteKeys.length, 50);
 });
 
+// ─── lastChanged ────────────────────────────────────────────────────────────
+// The honest staleness signal for the integration dashboard: a nightly fetch
+// of an unmaintained upstream keeps the feed timestamp green forever, so what
+// matters is when the route's own content last moved.
+
+check("a new route records lastChanged as today", () => {
+  const out = classify({
+    previousSeen: { v: 1, routes: {}, injectedStations: {} },
+    viewMap: { 142: route() },
+    injectedStations: [],
+    now: NOW,
+  });
+  assert.strictEqual(out.nextSeen.routes["142"].lastChanged, "2026-06-10");
+});
+
+check("an unchanged route keeps its previous lastChanged", () => {
+  const out = classify({
+    previousSeen: {
+      v: 1,
+      routes: { 142: seenEntry({ lastChanged: "2026-02-01" }) },
+      injectedStations: {},
+    },
+    viewMap: { 142: route() },
+    injectedStations: [],
+    now: NOW,
+  });
+  assert.strictEqual(out.nextSeen.routes["142"].lastChanged, "2026-02-01");
+  assert.strictEqual(out.nextSeen.routes["142"].lastSeen, "2026-06-10");
+});
+
+check("a material change moves lastChanged to today", () => {
+  const out = classify({
+    previousSeen: {
+      v: 1,
+      routes: { 142: seenEntry({ lastChanged: "2026-02-01" }) },
+      injectedStations: {},
+    },
+    viewMap: { 142: route({ destination_trip_0: "Halkali" }) },
+    injectedStations: [],
+    now: NOW,
+  });
+  assert.strictEqual(out.nextSeen.routes["142"].lastChanged, "2026-06-10");
+});
+
+check("a stop-sequence-only change also moves lastChanged", () => {
+  // Mechanical for the review queue (no proposal), but it is still the data
+  // changing, which is what this date is for.
+  const out = classify({
+    previousSeen: {
+      v: 1,
+      routes: { 142: seenEntry({ lastChanged: "2026-02-01" }) },
+      injectedStations: {},
+    },
+    viewMap: { 142: route({ via_0: "Plovdiv - Dimitrovgrad - Kapikule" }) },
+    injectedStations: [],
+    now: NOW,
+  });
+  assert.strictEqual(out.proposals.length, 0);
+  assert.strictEqual(out.nextSeen.routes["142"].lastChanged, "2026-06-10");
+});
+
+check("an entry written before lastChanged existed backfills to firstSeen", () => {
+  const legacy = seenEntry();
+  delete legacy.lastChanged;
+  const out = classify({
+    previousSeen: { v: 1, routes: { 142: legacy }, injectedStations: {} },
+    viewMap: { 142: route() },
+    injectedStations: [],
+    now: NOW,
+  });
+  assert.strictEqual(out.nextSeen.routes["142"].lastChanged, "2026-06-01");
+});
+
 console.log(`\n[verify-classify] ${passed} checks passed`);

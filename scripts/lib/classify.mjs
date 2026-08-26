@@ -58,6 +58,19 @@ const FIELD_LABELS = {
   trains: "train numbers",
 };
 
+// Any fingerprint difference at all, stop-sequence drift included. Used only to
+// date `lastChanged` — the integration dashboard's honest staleness signal.
+// A nightly fetch of a stale upstream keeps the feed timestamp green forever;
+// what actually tells you Back-on-Track has stopped maintaining a route is that
+// its content has not moved in months.
+function fingerprintChanged(prevFp, fp) {
+  const keys = new Set([...Object.keys(prevFp ?? {}), ...Object.keys(fp ?? {})]);
+  for (const key of keys) {
+    if ((prevFp?.[key] ?? null) !== (fp?.[key] ?? null)) return true;
+  }
+  return false;
+}
+
 // Material fingerprint differences (stop-sequence drift alone is mechanical).
 function materialChanges(prevFp, fp) {
   const changes = [];
@@ -146,6 +159,7 @@ export function classify({
         nextSeen.routes[key] = {
           firstSeen: today,
           lastSeen: today,
+          lastChanged: today,
           approved: true,
           autoApproved: today,
           fingerprint: fp,
@@ -158,6 +172,7 @@ export function classify({
       nextSeen.routes[key] = {
         firstSeen: today,
         lastSeen: today,
+        lastChanged: today,
         approved: false,
         fingerprint: fp,
       };
@@ -187,7 +202,16 @@ export function classify({
       continue;
     }
 
-    nextSeen.routes[key] = { ...prev, lastSeen: today, fingerprint: fp };
+    // Entries written before lastChanged existed inherit firstSeen, which is the
+    // earliest date we can honestly claim; it self-corrects on the next change.
+    nextSeen.routes[key] = {
+      ...prev,
+      lastSeen: today,
+      lastChanged: fingerprintChanged(prev.fingerprint, fp)
+        ? today
+        : (prev.lastChanged ?? prev.firstSeen ?? today),
+      fingerprint: fp,
+    };
     delete nextSeen.routes[key].removalNoticed;
     if (prev.approved !== true) {
       if (isTrustedRoute(key, route)) {

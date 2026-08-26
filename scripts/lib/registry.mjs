@@ -85,6 +85,22 @@ export function validateRegistryEntry(entry) {
     errors.push(`${tag} runner:"external" requires a non-empty command`);
   }
 
+  // `endpoint` is the concrete thing this source reads — the URL you would open
+  // to see the raw data (or a repo path, for the internal sources). It exists so
+  // the integration dashboard can print the real address instead of a category
+  // like "official API"; nothing in the scrape pipeline consumes it. Where the
+  // adapter is already driven by a URL in params, the two must agree, so the
+  // documentation cannot drift away from what the adapter actually fetches.
+  for (const field of ["endpoint", "docsUrl"]) {
+    if (entry?.[field] != null && !(typeof entry[field] === "string" && entry[field].trim())) {
+      errors.push(`${tag} ${field} must be a non-empty string or null`);
+    }
+  }
+  const paramUrl = entry?.params?.feedUrl ?? entry?.params?.baseUrl ?? null;
+  if (paramUrl && entry?.endpoint && entry.endpoint !== paramUrl) {
+    errors.push(`${tag} endpoint must match params.${entry?.params?.feedUrl ? "feedUrl" : "baseUrl"} ("${paramUrl}")`);
+  }
+
   const enrich = entry?.enrich;
   if (enrich != null) {
     if (!KNOWN_ENRICH_STRATEGIES.has(enrich.strategy)) {
