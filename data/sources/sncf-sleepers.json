@@ -1,0 +1,36 @@
+{
+  "note": "Curated allowlist of SNCF Intercités de Nuit corridors, mirroring the nine Back-on-Track rows they are meant to replace. GTFS does not flag sleeper service, so the adapter needs to be told which routes carry it. `routes` is what scripts/lib/gtfs.mjs matches on (endpoint pairs, accent- and token-insensitive); `trainNumbers` is the operator's own numbering for the same nine corridors, used by scripts/probe-sncf.mjs and by the adapter if the dry run shows endpoint pairs alone also match daytime TGV services on the same city pairs.",
+  "source": "https://ressources.data.sncf.com/explore/dataset/horaires-sncf/",
+  "routes": [
+    { "from": "Paris", "to": "Briançon" },
+    { "from": "Paris", "to": "Nice" },
+    { "from": "Paris", "to": "Cerbère" },
+    { "from": "Paris", "to": "Tarbes" },
+    { "from": "Paris", "to": "Latour-de-Carol" },
+    { "from": "Paris", "to": "Rodez" },
+    { "from": "Paris", "to": "Albi" },
+    { "from": "Paris", "to": "Aurillac" },
+    { "from": "Paris", "to": "Toulouse" }
+  ],
+  "trainNumbers": [
+    "5789", "5790",
+    "5781", "5772",
+    "5737", "5738",
+    "3740", "3731",
+    "3970", "3971",
+    "3754", "3755",
+    "3789", "3790",
+    "3750", "3751"
+  ],
+  "corridors": [
+    { "trains": ["5789", "5790"], "route": "Paris Austerlitz – Briançon", "botRouteId": "107" },
+    { "trains": ["5781", "5772"], "route": "Paris Austerlitz – Nice Ville (Le Train Bleu)", "botRouteId": "108" },
+    { "trains": ["3754", "3755"], "route": "Paris Austerlitz – Albi Ville (L'Occitan, Sunday portion)", "botRouteId": "109" },
+    { "trains": ["5737", "5738"], "route": "Paris Austerlitz – Cerbère", "botRouteId": "110" },
+    { "trains": ["3740", "3731"], "route": "Paris Austerlitz – Tarbes (Le Pyrénéen)", "botRouteId": "111" },
+    { "trains": ["3970", "3971"], "route": "Paris Austerlitz – Latour-de-Carol (Le Pyrénéen)", "botRouteId": "112" },
+    { "trains": ["3754", "3755"], "route": "Paris Austerlitz – Rodez (L'Occitan)", "botRouteId": "119" },
+    { "trains": ["3789", "3790"], "route": "Paris Austerlitz – Aurillac", "botRouteId": "262" },
+    { "trains": ["3750", "3751"], "route": "Paris Austerlitz – Toulouse Matabiau", "botRouteId": "264" }
+  ]
+}

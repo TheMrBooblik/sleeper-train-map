@@ -98,9 +98,9 @@
     "SNCF": {
       "website": "https://www.sncf.com",
       "countries": ["FR"],
-      "integrationStatus": "source-discovered",
+      "integrationStatus": "in-progress",
       "difficulty": "easy",
-      "notes": "The cheapest real win on the board: a plain GTFS zip, no key, covering TGV/Intercités/TER for the next ~151 days. The generic gtfs-sleeper adapter already reads this shape — a registry entry plus a sleeper allowlist (Intercités de Nuit) should be most of the work.",
+      "notes": "Integration started (registry entry `sncf`, disabled until the probe lands). The cheapest real win on the board — a plain GTFS zip, no key, and the generic gtfs-sleeper adapter already reads that shape. Three things the probe has to settle first: this is a national feed (TGV + Intercités + TER), so stop_times.txt may be too large for loadGtfsDir(); nine corridors that all start at Paris will match daytime TGV if endpoint pairs are the only signal; and buildSleeperTrains keys trains by route name, which cannot supersede Back-on-Track's \"IC Nuit 5789\" rows.",
       "sources": [
         {
           "name": "SNCF Open Data — theoretical timetables (GTFS)",
@@ -111,7 +111,7 @@
           "auth": "none",
           "status": "discovered",
           "lastChecked": null,
-          "probeWorkflow": null,
+          "probeWorkflow": "probe-sncf.yml",
           "notes": "Also mirrored on the French national access point: https://transport.data.gouv.fr/datasets/horaires-sncf"
         },
         {

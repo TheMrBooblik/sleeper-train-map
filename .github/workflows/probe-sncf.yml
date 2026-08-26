@@ -1,0 +1,39 @@
+name: Probe SNCF source
+
+# One-shot reconnaissance for the SNCF (Intercités de Nuit) adapter. The dev
+# sandbox has no egress to eu.ftp.opendatasoft.com, and the SNCF export is a
+# national feed (TGV + Intercités + TER, ~151 days) whose size and route
+# granularity decide whether the generic gtfs-sleeper adapter can drive it.
+#
+# Dispatch it, download the artifact, read report.json, then finish the
+# `sncf` registry entry — extending scripts/lib/gtfs.mjs first if the dry run
+# says endpoint pairs alone cannot separate the night trains from daytime
+# services — and flip the entry to enabled:true.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      # @mapbox/polyline is imported by scripts/lib/gtfs.mjs, which the probe
+      # reuses so the dry run exercises the real matcher rather than a copy.
+      - run: npm ci
+
+      - run: node scripts/probe-sncf.mjs probe-output
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sncf-probe-output
+          path: probe-output/
+          retention-days: 7

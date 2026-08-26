@@ -355,6 +355,36 @@
   },
   {
     "v": 1,
+    "id": "sncf",
+    "label": "SNCF Intercités de Nuit",
+    "description": "Official SNCF Open Data GTFS — theoretical timetable for the next ~151 days, covering TGV, Intercités and TER. DISABLED pending the \"Probe SNCF source\" workflow (scripts/probe-sncf.mjs): this is a national feed, so three things must be confirmed before it can run nightly — that stop_times.txt is small enough for loadGtfsDir(), that the nine night trains are separable (endpoint pairs alone also match daytime TGV on the same city pairs), and how the nine existing Back-on-Track rows get superseded. buildSleeperTrains() keys trains by route name, which dropBotRowsExact() cannot match against Back-on-Track's \"IC Nuit 5789\", so `synthetic`/`enrich` are deliberately left off until the probe says which shape is right.",
+    "kind": "gtfs",
+    "adapter": "gtfs-sleeper",
+    "enabled": false,
+    "official": true,
+    "trusted": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.sncf.com",
+    "endpoint": "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip",
+    "docsUrl": "https://ressources.data.sncf.com/explore/dataset/horaires-sncf/",
+    "output": "sncf-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": {
+      "agencyId": "SNCF",
+      "operatorName": "SNCF"
+    },
+    "synthetic": null,
+    "params": {
+      "feedUrl": "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip",
+      "configPath": "data/sources/sncf-sleepers.json",
+      "agency": "SNCF",
+      "operator": "SNCF"
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
     "id": "oncf",
     "label": "ONCF (Morocco)",
     "description": "Official ONCF night trains (Marrakech–Tanger, Casablanca–Oujda), both with couchettes and sleeper cabins. DISABLED until the 'Probe ONCF source' workflow identifies a stable machine-readable surface — the published community GTFS (MobilityDatabase mdb-3049) expired 2025-12-31 and models zero overnight service, so it is unusable. The probe checks the oncf-voyages.ma booking API, the official timetable downloads, and the legacy /fr/Horaires search; implement scripts/adapters/oncf.mjs against the artifact, switch kind to json-api if a JSON feed exists, then enable. Until then Morocco is covered by curated routes.",
