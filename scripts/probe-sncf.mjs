@@ -1,53 +1,48 @@
 // scripts/probe-sncf.mjs
-// One-shot reconnaissance for the SNCF (Intercités de Nuit) adapter. The dev
-// sandbox has no egress to eu.ftp.opendatasoft.com / ressources.data.sncf.com,
-// so this runs from CI ("Probe SNCF source" workflow) where egress is open.
+// Reconnaissance for the SNCF (Intercités de Nuit) adapter. The dev sandbox has
+// no egress to eu.ftp.opendatasoft.com, so this runs locally or from CI ("Probe
+// SNCF source") where egress is open.
 //
-// Unlike the ONCF probe, the *source* is not in doubt — SNCF publishes an
-// official GTFS export of the theoretical timetable for the next ~151 days,
-// covering TGV, Intercités and TER. What is in doubt is its **shape**, and
-// three specific unknowns decide whether the generic gtfs-sleeper adapter can
-// drive it at all:
+// Three rounds have run against the real feed and settled its shape. What they
+// found, because each answer rules out an approach that would otherwise look
+// reasonable:
 //
-//   1. SIZE. This is a national feed, not one operator's handful of routes.
-//      loadGtfsDir() reads every table into memory; if stop_times.txt is
-//      hundreds of MB the nightly job cannot use it as-is and we need a
-//      streaming pre-filter. Measured before anything is parsed, so an OOM
-//      later still leaves this answer in the artifact.
+//   • The train number is in trip_headsign. trip_short_name is empty on all
+//     43,425 trips, so an allowlist keyed on it finds nothing — which is what
+//     round 1 reported, misleadingly, for all sixteen numbers.
+//   • Routes are TER/Intercités *lines* ("P53", "Bening - Sarreguemines"), not
+//     named services, and one route_id bundles several corridors. Grouping by
+//     route — what buildSleeperTrains() does — is structurally wrong here.
+//   • Endpoint pairs cannot separate a night train from a TGV on the same city
+//     pair. Nine corridors matched thirteen routes, four of them daytime TGV.
 //
-//   2. ROUTE GRANULARITY. buildSleeperTrains() groups trips by route_id and
-//      emits one train per route. That works when a route *is* a named service
-//      (Amtrak's "California Zephyr"). If SNCF models the whole night offer as
-//      one "Intercités de Nuit" route, all nine corridors collapse into one
-//      representative trip and the generic matcher is unusable — the allowlist
-//      would have to key on trip_short_name (the train number) instead.
+// What does work, and what this probe now measures: a trip crosses midnight
+// (GTFS encodes after-midnight as 24:xx, so the test is exact) AND runs >= 7h,
+// over route_type=2. The shortest real sleeper is 8h29 and the longest false
+// positive 5h34, so the threshold has room on both sides. That yields the whole
+// French night-train offer with no naming assumptions — see overnightTrips() in
+// scripts/lib/gtfs.mjs, which is shared because CFR, MÁV and DELFI pose the
+// same question.
 //
-//   3. CALENDAR STYLE. A date-expanded feed (one trip and one service_id per
-//      operating date, calendar_dates.txt only) is what made European Sleeper
-//      need its own adapter. calendar.txt with weekday flags is the easy case.
-//
-// It also dry-runs the real matcher against data/sources/sncf-sleepers.json and
-// reports what each allowlist entry actually hit, including over-matches: nine
-// corridors that all start at Paris will happily match a daytime TGV if
-// endpoint pairs are the only signal.
+// The disproved approaches are recorded in data/sources/sncf-sleepers.json
+// under `disproved` rather than kept running here.
 //
 // Read-only: one GET of the published zip. Nothing else.
-// Run: node scripts/probe-sncf.mjs [outputDir]
+// Run: node scripts/probe-sncf.mjs [outputDir] [--fresh] [--fixture]
+//   --fresh    re-download instead of reusing gtfs-data/sncf-probe-unpacked
+//   --fixture  write tests/fixtures/sncf-gtfs/ for offline adapter work
 
 import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
 import { fileURLToPath } from "node:url";
-import {
-  downloadGtfs,
-  readCsv,
-  loadGtfsDir,
-  buildSleeperTrains,
-} from "./lib/gtfs.mjs";
+import { downloadGtfs, readCsv, loadGtfsDir } from "./lib/gtfs.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
-const outDir = process.argv[2] ?? null;
+const flags = process.argv.slice(2).filter((a) => a.startsWith("--"));
+const outDir = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? null;
+const hasFlag = (name) => flags.includes(name);
 
 const FEED_URL =
   "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip";
@@ -87,42 +82,19 @@ async function countLines(file) {
   return Math.max(0, n - 1); // minus the header
 }
 
-// Stream trips.txt looking for the known night-train numbers, again without
-// loading it. Returns the matching rows plus the header index map.
-async function scanTrips(file, wanted) {
-  const hits = [];
-  let headers = null;
-  const rl = readline.createInterface({
-    input: fs.createReadStream(file),
-    crlfDelay: Infinity,
-  });
-  for await (const line of rl) {
-    if (!headers) {
-      headers = line
-        .replace(/^﻿/, "")
-        .split(",")
-        .map((h) => h.trim().replace(/^"|"$/g, ""));
-      continue;
-    }
-    // Cheap pre-filter before paying for a CSV split.
-    if (!wanted.some((n) => line.includes(n))) continue;
-    const cells = line.split(",").map((c) => c.replace(/^"|"$/g, ""));
-    const row = Object.fromEntries(headers.map((h, i) => [h, cells[i] ?? ""]));
-    const short = String(row.trip_short_name ?? "").trim();
-    if (!wanted.includes(short)) continue; // substring hit elsewhere in the line
-    hits.push(row);
-  }
-  return { headers, hits };
-}
-
 // ── 0. Config ────────────────────────────────────────────────────────────────
 
 const config = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
 const trainNumbers = (config.trainNumbers ?? []).map(String);
 console.log(`═══ config ═══`);
-console.log(`  allowlist entries : ${(config.routes ?? []).length}`);
-console.log(`  train numbers     : ${trainNumbers.join(", ") || "(none)"}`);
-report.steps.config = { routes: config.routes ?? [], trainNumbers };
+console.log(
+  `  train numbers : ${trainNumbers.length} — ${trainNumbers.join(", ") || "(none)"}`,
+);
+console.log(`  corridors     : ${(config.corridors ?? []).length}`);
+report.steps.config = {
+  trainNumbers,
+  corridors: config.corridors ?? [],
+};
 checkpoint();
 
 // ── 1. Download ──────────────────────────────────────────────────────────────
@@ -131,7 +103,7 @@ console.log(`\n═══ download ═══\n  ${FEED_URL}`);
 const t0 = Date.now();
 const alreadyUnpacked = fs.existsSync(path.join(WORK_DIR, "trips.txt"));
 try {
-  if (alreadyUnpacked && !process.argv.includes("--fresh")) {
+  if (alreadyUnpacked && !hasFlag("--fresh")) {
     // Re-running the probe to answer follow-up questions should not re-download
     // 58 MB. Pass --fresh to force it.
     console.log(`  reusing ${WORK_DIR} (pass --fresh to re-download)`);
@@ -224,63 +196,7 @@ report.steps.routes = {
 save("routes.txt", fs.readFileSync(path.join(WORK_DIR, "routes.txt"), "utf8"));
 checkpoint();
 
-// ── 4. Do our train numbers exist, and under which routes? ───────────────────
-
-console.log(`\n═══ trips.txt — the nine Intercités de Nuit ═══`);
-const { hits } = await scanTrips(
-  path.join(WORK_DIR, "trips.txt"),
-  trainNumbers,
-);
-console.log(`  trips whose trip_short_name is one of ours: ${hits.length}`);
-
-const byNumber = {};
-for (const h of hits) {
-  const n = String(h.trip_short_name).trim();
-  (byNumber[n] ??= []).push(h);
-}
-for (const n of trainNumbers) {
-  const rows = byNumber[n] ?? [];
-  if (!rows.length) {
-    console.log(`    ${n.padEnd(6)} NOT FOUND`);
-    continue;
-  }
-  const routeIds = [...new Set(rows.map((r) => r.route_id))];
-  const shapes = [...new Set(rows.map((r) => r.shape_id).filter(Boolean))];
-  console.log(
-    `    ${n.padEnd(6)} ${String(rows.length).padStart(4)} trip(s) | routes: ${routeIds.slice(0, 3).join(", ")}${routeIds.length > 3 ? ` +${routeIds.length - 3}` : ""} | shape_ids: ${shapes.length}`,
-  );
-}
-// One trip per operating date, or one trip per service pattern? This is the
-// European Sleeper trap: a date-expanded feed needs its own adapter.
-const tripsPerNumber = Object.values(byNumber).map((r) => r.length);
-const maxTrips = tripsPerNumber.length ? Math.max(...tripsPerNumber) : 0;
-console.log(
-  `\n  VERDICT on granularity: max ${maxTrips} trips for a single train number — ` +
-    (maxTrips > 20
-      ? "looks DATE-EXPANDED (one trip per operating date), like the European Sleeper feed."
-      : "looks pattern-based; the generic adapter's representativeTrip() is fine."),
-);
-report.steps.trips = {
-  found: hits.length,
-  byNumber: Object.fromEntries(
-    Object.entries(byNumber).map(([n, rows]) => [
-      n,
-      {
-        trips: rows.length,
-        routeIds: [...new Set(rows.map((r) => r.route_id))],
-        shapeIds: [...new Set(rows.map((r) => r.shape_id).filter(Boolean))]
-          .length,
-        sample: rows[0],
-      },
-    ]),
-  ),
-  missing: trainNumbers.filter((n) => !byNumber[n]),
-  dateExpanded: maxTrips > 20,
-};
-save("night-trips.json", report.steps.trips);
-checkpoint();
-
-// ── 5. Calendar style ────────────────────────────────────────────────────────
+// ── 4. Calendar style ────────────────────────────────────────────────────────
 
 console.log(`\n═══ calendar ═══`);
 const hasCalendar = fs.existsSync(path.join(WORK_DIR, "calendar.txt"));
@@ -313,125 +229,7 @@ console.log(
 report.steps.shapes = { present: hasShapes };
 checkpoint();
 
-// ── 6. Dry-run the real matcher ──────────────────────────────────────────────
-// The point of the whole probe: would scripts/adapters/gtfs-sleeper.mjs, run
-// unchanged against this feed and our committed allowlist, produce the nine
-// corridors — and only those?
-
-console.log(
-  `\n═══ dry run: buildSleeperTrains() with the committed allowlist ═══`,
-);
-if (!feasible) {
-  console.log(
-    `  SKIPPED — stop_times.txt is too large to load; see the size verdict above.`,
-  );
-  report.steps.dryRun = { skipped: "stop_times too large" };
-} else {
-  try {
-    const gtfs = loadGtfsDir(WORK_DIR);
-    const stats = {};
-    const trains = buildSleeperTrains({
-      gtfs,
-      allowlist: config.routes ?? [],
-      agency: "SNCF",
-      operator: "SNCF",
-      log: (m) => console.log(`    ${m}`),
-      stats,
-    });
-    const built = Object.entries(trains).map(([name, t]) => ({
-      name,
-      stations: t.stations.length,
-      origin: t.stations[0]?.name ?? null,
-      destination: t.stations[t.stations.length - 1]?.name ?? null,
-      frequency: t.frequency,
-      polylineChars: t.polyline?.length ?? 0,
-    }));
-    console.log(
-      `\n  built ${built.length} train(s) from ${stats.feedRouteCount} feed routes:`,
-    );
-    for (const b of built) {
-      console.log(
-        `    ${b.name} — ${b.origin} → ${b.destination} (${b.stations} stops, ${b.frequency})`,
-      );
-    }
-    if (stats.unmatched?.length) {
-      console.log(
-        `\n  allowlist entries that matched nothing: ${stats.unmatched.join(", ")}`,
-      );
-    }
-    console.log(
-      `\n  VERDICT: ${built.length === (config.routes ?? []).length ? "clean 1:1 match — the generic adapter works as-is." : "MISMATCH — expected " + (config.routes ?? []).length + " corridors, got " + built.length + ". Check for over-matched daytime services or collapsed routes above."}`,
-    );
-    report.steps.dryRun = {
-      built,
-      matched: stats.matched,
-      unmatched: stats.unmatched,
-      feedRouteCount: stats.feedRouteCount,
-    };
-    save("dry-run.json", report.steps.dryRun);
-  } catch (err) {
-    console.error(`  FAILED: ${err.message}`);
-    report.steps.dryRun = {
-      error: err.message,
-      stack: err.stack?.split("\n").slice(0, 5),
-    };
-  }
-}
-
-// ── 7. Would the Back-on-Track rows actually be superseded? ──────────────────
-// The trap this probe exists to catch as much as the size one. dropBotRowsExact()
-// (src/pages/api/lib/build-initial-data.mjs) compares Back-on-Track's
-// trip_short_name against the KEYS of the trains dict. buildSleeperTrains keys
-// by route name — Amtrak gets away with that because it has no Back-on-Track
-// rows to dedup, but SNCF has nine. If the keys are route names and BoT says
-// "IC Nuit 5789", nothing matches and the map ends up drawing both.
-
-console.log(`\n═══ would Back-on-Track's nine rows be superseded? ═══`);
-const BOT_TRAIN_NAMES = (config.corridors ?? []).flatMap((c) =>
-  (c.trains ?? []).map((n) => `IC Nuit ${n}`),
-);
-const builtKeys = Object.keys(
-  report.steps.dryRun?.built
-    ? Object.fromEntries(report.steps.dryRun.built.map((b) => [b.name, b]))
-    : {},
-);
-if (!builtKeys.length) {
-  console.log(
-    `  no trains built — cannot tell. Resolve the steps above first.`,
-  );
-  report.steps.dedup = { skipped: true };
-} else {
-  const keySet = new Set(builtKeys);
-  const wouldDrop = BOT_TRAIN_NAMES.filter((n) => keySet.has(n));
-  const bare = new Set(
-    builtKeys.map((k) => k.replace(/^IC\s+Nuit\s+/i, "").trim()),
-  );
-  const wouldDropBare = trainNumbers.filter((n) => bare.has(n));
-  console.log(
-    `  trains dict keys look like: ${builtKeys
-      .slice(0, 5)
-      .map((k) => JSON.stringify(k))
-      .join(", ")}`,
-  );
-  console.log(
-    `  dedupStrategy "exact" would drop ${wouldDrop.length} of ${BOT_TRAIN_NAMES.length} BoT train numbers`,
-  );
-  console.log(
-    `  a bare-number strategy would drop ${wouldDropBare.length} of ${trainNumbers.length}`,
-  );
-  console.log(
-    `\n  VERDICT: ` +
-      (wouldDrop.length
-        ? `"exact" works — keys already carry BoT's numbering.`
-        : wouldDropBare.length
-          ? `needs a bare-number dedup strategy (like "icn" does for Trenitalia), or an enrich trainsByNumber config that upgrades the BoT rows in place instead of replacing them.`
-          : `NEITHER works — the trains dict is keyed by route name, so buildSleeperTrains must be taught to key by trip_short_name before SNCF can supersede or enrich the Back-on-Track rows.`),
-  );
-  report.steps.dedup = { builtKeys, wouldDropExact: wouldDrop, wouldDropBare };
-}
-checkpoint();
-
-// ── 8. What DO the trip identifiers hold? ────────────────────────────────────
+// ── 5. What DO the trip identifiers hold? ────────────────────────────────────
 // Round 1 found none of the sixteen train numbers in trip_short_name, and the
 // routes turned out to be TER/Intercités *lines* ("P53", "Bening -
 // Sarreguemines") rather than named services — so neither the allowlist's
@@ -522,7 +320,7 @@ report.steps.tripFields = {
 };
 checkpoint();
 
-// ── 9. Find the night trains by what makes them night trains ─────────────────
+// ── 6. Find the night trains by what makes them night trains ─────────────────
 // Feed-agnostic and far sturdier than any naming convention: a sleeper is a
 // trip whose stop_times cross midnight. GTFS encodes after-midnight as 24:xx,
 // 25:xx… so "any time >= 24:00:00" is an exact test, and it is the same signal
@@ -622,7 +420,7 @@ report.steps.overnight = {
 save("overnight.json", report.steps.overnight);
 checkpoint();
 
-// ── 10. The nine corridors we actually want ──────────────────────────────────
+// ── 7. The nine corridors we actually want ──────────────────────────────────
 
 console.log(`\n═══ the nine Back-on-Track corridors, found by endpoints ═══`);
 const norm = (x) =>
@@ -697,7 +495,7 @@ if (sample) {
 }
 checkpoint();
 
-// ── 11. The definitive list: every French night train in the feed ────────────
+// ── 8. The definitive list: every French night train in the feed ────────────
 // Round 2 established the two facts this step rests on. trip_short_name is
 // empty on all 43,425 trips and the train number lives in trip_headsign — so
 // round 1's "NOT FOUND" for all sixteen numbers was looking at the wrong
@@ -826,7 +624,7 @@ report.steps.nightTrains = {
 save("night-trains.json", report.steps.nightTrains);
 checkpoint();
 
-// ── 12. Export a test fixture ────────────────────────────────────────────────
+// ── 9. Export a test fixture ────────────────────────────────────────────────
 // The dev sandbox cannot reach eu.ftp.opendatasoft.com, so the adapter cannot
 // be developed against the live feed there. Rather than iterate through a human
 // on every run, slice the real feed down to the trips that matter and commit
@@ -838,25 +636,54 @@ checkpoint();
 // a mock of it. Rows are copied verbatim from the source files (filtered, never
 // re-serialised) so the fixture cannot drift from the feed's own formatting.
 
-if (process.argv.includes("--fixture")) {
+if (hasFlag("--fixture")) {
   const fixtureDir = path.join(ROOT, "tests", "fixtures", "sncf-gtfs");
   console.log(`\n═══ export fixture → ${path.relative(ROOT, fixtureDir)} ═══`);
 
   const gtfsForFixture = loadGtfsDir(WORK_DIR);
   const { overnightTrips } = await import("./lib/gtfs.mjs");
-  const groups = overnightTrips({ gtfs: gtfsForFixture });
+
+  // Deliberately WITHOUT the duration filter. A fixture built from
+  // overnightTrips() defaults would hold only trains that already pass the 7h
+  // threshold, so verify-sncf could never prove the threshold excludes
+  // anything — and the near-misses are the whole reason it exists. Take every
+  // midnight-crossing rail trip, then partition.
+  const allCrossing = overnightTrips({ gtfs: gtfsForFixture, minSeconds: 0 });
+
+  const MIN_SECONDS = 7 * 3600;
+  const wanted = new Set(trainNumbers);
+  const positives = [];
+  const negatives = [];
+  for (const [number, entries] of allCrossing) {
+    for (const e of entries) {
+      if (e.seconds >= MIN_SECONDS) {
+        // Allowlisted numbers only: the other long-distance night trains are
+        // real, but a fixture is a test input, not an archive.
+        if (wanted.has(number)) positives.push(e);
+      } else {
+        negatives.push(e);
+      }
+    }
+  }
+
+  // Spread the near-misses rather than taking the first N, so the fixture holds
+  // both the 1h10 TER and the 5h34 TGV that bracket the threshold.
+  negatives.sort((a, b) => b.seconds - a.seconds);
+  const NEGATIVE_SAMPLE = 20;
+  const step = Math.max(1, Math.floor(negatives.length / NEGATIVE_SAMPLE));
+  const sampledNegatives = negatives
+    .filter((_, i) => i % step === 0)
+    .slice(0, NEGATIVE_SAMPLE);
 
   const keepTrips = new Set();
   const keepServices = new Set();
   const keepRoutes = new Set();
   const keepStops = new Set();
-  for (const entries of groups.values()) {
-    for (const e of entries) {
-      keepTrips.add(e.trip.trip_id);
-      keepServices.add(e.trip.service_id);
-      keepRoutes.add(e.trip.route_id);
-      for (const st of e.stopTimes) keepStops.add(st.stop_id);
-    }
+  for (const e of [...positives, ...sampledNegatives]) {
+    keepTrips.add(e.trip.trip_id);
+    keepServices.add(e.trip.service_id);
+    keepRoutes.add(e.trip.route_id);
+    for (const st of e.stopTimes) keepStops.add(st.stop_id);
   }
   // Parent stations too, or stops.txt loses the hierarchy loadGtfsDir reads.
   for (const id of [...keepStops]) {
@@ -864,9 +691,27 @@ if (process.argv.includes("--fixture")) {
     if (parent) keepStops.add(parent);
   }
 
+  const hhmmShort = (s) =>
+    `${Math.floor(s / 3600)}h${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
+  const positiveNumbers = new Set(positives.map((e) => e.trip.trip_headsign));
   console.log(
-    `  keeping ${groups.size} night train(s): ${keepTrips.size} trips, ${keepRoutes.size} routes, ${keepStops.size} stops, ${keepServices.size} services`,
+    `  positives: ${positives.length} trips across ${positiveNumbers.size} allowlisted number(s)`,
   );
+  console.log(
+    `  negatives: ${sampledNegatives.length} near-miss trips sampled from ${negatives.length}` +
+      (sampledNegatives.length
+        ? ` (${hhmmShort(sampledNegatives[sampledNegatives.length - 1].seconds)}–${hhmmShort(sampledNegatives[0].seconds)})`
+        : ""),
+  );
+  console.log(
+    `  total: ${keepTrips.size} trips, ${keepRoutes.size} routes, ${keepStops.size} stops, ${keepServices.size} services`,
+  );
+  const missingFromFeed = trainNumbers.filter((n) => !positiveNumbers.has(n));
+  if (missingFromFeed.length) {
+    console.log(
+      `  WARNING: allowlisted but not in the fixture: ${missingFromFeed.join(", ")}`,
+    );
+  }
 
   // Copy a table verbatim, keeping only rows whose `column` is in `keep`.
   async function sliceTable(file, column, keep) {
@@ -937,8 +782,17 @@ if (process.argv.includes("--fixture")) {
   report.steps.fixture = {
     written,
     bytes,
-    nightTrains: groups.size,
+    positives: positives.length,
+    positiveNumbers: [...positiveNumbers].sort(),
+    negatives: sampledNegatives.length,
+    negativeSecondsRange: sampledNegatives.length
+      ? [
+          sampledNegatives[sampledNegatives.length - 1].seconds,
+          sampledNegatives[0].seconds,
+        ]
+      : null,
     trips: keepTrips.size,
+    missingFromFeed,
   };
   checkpoint();
 } else {
@@ -951,6 +805,6 @@ report.finishedAt = new Date().toISOString();
 checkpoint();
 console.log(
   outDir
-    ? `\n[probe] report written to ${outDir}/report.json — download the workflow artifact, then finish the sncf registry entry (and extend scripts/lib/gtfs.mjs if the dry run says the generic matcher is not enough) and flip enabled:true`
+    ? `\n[probe] report written to ${outDir}/report.json`
     : "\n[probe] pass an output dir to also save the report and snapshots",
 );
