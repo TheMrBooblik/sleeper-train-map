@@ -45,7 +45,7 @@ function AliasRow({ alias, canonical, mutate, busy }) {
 // ─── Tab ────────────────────────────────────────────────────────────────────
 
 export default function StationsTab() {
-  const { overrides, target, loading, busy, error, notice, expired, mutate } =
+  const { overrides, target, loading, busy, error, notice, mutate } =
     useAdminOverrides();
 
   const [query, setQuery] = useState("");
@@ -69,15 +69,6 @@ export default function StationsTab() {
   // Paginate to keep the DOM responsive
   const PAGE_SIZE = 80;
   const shown = filtered.slice(0, PAGE_SIZE);
-
-  if (expired) {
-    return (
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-sm text-gray-700">
-        Your session expired.{" "}
-        <a href="/login" className="underline">Log in again</a>.
-      </div>
-    );
-  }
 
   return (
     <div className="h-full min-h-0 flex flex-col gap-2 overflow-hidden">

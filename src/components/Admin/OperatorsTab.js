@@ -314,7 +314,7 @@ function OperatorCard({ agencyId, color, routeCount, pricing, booking, mutate, b
 // ─── Tab ────────────────────────────────────────────────────────────────────
 
 export default function OperatorsTab() {
-  const { overrides, target, loading, busy, error, notice, expired, mutate } =
+  const { overrides, target, loading, busy, error, notice, mutate } =
     useAdminOverrides();
 
   // Route data for operator counts
@@ -367,15 +367,6 @@ export default function OperatorsTab() {
   const [newId, setNewId] = useState("");
   const [newType, setNewType] = useState("dynamic");
   const [newCurrency, setNewCurrency] = useState("");
-
-  if (expired) {
-    return (
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-sm text-gray-700">
-        Your session expired.{" "}
-        <a href="/login" className="underline">Log in again</a>.
-      </div>
-    );
-  }
 
   return (
     <div className="h-full min-h-0 overflow-y-auto space-y-4">

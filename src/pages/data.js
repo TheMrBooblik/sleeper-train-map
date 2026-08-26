@@ -1,7 +1,7 @@
+// Admin dashboard. Served only on localhost (see src/lib/localAdmin.mjs).
 import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
 import { HEADER_HEIGHT } from "../constants/header";
 import TimetablesTab from "../components/Admin/TimetablesTab";
 import RoutesTab from "../components/Admin/RoutesTab";
@@ -19,7 +19,7 @@ const ADMIN_INTERACTIVE =
 
 // ─── Header ───────────────────────────────────────────────────────────────────
 
-function AdminHeader({ onLogout }) {
+function AdminHeader() {
   return (
     <header
       className="shrink-0 bg-black px-2 py-2 text-white flex items-center justify-between"
@@ -30,20 +30,12 @@ function AdminHeader({ onLogout }) {
           Pingwi <i>night trains</i> map
         </Link>
       </p>
-      <div className="flex items-center gap-3">
-        <Link
-          href="/"
-          className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap"
-        >
-          ← Map
-        </Link>
-        <button
-          onClick={onLogout}
-          className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap"
-        >
-          Log out
-        </button>
-      </div>
+      <Link
+        href="/"
+        className="text-xs text-white/60 hover:text-white transition-colors whitespace-nowrap"
+      >
+        ← Map
+      </Link>
     </header>
   );
 }
@@ -298,7 +290,6 @@ function DataSourcesTab() {
 export default function DataPage() {
   const [activeTab, setActiveTab] = useState(TABS[0]);
   const [pendingCount, setPendingCount] = useState(null);
-  const router = useRouter();
 
   // Badge count for the Review tab (refreshed by the tab itself once open).
   useEffect(() => {
@@ -310,18 +301,13 @@ export default function DataPage() {
       .catch(() => {});
   }, []);
 
-  async function handleLogout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/login');
-  }
-
   return (
     <div className={`h-screen flex flex-col overflow-hidden bg-gray-50 ${ADMIN_INTERACTIVE}`}>
       <Head>
         <title>Admin – Pingwi</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
-      <AdminHeader onLogout={handleLogout} />
+      <AdminHeader />
 
       {/* Tab strip */}
       <div className="shrink-0 border-b border-gray-200 bg-white">

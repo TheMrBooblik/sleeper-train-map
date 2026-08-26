@@ -25,6 +25,7 @@
     "verify-station-names": "node tests/verify-station-names.mjs",
     "verify-pkp-plk": "node tests/verify-pkp-plk.mjs",
     "verify-overrides": "node tests/verify-overrides-mutate.mjs",
+    "verify-local-admin": "node tests/verify-local-admin.mjs",
     "verify-disabled-routes": "node tests/verify-disabled-routes.mjs",
     "verify-registry": "node tests/verify-registry.mjs",
     "verify-build-parity": "node tests/verify-build-parity.mjs",

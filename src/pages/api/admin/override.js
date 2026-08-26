@@ -7,13 +7,13 @@
 // GitHub access + branch configuration lives in lib/github-content.mjs
 // (ADMIN_GITHUB_TOKEN / ADMIN_REPO / ADMIN_COMMIT_BRANCH).
 //
-// Auth model: the /data page login (middleware) gates the UI; this endpoint is
-// an /api route, which the middleware matcher does not cover, so it verifies
-// the same admin_session cookie itself before doing anything.
+// Auth model: loopback-only. Middleware 404s remote /data and /api/admin;
+// this handler repeats the same check because the matcher is not a security
+// boundary on its own.
 
 import { OVERRIDE_FILES, applyOverrideMutation } from "../lib/overrides-mutate.mjs";
 import { validateRegistry } from "../../../../scripts/lib/registry.mjs";
-import { SESSION_COOKIE, verifySessionToken } from "../../../lib/adminAuth";
+import { rejectUnlessLocalAdmin } from "../../../lib/localAdmin.mjs";
 import {
   commitBranch,
   isGithubWriteConfigured,
@@ -22,20 +22,15 @@ import {
   repoSlug,
 } from "../lib/github-content.mjs";
 
-function isAuthorized(req) {
-  return verifySessionToken(req.cookies?.[SESSION_COOKIE]);
-}
-
 // Read-only approval index, surfaced alongside the override files so the
 // Routes tab can label disabled routes (which no longer appear in
 // /api/initial-data) from their stored fingerprints. Not in OVERRIDE_FILES, so
 // it is never mutated by the POST path.
 const SEEN_PATH = "data/canonical/state/seen.json";
 
-// GET: return current content of every override file (also validates the
-// secret, so the UI uses it as a login + initial-load step). A missing file
-// (404) is reported as null; any other read failure is surfaced in `errors`
-// so the UI never silently presents real data as empty.
+// GET: return current content of every override file. A missing file (404)
+// is reported as null; any other read failure is surfaced in `errors` so
+// the UI never silently presents real data as empty.
 async function handleGet(res, slug, branch) {
   const overrides = {};
   const errors = {};
@@ -64,9 +59,7 @@ export default async function handler(req, res) {
     res.setHeader("Allow", "GET, POST");
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!isAuthorized(req)) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  if (rejectUnlessLocalAdmin(req, res)) return;
   if (!isGithubWriteConfigured()) {
     return res.status(503).json({
       error:

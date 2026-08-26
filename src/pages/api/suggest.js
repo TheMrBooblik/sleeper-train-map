@@ -181,7 +181,9 @@ export default async function handler(req, res) {
   // Honeypot tripped: pretend success, write nothing.
   if (input.honeypot) return res.status(201).json({ ok: true, id: "received" });
 
-  const secret = process.env.ADMIN_SESSION_SECRET || "suggest";
+  // Salt the IP hash so a guessed hash function is not enough to forge the
+  // rate-limit key. A fixed value is fine; this is not a login secret.
+  const secret = "suggest";
   const ipHash = crypto
     .createHash("sha256")
     .update(clientIp(req) + secret)

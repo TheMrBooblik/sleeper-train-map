@@ -1,7 +1,8 @@
 // pages/api/data-status.js
 // Returns freshness metadata for the /data dashboard, derived from the source
 // registry (data/sources/registry.json) — every registered source appears
-// automatically; adding an operator needs no change here.
+// automatically; adding an operator needs no change here. Loopback-only, same
+// gate as /data itself.
 //
 // Response shape (uniform, rendered generically by the Data Sources tab):
 // { generatedAt, sources: [{ id, label, description, official, enabled,
@@ -11,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { getBlobData, getOsmRelation, getTrainsBySource } from "./lib/file-store";
 import SOURCE_REGISTRY from "../../../data/sources/registry.json" with { type: "json" };
+import { rejectUnlessLocalAdmin } from "../../lib/localAdmin.mjs";
 
 function hoursAgo(date) {
   if (!date) return null;
@@ -156,6 +158,7 @@ function statusFileDatasets(entry) {
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
+  if (rejectUnlessLocalAdmin(req, res)) return;
   const sources = await Promise.all(
     SOURCE_REGISTRY.map(async (entry) => {
       let datasets = [];

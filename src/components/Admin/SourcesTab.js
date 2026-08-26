@@ -101,20 +101,12 @@ function SourceRow({ entry, busy, onToggle, onSaveParams }) {
 }
 
 export default function SourcesTab() {
-  const { overrides, loading, busy, error, notice, expired, mutate } =
+  const { overrides, loading, busy, error, notice, mutate } =
     useAdminOverrides();
 
   const registry = Array.isArray(overrides?.["source-registry"])
     ? overrides["source-registry"]
     : null;
-
-  if (expired) {
-    return (
-      <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-4">
-        Session expired — <a href="/login" className="underline">log in again</a>.
-      </p>
-    );
-  }
 
   const onToggle = (id, enabled) =>
     mutate(

@@ -68,7 +68,12 @@ test.describe("canonicals", () => {
   });
 
   test("the admin panel is noindexed", async ({ request }) => {
-    const html = await (await request.get("/login")).text();
+    const html = await (await request.get("/data")).text();
     expect(html).toMatch(/<meta[^>]+name="robots"[^>]+content="[^"]*noindex/);
+  });
+
+  test("the retired login page is gone", async ({ request }) => {
+    const res = await request.get("/login");
+    expect(res.status()).toBe(404);
   });
 });

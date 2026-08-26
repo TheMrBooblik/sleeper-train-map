@@ -233,7 +233,7 @@ function ProposalCard({ meta, loadOne, decide, busy }) {
 }
 
 export default function ReviewTab({ onPendingCount }) {
-  const { proposals, truncated, loading, busy, error, notice, expired, loadOne, decide } =
+  const { proposals, truncated, loading, busy, error, notice, loadOne, decide } =
     useProposals();
 
   useEffect(() => {
@@ -241,14 +241,6 @@ export default function ReviewTab({ onPendingCount }) {
       onPendingCount(proposals.length);
     }
   }, [proposals, onPendingCount]);
-
-  if (expired) {
-    return (
-      <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-4">
-        Session expired — <a href="/login" className="underline">log in again</a>.
-      </p>
-    );
-  }
 
   return (
     <div className="h-full min-h-0 overflow-y-auto space-y-3">

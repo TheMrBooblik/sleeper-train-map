@@ -2,10 +2,8 @@ import { useState } from "react";
 import useAdminOverrides from "../../hooks/useAdminOverrides";
 
 // "Overrides" tab on /data: edits the data/overrides/* store and saves each
-// change via /api/admin/override. The page is already gated by the admin
-// session (middleware) and the same admin_session cookie rides along with
-// these same-origin requests, so there is no separate login here. Each save is
-// a real git commit, so removes are confirmed.
+// change via /api/admin/override. The page is loopback-only (middleware +
+// the API handler). Each save is a real git commit, so removes are confirmed.
 
 const inputCls =
   "border border-gray-300 rounded px-2 py-1 text-sm min-w-0 focus:outline-none focus:ring-1 focus:ring-gray-400";
@@ -422,20 +420,8 @@ function NameReplacementsEditor({ value, mutate, busy }) {
 // ─── Tab ────────────────────────────────────────────────────────────────────
 
 export default function OverridesTab() {
-  const { overrides, target, loading, busy, error, notice, expired, mutate } =
+  const { overrides, target, loading, busy, error, notice, mutate } =
     useAdminOverrides();
-
-  if (expired) {
-    return (
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 text-sm text-gray-700">
-        Your session expired.{" "}
-        <a href="/login" className="underline">
-          Log in again
-        </a>
-        .
-      </div>
-    );
-  }
 
   return (
     <div className="h-full min-h-0 overflow-y-auto bg-white rounded-xl border border-gray-200 shadow-sm p-4">
