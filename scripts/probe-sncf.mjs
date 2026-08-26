@@ -117,9 +117,16 @@ checkpoint();
 
 console.log(`\n═══ download ═══\n  ${FEED_URL}`);
 const t0 = Date.now();
+const alreadyUnpacked = fs.existsSync(path.join(WORK_DIR, "trips.txt"));
 try {
-  fs.rmSync(WORK_DIR, { recursive: true, force: true });
-  await downloadGtfs(FEED_URL, WORK_DIR);
+  if (alreadyUnpacked && !process.argv.includes("--fresh")) {
+    // Re-running the probe to answer follow-up questions should not re-download
+    // 58 MB. Pass --fresh to force it.
+    console.log(`  reusing ${WORK_DIR} (pass --fresh to re-download)`);
+  } else {
+    fs.rmSync(WORK_DIR, { recursive: true, force: true });
+    await downloadGtfs(FEED_URL, WORK_DIR);
+  }
   report.steps.download = { ok: true, seconds: Math.round((Date.now() - t0) / 1000) };
   console.log(`  ok in ${report.steps.download.seconds}s`);
 } catch (err) {
@@ -340,6 +347,222 @@ if (!builtKeys.length) {
           : `NEITHER works — the trains dict is keyed by route name, so buildSleeperTrains must be taught to key by trip_short_name before SNCF can supersede or enrich the Back-on-Track rows.`),
   );
   report.steps.dedup = { builtKeys, wouldDropExact: wouldDrop, wouldDropBare };
+}
+checkpoint();
+
+// ── 8. What DO the trip identifiers hold? ────────────────────────────────────
+// Round 1 found none of the sixteen train numbers in trip_short_name, and the
+// routes turned out to be TER/Intercités *lines* ("P53", "Bening -
+// Sarreguemines") rather than named services — so neither the allowlist's
+// endpoint pairs nor a train number can key this feed as it stands. Before
+// writing an adapter we need to know what identifiers the feed actually
+// carries.
+
+function splitCsv(line) {
+  const out = [];
+  let cur = "";
+  let q = false;
+  for (let i = 0; i < line.length; i += 1) {
+    const c = line[i];
+    if (c === '"' && q && line[i + 1] === '"') { cur += '"'; i += 1; continue; }
+    if (c === '"') { q = !q; continue; }
+    if (c === "," && !q) { out.push(cur); cur = ""; continue; }
+    cur += c;
+  }
+  out.push(cur);
+  return out;
+}
+
+async function streamCsv(file, onRow) {
+  let headers = null;
+  const rl = readline.createInterface({ input: fs.createReadStream(file), crlfDelay: Infinity });
+  for await (const line of rl) {
+    if (!line.trim()) continue;
+    if (!headers) {
+      headers = splitCsv(line.replace(/^﻿/, "")).map((h) => h.trim());
+      continue;
+    }
+    const cells = splitCsv(line);
+    const row = {};
+    headers.forEach((h, i) => { row[h] = cells[i] ?? ""; });
+    onRow(row);
+  }
+  return headers;
+}
+
+console.log(`\n═══ trips.txt field survey ═══`);
+const tripsById = new Map();
+const shortNameSamples = new Set();
+const headsignSamples = new Set();
+let shortNameFilled = 0;
+let headsignFilled = 0;
+const tripHeaders = await streamCsv(path.join(WORK_DIR, "trips.txt"), (row) => {
+  tripsById.set(row.trip_id, row);
+  if (String(row.trip_short_name ?? "").trim()) {
+    shortNameFilled += 1;
+    if (shortNameSamples.size < 20) shortNameSamples.add(row.trip_short_name);
+  }
+  if (String(row.trip_headsign ?? "").trim()) {
+    headsignFilled += 1;
+    if (headsignSamples.size < 20) headsignSamples.add(row.trip_headsign);
+  }
+});
+console.log(`  columns          : ${tripHeaders.join(", ")}`);
+console.log(`  trips            : ${tripsById.size}`);
+console.log(`  trip_short_name  : ${shortNameFilled} non-empty | samples: ${[...shortNameSamples].slice(0, 10).join(" · ") || "(all empty)"}`);
+console.log(`  trip_headsign    : ${headsignFilled} non-empty | samples: ${[...headsignSamples].slice(0, 10).join(" · ") || "(all empty)"}`);
+report.steps.tripFields = {
+  columns: tripHeaders,
+  trips: tripsById.size,
+  shortNameFilled,
+  shortNameSamples: [...shortNameSamples],
+  headsignFilled,
+  headsignSamples: [...headsignSamples],
+};
+checkpoint();
+
+// ── 9. Find the night trains by what makes them night trains ─────────────────
+// Feed-agnostic and far sturdier than any naming convention: a sleeper is a
+// trip whose stop_times cross midnight. GTFS encodes after-midnight as 24:xx,
+// 25:xx… so "any time >= 24:00:00" is an exact test, and it is the same signal
+// every other national feed will offer (CFR, MÁV, DELFI…).
+
+console.log(`\n═══ overnight trips (stop_times crossing 24:00) ═══`);
+const stopsById = new Map();
+await streamCsv(path.join(WORK_DIR, "stops.txt"), (row) => {
+  stopsById.set(row.stop_id, {
+    name: (row.stop_name || row.stop_id).trim(),
+    lat: Number.parseFloat(row.stop_lat),
+    lon: Number.parseFloat(row.stop_lon),
+  });
+});
+
+const routesById2 = new Map(routes.map((r) => [r.route_id, r]));
+const agg = new Map(); // trip_id → { minSeq, maxSeq, firstStop, lastStop, firstDep, lastArr, stops, crosses }
+const toSecs = (t) => {
+  const m = /^(\d+):(\d\d):(\d\d)$/.exec(String(t).trim());
+  return m ? Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) : null;
+};
+await streamCsv(path.join(WORK_DIR, "stop_times.txt"), (row) => {
+  const id = row.trip_id;
+  const seq = Number.parseInt(row.stop_sequence, 10);
+  if (!id || !Number.isFinite(seq)) return;
+  let a = agg.get(id);
+  if (!a) { a = { minSeq: Infinity, maxSeq: -Infinity, stops: 0, crosses: false }; agg.set(id, a); }
+  a.stops += 1;
+  const arr = toSecs(row.arrival_time);
+  const dep = toSecs(row.departure_time);
+  if ((arr !== null && arr >= 86400) || (dep !== null && dep >= 86400)) a.crosses = true;
+  if (seq < a.minSeq) { a.minSeq = seq; a.firstStop = row.stop_id; a.firstDep = row.departure_time; }
+  if (seq > a.maxSeq) { a.maxSeq = seq; a.lastStop = row.stop_id; a.lastArr = row.arrival_time; }
+});
+
+const overnight = [];
+for (const [tripId, a] of agg) {
+  if (!a.crosses) continue;
+  const trip = tripsById.get(tripId);
+  if (!trip) continue;
+  const route = routesById2.get(trip.route_id);
+  overnight.push({
+    trip_id: tripId,
+    route_id: trip.route_id,
+    route_type: route?.route_type ?? null,
+    route_short_name: route?.route_short_name ?? "",
+    route_long_name: route?.route_long_name ?? "",
+    trip_short_name: trip.trip_short_name ?? "",
+    trip_headsign: trip.trip_headsign ?? "",
+    service_id: trip.service_id ?? "",
+    shape_id: trip.shape_id ?? "",
+    origin: stopsById.get(a.firstStop)?.name ?? a.firstStop,
+    destination: stopsById.get(a.lastStop)?.name ?? a.lastStop,
+    departure: a.firstDep,
+    arrival: a.lastArr,
+    stops: a.stops,
+  });
+}
+const rail = overnight.filter((o) => String(o.route_type) === "2");
+console.log(`  trips crossing midnight: ${overnight.length} (of ${agg.size}) — rail (route_type=2): ${rail.length}`);
+// Collapse to distinct corridors so the list is readable: same endpoints + times.
+const corridorKey = (o) => `${o.origin} → ${o.destination} ${o.departure}`;
+const distinct = new Map();
+for (const o of rail) {
+  const k = corridorKey(o);
+  if (!distinct.has(k)) distinct.set(k, { ...o, tripCount: 0 });
+  distinct.get(k).tripCount += 1;
+}
+console.log(`  distinct overnight rail corridors: ${distinct.size}`);
+for (const o of [...distinct.values()].sort((a, b) => b.tripCount - a.tripCount).slice(0, 40)) {
+  console.log(
+    `    ${String(o.tripCount).padStart(4)}× ${o.origin} ${o.departure} → ${o.destination} ${o.arrival} | ${o.stops} stops | route "${o.route_long_name || o.route_short_name || o.route_id}" | short="${o.trip_short_name}" headsign="${o.trip_headsign}"`,
+  );
+}
+report.steps.overnight = {
+  crossingMidnight: overnight.length,
+  rail: rail.length,
+  distinctCorridors: distinct.size,
+  corridors: [...distinct.values()].sort((a, b) => b.tripCount - a.tripCount),
+};
+save("overnight.json", report.steps.overnight);
+checkpoint();
+
+// ── 10. The nine corridors we actually want ──────────────────────────────────
+
+console.log(`\n═══ the nine Back-on-Track corridors, found by endpoints ═══`);
+const norm = (x) => String(x || "").normalize("NFD").replace(/\p{Mn}/gu, "").toLowerCase();
+const CORRIDOR_TARGETS = [
+  { bot: "107", a: "paris austerlitz", b: "briancon" },
+  { bot: "108", a: "paris austerlitz", b: "nice" },
+  { bot: "109", a: "paris austerlitz", b: "albi" },
+  { bot: "110", a: "paris austerlitz", b: "cerbere" },
+  { bot: "111", a: "paris austerlitz", b: "tarbes" },
+  { bot: "112", a: "paris austerlitz", b: "latour" },
+  { bot: "119", a: "paris austerlitz", b: "rodez" },
+  { bot: "262", a: "paris austerlitz", b: "aurillac" },
+  { bot: "264", a: "paris austerlitz", b: "toulouse matabiau" },
+];
+const found = {};
+for (const t of CORRIDOR_TARGETS) {
+  const hits = rail.filter((o) => {
+    const o1 = norm(o.origin);
+    const o2 = norm(o.destination);
+    return (o1.includes(t.a) && o2.includes(t.b)) || (o1.includes(t.b) && o2.includes(t.a));
+  });
+  const byPattern = new Map();
+  for (const h of hits) {
+    const k = `${h.origin}|${h.destination}|${h.departure}|${h.trip_short_name}`;
+    if (!byPattern.has(k)) byPattern.set(k, { ...h, dates: 0 });
+    byPattern.get(k).dates += 1;
+  }
+  found[t.bot] = [...byPattern.values()];
+  console.log(`\n  BoT ${t.bot} — ${t.a} ↔ ${t.b}: ${hits.length} overnight trip(s), ${byPattern.size} pattern(s)`);
+  for (const p of [...byPattern.values()].slice(0, 6)) {
+    console.log(
+      `      ${p.origin} ${p.departure} → ${p.destination} ${p.arrival} | ${p.stops} stops | ${p.dates} date(s) | short="${p.trip_short_name}" headsign="${p.trip_headsign}" | route "${p.route_long_name || p.route_short_name}" (${p.route_id})`,
+    );
+  }
+  if (!hits.length) console.log(`      NOT FOUND as an overnight rail trip`);
+}
+report.steps.corridors = found;
+save("corridors.json", found);
+
+// One full stop list, so the adapter author can see what a night trip looks like.
+const sample = Object.values(found).flat()[0] ?? null;
+if (sample) {
+  const seqs = [];
+  await streamCsv(path.join(WORK_DIR, "stop_times.txt"), (row) => {
+    if (row.trip_id !== sample.trip_id) return;
+    seqs.push({
+      seq: Number.parseInt(row.stop_sequence, 10),
+      stop: stopsById.get(row.stop_id)?.name ?? row.stop_id,
+      arr: row.arrival_time,
+      dep: row.departure_time,
+    });
+  });
+  seqs.sort((a, b) => a.seq - b.seq);
+  console.log(`\n  full stop list for ${sample.trip_id} (${sample.origin} → ${sample.destination}):`);
+  for (const st of seqs) console.log(`      ${String(st.seq).padStart(3)} ${st.stop.padEnd(38)} ${st.arr} / ${st.dep}`);
+  report.steps.sampleTrip = { ...sample, stops: seqs };
+  save("sample-trip.json", report.steps.sampleTrip);
 }
 checkpoint();
 
