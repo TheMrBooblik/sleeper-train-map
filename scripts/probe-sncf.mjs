@@ -566,6 +566,109 @@ if (sample) {
 }
 checkpoint();
 
+// ── 11. The definitive list: every French night train in the feed ────────────
+// Round 2 established the two facts this step rests on. trip_short_name is
+// empty on all 43,425 trips and the train number lives in trip_headsign — so
+// round 1's "NOT FOUND" for all sixteen numbers was looking at the wrong
+// field, and is not evidence the trains are absent. And crossing midnight
+// alone is necessary but not sufficient: it also catches TER running an hour
+// past midnight (Mulhouse → Strasbourg, 1h10) and late TGV. Duration
+// separates them cleanly — the shortest real sleeper here is Toulouse → Paris
+// at 8h35, the longest false positive is a Paris → Nice TGV at 5h34, so 7h
+// sits in the gap with room on both sides.
+//
+// Applied together over route_type=2, this is the whole French night-train
+// offer as the operator publishes it, with no naming assumptions at all. The
+// cross-reference then answers the question the adapter turns on: does the
+// feed still carry every number Back-on-Track claims, and does it carry any
+// that Back-on-Track has missed?
+
+const MIN_OVERNIGHT_SECONDS = 7 * 3600;
+
+console.log(`\n═══ feed validity ═══`);
+const feedInfo = readCsv(path.join(WORK_DIR, "feed_info.txt"))[0] ?? null;
+console.log(`  ${feedInfo ? JSON.stringify(feedInfo) : "(no feed_info.txt)"}`);
+report.steps.feedInfo = feedInfo;
+
+console.log(`\n═══ every night train in the feed (crosses midnight, >= 7h, rail) ═══`);
+const durationOf = (a) => {
+  const dep = toSecs(a.firstDep);
+  const arr = toSecs(a.lastArr);
+  return dep === null || arr === null ? null : arr - dep;
+};
+const byHeadsign = new Map();
+for (const [tripId, a] of agg) {
+  if (!a.crosses) continue;
+  const trip = tripsById.get(tripId);
+  if (!trip) continue;
+  const route = routesById2.get(trip.route_id);
+  if (String(route?.route_type) !== "2") continue;
+  const secs = durationOf(a);
+  if (secs === null || secs < MIN_OVERNIGHT_SECONDS) continue;
+
+  const number = String(trip.trip_headsign ?? "").trim() || "(no headsign)";
+  let g = byHeadsign.get(number);
+  if (!g) {
+    g = { number, trips: 0, patterns: new Map(), routeNames: new Set(), maxStops: 0, minSecs: Infinity, maxSecs: 0 };
+    byHeadsign.set(number, g);
+  }
+  g.trips += 1;
+  g.maxStops = Math.max(g.maxStops, a.stops);
+  g.minSecs = Math.min(g.minSecs, secs);
+  g.maxSecs = Math.max(g.maxSecs, secs);
+  if (route?.route_long_name) g.routeNames.add(route.route_long_name);
+  const origin = stopsById.get(a.firstStop)?.name ?? a.firstStop;
+  const destination = stopsById.get(a.lastStop)?.name ?? a.lastStop;
+  const key = `${origin}|${destination}`;
+  const pat = g.patterns.get(key) ?? { origin, destination, dates: 0, stops: a.stops, departure: a.firstDep, arrival: a.lastArr };
+  pat.dates += 1;
+  // Keep the longest stop list seen for this endpoint pair, for reference; the
+  // adapter should pick the MODAL one (most dates), which is why dates is kept.
+  if (a.stops > pat.stops) pat.stops = a.stops;
+  g.patterns.set(key, pat);
+}
+
+const hhmm = (secs) => `${Math.floor(secs / 3600)}h${String(Math.floor((secs % 3600) / 60)).padStart(2, "0")}`;
+const nightTrains = [...byHeadsign.values()].sort((a, b) => b.trips - a.trips);
+console.log(`  ${nightTrains.length} distinct headsign numbers, ${nightTrains.reduce((n, g) => n + g.trips, 0)} trips\n`);
+for (const g of nightTrains) {
+  const pats = [...g.patterns.values()].sort((a, b) => b.dates - a.dates);
+  const main = pats[0];
+  console.log(
+    `    ${g.number.padEnd(8)} ${String(g.trips).padStart(3)} trips | ${hhmm(g.minSecs)}–${hhmm(g.maxSecs)} | ${main.origin} → ${main.destination} (${main.stops} stops, ${main.dates}/${g.trips} dates)${pats.length > 1 ? ` | +${pats.length - 1} other endpoint pair(s)` : ""} | route "${[...g.routeNames][0] ?? "—"}"`,
+  );
+}
+
+// Cross-reference both ways against what Back-on-Track claims.
+const feedNumbers = new Set(nightTrains.map((g) => g.number));
+const missing = trainNumbers.filter((n) => !feedNumbers.has(n));
+const extra = [...feedNumbers].filter((n) => !trainNumbers.includes(n) && /^\d+$/.test(n));
+console.log(`\n  Back-on-Track numbers the feed does NOT carry as a night train: ${missing.join(", ") || "(none)"}`);
+console.log(`  night trains in the feed that Back-on-Track does not list      : ${extra.join(", ") || "(none)"}`);
+console.log(
+  `\n  VERDICT: ` +
+    (missing.length === 0
+      ? "every Back-on-Track number is present — enrich the nine rows in place, keyed by number."
+      : `${missing.length} number(s) are stale in Back-on-Track. Those rows cannot be enriched by number; the feed's own numbering has to win, and the stale rows must be superseded (or disabled) so the map does not draw both.`),
+);
+report.steps.nightTrains = {
+  minOvernightSeconds: MIN_OVERNIGHT_SECONDS,
+  count: nightTrains.length,
+  trains: nightTrains.map((g) => ({
+    number: g.number,
+    trips: g.trips,
+    minSeconds: g.minSecs,
+    maxSeconds: g.maxSecs,
+    maxStops: g.maxStops,
+    routeNames: [...g.routeNames],
+    patterns: [...g.patterns.values()].sort((a, b) => b.dates - a.dates),
+  })),
+  missingFromFeed: missing,
+  extraInFeed: extra,
+};
+save("night-trains.json", report.steps.nightTrains);
+checkpoint();
+
 report.finishedAt = new Date().toISOString();
 checkpoint();
 console.log(
