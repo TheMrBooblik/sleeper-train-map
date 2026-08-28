@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-08-28",
+  "createdAt": "2026-08-28T14:50:36.010Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (1 routes, 0 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute cr_D_12: D 12 (Hangzhou(杭州) – Beijing Fengtai(北京丰台))",
+  "target": {
+    "routeKey": "trusted-2026-08-28",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
