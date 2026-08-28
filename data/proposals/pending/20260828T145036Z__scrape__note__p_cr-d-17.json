@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_cr-d-17",
+  "createdAt": "2026-08-28T14:50:36.009Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: D 17 (Beijing(北京) – Hangzhou(杭州))",
+  "summary": "Material change on an approved route (already live — FYI): operating days (return): \"Daily\" → \"null\"; train numbers: \"D 17|D 18\" → \"D 17\"",
+  "target": {
+    "routeKey": "cr_D_17",
+    "agencyId": "CR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (return)": "Daily",
+    "train numbers": "D 17|D 18"
+  },
+  "after": {
+    "operating days (return)": null,
+    "train numbers": "D 17"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
