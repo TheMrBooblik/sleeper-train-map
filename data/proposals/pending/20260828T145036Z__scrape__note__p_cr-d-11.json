@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_cr-d-11",
+  "createdAt": "2026-08-28T14:50:36.009Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: D 11 (Beijing(北京) – Hangzhou(杭州))",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"D 11|D 12\" → \"D 11|D 18\"",
+  "target": {
+    "routeKey": "cr_D_11",
+    "agencyId": "CR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "D 11|D 12"
+  },
+  "after": {
+    "train numbers": "D 11|D 18"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
