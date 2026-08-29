@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-08-29",
+  "createdAt": "2026-08-29T09:41:50.823Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (3 routes, 1 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute cr_Z_14: Z 14 (Guangzhou Baiyun(广州白云) – Shenyang North(沈阳北))\nroute cr_D_6: D 6 (Shanghai(上海) – Beijing(北京))\nroute cr_D_8: D 8 (Shanghai(上海) – Beijing(北京))\nstation Kedzierzyn Kozle (nightjet)",
+  "target": {
+    "routeKey": "trusted-2026-08-29",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
