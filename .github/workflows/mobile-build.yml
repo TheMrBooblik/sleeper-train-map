@@ -77,9 +77,24 @@ jobs:
           java -jar /tmp/bundletool.jar get-size total --apks=/tmp/app.apks | tee /tmp/size.csv
 
           MAX_BYTES=$((30 * 1024 * 1024))
-          # `get-size total` prints a MIN,MAX header row then the numbers; the
-          # largest device configuration is the one that has to fit.
-          MAX_DOWNLOAD=$(tail -n +2 /tmp/size.csv | tr ',' '\n' | sort -n | tail -1)
+          # `get-size total` prints a MIN,MAX header row then the numbers, with
+          # CRLF line endings. The stray \r is not cosmetic: it made the
+          # arithmetic and the comparison below both fail, and a failing `[`
+          # returns 2, which reads as "condition false" — so the gate passed
+          # whatever the size was. Strip it, and keep only digits.
+          # `|| true` so that a no-match `grep` does not trip `set -e` before the
+          # guard below can print the output that confused it.
+          MAX_DOWNLOAD=$(tail -n +2 /tmp/size.csv | tr -d '\r' | tr ',' '\n' \
+            | grep -E '^[0-9]+$' | sort -n | tail -1 || true)
+
+          # A parse that yields nothing must fail loudly rather than wave the
+          # build through — that is exactly how this check broke the first time.
+          if ! [[ "$MAX_DOWNLOAD" =~ ^[0-9]+$ ]]; then
+            echo "::error::Could not read a size from bundletool output"
+            cat /tmp/size.csv
+            exit 1
+          fi
+
           echo "Largest download size: $MAX_DOWNLOAD bytes (budget $MAX_BYTES)"
           echo "### Android download size: $((MAX_DOWNLOAD / 1024)) KB" >> "$GITHUB_STEP_SUMMARY"
           if [ "$MAX_DOWNLOAD" -gt "$MAX_BYTES" ]; then

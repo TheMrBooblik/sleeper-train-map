@@ -169,11 +169,19 @@ runs *those same modules* in the nightly Action and writes
 - **Toggles use the web's localStorage keys** (`train-map:isGrouped`, `:showRoutes`,
   `:hideIntermediateStations`) with the same defaults. The fourth web toggle, the
   OpenRailwayMap overlay, has no counterpart — it is a tile layer.
+- **Size, measured:** the Play download is **8.7–9.4 MB** (`bundletool get-size total`,
+  MIN/MAX across device configurations) against the 30 MB budget. The `.aab` artifact is
+  52 MB, which is not the user-facing number — Play splits it per ABI and screen density
+  and ships one slice. Flutter's icon-font tree-shaking accounts for a further 1.6 MB → 2.9 KB.
 - **CI** is `.github/workflows/mobile-build.yml`, path-filtered to `mobile/**` so the
-  nightly data commit never triggers it: analyze, test, build an App Bundle, then
-  `bundletool get-size total` with a hard 30 MB failure. ubuntu only — the repository is
-  private, where macOS runners bill at ×10; iOS builds go through Xcode Cloud (25 h/month
-  included with the Apple Developer Program).
+  nightly data commit never triggers it, and `push` limited to main so a PR branch does not
+  run it twice: analyze, test, build an App Bundle, then `bundletool get-size total` with a
+  hard 30 MB failure. That check parses `bundletool`'s CRLF CSV with `tr -d '\r'` and fails
+  loudly when no number can be read — the first version let the `\r` through, which made the
+  comparison error out, and a failing `[` returns 2, i.e. "false", so the gate silently
+  passed at any size. ubuntu only — the repository is private, where macOS runners bill at
+  ×10; iOS builds go through Xcode Cloud (25 h/month included with the Apple Developer
+  Program).
 
 The client-side half of the data pipeline — coordinate enrichment, terminus rewrites, the
 PKP/RJ GTFS merges, `deriveCities` — used to live inside `useInitialData`, duplicated
