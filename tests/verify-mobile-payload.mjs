@@ -31,6 +31,10 @@ import {
   parseDashArray,
   DEFAULT_TOLERANCE_DEG,
 } from "../scripts/lib/mobile-geometry.mjs";
+import {
+  toWallClock,
+  matchesEndpoint,
+} from "../scripts/lib/mobile-schedules.mjs";
 import { distanceKm } from "../src/components/Map/utils/returnGeometryBranches.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -155,6 +159,36 @@ check("parseDashArray accepts both Leaflet spellings and rejects junk", () => {
     null,
     "a single segment is not a dash",
   );
+});
+
+// ---------------------------------------------------------------------------
+// Timetable primitives
+// ---------------------------------------------------------------------------
+
+check(
+  "toWallClock reads a floating ISO string without touching the clock",
+  () => {
+    // The build runs in UTC; the browser that renders this may not. A floating ISO
+    // string means the same wall time everywhere, so the digits are the answer and
+    // constructing a Date would only invite the runner's zone in.
+    assert.strictEqual(toWallClock("2026-08-30T15:45:00"), "15:45");
+    assert.strictEqual(toWallClock("2026-08-30T05:05:00.000"), "05:05");
+  },
+);
+
+check("toWallClock normalises plain times and rejects junk", () => {
+  assert.strictEqual(toWallClock("9:41"), "09:41", "ČD emits unpadded hours");
+  assert.strictEqual(toWallClock("21:03"), "21:03");
+  assert.strictEqual(toWallClock(null), null);
+  assert.strictEqual(toWallClock(""), null);
+  assert.strictEqual(toWallClock("soon"), null);
+});
+
+check("matchesEndpoint is the panel's loose containment match", () => {
+  assert.ok(matchesEndpoint("Praha hl.n.", "Praha hl.n"));
+  assert.ok(matchesEndpoint("Wien Hbf", "Wien"));
+  assert.ok(!matchesEndpoint("Wien Hbf", "Praha"));
+  assert.ok(!matchesEndpoint("", "Praha"));
 });
 
 // ---------------------------------------------------------------------------
@@ -285,6 +319,148 @@ check("at least one route exercises the future-start path", () => {
     withFuture.length > 0,
     "no route carries a future start date — has the irregularities format changed?",
   );
+});
+
+const allSchedules = payload.routes.flatMap((r) =>
+  r.dirs.flatMap((d) =>
+    [d.schedule, d.cdSchedule].filter(Boolean).map((s) => ({ r, d, s })),
+  ),
+);
+
+check("timetables are well formed", () => {
+  assert.ok(
+    allSchedules.length > 100,
+    `only ${allSchedules.length} timetables`,
+  );
+  for (const { r, d, s } of allSchedules) {
+    assert.ok(s.src, `route ${r.id}/${d.train} timetable has no source`);
+    assert.ok(
+      s.tz === "utc" || s.tz === "wall",
+      `route ${r.id}/${d.train} tz is ${JSON.stringify(s.tz)}`,
+    );
+    assert.ok(
+      s.stops?.length >= 2,
+      `route ${r.id}/${d.train} timetable has ${s.stops?.length} stops`,
+    );
+    for (const stop of s.stops) {
+      assert.strictEqual(
+        stop.length,
+        3,
+        "a stop is [name, arrival, departure]",
+      );
+      assert.ok(stop[0], `route ${r.id}/${d.train} has an unnamed stop`);
+    }
+  }
+});
+
+check("a timetable never mixes instants with wall clock times", () => {
+  // This is the whole timezone contract: `utc` means the app must localise every
+  // value, `wall` means it must localise none. A schedule carrying both would be
+  // rendered half right, and the error is ~2 hours — plausible enough to miss.
+  const isInstant = (v) => /T/.test(v) && /(Z|[+-]\d{2}:?\d{2})$/.test(v);
+  for (const { r, d, s } of allSchedules) {
+    const values = s.stops.flatMap(([, a, b]) => [a, b]).filter(Boolean);
+    const instants = values.filter(isInstant).length;
+    if (s.tz === "utc") {
+      assert.strictEqual(
+        instants,
+        values.length,
+        `route ${r.id}/${d.train} is tagged utc but ${values.length - instants} ` +
+          `of ${values.length} times are not instants`,
+      );
+    } else {
+      assert.strictEqual(
+        instants,
+        0,
+        `route ${r.id}/${d.train} is tagged wall but carries ${instants} instants — ` +
+          `the app would print them in the wrong zone`,
+      );
+      for (const v of values) {
+        assert.ok(
+          /^\d{2}:\d{2}$/.test(v),
+          `route ${r.id}/${d.train} wall time ${JSON.stringify(v)} is not HH:MM`,
+        );
+      }
+    }
+  }
+});
+
+check("the feeds that publish instants are still tagged utc", () => {
+  // nightjet and italian are the only two feeds whose times carry a Z. If a
+  // scrape change ever made them floating, tagging would silently follow and
+  // every one of those timetables would shift by the viewer's offset.
+  const bySource = new Map();
+  for (const { s } of allSchedules) {
+    if (!bySource.has(s.src)) bySource.set(s.src, new Set());
+    bySource.get(s.src).add(s.tz);
+  }
+  for (const src of ["nightjet", "it"]) {
+    assert.deepStrictEqual(
+      [...(bySource.get(src) || [])],
+      ["utc"],
+      `${src} timetables must be tagged utc, got ${JSON.stringify([...(bySource.get(src) || [])])}`,
+    );
+  }
+  for (const [src, tzs] of bySource) {
+    if (src === "nightjet" || src === "it") continue;
+    assert.deepStrictEqual(
+      [...tzs],
+      ["wall"],
+      `${src} timetables should be wall clock, got ${JSON.stringify([...tzs])}`,
+    );
+  }
+});
+
+check("the European Sleeper feed only reaches European Sleeper trains", () => {
+  // The feed is keyed by BARE train number and Back-on-Track carries a CFM/CFR
+  // 401 and an SJN 475 next to ES 401/475. Without the agency guard those two
+  // render European Sleeper's stops.
+  for (const { r, d, s } of allSchedules) {
+    if (s.src !== "europeansleeper") continue;
+    const isEs =
+      String(r.id).startsWith("es_") ||
+      String(r.agency).toUpperCase() === "ES" ||
+      String(r.feedAgency || "").toUpperCase() === "ES";
+    assert.ok(
+      isEs,
+      `route ${r.id} (agency ${r.agency}) train ${d.train} got European Sleeper's ` +
+        `timetable — the bare-number guard is not holding`,
+    );
+  }
+});
+
+check("timetable coverage has not collapsed", () => {
+  // A feed that returned 20 timetables yesterday and 0 today is a broken scrape,
+  // and the payload would ship the gap silently. Assert per-source floors well
+  // under today's numbers so ordinary drift does not trip it.
+  const counts = stats.scheduleSources;
+  const floors = { nightjet: 30, cr: 50, pkp: 20, it: 15, na: 8, cd: 15 };
+  for (const [src, floor] of Object.entries(floors)) {
+    assert.ok(
+      (counts[src] || 0) >= floor,
+      `only ${counts[src] || 0} ${src} timetables resolved (floor ${floor}) — ` +
+        `check public/data/scraped/${src}-trains.json`,
+    );
+  }
+  assert.ok(
+    stats.withSchedule >= 200,
+    `only ${stats.withSchedule} of ${stats.dirs} directions carry a timetable`,
+  );
+});
+
+check("the ČD accordion stays separate from the main timetable", () => {
+  // cdSchedule is rendered as its own second accordion, never as a replacement,
+  // so it must not overwrite the winner of the precedence chain.
+  const withBoth = payload.routes.flatMap((r) =>
+    r.dirs.filter((d) => d.schedule && d.cdSchedule),
+  );
+  for (const d of withBoth) {
+    assert.strictEqual(
+      d.cdSchedule.src,
+      "cd",
+      "the second accordion must always be the ČD one",
+    );
+  }
 });
 
 check("stations are drawable and route-linked", () => {

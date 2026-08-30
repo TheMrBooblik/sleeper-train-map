@@ -46,6 +46,7 @@ import {
   parseDashArray,
   DEFAULT_TOLERANCE_DEG,
 } from "./lib/mobile-geometry.mjs";
+import { createScheduleResolver } from "./lib/mobile-schedules.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_FILE = path.join(ROOT, "public/data/published/mobile-v1.json");
@@ -227,6 +228,23 @@ function build({ tolerance = DEFAULT_TOLERANCE_DEG } = {}) {
     );
   }
 
+  // The nine operator feeds the detail panel fetches at runtime, read once.
+  const schedules = createScheduleResolver({
+    nightjet: readJson("public/data/scraped/nightjet-trains.json"),
+    chinese: readJson("public/data/scraped/chinese-trains.json"),
+    italian: readJson("public/data/scraped/italian-trains.json"),
+    caucasus: readJson("public/data/scraped/caucasus-trains.json"),
+    curated: readJson("public/data/scraped/curated-trains.json"),
+    amtrak: readJson("public/data/scraped/amtrak-trains.json"),
+    viarail: readJson("public/data/scraped/viarail-trains.json"),
+    europeansleeper: readJson(
+      "public/data/scraped/europeansleeper-trains.json",
+    ),
+    cd: readJson("public/data/scraped/cd-trains.json"),
+    rjChop: readJson("public/data/gtfs/rjChopTimetable.json"),
+    rjPremysl: readJson("public/data/gtfs/rjPremyslTimetable.json"),
+  });
+
   const substitutes = loadSubstituteGeometry();
   const unresolved = new Set();
   let pointsIn = 0;
@@ -293,6 +311,13 @@ function build({ tolerance = DEFAULT_TOLERANCE_DEG } = {}) {
             row[`trip_short_name_${d}`]?.toString(),
       );
 
+      const { schedule, cdSchedule } = schedules.resolve({
+        row,
+        trip,
+        direction: d,
+        trainNumber: row[`trip_short_name_${d}`],
+      });
+
       dirs.push({
         d,
         train: row[`trip_short_name_${d}`] || null,
@@ -323,6 +348,11 @@ function build({ tolerance = DEFAULT_TOLERANCE_DEG } = {}) {
         // them here means the app ships no URL-building code and no override file.
         booking:
           buildBookingUrl({ agencyId: agency, origin: from, dest: to }) || null,
+        // Resolved once here instead of by nine runtime fetches on the device.
+        // `cdSchedule` is a second accordion, not a replacement — see
+        // scripts/lib/mobile-schedules.mjs.
+        schedule: schedule || null,
+        cdSchedule: cdSchedule || null,
       });
     }
     if (dirs.length === 0) continue;
@@ -415,6 +445,18 @@ function build({ tolerance = DEFAULT_TOLERANCE_DEG } = {}) {
       pointsIn,
       pointsOut,
       unresolved: [...unresolved],
+      dirs: routes.reduce((a, r) => a + r.dirs.length, 0),
+      withSchedule: routes.reduce(
+        (a, r) => a + r.dirs.filter((d) => d.schedule).length,
+        0,
+      ),
+      scheduleStops: routes.reduce(
+        (a, r) =>
+          a + r.dirs.reduce((b, d) => b + (d.schedule?.stops.length || 0), 0),
+        0,
+      ),
+      scheduleSources: schedules.sourceCounts(),
+      feedSizes: schedules.feedSizes(),
     },
   };
 }
@@ -446,6 +488,10 @@ function main() {
   console.log(
     `  geometry points   ${stats.pointsIn} → ${stats.pointsOut} ` +
       `(${(100 - (stats.pointsOut / stats.pointsIn) * 100).toFixed(0)}% simplified away)`,
+  );
+  console.log(
+    `  timetables        ${stats.withSchedule}/${stats.dirs} directions, ` +
+      `${stats.scheduleStops} stops — ${JSON.stringify(stats.scheduleSources)}`,
   );
   console.log(`  geometry          ${kb(sections.geometry)}`);
   console.log(`  route metadata    ${kb(sections.routeMeta)}`);
