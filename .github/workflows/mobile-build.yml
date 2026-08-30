@@ -4,8 +4,13 @@ name: Mobile app
 # and its own path filter. In particular the nightly data commit must NOT
 # trigger it: the running app fetches `mobile-v1.json` over HTTP, so new data
 # needs no new build.
+#
+# `push` is limited to main: on a PR branch both triggers fire and the job runs
+# twice for one commit, which on a private repo's 2,000 free minutes is half the
+# budget spent on a duplicate.
 on:
   push:
+    branches: [main]
     paths:
       - "mobile/**"
       - ".github/workflows/mobile-build.yml"
@@ -14,6 +19,11 @@ on:
       - "mobile/**"
       - ".github/workflows/mobile-build.yml"
   workflow_dispatch:
+
+# A new push supersedes the run already in flight for the same ref.
+concurrency:
+  group: mobile-build-${{ github.ref }}
+  cancel-in-progress: true
 
 # ubuntu-latest only: this repository is private, where macOS runners bill at
 # ×10. iOS is built on a Mac or through Xcode Cloud, whose 25 hours a month come
