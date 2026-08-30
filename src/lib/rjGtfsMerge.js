@@ -2,7 +2,7 @@
 // Source files: public/data/gtfs/rjChopTimetable.json, rjPremyslTimetable.json
 // Mirrors the pattern of pkpGtfsMerge.js.
 
-import { resolveCanonicalStationName } from "../data/stationAliases";
+import { resolveCanonicalStationName } from "../data/stationAliases.js";
 
 function normalizeRjGtfsName(name) {
   if (!name) return name;

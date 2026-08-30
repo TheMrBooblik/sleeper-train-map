@@ -12,6 +12,7 @@ npm run start        # Start production server
 npm run scrape       # Registry-driven scrape of all sources (scripts/scrape-data.mjs)
 npm run canonicalize # Merge scraped sources → public/data/published/initial-data.json (review-gated)
 npm run classify     # Diff tonight's data vs seen index → proposals on the proposals branch
+npm run build-mobile-payload # Render-ready payload for the mobile app (public/data/published/mobile-v1.json)
 npm run parse-gtfs   # Parse RegioJet GTFS data (scripts/parse-regiojet-gtfs.js)
 npm run parse-pkp-gtfs # Parse Polish GTFS (runs nightly inside `npm run scrape` via the registry)
 npm run ai-tasks     # AI assist batch (GitHub Models; needs GITHUB_TOKEN with models:read)
@@ -28,7 +29,8 @@ npm run verify-canonical-routes && npm run verify-ai && npm run verify-enrich &&
 npm run verify-route-geometry && npm run verify-es && npm run verify-chinese-12306 && npm run verify-na-gtfs && \
 npm run verify-synthetic-scope && npm run verify-return-branches && npm run verify-es-timetable && \
 npm run verify-european-sleeper && npm run verify-station-times && npm run verify-marker-grouping && \
-npm run verify-seo-booking && npm run verify-seo-faq && npm run verify-seo-urls
+npm run verify-seo-booking && npm run verify-seo-faq && npm run verify-seo-urls && \
+npm run verify-mobile-payload
 ```
 
 ## Architecture Overview
@@ -88,6 +90,52 @@ Everything non-mechanical flows through a proposal queue the admin reviews in `/
 - `data/canonical/routes/{routeKey}.json` — admin-approved route files (created by `route.add` approvals). The `curated` registry source compiles them into the standard trains shape, so they flow through the same pipeline as scraped operators. Keys must be `curated_{trainName with _}`. New/changed curated routes appear after the next nightly scrape (or a manual `workflow_dispatch`).
 - `data/canonical/prices.json` — per-route from-prices (from probes/AI/public, all reviewed). Stamped onto viewMap rows + trips at compile time; consumed by the existing `getOperatorPricing()` route-first seam, surfacing as "from €X" badges with no component changes.
 - `src/pages/api/lib/calendar.mjs` — canonical service calendar; parses BoT service strings and GTFS calendars, renders back to display strings, unparseable inputs round-trip verbatim.
+
+### The mobile app (`mobile/`) and its payload
+
+The Flutter app does **not** carry a port of the map's logic. Route styling,
+colour assignment, return-direction corridor de-duplication, OSM/static geometry
+substitution and city clustering are ~2000 lines of pure JS here, and a Dart copy
+would drift the first time the pipeline changed. So `scripts/build-mobile-payload.mjs`
+runs *those same modules* in the nightly Action and writes
+`public/data/published/mobile-v1.json` — the app decodes and paints it, nothing more.
+
+- **What is baked:** encoded geometry per route (simplified, see below), one colour /
+  weight / numeric dash per route, per-direction endpoints, times, service string, via
+  list, amenities and a resolved booking URL (`operator-booking.json`'s `{origin}`/`{dest}`
+  template filled in here), the route-relevant stations (1,880 of 29,749 — the rest are
+  2.7 MB the app would parse and never draw) and both city-grouping states.
+- **What is deliberately NOT baked: anything that reads the clock.**
+  `isRouteOutsideServiceIdSeason` and `getFutureRouteStartDate` both call `new Date()`,
+  so freezing their verdicts would tell a phone in November what was true in August —
+  and the app ships a seed copy that can be months old. The payload carries their
+  *inputs* (`seasonRanges`, `seasonBounded`, `futureStarts`, `hasUnknownStart`,
+  `drawAsActive`) and the app re-evaluates. `verify-mobile-payload` fails the build if a
+  verdict-shaped key (`isFuture`, `hidden`, …) ever appears on a route.
+- **Geometry is simplified before encoding** (Douglas–Peucker, ~55 m, `scripts/lib/mobile-geometry.mjs`):
+  334k points → 67k, an 80% cut invisible at the zoom range a sleeper map is read at.
+  Dash patterns are normalised from Leaflet's `"10,5"`/`"8 6"` strings to numeric segments,
+  because Flutter's `StrokePattern.dashed` wants numbers and the app should parse nothing.
+- **One behaviour change from the web, on purpose:** `buildRouteColorMap` shades by an
+  operator's *visible* route count, so the web gives a route a different shade when only
+  one station's routes are on screen. The payload bakes one colour per route, computed
+  over the full set, so a route keeps its colour across views.
+- **A route hidden by today's season filter never reaches `buildAllRoutesPaths`**, so its
+  geometry would be missing and the app could not un-hide it later. Nothing is seasonal
+  today; the builder throws if that changes, rather than shipping a silent gap.
+- **Delivery:** `public/` is static on the Vercel CDN and `src/middleware.js` only guards
+  `/data` exactly, so `https://pingwi.com/data/published/mobile-v1.json` is a plain CDN
+  asset — no lambda, no bandwidth cost beyond the CDN. The app ships a seed copy, caches
+  the last good download, and refreshes with `If-None-Match`. Schema is frozen per
+  version: a breaking change goes to `mobile-v2.json` so published apps keep working.
+- `mobile/` is excluded from the Vercel build (`.vercelignore`) and from Prettier; the root
+  `package.json` is deliberately **not** an npm workspace root, so the web build is untouched.
+
+The client-side half of the data pipeline — coordinate enrichment, terminus rewrites, the
+PKP/RJ GTFS merges, `deriveCities` — used to live inside `useInitialData`, duplicated
+verbatim between its load and refresh paths. It is now `src/lib/enrich-payload.mjs`
+(`enrichInitialData`), which the hook and the payload builder both call, so the web is its
+own regression test for what the app renders.
 
 ### Public URL structure (pingwi.com)
 

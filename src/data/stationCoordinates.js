@@ -6,6 +6,6 @@
  * edited through the admin panel and committed as a structured override.
  * Format: { "Station Name": { lat: number, lon: number } }
  */
-import stationCoordinates from "../../data/overrides/station-coordinates.json";
+import stationCoordinates from "../../data/overrides/station-coordinates.json" with { type: "json" };
 
 export { stationCoordinates };

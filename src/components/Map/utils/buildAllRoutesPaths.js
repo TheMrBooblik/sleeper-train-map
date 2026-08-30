@@ -22,11 +22,11 @@ import {
   shouldDrawFutureRouteAsActive,
   MAP_LEGEND_LINE_BASE_STYLES,
   arePositionsReverseEqual,
-} from "./routeStyleUtils";
-import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "./operatorColors";
-import { parseCoord } from "../../../helpers/enrichStationsWithCoordinates";
+} from "./routeStyleUtils.js";
+import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "./operatorColors.js";
+import { parseCoord } from "../../../helpers/enrichStationsWithCoordinates.js";
 import polyline from "@mapbox/polyline";
-import { cachedReturnGeometryBranches } from "./returnGeometryBranches";
+import { cachedReturnGeometryBranches } from "./returnGeometryBranches.js";
 
 function isInactiveRoute(route) {
   return (route?.is_active || "Y").toString().toUpperCase() === "N";

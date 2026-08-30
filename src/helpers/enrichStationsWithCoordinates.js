@@ -1,4 +1,4 @@
-import { stopNameReplacements } from "../data/stationNameReplacements";
+import { stopNameReplacements } from "../data/stationNameReplacements.js";
 
 /** Coerce API lat/lon to a finite number, or null if unusable (avoids Leaflet crashes on bad strings). */
 export function parseCoord(value) {
