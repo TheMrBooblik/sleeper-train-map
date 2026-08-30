@@ -1,0 +1,84 @@
+name: Mobile app
+
+# The app is a separate toolchain in the same repo, so it gets its own workflow
+# and its own path filter. In particular the nightly data commit must NOT
+# trigger it: the running app fetches `mobile-v1.json` over HTTP, so new data
+# needs no new build.
+on:
+  push:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-build.yml"
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-build.yml"
+  workflow_dispatch:
+
+# ubuntu-latest only: this repository is private, where macOS runners bill at
+# ×10. iOS is built on a Mac or through Xcode Cloud, whose 25 hours a month come
+# with the Apple Developer Program we already pay for.
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter analyze
+
+      # Covers the ported logic (polyline decoding, season evaluation, viewport
+      # thinning, geo) plus a decode of the real shipped assets, which is the
+      # only place the JS build and the Dart client meet.
+      - run: flutter test
+
+      - name: Build release App Bundle
+        run: flutter build appbundle --release
+
+      # The store's number is download size, not the .aab on disk. bundletool
+      # splits per ABI and density the way Play does, so this is the figure that
+      # has to stay under 30 MB.
+      - name: Check download size
+        run: |
+          set -euo pipefail
+          BUNDLETOOL_VERSION=1.17.2
+          curl -sSLo /tmp/bundletool.jar \
+            "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar"
+
+          AAB=build/app/outputs/bundle/release/app-release.aab
+          java -jar /tmp/bundletool.jar build-apks \
+            --bundle="$AAB" --output=/tmp/app.apks --overwrite
+
+          java -jar /tmp/bundletool.jar get-size total --apks=/tmp/app.apks | tee /tmp/size.csv
+
+          MAX_BYTES=$((30 * 1024 * 1024))
+          # `get-size total` prints a MIN,MAX header row then the numbers; the
+          # largest device configuration is the one that has to fit.
+          MAX_DOWNLOAD=$(tail -n +2 /tmp/size.csv | tr ',' '\n' | sort -n | tail -1)
+          echo "Largest download size: $MAX_DOWNLOAD bytes (budget $MAX_BYTES)"
+          echo "### Android download size: $((MAX_DOWNLOAD / 1024)) KB" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$MAX_DOWNLOAD" -gt "$MAX_BYTES" ]; then
+            echo "::error::Download size $MAX_DOWNLOAD exceeds the 30 MB budget"
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: mobile/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error

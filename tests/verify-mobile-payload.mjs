@@ -152,6 +152,9 @@ check("encodeStroke round-trips through @mapbox/polyline", () => {
 check("parseDashArray accepts both Leaflet spellings and rejects junk", () => {
   assert.deepStrictEqual(parseDashArray("10,5"), [10, 5]);
   assert.deepStrictEqual(parseDashArray("8 6"), [8, 6]);
+  // StrokePattern.dashed asserts an even count, so a lone trailing segment —
+  // which has no gap to pair with — is dropped rather than passed through.
+  assert.deepStrictEqual(parseDashArray("10,5,3"), [10, 5]);
   assert.strictEqual(parseDashArray(undefined), null);
   assert.strictEqual(parseDashArray("solid"), null);
   assert.strictEqual(
@@ -308,6 +311,39 @@ check("the payload bakes date INPUTS, never date verdicts", () => {
         `route ${r.id} future start ${d}`,
       );
     }
+  }
+});
+
+check("a future route carries its BASE opacity, not the ghost", () => {
+  // buildAllRoutesPaths folds `fadeAsFuture` into pathOptions, which is a
+  // statement about the build date. ES 239 is "postponed to 2027", so the baked
+  // value was the ghost — and an app running in 2027 would have gone on fading a
+  // route that had opened. The payload carries the base and the ghost separately
+  // and the app picks between them against its own clock.
+  for (const r of payload.routes) {
+    assert.ok(
+      Number.isFinite(r.ghostOpacity),
+      `route ${r.id} has no ghostOpacity for the app to apply`,
+    );
+    if (r.futureStarts.length === 0) continue;
+    assert.notStrictEqual(
+      r.opacity,
+      r.ghostOpacity,
+      `route ${r.id} ships the ghost opacity as its base — it can never un-fade`,
+    );
+  }
+});
+
+check("dash patterns are dash/gap pairs", () => {
+  // StrokePattern.dashed asserts an even segment count, so an odd pattern
+  // reaching the app is a crash, not an ugly line.
+  for (const r of payload.routes) {
+    if (r.dash === null) continue;
+    assert.strictEqual(
+      r.dash.length % 2,
+      0,
+      `route ${r.id} dash ${JSON.stringify(r.dash)} has an unpaired segment`,
+    );
   }
 });
 

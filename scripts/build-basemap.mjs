@@ -25,7 +25,7 @@
  *
  *   node scripts/build-basemap.mjs
  *
- * Output: mobile/assets/basemap.json
+ * Output: mobile/assets/basemap.json.gz (committed)
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -36,7 +36,7 @@ import polyline from "@mapbox/polyline";
 import { simplifyPath, dedupeConsecutive } from "./lib/mobile-geometry.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const OUT_FILE = path.join(ROOT, "mobile/assets/basemap.json");
+const OUT_FILE = path.join(ROOT, "mobile/assets/basemap.json.gz");
 
 /**
  * The upstream `naturalearthdata.com` CDN is unreachable from CI here, and the
@@ -127,39 +127,10 @@ function encodePolygons(geometry, tolerance, counters) {
   return polygons;
 }
 
-/** Same, for open LineStrings (coastlines, boundary lines). */
-function encodeLines(geometry, tolerance, counters) {
-  const raw =
-    geometry?.type === "LineString"
-      ? [geometry.coordinates]
-      : geometry?.type === "MultiLineString"
-        ? geometry.coordinates
-        : [];
-  const out = [];
-  for (const line of raw) {
-    const latLng = toLatLng(line);
-    if (latLng.length < 2 || isPolar(latLng)) continue;
-    counters.pointsIn += latLng.length;
-    const simplified = simplifyPath(dedupeConsecutive(latLng), tolerance);
-    if (simplified.length < 2) continue;
-    counters.pointsOut += simplified.length;
-    out.push(polyline.encode(simplified, PRECISION));
-  }
-  return out;
-}
-
 function collectPolygons(collection, tolerance, counters) {
   const out = [];
   for (const feature of collection?.features || []) {
     out.push(...encodePolygons(feature.geometry, tolerance, counters));
-  }
-  return out;
-}
-
-function collectLines(collection, tolerance, counters) {
-  const out = [];
-  for (const feature of collection?.features || []) {
-    out.push(...encodeLines(feature.geometry, tolerance, counters));
   }
   return out;
 }
@@ -250,8 +221,10 @@ async function main() {
     process.exit(1);
   }
 
+  // Only the gzip is committed: the store's number is download size, Dart
+  // reads it back with `gzip.decode`, and one artifact in git beats two.
   fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
-  fs.writeFileSync(OUT_FILE, json);
+  fs.writeFileSync(OUT_FILE, zlib.gzipSync(Buffer.from(json), { level: 9 }));
   console.log(`  written           ${path.relative(ROOT, OUT_FILE)}`);
   console.log(
     `  (source GeoJSON cached in ${path.relative(ROOT, CACHE_DIR)}/ — safe to delete)`,

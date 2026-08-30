@@ -36,6 +36,8 @@ import {
   hasUnknownStart,
   shouldDrawFutureRouteAsActive,
   isRouteOutsideServiceIdSeason,
+  getRouteStyleFromFrequency,
+  MAP_LEGEND_LINE_BASE_STYLES,
 } from "../src/components/Map/utils/routeStyleUtils.js";
 import { relationCoordsFromOverpass } from "../src/pages/api/lib/osm-geo.mjs";
 import { buildBookingUrl, getDealsLink } from "../src/lib/operatorBooking.js";
@@ -363,13 +365,22 @@ function build({ tolerance = DEFAULT_TOLERANCE_DEG } = {}) {
       feedAgency: row.agency_id || null,
       color: style.color || null,
       weight: style.weight ?? null,
-      opacity: style.opacity ?? null,
+      // The BASE opacity, never the future-ghost one. `buildAllRoutesPaths`
+      // folds `fadeAsFuture` into pathOptions, which is a verdict about today:
+      // ES 239 is "postponed to 2027", so the baked value is the ghost, and an
+      // app running in 2027 would keep fading a route that had opened. The app
+      // applies the ghost itself from `futureStarts` — see logic/season.dart.
+      opacity: getRouteStyleFromFrequency(id, trips, row).opacity ?? 0.92,
       dash: parseDashArray(style.dashArray),
       picture: row.picture || null,
       pricing: row.pricing || null,
       deals: getDealsLink(agency) || null,
       hasUnknownStart: hasUnknownStart(id, trips),
       drawAsActive: shouldDrawFutureRouteAsActive(row),
+      // The opacity the app substitutes once it decides a route has not opened
+      // yet. Carried rather than hardcoded in Dart so the legend and the map
+      // cannot drift apart.
+      ghostOpacity: MAP_LEGEND_LINE_BASE_STYLES.futureGhost.opacity,
       seasonRanges: season.ranges,
       seasonBounded: season.allBounded,
       futureStarts: futureStartCandidates(id, trips),
@@ -387,6 +398,32 @@ function build({ tolerance = DEFAULT_TOLERANCE_DEG } = {}) {
     return Boolean((cities[key] || cities[s.stop_id])?.stop_route_ids);
   });
 
+  // Resolve the always-show allowlist here rather than shipping it.
+  // `thinStationsByViewport` matches it through `normalizeStationNameForLookup`,
+  // which is 50 lines of Belgian hyphen and Czech suffix rewrites — porting that
+  // to Dart would be a second copy to keep in step for a boolean. Entries ending
+  // in `*` are prefix rules ("Frankfurt*").
+  const allowRules = alwaysShowStations
+    .map((name) => (typeof name === "string" ? name.trim() : ""))
+    .filter(Boolean)
+    .map((rule) => {
+      const isPrefix = rule.endsWith("*");
+      const value = normalizeStationNameForLookup(
+        isPrefix ? rule.slice(0, -1) : rule,
+      );
+      return { isPrefix, value: (value || "").trim().toLowerCase() };
+    })
+    .filter((rule) => rule.value);
+
+  const isAlwaysShown = (stopId) => {
+    const key = (normalizeStationNameForLookup(stopId) || "")
+      .trim()
+      .toLowerCase();
+    return allowRules.some((rule) =>
+      rule.isPrefix ? key.startsWith(rule.value) : key === rule.value,
+    );
+  };
+
   const stationIndex = new Map();
   const stations = routeStations.map((s, i) => {
     const info =
@@ -394,13 +431,15 @@ function build({ tolerance = DEFAULT_TOLERANCE_DEG } = {}) {
       cities[s.stop_id] ||
       {};
     stationIndex.set(s.stop_id, i);
-    return {
+    const station = {
       n: s.stop_id,
       y: round(s.stop_lat),
       x: round(s.stop_lon),
       r: [...new Set((info.stop_route_ids || "").split(",").filter(Boolean))],
       m: info.isMainStation ? 1 : 0,
     };
+    if (isAlwaysShown(s.stop_id)) station.a = 1;
+    return station;
   });
 
   // Both toggle states are precomputed: clustering does not depend on the
@@ -413,17 +452,23 @@ function build({ tolerance = DEFAULT_TOLERANCE_DEG } = {}) {
     normalizeStationNameForDisplay,
     normalizeStationNameForLookup,
   );
-  const groups = grouped.map((g) => ({
-    n: g.displayName,
-    y: round(g.stop_lat),
-    x: round(g.stop_lon),
-    // Indices into `stations`, so a tapped group can list its members without
-    // the payload repeating them.
-    s: (g.groupedStations || [g])
-      .map((m) => stationIndex.get(m.stop_id))
-      .filter((i) => i !== undefined),
-    m: g.isGrouped ? 1 : 0,
-  }));
+  const groups = grouped.map((g) => {
+    const members = g.groupedStations || [g];
+    const group = {
+      n: g.displayName,
+      y: round(g.stop_lat),
+      x: round(g.stop_lon),
+      // Indices into `stations`, so a tapped group can list its members without
+      // the payload repeating them.
+      s: members
+        .map((m) => stationIndex.get(m.stop_id))
+        .filter((i) => i !== undefined),
+      m: g.isGrouped ? 1 : 0,
+    };
+    // A city marker survives thinning when any of its stations would have.
+    if (members.some((m) => isAlwaysShown(m.stop_id))) group.a = 1;
+    return group;
+  });
 
   return {
     payload: {
@@ -431,7 +476,6 @@ function build({ tolerance = DEFAULT_TOLERANCE_DEG } = {}) {
       generatedAt: new Date().toISOString(),
       dataUploadedAt: envelope.uploadedAt || null,
       sources: envelope.sources || {},
-      alwaysShow: alwaysShowStations,
       stations,
       groups,
       routes,

@@ -13,6 +13,8 @@ npm run scrape       # Registry-driven scrape of all sources (scripts/scrape-dat
 npm run canonicalize # Merge scraped sources → public/data/published/initial-data.json (review-gated)
 npm run classify     # Diff tonight's data vs seen index → proposals on the proposals branch
 npm run build-mobile-payload # Render-ready payload for the mobile app (public/data/published/mobile-v1.json)
+npm run build-basemap # Offline Natural Earth basemap → mobile/assets/basemap.json.gz (manual, committed)
+npm run sync-mobile-seed # Copy the current payload into the app's bundled seed (manual, before a release)
 npm run parse-gtfs   # Parse RegioJet GTFS data (scripts/parse-regiojet-gtfs.js)
 npm run parse-pkp-gtfs # Parse Polish GTFS (runs nightly inside `npm run scrape` via the registry)
 npm run ai-tasks     # AI assist batch (GitHub Models; needs GITHUB_TOKEN with models:read)
@@ -30,7 +32,10 @@ npm run verify-route-geometry && npm run verify-es && npm run verify-chinese-123
 npm run verify-synthetic-scope && npm run verify-return-branches && npm run verify-es-timetable && \
 npm run verify-european-sleeper && npm run verify-station-times && npm run verify-marker-grouping && \
 npm run verify-seo-booking && npm run verify-seo-faq && npm run verify-seo-urls && \
-npm run verify-mobile-payload
+npm run verify-mobile-payload && npm run verify-basemap
+
+# The Flutter app (mobile/) has its own toolchain:
+cd mobile && flutter analyze && flutter test
 ```
 
 ## Architecture Overview
@@ -130,6 +135,45 @@ runs *those same modules* in the nightly Action and writes
   version: a breaking change goes to `mobile-v2.json` so published apps keep working.
 - `mobile/` is excluded from the Vercel build (`.vercelignore`) and from Prettier; the root
   `package.json` is deliberately **not** an npm workspace root, so the web build is untouched.
+
+**The app itself** (`mobile/`, Flutter + flutter_map, package `com.pingwi.night_trains`):
+
+- **No tile server.** `tile.openstreetmap.org` is what the web draws over, and the OSMF
+  policy prohibits apps and offline prefetch outright. The hosted alternatives are metered
+  and mostly non-commercial-only, which sits badly with the affiliate booking links the
+  payload carries. So `scripts/build-basemap.mjs` bakes a Natural Earth basemap
+  (public domain, 484 KB → 326 KB shipped, two levels of detail, 789 ranked city labels)
+  and the app draws it as `PolygonLayer`s. It is complete offline, forever, for nothing.
+- **One decoder for everything.** Routes are polyline precision 5, the basemap precision 4,
+  both read by `lib/data/polyline_codec.dart` (~30 lines). That is why the basemap is
+  re-encoded rather than shipped as a bespoke binary format.
+- **Three data sources, in order:** the bundled seed asset (so a first launch in a tunnel
+  draws the whole network) → the last good download in the app support directory → the
+  network, one conditional GET against the CDN object. `npm run sync-mobile-seed` refreshes
+  the seed and is deliberately **manual**: wiring it into the nightly job would put ~400 KB
+  of asset churn in every data commit and trigger a mobile CI build for data the running
+  app fetches over HTTP anyway.
+- **What Dart re-derives, and why.** Only what the payload cannot answer: viewport marker
+  thinning (`lib/logic/thinning.dart`, a port of `thinStationsByViewport`, kept free of any
+  Flutter import so it is unit-testable), the season/future-start verdicts against the
+  device clock (`lib/logic/season.dart`), haversine ranking for "stations near me"
+  (`lib/logic/geo.dart`), and the utc/wall time conversion (`lib/logic/time_format.dart`).
+  Everything else is laid out as given. The always-show allowlist is **not** ported — the
+  web matches it through 50 lines of station-name normalisation, so the build resolves it
+  and the payload carries a boolean per marker.
+- **`opacity` is the base, never the ghost.** `buildAllRoutesPaths` folds `fadeAsFuture`
+  into its `pathOptions`, which is a statement about the build date: ES 239 is "postponed to
+  2027", so the baked value was the ghost and an app running in 2027 would have gone on
+  fading a route that had opened. The payload carries `opacity` and `ghostOpacity`
+  separately and `evaluateRoute` picks between them.
+- **Toggles use the web's localStorage keys** (`train-map:isGrouped`, `:showRoutes`,
+  `:hideIntermediateStations`) with the same defaults. The fourth web toggle, the
+  OpenRailwayMap overlay, has no counterpart — it is a tile layer.
+- **CI** is `.github/workflows/mobile-build.yml`, path-filtered to `mobile/**` so the
+  nightly data commit never triggers it: analyze, test, build an App Bundle, then
+  `bundletool get-size total` with a hard 30 MB failure. ubuntu only — the repository is
+  private, where macOS runners bill at ×10; iOS builds go through Xcode Cloud (25 h/month
+  included with the Apple Developer Program).
 
 The client-side half of the data pipeline — coordinate enrichment, terminus rewrites, the
 PKP/RJ GTFS merges, `deriveCities` — used to live inside `useInitialData`, duplicated

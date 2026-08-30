@@ -14,6 +14,7 @@
     "build-redirects": "node scripts/build-seo-redirects.mjs",
     "build-mobile-payload": "node scripts/build-mobile-payload.mjs",
     "build-basemap": "node scripts/build-basemap.mjs",
+    "sync-mobile-seed": "node scripts/sync-mobile-seed.mjs",
     "parse-gtfs": "node scripts/parse-regiojet-gtfs.js",
     "parse-pkp-gtfs": "node scripts/parse-pkp-gtfs.js",
     "verify-pkp-bundle": "node tests/verify-pkp-train-shapes.mjs",

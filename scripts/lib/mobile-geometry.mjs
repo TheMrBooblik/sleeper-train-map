@@ -133,6 +133,12 @@ export function encodeStroke(points, toleranceDeg = DEFAULT_TOLERANCE_DEG) {
 /**
  * Leaflet accepts a dash pattern as "10,5" or "8 6"; Flutter's StrokePattern
  * wants numbers. Normalising here means the app never parses a style string.
+ *
+ * The even length is not cosmetic: `StrokePattern.dashed` asserts on it, so an
+ * odd pattern reaching the app is a crash rather than an ugly line. Segments are
+ * dash/gap pairs, so a trailing lone value has no gap to go with it and is
+ * dropped.
+ *
  * @param {string|undefined} dashArray
  * @returns {number[]|null}
  */
@@ -142,5 +148,6 @@ export function parseDashArray(dashArray) {
     .split(/[\s,]+/)
     .map((n) => Number(n))
     .filter((n) => Number.isFinite(n) && n > 0);
-  return parts.length >= 2 ? parts : null;
+  const paired = parts.length % 2 === 0 ? parts : parts.slice(0, -1);
+  return paired.length >= 2 ? paired : null;
 }

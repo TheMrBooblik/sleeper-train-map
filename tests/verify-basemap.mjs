@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import polyline from "@mapbox/polyline";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const FILE = path.join(ROOT, "mobile/assets/basemap.json");
+const FILE = path.join(ROOT, "mobile/assets/basemap.json.gz");
 const MAX_RAW_BYTES = 900 * 1024;
 
 let passed = 0;
@@ -30,9 +30,10 @@ function check(name, fn) {
 
 assert.ok(
   fs.existsSync(FILE),
-  "mobile/assets/basemap.json is missing — run `npm run build-basemap`",
+  "mobile/assets/basemap.json.gz is missing — run `npm run build-basemap`",
 );
-const raw = fs.readFileSync(FILE, "utf8");
+const packed = fs.readFileSync(FILE);
+const raw = zlib.gunzipSync(packed).toString("utf8");
 const map = JSON.parse(raw);
 
 const decode = (encoded) => polyline.decode(encoded, map.precision);
@@ -183,9 +184,8 @@ check("labels are ranked capitals first", () => {
   );
 });
 
-const gzip = zlib.gzipSync(Buffer.from(raw), { level: 9 }).length;
 console.log(
   `[verify-basemap] ${passed} checks passed ` +
-    `(${(raw.length / 1024).toFixed(0)} KB raw / ${(gzip / 1024).toFixed(0)} KB gzip, ` +
+    `(${(raw.length / 1024).toFixed(0)} KB raw / ${(packed.length / 1024).toFixed(0)} KB shipped, ` +
     `${allPolygons.length} polygons, ${map.places.length} labels)`,
 );
