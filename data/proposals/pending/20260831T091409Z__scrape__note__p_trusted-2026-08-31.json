@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-08-31",
+  "createdAt": "2026-08-31T09:14:09.326Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (0 routes, 4 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation Dongtai(东台) (chinese)\nstation Huaian(淮安) (chinese)\nstation Ninglingxian(宁陵县) (chinese)\nstation Xiaohezhen(小河镇) (chinese)",
+  "target": {
+    "routeKey": "trusted-2026-08-31",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
