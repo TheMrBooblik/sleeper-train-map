@@ -60,6 +60,11 @@ jobs:
       # recorded the night it appears.
       - run: npm run build-redirects
 
+      # Render-ready payload for the mobile app: the same modules the web map
+      # renders with, run once here so the phone only decodes and paints. Must
+      # follow canonicalize — it reads the published artifact.
+      - run: npm run build-mobile-payload
+
       # AI assist (GitHub Models, free tier): enrich tonight's proposals,
       # suggest station aliases, extract prices from configured pages.
       # Strictly best-effort and budget-capped — never blocks the pipeline.

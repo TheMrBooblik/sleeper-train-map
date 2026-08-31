@@ -48,3 +48,4 @@ gtfs-data/polish-trains-unpacked/
 .playwright-cli/
 # Downloaded GTFS feeds unpacked by the scrape (regenerated each run)
 gtfs-data/*-unpacked/
+.basemap-cache/

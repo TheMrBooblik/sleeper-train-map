@@ -1,0 +1,127 @@
+name: Mobile app
+
+# The app is a separate toolchain in the same repo, so it gets its own workflow
+# and its own path filter. In particular the nightly data commit must NOT
+# trigger it: the running app fetches `mobile-v1.json` over HTTP, so new data
+# needs no new build.
+#
+# `push` is limited to main: on a PR branch both triggers fire and the job runs
+# twice for one commit, which on a private repo's 2,000 free minutes is half the
+# budget spent on a duplicate.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-build.yml"
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-build.yml"
+  workflow_dispatch:
+
+# A new push supersedes the run already in flight for the same ref.
+concurrency:
+  group: mobile-build-${{ github.ref }}
+  cancel-in-progress: true
+
+# ubuntu-latest only: this repository is private, where macOS runners bill at
+# ×10. iOS is built on a Mac or through Xcode Cloud, whose 25 hours a month come
+# with the Apple Developer Program we already pay for.
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter analyze
+
+      # Covers the ported logic (polyline decoding, season evaluation, viewport
+      # thinning, geo) plus a decode of the real shipped assets, which is the
+      # only place the JS build and the Dart client meet.
+      - run: flutter test
+
+      - name: Build release App Bundle
+        run: flutter build appbundle --release
+
+      # The store's number is download size, not the .aab on disk. bundletool
+      # splits per ABI and density the way Play does, so this is the figure that
+      # has to stay under 30 MB.
+      - name: Check download size
+        run: |
+          set -euo pipefail
+          BUNDLETOOL_VERSION=1.17.2
+          curl -sSLo /tmp/bundletool.jar \
+            "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar"
+
+          AAB=build/app/outputs/bundle/release/app-release.aab
+          java -jar /tmp/bundletool.jar build-apks \
+            --bundle="$AAB" --output=/tmp/app.apks --overwrite
+
+          java -jar /tmp/bundletool.jar get-size total --apks=/tmp/app.apks | tee /tmp/size.csv
+
+          MAX_BYTES=$((30 * 1024 * 1024))
+          # `get-size total` prints a MIN,MAX header row then the numbers, with
+          # CRLF line endings. The stray \r is not cosmetic: it made the
+          # arithmetic and the comparison below both fail, and a failing `[`
+          # returns 2, which reads as "condition false" — so the gate passed
+          # whatever the size was. Strip it, and keep only digits.
+          # `|| true` so that a no-match `grep` does not trip `set -e` before the
+          # guard below can print the output that confused it.
+          MAX_DOWNLOAD=$(tail -n +2 /tmp/size.csv | tr -d '\r' | tr ',' '\n' \
+            | grep -E '^[0-9]+$' | sort -n | tail -1 || true)
+
+          # A parse that yields nothing must fail loudly rather than wave the
+          # build through — that is exactly how this check broke the first time.
+          if ! [[ "$MAX_DOWNLOAD" =~ ^[0-9]+$ ]]; then
+            echo "::error::Could not read a size from bundletool output"
+            cat /tmp/size.csv
+            exit 1
+          fi
+
+          echo "Largest download size: $MAX_DOWNLOAD bytes (budget $MAX_BYTES)"
+          echo "### Android download size: $((MAX_DOWNLOAD / 1024)) KB" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$MAX_DOWNLOAD" -gt "$MAX_BYTES" ]; then
+            echo "::error::Download size $MAX_DOWNLOAD exceeds the 30 MB budget"
+            exit 1
+          fi
+
+      # An .aab is what Play ingests, not something a phone can install. This is
+      # the sideloadable build: one universal APK rather than --split-per-abi, so
+      # there is no "which of the three is mine?" — it is bigger, but the 30 MB
+      # budget is about the Play download, which the check above already measured
+      # off the bundle.
+      #
+      # Note this is signed with Flutter's DEBUG keystore (see
+      # android/app/build.gradle.kts). Fine for installing and testing; a real
+      # upload keystore is a prerequisite for Play, not for this.
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: mobile/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error

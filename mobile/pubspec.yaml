@@ -1,0 +1,43 @@
+name: night_trains
+description: "Pingwi Night Trains — the sleeper train map, offline."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Pure-Dart map renderer: no native map SDK, no API key, no tile quota, and
+  # nothing to bundle beyond the package itself. The basemap it draws is a
+  # committed Natural Earth asset (see scripts/build-basemap.mjs).
+  flutter_map: ^8.3.2
+  latlong2: ^0.9.1
+
+  # Payload refresh. One GET with If-None-Match, nothing else talks to a server.
+  http: ^1.2.0
+
+  # Map toggles, under the same keys the web stores in localStorage.
+  shared_preferences: ^2.3.0
+
+  # "Stations near me". The only permission the app asks for, and only when the
+  # feature is opened.
+  geolocator: ^13.0.0
+
+  path_provider: ^2.1.4
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    # Both are gzipped: the store metric is download size, and this saves ~800 KB
+    # of it. Refresh the seed with `npm run sync-mobile-seed` before a release.
+    - assets/basemap.json.gz
+    - assets/seed-v1.json.gz

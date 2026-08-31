@@ -6,6 +6,6 @@
  * edited through the admin panel and committed as a structured override.
  * Name matching is normalized later with normalizeStationNameForLookup().
  */
-import alwaysShowStations from "../../data/overrides/always-show-stations.json";
+import alwaysShowStations from "../../data/overrides/always-show-stations.json" with { type: "json" };
 
 export { alwaysShowStations };

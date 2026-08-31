@@ -6,7 +6,7 @@
  * for client-side code. The server-only primitives.mjs reads the same file
  * with fs for Node/build-time use.
  */
-import STATION_ALIASES from "../../data/overrides/station-aliases.json";
+import STATION_ALIASES from "../../data/overrides/station-aliases.json" with { type: "json" };
 
 export { STATION_ALIASES };
 
