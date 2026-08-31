@@ -102,8 +102,26 @@ jobs:
             exit 1
           fi
 
+      # An .aab is what Play ingests, not something a phone can install. This is
+      # the sideloadable build: one universal APK rather than --split-per-abi, so
+      # there is no "which of the three is mine?" — it is bigger, but the 30 MB
+      # budget is about the Play download, which the check above already measured
+      # off the bundle.
+      #
+      # Note this is signed with Flutter's DEBUG keystore (see
+      # android/app/build.gradle.kts). Fine for installing and testing; a real
+      # upload keystore is a prerequisite for Play, not for this.
+      - name: Build release APK
+        run: flutter build apk --release
+
       - uses: actions/upload-artifact@v4
         with:
           name: app-release-aab
           path: mobile/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
