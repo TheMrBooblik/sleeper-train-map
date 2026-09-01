@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_cr-d-7",
+  "createdAt": "2026-09-01T08:16:23.681Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: D 7 (Beijing(北京) – Shanghai(上海))",
+  "summary": "Material change on an approved route (already live — FYI): operating days (return): \"Daily\" → \"null\"; train numbers: \"D 7|D 8\" → \"D 7\"",
+  "target": {
+    "routeKey": "cr_D_7",
+    "agencyId": "CR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (return)": "Daily",
+    "train numbers": "D 7|D 8"
+  },
+  "after": {
+    "operating days (return)": null,
+    "train numbers": "D 7"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
