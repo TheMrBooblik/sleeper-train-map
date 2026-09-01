@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_cr-d-5",
+  "createdAt": "2026-09-01T08:16:23.681Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: D 5 (Beijing(北京) – Shanghai(上海))",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"D 5|D 6\" → \"D 5|D 8\"",
+  "target": {
+    "routeKey": "cr_D_5",
+    "agencyId": "CR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "D 5|D 6"
+  },
+  "after": {
+    "train numbers": "D 5|D 8"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
