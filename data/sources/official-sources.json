@@ -56,9 +56,9 @@
     "CFR": {
       "website": "https://www.cfrcalatori.ro",
       "countries": ["RO"],
-      "integrationStatus": "source-discovered",
+      "integrationStatus": "in-progress",
       "difficulty": "medium",
-      "notes": "Romania publishes the annual national timetable as open data on data.gov.ro — one dataset per licensed carrier, valid 12 months from the second Sunday in December. Static planning data, not live running info. XML, so it needs a parser, but it is genuinely official and covers every Romanian carrier including ATC.",
+      "notes": "Romania publishes the annual national timetable as open data on data.gov.ro — one dataset per licensed carrier, valid 12 months from the second Sunday in December. Static planning data, not live running info. The `cfr` registry entry (scripts/adapters/cfr.mjs) reads it nightly: the current year's resource is resolved through the CKAN API, the XML parsed for the train numbers on Back-on-Track's CFR rows, and each row gets the official stop list, times and OSM/chain geometry. No coordinates in the file — they come from Back-on-Track's station table — and it stops at the border, so international trains keep Back-on-Track's foreign stretch. Flip `trusted` once a night's log shows the expected ~36 legs matched.",
       "sources": [
         {
           "name": "data.gov.ro — Mers tren, SNTFC \"CFR Calatori\" S.A.",
@@ -69,8 +69,8 @@
           "auth": "none",
           "status": "discovered",
           "lastChecked": null,
-          "probeWorkflow": null,
-          "notes": "Current resource (2025–2026): https://data.gov.ro/dataset/mers-tren-sntfc-cfr-calatori-s-a/resource/0f67143e-bb88-4a06-8e7a-b35b1eb91329 — the resource UUID changes each timetable year, so resolve it from the dataset page rather than pinning it."
+          "probeWorkflow": "probe-cfr.yml",
+          "notes": "Resolved nightly via https://data.gov.ro/api/3/action/package_show?id=mers-tren-sntfc-cfr-calatori-s-a (the resource UUID changes each timetable year, so it is never pinned). Field names the parser expects are centralised in scripts/lib/cfr-mers-tren.mjs FIELDS; 'Probe CFR source' prints the live file's tag/attribute census and a sample train."
         }
       ]
     },

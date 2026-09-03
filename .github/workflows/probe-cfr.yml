@@ -1,0 +1,31 @@
+name: Probe CFR source
+
+# One-shot reconnaissance for the cfr adapter (the dev sandbox has no egress to
+# data.gov.ro). Dispatch it and read the job log: it prints the CKAN resources,
+# the file's tag/attribute census (what scripts/lib/cfr-mers-tren.mjs FIELDS
+# must agree with) and the stop lists the adapter would produce tonight. If a
+# field was renamed, update FIELDS; if stop detection looks wrong, look at the
+# raw sample at the end of the log.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - run: npm ci
+
+      - run: node scripts/probe-cfr.mjs probe-output
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cfr-probe-output
+          path: probe-output/
+          retention-days: 7

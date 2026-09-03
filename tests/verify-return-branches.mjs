@@ -69,11 +69,40 @@ check("a detour that rejoins yields exactly one branch", () => {
   ].reverse();
   const branches = returnGeometryBranches(corridor, back);
   assert.strictEqual(branches.length, 1, `expected 1 branch, got ${branches.length}`);
+  const [branch] = branches;
+  // The diverging stretch, plus the on-corridor point on either side of it so
+  // the stroke is drawn joined to the outbound line rather than hanging next
+  // to it.
+  assert.strictEqual(branch.length, 8);
   assert.ok(
-    branches[0].every(([lat]) => Math.abs(lat - 50.5) < 1e-6),
-    "the branch should be exactly the diverging stretch",
+    branch.slice(1, -1).every(([lat]) => Math.abs(lat - 50.5) < 1e-6),
+    "the middle of the branch should be exactly the diverging stretch",
   );
-  assert.strictEqual(branches[0].length, 6);
+  assert.deepStrictEqual(branch[0], corridor[12], "starts at the corridor point it leaves from");
+  assert.deepStrictEqual(branch[branch.length - 1], corridor[5], "ends at the corridor point it rejoins");
+});
+
+check("a station chain's single off-corridor stop is a branch, anchored both ends", () => {
+  // Outbound Brașov–Sibiu–Arad, return Arad–Timișoara–Craiova–București: with
+  // one point per station the return leg's detour is ONE off-corridor point.
+  // Dropping it (the polyline-tuned default of 4) left Timișoara a dot with no
+  // line through it.
+  const outbound = [
+    [44.45, 26.07], // București
+    [45.64, 25.59], // Brașov
+    [45.80, 24.16], // Sibiu
+    [46.19, 21.32], // Arad
+  ];
+  const back = [
+    [46.19, 21.32], // Arad
+    [45.75, 21.21], // Timișoara — ~50 km south of the Sibiu–Arad chord
+    [44.33, 23.82], // Craiova — far off the corridor
+    [44.45, 26.07], // București
+  ];
+  assert.deepStrictEqual(returnGeometryBranches(outbound, back), []);
+  const kept = returnGeometryBranches(outbound, back, { minBranchPoints: 1 });
+  assert.strictEqual(kept.length, 1);
+  assert.deepStrictEqual(kept[0], back, "Arad → Timișoara → Craiova → București, joined to both endpoints");
 });
 
 check("a sliver shorter than minBranchPoints is dropped", () => {
@@ -84,7 +113,8 @@ check("a sliver shorter than minBranchPoints is dropped", () => {
   // and deliberately discarded rather than never detected.
   const kept = returnGeometryBranches(corridor, back, { minBranchPoints: 2 });
   assert.strictEqual(kept.length, 1);
-  assert.strictEqual(kept[0].length, 2);
+  // The two stray points plus their two anchors.
+  assert.strictEqual(kept[0].length, 4);
 });
 
 check("a wholly different return route is kept in full", () => {
@@ -122,6 +152,10 @@ check("the cache returns the same result for the same route", () => {
   const a = cachedReturnGeometryBranches("es_400", corridor, back);
   const b = cachedReturnGeometryBranches("es_400", corridor, back);
   assert.strictEqual(a, b, "second call should hit the cache");
+  // Options are part of the key: a chain caller's looser threshold must not
+  // be served a polyline caller's result for the same route.
+  const loose = cachedReturnGeometryBranches("es_400", corridor, back, { minBranchPoints: 1 });
+  assert.notStrictEqual(loose, a);
   // A different route with the same shapes must not collide.
   const other = cachedReturnGeometryBranches("es_401", corridor, back);
   assert.deepStrictEqual(other, a);

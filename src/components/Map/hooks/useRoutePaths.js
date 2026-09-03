@@ -404,6 +404,9 @@ export function useRoutePaths({
                   `${routeId}:chain`,
                   segsToRender0[0],
                   segsToRender1[0],
+                  // One point per station here, so even a single off-corridor
+                  // stop is a real branch, not shape noise.
+                  { minBranchPoints: 1 },
                 )
               : segsToRender1;
           const renderBus1 = dir1IsReverseOfDir0

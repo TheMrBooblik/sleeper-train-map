@@ -79,9 +79,18 @@ function densify(positions, stepKm) {
  *   outbound path and still count as the same corridor. Generous on purpose:
  *   the two directions often use parallel tracks, different platforms, or
  *   slightly different shape sampling, none of which is a different route.
- * @param {number} [options.minBranchPoints=4] Shortest run worth drawing, so
- *   shape noise and station approaches don't spawn slivers.
+ * @param {number} [options.minBranchPoints=4] Shortest run of off-corridor
+ *   points worth drawing, so shape noise and station approaches don't spawn
+ *   slivers. Meant for encoded polylines sampled every few hundred metres; a
+ *   station chain has one point per stop, so there a single off-corridor
+ *   station IS the branch (Arad–Timișoara–Craiova on the way back where the
+ *   outbound ran Brașov–Sibiu–Arad) — chain callers pass 1.
  * @returns {[number, number][][]} Empty when the return is the same corridor.
+ *   Each branch starts and ends with the on-corridor point on either side of
+ *   the diverging stretch (where one exists), so it is drawn joined to the
+ *   outbound line instead of floating beside it — without the anchors a
+ *   return leg calling at Sinaia and Predeal drew as a stroke hanging in the
+ *   air between Brașov and Ploiești, touching neither.
  */
 export function returnGeometryBranches(
   positions0,
@@ -122,18 +131,28 @@ export function returnGeometryBranches(
 
   const branches = [];
   let run = [];
-  const flush = () => {
-    if (run.length >= minBranchPoints) branches.push(run);
+  // The last on-corridor point seen: the anchor a branch leaves the line from.
+  let anchorBefore = null;
+  const flush = (anchorAfter) => {
+    if (run.length >= minBranchPoints) {
+      const branch = anchorBefore ? [anchorBefore, ...run] : [...run];
+      if (anchorAfter) branch.push(anchorAfter);
+      branches.push(branch);
+    }
     run = [];
   };
 
   for (const point of positions1) {
     const [lat, lng] = point;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-    if (isOnCorridor(lat, lng)) flush();
-    else run.push(point);
+    if (isOnCorridor(lat, lng)) {
+      flush(point);
+      anchorBefore = point;
+    } else {
+      run.push(point);
+    }
   }
-  flush();
+  flush(null);
 
   return branches;
 }
@@ -150,7 +169,7 @@ const CACHE_LIMIT = 500;
  * @param {string|number} routeId
  */
 export function cachedReturnGeometryBranches(routeId, positions0, positions1, options) {
-  const key = `${routeId}:${positions0?.length ?? 0}:${positions1?.length ?? 0}`;
+  const key = `${routeId}:${positions0?.length ?? 0}:${positions1?.length ?? 0}:${options?.minBranchPoints ?? ""}`;
   const hit = cache.get(key);
   if (hit) return hit;
   const branches = returnGeometryBranches(positions0, positions1, options);
