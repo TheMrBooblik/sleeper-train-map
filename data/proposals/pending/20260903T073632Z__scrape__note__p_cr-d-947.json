@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_cr-d-947",
+  "createdAt": "2026-09-03T07:36:32.008Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Disappeared: D 947",
+  "summary": "Route \"cr_D_947\" (Chengdudong(成都东) – Zhuhai(珠海)) has been missing from the sources for 7 days and is no longer shown. No action needed if the train was discontinued.",
+  "target": {
+    "routeKey": "cr_D_947",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
