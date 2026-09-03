@@ -1,0 +1,6 @@
+{
+  "note": "CFR Călători (Romania) — the cfr adapter (scripts/adapters/cfr.mjs) reads the official national timetable published as open data on data.gov.ro and rebuilds the stop list, times and geometry of every Back-on-Track row whose operator includes CFR (CFR, CFR/MÁV, CFM/CFR, TCDD/BDŽ/CFR, …). Those rows need no entry here: their trip labels ('IRN 1669', 'IC 472', 'IRN 1954/R 8824') name the train numbers to look up. Use `trains` only for sleepers Back-on-Track does not list (they become synthetic cfr_ rows): { label, numbers?, origin?, destination?, frequency? } — numbers default to the digits in the label, origin/destination (Back-on-Track spellings) validate the match when given. Use `stations` for coordinates of official stop names that no Back-on-Track stop carries (key = the name as the XML spells it, value = { lat, lon }); every other stop is resolved by diacritic-insensitive name against Back-on-Track's station table.",
+  "source": "https://data.gov.ro/dataset/mers-tren-sntfc-cfr-calatori-s-a",
+  "trains": [],
+  "stations": {}
+}
