@@ -541,8 +541,8 @@ function findTrainDataForKey(
   }
 
   const main = distinct[0];
+  // Variants omit `positions` for the same reason as the main entry above.
   const variants = distinct.slice(1, 4).map((v) => ({
-    positions: v.positions,
     stops: v.stops,
     rail_segments: v.railSegments,
     bus_segments: v.busSegments.length > 0 ? v.busSegments : undefined,
@@ -751,8 +751,10 @@ async function main() {
     }
     const cal = summariseCalendar(result.serviceIds, datesByService);
     byTrainKey[key] = {
+      // `positions` is deliberately NOT written: it is exactly
+      // rail_segments.flatMap(s => s.positions), and shipping both doubled the
+      // bundle every visitor downloads. hydratePkpBundle() rebuilds it on read.
       pointCount: result.positions.length,
-      positions: result.positions,
       stops: result.stops,
       rail_segments: result.rail_segments,
       bus_segments: result.bus_segments.length > 0 ? result.bus_segments : undefined,

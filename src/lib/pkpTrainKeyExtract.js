@@ -45,6 +45,46 @@ export function extractKeysFromTripLabel(label) {
 }
 
 /**
+ * Restore each bundle entry's `positions` from its `rail_segments`.
+ *
+ * parse-pkp-gtfs.js builds `positions` as `railSegments.flatMap(s => s.positions)`
+ * and used to ship both, which made the two byte-identical and cost 1.6 MB of
+ * the bundle's 3.3 MB — over half of a file every visitor downloads. Only
+ * `rail_segments` is written now (the renderers prefer it, since bus connectors
+ * have to be drawn separately) and `positions` is rebuilt here, at the one point
+ * every reader passes through.
+ *
+ * Idempotent, so a bundle that still carries `positions` — an older committed
+ * file, a cached response — is returned untouched.
+ *
+ * @template {{byTrainKey?: Record<string, object>}} T
+ * @param {T} bundle
+ * @returns {T}
+ */
+export function hydratePkpBundle(bundle) {
+  if (!bundle?.byTrainKey) return bundle;
+
+  const flatten = (entry) => {
+    if (!entry || typeof entry !== "object") return entry;
+    const hydrated =
+      entry.positions?.length || !Array.isArray(entry.rail_segments)
+        ? entry
+        : {
+            ...entry,
+            positions: entry.rail_segments.flatMap((s) => s?.positions ?? []),
+          };
+    if (!Array.isArray(hydrated.variants)) return hydrated;
+    return { ...hydrated, variants: hydrated.variants.map(flatten) };
+  };
+
+  const byTrainKey = {};
+  for (const [key, entry] of Object.entries(bundle.byTrainKey)) {
+    byTrainKey[key] = flatten(entry);
+  }
+  return { ...bundle, byTrainKey };
+}
+
+/**
  * Reduce a station name to its leading "city" token, folded to plain ASCII, so
  * Back-on-Track spellings ("Kraków Gł.", "Praha hl.n.") and GTFS spellings
  * ("Kraków Główny", "Praha hlavní nádraží") compare equal. We keep only the

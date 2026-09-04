@@ -17,8 +17,13 @@ const shapesPath = path.join(__dirname, "../public/data/gtfs/pkpTrainShapes.json
 const outPath = path.join(__dirname, "../public/data/przemyslSwinoujsciePolyline.json");
 
 const data = JSON.parse(fs.readFileSync(shapesPath, "utf8"));
-const pts430 = data.byTrainKey["430"].positions;   // Przemyśl → Poznań → Berlin
-const pts28170 = data.byTrainKey["28170"].positions; // Chełm → Poznań → Świnoujście
+// The bundle ships rail_segments only. This script is CommonJS and one-off, so
+// it inlines what hydratePkpBundle() (src/lib/pkpTrainKeyExtract.js) does for
+// every other reader.
+const positionsOf = (key) =>
+  (data.byTrainKey[key].rail_segments || []).flatMap((s) => s.positions || []);
+const pts430 = positionsOf("430");     // Przemyśl → Poznań → Berlin
+const pts28170 = positionsOf("28170"); // Chełm → Poznań → Świnoujście
 
 // Poznań Główny ≈ 52.404N, 16.925E
 const POZNAN_LAT = 52.404;
