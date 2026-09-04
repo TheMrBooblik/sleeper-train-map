@@ -6,85 +6,150 @@
     "stationNames": {
       "Amsterdam Centraal": "Amsterdam",
       "Basel SBB": "Basel"
-    }
+    },
+    "scheduleUrl": "https://www.nightjet.com/en/reiseziele",
+    "scheduleCountryPages": {
+      "BE": "https://www.nightjet.com/en/reiseziele/belgien",
+      "CH": "https://www.nightjet.com/en/reiseziele/schweiz",
+      "DE": "https://www.nightjet.com/en/reiseziele/deutschland",
+      "HR": "https://www.nightjet.com/en/reiseziele/kroatien",
+      "HU": "https://www.nightjet.com/en/reiseziele/ungarn",
+      "IT": "https://www.nightjet.com/en/reiseziele/italien",
+      "NL": "https://www.nightjet.com/en/reiseziele/niederlande"
+    },
+    "homeCountry": "AT"
   },
   "VR": {
     "urlTemplate": "https://www.vr.fi/en/single-ticket-outbound-search-results?from={origin}&to={dest}",
     "requireStationMapping": true,
     "stationNames": {
-      "Helsinki / Helsingfors":  "HKI",
-      "Rovaniemi":               "ROI",
-      "Kemijärvi":               "KJÄ",
+      "Helsinki / Helsingfors": "HKI",
+      "Rovaniemi": "ROI",
+      "Kemijärvi": "KJÄ",
       "Turku satama / Åbo hamn": "TUS",
-      "Kolari":                  "KLI"
-    }
+      "Kolari": "KLI"
+    },
+    "scheduleUrl": "https://www.vr.fi/en/timetables"
   },
   "RJ": {
     "urlTemplate": "https://regiojet.com/?fromLocationId={origin}&fromLocationType=CITY&toLocationId={dest}&toLocationType=CITY",
     "requireStationMapping": true,
     "stationNames": {
       "Praha hl.n.": "10202003",
-      "Chop":        "7122881001"
+      "Chop": "7122881001"
     }
   },
-  "SNCF": { "bookingPageUrl": "https://track.effiliation.com/servlet/effi.redir?id_compteur=23298544&url=https%3A%2F%2Fwww.sncf-connect.com%2Fen-en%2Ftrain-ticket" },
-  "PKP":  { "bookingPageUrl": "https://ebilet.intercity.pl/" },
-  "ČD":   { "bookingPageUrl": "https://www.cd.cz/en/eshop/" },
-  "SJ":   { "bookingPageUrl": "https://www.sj.se/en" },
-  "FS": {
-    "urlTemplate": "https://www.lefrecce.it/Channels.Website.WEB/#/white-label/MINISITI/?isRoundTrip=false&departureStation={origin}&arrivalStation={dest}&lang=en&minisitiCallBackId=60958&minisitiHeaderImageIt=&minisitiFooterImageIt=&minisitiHeaderImageEn=&minisitiFooterImageEn=&minisitiHeaderImageDe=&minisitiFooterImageDe=&minisitiHeaderImageFr=&minisitiFooterImageFr="
+  "SNCF": {
+    "bookingPageUrl": "https://track.effiliation.com/servlet/effi.redir?id_compteur=23298544&url=https%3A%2F%2Fwww.sncf-connect.com%2Fen-en%2Ftrain-ticket",
+    "scheduleUrl": "https://www.sncf-voyageurs.com/en/travel-with-us/in-france/intercites/overnight-travel/"
   },
-  "CS":   { "bookingPageUrl": "https://www.sleeper.scot/booking/" },
-  "TCDD": { "bookingPageUrl": "https://ebilet.tcddtasimacilik.gov.tr/" },
-  "ZSSK": { "bookingPageUrl": "https://predaj.zssk.sk/" },
-  "HŽPP": { "bookingPageUrl": "https://prodaja.hzpp.hr/en/Ticket" },
-  "BDŽ":  { "bookingPageUrl": "https://bileti.bdz.bg/" },
-  "ST":   { "bookingPageUrl": "https://www.snalltaget.se/en" },
-  "OTE":  { "bookingPageUrl": "https://www.optimatours.de/" },
-  "SCR":  { "bookingPageUrl": "https://ticket.railway.am/en/schedule" },
+  "PKP": {
+    "bookingPageUrl": "https://ebilet.intercity.pl/",
+    "scheduleUrl": "https://www.intercity.pl/en/site/for-passengers/offers/wagony-sypialne-i-kuszetki/"
+  },
+  "ČD": {
+    "bookingPageUrl": "https://www.cd.cz/en/eshop/",
+    "scheduleUrlTemplate": "https://www.cd.cz/en/vlak/{train}"
+  },
+  "SJ": {
+    "bookingPageUrl": "https://www.sj.se/en"
+  },
+  "FS": {
+    "urlTemplate": "https://www.lefrecce.it/Channels.Website.WEB/#/white-label/MINISITI/?isRoundTrip=false&departureStation={origin}&arrivalStation={dest}&lang=en&minisitiCallBackId=60958&minisitiHeaderImageIt=&minisitiFooterImageIt=&minisitiHeaderImageEn=&minisitiFooterImageEn=&minisitiHeaderImageDe=&minisitiFooterImageDe=&minisitiHeaderImageFr=&minisitiFooterImageFr=",
+    "scheduleUrl": "https://www.trenitalia.com/it/intercity-notte.html"
+  },
+  "CS": {
+    "bookingPageUrl": "https://www.sleeper.scot/booking/",
+    "scheduleUrl": "https://www.sleeper.scot/travel-updates/all-timetables/"
+  },
+  "TCDD": {
+    "bookingPageUrl": "https://ebilet.tcddtasimacilik.gov.tr/",
+    "scheduleUrl": "https://www.tcddtasimacilik.gov.tr/"
+  },
+  "ZSSK": {
+    "bookingPageUrl": "https://predaj.zssk.sk/",
+    "scheduleUrl": "https://www.zssk.sk/en/timetables/"
+  },
+  "HŽPP": {
+    "bookingPageUrl": "https://prodaja.hzpp.hr/en/Ticket",
+    "scheduleUrl": "https://www.hzpp.hr/en"
+  },
+  "BDŽ": {
+    "bookingPageUrl": "https://bileti.bdz.bg/",
+    "scheduleUrl": "https://razpisanie.bdz.bg/en"
+  },
+  "ST": {
+    "bookingPageUrl": "https://www.snalltaget.se/en",
+    "scheduleUrl": "https://www.snalltaget.se/en/traffic-information"
+  },
+  "OTE": {
+    "bookingPageUrl": "https://www.optimatours.de/"
+  },
+  "SCR": {
+    "bookingPageUrl": "https://ticket.railway.am/en/schedule"
+  },
   "MÁV": {
     "urlTemplate": "https://jegy.mav.hu/?honnan={origin}&hova={dest}",
     "stationNames": {
       "Koper": "Koper/Capodistria"
-    }
+    },
+    "scheduleUrl": "https://www.mavcsoport.hu/mav-szemelyszallitas/belfoldi-utazas/vasuti-menetrend"
   },
-  "GWR":  { "bookingPageUrl": "https://www.gwr.com/travelling-with-us/night-riviera-sleeper" },
-  "CR":   { "bookingPageUrl": "https://www.12306.cn/en/" },
-  "GR":   { "bookingPageUrl": "https://tre.ge/en" },
-  "ADY":  { "bookingPageUrl": "https://biletonline.ady.az/en" },
+  "GWR": {
+    "bookingPageUrl": "https://www.gwr.com/travelling-with-us/night-riviera-sleeper"
+  },
+  "CR": {
+    "bookingPageUrl": "https://www.12306.cn/en/"
+  },
+  "GR": {
+    "bookingPageUrl": "https://tre.ge/en",
+    "scheduleUrl": "https://www.railway.ge/en/passenger-traffic/"
+  },
+  "ADY": {
+    "bookingPageUrl": "https://biletonline.ady.az/en",
+    "scheduleUrl": "https://ticket.ady.az/en"
+  },
   "SJN": {
     "urlTemplate": "https://entur.no/travel-result?startId=NSR:StopPlace:{origin}&stopId=NSR:StopPlace:{dest}",
     "requireStationMapping": true,
     "stationNames": {
-      "Oslo S":      "59872",
+      "Oslo S": "59872",
       "Trondheim S": "59977",
-      "Bodø":        "58952"
+      "Bodø": "58952"
+    },
+    "scheduleUrl": "https://www.sj.no/en/train-schedules/",
+    "schedulePages": {
+      "70": "https://www.sj.no/en/strekning/dovrebanen-2/",
+      "71": "https://www.sj.no/en/strekning/nordlandsbanen/"
     }
   },
   "VY": {
     "urlTemplate": "https://entur.no/travel-result?startId=NSR:StopPlace:{origin}&stopId=NSR:StopPlace:{dest}",
     "requireStationMapping": true,
     "stationNames": {
-      "Oslo S":  "59872",
-      "Bergen":  "59983"
-    }
+      "Oslo S": "59872",
+      "Bergen": "59983"
+    },
+    "scheduleUrl": "https://www.vy.no/en/traffic/times"
   },
   "GA": {
     "urlTemplate": "https://entur.no/travel-result?startId=NSR:StopPlace:{origin}&stopId=NSR:StopPlace:{dest}",
     "requireStationMapping": true,
     "stationNames": {
-      "Oslo S":    "59872",
+      "Oslo S": "59872",
       "Stavanger": "61291"
     }
   },
   "ATC": {
-    "urlTemplate": "https://online.astratranscarpatic.ro/en-GB/Itineraries/?DepartureStationName={origin}&ArrivalStationName={dest}"
+    "urlTemplate": "https://online.astratranscarpatic.ro/en-GB/Itineraries/?DepartureStationName={origin}&ArrivalStationName={dest}",
+    "scheduleUrlTemplate": "https://online.astratranscarpatic.ro/en-GB/Train/{train}?Date={date}"
   },
   "CFR": {
     "urlTemplate": "https://bilete.cfrcalatori.ro/ro-RO/Itineraries?tip-calatorie=on&DepartureStationName={origin}&ArrivalStationName={dest}&ora=20&lng=en",
     "stationNames": {
       "București Nord": "București (toate stațiile)"
-    }
+    },
+    "scheduleUrlTemplate": "https://bilete.cfrcalatori.ro/en-GB/Train/{train}?Date={date}"
   },
   "ES": {
     "urlTemplate": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=&u=https%3A%2F%2Fbooking.europeansleeper.eu%2Fen%3FdepartureStation%3D{origin}%26arrivalStation%3D{dest}",
@@ -133,6 +198,13 @@
       "Lugano": "8500011",
       "Göschenen": "8500689",
       "Arth-Goldau": "8505004"
+    },
+    "scheduleUrl": "https://www.europeansleeper.eu/timetable",
+    "schedulePages": {
+      "237": "https://www.europeansleeper.eu/night-train-brussels-prague",
+      "238": "https://www.europeansleeper.eu/night-train-paris-berlin",
+      "es_400": "https://www.europeansleeper.eu/night-train-brussels-milan",
+      "es_400_from_20261214": "https://www.europeansleeper.eu/night-train-brussels-milan"
     }
   },
   "AMTK": {
@@ -154,7 +226,8 @@
       "amtrak_Southwest_Chief": "https://www.amtrak.com/routes/southwest-chief-train.html",
       "amtrak_Sunset_Limited": "https://www.amtrak.com/routes/sunset-limited-train.html",
       "amtrak_Texas_Eagle": "https://www.amtrak.com/routes/texas-eagle-train.html"
-    }
+    },
+    "scheduleUrl": "https://www.amtrak.com/train-schedules-timetables"
   },
   "VIA": {
     "bookingPageUrl": "https://www.viarail.ca/en/plan/book-travel",
@@ -162,6 +235,12 @@
       "via_Vancouver_-_Toronto": "https://www.viarail.ca/en/explore-our-destinations/trains/rockies-and-pacific/toronto-vancouver-canadian",
       "via_Montréal_-_Halifax": "https://www.viarail.ca/en/explore-our-destinations/trains/atlantic-canada/montreal-halifax-ocean",
       "via_Winnipeg_-_Churchill": "https://www.viarail.ca/en/explore-our-destinations/trains/regional-trains/winnipeg-churchill"
+    },
+    "scheduleUrl": "https://www.viarail.ca/en/plan/train-schedules",
+    "schedulePages": {
+      "via_Vancouver_-_Toronto": "https://www.viarail.ca/en/plan/train-schedules/vancouver-jasper-winnipeg-toronto",
+      "via_Montréal_-_Halifax": "https://www.viarail.ca/en/plan/train-schedules/montreal-halifax",
+      "via_Winnipeg_-_Churchill": "https://www.viarail.ca/en/plan/train-schedules/winnipeg-churchill"
     }
   },
   "LE": {
@@ -212,6 +291,25 @@
       "Przemyśl Gł.": "5100234",
       "Przemyśl Główny": "5100234",
       "Przemyśl": "5100234"
+    },
+    "scheduleUrl": "https://www.leoexpress.com/en/where-we-go/timetables"
+  },
+  "UZ": {
+    "scheduleUrlTemplate": "https://uz.gov.ua/en/passengers/timetable/?ntrain={train}&ntrain_out={train}&by_number=Search",
+    "schedulePages": {
+      "60": "https://uz.gov.ua/en/passengers/timetable/"
     }
+  },
+  "RDC": {
+    "scheduleUrl": "https://www.nachtexpress.de/en/timetable/"
+  },
+  "CFM": {
+    "scheduleUrl": "https://www.railway.md/"
+  },
+  "ŽS": {
+    "scheduleUrl": "https://w3.srbvoz.rs/redvoznje/en/"
+  },
+  "ŽPCG": {
+    "scheduleUrl": "https://zpcg.me/en/red-voznje"
   }
 }

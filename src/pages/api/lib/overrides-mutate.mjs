@@ -43,6 +43,19 @@ const SOURCE_STATUSES = new Set([
   "broken",
 ]);
 const DIFFICULTIES = new Set(["easy", "medium", "hard", "unknown"]);
+
+// Per-operator "official timetable" config (src/lib/operatorBooking.js). Edited
+// by hand / by this file's setStationName path, never by the booking form.
+const SCHEDULE_KEYS = [
+  "scheduleUrl",
+  "scheduleUrlTemplate",
+  "scheduleCountryPages",
+  "schedulePages",
+  "scheduleLabel",
+  "affiliateWrapper",
+  "homeCountry",
+];
+
 const AUTH_KINDS = new Set(["none", "api-key", "oauth", "account", "unknown"]);
 
 function invalid(message) {
@@ -189,6 +202,15 @@ export function applyOverrideMutation(resource, action, payload, current) {
           ...(existing.routePages !== undefined && {
             routePages: existing.routePages,
           }),
+          // Schedule ("official timetable") config is not on the booking form,
+          // so a booking-URL edit must carry it through untouched or the
+          // helper link silently disappears for that operator.
+          ...Object.fromEntries(
+            SCHEDULE_KEYS.filter((k) => existing[k] !== undefined).map((k) => [
+              k,
+              existing[k],
+            ]),
+          ),
         };
         return obj;
       }

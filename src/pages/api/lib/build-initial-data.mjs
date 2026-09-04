@@ -606,11 +606,48 @@ export function buildInitialData({
     futurePreviews,
   );
 
+  stampEndpointCountries(filteredViewMap, stops);
+
   return {
     stops: trimmedStops,
     viewMap: filteredViewMap,
     trips: filteredTrips,
   };
+}
+
+/**
+ * Record each route's endpoint countries on its viewMap row.
+ *
+ * The published stops payload carries only id/name/lat/lon — country lives on
+ * the raw Back-on-Track stop and is dropped by normalizeStops(), so the map's
+ * detail panel has no way to tell which country a route reaches. Two ISO-2
+ * codes per direction is a few bytes a row and saves shipping stop_country for
+ * all ~29k stops, which is what per-country schedule links (Nightjet's
+ * destination pages) need to resolve client-side.
+ *
+ * Silent by design: a station missing from the index leaves the field unset and
+ * the schedule link falls back a tier, which is why this never throws.
+ */
+function stampEndpointCountries(viewMap, rawStops) {
+  const byName = new Map();
+  const stopsArray = Array.isArray(rawStops)
+    ? rawStops
+    : Object.values(rawStops || {});
+  for (const s of stopsArray) {
+    const name = s?.stop_name;
+    const country = s?.stop_country;
+    if (name && country && !byName.has(name)) byName.set(name, country);
+  }
+  if (byName.size === 0) return;
+
+  for (const row of Object.values(viewMap)) {
+    for (const dir of [0, 1]) {
+      const origin = byName.get(row[`origin_trip_${dir}`]);
+      const dest = byName.get(row[`destination_trip_${dir}`]);
+      if (origin) row[`origin_country_${dir}`] = origin;
+      if (dest) row[`destination_country_${dir}`] = dest;
+    }
+  }
 }
 
 /**

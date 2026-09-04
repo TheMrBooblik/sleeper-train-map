@@ -1,3 +1,5 @@
+import { FiExternalLink } from "react-icons/fi";
+
 /**
  * Resolve the clock time to show against a stop. Stops are { name, arrival,
  * departure } objects (legacy string stops are tolerated). The first stop shows
@@ -21,7 +23,19 @@ const stopName = (stop) => (typeof stop === "string" ? stop : stop.name);
  */
 export default function RouteTimetable({ direction }) {
   if (!direction) return null;
-  const { trainNumber, origin, destination, departureTime, arrivalTime, stops, serviceDays, irregularities } = direction;
+  const {
+    trainNumber,
+    origin,
+    destination,
+    departureTime,
+    arrivalTime,
+    stops,
+    serviceDays,
+    irregularities,
+    scheduleUrl,
+    scheduleLabel,
+    scheduleAffiliate,
+  } = direction;
   const lastIdx = stops.length - 1;
 
   return (
@@ -72,6 +86,26 @@ export default function RouteTimetable({ direction }) {
           );
         })}
       </ol>
+
+      {/* Helper link, not a CTA: check these times against the operator's own
+          timetable. Sits under the stop list it refers to. */}
+      {scheduleUrl && (
+        <p className="mt-4 text-xs text-white/40">
+          <a
+            href={scheduleUrl}
+            target="_blank"
+            rel={
+              scheduleAffiliate
+                ? "sponsored nofollow noopener noreferrer"
+                : "noopener noreferrer"
+            }
+            className="inline-flex items-center gap-1 hover:text-white/70 hover:underline"
+          >
+            {scheduleLabel || "Official timetable"}
+            <FiExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+          </a>
+        </p>
+      )}
 
       {irregularities && (
         <p className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-200/80">

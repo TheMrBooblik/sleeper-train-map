@@ -17,8 +17,12 @@
  */
 import {
   buildBookingUrl,
+  buildScheduleCandidate,
   getBookingPageUrl,
   getDealsLink,
+  getScheduleLabel,
+  isAffiliateSchedule,
+  SCHEDULE_TIERS,
 } from "./operatorBooking.js";
 import { OPERATORS, splitAgencyIds } from "./seo/operatorNames.mjs";
 
@@ -122,4 +126,56 @@ export function resolveBookingHref({ agencyId, agencies, agencyUrl, origin, dest
     componentName: null,
     dealsLink: getDealsLink(agencyId),
   };
+}
+
+/**
+ * The best "official timetable" link across the components of a (possibly
+ * compound) agency id.
+ *
+ * Booking tiers by *link quality* — which operator sells the ticket. Schedule
+ * tiers by *specificity* instead: for "CFM/CFR" a per-train CFR page beats
+ * CFM's homepage-level timetable, because the question a reader is asking is
+ * "where do I check this train's times", not "who sells it". A component with
+ * no schedule config contributes nothing rather than falling back.
+ *
+ * Returns { url, label, operatorId, operatorName, tier, affiliate } or null.
+ */
+export function resolveScheduleLink({
+  agencyId,
+  agencies,
+  train,
+  routeId,
+  countryCode,
+  originCountry,
+  destCountry,
+  date,
+}) {
+  const candidates = [];
+  for (const id of splitAgencyIds(agencyId)) {
+    const candidate = buildScheduleCandidate({
+      agencyId: id,
+      train,
+      routeId,
+      countryCode,
+      originCountry,
+      destCountry,
+      date,
+    });
+    if (candidate?.url) candidates.push({ ...candidate, id });
+  }
+  if (candidates.length === 0) return null;
+
+  for (const tier of SCHEDULE_TIERS) {
+    const winner = candidates.find((c) => c.tier === tier);
+    if (!winner) continue;
+    return {
+      url: winner.url,
+      label: getScheduleLabel(winner.id),
+      operatorId: winner.id,
+      operatorName: agencies?.[winner.id]?.agency_name || winner.id,
+      tier: winner.tier,
+      affiliate: isAffiliateSchedule(winner.id),
+    };
+  }
+  return null;
 }

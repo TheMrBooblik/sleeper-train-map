@@ -35,7 +35,10 @@ import {
   formatFutureFrom,
 } from "./format";
 import { getOperatorPricing, formatFromPrice } from "../operatorPricing";
-import { formatTrainNumber } from "../operatorAgencies.mjs";
+import {
+  formatTrainNumber,
+  resolveScheduleLink,
+} from "../operatorAgencies.mjs";
 import { resolveRouteBooking } from "../routeBooking.mjs";
 import { splitAgencyIds, getOperatorMeta } from "./operators";
 import {
@@ -435,6 +438,18 @@ export function getRouteDetail(routeId) {
       });
     }
 
+    // "Official timetable" helper, resolved per direction so each train links
+    // to its own schedule. Keyed to who OPERATES the train (bot_agency_id),
+    // not who sells it — the booking CTA above already answers that.
+    const schedule = resolveScheduleLink({
+      agencyId: route.bot_agency_id || route.agency_id || "",
+      agencies: getAgencies(),
+      train: route[`trip_short_name_${dir}`],
+      routeId: String(routeId),
+      originCountry: route[`origin_country_${dir}`],
+      destCountry: route[`destination_country_${dir}`],
+    });
+
     directions.push({
       trainNumber,
       origin,
@@ -445,6 +460,9 @@ export function getRouteDetail(routeId) {
       stops,
       serviceDays: serviceDaysFor(route, dir, trip),
       irregularities: (route[`irregularities_${dir}`] || "").trim(),
+      scheduleUrl: schedule?.url ?? null,
+      scheduleLabel: schedule?.label ?? null,
+      scheduleAffiliate: Boolean(schedule?.affiliate),
     });
   }
 

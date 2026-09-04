@@ -56,7 +56,8 @@
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:smoke": "playwright test --config=playwright.smoke.config.js",
-    "prepare": "husky && git config merge.ours.driver true || true"
+    "prepare": "husky && git config merge.ours.driver true || true",
+    "verify-schedule-links": "node tests/verify-schedule-links.mjs"
   },
   "packageManager": "npm@10",
   "repository": {

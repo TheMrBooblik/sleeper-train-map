@@ -26,6 +26,7 @@ import {
 import {
   formatTrainNumber,
   resolveOperatorComponents,
+  resolveScheduleLink,
 } from "../../lib/operatorAgencies.mjs";
 import {
   esScheduleForTrip,
@@ -1208,6 +1209,22 @@ const TrainDetailPanel = ({
                   tripRoute?.bot_agency_id || bookingAgencyId;
                 const agency =
                   agencies[operatorAgencyId] || agencies[bookingAgencyId];
+                // "Official timetable": the operator's own schedule page for
+                // THIS train, so it follows who operates it, not who sells it.
+                // Per-direction — Ukrainian Railways numbers the two legs 35
+                // and 36 where Back-on-Track records one number for both.
+                const scheduleDirection =
+                  Number(trip.direction_id) === 1 ? 1 : 0;
+                const scheduleLink = resolveScheduleLink({
+                  agencyId: operatorAgencyId,
+                  agencies,
+                  train: trip.trip_short_name,
+                  routeId: trip.route_id,
+                  originCountry:
+                    tripRoute?.[`origin_country_${scheduleDirection}`],
+                  destCountry:
+                    tripRoute?.[`destination_country_${scheduleDirection}`],
+                });
                 // European Sleeper's feed publishes bare numbers ("400"); the
                 // operator writes them "ES 400". Display only — every lookup
                 // above still uses the raw trip_short_name.
@@ -1826,6 +1843,30 @@ const TrainDetailPanel = ({
                           </div>
                         </div>
                       </details>
+                    )}
+
+                    {/* Helper link, not a CTA: verify these times against the
+                        operator's own timetable. Sits with the station list it
+                        refers to, above the booking block. */}
+                    {scheduleLink && (
+                      <div className="text-xs text-gray-400">
+                        <a
+                          href={scheduleLink.url}
+                          target="_blank"
+                          rel={
+                            scheduleLink.affiliate
+                              ? "sponsored nofollow noopener noreferrer"
+                              : "noopener noreferrer"
+                          }
+                          className="inline-flex items-center gap-1 hover:text-gray-600 hover:underline"
+                        >
+                          {scheduleLink.label}
+                          <FiExternalLink
+                            className="h-3 w-3 shrink-0"
+                            aria-hidden
+                          />
+                        </a>
+                      </div>
                     )}
 
                     {/* Booking: deep link with preselected stations + fare */}
