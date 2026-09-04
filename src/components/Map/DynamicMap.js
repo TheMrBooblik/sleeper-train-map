@@ -27,6 +27,7 @@ import { MOBILE_MQ } from "../../hooks/useIsMobile";
 import ZoomControl from "@components/ZoomControl";
 import LocationControl from "@components/LocationControl";
 import { stationsToSkip } from "../../data/stationsToSkip";
+import { tileLoadingOptions as buildTileLoadingOptions } from "./utils/tileLoadingOptions";
 
 import {
   normalizeStationNameForDisplay,
@@ -133,6 +134,12 @@ const TrainMap = ({
   ...rest
 }) => {
   const [sidebarDisabled, setSidebarDisabled] = useState(false);
+  // Read once: Leaflet takes these at construction time, and the connection
+  // hints behind them are advisory anyway.
+  const tileLoadingOptions = useMemo(
+    () => buildTileLoadingOptions({ isMobile: Leaflet.Browser.mobile }),
+    [],
+  );
   const {
     stops,
     filteredStops,
@@ -722,7 +729,19 @@ const TrainMap = ({
         preferCanvas={true}
         {...rest}
       >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer
+          // One origin, not the deprecated {s} subdomains OSM asks tile users
+          // to drop: over HTTP/2 a single connection multiplexes every tile,
+          // while a/b/c force three TLS handshakes — the opposite of what a
+          // high-latency link wants.
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          // Required by the OSM tile usage policy. The SEO route maps carried
+          // it; the interactive map, which is where nearly everyone sees these
+          // tiles, did not.
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          maxZoom={19}
+          {...tileLoadingOptions}
+        />
         {showRailwayOverlay && (
           <TileLayer
             url="https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png"

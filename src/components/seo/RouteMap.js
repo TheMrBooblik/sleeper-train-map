@@ -58,7 +58,10 @@ export default function RouteMap({ polyline0, polyline1, stops, agencyId }) {
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        // Single origin — see the note on the interactive map's TileLayer.
+        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        updateWhenZooming={false}
+        keepBuffer={1}
       />
       {lines.map((positions, i) => (
         <Polyline

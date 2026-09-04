@@ -38,11 +38,19 @@ function normalizeViewMapToRoutesRecord(raw) {
   return byId;
 }
 
-export function useRoutes() {
+/**
+ * @param {{ enabled?: boolean }} [options] `enabled: false` skips the fetch
+ *   entirely — for callers that already hold this data and only keep the hook
+ *   as a standalone fallback. `/api/trains?type=view_ontd_map` is ~118 KB gzip,
+ *   so fetching it to then discard it is the single largest avoidable request
+ *   on the map page.
+ */
+export function useRoutes({ enabled = true } = {}) {
   const [routes, setRoutes] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    if (!enabled) return;
     const fetchRoutes = async () => {
       // Check if we need to fetch new data
       const currentTime = new Date().getTime();
@@ -79,7 +87,7 @@ export function useRoutes() {
     };
 
     fetchRoutes();
-  }, []);
+  }, [enabled]);
 
   return {
     routes,
