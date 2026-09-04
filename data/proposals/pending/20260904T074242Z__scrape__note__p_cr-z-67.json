@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_cr-z-67",
+  "createdAt": "2026-09-04T07:42:42.850Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Disappeared: Z 67",
+  "summary": "Route \"cr_Z_67\" (Beijing(北京) – Haerbinxi(哈尔滨西)) has been missing from the sources for 7 days and is no longer shown. No action needed if the train was discontinued.",
+  "target": {
+    "routeKey": "cr_Z_67",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
