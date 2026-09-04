@@ -1,5 +1,30 @@
 import { test, expect } from "@playwright/test";
 import { attachPkpGtfsPolylinesToViewMap } from "../src/lib/pkpGtfsMerge.js";
+import { hydratePkpBundle } from "../src/lib/pkpTrainKeyExtract.js";
+import { mergeRouteGeometry } from "../src/pages/api/lib/payload-projection.mjs";
+
+/**
+ * The viewMap as the browser assembles it: /api/initial-data paints the map,
+ * /api/route-geometry follows in the background with the polylines. Tests that
+ * care about geometry have to put the two halves back together the same way.
+ */
+async function fetchMergedViewMap(request) {
+  const [dataRes, geometryRes] = await Promise.all([
+    request.get("/api/initial-data"),
+    request.get("/api/route-geometry"),
+  ]);
+  expect(dataRes.ok()).toBeTruthy();
+  expect(geometryRes.ok()).toBeTruthy();
+  const data = await dataRes.json();
+  return mergeRouteGeometry(data.viewMap || {}, await geometryRes.json());
+}
+
+/** The PKP bundle with `positions` rebuilt from the rail segments it ships. */
+async function fetchPkpBundle(request) {
+  const res = await request.get("/data/gtfs/pkpTrainShapes.json");
+  expect(res.ok()).toBeTruthy();
+  return hydratePkpBundle(await res.json());
+}
 
 function haversineKm([lat1, lon1], [lat2, lon2]) {
   const R = 6371;
@@ -113,7 +138,8 @@ test.describe("Polish train routes", () => {
   }) => {
     const res = await request.get("/data/gtfs/pkpTrainShapes.json");
     expect(res.ok()).toBeTruthy();
-    const bundle = await res.json();
+    // Served with rail_segments only; the client rebuilds `positions` on read.
+    const bundle = hydratePkpBundle(await res.json());
     expect(bundle.byTrainKey).toBeDefined();
 
     for (const key of EXPECTED_GTFS_KEYS) {
@@ -174,10 +200,7 @@ test.describe("Polish train routes", () => {
   test("API returns PKP routes with expected endpoint stations", async ({
     request,
   }) => {
-    const res = await request.get("/api/initial-data");
-    expect(res.ok()).toBeTruthy();
-    const data = await res.json();
-    const viewMap = data.viewMap || {};
+    const viewMap = await fetchMergedViewMap(request);
 
     const pkpRoutes = Object.values(viewMap).filter(
       (r) => r?.agency_id === "PKP" || r?.agency_id === "PKP/ČD",
@@ -223,23 +246,25 @@ test.describe("Polish train routes", () => {
         r?.trip_short_name_1 === "EN 40407",
     );
     expect(enRoute, "EN 40406/40407 München↔Warszawa route not found").toBeDefined();
+    // Per-direction fields with the legacy single-polyline fallback — the same
+    // read the renderers do (buildAllRoutesPaths / useRoutePaths). This row has
+    // only carried nj_polyline_0/_1; asserting the bare legacy field alone was
+    // checking something the dataset stopped providing.
     expect(
-      enRoute.nj_polyline,
-      "EN 40406/40407 route missing nj_polyline",
+      enRoute.nj_polyline_0 ?? enRoute.nj_polyline,
+      "EN 40406/40407 route missing outbound polyline",
+    ).toBeTruthy();
+    expect(
+      enRoute.nj_polyline_1 ?? enRoute.nj_polyline_0 ?? enRoute.nj_polyline,
+      "EN 40406/40407 route missing return polyline",
     ).toBeTruthy();
   });
 
   test("GTFS merge attaches positions to PKP routes", async ({ request }) => {
-    const [dataRes, bundleRes] = await Promise.all([
-      request.get("/api/initial-data"),
-      request.get("/data/gtfs/pkpTrainShapes.json"),
+    const [viewMap, bundle] = await Promise.all([
+      fetchMergedViewMap(request),
+      fetchPkpBundle(request),
     ]);
-    expect(dataRes.ok()).toBeTruthy();
-    expect(bundleRes.ok()).toBeTruthy();
-
-    const data = await dataRes.json();
-    const bundle = await bundleRes.json();
-    const viewMap = data.viewMap || {};
     const byTrainKey = bundle.byTrainKey;
 
     const pkpRoutes = Object.values(viewMap).filter(
@@ -280,16 +305,11 @@ test.describe("Polish train routes", () => {
     // the Gdynia→Hel spur, e.g. "TLK 35190/50191"). The client merge stitches
     // them at Gdynia so the line follows the coastal railway to Hel instead of
     // a straight chord across the bay.
-    const [dataRes, bundleRes] = await Promise.all([
-      request.get("/api/initial-data"),
-      request.get("/data/gtfs/pkpTrainShapes.json"),
+    const [viewMap, bundle] = await Promise.all([
+      fetchMergedViewMap(request),
+      fetchPkpBundle(request),
     ]);
-    expect(dataRes.ok()).toBeTruthy();
-    expect(bundleRes.ok()).toBeTruthy();
-
-    const data = await dataRes.json();
-    const bundle = await bundleRes.json();
-    const merged = attachPkpGtfsPolylinesToViewMap(data.viewMap || {}, bundle);
+    const merged = attachPkpGtfsPolylinesToViewMap(viewMap, bundle);
 
     const helRoutes = Object.values(merged).filter((r) =>
       [r?.origin_trip_0, r?.destination_trip_0].includes("Hel"),

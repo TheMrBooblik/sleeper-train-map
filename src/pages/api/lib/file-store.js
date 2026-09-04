@@ -12,6 +12,7 @@ import path from "node:path";
 
 const DATA_DIR = path.join(process.cwd(), "public", "data", "scraped");
 const PUBLISHED_DIR = path.join(process.cwd(), "public", "data", "published");
+const GTFS_DIR = path.join(process.cwd(), "public", "data", "gtfs");
 const CACHE_TTL_MS = 25 * 60 * 60 * 1000; // 25 hours
 
 function filePath(name) {
@@ -149,6 +150,38 @@ export function getPublishedInitialData() {
   return Promise.resolve(
     readEnvelopeAtPath(path.join(PUBLISHED_DIR, "initial-data.json")),
   );
+}
+
+// ─── GTFS bundles served as static assets ────────────────────────────────────
+
+// Station names the browser-side GTFS merges will graft onto viewMap rows.
+// The stops projection in /api/initial-data has to keep their stop records:
+// attachPkpGtfsPolylinesToViewMap rebuilds via_0 from this bundle's own stop
+// list, long after the payload was assembled, and expects the coordinates to
+// already be on the client. Parsed once per lambda instance — the route it
+// feeds is CDN-cached for an hour, so this runs about as often as a cold start.
+let _gtfsStationNames = null;
+
+export function getGtfsBundleStationNames() {
+  if (_gtfsStationNames) return _gtfsStationNames;
+
+  const names = new Set();
+  try {
+    const raw = fs.readFileSync(
+      path.join(GTFS_DIR, "pkpTrainShapes.json"),
+      "utf8",
+    );
+    for (const entry of Object.values(JSON.parse(raw)?.byTrainKey ?? {})) {
+      for (const stop of entry?.stops ?? []) {
+        if (stop?.name) names.add(stop.name);
+      }
+    }
+  } catch {
+    // Missing bundle just means a slightly larger stops list, never a failure.
+  }
+
+  _gtfsStationNames = names;
+  return names;
 }
 
 // ─── Shared ────────────────────────────────────────────────────────────────

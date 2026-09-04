@@ -17,9 +17,49 @@ test.describe('Data integrity', () => {
   test('known stations are present', async ({ request }) => {
     const data = await (await request.get('/api/initial-data')).json();
     const names = new Set(data.stops.map((s) => s.stop_name));
-    for (const station of ['Wien Hbf', 'Paris Est', 'Roma Termini']) {
+    // Stations a sleeper route actually calls at. The endpoint no longer ships
+    // the whole Back-on-Track stops table — see the projection test below — so
+    // this list has to be route-served: Paris Est used to sit here but no night
+    // train in the dataset stops there (they use Austerlitz / Gare du Nord), so
+    // it never had a marker either.
+    for (const station of ['Wien Hbf', 'Paris Austerlitz', 'Roma Termini']) {
       expect(names.has(station), `expected station "${station}"`).toBeTruthy();
     }
+  });
+
+  test('stops are projected down to the ones routes reach', async ({ request }) => {
+    const data = await (await request.get('/api/initial-data')).json();
+
+    // Every station named by a route row must have its record, or it silently
+    // loses its marker; nothing much beyond them should ride along. The full
+    // table is ~29 800 stops, of which ~1 900 are on a route.
+    const named = new Set();
+    for (const route of Object.values(data.viewMap)) {
+      for (const field of ['origin_trip_0', 'destination_trip_0', 'origin_trip_1', 'destination_trip_1']) {
+        if (route[field]) named.add(route[field]);
+      }
+    }
+    const ids = new Set(data.stops.map((s) => s.stop_id));
+    const namesSet = new Set(data.stops.map((s) => s.stop_name));
+    const missing = [...named].filter((n) => !ids.has(n) && !namesSet.has(n));
+    expect(missing, `endpoint stations without a stop record: ${missing.slice(0, 5).join(', ')}`).toHaveLength(0);
+
+    expect(data.stops.length).toBeLessThan(5000);
+  });
+
+  test('first-paint payload carries no route geometry', async ({ request }) => {
+    const data = await (await request.get('/api/initial-data')).json();
+    const withGeometry = Object.values(data.viewMap).filter(
+      (r) => r.nj_polyline_0 || r.nj_polyline_1 || r.nj_polyline,
+    );
+    expect(withGeometry).toHaveLength(0);
+
+    // ...and the endpoint it moved to serves it for the same routes.
+    const geometry = await (await request.get('/api/route-geometry')).json();
+    const ids = new Set(Object.keys(data.viewMap));
+    const orphans = Object.keys(geometry).filter((k) => !ids.has(k));
+    expect(orphans, `geometry for routes not in the payload: ${orphans.join(', ')}`).toHaveLength(0);
+    expect(Object.keys(geometry).length).toBeGreaterThan(50);
   });
 
   test('no Train4you (UEX) leaks into the payload', async ({ request }) => {
