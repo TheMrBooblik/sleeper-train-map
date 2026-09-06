@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_cr-k-4531",
+  "createdAt": "2026-09-06T07:34:32.854Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Disappeared: K 4531",
+  "summary": "Route \"cr_K_4531\" (Beijing Fengtai(北京丰台) – Lanzhouxi(兰州西)) has been missing from the sources for 7 days and is no longer shown. No action needed if the train was discontinued.",
+  "target": {
+    "routeKey": "cr_K_4531",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
