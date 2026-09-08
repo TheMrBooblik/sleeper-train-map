@@ -109,6 +109,12 @@ async function buildItalianTrains(trainNumbers, concurrency) {
       if (!coords) return null;
       return {
         name: titleCase(s.stazione),
+        // Viaggiatreno's own station id ("S12349" = Siracusa). Kept because it
+        // is the only way to address a train on the operator's site: its
+        // per-train page is cercaTreno.jsp?treno=1962&origine=S12349&…, and the
+        // origin code is not derivable from the station name. See the schedule
+        // links in src/lib/operatorBooking.js.
+        code: s.id || null,
         location: { latitude: coords.lat, longitude: coords.lon },
         arrival: s.arrivo_teorico ? new Date(s.arrivo_teorico).toISOString() : null,
         departure: s.partenza_teorica ? new Date(s.partenza_teorica).toISOString() : null,

@@ -134,6 +134,53 @@ function todayDayMonthYear() {
 }
 
 /**
+ * Epoch milliseconds of today's midnight in `timeZone`.
+ *
+ * Viaggiatreno addresses a train by its departure day as a timestamp
+ * (datapartenza=1788818400000 is 00:00 on 8 Sep 2026 in Rome), and the railway
+ * day is the operator's local one — taking UTC midnight would point at the
+ * previous day's train for the two hours either side of it.
+ *
+ * Derived from Intl rather than a fixed offset so DST is handled: format the
+ * instant in the zone, read back how far that is from UTC, and subtract.
+ */
+function localMidnightMs(timeZone, now = new Date()) {
+  if (!timeZone) return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
+  const at = (instant) => {
+    const p = Object.fromEntries(
+      fmt.formatToParts(instant).map(({ type, value }) => [type, value]),
+    );
+    return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+  };
+  // formatToParts resolves to whole seconds, so compare against a whole-second
+  // instant — otherwise the current time's milliseconds leak into the offset
+  // and out into the timestamp, which must land exactly on midnight.
+  const nowMs = Math.floor(now.getTime() / 1000) * 1000;
+  // How far the zone runs ahead of UTC at this instant.
+  const offset = at(new Date(nowMs)) - nowMs;
+  const local = new Date(nowMs + offset);
+  const utcMidnight = Date.UTC(
+    local.getUTCFullYear(),
+    local.getUTCMonth(),
+    local.getUTCDate(),
+  );
+  // Re-read the offset at the target midnight: a DST change between now and
+  // then would otherwise shift it by an hour.
+  const midnightOffset = at(new Date(utcMidnight - offset)) - (utcMidnight - offset);
+  return utcMidnight - midnightOffset;
+}
+
+/**
  * Wrap an outbound URL in the operator's affiliate redirect when one is
  * configured. `affiliateWrapper` is a template carrying {target}, which is
  * substituted URL-encoded (the Effiliation shape SNCF already uses:
@@ -189,6 +236,7 @@ export function buildScheduleCandidate({
   countryCode,
   originCountry,
   destCountry,
+  originCode,
   date,
 }) {
   const booking = getOperatorBooking(agencyId);
@@ -201,11 +249,18 @@ export function buildScheduleCandidate({
   const template = booking.scheduleUrlTemplate;
   if (template) {
     const number = scheduleTrainNumber(train);
-    // A {train} template with no number would resolve to a search for nothing.
-    if (number || !template.includes("{train}")) {
+    // Every placeholder the template names has to be fillable, or the link goes
+    // somewhere emptier than the page we would otherwise fall back to: a
+    // {train} search for nothing, or Viaggiatreno's cercaTreno with no origin.
+    const needs = (ph) => template.includes(ph);
+    const satisfied =
+      (number || !needs("{train}")) && (originCode || !needs("{originCode}"));
+    if (satisfied) {
       return wrap(
         template
           .replaceAll("{train}", encodeURIComponent(number))
+          .replaceAll("{originCode}", encodeURIComponent(originCode || ""))
+          .replaceAll("{dateMs}", String(localMidnightMs(booking.scheduleTimeZone)))
           .replaceAll("{date}", date || todayDayMonthYear()),
         "train",
       );

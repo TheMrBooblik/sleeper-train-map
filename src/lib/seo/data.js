@@ -448,6 +448,7 @@ export function getRouteDetail(routeId) {
       routeId: String(routeId),
       originCountry: route[`origin_country_${dir}`],
       destCountry: route[`destination_country_${dir}`],
+      originCode: route[`schedule_origin_code_${dir}`],
     });
 
     directions.push({

@@ -1233,6 +1233,8 @@ const TrainDetailPanel = ({
                     tripRoute?.[`origin_country_${scheduleDirection}`],
                   destCountry:
                     tripRoute?.[`destination_country_${scheduleDirection}`],
+                  originCode:
+                    tripRoute?.[`schedule_origin_code_${scheduleDirection}`],
                 });
                 // European Sleeper's feed publishes bare numbers ("400"); the
                 // operator writes them "ES 400". Display only — every lookup

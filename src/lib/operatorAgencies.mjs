@@ -148,6 +148,7 @@ export function resolveScheduleLink({
   countryCode,
   originCountry,
   destCountry,
+  originCode,
   date,
 }) {
   const candidates = [];
@@ -159,6 +160,7 @@ export function resolveScheduleLink({
       countryCode,
       originCountry,
       destCountry,
+      originCode,
       date,
     });
     if (candidate?.url) candidates.push({ ...candidate, id });

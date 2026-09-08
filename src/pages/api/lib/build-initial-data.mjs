@@ -607,12 +607,47 @@ export function buildInitialData({
   );
 
   stampEndpointCountries(filteredViewMap, stops);
+  stampScheduleOriginCodes(filteredViewMap, operatorTrains);
 
   return {
     stops: trimmedStops,
     viewMap: filteredViewMap,
     trips: filteredTrips,
   };
+}
+
+/**
+ * Record, per direction, the operator's own id for that train's origin station.
+ *
+ * Some operators address a train on their site by station code rather than by
+ * name: Trenitalia's per-train page is
+ * cercaTreno.jsp?treno=1962&origine=S12349&datapartenza=…, where S12349 is
+ * Viaggiatreno's id for Siracusa and is not derivable from the station name.
+ * The scrape already sees those ids (the adapter fetches andamentoTreno per
+ * station code), so the code travels with the train rather than being
+ * hand-maintained — an operator's station ids are theirs to renumber.
+ *
+ * Keyed off each direction's own train, because the return leg starts
+ * somewhere else: ICN 1962 leaves Siracusa, ICN 1963 leaves Milano Centrale.
+ * Silent by design — a train the sources don't carry leaves the field unset and
+ * the schedule link falls back a tier rather than building a broken URL.
+ */
+function stampScheduleOriginCodes(viewMap, operatorTrains) {
+  const originCodeByTrain = new Map();
+  for (const trains of Object.values(operatorTrains || {})) {
+    for (const [name, train] of Object.entries(trains || {})) {
+      const code = train?.stations?.[0]?.code;
+      if (code && !originCodeByTrain.has(name)) originCodeByTrain.set(name, code);
+    }
+  }
+  if (originCodeByTrain.size === 0) return;
+
+  for (const row of Object.values(viewMap)) {
+    for (const dir of [0, 1]) {
+      const code = originCodeByTrain.get(row[`trip_short_name_${dir}`]);
+      if (code) row[`schedule_origin_code_${dir}`] = code;
+    }
+  }
 }
 
 /**

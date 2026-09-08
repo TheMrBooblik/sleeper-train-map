@@ -15,6 +15,7 @@ import {
 } from "../src/lib/operatorBooking.js";
 import { resolveScheduleLink } from "../src/lib/operatorAgencies.mjs";
 import { applyOverrideMutation } from "../src/pages/api/lib/overrides-mutate.mjs";
+import { buildInitialData } from "../src/pages/api/lib/build-initial-data.mjs";
 import OPERATOR_BOOKING from "../data/overrides/operator-booking.json" with { type: "json" };
 
 const problems = [];
@@ -182,6 +183,68 @@ check(
   check(wrapped === null, "an operator absent from the table yields no link");
 }
 
+// ── Trenitalia: a per-train page addressed by station code and departure day ──
+// The operator's own URL for ICN 1962 out of Siracusa on 8 Sep 2026 is
+// cercaTreno.jsp?treno=1962&origine=S12349&datapartenza=1788818400000.
+{
+  const url = buildScheduleUrl({
+    agencyId: "FS",
+    train: "ICN 1962",
+    routeId: "icn_ICN_1962",
+    originCode: "S12349",
+  });
+  check(
+    url?.startsWith(
+      "https://www.viaggiatreno.it/infomobilitamobile/pages/cercaTreno/cercaTreno.jsp?treno=1962&origine=S12349&datapartenza=",
+    ),
+    `FS builds the operator's per-train URL (got ${url})`,
+  );
+  // datapartenza is midnight of the current day in Rome, to the millisecond:
+  // Viaggiatreno keys the train on its departure day, and the railway day is
+  // the operator's local one.
+  const ms = Number(new URL(url).searchParams.get("datapartenza"));
+  check(Number.isInteger(ms), "FS datapartenza is an integer epoch");
+  const rome = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Rome",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(ms));
+  eq(rome, "00:00:00", "FS datapartenza lands exactly on Rome midnight");
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date());
+  const linked = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date(ms));
+  eq(linked, today, "FS datapartenza is today's railway day in Rome");
+}
+// The origin code is not derivable from a station name, so without one the link
+// must fall back rather than open cercaTreno with no train to find. This is the
+// state before the first scrape carrying station codes, and it is what the
+// Back-on-Track FS rows ("IC Notte 752") stay on — the feed has no such train.
+eq(
+  buildScheduleCandidate({ agencyId: "FS", train: "ICN 1962", routeId: "icn_ICN_1962" })?.tier,
+  "operator",
+  "FS without an origin code falls back to the Intercity Notte page",
+);
+eq(
+  buildScheduleCandidate({ agencyId: "FS", train: "IC Notte 752", routeId: "86" })?.tier,
+  "operator",
+  "a Back-on-Track FS row falls back to the Intercity Notte page",
+);
+// Each direction carries its own train and its own origin: ICN 1962 leaves
+// Siracusa, ICN 1963 leaves Milano Centrale.
+{
+  const back = buildScheduleUrl({
+    agencyId: "FS",
+    train: "ICN 1963",
+    routeId: "icn_ICN_1962",
+    originCode: "S01700",
+  });
+  check(
+    back?.includes("treno=1963") && back?.includes("origine=S01700"),
+    `the return direction uses its own train and origin (got ${back})`,
+  );
+}
+
 // ── The curated table itself ───────────────────────────────────────────────
 const scheduleOps = Object.entries(OPERATOR_BOOKING).filter(
   ([, v]) =>
@@ -213,10 +276,25 @@ for (const [id, cfg] of scheduleOps) {
     // Every placeholder must be one the builder knows how to substitute.
     for (const ph of cfg.scheduleUrlTemplate.match(/\{[a-zA-Z]+\}/g) || []) {
       check(
-        ["{train}", "{date}"].includes(ph),
+        ["{train}", "{date}", "{dateMs}", "{originCode}"].includes(ph),
         `${id}: unknown placeholder ${ph} in scheduleUrlTemplate`,
       );
     }
+  }
+  if (cfg.scheduleUrlTemplate?.includes("{dateMs}")) {
+    check(
+      Boolean(cfg.scheduleTimeZone),
+      `${id}: a {dateMs} template needs scheduleTimeZone — the railway day is the operator's local one`,
+    );
+  }
+  if (cfg.scheduleTimeZone) {
+    let valid = true;
+    try {
+      new Intl.DateTimeFormat("en-CA", { timeZone: cfg.scheduleTimeZone });
+    } catch {
+      valid = false;
+    }
+    check(valid, `${id}: "${cfg.scheduleTimeZone}" is not a usable IANA time zone`);
   }
   if (cfg.scheduleCountryPages) {
     for (const code of Object.keys(cfg.scheduleCountryPages)) {
@@ -256,6 +334,49 @@ for (const [id, cfg] of scheduleOps) {
   eq(after.UZ.scheduleLabel, "Timetable", "…and scheduleLabel");
   eq(after.UZ.homeCountry, "UA", "…and homeCountry");
   eq(after.UZ.urlTemplate, "https://booking.example/{origin}", "…while applying the edit itself");
+}
+
+// ── The merge carries the operator's station code onto the row ─────────────
+// Without this the FS template can never fire on either surface. Guards the
+// shape contract with scripts/adapters/viaggiatreno.mjs: stations[0].code.
+{
+  const viewMap = {
+    r1: {
+      route_id: "r1",
+      agency_id: "FS",
+      trip_short_name_0: "ICN 1962",
+      trip_short_name_1: "ICN 1963",
+      origin_trip_0: "Siracusa",
+      destination_trip_0: "Milano Centrale",
+      is_active: "Y",
+    },
+  };
+  const trips = {
+    "ICN 1962": { route_id: "r1", trip_short_name: "ICN 1962", direction_id: 0, is_active: "Y" },
+  };
+  const operatorTrains = {
+    italian: {
+      "ICN 1962": { stations: [{ name: "Siracusa", code: "S12349" }, { name: "Milano Centrale" }] },
+      "ICN 1963": { stations: [{ name: "Milano Centrale", code: "S01700" }, { name: "Siracusa" }] },
+      // A train whose stations carry no code must not stamp anything.
+      "ICN 999": { stations: [{ name: "Roma Termini" }] },
+    },
+  };
+  const built = buildInitialData({ stops: [], viewMap, trips, operatorTrains });
+  const row = built.viewMap.r1;
+  eq(row?.schedule_origin_code_0, "S12349", "the merge stamps direction 0's origin code");
+  eq(row?.schedule_origin_code_1, "S01700", "…and direction 1's, from its own train");
+
+  const noCodes = buildInitialData({
+    stops: [],
+    viewMap,
+    trips,
+    operatorTrains: { italian: { "ICN 1962": { stations: [{ name: "Siracusa" }] } } },
+  });
+  check(
+    noCodes.viewMap.r1?.schedule_origin_code_0 === undefined,
+    "a feed without station codes stamps nothing rather than a broken value",
+  );
 }
 
 // ── Tier order is the contract the resolver relies on ──────────────────────
