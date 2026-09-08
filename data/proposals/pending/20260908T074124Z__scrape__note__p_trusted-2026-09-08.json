@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-09-08",
+  "createdAt": "2026-09-08T07:41:24.477Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (12 routes, 4 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_239: NJ 239 (München Hbf – Bologna Centrale)\nroute nj_standalone_NJ_491: NJ 491 (Hamburg Altona – Wien Hbf)\nroute nj_standalone_NJ_449: NJ 449 (Bruxelles Midi – Wien Hbf)\nroute nj_standalone_NJ_429: NJ 429 (Amsterdam Centraal – Innsbruck Hbf)\nroute nj_standalone_NJ_40246: NJ 40246 (Venezia Santa Lucia – München Hbf)\nroute nj_standalone_NJ_235: NJ 235 (Wien Hbf – Roma Tiburtina)\nroute nj_standalone_NJ_447: NJ 447 (Bregenz Bahnhof – Wien Hbf (Autoreisezuganlage))\nroute nj_standalone_NJ_13467: NJ 13467 (Zürich HB – Wien Hbf)\nroute nj_standalone_NJ_11446: NJ 11446 (Wien Hbf (Autoreisezuganlage) – Bregenz Bahnhof)\nroute nj_standalone_NJ_13465: NJ 13465 (Zürich HB – Graz Hbf)\nroute nj_standalone_NJ_1236: NJ 1236 (Venezia Santa Lucia – Wien Hbf)\nroute nj_standalone_NJ_446: NJ 446 (Wien Hbf (Autoreisezuganlage) – Bregenz Bahnhof)\nstation Frankfurt(M) Flughafen Fernbf (nightjet)\nstation Selzthal Bahnhof (nightjet)\nstation Treviso Hbf (nightjet)\nstation Leuven (europeansleeper)",
+  "target": {
+    "routeKey": "trusted-2026-09-08",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
