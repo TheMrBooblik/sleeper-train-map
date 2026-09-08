@@ -45,21 +45,30 @@ eq(scheduleTrainNumber(null), "", "null → empty string");
 
 // ── Tier 1: per-route pages beat everything ────────────────────────────────
 eq(
-  buildScheduleCandidate({ agencyId: "ES", train: "452", routeId: "237" })?.tier,
+  buildScheduleCandidate({ agencyId: "VIA", train: "1", routeId: "via_Vancouver_-_Toronto" })?.tier,
   "route",
-  "European Sleeper route 237 resolves at the route tier",
+  "a curated per-route page resolves at the route tier",
 );
 eq(
-  buildScheduleUrl({ agencyId: "ES", train: "452", routeId: "237" }),
-  "https://www.europeansleeper.eu/night-train-brussels-prague",
-  "ES 452 links to the Brussels–Prague corridor page",
+  buildScheduleUrl({ agencyId: "VIA", train: "1", routeId: "via_Vancouver_-_Toronto" }),
+  "https://www.viarail.ca/en/plan/train-schedules/vancouver-jasper-winnipeg-toronto",
+  "VIA's Canadian links to its own route schedule",
 );
 // A route with no curated page falls through to the operator timetable.
 eq(
-  buildScheduleCandidate({ agencyId: "ES", train: "454", routeId: "239" })?.tier,
+  buildScheduleCandidate({ agencyId: "VIA", train: "1", routeId: "unmapped" })?.tier,
   "operator",
-  "ES 454 (no curated page) falls back to the operator tier",
+  "an unmapped route falls back to the operator tier",
 );
+// European Sleeper publishes one timetable page covering every corridor, so
+// all of its routes point there rather than at per-corridor marketing pages.
+for (const routeId of ["237", "238", "239", "es_400", "es_400_from_20261214"]) {
+  eq(
+    buildScheduleUrl({ agencyId: "ES", train: "452", routeId }),
+    "https://www.europeansleeper.eu/timetable",
+    `ES route ${routeId} links to the single timetable page`,
+  );
+}
 
 // ── Tier 2: per-train templates ────────────────────────────────────────────
 eq(
@@ -409,7 +418,7 @@ eq(SCHEDULE_TIERS.join(","), "route,train,country,operator", "tier order is most
   check(linked >= 200, `at least 200 published routes resolve a link (got ${linked})`);
   check(tiers.train >= 80, `per-train links cover the UZ/CFR/ČD block (got ${tiers.train || 0})`);
   check(tiers.country >= 20, `per-country links cover the ÖBB block (got ${tiers.country || 0})`);
-  check(tiers.route >= 8, `per-route links cover ES/VIA/SJN (got ${tiers.route || 0})`);
+  check(tiers.route >= 5, `per-route links cover VIA/SJN (got ${tiers.route || 0})`);
 
   // The country tier only works because the merge stamps endpoint countries.
   const stamped = rows.filter((r) => r.origin_country_0 || r.destination_country_0);

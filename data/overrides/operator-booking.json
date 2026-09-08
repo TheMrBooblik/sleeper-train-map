@@ -201,13 +201,7 @@
       "Göschenen": "8500689",
       "Arth-Goldau": "8505004"
     },
-    "scheduleUrl": "https://www.europeansleeper.eu/timetable",
-    "schedulePages": {
-      "237": "https://www.europeansleeper.eu/night-train-brussels-prague",
-      "238": "https://www.europeansleeper.eu/night-train-paris-berlin",
-      "es_400": "https://www.europeansleeper.eu/night-train-brussels-milan",
-      "es_400_from_20261214": "https://www.europeansleeper.eu/night-train-brussels-milan"
-    }
+    "scheduleUrl": "https://www.europeansleeper.eu/timetable"
   },
   "AMTK": {
     "urlTemplate": "https://www.amtrak.com/booking/results?origin={origin}&destination={dest}&passengers=1",
