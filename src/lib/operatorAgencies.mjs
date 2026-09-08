@@ -142,6 +142,32 @@ export function resolveBookingHref({ agencyId, agencies, agencyUrl, origin, dest
 }
 
 /**
+ * The leg of a compound train label that belongs to one component operator, or
+ * null when the data cannot say.
+ *
+ * Back-on-Track writes a jointly-operated train as one label per leg
+ * ("PKP/ČD" running "EN 443 / IC 406"), and it is tempting to pair the nth leg
+ * with the nth operator. That is wrong: the legs run in travel order while the
+ * agency id does not follow it. Under the same "PKP/ČD" id, route 9 (Praha →
+ * Warszawa) writes ČD's EN 443 first, while route 265 writes PKP's TLK 403
+ * first — so pairing by position links one of them to the other operator's
+ * train, which is a real page for the wrong service.
+ *
+ * Nothing else in the row distinguishes them, so a compound label under a
+ * compound id yields no per-train link at all and the caller falls back to a
+ * tier that needs no number. A compound label under a *single* operator is a
+ * different thing — through cars of one journey ("CFR" running
+ * "IRN 1954/R 8824") — and keeps linking to its first leg.
+ *
+ * @returns {string|null} the label to resolve a number from, or null if unknowable
+ */
+export function trainLegForOperator(trainLabel, agencyId) {
+  const label = String(trainLabel ?? "");
+  if (splitAgencyIds(agencyId).length <= 1) return label;
+  return label.includes("/") ? null : label;
+}
+
+/**
  * The best "official timetable" link across the components of a (possibly
  * compound) agency id.
  *
@@ -166,9 +192,11 @@ export function resolveScheduleLink({
 }) {
   const candidates = [];
   for (const id of splitAgencyIds(agencyId)) {
+    // Each component resolves against its own leg of a joint train's label.
+    const leg = trainLegForOperator(train, agencyId);
     const candidate = buildScheduleCandidate({
       agencyId: id,
-      train,
+      train: leg,
       routeId,
       countryCode,
       originCountry,

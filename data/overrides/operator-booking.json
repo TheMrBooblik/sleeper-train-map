@@ -78,7 +78,8 @@
   },
   "BDŽ": {
     "bookingPageUrl": "https://bileti.bdz.bg/",
-    "scheduleUrl": "https://razpisanie.bdz.bg/en"
+    "scheduleUrl": "https://razpisanie.bdz.bg/en",
+    "scheduleUrlTemplate": "https://razpisanie.bdz.bg/en/train-info/{train}/{date}"
   },
   "ST": {
     "bookingPageUrl": "https://www.snalltaget.se/en",
