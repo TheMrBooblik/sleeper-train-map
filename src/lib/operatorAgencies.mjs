@@ -19,6 +19,7 @@ import {
   buildBookingUrl,
   buildScheduleCandidate,
   getBookingPageUrl,
+  getOperatorBooking,
   getDealsLink,
   getScheduleLabel,
   isAffiliateSchedule,
@@ -58,8 +59,18 @@ export function formatTrainNumber(trainNumber, agencyId) {
   return raw;
 }
 
-const LINK_TIERS = ["deepLink", "bookingPageUrl", "fareUrl", "homeUrl"];
-const LINK_KINDS = { deepLink: "deep", bookingPageUrl: "page", fareUrl: "fare", homeUrl: "home" };
+// Route page first: where an operator publishes a page for this exact corridor
+// it beats a prefilled search, because it is the page they sell the route on.
+// `routePages` is the same key naBooking.mjs reads for Amtrak/VIA — those go
+// through their own builder, so the two never resolve the same row twice.
+const LINK_TIERS = ["routePage", "deepLink", "bookingPageUrl", "fareUrl", "homeUrl"];
+const LINK_KINDS = {
+  routePage: "route",
+  deepLink: "deep",
+  bookingPageUrl: "page",
+  fareUrl: "fare",
+  homeUrl: "home",
+};
 
 /**
  * Resolve each component operator of a (possibly compound) agency id.
@@ -72,13 +83,15 @@ const LINK_KINDS = { deepLink: "deep", bookingPageUrl: "page", fareUrl: "fare", 
  * Returns [{ id, name, logoUrl, deepLink, bookingPageUrl, fareUrl, homeUrl,
  * linkUrl, linkKind }] in the id's original order.
  */
-export function resolveOperatorComponents({ agencyId, agencies, origin, dest }) {
+export function resolveOperatorComponents({ agencyId, agencies, origin, dest, routeId }) {
   return splitAgencyIds(agencyId).map((id) => {
     const agency = agencies?.[id] || null;
+    const booking = getOperatorBooking(id);
     const component = {
       id,
       name: agency?.agency_name || id,
       logoUrl: agency?.agency_logo_url || null,
+      routePage: routeId ? (booking?.routePages?.[String(routeId)] ?? null) : null,
       deepLink: buildBookingUrl({ agencyId: id, origin, dest }),
       bookingPageUrl: getBookingPageUrl(id),
       fareUrl: agency?.agency_fare_url || null,
@@ -105,8 +118,8 @@ export function resolveOperatorComponents({ agencyId, agencies, origin, dest }) 
  *
  * Returns { href, deepLink, componentId, componentName, dealsLink }.
  */
-export function resolveBookingHref({ agencyId, agencies, agencyUrl, origin, dest }) {
-  const components = resolveOperatorComponents({ agencyId, agencies, origin, dest });
+export function resolveBookingHref({ agencyId, agencies, agencyUrl, origin, dest, routeId }) {
+  const components = resolveOperatorComponents({ agencyId, agencies, origin, dest, routeId });
   for (const tier of LINK_TIERS) {
     const winner = components.find((c) => c[tier]);
     if (winner) {

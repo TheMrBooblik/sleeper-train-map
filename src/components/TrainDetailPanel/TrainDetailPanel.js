@@ -1331,6 +1331,7 @@ const TrainDetailPanel = ({
                 const operatorComponents = resolveOperatorComponents({
                   agencyId: operatorAgencyId,
                   agencies,
+                  routeId: trip.route_id,
                   origin: bookingOrigin,
                   dest: trip.trip_headsign,
                 });

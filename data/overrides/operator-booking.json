@@ -201,7 +201,10 @@
       "Göschenen": "8500689",
       "Arth-Goldau": "8505004"
     },
-    "scheduleUrl": "https://www.europeansleeper.eu/timetable"
+    "scheduleUrl": "https://www.europeansleeper.eu/timetable",
+    "routePages": {
+      "237": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=&u=%2Fnight-train-brussels-prague"
+    }
   },
   "AMTK": {
     "urlTemplate": "https://www.amtrak.com/booking/results?origin={origin}&destination={dest}&passengers=1",
