@@ -267,6 +267,81 @@ check(formatTrainNumber("", "ES") === "", "empty number stays empty");
 check(formatTrainNumber(null, "ES") === "", "null number stays empty");
 check(formatTrainNumber("400", "") === "400", "no agency → unchanged");
 check(formatTrainNumber("400", null) === "400", "null agency → unchanged");
+// ── Per-route booking pages outrank a prefilled search ─────────────────────
+// Where an operator publishes a page for this exact corridor, that is the page
+// they sell the route on; a station-preselect deep link is the fallback.
+{
+  const withRoute = resolveBookingHref({
+    agencyId: "ES",
+    agencies: AGENCIES,
+    origin: "Praha hl.n.",
+    dest: "Bruxelles Midi",
+    routeId: "237",
+  });
+  check(
+    withRoute.href === OPERATOR_BOOKING.ES.routePages["237"],
+    `ES route 237 books through its corridor page (got ${withRoute.href})`,
+  );
+  check(
+    withRoute.deepLink === null,
+    "a route page is not a deep link, so the caller shows no preselect caption",
+  );
+  // A route with no curated page keeps the station-preselect deep link.
+  const noRoute = resolveBookingHref({
+    agencyId: "ES",
+    agencies: AGENCIES,
+    origin: "Praha hl.n.",
+    dest: "Bruxelles Midi",
+    routeId: "unmapped",
+  });
+  check(
+    noRoute.href?.includes("booking.europeansleeper.eu"),
+    `an unmapped ES route still deep-links into the booking engine (got ${noRoute.href})`,
+  );
+  check(noRoute.deepLink !== null, "…and that one does count as a deep link");
+  // Omitting routeId entirely must behave exactly as before this tier existed.
+  const legacy = resolveBookingHref({
+    agencyId: "ES",
+    agencies: AGENCIES,
+    origin: "Praha hl.n.",
+    dest: "Bruxelles Midi",
+  });
+  check(legacy.href === noRoute.href, "resolving without a routeId is unchanged");
+  // All three running corridors book through the operator's own page for that
+  // corridor, each through the affiliate redirect exactly once.
+  for (const [routeId, slug] of [
+    ["237", "night-train-brussels-prague"],
+    ["238", "night-train-paris-berlin"],
+    ["es_400", "night-train-brussels-milan"],
+  ]) {
+    const href = resolveBookingHref({
+      agencyId: "ES",
+      agencies: AGENCIES,
+      origin: "Praha hl.n.",
+      dest: "Bruxelles Midi",
+      routeId,
+    }).href;
+    check(
+      href?.includes(encodeURIComponent(`/${slug}`)),
+      `ES route ${routeId} books through /${slug} (got ${href})`,
+    );
+    check(
+      (href?.match(/deals\.europeansleeper\.eu/g) || []).length === 1,
+      `ES route ${routeId} passes the affiliate redirect once`,
+    );
+  }
+
+  // Every curated booking route page must be an absolute URL.
+  for (const [id, cfg] of Object.entries(OPERATOR_BOOKING)) {
+    for (const [routeId, url] of Object.entries(cfg.routePages || {})) {
+      check(
+        /^https:\/\/[^\s]+$/.test(url),
+        `${id}.routePages[${routeId}] must be an absolute https URL (got ${url})`,
+      );
+    }
+  }
+}
+
 check(formatTrainNumber(" 400 ", "ES") === "ES 400", "surrounding whitespace is trimmed");
 
 check(OPERATORS.LE?.name === "Leo Express", 'LE curated name is "Leo Express"');

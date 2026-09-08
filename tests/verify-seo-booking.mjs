@@ -26,7 +26,9 @@ const published = JSON.parse(
   ),
 );
 
-// ── European Sleeper deep link (the /trains/praha…-452 page) ────────────────
+// ── European Sleeper: corridor page first, deep link as the fallback ────────
+// Route 237 is the Brussels–Prague corridor, which the operator sells on its
+// own page — that beats a prefilled search, so this one does NOT preselect.
 {
   const r = resolveRouteBooking({
     agencyId: "ES",
@@ -35,6 +37,23 @@ const published = JSON.parse(
     origin: "Praha hl.n.",
     dest: "Bruxelles Midi / Brussel Zuid",
     routeId: "237",
+    scheduleStops: [],
+  });
+  check(r != null, "ES: booking resolves");
+  check(r?.href === OPERATOR_BOOKING.ES.routePages["237"], "ES: route 237 books through its corridor page");
+  check(r?.preselects === false, "ES: a corridor page is not a preselecting deep link");
+  check(!!r?.dealsUrl && !!r?.dealsLabel, "ES: last-minute deals link present on the corridor page too");
+}
+
+// ── European Sleeper deep link, where no corridor page is curated ───────────
+{
+  const r = resolveRouteBooking({
+    agencyId: "ES",
+    agencies,
+    agencyUrl: agencies.ES?.agency_url ?? null,
+    origin: "Praha hl.n.",
+    dest: "Bruxelles Midi / Brussel Zuid",
+    routeId: "es_no_curated_page",
     scheduleStops: [],
   });
   check(r != null, "ES: booking resolves");

@@ -66,6 +66,7 @@ export function resolveRouteBooking({
       agencyUrl,
       origin,
       dest,
+      routeId,
     });
     href = resolved.href;
     deepLink = resolved.deepLink;

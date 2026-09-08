@@ -17,8 +17,13 @@
  */
 import {
   buildBookingUrl,
+  buildScheduleCandidate,
   getBookingPageUrl,
+  getOperatorBooking,
   getDealsLink,
+  getScheduleLabel,
+  isAffiliateSchedule,
+  SCHEDULE_TIERS,
 } from "./operatorBooking.js";
 import { OPERATORS, splitAgencyIds } from "./seo/operatorNames.mjs";
 
@@ -54,8 +59,18 @@ export function formatTrainNumber(trainNumber, agencyId) {
   return raw;
 }
 
-const LINK_TIERS = ["deepLink", "bookingPageUrl", "fareUrl", "homeUrl"];
-const LINK_KINDS = { deepLink: "deep", bookingPageUrl: "page", fareUrl: "fare", homeUrl: "home" };
+// Route page first: where an operator publishes a page for this exact corridor
+// it beats a prefilled search, because it is the page they sell the route on.
+// `routePages` is the same key naBooking.mjs reads for Amtrak/VIA — those go
+// through their own builder, so the two never resolve the same row twice.
+const LINK_TIERS = ["routePage", "deepLink", "bookingPageUrl", "fareUrl", "homeUrl"];
+const LINK_KINDS = {
+  routePage: "route",
+  deepLink: "deep",
+  bookingPageUrl: "page",
+  fareUrl: "fare",
+  homeUrl: "home",
+};
 
 /**
  * Resolve each component operator of a (possibly compound) agency id.
@@ -68,13 +83,15 @@ const LINK_KINDS = { deepLink: "deep", bookingPageUrl: "page", fareUrl: "fare", 
  * Returns [{ id, name, logoUrl, deepLink, bookingPageUrl, fareUrl, homeUrl,
  * linkUrl, linkKind }] in the id's original order.
  */
-export function resolveOperatorComponents({ agencyId, agencies, origin, dest }) {
+export function resolveOperatorComponents({ agencyId, agencies, origin, dest, routeId }) {
   return splitAgencyIds(agencyId).map((id) => {
     const agency = agencies?.[id] || null;
+    const booking = getOperatorBooking(id);
     const component = {
       id,
       name: agency?.agency_name || id,
       logoUrl: agency?.agency_logo_url || null,
+      routePage: routeId ? (booking?.routePages?.[String(routeId)] ?? null) : null,
       deepLink: buildBookingUrl({ agencyId: id, origin, dest }),
       bookingPageUrl: getBookingPageUrl(id),
       fareUrl: agency?.agency_fare_url || null,
@@ -101,8 +118,8 @@ export function resolveOperatorComponents({ agencyId, agencies, origin, dest }) 
  *
  * Returns { href, deepLink, componentId, componentName, dealsLink }.
  */
-export function resolveBookingHref({ agencyId, agencies, agencyUrl, origin, dest }) {
-  const components = resolveOperatorComponents({ agencyId, agencies, origin, dest });
+export function resolveBookingHref({ agencyId, agencies, agencyUrl, origin, dest, routeId }) {
+  const components = resolveOperatorComponents({ agencyId, agencies, origin, dest, routeId });
   for (const tier of LINK_TIERS) {
     const winner = components.find((c) => c[tier]);
     if (winner) {
@@ -122,4 +139,58 @@ export function resolveBookingHref({ agencyId, agencies, agencyUrl, origin, dest
     componentName: null,
     dealsLink: getDealsLink(agencyId),
   };
+}
+
+/**
+ * The best "official timetable" link across the components of a (possibly
+ * compound) agency id.
+ *
+ * Booking tiers by *link quality* — which operator sells the ticket. Schedule
+ * tiers by *specificity* instead: for "CFM/CFR" a per-train CFR page beats
+ * CFM's homepage-level timetable, because the question a reader is asking is
+ * "where do I check this train's times", not "who sells it". A component with
+ * no schedule config contributes nothing rather than falling back.
+ *
+ * Returns { url, label, operatorId, operatorName, tier, affiliate } or null.
+ */
+export function resolveScheduleLink({
+  agencyId,
+  agencies,
+  train,
+  routeId,
+  countryCode,
+  originCountry,
+  destCountry,
+  originCode,
+  date,
+}) {
+  const candidates = [];
+  for (const id of splitAgencyIds(agencyId)) {
+    const candidate = buildScheduleCandidate({
+      agencyId: id,
+      train,
+      routeId,
+      countryCode,
+      originCountry,
+      destCountry,
+      originCode,
+      date,
+    });
+    if (candidate?.url) candidates.push({ ...candidate, id });
+  }
+  if (candidates.length === 0) return null;
+
+  for (const tier of SCHEDULE_TIERS) {
+    const winner = candidates.find((c) => c.tier === tier);
+    if (!winner) continue;
+    return {
+      url: winner.url,
+      label: getScheduleLabel(winner.id),
+      operatorId: winner.id,
+      operatorName: agencies?.[winner.id]?.agency_name || winner.id,
+      tier: winner.tier,
+      affiliate: isAffiliateSchedule(winner.id),
+    };
+  }
+  return null;
 }
