@@ -1766,6 +1766,31 @@ const TrainDetailPanel = ({
                       </div>
                     )}
 
+                    {/* Helper link, not a CTA: verify these times against the
+                        operator's own timetable. Above the station accordions
+                        rather than below, so it reads next to the times while
+                        they are still collapsed. */}
+                    {scheduleLink && (
+                      <div className="text-xs text-gray-400">
+                        <a
+                          href={scheduleLink.url}
+                          target="_blank"
+                          rel={
+                            scheduleLink.affiliate
+                              ? "sponsored nofollow noopener noreferrer"
+                              : "noopener noreferrer"
+                          }
+                          className="inline-flex items-center gap-1 hover:text-gray-600 hover:underline"
+                        >
+                          {scheduleLink.label}
+                          <FiExternalLink
+                            className="h-3 w-3 shrink-0"
+                            aria-hidden
+                          />
+                        </a>
+                      </div>
+                    )}
+
                     {/* Accordion: all stations with arrival/departure times */}
                     {schedule?.stops?.length > 0 && (
                       <details className="rounded-md bg-gray-50">
@@ -1854,30 +1879,6 @@ const TrainDetailPanel = ({
                           </div>
                         </div>
                       </details>
-                    )}
-
-                    {/* Helper link, not a CTA: verify these times against the
-                        operator's own timetable. Sits with the station list it
-                        refers to, above the booking block. */}
-                    {scheduleLink && (
-                      <div className="text-xs text-gray-400">
-                        <a
-                          href={scheduleLink.url}
-                          target="_blank"
-                          rel={
-                            scheduleLink.affiliate
-                              ? "sponsored nofollow noopener noreferrer"
-                              : "noopener noreferrer"
-                          }
-                          className="inline-flex items-center gap-1 hover:text-gray-600 hover:underline"
-                        >
-                          {scheduleLink.label}
-                          <FiExternalLink
-                            className="h-3 w-3 shrink-0"
-                            aria-hidden
-                          />
-                        </a>
-                      </div>
                     )}
 
                     {/* Booking: deep link with preselected stations + fare */}
