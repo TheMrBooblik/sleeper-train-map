@@ -307,6 +307,30 @@ check(formatTrainNumber("400", null) === "400", "null agency → unchanged");
     dest: "Bruxelles Midi",
   });
   check(legacy.href === noRoute.href, "resolving without a routeId is unchanged");
+  // All three running corridors book through the operator's own page for that
+  // corridor, each through the affiliate redirect exactly once.
+  for (const [routeId, slug] of [
+    ["237", "night-train-brussels-prague"],
+    ["238", "night-train-paris-berlin"],
+    ["es_400", "night-train-brussels-milan"],
+  ]) {
+    const href = resolveBookingHref({
+      agencyId: "ES",
+      agencies: AGENCIES,
+      origin: "Praha hl.n.",
+      dest: "Bruxelles Midi",
+      routeId,
+    }).href;
+    check(
+      href?.includes(encodeURIComponent(`/${slug}`)),
+      `ES route ${routeId} books through /${slug} (got ${href})`,
+    );
+    check(
+      (href?.match(/deals\.europeansleeper\.eu/g) || []).length === 1,
+      `ES route ${routeId} passes the affiliate redirect once`,
+    );
+  }
+
   // Every curated booking route page must be an absolute URL.
   for (const [id, cfg] of Object.entries(OPERATOR_BOOKING)) {
     for (const [routeId, url] of Object.entries(cfg.routePages || {})) {
