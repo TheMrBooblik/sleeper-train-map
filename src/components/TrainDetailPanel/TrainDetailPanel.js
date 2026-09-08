@@ -198,8 +198,17 @@ const TrainDetailPanel = ({
   selectedStation,
 }) => {
   const { agencies } = useAgencies();
-  const { routes: fetchedRoutes, isLoading: routesLoading } = useRoutes();
-  const { trips: fetchedTrips, isLoading: tripsLoading } = useTrips();
+  // Both of these are fallbacks for rendering this panel without the map's own
+  // data, and the map always passes it (see `routes` / `trips` below, which
+  // take the prop whenever there is one). Fetching them anyway cost 146 KB
+  // gzip of a second copy of the view map and trips on every page load —
+  // downloaded, parsed, then discarded by the `||`.
+  const { routes: fetchedRoutes, isLoading: routesLoading } = useRoutes({
+    enabled: !viewMapData,
+  });
+  const { trips: fetchedTrips, isLoading: tripsLoading } = useTrips({
+    enabled: !tripsData,
+  });
   const trips = tripsData || fetchedTrips;
   const [gtfsTimetableData, setGtfsTimetableData] = useState(null);
   const [gtfsLoadFailed, setGtfsLoadFailed] = useState(false);

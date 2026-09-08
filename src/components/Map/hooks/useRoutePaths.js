@@ -57,6 +57,9 @@ export function useRoutePaths({
 }) {
   const [osmPolylines, setOsmPolylines] = useState(new Map());
   const precomputedAllPathsRef = useRef(null);
+  // Polyline keys already requested, so the fetch effect below cannot ask for
+  // the same file twice while the first request is still in flight.
+  const requestedPolylineKeysRef = useRef(new Set());
 
   const routePaths = useMemo(() => {
     if (!viewMapData || !stops?.length) return [];
@@ -519,6 +522,13 @@ export function useRoutePaths({
     });
     polylineKeysToFetch.forEach(async (key) => {
       if (osmPolylines.has(key)) return;
+      // Each fetch resolves into osmPolylines, which this effect depends on —
+      // so every re-run re-requested every key that had not landed yet. These
+      // are ~870 KB gzip of geometry (the OSM relations alone are 344 KB) and
+      // they were being pulled roughly twice over. The `has` check above only
+      // catches keys already resolved, never one still in flight.
+      if (requestedPolylineKeysRef.current.has(key)) return;
+      requestedPolylineKeysRef.current.add(key);
       try {
         // Static polylines are stored as pre-computed JSON files in /data/
         const url = key.startsWith("static:")
@@ -546,9 +556,14 @@ export function useRoutePaths({
               next.set(key, coords);
               return next;
             });
+            return;
           }
         }
+        // Nothing usable came back — let a later run try again rather than
+        // leaving this route without geometry for the rest of the session.
+        requestedPolylineKeysRef.current.delete(key);
       } catch (error) {
+        requestedPolylineKeysRef.current.delete(key);
         console.error(`[DynamicMap] Failed to fetch polyline ${key}:`, error);
       }
     });
