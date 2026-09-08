@@ -3,6 +3,41 @@
  * Used for grouping city markers and matching station names across data sources.
  */
 
+// Explicit extension so raw-node tests can import this module too, not just the
+// webpack bundle (same reason as pkpGtfsMerge's import of pkpTrainKeyExtract).
+import { distanceKm } from "./returnGeometryBranches.js";
+
+/**
+ * How far apart two stations may be and still count as the same place.
+ *
+ * The same radius groupCityMarkers splits its name buckets by, and for the same
+ * reason: a station name is not a location. Deliberately generous — Berlin
+ * Ostbahnhof to Berlin-Spandau is ~20 km — because it exists to catch
+ * continents, not to second-guess city limits. Across the published payload the
+ * gap it sits in is wide: the farthest pair it keeps is 44 km (Dąbrowa Górnicza
+ * and its Ząbkowice station), the nearest it rejects 129 km (Sędziszów and
+ * Sędziszów Małopolski, two different Polish towns).
+ */
+export const SAME_CITY_RADIUS_KM = 60;
+
+/**
+ * Whether two stations are close enough to be the same place.
+ *
+ * Missing coordinates return true: this guard exists to reject a *proven* false
+ * positive, and a station with no coordinates has none to prove.
+ *
+ * @param {number} aLat
+ * @param {number} aLon
+ * @param {number} bLat
+ * @param {number} bLon
+ * @param {number} [radiusKm]
+ * @returns {boolean}
+ */
+export function stationsAreNearby(aLat, aLon, bLat, bLon, radiusKm = SAME_CITY_RADIUS_KM) {
+  if (![aLat, aLon, bLat, bLon].every((v) => Number.isFinite(v))) return true;
+  return distanceKm(aLat, aLon, bLat, bLon) <= radiusKm;
+}
+
 /**
  * Normalize station name for display (e.g. group "Paris Gare de Lyon" → "Paris").
  * Used for marker labels and filter display.

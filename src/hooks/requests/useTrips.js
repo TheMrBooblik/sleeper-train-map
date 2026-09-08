@@ -10,11 +10,16 @@ const tripsCache = {
   timestamp: null,
 };
 
-export function useTrips() {
+/**
+ * @param {{ enabled?: boolean }} [options] `enabled: false` skips the fetch —
+ *   see useRoutes for why (this one is ~27 KB gzip of the same duplication).
+ */
+export function useTrips({ enabled = true } = {}) {
   const [trips, setTrips] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    if (!enabled) return;
     const fetchTrips = async () => {
       // Check if we need to fetch new data
       const currentTime = new Date().getTime();
@@ -48,7 +53,7 @@ export function useTrips() {
     };
 
     fetchTrips();
-  }, []);
+  }, [enabled]);
 
   return {
     trips,

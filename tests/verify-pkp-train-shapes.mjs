@@ -12,14 +12,20 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { pkpEntryForRoute, gtfsEntryForRoute } from "../src/lib/pkpTrainKeyExtract.js";
+import {
+  pkpEntryForRoute,
+  gtfsEntryForRoute,
+  hydratePkpBundle,
+} from "../src/lib/pkpTrainKeyExtract.js";
 import { attachPkpGtfsPolylinesToViewMap } from "../src/lib/pkpGtfsMerge.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 const p = path.join(root, "public", "data", "gtfs", "pkpTrainShapes.json");
 
-const data = JSON.parse(fs.readFileSync(p, "utf8"));
+// The file ships rail_segments only; `positions` is rebuilt on read, the same
+// way every other consumer of the bundle gets it.
+const data = hydratePkpBundle(JSON.parse(fs.readFileSync(p, "utf8")));
 const byTrainKey = data.byTrainKey || {};
 
 function fail(msg) {

@@ -27,10 +27,12 @@ import { MOBILE_MQ } from "../../hooks/useIsMobile";
 import ZoomControl from "@components/ZoomControl";
 import LocationControl from "@components/LocationControl";
 import { stationsToSkip } from "../../data/stationsToSkip";
+import { tileLoadingOptions as buildTileLoadingOptions } from "./utils/tileLoadingOptions";
 
 import {
   normalizeStationNameForDisplay,
   matchStationNames,
+  stationsAreNearby,
 } from "./utils/stationNameUtils";
 import {
   shouldHideRouteDueToFutureDate,
@@ -133,6 +135,12 @@ const TrainMap = ({
   ...rest
 }) => {
   const [sidebarDisabled, setSidebarDisabled] = useState(false);
+  // Read once: Leaflet takes these at construction time, and the connection
+  // hints behind them are advisory anyway.
+  const tileLoadingOptions = useMemo(
+    () => buildTileLoadingOptions({ isMobile: Leaflet.Browser.mobile }),
+    [],
+  );
   const {
     stops,
     filteredStops,
@@ -235,16 +243,61 @@ const TrainMap = ({
     [normalizeStationNameForLookup],
   );
 
+  // Coordinates for every station name the cities index can be keyed by, so a
+  // name match below can be checked against where the two stations actually
+  // are. Without it "Glasgow Central" reaches Glasgow, Montana and pulls the
+  // Amtrak Empire Builder's stops onto a Scottish click.
+  const stationCoordsByName = useMemo(() => {
+    const index = new Map();
+    (stops || []).forEach((stop) => {
+      if (!stop?.stop_id) return;
+      const { stop_lat: lat, stop_lon: lon } = stop;
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+      const normalized = normalizeStationNameForLookup(stop.stop_id);
+      if (normalized && !index.has(normalized)) index.set(normalized, [lat, lon]);
+      if (!index.has(stop.stop_id)) index.set(stop.stop_id, [lat, lon]);
+    });
+    return index;
+  }, [stops, normalizeStationNameForLookup]);
+
+  /**
+   * A name match only counts when the two stations are in the same place.
+   * `lat`/`lon` are the clicked station's; a candidate with no coordinates is
+   * kept, since there is nothing to disprove.
+   */
+  const isNearbyStationName = useCallback(
+    (lat, lon, candidateName) => {
+      const coords = stationCoordsByName.get(candidateName);
+      if (!coords) return true;
+      return stationsAreNearby(lat, lon, coords[0], coords[1]);
+    },
+    [stationCoordsByName],
+  );
+
   const handleMarkerClick = useCallback(
     (filteredStop) => {
       // First real map interaction — lets the welcome tour dismiss itself.
       onStationSelect?.();
       const { stop_id } = filteredStop;
+      const clickedLat = filteredStop?.stop_lat;
+      const clickedLon = filteredStop?.stop_lon;
       // Close filter only when user clicks the *same logical station* again.
-      // Compare against the previously selected stopId using the name matcher.
+      // Compare against the previously selected stopId using the name matcher,
+      // and against where it was — two same-named stations on different
+      // continents are not the user clicking the same one twice.
       // This avoids accidentally closing when the user clicks a different station
       // in the same city (e.g. another Brussels-area stop).
-      if (selected && stopId && matchStationNamesBound(stop_id, stopId)) {
+      if (
+        selected &&
+        stopId &&
+        matchStationNamesBound(stop_id, stopId) &&
+        stationsAreNearby(
+          clickedLat,
+          clickedLon,
+          selectedStationLat,
+          selectedStationLon,
+        )
+      ) {
         removeFilter();
         return;
       }
@@ -257,8 +310,10 @@ const TrainMap = ({
       // Direct key lookup first; fallback to fuzzy match when display variants differ.
       let cityInfo = cities[normalizedStopId] || cities[stop_id];
       if (!cityInfo) {
-        const match = Object.entries(cities).find(([key]) =>
-          matchStationNamesBound(stop_id, key),
+        const match = Object.entries(cities).find(
+          ([key]) =>
+            matchStationNamesBound(stop_id, key) &&
+            isNearbyStationName(clickedLat, clickedLon, key),
         );
         if (match) cityInfo = match[1];
       }
@@ -298,9 +353,15 @@ const TrainMap = ({
       if (filterName) {
         Object.entries(cities).forEach(([key, city]) => {
           if (!city?.stop_route_ids) return;
+          // Both tests are name-only, and both produce cross-continent false
+          // positives on their own: the display name buckets "Florence Amtrak
+          // Station" (South Carolina) with Firenze, and the fuzzy matcher pairs
+          // "Bar" (Montenegro) with "Boston Bar" in British Columbia. Either
+          // one used to hand the clicked station that route's entire stop list.
           if (
-            normalizeStationNameForDisplay(key) === filterName ||
-            matchStationNamesBound(stop_id, key)
+            (normalizeStationNameForDisplay(key) === filterName ||
+              matchStationNamesBound(stop_id, key)) &&
+            isNearbyStationName(clickedLat, clickedLon, key)
           ) {
             city.stop_route_ids.split(",").forEach((id) => {
               const t = id.trim();
@@ -343,8 +404,11 @@ const TrainMap = ({
       setFilteredStops,
       stopId,
       selected,
+      selectedStationLat,
+      selectedStationLon,
       removeFilter,
       matchStationNamesBound,
+      isNearbyStationName,
       normalizeStationNameForLookup,
       normalizeStationNameForDisplay,
       onStationSelect,
@@ -722,7 +786,19 @@ const TrainMap = ({
         preferCanvas={true}
         {...rest}
       >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer
+          // One origin, not the deprecated {s} subdomains OSM asks tile users
+          // to drop: over HTTP/2 a single connection multiplexes every tile,
+          // while a/b/c force three TLS handshakes — the opposite of what a
+          // high-latency link wants.
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          // Required by the OSM tile usage policy. The SEO route maps carried
+          // it; the interactive map, which is where nearly everyone sees these
+          // tiles, did not.
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          maxZoom={19}
+          {...tileLoadingOptions}
+        />
         {showRailwayOverlay && (
           <TileLayer
             url="https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png"

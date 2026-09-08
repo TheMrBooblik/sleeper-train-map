@@ -32,6 +32,29 @@ const nextConfig = {
       './public/data/scraped/backontrack-stops.json',
     ],
   },
+  async headers() {
+    return [
+      {
+        // The committed data assets: GTFS bundles and the pre-computed route
+        // polylines, together several MB. Vercel serves public/ with
+        // `max-age=0, must-revalidate`, so each one cost a revalidation round
+        // trip on every load — expensive on a high-latency link, and pure
+        // waste for files the nightly scrape rewrites at most once a day.
+        //
+        // `:path+` (one or more segments) rather than `:path*`, so this cannot
+        // match /data itself — that is the loopback-only admin dashboard,
+        // which must never be cached.
+        source: "/data/:path+",
+        headers: [
+          {
+            key: "Cache-Control",
+            value:
+              "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       // 1. Retired URLs → their canonical page. Listed FIRST and with an absolute
