@@ -61,13 +61,44 @@ eq(
   "an unmapped route falls back to the operator tier",
 );
 // European Sleeper publishes one timetable page covering every corridor, so
-// all of its routes point there rather than at per-corridor marketing pages.
+// all of its routes point there rather than at per-corridor marketing pages —
+// and every ES link goes through the operator's affiliate redirect.
 for (const routeId of ["237", "238", "239", "es_400", "es_400_from_20261214"]) {
+  const url = buildScheduleUrl({ agencyId: "ES", train: "452", routeId });
   eq(
-    buildScheduleUrl({ agencyId: "ES", train: "452", routeId }),
-    "https://www.europeansleeper.eu/timetable",
+    url,
+    OPERATOR_BOOKING.ES.scheduleUrl,
     `ES route ${routeId} links to the single timetable page`,
   );
+  check(
+    url?.startsWith("https://deals.europeansleeper.eu/") && url.includes("u=%2Ftimetable"),
+    `ES route ${routeId} reaches the timetable through the affiliate redirect (got ${url})`,
+  );
+  check(
+    (url?.match(/deals\.europeansleeper\.eu/g) || []).length === 1,
+    `ES route ${routeId} is not wrapped twice`,
+  );
+}
+eq(
+  resolveScheduleLink({ agencyId: "ES", train: "452", routeId: "237" })?.affiliate,
+  true,
+  "ES timetable links are marked affiliate, so the caller renders rel=sponsored",
+);
+// The wrapper stays safe over values that are already wrapped (ES stores them
+// that way, because the redirect's u= takes a site-relative path) while still
+// wrapping a plain URL.
+{
+  const wrapper = OPERATOR_BOOKING.ES.affiliateWrapper;
+  check(
+    typeof wrapper === "string" && wrapper.includes("{target}"),
+    "ES declares an affiliate wrapper carrying {target}",
+  );
+  for (const url of Object.values(OPERATOR_BOOKING.ES.routePages || {})) {
+    check(
+      (url.match(/deals\.europeansleeper\.eu/g) || []).length === 1,
+      `a stored ES route page is wrapped exactly once (got ${url})`,
+    );
+  }
 }
 
 // ── Tier 2: per-train templates ────────────────────────────────────────────

@@ -190,6 +190,14 @@ function localMidnightMs(timeZone, now = new Date()) {
 function applyAffiliateWrapper(booking, url) {
   const wrapper = booking?.affiliateWrapper;
   if (!wrapper || !url) return url;
+  // Some operators' links are stored already wrapped, because the redirect
+  // takes a site-relative path that no longer exists once the value is a full
+  // URL (European Sleeper's u=%2Ftimetable). Wrapping those again would send
+  // the visitor through the redirect twice, so declaring the wrapper stays
+  // safe: it marks the operator's links as affiliate and still wraps any plain
+  // URL, while a value that already starts with the redirect is left alone.
+  const prefix = wrapper.split("{target}")[0];
+  if (prefix && url.startsWith(prefix)) return url;
   return wrapper.replaceAll("{target}", encodeURIComponent(url));
 }
 

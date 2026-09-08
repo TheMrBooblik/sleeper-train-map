@@ -201,10 +201,13 @@
       "Göschenen": "8500689",
       "Arth-Goldau": "8505004"
     },
-    "scheduleUrl": "https://www.europeansleeper.eu/timetable",
+    "scheduleUrl": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=&u=%2Ftimetable",
     "routePages": {
-      "237": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=&u=%2Fnight-train-brussels-prague"
-    }
+      "237": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=&u=%2Fnight-train-brussels-prague",
+      "es_400": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=&u=%2Fnight-train-brussels-milan",
+      "es_400_from_20261214": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=&u=%2Fnight-train-brussels-milan"
+    },
+    "affiliateWrapper": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=&u={target}"
   },
   "AMTK": {
     "urlTemplate": "https://www.amtrak.com/booking/results?origin={origin}&destination={dest}&passengers=1",
