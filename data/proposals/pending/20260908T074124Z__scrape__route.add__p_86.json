@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_86",
+  "createdAt": "2026-09-08T07:41:24.472Z",
+  "source": "scrape",
+  "sourceDetail": "backontrack",
+  "kind": "route.add",
+  "title": "New train: IC Notte 752 (Lecce – Milano Centrale)",
+  "summary": "Route \"86\" appeared in tonight's scrape and is withheld from the map until approved. Via: Brindisi - Bari Centrale - Foggia - Bologna Centrale",
+  "target": {
+    "routeKey": "86",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "IC Notte 752",
+    "returnTrain": "IC Notte 755",
+    "origin": "Lecce",
+    "destination": "Milano Centrale",
+    "operator": "FS",
+    "operatingDays": "2026: Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "86"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
