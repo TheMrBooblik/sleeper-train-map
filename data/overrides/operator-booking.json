@@ -9,6 +9,7 @@
     },
     "scheduleUrl": "https://www.nightjet.com/en/reiseziele",
     "scheduleCountryPages": {
+      "AT": "https://www.nightjet.com/en/reiseziele/oesterreich",
       "BE": "https://www.nightjet.com/en/reiseziele/belgien",
       "CH": "https://www.nightjet.com/en/reiseziele/schweiz",
       "DE": "https://www.nightjet.com/en/reiseziele/deutschland",

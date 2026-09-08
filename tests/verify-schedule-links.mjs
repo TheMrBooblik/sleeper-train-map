@@ -174,15 +174,28 @@ eq(
   "https://www.nightjet.com/en/reiseziele/niederlande",
   "ÖBB NJ 421 lands on the Netherlands destinations page",
 );
-// Austria and Romania have no curated slug (umlaut spelling unconfirmed), so
-// they must degrade to the destinations index rather than guess a 404.
+// Nightjet transliterates umlauts rather than carrying them in the path
+// (Österreich → oesterreich), which is what a domestic Austrian route keys to.
 eq(
-  buildScheduleCandidate({
+  buildScheduleUrl({
     agencyId: "ÖBB",
-    train: "NJ 19947",
+    train: "NJ 447",
     routeId: "x",
     originCountry: "AT",
     destCountry: "AT",
+  }),
+  "https://www.nightjet.com/en/reiseziele/oesterreich",
+  "a domestic Austrian route lands on the transliterated Austria page",
+);
+// A country with no curated page still degrades to the destinations index
+// rather than guessing a slug that may 404.
+eq(
+  buildScheduleCandidate({
+    agencyId: "ÖBB",
+    train: "NJ 1",
+    routeId: "x",
+    originCountry: "SE",
+    destCountry: "SE",
   })?.tier,
   "operator",
   "an unslugged country falls back to the destinations index",
