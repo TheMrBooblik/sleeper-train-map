@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-40236",
+  "createdAt": "2026-09-08T07:41:24.474Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 40236 (Venezia Santa Lucia – Wien Hbf)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 40236|NJ 40466\" → \"NJ 40236|NJ 1237\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_40236",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "NJ 40236|NJ 40466"
+  },
+  "after": {
+    "train numbers": "NJ 40236|NJ 1237"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
