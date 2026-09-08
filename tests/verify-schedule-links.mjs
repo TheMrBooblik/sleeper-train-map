@@ -13,7 +13,10 @@ import {
   getScheduleLabel,
   SCHEDULE_TIERS,
 } from "../src/lib/operatorBooking.js";
-import { resolveScheduleLink } from "../src/lib/operatorAgencies.mjs";
+import {
+  resolveScheduleLink,
+  trainLegForOperator,
+} from "../src/lib/operatorAgencies.mjs";
 import { applyOverrideMutation } from "../src/pages/api/lib/overrides-mutate.mjs";
 import { buildInitialData } from "../src/pages/api/lib/build-initial-data.mjs";
 import OPERATOR_BOOKING from "../data/overrides/operator-booking.json" with { type: "json" };
@@ -184,6 +187,57 @@ eq(
   "operator",
   "an unslugged country falls back to the destinations index",
 );
+
+// ── A joint train's legs cannot be attributed to their operators ───────────
+// Back-on-Track lists one leg per operator, in travel order — which the agency
+// id does not follow. Under the same "PKP/ČD" id, route 9 (Praha → Warszawa)
+// writes ČD's EN 443 first and route 265 writes PKP's TLK 403 first, so
+// pairing by position links one of them to the other operator's train.
+eq(
+  trainLegForOperator("EN 443 / IC 406", "PKP/ČD"),
+  null,
+  "a compound label under a compound id is not attributable",
+);
+eq(
+  trainLegForOperator("12503/492", "TCDD/BDŽ"),
+  null,
+  "…including when the leg and operator counts happen to match",
+);
+// Through cars of ONE operator are a different thing and keep their first leg.
+eq(
+  trainLegForOperator("IRN 1954/R 8824", "CFR"),
+  "IRN 1954/R 8824",
+  "a compound label under a single operator is left alone",
+);
+eq(trainLegForOperator("ICF 8627", "BDŽ"), "ICF 8627", "a plain label is left alone");
+// End to end: those rows fall back rather than link to a wrong train.
+for (const [routeId, agencyId, train] of [
+  ["9", "PKP/ČD", "EN 443 / IC 406"],
+  ["265", "PKP/ČD", "TLK 403/50171"],
+  ["27", "TCDD/BDŽ", "12503/492"],
+  ["16", "CFR/MÁV", "IRN / IC 78"],
+]) {
+  eq(
+    resolveScheduleLink({ agencyId, train, routeId })?.tier,
+    "operator",
+    `route ${routeId} (${agencyId}) falls back rather than guess whose leg is whose`,
+  );
+}
+
+// ── Bulgarian Railways: per-train, by number and date ──────────────────────
+// The operator's own URL for ICF 8627 is /en/train-info/8627/08.09.2026.
+{
+  const url = buildScheduleUrl({ agencyId: "BDŽ", train: "ICF 8627", routeId: "134" });
+  check(
+    /^https:\/\/razpisanie\.bdz\.bg\/en\/train-info\/8627\/\d{2}\.\d{2}\.\d{4}$/.test(url || ""),
+    `BDŽ builds the operator's per-train URL (got ${url})`,
+  );
+  eq(
+    buildScheduleUrl({ agencyId: "BDŽ", train: "ICF 8627", routeId: "134", date: "08.09.2026" }),
+    "https://razpisanie.bdz.bg/en/train-info/8627/08.09.2026",
+    "BDŽ reproduces the operator's own URL",
+  );
+}
 
 // ── Compound agency ids resolve by specificity, not by seller ──────────────
 // "CFM/CFR": CFM has only an operator page, CFR a per-train one. The reader is
