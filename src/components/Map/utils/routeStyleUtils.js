@@ -657,6 +657,85 @@ export function shouldHideRouteDueToFutureDate(routeId, trips) {
   return false;
 }
 
+// Start of a validity window on a viewMap row. Two shapes reach this field:
+// the operator feeds write ISO ("2026-12-14 – 2027-03-17: Mon, Wed, Fri", en
+// dash or hyphen), Back-on-Track writes slashes ("2026/09/09-12/11: Daily").
+const ROW_SERVICE_ID_START_RES = [
+  /(\d{4})-(\d{1,2})-(\d{1,2})\s*[–-]/,
+  /(\d{4})\/(\d{1,2})\/(\d{1,2})\s*-/,
+];
+
+/**
+ * True when every validity window on the row itself starts in the future.
+ *
+ * Read from the row, not from trips, because the rows this matters for are
+ * synthetic and carry no trips — which is why shouldHideRouteDueToFutureDate
+ * above cannot see them.
+ *
+ * Conservative in both directions: a window it cannot parse, or one already
+ * open, means "running". A season that has already *closed* is not "not started
+ * yet" either — that stays isRouteOutsideServiceIdSeason's job.
+ *
+ * @param {object} route - viewMap row
+ * @param {Date} [now]
+ * @returns {boolean}
+ */
+export function routeHasNotStartedYet(route, now = new Date()) {
+  if (!route) return false;
+
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+
+  let sawRange = false;
+  for (const field of ["service_id_0", "service_id_1"]) {
+    const value = route[field];
+    if (!value) continue;
+    const m = ROW_SERVICE_ID_START_RES.reduce(
+      (hit, re) => hit || String(value).match(re),
+      null,
+    );
+    // An unparseable window could be running today; that decides it.
+    if (!m) return false;
+    sawRange = true;
+    const start = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    start.setHours(0, 0, 0, 0);
+    if (start <= today) return false;
+  }
+
+  return sawRange;
+}
+
+/**
+ * Rows that preview a timetable period which has not begun.
+ *
+ * `appendSyntheticRoutes` emits the next period as its own row when the operator
+ * feed carries it (`es_400_from_20261214`, `draw_as_active`, "… (from 14 Dec)").
+ * The line is drawn on purpose — tickets are already on sale — but its via
+ * stations were rendering as ordinary green dots, so the same train appeared on
+ * two contradictory routings at once: December's via Eindhoven and Breda
+ * alongside today's via Aachen and Verviers, with nothing to tell them apart.
+ * useMapMarkers drops those dots; the line and the detail-panel card, which
+ * carries the start date, are untouched.
+ *
+ * Both conditions are needed. `draw_as_active` alone also marks routes that are
+ * merely on sale early, and a future start date alone is not enough either: the
+ * Amtrak GTFS feeds publish only their 2027 season, so five live long-distance
+ * routes have start dates months out and must keep their stations.
+ *
+ * @param {Record<string, object>} viewMap
+ * @param {Date} [now]
+ * @returns {Set<string>}
+ */
+export function upcomingPreviewRouteIds(viewMap, now = new Date()) {
+  const ids = new Set();
+  for (const route of Object.values(viewMap ?? {})) {
+    if (route?.route_id == null) continue;
+    if (route.draw_as_active !== true) continue;
+    if (routeHasNotStartedYet(route, now)) ids.add(String(route.route_id));
+  }
+  return ids;
+}
+
 /**
  * If a route has a future irregularity date, returns that date string.
  * Supports:

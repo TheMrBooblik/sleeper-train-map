@@ -5,7 +5,10 @@ import Leaflet from "leaflet";
 import { Marker, Tooltip } from "react-leaflet";
 import { groupCityMarkers } from "../utils/groupCityMarkers";
 import { StationTooltipContent } from "../utils/stationTooltip";
-import { shouldHideRouteDueToFutureDate } from "../utils/routeStyleUtils";
+import {
+  shouldHideRouteDueToFutureDate,
+  upcomingPreviewRouteIds,
+} from "../utils/routeStyleUtils";
 import { createMapIcons, stationHitSize } from "../utils/mapIcons";
 import { thinStationsByViewport } from "../utils/thinStationsByViewport";
 import { alwaysShowStations } from "../../../data/alwaysShowStations";
@@ -49,16 +52,21 @@ export function useMapMarkers({
     let stopsToShow = [];
     let hiddenStops = [];
 
+    // A route contributes station dots only while it is actually running. Two
+    // ways it may not be: its season has passed (read from trips), or it has not
+    // opened yet (read from the row, because a synthetic preview row carries no
+    // trips — see routeHasNotStartedYet). The preview's *line* is drawn either
+    // way; this is only about whether its stops become markers.
+    const upcomingPreviews = upcomingPreviewRouteIds(viewMapData);
+    const isNotRunning = (routeId) =>
+      shouldHideRouteDueToFutureDate(routeId, trips) ||
+      upcomingPreviews.has(String(routeId));
+
     if (hideIntermediateStations && viewMapData) {
       if (!filteredStops?.length) return [];
       const nightTrainStationIds = new Set();
       Object.values(viewMapData).forEach((route) => {
-        if (
-          route?.route_id &&
-          shouldHideRouteDueToFutureDate(route.route_id.toString(), trips)
-        ) {
-          return;
-        }
+        if (route?.route_id && isNotRunning(route.route_id)) return;
         if (route) {
           [
             route.origin_trip_0,
@@ -99,9 +107,7 @@ export function useMapMarkers({
           .split(",")
           .map((id) => id.trim())
           .filter(Boolean);
-        return routeIds.some(
-          (routeId) => !shouldHideRouteDueToFutureDate(routeId, trips),
-        );
+        return routeIds.some((routeId) => !isNotRunning(routeId));
       });
     }
 
@@ -124,12 +130,7 @@ export function useMapMarkers({
       const routeEndpointStations = [];
       if (viewMapData) {
         Object.values(viewMapData).forEach((route) => {
-          if (
-            route?.route_id &&
-            shouldHideRouteDueToFutureDate(route.route_id.toString(), trips)
-          ) {
-            return;
-          }
+          if (route?.route_id && isNotRunning(route.route_id)) return;
           [
             route?.origin_trip_0,
             route?.destination_trip_0,
