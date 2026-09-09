@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-429",
+  "createdAt": "2026-09-09T00:05:39.056Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 429 (Amsterdam Centraal – Innsbruck Hbf)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 429\" → \"NJ 429|NJ 420\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_429",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "NJ 429"
+  },
+  "after": {
+    "train numbers": "NJ 429|NJ 420"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
