@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_es-400-from-20261214",
+  "createdAt": "2026-09-09T00:05:39.057Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: 400 (Milano Porta Garibaldi – Bruxelles Midi)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (return): \"2026-12-13 – 2027-03-18: Tue, Thu, Sun\" → \"null\"; train numbers: \"400|401\" → \"400\"",
+  "target": {
+    "routeKey": "es_400_from_20261214",
+    "agencyId": "ES",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (return)": "2026-12-13 – 2027-03-18: Tue, Thu, Sun",
+    "train numbers": "400|401"
+  },
+  "after": {
+    "operating days (return)": null,
+    "train numbers": "400"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
