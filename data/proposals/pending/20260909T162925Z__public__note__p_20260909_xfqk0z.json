@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_20260909_xfqk0z",
+  "createdAt": "2026-09-09T16:29:25.678Z",
+  "source": "public",
+  "sourceDetail": "correction",
+  "kind": "note",
+  "title": "[correction] 400",
+  "summary": "After Verviers in Belgium, the train doesn't take the highspeed line, instead it skips Liège Guillemins, takes a left turn before the Meuse river on to the tracks near Kinkempois, then corsses the River near Flemalle to take the line 125 towards Namur and then takes line 161 towards Bruxelles midi (via Bruxelles Schuman). \n\nThais should reflect on the map.",
+  "target": {
+    "routeKey": "es_400",
+    "agencyId": "ES",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": {
+    "ipHash": "cc32fee073d30de6",
+    "email": null,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0"
+  },
+  "status": "pending",
+  "resolution": null
+}
