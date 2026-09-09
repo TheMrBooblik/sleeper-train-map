@@ -16,6 +16,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { downloadFile } from "./lib/gtfs.mjs";
+import { describeError } from "./lib/describe-error.mjs";
+import { reportReachability } from "./lib/probe-reachability.mjs";
 import {
   buildCfrTrains,
   decodeXmlBytes,
@@ -42,8 +44,30 @@ const save = (name, body) => {
 };
 const readJson = (p) => JSON.parse(fs.readFileSync(path.join(ROOT, p), "utf8"));
 
-const pkgRes = await fetch(PACKAGE_SHOW, { headers: { "User-Agent": USER_AGENT, Accept: "application/json" } });
-console.log(`package_show → HTTP ${pkgRes.status}`);
+// Before the timetable, the question the nightly log could never answer: is the
+// host reachable, and if not, at which layer? Six "fetch failed" nights said
+// nothing; each layer has a different fix. See scripts/lib/probe-reachability.mjs.
+await reportReachability(new URL(PACKAGE_SHOW).hostname);
+
+// The GET itself, reported rather than thrown: an unhandled rejection here
+// prints "fetch failed" and the probe delivers nothing.
+let pkgRes;
+try {
+  pkgRes = await fetch(PACKAGE_SHOW, { headers: { "User-Agent": USER_AGENT, Accept: "application/json" } });
+} catch (err) {
+  console.error(`\npackage_show → FAILED: ${describeError(err)}`);
+  console.error(
+    "The triage above says which layer broke. DNS → resolver/blocklist; TLS ok but " +
+    "fetch failed → HTTP-layer block (WAF/User-Agent/geo); IPv6 fails while IPv4 " +
+    "succeeds → dual-stack, pin the family in the adapter.",
+  );
+  process.exit(1);
+}
+console.log(`\npackage_show → HTTP ${pkgRes.status}`);
+if (!pkgRes.ok) {
+  console.error(`body: ${(await pkgRes.text()).slice(0, 600)}`);
+  process.exit(1);
+}
 const pkg = await pkgRes.json();
 save("package_show.json", JSON.stringify(pkg, null, 2));
 console.log("\n=== resources ===");

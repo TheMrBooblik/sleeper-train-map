@@ -100,7 +100,7 @@
       "countries": ["FR"],
       "integrationStatus": "source-discovered",
       "difficulty": "easy",
-      "notes": "The cheapest real win on the board: a plain GTFS zip, no key, covering TGV/Intercités/TER for the next ~151 days. The generic gtfs-sleeper adapter already reads this shape — a registry entry plus a sleeper allowlist (Intercités de Nuit) should be most of the work.",
+      "notes": "The cheapest real win on the board: a plain GTFS zip, no key, refreshed daily and covering roughly 90–160 days ahead — long enough to carry the December timetable change that the europeansleeper adapter currently has to split by hand. Licensed ODbL (attribution + share-alike on derived data). The generic gtfs-sleeper adapter already reads this shape, so a registry entry plus a sleeper allowlist (Intercités de Nuit) should be most of the work. A GTFS-RT feed exists too and is deliberately out of scope: the map has no realtime surface to spend it on.",
       "sources": [
         {
           "name": "SNCF Open Data — theoretical timetables (GTFS)",
@@ -253,7 +253,7 @@
       "notes": "Sweden publishes one national GTFS feed covering every operator, via Trafiklab. Free but key-gated, so the adapter needs a scrape secret the way pkp-plk needs PLK_API_KEY.",
       "sources": [
         {
-          "name": "Trafiklab — GTFS Sweden (national feed)",
+          "name": "Trafiklab — GTFS Sweden 3 (national feed)",
           "url": "https://www.trafiklab.se/api/gtfs-datasets/gtfs-sweden/",
           "docsUrl": "https://www.trafiklab.se/api/gtfs-datasets/overview/",
           "format": "GTFS",
@@ -262,7 +262,7 @@
           "status": "discovered",
           "lastChecked": null,
           "probeWorkflow": null,
-          "notes": "Free registration for the key. The only feed with complete Swedish operator coverage, so one integration serves SJ and Snälltåget together."
+          "notes": "GTFS Sweden 3 is the current generation — the earlier GTFS Sweden 2 dataset is what most third-party write-ups still describe, so check which one a guide refers to. Free registration for the key, which the adapter would read from a scrape secret the way pkp-plk reads PLK_API_KEY. The only feed with complete Swedish operator coverage, so one integration serves SJ and Snälltåget together."
         }
       ]
     },
@@ -274,7 +274,7 @@
       "notes": "Snälltåget has no feed of its own; it rides in the Swedish national GTFS. Covered by the same Trafiklab integration as SJ — build once, get both.",
       "sources": [
         {
-          "name": "Trafiklab — GTFS Sweden (national feed)",
+          "name": "Trafiklab — GTFS Sweden 3 (national feed)",
           "url": "https://www.trafiklab.se/api/gtfs-datasets/gtfs-sweden/",
           "docsUrl": "https://www.trafiklab.se/api/gtfs-datasets/overview/",
           "format": "GTFS",
@@ -379,7 +379,7 @@
           "status": "discovered",
           "lastChecked": null,
           "probeWorkflow": null,
-          "notes": "Official and complete for Czech rail — one integration would cover RJ, ČD and Leo Express. CZPTT is a European standard dialect but needs its own parser."
+          "notes": "Official and complete for Czech rail — one integration would cover RJ, ČD and Leo Express. CZPTT is a European standard dialect and needs its own parser. The trap for a sleeper map is in the times: a night train's stops carry an explicit NEGATIVE day offset relative to the reference day, so a parser that reads the clock alone puts the second half of every journey on the wrong date."
         },
         {
           "name": "RegioJet public booking API",
@@ -400,7 +400,7 @@
       "countries": ["SK"],
       "integrationStatus": "source-discovered",
       "difficulty": "medium",
-      "notes": "A Slovak national rail GTFS exists (published via ZSR, covering ZSSK, RegioJet and Leo Express), but I could not confirm the official upstream download URL — only the aggregator page below. Confirm the primary source before building.",
+      "notes": "ŽSR (the Slovak infrastructure manager) publishes a GTFS export covering Slovak rail — ZSSK, RegioJet and Leo Express — which would remove the CZPTT-parser blocker from the Slovak half of the Czech/Slovak block. The official download URL is not confirmed yet: find it on ŽSR's own open-data pages and point the registry entry at that, not at an aggregator. Until then the Transitland page below is only a trail to follow.",
       "sources": [
         {
           "name": "Slovak rail GTFS (via Transitland aggregator)",
@@ -455,6 +455,18 @@
           "lastChecked": null,
           "probeWorkflow": null,
           "notes": "Registration required; GTFS/NeTEx refreshed weekly (Mondays). Includes rail long-distance. Check RDC is actually in the feed before committing."
+        },
+        {
+          "name": "gtfs.de — German long-distance feed (de_fv)",
+          "url": "https://gtfs.de/",
+          "docsUrl": "https://www.opendata-oepnv.de/ht/de/organisation/delfi/startseite",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Long-distance German rail (EN and night trains included), generated from the open DELFI dataset, CC BY 4.0. Resolve the concrete download URL from the site rather than pinning a snapshot. NOT queued as an integration, and the reason is measured rather than assumed: only 6 Back-on-Track-only routes touch Germany at all, and the feeds already flowing cross the border by themselves — 67 of 75 ÖBB trains have stops in more than one country, carrying their own coordinates. Its value here is as a fallback source of coordinates and canonical German station names for a feed that ships neither."
         }
       ]
     },
@@ -541,6 +553,18 @@
           "lastChecked": null,
           "probeWorkflow": null,
           "notes": "Not used. Worth checking if the booking API ever stops returning the joint services that still fall back to Back-on-Track."
+        },
+        {
+          "name": "opentransportdata.swiss — Swiss national GTFS",
+          "url": "https://opentransportdata.swiss/",
+          "docsUrl": "https://opentransportdata.swiss/",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": null,
+          "notes": "Whole-country Swiss public transport for a timetable year, so it carries the Swiss legs of Nightjet. Same verdict as the German feed under RDC: not queued, because the ÖBB API already returns those stops with coordinates (NJ 402/403 come back spanning CH, DE and NL). Recorded as a coordinate and station-name fallback, and as the place to check when a Swiss stop looks wrong."
         }
       ]
     },
@@ -606,7 +630,7 @@
           "status": "discovered",
           "lastChecked": null,
           "probeWorkflow": null,
-          "notes": "Shared with RJ and LE — a single CZPTT parser would replace the HTML scrape and cover three operators."
+          "notes": "Official and complete for Czech rail — one integration would cover RJ, ČD and Leo Express. CZPTT is a European standard dialect and needs its own parser. The trap for a sleeper map is in the times: a night train's stops carry an explicit NEGATIVE day offset relative to the reference day, so a parser that reads the clock alone puts the second half of every journey on the wrong date."
         }
       ]
     },

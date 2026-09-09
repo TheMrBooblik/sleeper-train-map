@@ -14,6 +14,7 @@ import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { loadRegistry, validateRegistry } from "./lib/registry.mjs";
 import { enrichViewMap, appendSyntheticLeftovers } from "./lib/enrich-view-map.mjs";
+import { describeError } from "./lib/describe-error.mjs";
 import { emptyGeometryCache, resolveRouteGeometry } from "./lib/route-geometry.mjs";
 import { relationCoordsFromOverpass } from "../src/pages/api/lib/osm-geo.mjs";
 
@@ -277,13 +278,17 @@ async function main() {
         await mod.run(entry, ctx);
         results[entry.id] = { ok: true, trainCount: trainCountFor(entry) };
       } catch (err) {
-        results[entry.id] = { ok: false, error: err.message };
+        // describeError, not err.message: undici's "fetch failed" is the same
+        // string for DNS, TLS and a refused connection, and this line is the
+        // only record of the failure a later run can read.
+        const detail = describeError(err);
+        results[entry.id] = { ok: false, error: detail };
         if (entry.critical) {
           writeSourceHealth(registry, results, runStartedAt);
           throw err;
         }
-        errors.push({ source: entry.id, error: err.message });
-        console.error(`[scrape] ${entry.id} failed: ${err.message}`);
+        errors.push({ source: entry.id, error: detail });
+        console.error(`[scrape] ${entry.id} failed: ${detail}`);
       }
     } else if (entry.runner === "external" && entry.command) {
       // Registry-scheduled external steps (e.g. the PKP GTFS parse) run inside
@@ -297,9 +302,10 @@ async function main() {
         execSync(entry.command, { cwd: ROOT_DIR, stdio: "inherit", timeout: 15 * 60 * 1000 });
         results[entry.id] = { ok: true, trainCount: null };
       } catch (err) {
-        results[entry.id] = { ok: false, error: err.message };
-        errors.push({ source: entry.id, error: err.message });
-        console.error(`[scrape] ${entry.id} failed: ${err.message}`);
+        const detail = describeError(err);
+        results[entry.id] = { ok: false, error: detail };
+        errors.push({ source: entry.id, error: detail });
+        console.error(`[scrape] ${entry.id} failed: ${detail}`);
       }
     }
   }

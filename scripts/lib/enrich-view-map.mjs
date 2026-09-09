@@ -24,6 +24,7 @@ import {
 } from "../../src/lib/pkpTrainKeyExtract.js";
 import { buildVia } from "../../src/lib/pkpGtfsMerge.js";
 import { inAgencyScope } from "../../src/pages/api/lib/primitives.mjs";
+import { describeError } from "./describe-error.mjs";
 
 // "2026-06-11T18:13:00.000Z" → "18:13" (BoT rows carry plain HH:MM strings).
 function toHHMM(iso) {
@@ -236,7 +237,7 @@ export async function enrichViewMap({
         await strategy({ entry, viewMap, bundle, stopCoords, resolveGeometry, log });
       }
     } catch (err) {
-      log(`${entry.id}: enrichment failed — ${err.message}`);
+      log(`${entry.id}: enrichment failed — ${describeError(err)}`);
     }
   }
 }
