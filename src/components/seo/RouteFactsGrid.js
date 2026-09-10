@@ -2,15 +2,17 @@ import Link from "next/link";
 import {
   getOperatorPricing,
   formatPricingLabel,
+  pricingAdvice,
 } from "../../lib/operatorPricing";
 import { getFlagEmoji } from "../../lib/countries";
 
-function Fact({ label, value }) {
+function Fact({ label, value, hint }) {
   if (!value) return null;
   return (
     <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
       <div className="text-xs uppercase tracking-wide text-white/40">{label}</div>
       <div className="mt-1 text-sm font-medium text-white">{value}</div>
+      {hint && <div className="mt-1 text-xs text-white/50 text-pretty">{hint}</div>}
     </div>
   );
 }
@@ -25,6 +27,10 @@ export default function RouteFactsGrid({ detail }) {
     pricing: detail.pricing,
   });
   const priceLabel = formatPricingLabel(pricing);
+  // The tile said "From: Dynamic pricing" — a label that did not match its value
+  // and a value nobody can act on. It now carries the advice, with the reason
+  // underneath, because this sits directly above the booking button.
+  const advice = pricingAdvice(pricing);
   const operatorNames = detail.operators.map((o) => o.name).join(" · ");
 
   return (
@@ -35,7 +41,11 @@ export default function RouteFactsGrid({ detail }) {
         <Fact label="Distance" value={detail.facts.distanceText} />
         <Fact label="CO₂" value={detail.facts.co2Text} />
         <Fact label="Classes" value={detail.facts.classes} />
-        <Fact label="From" value={priceLabel} />
+        <Fact
+          label="Tickets"
+          value={priceLabel}
+          hint={advice ? `${advice.short.charAt(0).toUpperCase()}${advice.short.slice(1)}.` : ""}
+        />
       </div>
 
       {detail.countries.length > 0 && (

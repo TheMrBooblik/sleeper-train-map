@@ -12,6 +12,8 @@
  * Returns [{ q, a }] with plain-string questions/answers.
  */
 
+import { pricingAdvice } from "../pricingAdvice.mjs";
+
 /** Join a list of names as "A, B and C" (drops falsy entries). */
 function humanJoin(names) {
   const list = (names || []).filter(Boolean);
@@ -32,7 +34,9 @@ function humanJoin(names) {
  *
  * Nothing is invented: `pricingType` is the operator's own record in
  * data/overrides/operator-pricing.json, and an operator with no record produces
- * no answer rather than a guess.
+ * no answer rather than a guess. The wording comes from pricingAdvice(), the
+ * same record the badge above the Book button and the CTA caption read, so a
+ * page cannot advise "book early" in one place and "no rush" in another.
  *
  * The records' `note` is deliberately NOT used. It is an internal annotation,
  * not prose: on most operators it restates the type ("NightJet / EuroNight
@@ -43,35 +47,37 @@ function humanJoin(names) {
  * @param {string} [input.fromPrice]     already formatted, e.g. "from €39"
  * @param {string} [input.pricingType]   "dynamic" | "fixed"
  * @param {string} [input.operatorNames] humanJoin()ed operator names
+ * @param {"route"|"routes"} [input.scope] "routes" when a hub answers for many
  * @returns {string}
  */
-export function costAnswer({ fromPrice = "", pricingType = "", operatorNames = "" } = {}) {
+export function costAnswer({
+  fromPrice = "",
+  pricingType = "",
+  operatorNames = "",
+  scope = "route",
+} = {}) {
+  const advice = pricingAdvice({ type: pricingType });
+
   if (fromPrice) {
     return (
       `Fares vary by date and comfort class, but tickets start ${fromPrice}.` +
-      (pricingType === "dynamic"
+      (advice?.action === "book-early"
         ? " Prices rise closer to departure, so the earliest bookings are the cheapest."
         : "")
     );
   }
+  if (!advice) return "";
+
   // The operator is the subject when we know it and the route is when we do
-  // not, so the sentence is never left without one.
-  const sells = operatorNames ? `${operatorNames} sells this route` : "This route is sold";
-  if (pricingType === "dynamic") {
-    return (
-      `${sells} at yield-managed fares: the price depends on the date, the comfort ` +
-      `class and how far ahead you book, and it rises as the train fills. Booking as ` +
-      `early as possible is what makes it cheap.`
-    );
-  }
-  if (pricingType === "fixed") {
-    return (
-      `${sells} on a fixed tariff: the fare is set by distance and comfort class, so ` +
-      `it does not rise as the departure approaches and booking early does not make ` +
-      `it cheaper — though sleeper berths do sell out.`
-    );
-  }
-  return "";
+  // not, so the sentence is never left without one. `scope` is "routes" for a
+  // hub page answering about all of them — a parameter rather than the caller
+  // rewriting this prose afterwards, which would silently stop matching the
+  // moment the wording changes.
+  const plural = scope === "routes";
+  const sells = operatorNames
+    ? `${operatorNames} sells ${plural ? "these routes" : "this route"}`
+    : `${plural ? "These routes are" : "This route is"} sold`;
+  return `${sells} ${advice.detail}.`;
 }
 
 /**

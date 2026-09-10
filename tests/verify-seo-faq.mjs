@@ -8,6 +8,7 @@
 
 import { buildRouteFaq, buildConnectionFaq, costAnswer } from "../src/lib/seo/routeFaq.mjs";
 import OPERATOR_PRICING from "../data/overrides/operator-pricing.json" with { type: "json" };
+import { pricingAdvice } from "../src/lib/pricingAdvice.mjs";
 
 const problems = [];
 const check = (cond, msg) => {
@@ -223,6 +224,78 @@ check(buildConnectionFaq({}).length === 0, "connection: empty input → []");
       `operator-pricing ${agencyId}: type "${pricing.type}" produces no cost answer`,
     );
   }
+}
+
+// ── pricingAdvice: one source for "buy now or later" ───────────────────────
+// This wording reaches the facts tile above the Book button, the map panel's
+// trip badge, the CTA caption and both FAQ builders. The point of centralising
+// it is that a page can never advise "book early" in one place and "no rush"
+// in another, so the tests are about the CONTRACT, not the prose.
+{
+  const dyn = pricingAdvice({ type: "dynamic" });
+  const fix = pricingAdvice({ type: "fixed" });
+
+  check(dyn.action === "book-early", "advice/dynamic: action is book-early");
+  check(fix.action === "price-is-fixed", "advice/fixed: action is price-is-fixed");
+
+  for (const [label, a] of [["dynamic", dyn], ["fixed", fix]]) {
+    for (const field of ["action", "headline", "short", "detail"]) {
+      check(
+        typeof a[field] === "string" && a[field].trim().length > 0,
+        `advice/${label}: ${field} must be a non-empty string`,
+      );
+    }
+    // The headline lands in a badge; a long one wraps or truncates.
+    check(a.headline.length <= 16, `advice/${label}: headline too long for a badge — "${a.headline}"`);
+    // detail is a sentence BODY: callers prepend a subject and append the stop.
+    check(
+      !/^[A-Z]/.test(a.detail) && !a.detail.endsWith("."),
+      `advice/${label}: detail must be a mid-sentence clause, got "${a.detail}"`,
+    );
+  }
+
+  // The two must not merely differ — they must give opposite instructions.
+  check(
+    /rise|early/i.test(dyn.short) && /won't rise|not rise/i.test(fix.short),
+    "advice: the two models must say opposite things about waiting",
+  );
+  check(
+    /sell out/i.test(fix.short) || /sell out/i.test(fix.detail),
+    "advice/fixed: must warn berths sell out — a fixed price is not 'book whenever'",
+  );
+
+  check(pricingAdvice(null) === null, "advice: no record → no advice");
+  check(pricingAdvice({}) === null, "advice: a record with no type → no advice");
+  check(
+    pricingAdvice({ type: "surge" }) === null,
+    "advice: an unknown type → no advice rather than a wrong default",
+  );
+
+  // Every committed record must resolve, or a surface silently loses its badge.
+  for (const [agencyId, pricing] of Object.entries(OPERATOR_PRICING)) {
+    check(
+      pricingAdvice(pricing) !== null,
+      `operator-pricing ${agencyId}: type "${pricing.type}" resolves to no advice`,
+    );
+  }
+
+  // costAnswer must be built FROM pricingAdvice, not a second copy of it.
+  for (const type of ["dynamic", "fixed"]) {
+    check(
+      costAnswer({ pricingType: type, operatorNames: "X" }).includes(
+        pricingAdvice({ type }).detail,
+      ),
+      `cost/${type}: the FAQ prose must reuse pricingAdvice().detail verbatim`,
+    );
+  }
+
+  // A hub answers for many routes; the caller says so rather than rewriting.
+  const many = costAnswer({ pricingType: "fixed", operatorNames: "PKP", scope: "routes" });
+  check(many.includes("these routes"), "cost/scope: 'routes' pluralises the subject");
+  check(
+    costAnswer({ pricingType: "fixed", scope: "routes" }).startsWith("These routes are sold"),
+    "cost/scope: pluralises the no-operator subject too",
+  );
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────

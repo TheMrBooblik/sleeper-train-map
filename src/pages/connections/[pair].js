@@ -20,7 +20,7 @@ import { getRouteDetail } from "../../lib/seo/data";
 import { formatTrainNumber } from "../../lib/operatorAgencies.mjs";
 import { buildConnectionFaq } from "../../lib/seo/routeFaq.mjs";
 import { getFlagEmoji } from "../../lib/countries";
-import { getOperatorPricing } from "../../lib/operatorPricing";
+import { getOperatorPricing, pricingAdvice } from "../../lib/operatorPricing";
 import { offerFromPricing, offerLd } from "../../lib/seo/offers.mjs";
 import { OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
@@ -190,6 +190,7 @@ export default function ConnectionPage({
                       booking={t.booking}
                       origin={t.origin}
                       destination={t.destination}
+                      advice={t.advice}
                     />
                   </div>
                 )}
@@ -294,6 +295,11 @@ export async function getStaticProps({ params }) {
       // RouteFactsGrid renders the "From" tile with, so the markup and the
       // visible price can never disagree.
       offer: numericOffer(d),
+      // Buy now or later — resolved here so the CTA, the facts tile and the FAQ
+      // on this page all read the same pricingAdvice() record.
+      advice: pricingAdvice(
+        getOperatorPricing({ agency_id: d.agencyId, pricing: d.pricing }),
+      ),
       directions: d.directions.map((x) => ({
         ...x,
         trainNumber: formatTrainNumber(x.trainNumber, d.agencyId),

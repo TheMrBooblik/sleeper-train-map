@@ -10,6 +10,7 @@
  */
 
 import { formatFromPrice } from "../operatorPricing";
+import { costAnswer } from "./routeFaq.mjs";
 
 /** Join a list of names as "A, B and C". */
 function humanJoin(names) {
@@ -25,8 +26,16 @@ function humanJoin(names) {
  * @param {{name:string}[]} args.operators
  * @param {object} args.facts - from getCountryHub().facts
  * @param {{name:string}[]} args.connectedCountries
+ * @param {string} [args.pricingType] "dynamic"|"fixed" when every operator on
+ *   the hub agrees; "" when they disagree or none has a record.
  */
-export function buildCountryFaq({ country, operators, facts, connectedCountries }) {
+export function buildCountryFaq({
+  country,
+  operators,
+  facts,
+  connectedCountries,
+  pricingType = "",
+}) {
   const faq = [];
   const name = country.name;
   const operatorNames = humanJoin(operators.map((o) => o.name));
@@ -67,13 +76,22 @@ export function buildCountryFaq({ country, operators, facts, connectedCountries 
     });
   }
 
-  // Price, only when we actually have a concrete "from" figure.
+  // Same gap the connection pages had: with no figure the question vanished, so
+  // a country hub said nothing about cost at all. When the country's operators
+  // agree on a pricing model, the model answers it — and when they disagree the
+  // answer is suppressed, because "book early" would then be wrong for half the
+  // trains on the page.
   const priceLabel = formatFromPrice(facts.minFromPrice);
   if (priceLabel) {
     faq.push({
       q: `How much do night trains from ${name} cost?`,
       a: `Fares vary by date and comfort class, but tickets start ${priceLabel} on the cheapest routes.`,
     });
+  } else {
+    const answer = costAnswer({ pricingType, operatorNames, scope: "routes" });
+    if (answer) {
+      faq.push({ q: `How much do night trains from ${name} cost?`, a: answer });
+    }
   }
 
   // How to book — points people to the concrete next step.
