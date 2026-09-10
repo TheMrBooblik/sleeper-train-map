@@ -1,0 +1,70 @@
+name: Probe prices
+
+# Reconnaissance + on-demand run for the weekly price probes (the dev sandbox
+# has no egress to any operator, so this is the only place the booking APIs can
+# actually be reached).
+#
+# Dispatch it and read the job log. The recon step prints, per sampled route:
+# the URL the nightly job calls, the HTTP status, the response's shape, and
+# every field scripts/lib/price-extract.mjs considered a price. If the API moved
+# or renamed its fare field, that log says so — which is the thing nobody could
+# see while the probe was quietly finding nothing every Monday.
+#
+# `file_proposals: true` then runs the real probe, which files price.update
+# proposals onto the proposals branch for review in /data.
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Registry source id to probe (blank = every configured probe)"
+        required: false
+        default: "nightjet"
+      limit:
+        description: "How many routes to inspect in the recon step"
+        required: false
+        default: "3"
+      file_proposals:
+        description: "Also run the real probe and file price.update proposals"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      # Read-only: no proposals, no commits. Just what the API returns today.
+      - name: Recon — what the probe actually sees
+        run: |
+          node scripts/probe-prices-debug.mjs \
+            ${{ inputs.source && format('--source {0}', inputs.source) || '' }} \
+            --limit "${{ inputs.limit }}" | tee probe-output.log
+
+      - name: File price proposals
+        if: ${{ inputs.file_proposals }}
+        run: node scripts/probe-prices.mjs | tee -a probe-output.log
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # probe-health.json is written by the runner; keep it (and the log) as an
+      # artifact rather than committing, so a recon run has no side effects.
+      - name: Upload probe output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: price-probe-output
+          path: |
+            probe-output.log
+            public/data/scraped/probe-health.json
+          retention-days: 7
+          if-no-files-found: warn
