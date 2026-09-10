@@ -5,8 +5,9 @@
 //   1. CKAN package_show (params.baseUrl) → pick the current timetable-year
 //      resource (the resource UUID changes every December, so it is resolved
 //      from the dataset page rather than pinned) — lib: pickTimetableResource.
-//      If that is unreachable and params.localTimetable names a committed copy,
-//      it is used instead and the reason is recorded in ctx.errors, so the run
+//      If that is unreachable and params.localTimetable names committed copies
+//      (a list, first existing wins — .xml.gz preferred, plain .xml accepted),
+//      one is used instead and the reason is recorded in ctx.errors, so the run
 //      keeps its data without pretending the official endpoint answered.
 //   2. Download the XML (or a zip of it) into gtfs-data/cfr/, decode per its
 //      declared encoding, parse only the train numbers the map needs.
@@ -174,7 +175,17 @@ export async function resolveTimetableSource({
       origin: `CFR_XML_PATH=${env.CFR_XML_PATH}`,
     };
   }
-  const localPath = localTimetable ? path.join(ctx.rootDir, localTimetable) : null;
+  // A list, first match wins: the gzipped copy is preferred (11.4 MB of XML
+  // compresses to about a tenth of that) but a plain .xml is accepted too, so
+  // the file can be added through GitHub's web upload with no shell at hand.
+  // decodeXmlBytes already tells the two apart by their magic bytes, so the
+  // filename was never load-bearing.
+  const localCandidates = (
+    Array.isArray(localTimetable) ? localTimetable : localTimetable ? [localTimetable] : []
+  ).filter(Boolean);
+  const localChoice = localCandidates
+    .map((rel) => ({ rel, abs: path.join(ctx.rootDir, rel) }))
+    .find(({ abs }) => exists(abs));
   try {
     log(`resolving current timetable resource via ${baseUrl}`);
     const pkg = await fetchPackage(baseUrl);
@@ -188,15 +199,15 @@ export async function resolveTimetableSource({
     log(`timetable source: ${resource.url}`);
     return { xmlPath, resource, origin: resource.url };
   } catch (err) {
-    if (!localPath || !exists(localPath)) throw err;
+    if (!localChoice) throw err;
     const reason = describeError(err);
-    log(`remote timetable unavailable (${reason}) — falling back to ${localTimetable}`);
+    log(`remote timetable unavailable (${reason}) — falling back to ${localChoice.rel}`);
     ctx.errors?.push({
       source: entry.id,
-      error: `remote timetable unavailable, used committed ${localTimetable}: ${reason}`,
+      error: `remote timetable unavailable, used committed ${localChoice.rel}: ${reason}`,
     });
-    log(`timetable source: ${localTimetable}`);
-    return { xmlPath: localPath, resource: null, origin: localTimetable };
+    log(`timetable source: ${localChoice.rel}`);
+    return { xmlPath: localChoice.abs, resource: null, origin: localChoice.rel };
   }
 }
 

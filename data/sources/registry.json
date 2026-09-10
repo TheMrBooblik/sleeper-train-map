@@ -429,7 +429,10 @@
       "baseUrl": "https://data.gov.ro/api/3/action/package_show?id=mers-tren-sntfc-cfr-calatori-s-a",
       "configPath": "data/sources/cfr-sleepers.json",
       "agencyPattern": "CFR",
-      "localTimetable": "data/sources/cfr-mers-tren.xml.gz"
+      "localTimetable": [
+        "data/sources/cfr-mers-tren.xml.gz",
+        "data/sources/cfr-mers-tren.xml"
+      ]
     },
     "freshness": { "ttlHours": 25 }
   },

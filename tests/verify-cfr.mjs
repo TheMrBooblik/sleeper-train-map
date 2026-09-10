@@ -513,4 +513,41 @@ await checkAsync("resolveTimetableSource: CFR_XML_PATH overrides both", async ()
   assert.strictEqual(fetched, false, "the remote must not be touched when the override is set");
 });
 
+await checkAsync("resolveTimetableSource: a list of local copies picks the first that exists", async () => {
+  // The registry lists the gzipped copy first and a plain .xml second, so the
+  // file can be added through GitHub's web upload with no shell to gzip with.
+  const boom = Object.assign(new TypeError("fetch failed"), {
+    cause: Object.assign(new Error("Connect Timeout Error"), { code: "UND_ERR_CONNECT_TIMEOUT" }),
+  });
+  const both = ["data/sources/cfr-mers-tren.xml.gz", "data/sources/cfr-mers-tren.xml"];
+
+  // Only the plain one is there: it is used, and the origin names it.
+  const onlyPlain = sourceArgs({
+    localTimetable: both,
+    fetchPackage: async () => { throw boom; },
+    exists: (p) => p.endsWith("cfr-mers-tren.xml"),
+  });
+  const plain = await resolveTimetableSource(onlyPlain);
+  assert.strictEqual(plain.origin, "data/sources/cfr-mers-tren.xml");
+  assert.match(onlyPlain.ctx.errors[0].error, /used committed data\/sources\/cfr-mers-tren\.xml:/);
+
+  // Both present: the gzipped one wins, being an order of magnitude smaller.
+  const bothThere = sourceArgs({
+    localTimetable: both,
+    fetchPackage: async () => { throw boom; },
+    exists: () => true,
+  });
+  assert.strictEqual((await resolveTimetableSource(bothThere)).origin, "data/sources/cfr-mers-tren.xml.gz");
+
+  // Neither present: the remote failure is what propagates.
+  await assert.rejects(
+    () => resolveTimetableSource(sourceArgs({
+      localTimetable: both,
+      fetchPackage: async () => { throw boom; },
+      exists: () => false,
+    })),
+    /UND_ERR_CONNECT_TIMEOUT|fetch failed/,
+  );
+});
+
 console.log(`\n[verify-cfr] ${passed} checks passed`);
