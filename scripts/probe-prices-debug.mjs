@@ -116,7 +116,17 @@ async function main() {
       try {
         res = await fetchWithTimeout(url, { headers: { accept: "application/json" } });
       } catch (err) {
-        console.log(`   ✗ request failed: ${err.message}`);
+        // Which LAYER broke, not just that something did. node's fetch hangs the
+        // real cause off err.cause, and the distinction decides the next move:
+        // ENOTFOUND is DNS/blocklist, UND_ERR_CONNECT_TIMEOUT is the host
+        // refusing or unreachable from a runner (data.gov.ro does exactly this
+        // to the CFR probe), CERT_* is TLS, ABORT is our own timeout.
+        const cause = err.cause ?? {};
+        const code = cause.code ?? err.code ?? err.name ?? "unknown";
+        console.log(`   ✗ request failed [${code}]: ${err.message}`);
+        if (cause.message && cause.message !== err.message) {
+          console.log(`     cause: ${cause.message}`);
+        }
         continue;
       }
       console.log(`   ← HTTP ${res.status} ${res.headers.get("content-type") ?? ""}`);
