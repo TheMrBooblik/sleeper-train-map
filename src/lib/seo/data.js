@@ -118,7 +118,13 @@ function getRouteHistory() {
   if (!_routeHistory) {
     try {
       _routeHistory = readJson(ROUTE_HISTORY_PATH)?.routes ?? {};
-    } catch {
+    } catch (err) {
+      // Degrading to the payload's own date is deliberate — the sitemap must
+      // never 500 over a missing optional artifact — but it degrades to exactly
+      // the flat lastmod this replaced, which is invisible from the output. Say
+      // so once, so a lambda that cannot reach the file shows up in the logs
+      // instead of quietly undoing the change.
+      console.warn(`[seo] ${ROUTE_HISTORY_PATH} unreadable, lastmod falls back to the payload date: ${err.message}`);
       _routeHistory = {};
     }
   }
