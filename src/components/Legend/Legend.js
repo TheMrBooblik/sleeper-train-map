@@ -7,6 +7,7 @@ import {
   PKP_COLOR,
   REGIOJET_COLOR,
 } from "../Map/utils/routeStyleUtils";
+import { FUTURE_STATION_OPACITY } from "../Map/utils/mapIcons";
 
 /** Short badge labels + colors shown in the map legend (sample of operators). */
 const OPERATOR_SAMPLES = [
@@ -195,6 +196,19 @@ const Legend = ({ variant = "inline" }) => {
           />
           <span className="text-xs font-medium text-white min-[1280px]:text-xs">
             Intermediate stop
+          </span>
+        </div>
+        {/* A stop only the next timetable period calls at — the faded dot
+            futureIcon draws. The opacity comes from mapIcons.js rather than a
+            copy here, so the swatch cannot drift from the marker. */}
+        <div className="flex items-center gap-1.5">
+          <div
+            className="h-2.5 w-2.5 shrink-0 rounded-full border border-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] bg-gradient-to-br from-[#4caf50] to-[#388e3c] min-[1280px]:h-3 min-[1280px]:w-3"
+            style={{ opacity: FUTURE_STATION_OPACITY }}
+            aria-hidden
+          />
+          <span className="text-xs font-medium text-white min-[1280px]:text-xs">
+            Stop from a future timetable
           </span>
         </div>
       </div>
