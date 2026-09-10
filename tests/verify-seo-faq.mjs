@@ -6,7 +6,8 @@
 // when its supporting field is present, and no answer is ever empty — otherwise
 // we'd emit malformed FAQPage structured data.
 
-import { buildRouteFaq, buildConnectionFaq } from "../src/lib/seo/routeFaq.mjs";
+import { buildRouteFaq, buildConnectionFaq, costAnswer } from "../src/lib/seo/routeFaq.mjs";
+import OPERATOR_PRICING from "../data/overrides/operator-pricing.json" with { type: "json" };
 
 const problems = [];
 const check = (cond, msg) => {
@@ -148,6 +149,80 @@ check(buildConnectionFaq({}).length === 0, "connection: empty input → []");
   assertShape(faq, "connection/count-only");
   check(faq.length === 1, `connection/count-only: exactly 1 (got ${faq.length})`);
   check(faq[0].a === "2 night trains connect X and Y.", "connection/count-only: clean answer");
+}
+
+// ── costAnswer: the cost question, with or without a figure ────────────────
+// Until the probes fill in a price, every page omitted the cost question
+// entirely and so said nothing at all about the most commercial question a
+// searcher asks. The pricing MODEL answers it honestly — and the two models say
+// opposite things, so getting them the wrong way round is worse than silence.
+{
+  const priced = costAnswer({ fromPrice: "from €39", pricingType: "dynamic" });
+  check(priced.includes("from €39"), "cost: a real figure is used when there is one");
+  check(
+    priced.includes("earliest bookings are the cheapest"),
+    "cost: a figure on a dynamic operator still says early is cheaper",
+  );
+
+  const dyn = costAnswer({ pricingType: "dynamic", operatorNames: "ÖBB" });
+  check(dyn.startsWith("ÖBB "), "cost: names the operator when known");
+  check(
+    /book|early/i.test(dyn) && !/does not make it cheaper/.test(dyn),
+    "cost/dynamic: must tell the reader booking early helps",
+  );
+
+  const fixed = costAnswer({ pricingType: "fixed", operatorNames: "ČD" });
+  check(
+    /does not make it cheaper/.test(fixed),
+    "cost/fixed: must NOT tell the reader booking early is cheaper — it is not",
+  );
+  check(
+    dyn !== fixed && !/yield/i.test(fixed),
+    "cost: the two models give genuinely different answers",
+  );
+
+  check(costAnswer({}) === "", "cost: an operator with no record answers nothing, not a guess");
+  check(costAnswer() === "", "cost: total on no input");
+  check(
+    costAnswer({ pricingType: "surge" }) === "",
+    "cost: an unknown pricing type answers nothing rather than falling through",
+  );
+  check(
+    costAnswer({ pricingType: "dynamic" }).startsWith("sells") === false,
+    "cost: no operator name must not leave a dangling sentence start",
+  );
+
+  // The question now appears without any price, which is the point.
+  const faq = buildConnectionFaq({
+    originCity: "Vienna",
+    destCity: "Rome",
+    trainCount: 2,
+    operators: ["ÖBB"],
+    pricingType: "dynamic",
+  });
+  assertShape(faq, "connection/priceless-cost");
+  check(
+    faq.some((f) => f.q.startsWith("How much")),
+    "connection: the cost question appears from the model alone",
+  );
+  check(
+    !buildConnectionFaq({
+      originCity: "Vienna",
+      destCity: "Rome",
+      trainCount: 2,
+      operators: ["ÖBB"],
+    }).some((f) => f.q.startsWith("How much")),
+    "connection: no model and no price still means no cost question",
+  );
+
+  // Every committed record must produce an answer — a record whose type the
+  // builder does not recognise would silently go back to saying nothing.
+  for (const [agencyId, pricing] of Object.entries(OPERATOR_PRICING)) {
+    check(
+      costAnswer({ pricingType: pricing.type, operatorNames: agencyId }) !== "",
+      `operator-pricing ${agencyId}: type "${pricing.type}" produces no cost answer`,
+    );
+  }
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────

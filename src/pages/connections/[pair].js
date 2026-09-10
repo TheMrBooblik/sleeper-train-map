@@ -317,6 +317,16 @@ export async function getStaticProps({ params }) {
     ? priced.reduce((a, b) => (a.pricing.fromPrice <= b.pricing.fromPrice ? a : b))
     : null;
 
+  // Whether booking early helps is an answer we can give on every page even
+  // with no figure, and the two models say opposite things. Taken from the
+  // trains themselves so a corridor with one operator answers about that one;
+  // a mixed corridor answers only when its operators agree.
+  const pricingTypes = new Set(
+    trains
+      .map((t) => getOperatorPricing({ agency_id: t.agencyId, pricing: t.pricing })?.type)
+      .filter(Boolean),
+  );
+
   const faq = buildConnectionFaq({
     originCity: pair.cityA,
     destCity: pair.cityB,
@@ -324,6 +334,7 @@ export async function getStaticProps({ params }) {
     operators: pair.operators.map((o) => o.name),
     fastestDurationText: fastest?.durationText || "",
     fromPrice: cheapest?.fromPrice || "",
+    pricingType: pricingTypes.size === 1 ? [...pricingTypes][0] : "",
   });
 
   // Drop the map from all but the first train that has one.
