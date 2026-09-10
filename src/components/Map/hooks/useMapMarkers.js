@@ -36,7 +36,7 @@ export function useMapMarkers({
   mapZoom = null,
   mapBounds = null,
 }) {
-  const { defaultIcon, selectedIcon, viaIcon } = useMemo(
+  const { defaultIcon, selectedIcon, viaIcon, futureIcon } = useMemo(
     () => createMapIcons(Leaflet),
     [],
   );
@@ -52,21 +52,24 @@ export function useMapMarkers({
     let stopsToShow = [];
     let hiddenStops = [];
 
-    // A route contributes station dots only while it is actually running. Two
-    // ways it may not be: its season has passed (read from trips), or it has not
-    // opened yet (read from the row, because a synthetic preview row carries no
-    // trips — see routeHasNotStartedYet). The preview's *line* is drawn either
-    // way; this is only about whether its stops become markers.
+    // Two different "not running today", and they want opposite treatment.
+    //
+    // A season that has already PASSED is gone: its stops are dropped, as they
+    // always have been. A period that has not BEGUN is a preview whose line is
+    // deliberately drawn (tickets are on sale), so dropping its stops left the
+    // December Brussels–Milan routing running visibly through Eindhoven and
+    // Breda with no markers on it. Those stops stay, faded — see futureIcon.
     const upcomingPreviews = upcomingPreviewRouteIds(viewMapData);
-    const isNotRunning = (routeId) =>
-      shouldHideRouteDueToFutureDate(routeId, trips) ||
-      upcomingPreviews.has(String(routeId));
+    const isUpcomingPreview = (routeId) => upcomingPreviews.has(String(routeId));
+    const seasonHasPassed = (routeId) =>
+      shouldHideRouteDueToFutureDate(routeId, trips) &&
+      !isUpcomingPreview(routeId);
 
     if (hideIntermediateStations && viewMapData) {
       if (!filteredStops?.length) return [];
       const nightTrainStationIds = new Set();
       Object.values(viewMapData).forEach((route) => {
-        if (route?.route_id && isNotRunning(route.route_id)) return;
+        if (route?.route_id && seasonHasPassed(route.route_id)) return;
         if (route) {
           [
             route.origin_trip_0,
@@ -107,7 +110,7 @@ export function useMapMarkers({
           .split(",")
           .map((id) => id.trim())
           .filter(Boolean);
-        return routeIds.some((routeId) => !isNotRunning(routeId));
+        return routeIds.some((routeId) => !seasonHasPassed(routeId));
       });
     }
 
@@ -130,7 +133,7 @@ export function useMapMarkers({
       const routeEndpointStations = [];
       if (viewMapData) {
         Object.values(viewMapData).forEach((route) => {
-          if (route?.route_id && isNotRunning(route.route_id)) return;
+          if (route?.route_id && seasonHasPassed(route.route_id)) return;
           [
             route?.origin_trip_0,
             route?.destination_trip_0,
@@ -277,8 +280,23 @@ export function useMapMarkers({
           isViaStationForFilteredRoutes = !isOriginOrDestination;
         }
 
+        // Every route calling here is a period that has not begun — the station
+        // exists on the map only because of a preview. Fade it to match the
+        // line drawn through it. A selected station keeps its own icon: the
+        // user pointed at it, and the panel says which timetable it belongs to.
+        const callingRouteIds = (stop_route_ids || "")
+          .split(",")
+          .map((id) => id.trim())
+          .filter(Boolean);
+        const onlyUpcoming =
+          !routeFilteredMode &&
+          !isSelected &&
+          callingRouteIds.length > 0 &&
+          callingRouteIds.every(isUpcomingPreview);
+
         let iconToUse = defaultIcon;
         if (isSelected) iconToUse = selectedIcon;
+        else if (onlyUpcoming) iconToUse = futureIcon;
         else if (isViaStationForFilteredRoutes) iconToUse = viaIcon;
 
         if (filteredStop.isGrouped) {
@@ -335,6 +353,7 @@ export function useMapMarkers({
               <StationTooltipContent
                 name={filteredStop.displayName || stop_id}
                 showTimes={false}
+                note={onlyUpcoming ? "Not yet running" : null}
               />
             </Tooltip>
           </Marker>
@@ -366,6 +385,7 @@ export function useMapMarkers({
     defaultIcon,
     selectedIcon,
     viaIcon,
+    futureIcon,
     hitSize,
   ]);
 }

@@ -197,6 +197,17 @@ const Legend = ({ variant = "inline" }) => {
             Intermediate stop
           </span>
         </div>
+        {/* Same fade as the "Not yet running" line above — a stop only the next
+            timetable period calls at. See futureIcon in mapIcons.js. */}
+        <div className="flex items-center gap-1.5">
+          <div
+            className="h-2.5 w-2.5 shrink-0 rounded-full border border-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] bg-gradient-to-br from-[#4caf50] to-[#388e3c] opacity-[0.35] min-[1280px]:h-3 min-[1280px]:w-3"
+            aria-hidden
+          />
+          <span className="text-xs font-medium text-white min-[1280px]:text-xs">
+            Stop from a future timetable
+          </span>
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 border-t border-white/15 pt-3">

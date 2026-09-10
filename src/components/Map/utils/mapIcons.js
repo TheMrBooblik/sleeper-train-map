@@ -7,6 +7,8 @@
  * invisible 24px hit polylines on routes.
  */
 
+import { MAP_LEGEND_LINE_BASE_STYLES } from "./routeStyleUtils";
+
 /** Finger-sized tap target: a fingertip is far bigger than a 20px dot. */
 const HIT_TOUCH = 44;
 /**
@@ -27,10 +29,11 @@ export function stationHitSize() {
     : HIT_TOUCH;
 }
 
-function stationDotHtml({ hit, size, gradient, border, shadow, zIndex }) {
+function stationDotHtml({ hit, size, gradient, border, shadow, zIndex, opacity }) {
   const offset = (hit - size) / 2;
+  const fade = opacity == null ? "" : `opacity:${opacity};`;
   return `<div style="width:${hit}px;height:${hit}px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
-    <div style="width:${size}px;height:${size}px;margin:${offset}px;background:${gradient};border-radius:50%;border:${border};box-shadow:${shadow};transition:all 0.3s ease;z-index:${zIndex};"></div>
+    <div style="width:${size}px;height:${size}px;margin:${offset}px;background:${gradient};border-radius:50%;border:${border};box-shadow:${shadow};transition:all 0.3s ease;z-index:${zIndex};${fade}"></div>
   </div>`;
 }
 
@@ -88,5 +91,27 @@ export function createMapIcons(Leaflet) {
     iconAnchor: [HIT / 2, HIT / 2],
   });
 
-  return { defaultIcon, selectedIcon, viaIcon };
+  // A stop only the next timetable period calls at. Same dot as an intermediate
+  // stop, faded to the opacity the line styling already uses for a route that
+  // has not started (MAP_LEGEND_LINE_BASE_STYLES.futureGhost) — so a station and
+  // the line through it say "not yet running" the same way. Hiding these instead
+  // left the December Brussels–Milan line visibly running through Eindhoven and
+  // Breda with no markers on it, which reads as a bug rather than as a preview.
+  const futureIcon = new Leaflet.DivIcon({
+    className: "via-dot future-dot",
+    html: stationDotHtml({
+      hit: HIT,
+      size: 16,
+      gradient: "linear-gradient(135deg, #4CAF50, #388E3C)",
+      border: "2px solid white",
+      shadow:
+        "0 2px 6px rgba(76, 175, 80, 0.35), 0 0 0 1px rgba(76, 175, 80, 0.2)",
+      zIndex: 90,
+      opacity: MAP_LEGEND_LINE_BASE_STYLES.futureGhost.opacity,
+    }),
+    iconSize: [HIT, HIT],
+    iconAnchor: [HIT / 2, HIT / 2],
+  });
+
+  return { defaultIcon, selectedIcon, viaIcon, futureIcon };
 }
