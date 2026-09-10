@@ -10,6 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadRegistry } from "./lib/registry.mjs";
+import { mergeProbeHealth, normalizeProbeResult } from "./lib/probe-health.mjs";
 import {
   PENDING_DIR,
   buildProposal,
@@ -37,6 +38,47 @@ function readJsonLocal(...segments) {
   }
 }
 
+/**
+ * Read → merge → write public/data/scraped/probe-health.json. The merge itself
+ * is pure (scripts/lib/probe-health.mjs); this only touches disk and warns about
+ * probes that have gone quiet, which is the whole point of the file.
+ */
+function writeProbeHealth(entries, outcomes, runStartedAt) {
+  const file = path.join(ROOT, "public", "data", "scraped", "probe-health.json");
+  let previous = {};
+  try {
+    previous = JSON.parse(fs.readFileSync(file, "utf8"))?.data?.probes ?? {};
+  } catch {
+    previous = {};
+  }
+
+  const nowIso = new Date().toISOString();
+  const probes = mergeProbeHealth(previous, entries, outcomes, nowIso);
+
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(
+      file,
+      `${JSON.stringify(
+        { uploadedAt: nowIso, data: { runStartedAt, runFinishedAt: nowIso, probes } },
+        null,
+        2,
+      )}\n`,
+    );
+  } catch (err) {
+    console.warn(`[probe] could not write probe-health.json: ${err.message}`);
+  }
+
+  for (const [id, p] of Object.entries(probes)) {
+    if (p.consecutiveEmptyRuns > 0) {
+      console.warn(
+        `[probe] ${id}: ${p.consecutiveEmptyRuns} consecutive run(s) with no price` +
+          (p.lastError ? ` — last error: ${p.lastError}` : ""),
+      );
+    }
+  }
+}
+
 async function main() {
   const registry = loadRegistry();
   const probeEntries = registry.filter((e) => e.probe?.pricing?.adapter);
@@ -50,18 +92,33 @@ async function main() {
   const ctx = {
     rootDir: ROOT,
     seenRoutes: new Set(Object.keys(seen?.routes ?? {})),
+    // What already has a price. The adapter spends its small request budget on
+    // routes that do not, so coverage widens run over run instead of re-reading
+    // the same four every Monday.
+    prices: currentPrices,
   };
 
+  const runStartedAt = new Date().toISOString();
   const findings = [];
+  const outcomes = {};
   for (const entry of probeEntries) {
     try {
       const mod = await import(`./adapters/${entry.probe.pricing.adapter}.mjs`);
-      const results = await mod.probePrices(entry, ctx);
-      findings.push(...(results ?? []).map((r) => ({ ...r, sourceId: entry.id })));
+      const outcome = normalizeProbeResult(await mod.probePrices(entry, ctx));
+      outcomes[entry.id] = outcome;
+      findings.push(...outcome.prices.map((r) => ({ ...r, sourceId: entry.id })));
     } catch (err) {
+      // A throwing adapter (a bad module name, a parse error) used to vanish
+      // into this warning. Record it, so the dashboard shows a probe that has
+      // not worked in weeks instead of one that simply had nothing to say.
+      outcomes[entry.id] = { prices: [], attempted: 0, errors: [err.message] };
       console.warn(`[probe] ${entry.id}: ${err.message}`);
     }
   }
+
+  // Written before the proposals are filed: whether the run found anything is
+  // exactly the fact worth recording when it found nothing.
+  writeProbeHealth(probeEntries, outcomes, runStartedAt);
 
   // Skip prices identical to what's already live (±1 cent).
   const changed = findings.filter((f) => {

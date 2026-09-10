@@ -111,6 +111,23 @@ export function validateRegistryEntry(entry) {
     }
   }
 
+  // A price probe is wired by config alone: probe-prices.mjs dynamic-imports
+  // probe.pricing.adapter inside a try/catch, so a typo in the module name
+  // degrades to one warning in a continue-on-error workflow step and the probe
+  // is simply never run. Validate it here, where the scrape refuses to start.
+  const probePricing = entry?.probe?.pricing;
+  if (probePricing != null) {
+    if (!(typeof probePricing.adapter === "string" && probePricing.adapter.trim())) {
+      errors.push(`${tag} probe.pricing.adapter must be a non-empty string`);
+    }
+    if (
+      probePricing.sampleRoutes != null &&
+      !(Number.isInteger(probePricing.sampleRoutes) && probePricing.sampleRoutes > 0)
+    ) {
+      errors.push(`${tag} probe.pricing.sampleRoutes must be a positive integer`);
+    }
+  }
+
   const synthetic = entry?.synthetic;
   if (synthetic != null) {
     if (!synthetic.idPrefix || typeof synthetic.idPrefix !== "string") {

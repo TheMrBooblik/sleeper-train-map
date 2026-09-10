@@ -52,6 +52,7 @@
     "verify-geo": "node tests/verify-geo.mjs",
     "ai-tasks": "node scripts/ai-tasks.mjs",
     "probe-prices": "node scripts/probe-prices.mjs",
+    "probe-prices:debug": "node scripts/probe-prices-debug.mjs",
     "classify": "node scripts/classify-changes.mjs",
     "bootstrap-seen": "node scripts/bootstrap-seen.mjs",
     "verify:route-styles": "node tests/verify-route-style-utils.mjs",
@@ -60,7 +61,8 @@
     "test:headed": "playwright test --headed",
     "test:smoke": "playwright test --config=playwright.smoke.config.js",
     "prepare": "husky && git config merge.ours.driver true || true",
-    "verify-schedule-links": "node tests/verify-schedule-links.mjs"
+    "verify-schedule-links": "node tests/verify-schedule-links.mjs",
+    "verify-price-probe": "node tests/verify-price-probe.mjs"
   },
   "packageManager": "npm@10",
   "repository": {
