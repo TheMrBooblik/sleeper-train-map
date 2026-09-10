@@ -1,0 +1,20 @@
+{
+  "_comment": "Trimmed real data.gov.ro package_show for mers-tren-sntfc-cfr-calatori-s-a, captured 2026-09-10. Only the fields pickTimetableResource reads are kept. Note resource 0's format is '.xml' with a leading dot while every older one is 'XML' — the publisher changed it, and that is exactly what this fixture pins.",
+  "result": {
+    "resources": [
+      { "name": "Mers tren - SNTFC 2025-2026", "format": ".xml", "size": 11928124, "last_modified": "2025-12-08T08:24:05.654555", "url": "https://data.gov.ro/dataset/c4f71dbb-de39-49b2-b697-5b60a5f299a2/resource/0f67143e-bb88-4a06-8e7a-b35b1eb91329/download/trenuri-2025-2026_sntfc.xml" },
+      { "name": "Mers tren - SNTFC 2024-2025", "format": ".xml", "size": 12196880, "last_modified": "2024-12-09T13:03:09.116455", "url": "https://data.gov.ro/dataset/c4f71dbb-de39-49b2-b697-5b60a5f299a2/resource/f68a30fa-f27f-4e37-8b47-3b69b8a43c1b/download/sntfc-cfr-calatori-s.a_1303-tr_2025.xml" },
+      { "name": "Mers tren - SNTFC 2023-2024", "format": "XML", "size": 12237422, "last_modified": "2023-12-05T11:21:47.402649", "url": "https://data.gov.ro/dataset/c4f71dbb-de39-49b2-b697-5b60a5f299a2/resource/676ffe61-4a52-4240-ad45-9a2891ccdcc6/download/sntfc-cfr-cltori-s.a_2024.xml" },
+      { "name": "Mers tren - SNTFC 2022-2023", "format": "XML", "size": 12656528, "last_modified": "2022-12-06T10:15:36.414495", "url": "https://data.gov.ro/dataset/c4f71dbb-de39-49b2-b697-5b60a5f299a2/resource/38a4f033-650b-4e01-a3d4-98ba32969778/download/sntfc-cfr-cltori-s.a.-1344-trenuri_2023.xml" },
+      { "name": "Mers tren - SNTFC 2021-2022", "format": "XML", "size": 12444762, "last_modified": "2021-12-29T13:45:13.302898", "url": "https://data.gov.ro/dataset/c4f71dbb-de39-49b2-b697-5b60a5f299a2/resource/1b0b64c9-389d-4a83-b3f0-f8987cabe479/download/sntfc-cfr-cltori-s.a.-1245-trenuri_2022.xml" },
+      { "name": "Mers tren - SNTFC 2020-2021", "format": "XML", "size": 12847089, "last_modified": "2020-12-11T10:07:47.453809", "url": "https://data.gov.ro/dataset/c4f71dbb-de39-49b2-b697-5b60a5f299a2/resource/5af0366b-f9cb-4d6e-991b-e91789fc7d2c/download/sntfc-cfr-cltori-s.a.-1232-trenuri_2021.xml" },
+      { "name": "Mers tren - SNTFC 2019-2020", "format": "XML", "size": null, "last_modified": "2019-12-06T10:16:27.519026", "url": "https://data.gov.ro/dataset/c4f71dbb-de39-49b2-b697-5b60a5f299a2/resource/4aedf898-9746-4fdd-a6b5-f174d981f6c9/download/mers-trensntfc2019-2020.xml" },
+      { "name": "Mers tren - SNTFC 2018-2019", "format": "XML", "size": null, "last_modified": "2018-12-20T15:56:00.106946", "url": "https://data.gov.ro/dataset/c4f71dbb-de39-49b2-b697-5b60a5f299a2/resource/66121dd3-9cb0-4eb5-814e-9b5709d6ac06/download/mers-trensntfc2018-2019.xml" },
+      { "name": "Mers tren - SNTFC 2017-2018", "format": "XML", "size": null, "last_modified": "2017-12-12T08:51:56.924571", "url": "https://data.gov.ro/dataset/c4f71dbb-de39-49b2-b697-5b60a5f299a2/resource/6025f0b7-e301-4d6f-a53f-0170ee95b197/download/mers-trensntfc2017-2018.xml" },
+      { "name": "Mers tren - SNTFC_2016-2017", "format": "XML", "size": null, "last_modified": "2016-12-13T07:35:31.543321", "url": "https://data.gov.ro/dataset/c4f71dbb-de39-49b2-b697-5b60a5f299a2/resource/ef848b2c-f80f-47ba-a799-bd3e2e05f6e9/download/mers-trensntfc2016-2017.xml" },
+      { "name": "Mers tren_SNTFC_2015-2016.xml", "format": "XML", "size": null, "last_modified": "2015-12-28T13:45:08.429724", "url": "https://data.gov.ro/dataset/c4f71dbb-de39-49b2-b697-5b60a5f299a2/resource/d0ec6682-5c00-4666-89dc-6a5e7831b8dd/download/mers-trensntfc2015-2016.xml" },
+      { "name": "Mers tren_SNTFC_2014-2015.xml", "format": "XML", "size": 11894931, "last_modified": "2015-02-23T17:03:07.860372", "url": "http://data.gov.ro/storage/f/2014-12-17T12%3A15%3A13.009Z/mers-tren-sntfc-2014-2015.xml" },
+      { "name": "Mers tren_SNTFC_2013-2014.xml", "format": "XML", "size": 11406250, "last_modified": "2014-11-21T10:51:25.876231", "url": "http://data.gov.ro/storage/f/2014-10-17T07%3A03%3A06.260Z/mers-tren-sntfc-2013-2014.xml" }
+    ]
+  }
+}

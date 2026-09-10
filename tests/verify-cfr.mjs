@@ -4,6 +4,7 @@
 // Run: npm run verify-cfr
 import assert from "node:assert";
 import zlib from "node:zlib";
+import fs from "node:fs/promises";
 import {
   buildCfrTrains,
   cityKey,
@@ -408,6 +409,35 @@ check("pickTimetableResource: current year's XML over last year's and over PDFs"
   );
   assert.strictEqual(r2.url, "https://x/b.xml", "XML preferred over ZIP when neither names the year");
   assert.strictEqual(pickTimetableResource({ result: { resources: [{ format: "PDF", url: "https://x/a.pdf" }] } }), null);
+});
+
+await checkAsync("pickTimetableResource: the real data.gov.ro package, captured 2026-09", async () => {
+  // Live data revealed something no synthetic fixture had: the publisher set
+  // the current resource's format to ".xml" (leading dot) while every older one
+  // says "XML". The +10 format bonus only counts "XML", so the pick survives
+  // solely because isXml also tests the URL extension — pinned here so a future
+  // tidy-up of that check cannot silently promote last year's timetable.
+  const pkg = JSON.parse(
+    await fs.readFile(new URL("./fixtures/cfr/package-show-2026-09.json", import.meta.url), "utf8"),
+  );
+
+  const current = pickTimetableResource(pkg, { now: new Date("2026-09-10T12:00:00Z") });
+  assert.strictEqual(current.name, "Mers tren - SNTFC 2025-2026");
+  assert.strictEqual(current.format, "XML", '".xml" must normalise to XML');
+  assert.match(current.url, /trenuri-2025-2026_sntfc\.xml$/);
+
+  // The day before the timetable change still belongs to the running year.
+  assert.strictEqual(
+    pickTimetableResource(pkg, { now: new Date("2026-12-12T12:00:00Z") }).name,
+    "Mers tren - SNTFC 2025-2026",
+  );
+  // And on the change itself the label flips to 2026-2027 — but that file is not
+  // published yet, so the newest one must be kept rather than nothing returned.
+  assert.strictEqual(timetableYearLabel(new Date("2026-12-13T12:00:00Z")), "2026-2027");
+  assert.strictEqual(
+    pickTimetableResource(pkg, { now: new Date("2026-12-13T12:00:00Z") }).name,
+    "Mers tren - SNTFC 2025-2026",
+  );
 });
 
 // ─── Where tonight's timetable comes from ───────────────────────────────────
