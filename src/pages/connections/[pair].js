@@ -296,9 +296,13 @@ export async function getStaticProps({ params }) {
       // visible price can never disagree.
       offer: numericOffer(d),
       // Buy now or later — resolved here so the CTA, the facts tile and the FAQ
-      // on this page all read the same pricingAdvice() record.
+      // on this page all read the same pricingAdvice() record. The deals link
+      // the CTA renders is the evidence for the last-minute caveat, so it is
+      // taken from the SAME booking record rather than looked up again: the
+      // advice and the link cannot then disagree about whether one exists.
       advice: pricingAdvice(
         getOperatorPricing({ agency_id: d.agencyId, pricing: d.pricing }),
+        { hasLastMinuteDeals: Boolean(d.booking?.dealsUrl) },
       ),
       directions: d.directions.map((x) => ({
         ...x,
@@ -341,6 +345,7 @@ export async function getStaticProps({ params }) {
     fastestDurationText: fastest?.durationText || "",
     fromPrice: cheapest?.fromPrice || "",
     pricingType: pricingTypes.size === 1 ? [...pricingTypes][0] : "",
+    hasLastMinuteDeals: trains.some((t) => t.booking?.dealsUrl),
   });
 
   // Drop the map from all but the first train that has one.

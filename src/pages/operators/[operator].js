@@ -14,6 +14,7 @@ import {
 import { toCardRoute } from "../../lib/seo/data";
 import { getFlagEmoji } from "../../lib/countries";
 import { getOperatorPricing, pricingAdvice } from "../../lib/operatorPricing";
+import { getDealsLink } from "../../lib/operatorBooking";
 import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
 export default function OperatorHub({ operator, routes, countries, connections, advice }) {
@@ -86,6 +87,7 @@ export default function OperatorHub({ operator, routes, countries, connections, 
               </h2>
               <p className="mt-2 text-sm text-white/60 leading-relaxed text-pretty">
                 {operator.name} sells {advice.detail}.
+                {advice.caveat ? ` That said, ${advice.caveat}.` : ""}
               </p>
             </section>
           )}
@@ -166,7 +168,10 @@ export async function getStaticProps({ params }) {
       // "Should I book this operator early?" is an operator-level question, so
       // the operator's own hub is where it belongs — and it was the one page
       // that said nothing about fares at all.
-      advice: pricingAdvice(getOperatorPricing({ agency_id: hub.operator.id })) ?? null,
+      advice:
+        pricingAdvice(getOperatorPricing({ agency_id: hub.operator.id }), {
+          hasLastMinuteDeals: Boolean(getDealsLink(hub.operator.id)),
+        }) ?? null,
     },
   };
 }

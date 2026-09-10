@@ -8,6 +8,7 @@
 
 import { buildRouteFaq, buildConnectionFaq, costAnswer } from "../src/lib/seo/routeFaq.mjs";
 import OPERATOR_PRICING from "../data/overrides/operator-pricing.json" with { type: "json" };
+import OPERATOR_BOOKING from "../data/overrides/operator-booking.json" with { type: "json" };
 import { pricingAdvice } from "../src/lib/pricingAdvice.mjs";
 
 const problems = [];
@@ -160,15 +161,18 @@ check(buildConnectionFaq({}).length === 0, "connection: empty input → []");
 {
   const priced = costAnswer({ fromPrice: "from €39", pricingType: "dynamic" });
   check(priced.includes("from €39"), "cost: a real figure is used when there is one");
+  // Intent, not prose: a figure on a yield-managed operator must still point the
+  // reader at booking early. Pinning the exact sentence made this test fail when
+  // the wording was corrected, which is the test's fault, not the wording's.
   check(
-    priced.includes("earliest bookings are the cheapest"),
-    "cost: a figure on a dynamic operator still says early is cheaper",
+    /book early|go first|limited/i.test(priced),
+    `cost: a figure on a dynamic operator must still point at booking early — got "${priced}"`,
   );
 
   const dyn = costAnswer({ pricingType: "dynamic", operatorNames: "ÖBB" });
   check(dyn.startsWith("ÖBB "), "cost: names the operator when known");
   check(
-    /book|early/i.test(dyn) && !/does not make it cheaper/.test(dyn),
+    /book|early|first/i.test(dyn) && !/does not make it cheaper/.test(dyn),
     "cost/dynamic: must tell the reader booking early helps",
   );
 
@@ -255,9 +259,21 @@ check(buildConnectionFaq({}).length === 0, "connection: empty input → []");
   }
 
   // The two must not merely differ — they must give opposite instructions.
+  // Tested by MEANING: dynamic must make waiting cost you something (the cheap
+  // fares run out), fixed must promise the price itself will not move. Matching
+  // literal phrases here is what broke when the dynamic wording was corrected
+  // away from the false "prices only rise".
   check(
-    /rise|early/i.test(dyn.short) && /won't rise|not rise/i.test(fix.short),
-    "advice: the two models must say opposite things about waiting",
+    /first|limited|early|sell out/i.test(dyn.short),
+    `advice/dynamic: must say waiting costs you the cheap fares — got "${dyn.short}"`,
+  );
+  check(
+    /won't rise|not rise|fixed/i.test(fix.short),
+    `advice/fixed: must say the price itself does not move — got "${fix.short}"`,
+  );
+  check(
+    dyn.action !== fix.action && dyn.short !== fix.short,
+    "advice: the two models must not collapse to the same instruction",
   );
   check(
     /sell out/i.test(fix.short) || /sell out/i.test(fix.detail),
@@ -296,6 +312,74 @@ check(buildConnectionFaq({}).length === 0, "connection: empty input → []");
     costAnswer({ pricingType: "fixed", scope: "routes" }).startsWith("These routes are sold"),
     "cost/scope: pluralises the no-operator subject too",
   );
+}
+
+// ── Last-minute deals must not contradict "book early" ─────────────────────
+// This was shipped broken: "Book early — fares rise as the train fills" rendered
+// three lines under European Sleeper's own "Last-minute deals" link, so the page
+// argued with itself. "Yield-managed" does not mean "the price only ever rises"
+// — operators discount unsold berths near departure — so the base wording has to
+// survive on its own AND name the exception where we have evidence for it.
+{
+  const plain = pricingAdvice({ type: "dynamic" });
+  const deals = pricingAdvice({ type: "dynamic" }, { hasLastMinuteDeals: true });
+
+  check(plain.caveat === "", "deals: no known programme → no caveat invented");
+  check(deals.caveat !== "", "deals: a known programme must be acknowledged");
+  check(
+    /last-minute|close to departure/i.test(deals.caveat),
+    "deals: the caveat must actually name the late-booking case",
+  );
+  // A caveat that reads as advice would just flip the contradiction round.
+  check(
+    /risk|if you can|sometimes/i.test(deals.caveat),
+    "deals: the caveat must read as a gamble, not as a better plan than booking early",
+  );
+
+  // The base wording must not claim prices only ever rise — that is the exact
+  // sentence that contradicted the deals link.
+  for (const a of [plain, deals]) {
+    check(
+      !/rise as the train fills|prices rise|only.*rise/i.test(`${a.short} ${a.detail}`),
+      `deals: dynamic wording must not claim the price only ever rises — "${a.short}"`,
+    );
+  }
+  check(
+    /limited|go first|sell out/i.test(plain.short),
+    "deals: dynamic wording should rest on the quota selling out, which stays true either way",
+  );
+
+  // A priced answer must not re-introduce the claim either.
+  check(
+    !/rise closer to departure/i.test(costAnswer({ fromPrice: "from €39", pricingType: "dynamic" })),
+    "deals: the priced answer must not claim prices only rise",
+  );
+
+  // End to end: the FAQ for an operator with a deals page carries both halves.
+  const answer = costAnswer({
+    pricingType: "dynamic",
+    operatorNames: "European Sleeper",
+    hasLastMinuteDeals: true,
+  });
+  check(answer.includes(deals.detail), "deals: FAQ keeps the base advice");
+  check(answer.includes(deals.caveat), "deals: FAQ carries the caveat too");
+
+  // Every operator that advertises a deals link must be able to produce one, or
+  // its page goes back to contradicting itself.
+  for (const [agencyId, booking] of Object.entries(OPERATOR_BOOKING)) {
+    if (!booking.dealsUrl) continue;
+    const pricing = OPERATOR_PRICING[agencyId];
+    check(
+      !!pricing,
+      `${agencyId} links "${booking.dealsLabel}" but has no operator-pricing record, so its CTA says nothing about timing`,
+    );
+    if (!pricing) continue;
+    const advice = pricingAdvice(pricing, { hasLastMinuteDeals: true });
+    check(
+      advice && (advice.caveat !== "" || advice.action !== "book-early"),
+      `${agencyId} links "${booking.dealsLabel}" next to advice that would tell the reader to book early with no caveat`,
+    );
+  }
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────

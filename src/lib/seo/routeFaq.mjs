@@ -48,6 +48,7 @@ function humanJoin(names) {
  * @param {string} [input.pricingType]   "dynamic" | "fixed"
  * @param {string} [input.operatorNames] humanJoin()ed operator names
  * @param {"route"|"routes"} [input.scope] "routes" when a hub answers for many
+ * @param {boolean} [input.hasLastMinuteDeals] operator publishes a deals page
  * @returns {string}
  */
 export function costAnswer({
@@ -55,14 +56,15 @@ export function costAnswer({
   pricingType = "",
   operatorNames = "",
   scope = "route",
+  hasLastMinuteDeals = false,
 } = {}) {
-  const advice = pricingAdvice({ type: pricingType });
+  const advice = pricingAdvice({ type: pricingType }, { hasLastMinuteDeals });
 
   if (fromPrice) {
     return (
       `Fares vary by date and comfort class, but tickets start ${fromPrice}.` +
       (advice?.action === "book-early"
-        ? " Prices rise closer to departure, so the earliest bookings are the cheapest."
+        ? " The cheapest fares are limited and go first, so book early to get one."
         : "")
     );
   }
@@ -77,7 +79,7 @@ export function costAnswer({
   const sells = operatorNames
     ? `${operatorNames} sells ${plural ? "these routes" : "this route"}`
     : `${plural ? "These routes are" : "This route is"} sold`;
-  return `${sells} ${advice.detail}.`;
+  return `${sells} ${advice.detail}.` + (advice.caveat ? ` That said, ${advice.caveat}.` : "");
 }
 
 /**
@@ -179,6 +181,7 @@ export function buildRouteFaq(input = {}) {
  * @param {string} [input.fastestDurationText]   e.g. "9h 10m"
  * @param {string} [input.fromPrice]             already formatted, e.g. "from €29"
  * @param {string} [input.pricingType]           "dynamic" | "fixed", from the operator record
+ * @param {boolean} [input.hasLastMinuteDeals]   an operator here publishes a deals page
  * @returns {{q:string,a:string}[]}
  */
 export function buildConnectionFaq(input = {}) {
@@ -190,6 +193,7 @@ export function buildConnectionFaq(input = {}) {
     fastestDurationText = "",
     fromPrice = "",
     pricingType = "",
+    hasLastMinuteDeals = false,
   } = input;
 
   if (!originCity || !destCity) return [];
@@ -221,7 +225,12 @@ export function buildConnectionFaq(input = {}) {
   // still the thing a traveller is deciding on: WHETHER BOOKING EARLY HELPS.
   // That differs by operator and the answer is already in the data, so leaving
   // the question out entirely — as this did — said nothing on every page.
-  const priceAnswer = costAnswer({ fromPrice, pricingType, operatorNames });
+  const priceAnswer = costAnswer({
+    fromPrice,
+    pricingType,
+    operatorNames,
+    hasLastMinuteDeals,
+  });
   if (priceAnswer) {
     faq.push({
       q: `How much is a night train from ${originCity} to ${destCity}?`,
