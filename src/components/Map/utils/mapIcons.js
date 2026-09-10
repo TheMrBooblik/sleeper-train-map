@@ -7,7 +7,16 @@
  * invisible 24px hit polylines on routes.
  */
 
-import { MAP_LEGEND_LINE_BASE_STYLES } from "./routeStyleUtils";
+/**
+ * Fade for a stop only the next timetable period calls at.
+ *
+ * Deliberately NOT `MAP_LEGEND_LINE_BASE_STYLES.futureGhost.opacity` (0.35),
+ * which is the same idea for the line: a 16px dot carries far less ink than a
+ * 4.5px-wide stroke running across the map, so the same alpha reads much fainter
+ * on it. This is the value that makes the dot say "not yet running" as loudly as
+ * the line does. The legend swatch reads it from here so the two cannot drift.
+ */
+export const FUTURE_STATION_OPACITY = 0.55;
 
 /** Finger-sized tap target: a fingertip is far bigger than a 20px dot. */
 const HIT_TOUCH = 44;
@@ -91,12 +100,11 @@ export function createMapIcons(Leaflet) {
     iconAnchor: [HIT / 2, HIT / 2],
   });
 
-  // A stop only the next timetable period calls at. Same dot as an intermediate
-  // stop, faded to the opacity the line styling already uses for a route that
-  // has not started (MAP_LEGEND_LINE_BASE_STYLES.futureGhost) — so a station and
-  // the line through it say "not yet running" the same way. Hiding these instead
-  // left the December Brussels–Milan line visibly running through Eindhoven and
-  // Breda with no markers on it, which reads as a bug rather than as a preview.
+  // A stop only the next timetable period calls at: the intermediate-stop dot,
+  // faded so it reads as a preview alongside the line through it (see
+  // FUTURE_STATION_OPACITY). Hiding these instead left the December
+  // Brussels–Milan line visibly running through Eindhoven and Breda with no
+  // markers on it, which reads as a bug rather than as a preview.
   const futureIcon = new Leaflet.DivIcon({
     className: "via-dot future-dot",
     html: stationDotHtml({
@@ -107,7 +115,7 @@ export function createMapIcons(Leaflet) {
       shadow:
         "0 2px 6px rgba(76, 175, 80, 0.35), 0 0 0 1px rgba(76, 175, 80, 0.2)",
       zIndex: 90,
-      opacity: MAP_LEGEND_LINE_BASE_STYLES.futureGhost.opacity,
+      opacity: FUTURE_STATION_OPACITY,
     }),
     iconSize: [HIT, HIT],
     iconAnchor: [HIT / 2, HIT / 2],
