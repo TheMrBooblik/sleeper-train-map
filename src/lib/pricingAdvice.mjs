@@ -27,6 +27,13 @@
  * never that late fares are always worse, which is exactly why the base wording
  * has to survive without the caveat.
  *
+ * `headline` names the fare model and `guidance` says what to do about it,
+ * because they belong in different places. A badge that reads "Book early" is
+ * an instruction with its reasoning missing, and next to a fare it is not even
+ * obviously about the fare; "Dynamic fare" states the fact, and the advice sits
+ * one click away behind the explainer (src/components/PricingExplainer.js)
+ * where there is room for the reason and the caveat.
+ *
  * Pure, dependency-free and .mjs so raw-node tests can import it, and so the
  * map panel can read it without reaching into the SEO layer. It is the single
  * source of this wording: the badge, the tile, the booking caption and both FAQ
@@ -37,8 +44,9 @@
 /**
  * @typedef {object} PricingAdvice
  * @property {"book-early"|"price-is-fixed"} action  machine-readable, for styling/tests
- * @property {string} headline  badge-sized, e.g. "Book early"
- * @property {string} short     one clause, for a caption next to the CTA
+ * @property {string} headline  what the fare IS, badge-sized, e.g. "Dynamic fare"
+ * @property {string} guidance  what to DO about it, e.g. "Book early"
+ * @property {string} short     one clause of reason, for a caption next to the CTA
  * @property {string} detail    full sentence body, for FAQ prose
  * @property {string} caveat    the case that cuts the other way, or ""
  */
@@ -58,7 +66,8 @@ export function pricingAdvice(pricing, { hasLastMinuteDeals = false } = {}) {
     case "dynamic":
       return {
         action: "book-early",
-        headline: "Book early",
+        headline: "Dynamic fare",
+        guidance: "Book early",
         short: "the cheapest fares are limited and go first",
         detail:
           "at yield-managed fares: the price depends on the date, the comfort class " +
@@ -75,6 +84,7 @@ export function pricingAdvice(pricing, { hasLastMinuteDeals = false } = {}) {
       return {
         action: "price-is-fixed",
         headline: "Fixed fare",
+        guidance: "Book any time",
         short: "the price won't rise, but berths sell out",
         detail:
           "on a fixed tariff: the fare is set by distance and comfort class, so it " +

@@ -243,14 +243,26 @@ check(buildConnectionFaq({}).length === 0, "connection: empty input → []");
   check(fix.action === "price-is-fixed", "advice/fixed: action is price-is-fixed");
 
   for (const [label, a] of [["dynamic", dyn], ["fixed", fix]]) {
-    for (const field of ["action", "headline", "short", "detail"]) {
+    for (const field of ["action", "headline", "guidance", "short", "detail"]) {
       check(
         typeof a[field] === "string" && a[field].trim().length > 0,
         `advice/${label}: ${field} must be a non-empty string`,
       );
     }
-    // The headline lands in a badge; a long one wraps or truncates.
+    // Both land in a badge or next to a button; a long one wraps or truncates.
     check(a.headline.length <= 16, `advice/${label}: headline too long for a badge — "${a.headline}"`);
+    check(a.guidance.length <= 16, `advice/${label}: guidance too long — "${a.guidance}"`);
+    // headline names the fare, guidance says what to do about it. Collapsing
+    // them is what put "Book early" on a badge, an instruction with its
+    // reasoning missing and no obvious connection to the price beside it.
+    check(
+      /fare|pricing|tariff/i.test(a.headline),
+      `advice/${label}: headline must NAME the fare model, got "${a.headline}"`,
+    );
+    check(
+      /book|buy/i.test(a.guidance) && !/fare|tariff/i.test(a.guidance),
+      `advice/${label}: guidance must be an instruction, got "${a.guidance}"`,
+    );
     // detail is a sentence BODY: callers prepend a subject and append the stop.
     check(
       !/^[A-Z]/.test(a.detail) && !a.detail.endsWith("."),
@@ -380,6 +392,31 @@ check(buildConnectionFaq({}).length === 0, "connection: empty input → []");
       `${agencyId} links "${booking.dealsLabel}" next to advice that would tell the reader to book early with no caveat`,
     );
   }
+}
+
+// ── The explainer's contract ───────────────────────────────────────────────
+// The badge names the fare and hides the advice behind a "?"; the explainer is
+// what unpacks it. These pin the shape it depends on, since a missing field
+// there renders an empty disclosure rather than throwing.
+{
+  for (const type of ["dynamic", "fixed"]) {
+    const a = pricingAdvice({ type }, { hasLastMinuteDeals: true });
+    check(
+      a.guidance && a.short && !a.short.endsWith("."),
+      `explainer/${type}: guidance + a clause of reason, the clause unpunctuated so the component can end it`,
+    );
+    check(
+      a.caveat === "" || !a.caveat.endsWith("."),
+      `explainer/${type}: caveat must also be an unpunctuated clause`,
+    );
+  }
+  // The instruction differs between the models — that is the whole point of
+  // opening the disclosure.
+  check(
+    pricingAdvice({ type: "dynamic" }).guidance !==
+      pricingAdvice({ type: "fixed" }).guidance,
+    "explainer: the two models must not give the same instruction",
+  );
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────

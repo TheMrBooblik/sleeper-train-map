@@ -18,16 +18,19 @@ import {
   hexWithAlpha,
 } from "../Map/utils/operatorColors";
 import { abbreviateStationName } from "../Map/utils/stationNameUtils";
+import PricingExplainer from "../PricingExplainer";
 import {
   getOperatorPricing,
   formatPricingLabel,
   getPricingBadgeStyle,
+  pricingAdvice,
 } from "../../lib/operatorPricing";
 import {
   formatTrainNumber,
   resolveOperatorComponents,
   resolveScheduleLink,
 } from "../../lib/operatorAgencies.mjs";
+import { hasLastMinuteDeals } from "../../lib/operatorBooking";
 import {
   esScheduleForTrip,
   isEuropeanSleeperRoute,
@@ -1462,6 +1465,12 @@ const TrainDetailPanel = ({
                 const pricing = getOperatorPricing(trip);
                 const pricingLabel = formatPricingLabel(pricing);
                 const pricingBadgeStyle = getPricingBadgeStyle(pricing);
+                // Keyed to the SELLING agency, because a deals page is a
+                // selling-side thing and BookingActions renders that link right
+                // below — the two must not disagree about whether one exists.
+                const pricingHelp = pricingAdvice(pricing, {
+                  hasLastMinuteDeals: hasLastMinuteDeals(bookingAgencyId),
+                });
 
                 return (
                   <div
@@ -1561,20 +1570,20 @@ const TrainDetailPanel = ({
                         ))}
                     </div>
 
-                    {/* Pricing */}
+                    {/* Pricing — the badge names the fare model; the circled
+                        "?" opens what it means for booking (PricingExplainer). */}
                     {pricingLabel && pricingBadgeStyle && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500 uppercase">
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs text-gray-500 uppercase mt-0.5">
                           Price
                         </span>
-                        <span
-                          className="rounded-md px-2 py-0.5 text-xs font-medium"
-                          style={{
-                            ...pricingBadgeStyle,
-                          }}
-                        >
-                          {pricingLabel}
-                        </span>
+                        <PricingExplainer
+                          advice={pricingHelp}
+                          label={pricingLabel}
+                          tone="light"
+                          labelClassName="rounded-md px-2 py-0.5 text-xs font-medium"
+                          labelStyle={pricingBadgeStyle}
+                        />
                       </div>
                     )}
 

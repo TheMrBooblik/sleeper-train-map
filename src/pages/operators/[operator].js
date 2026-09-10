@@ -14,7 +14,7 @@ import {
 import { toCardRoute } from "../../lib/seo/data";
 import { getFlagEmoji } from "../../lib/countries";
 import { getOperatorPricing, pricingAdvice } from "../../lib/operatorPricing";
-import { getDealsLink } from "../../lib/operatorBooking";
+import { hasLastMinuteDeals } from "../../lib/operatorBooking";
 import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
 export default function OperatorHub({ operator, routes, countries, connections, advice }) {
@@ -170,7 +170,7 @@ export async function getStaticProps({ params }) {
       // that said nothing about fares at all.
       advice:
         pricingAdvice(getOperatorPricing({ agency_id: hub.operator.id }), {
-          hasLastMinuteDeals: Boolean(getDealsLink(hub.operator.id)),
+          hasLastMinuteDeals: hasLastMinuteDeals(hub.operator.id),
         }) ?? null,
     },
   };

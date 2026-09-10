@@ -46,8 +46,12 @@ export default function BookingCta({
   // "Last-minute deals" was the page arguing with itself. With the caveat the
   // two read as one answer — book early for the reliable fare, or gamble on an
   // unsold berth.
+  // `guidance` ("Book early"), not `headline` ("Dynamic fare"): this is a
+  // sentence at the point of purchase, so it opens with the instruction. The
+  // fare's NAME belongs on the badge in the facts tile, where the explainer
+  // unpacks it.
   const timing = advice
-    ? `${advice.headline} — ${advice.short}` +
+    ? `${advice.guidance} — ${advice.short}` +
       (advice.caveat ? `, but ${advice.caveat}.` : ".")
     : "";
 

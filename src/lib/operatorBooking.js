@@ -15,6 +15,7 @@
  * This mirrors operatorPricing.js: the JSON is bundled at build time (no API),
  * so admin edits go live on the next deploy.
  */
+import { splitAgencyIds } from "./seo/operatorNames.mjs";
 import OPERATOR_BOOKING from "../../data/overrides/operator-booking.json" with { type: "json" };
 
 export { OPERATOR_BOOKING };
@@ -96,6 +97,18 @@ export function getDealsLink(agencyId) {
     url: booking.dealsUrl,
     label: booking.dealsLabel || "View deals",
   };
+}
+
+/**
+ * Whether ANY component of a (possibly compound) agency id publishes a
+ * last-minute deals page — the first-party evidence behind pricingAdvice()'s
+ * caveat, so the advice next to a "Last-minute deals" link never contradicts it.
+ *
+ * Splits the id for the same reason everything else here does: a joint service
+ * is recorded as "PKP/ČD", and getOperatorBooking() only knows single ids.
+ */
+export function hasLastMinuteDeals(agencyId) {
+  return splitAgencyIds(agencyId).some((id) => !!getOperatorBooking(id)?.dealsUrl);
 }
 
 /**
