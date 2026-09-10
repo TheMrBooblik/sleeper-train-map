@@ -25,9 +25,12 @@
 // foreign stretch and get the official Romanian stretch spliced in
 // (`coverage: "partial"`).
 
+import zlib from "node:zlib";
+
 // ─── Field map ──────────────────────────────────────────────────────────────
 // First name of each list is the one the 2025–2026 file uses; the rest are
 // alternates accepted case-insensitively.
+
 export const FIELDS = {
   train: ["Tren", "Train"],
   trainNumber: ["Numar", "NumarTren", "Nr", "Number"],
@@ -37,8 +40,20 @@ export const FIELDS = {
   routeType: ["Tip", "TipTrasa"],
   element: ["ElementTrasa", "Element", "Segment"],
   sequence: ["Secventa", "Secv", "Seq"],
-  fromName: ["DenStaOrigine", "DenStaOrig", "StatieOrigine", "DenumireStatieOrigine", "From"],
-  toName: ["DenStaDestinatie", "DenStaDest", "StatieDestinatie", "DenumireStatieDestinatie", "To"],
+  fromName: [
+    "DenStaOrigine",
+    "DenStaOrig",
+    "StatieOrigine",
+    "DenumireStatieOrigine",
+    "From",
+  ],
+  toName: [
+    "DenStaDestinatie",
+    "DenStaDest",
+    "StatieDestinatie",
+    "DenumireStatieDestinatie",
+    "To",
+  ],
   fromCode: ["CodStaOrigine", "CodStaOrig", "CodStatieOrigine"],
   toCode: ["CodStaDest", "CodStaDestinatie", "CodStatieDestinatie"],
   departure: ["OraP", "OraPlecare", "Plecare"],
@@ -49,23 +64,38 @@ export const FIELDS = {
 
 // TipOprire values that mean "runs through without a commercial stop". Only
 // consulted when the times give no dwell; an unknown value never hides a stop.
-const NO_STOP_TYPES = new Set(["F", "T", "N-", "X", "FARA", "FARA OPRIRE", "0"]);
+const NO_STOP_TYPES = new Set([
+  "F",
+  "T",
+  "N-",
+  "X",
+  "FARA",
+  "FARA OPRIRE",
+  "0",
+]);
 
 const ENTITY = { lt: "<", gt: ">", amp: "&", quot: '"', apos: "'" };
 export function decodeXmlEntities(value) {
-  return String(value ?? "").replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => {
-    if (e[0] === "#") {
-      const code = e[1].toLowerCase() === "x" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
-      return Number.isFinite(code) ? String.fromCodePoint(code) : m;
-    }
-    return ENTITY[e.toLowerCase()] ?? m;
-  });
+  return String(value ?? "").replace(
+    /&(#x[0-9a-f]+|#\d+|[a-z]+);/gi,
+    (m, e) => {
+      if (e[0] === "#") {
+        const code =
+          e[1].toLowerCase() === "x"
+            ? parseInt(e.slice(2), 16)
+            : parseInt(e.slice(1), 10);
+        return Number.isFinite(code) ? String.fromCodePoint(code) : m;
+      }
+      return ENTITY[e.toLowerCase()] ?? m;
+    },
+  );
 }
 
 // ─── Minimal attribute-XML tokenizer ────────────────────────────────────────
 // The timetable is attribute-only (no text nodes matter), so a regex walk over
 // start/empty/end tags is enough and keeps the 30–40 MB file out of any DOM.
-const TAG_RE = /<(\/?)([A-Za-z_][\w.:-]*)((?:\s+[\w.:-]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*(\/?)>/g;
+const TAG_RE =
+  /<(\/?)([A-Za-z_][\w.:-]*)((?:\s+[\w.:-]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*(\/?)>/g;
 const ATTR_RE = /([\w.:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
 
 function parseAttrs(raw) {
@@ -73,7 +103,8 @@ function parseAttrs(raw) {
   if (!raw) return attrs;
   ATTR_RE.lastIndex = 0;
   let m;
-  while ((m = ATTR_RE.exec(raw))) attrs[m[1]] = decodeXmlEntities(m[2] ?? m[3] ?? "");
+  while ((m = ATTR_RE.exec(raw)))
+    attrs[m[1]] = decodeXmlEntities(m[2] ?? m[3] ?? "");
   return attrs;
 }
 
@@ -90,7 +121,8 @@ function attr(attrs, names) {
   return null;
 }
 
-const isTag = (name, names) => names.some((n) => n.toLowerCase() === name.toLowerCase());
+const isTag = (name, names) =>
+  names.some((n) => n.toLowerCase() === name.toLowerCase());
 
 /**
  * "36000" → 36000; "10:00" / "10:00:00" → 36000; blanks → null. Values are
@@ -186,7 +218,8 @@ export function parseMersTrenXml(xml, { onlyNumbers = null } = {}) {
       if (train) {
         if (!route) route = { type: null, elements: [] };
         route.elements.push({
-          seq: Number(attr(attrs, FIELDS.sequence)) || route.elements.length + 1,
+          seq:
+            Number(attr(attrs, FIELDS.sequence)) || route.elements.length + 1,
           from: (attr(attrs, FIELDS.fromName) ?? "").trim(),
           to: (attr(attrs, FIELDS.toName) ?? "").trim(),
           fromCode: attr(attrs, FIELDS.fromCode),
@@ -255,20 +288,35 @@ export function stopsFromElements(elements) {
     const isLast = !next;
     if (!seg.to) continue;
     if (isLast) {
-      stops.push({ name: seg.to, code: seg.toCode ?? null, arrival: seg.arrival, departure: null });
+      stops.push({
+        name: seg.to,
+        code: seg.toCode ?? null,
+        arrival: seg.arrival,
+        departure: null,
+      });
       break;
     }
     const departure = next.departure;
     const dwellFromTimes =
-      Number.isFinite(seg.arrival) && Number.isFinite(departure) ? departure - seg.arrival : null;
-    const stopType = (next.stopType ?? seg.stopType ?? "").toString().trim().toUpperCase();
+      Number.isFinite(seg.arrival) && Number.isFinite(departure)
+        ? departure - seg.arrival
+        : null;
+    const stopType = (next.stopType ?? seg.stopType ?? "")
+      .toString()
+      .trim()
+      .toUpperCase();
     const dwell = Number.isFinite(next.dwell) ? next.dwell : dwellFromTimes;
     let isStop;
     if (Number.isFinite(dwell)) isStop = dwell > 0;
     else if (stopType) isStop = !NO_STOP_TYPES.has(stopType);
     else isStop = true;
     if (!isStop) continue;
-    stops.push({ name: seg.to, code: seg.toCode ?? null, arrival: seg.arrival, departure });
+    stops.push({
+      name: seg.to,
+      code: seg.toCode ?? null,
+      arrival: seg.arrival,
+      departure,
+    });
   }
   return stops;
 }
@@ -314,7 +362,13 @@ export function cityKey(name) {
  *
  * @returns {(name: string) => { name: string, lat: number|null, lon: number|null, known: boolean }}
  */
-export function makeCfrStationIndex({ botStops = {}, preferred = [], overrides = {}, catalog = {}, countries = ["RO", "MD", "HU", "BG", "UA", "RS"] } = {}) {
+export function makeCfrStationIndex({
+  botStops = {},
+  preferred = [],
+  overrides = {},
+  catalog = {},
+  countries = ["RO", "MD", "HU", "BG", "UA", "RS"],
+} = {}) {
   const wantedCountries = countries ? new Set(countries) : null;
   const index = new Map();
   const preferredKeys = new Set((preferred ?? []).map(foldStationName));
@@ -322,19 +376,34 @@ export function makeCfrStationIndex({ botStops = {}, preferred = [], overrides =
     const key = foldStationName(name);
     if (!key) return;
     const current = index.get(key);
-    if (!current || priority > current.priority) index.set(key, { name, lat, lon, priority });
+    if (!current || priority > current.priority)
+      index.set(key, { name, lat, lon, priority });
   };
   for (const stop of Object.values(botStops ?? {})) {
-    if (!stop?.stop_name || !Number.isFinite(stop?.stop_lat) || !Number.isFinite(stop?.stop_lon)) continue;
-    const inRegion = !wantedCountries || !stop.stop_country || wantedCountries.has(stop.stop_country);
+    if (
+      !stop?.stop_name ||
+      !Number.isFinite(stop?.stop_lat) ||
+      !Number.isFinite(stop?.stop_lon)
+    )
+      continue;
+    const inRegion =
+      !wantedCountries ||
+      !stop.stop_country ||
+      wantedCountries.has(stop.stop_country);
     const key = foldStationName(stop.stop_name);
     // Preferred (row-referenced) spellings first, then in-region stops, then
     // the rest — so a Bulgarian "Roman" never outranks Romania's.
-    const priority = preferredKeys.has(key) && preferred.includes(stop.stop_name) ? 3 : inRegion ? 2 : 1;
+    const priority =
+      preferredKeys.has(key) && preferred.includes(stop.stop_name)
+        ? 3
+        : inRegion
+          ? 2
+          : 1;
     add(stop.stop_name, stop.stop_lat, stop.stop_lon, priority);
   }
   for (const [name, c] of Object.entries(catalog ?? {})) {
-    if (Number.isFinite(c?.lat) && Number.isFinite(c?.lon)) add(name, c.lat, c.lon, 4);
+    if (Number.isFinite(c?.lat) && Number.isFinite(c?.lon))
+      add(name, c.lat, c.lon, 4);
   }
   // Overrides only correct coordinates of a name we already know, or add a
   // brand-new name; they never rename.
@@ -391,10 +460,14 @@ function stitchLegs(legs) {
   for (const leg of legs.slice(1)) {
     const last = stops[stops.length - 1];
     const first = leg.stops[0];
-    if (!sameStation(last.name, first.name) && !sameCity(last.name, first.name)) return null;
+    if (!sameStation(last.name, first.name) && !sameCity(last.name, first.name))
+      return null;
     // Junction: keep the arrival of the incoming leg and the departure of the
     // outgoing one.
-    stops[stops.length - 1] = { ...last, departure: first.departure ?? last.departure };
+    stops[stops.length - 1] = {
+      ...last,
+      departure: first.departure ?? last.departure,
+    };
     stops = stops.concat(leg.stops.slice(1));
   }
   return stops;
@@ -437,7 +510,8 @@ export function matchOfficialStops(rowDir, numbers, xmlTrains) {
   // 1a. Any single numbered train that runs the whole corridor.
   for (const n of numbers) {
     for (const v of variants(n)) {
-      if (endpointsMatch(v.stops)) return { stops: v.stops, coverage: "full", numbers: [n] };
+      if (endpointsMatch(v.stops))
+        return { stops: v.stops, coverage: "full", numbers: [n] };
     }
   }
   // 1b. Label legs stitched in label order (through cars: "IRN 1954/R 8824").
@@ -447,7 +521,11 @@ export function matchOfficialStops(rowDir, numbers, xmlTrains) {
       for (const ordered of [legs, [...legs].reverse()]) {
         const stitched = stitchLegs(ordered);
         if (stitched && endpointsMatch(stitched)) {
-          return { stops: stitched, coverage: "full", numbers: ordered.map((l) => l.number) };
+          return {
+            stops: stitched,
+            coverage: "full",
+            numbers: ordered.map((l) => l.number),
+          };
         }
       }
     }
@@ -458,20 +536,45 @@ export function matchOfficialStops(rowDir, numbers, xmlTrains) {
     for (const v of variants(n)) {
       const first = v.stops[0]?.name;
       const last = v.stops[v.stops.length - 1]?.name;
-      const idxOf = (name) => chain.findIndex((c) => sameStation(c, name) || sameCity(c, name));
-      const startsAtOrigin = sameStation(first, origin) || sameCity(first, origin);
-      const endsAtDest = sameStation(last, destination) || sameCity(last, destination);
+      const idxOf = (name) =>
+        chain.findIndex((c) => sameStation(c, name) || sameCity(c, name));
+      const startsAtOrigin =
+        sameStation(first, origin) || sameCity(first, origin);
+      const endsAtDest =
+        sameStation(last, destination) || sameCity(last, destination);
       if (startsAtOrigin && !endsAtDest) {
         const cut = idxOf(last);
         if (cut > 0 && cut < chain.length - 1) {
-          const rest = chain.slice(cut + 1).map((name) => ({ name, code: null, arrival: null, departure: null }));
-          return { stops: [...v.stops, ...rest], coverage: "partial", numbers: [n] };
+          const rest = chain
+            .slice(cut + 1)
+            .map((name) => ({
+              name,
+              code: null,
+              arrival: null,
+              departure: null,
+            }));
+          return {
+            stops: [...v.stops, ...rest],
+            coverage: "partial",
+            numbers: [n],
+          };
         }
       } else if (endsAtDest && !startsAtOrigin) {
         const cut = idxOf(first);
         if (cut > 0 && cut < chain.length - 1) {
-          const head = chain.slice(0, cut).map((name) => ({ name, code: null, arrival: null, departure: null }));
-          return { stops: [...head, ...v.stops], coverage: "partial", numbers: [n] };
+          const head = chain
+            .slice(0, cut)
+            .map((name) => ({
+              name,
+              code: null,
+              arrival: null,
+              departure: null,
+            }));
+          return {
+            stops: [...head, ...v.stops],
+            coverage: "partial",
+            numbers: [n],
+          };
         }
       }
     }
@@ -508,7 +611,13 @@ export function buildCfrTrains({
   minStops = 3,
 }) {
   const trains = {};
-  const report = { matched: [], partial: [], unmatched: [], skippedShort: [], unknownStations: new Set() };
+  const report = {
+    matched: [],
+    partial: [],
+    unmatched: [],
+    skippedShort: [],
+    unknownStations: new Set(),
+  };
 
   const toStations = (stops) =>
     stops.map((s) => {
@@ -517,9 +626,16 @@ export function buildCfrTrains({
       return {
         id: s.code ?? null,
         name: r.name,
-        location: Number.isFinite(r.lat) && Number.isFinite(r.lon) ? { latitude: r.lat, longitude: r.lon } : null,
-        arrival: Number.isFinite(s.arrival) ? `${today}T${secondsToHHMM(s.arrival)}:00` : null,
-        departure: Number.isFinite(s.departure) ? `${today}T${secondsToHHMM(s.departure)}:00` : null,
+        location:
+          Number.isFinite(r.lat) && Number.isFinite(r.lon)
+            ? { latitude: r.lat, longitude: r.lon }
+            : null,
+        arrival: Number.isFinite(s.arrival)
+          ? `${today}T${secondsToHHMM(s.arrival)}:00`
+          : null,
+        departure: Number.isFinite(s.departure)
+          ? `${today}T${secondsToHHMM(s.departure)}:00`
+          : null,
         pickup: true,
         dropoff: true,
       };
@@ -541,7 +657,9 @@ export function buildCfrTrains({
       polyline: null,
       ...meta,
     };
-    (match.coverage === "partial" ? report.partial : report.matched).push(label);
+    (match.coverage === "partial" ? report.partial : report.matched).push(
+      label,
+    );
   };
 
   for (const route of Object.values(viewMap ?? {})) {
@@ -571,7 +689,9 @@ export function buildCfrTrains({
   for (const extra of extraTrains ?? []) {
     const label = String(extra?.label ?? "").trim();
     if (!label || trains[label]) continue;
-    const numbers = extra.numbers?.length ? extra.numbers.map(String) : trainNumbersFromLabel(label);
+    const numbers = extra.numbers?.length
+      ? extra.numbers.map(String)
+      : trainNumbersFromLabel(label);
     const legs = numbers.map((n) => xmlTrains.get(n)?.[0]).filter(Boolean);
     if (!legs.length) {
       report.unmatched.push(label);
@@ -583,14 +703,22 @@ export function buildCfrTrains({
       continue;
     }
     if (extra.origin && extra.destination) {
-      const m = matchOfficialStops({ origin: extra.origin, destination: extra.destination, via: "" }, numbers, xmlTrains);
+      const m = matchOfficialStops(
+        { origin: extra.origin, destination: extra.destination, via: "" },
+        numbers,
+        xmlTrains,
+      );
       if (!m) {
         report.unmatched.push(label);
         continue;
       }
       emit(label, { ...m }, { frequency: extra.frequency ?? null });
     } else {
-      emit(label, { stops, coverage: "full", numbers }, { frequency: extra.frequency ?? null });
+      emit(
+        label,
+        { stops, coverage: "full", numbers },
+        { frequency: extra.frequency ?? null },
+      );
     }
   }
 
@@ -619,7 +747,8 @@ export function timetableYearLabel(date = new Date()) {
  * @returns {{ url: string, name: string, format: string, lastModified: string|null }|null}
  */
 export function pickTimetableResource(packageShow, { now = new Date() } = {}) {
-  const resources = packageShow?.result?.resources ?? packageShow?.resources ?? [];
+  const resources =
+    packageShow?.result?.resources ?? packageShow?.resources ?? [];
   const candidates = resources
     .filter((r) => r?.url)
     .map((r) => {
@@ -632,7 +761,8 @@ export function pickTimetableResource(packageShow, { now = new Date() } = {}) {
         url,
         name,
         format: isXml ? "XML" : isZip ? "ZIP" : format || null,
-        lastModified: r.last_modified ?? r.metadata_modified ?? r.created ?? null,
+        lastModified:
+          r.last_modified ?? r.metadata_modified ?? r.created ?? null,
         ok: isXml || isZip,
       };
     })
@@ -640,7 +770,9 @@ export function pickTimetableResource(packageShow, { now = new Date() } = {}) {
   if (!candidates.length) return null;
   const year = timetableYearLabel(now);
   const [y1, y2] = year.split("-");
-  const yearRe = new RegExp(`${y1}\\D{0,3}${y2}|${y1.slice(2)}\\D{0,3}${y2.slice(2)}`);
+  const yearRe = new RegExp(
+    `${y1}\\D{0,3}${y2}|${y1.slice(2)}\\D{0,3}${y2.slice(2)}`,
+  );
   const score = (r) => {
     let s = 0;
     if (yearRe.test(r.name) || yearRe.test(r.url)) s += 100;
@@ -657,14 +789,27 @@ export function pickTimetableResource(packageShow, { now = new Date() } = {}) {
 }
 
 /** Decode the raw bytes honouring the XML declaration's encoding. */
+// The committed copy of the timetable is gzipped (the raw national file is far
+// too big to hold in git uncompressed) while a downloaded one is not, so the
+// bytes decide rather than the filename — a caller should not have to know
+// which of the two it is holding.
+function gunzipIfNeeded(buffer) {
+  const bytes = Buffer.from(buffer);
+  if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    return zlib.gunzipSync(bytes);
+  }
+  return bytes;
+}
+
 export function decodeXmlBytes(buffer) {
-  const head = Buffer.from(buffer).subarray(0, 200).toString("latin1");
+  const bytes = gunzipIfNeeded(buffer);
+  const head = bytes.subarray(0, 200).toString("latin1");
   const m = head.match(/encoding\s*=\s*["']([\w-]+)["']/i);
   const enc = (m?.[1] ?? "utf-8").toLowerCase();
   try {
-    return new TextDecoder(enc).decode(buffer);
+    return new TextDecoder(enc).decode(bytes);
   } catch {
-    return Buffer.from(buffer).toString("utf8");
+    return bytes.toString("utf8");
   }
 }
 
