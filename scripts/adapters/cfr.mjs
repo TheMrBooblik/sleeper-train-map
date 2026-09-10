@@ -9,8 +9,7 @@
 //      it is used instead and the reason is recorded in ctx.errors, so the run
 //      keeps its data without pretending the official endpoint answered.
 //   2. Download the XML (or a zip of it) into gtfs-data/cfr/, decode per its
-//      declared encoding (gzip is unwrapped by bytes, so the committed copy can
-//      be compressed), parse only the train numbers the map needs.
+//      declared encoding, parse only the train numbers the map needs.
 //   3. Rebuild each Back-on-Track CFR row's stop list from the official
 //      segments, keyed by BoT's own trip label ("IRN 1669") so the registry's
 //      trainsByNumber enrichment finds it: full stop list, official times,
@@ -37,10 +36,7 @@ import path from "node:path";
 import { execSync } from "node:child_process";
 import { downloadFile } from "../lib/gtfs.mjs";
 import { describeError } from "../lib/describe-error.mjs";
-import {
-  emptyGeometryCache,
-  resolveRouteGeometry,
-} from "../lib/route-geometry.mjs";
+import { emptyGeometryCache, resolveRouteGeometry } from "../lib/route-geometry.mjs";
 import { relationCoordsFromOverpass } from "../../src/pages/api/lib/osm-geo.mjs";
 import {
   buildCfrTrains,
@@ -72,16 +68,13 @@ export function wantedTrainNumbers(viewMap, extraTrains, agencyPattern) {
   for (const route of Object.values(viewMap ?? {})) {
     if (!rowInAgency(route, agencyPattern)) continue;
     for (const d of [0, 1]) {
-      trainNumbersFromLabel(route[`trip_short_name_${d}`]).forEach((n) =>
-        numbers.add(n),
-      );
+      trainNumbersFromLabel(route[`trip_short_name_${d}`]).forEach((n) => numbers.add(n));
     }
   }
   for (const extra of extraTrains ?? []) {
-    (extra?.numbers?.length
-      ? extra.numbers
-      : trainNumbersFromLabel(extra?.label)
-    ).forEach((n) => numbers.add(String(n)));
+    (extra?.numbers?.length ? extra.numbers : trainNumbersFromLabel(extra?.label)).forEach((n) =>
+      numbers.add(String(n)),
+    );
   }
   return numbers;
 }
@@ -92,9 +85,7 @@ function rowStationNames(viewMap, agencyPattern) {
   for (const route of Object.values(viewMap ?? {})) {
     if (!rowInAgency(route, agencyPattern)) continue;
     for (const d of [0, 1]) {
-      [route[`origin_trip_${d}`], route[`destination_trip_${d}`]]
-        .filter(Boolean)
-        .forEach((n) => names.add(n));
+      [route[`origin_trip_${d}`], route[`destination_trip_${d}`]].filter(Boolean).forEach((n) => names.add(n));
       String(route[`via_${d}`] ?? "")
         .split(" - ")
         .map((s) => s.trim())
@@ -183,33 +174,23 @@ export async function resolveTimetableSource({
       origin: `CFR_XML_PATH=${env.CFR_XML_PATH}`,
     };
   }
-  const localPath = localTimetable
-    ? path.join(ctx.rootDir, localTimetable)
-    : null;
+  const localPath = localTimetable ? path.join(ctx.rootDir, localTimetable) : null;
   try {
     log(`resolving current timetable resource via ${baseUrl}`);
     const pkg = await fetchPackage(baseUrl);
     const resource = pickTimetableResource(pkg);
     if (!resource) {
-      const names = (pkg?.result?.resources ?? [])
-        .map((r) => `${r?.name} [${r?.format}]`)
-        .join("; ");
-      throw new Error(
-        `no XML/ZIP timetable resource in package_show (resources: ${names || "none"})`,
-      );
+      const names = (pkg?.result?.resources ?? []).map((r) => `${r?.name} [${r?.format}]`).join("; ");
+      throw new Error(`no XML/ZIP timetable resource in package_show (resources: ${names || "none"})`);
     }
-    log(
-      `resource: ${resource.name} [${resource.format}] modified ${resource.lastModified ?? "?"}`,
-    );
+    log(`resource: ${resource.name} [${resource.format}] modified ${resource.lastModified ?? "?"}`);
     const xmlPath = await downloadTimetable(resource, workDir);
     log(`timetable source: ${resource.url}`);
     return { xmlPath, resource, origin: resource.url };
   } catch (err) {
     if (!localPath || !exists(localPath)) throw err;
     const reason = describeError(err);
-    log(
-      `remote timetable unavailable (${reason}) — falling back to ${localTimetable}`,
-    );
+    log(`remote timetable unavailable (${reason}) — falling back to ${localTimetable}`);
     ctx.errors?.push({
       source: entry.id,
       error: `remote timetable unavailable, used committed ${localTimetable}: ${reason}`,
@@ -220,16 +201,9 @@ export async function resolveTimetableSource({
 }
 
 export async function run(entry, ctx) {
-  const {
-    baseUrl,
-    configPath,
-    agencyPattern = "CFR",
-    localTimetable = null,
-  } = entry.params ?? {};
+  const { baseUrl, configPath, agencyPattern = "CFR", localTimetable = null } = entry.params ?? {};
   if (!baseUrl || !configPath) {
-    throw new Error(
-      `${entry.id}: params.baseUrl and params.configPath are required`,
-    );
+    throw new Error(`${entry.id}: params.baseUrl and params.configPath are required`);
   }
   const log = (msg) => console.log(`[scrape] ${entry.id}: ${msg}`);
   const config = readJsonSafe(path.join(ctx.rootDir, configPath)) ?? {};
@@ -240,33 +214,19 @@ export async function run(entry, ctx) {
 
   // 1–2. Resolve + download, with a committed copy as the fallback.
   const { xmlPath, resource, origin } = await resolveTimetableSource({
-    entry,
-    ctx,
-    baseUrl,
-    localTimetable,
-    workDir,
-    log,
+    entry, ctx, baseUrl, localTimetable, workDir, log,
   });
 
   // 3. Parse only what the map needs.
   const wanted = wantedTrainNumbers(viewMap, extraTrains, agencyPattern);
   const xml = decodeXmlBytes(fs.readFileSync(xmlPath));
-  const { trains: xmlTrains, stats } = parseMersTrenXml(xml, {
-    onlyNumbers: wanted,
-  });
-  log(
-    `parsed: ${describeParseStats(stats)}; wanted ${wanted.size} number(s), found ${xmlTrains.size}`,
-  );
+  const { trains: xmlTrains, stats } = parseMersTrenXml(xml, { onlyNumbers: wanted });
+  log(`parsed: ${describeParseStats(stats)}; wanted ${wanted.size} number(s), found ${xmlTrains.size}`);
   if (stats.trains === 0) {
-    throw new Error(
-      `${entry.id}: no <Tren> elements found — file shape changed? ${describeParseStats(stats)}`,
-    );
+    throw new Error(`${entry.id}: no <Tren> elements found — file shape changed? ${describeParseStats(stats)}`);
   }
 
-  const overrides =
-    readJsonSafe(
-      path.join(ctx.rootDir, "data", "overrides", "station-coordinates.json"),
-    ) ?? {};
+  const overrides = readJsonSafe(path.join(ctx.rootDir, "data", "overrides", "station-coordinates.json")) ?? {};
   const resolveStation = makeCfrStationIndex({
     botStops: ctx.shared.stops ?? {},
     preferred: rowStationNames(viewMap, agencyPattern),
@@ -289,9 +249,7 @@ export async function run(entry, ctx) {
     }${report.skippedShort.length ? `; too short: ${report.skippedShort.join(", ")}` : ""}`,
   );
   if (report.unknownStations.length) {
-    log(
-      `${report.unknownStations.length} official stop name(s) without a known station (no map dot): ${report.unknownStations.slice(0, 20).join(", ")}${report.unknownStations.length > 20 ? ", …" : ""}`,
-    );
+    log(`${report.unknownStations.length} official stop name(s) without a known station (no map dot): ${report.unknownStations.slice(0, 20).join(", ")}${report.unknownStations.length > 20 ? ", …" : ""}`);
   }
 
   // Freshness safety net (mirrors gtfs-sleeper / europeansleeper): the file
@@ -304,32 +262,18 @@ export async function run(entry, ctx) {
     );
   }
   if (Object.keys(trains).length === 0) {
-    throw new Error(
-      `${entry.id}: none of the ${wanted.size} wanted train number(s) exist in the file — ${describeParseStats(stats)}`,
-    );
+    throw new Error(`${entry.id}: none of the ${wanted.size} wanted train number(s) exist in the file — ${describeParseStats(stats)}`);
   }
 
   // 4. Geometry, cached by stop-list hash in the shared route-geometry file.
-  const cache =
-    readJsonSafe(path.join(scrapedDir, GEOMETRY_CACHE_FILE))?.data ??
-    emptyGeometryCache();
+  const cache = readJsonSafe(path.join(scrapedDir, GEOMETRY_CACHE_FILE))?.data ?? emptyGeometryCache();
   for (const train of Object.values(trains)) {
     const stops = train.stations.map((s) => ({
       name: s.name,
       lat: s.location?.latitude,
       lon: s.location?.longitude,
     }));
-    const refs = [
-      ...new Set(
-        train.officialNumbers.flatMap((n) => [
-          n,
-          `IR ${n}`,
-          `IRN ${n}`,
-          `IC ${n}`,
-          `R ${n}`,
-        ]),
-      ),
-    ];
+    const refs = [...new Set(train.officialNumbers.flatMap((n) => [n, `IR ${n}`, `IRN ${n}`, `IC ${n}`, `R ${n}`]))];
     const resolved = await resolveRouteGeometry({
       key: `${entry.id}:${train.lineName}`,
       stops,
@@ -353,13 +297,7 @@ export async function run(entry, ctx) {
     // Provenance, because `resource` is null whenever the committed copy was
     // used and the file would otherwise not say which of the two it describes.
     origin,
-    resource: resource
-      ? {
-          name: resource.name,
-          url: resource.url,
-          lastModified: resource.lastModified,
-        }
-      : null,
+    resource: resource ? { name: resource.name, url: resource.url, lastModified: resource.lastModified } : null,
     trains,
   });
   log(`stored ${Object.keys(trains).length} train(s)`);
