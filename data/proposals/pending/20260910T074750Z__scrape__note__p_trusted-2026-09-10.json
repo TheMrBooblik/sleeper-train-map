@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-09-10",
+  "createdAt": "2026-09-10T07:47:50.337Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (0 routes, 3 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation Amsterdam Bijlmer ArenA (europeansleeper)\nstation Roosendaal (europeansleeper)\nstation Antwerpen Centraal (europeansleeper)",
+  "target": {
+    "routeKey": "trusted-2026-09-10",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
