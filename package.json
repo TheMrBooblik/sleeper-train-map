@@ -39,6 +39,7 @@
     "verify-classify": "node tests/verify-classify.mjs",
     "verify-enrich": "node tests/verify-enrich-view-map.mjs",
     "verify-describe-error": "node tests/verify-describe-error.mjs",
+    "verify-download-file": "node tests/verify-download-file.mjs",
     "verify-integrations": "node tests/verify-integrations.mjs",
     "verify-route-geometry": "node tests/verify-route-geometry.mjs",
     "verify-es": "node tests/verify-es-normalize.mjs",

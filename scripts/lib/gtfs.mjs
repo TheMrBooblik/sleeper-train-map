@@ -15,6 +15,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import http from "node:http";
 import https from "node:https";
 import { execSync } from "node:child_process";
 import polyline from "@mapbox/polyline";
@@ -68,31 +69,81 @@ export function readCsv(filePath) {
   });
 }
 
-export function downloadFile(url, destPath) {
+// A download with no timeout has no bound at all: against a host that drops
+// packets rather than refusing them — data.gov.ro does exactly that from GitHub
+// runners — https.get waits for the OS to give up on the TCP connection, which
+// is minutes. Four adapters sit on this path (amtrak, viarail, europeansleeper,
+// cfr) plus the CFR probe, so one such host could stall the whole nightly run.
+// setTimeout fires on socket inactivity, which bounds a connect that never
+// completes AND a transfer that stalls mid-stream.
+const DOWNLOAD_TIMEOUT_MS = 30_000;
+const MAX_REDIRECTS = 5;
+
+/**
+ * @param {string} url
+ * @param {string} destPath
+ * @param {{timeoutMs?: number, redirectsLeft?: number}} [options]
+ */
+export function downloadFile(url, destPath, options = {}) {
+  const timeoutMs = options.timeoutMs ?? DOWNLOAD_TIMEOUT_MS;
+  const redirectsLeft = options.redirectsLeft ?? MAX_REDIRECTS;
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destPath);
-    https
-      .get(url, (res) => {
-        if (res.statusCode === 301 || res.statusCode === 302) {
-          const loc = res.headers.location;
-          if (!loc) {
-            reject(new Error("Redirect without location"));
-            return;
-          }
-          res.resume();
-          downloadFile(loc, destPath).then(resolve).catch(reject);
-          return;
-        }
-        if (res.statusCode !== 200) {
-          reject(new Error(`HTTP ${res.statusCode}`));
-          return;
-        }
-        res.pipe(file);
-        file.on("finish", () => file.close(resolve));
-      })
-      .on("error", (err) => {
-        fs.unlink(destPath, () => reject(err));
+    // Every failure path closes the stream and removes the partial file: a
+    // non-200 used to leave a 0-byte artifact behind that a later read would
+    // treat as data, and leak the descriptor with it.
+    let settled = false;
+    const fail = (err) => {
+      if (settled) return;
+      settled = true;
+      file.destroy();
+      fs.unlink(destPath, () => reject(err));
+    };
+
+    // Pick the client by scheme: the function takes a URL, so an http:// one
+    // (a redirect target, or a local server in the tests) must not be sent as
+    // an https request.
+    const client = new URL(url).protocol === "http:" ? http : https;
+    const request = client.get(url, (res) => {
+      const status = res.statusCode;
+      if (status === 301 || status === 302 || status === 307 || status === 308) {
+        const location = res.headers.location;
+        res.resume();
+        if (!location) return fail(new Error("Redirect without location"));
+        // The recursion used to be uncapped, and it opened a second write
+        // stream on the same path while the first was still open.
+        if (redirectsLeft <= 0) return fail(new Error(`Too many redirects: ${url}`));
+        file.destroy();
+        settled = true;
+        // Resolve against the current URL so a relative Location works.
+        downloadFile(new URL(location, url).toString(), destPath, {
+          timeoutMs,
+          redirectsLeft: redirectsLeft - 1,
+        }).then(resolve, reject);
+        return;
+      }
+      if (status !== 200) {
+        res.resume();
+        return fail(new Error(`HTTP ${status}`));
+      }
+      res.on("error", fail);
+      file.on("error", fail);
+      file.on("finish", () => {
+        if (settled) return;
+        settled = true;
+        file.close(() => resolve());
       });
+      res.pipe(file);
+    });
+
+    request.setTimeout(timeoutMs, () => {
+      request.destroy(
+        Object.assign(new Error(`download timed out after ${timeoutMs}ms: ${url}`), {
+          code: "ETIMEDOUT",
+        }),
+      );
+    });
+    request.on("error", fail);
   });
 }
 

@@ -24,7 +24,7 @@ npm run test:smoke   # Run smoke tests (separate config)
 npm run verify-registry && npm run verify-build-parity && npm run verify-payload-projection && \
 npm run verify-service-worker && npm run verify-station-selection && npm run verify-overrides && \
 npm run verify-local-admin && npm run verify-proposals && npm run verify-classify && npm run verify-calendar && \
-npm run verify-canonical-routes && npm run verify-ai && npm run verify-enrich && npm run verify-describe-error && \
+npm run verify-canonical-routes && npm run verify-ai && npm run verify-enrich && npm run verify-describe-error && npm run verify-download-file && \
  npm run verify-integrations && \
 npm run verify-route-geometry && npm run verify-es && npm run verify-chinese-12306 && npm run verify-cfr && npm run verify-na-gtfs && \
 npm run verify-synthetic-scope && npm run verify-return-branches && npm run verify-es-timetable && \
