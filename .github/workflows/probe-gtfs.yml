@@ -15,6 +15,12 @@ name: Probe GTFS feed
 #   SNCF  https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip
 #   VR    https://rata.digitraffic.fi/api/v1/trains/gtfs-passenger-stops.zip
 
+# Two ways in, because `workflow_dispatch` only works once the workflow file is
+# on the DEFAULT branch — which is exactly what makes a new probe unrunnable
+# until its own PR merges. A `pull_request` trigger runs from the PR head
+# instead, including a workflow added in that same PR, so labelling the PR
+# `run-probes` runs this on the branch and the result can be read before
+# merging anything.
 on:
   workflow_dispatch:
     inputs:
@@ -34,9 +40,13 @@ on:
         description: "How many candidates to print"
         required: false
         default: "40"
+  pull_request:
+    types: [labeled]
 
 jobs:
   probe:
+    # Only on the label, never on every push: this downloads several feeds.
+    if: github.event_name != 'pull_request' || github.event.label.name == 'run-probes'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,11 +60,14 @@ jobs:
 
       - name: Probe the feed
         run: |
+          # On a pull_request event there are no inputs, so nothing is named
+          # and the script sweeps the catalogue's auth-free GTFS feeds — which
+          # is the useful question to ask with no input.
           node scripts/probe-gtfs.mjs \
             ${{ inputs.feed_url && format('--url {0}', inputs.feed_url) || '' }} \
             ${{ inputs.source && format('--source {0}', inputs.source) || '' }} \
-            --min-hours "${{ inputs.min_hours }}" \
-            --limit "${{ inputs.limit }}" | tee probe-gtfs.log
+            --min-hours "${{ inputs.min_hours || '5' }}" \
+            --limit "${{ inputs.limit || '40' }}" | tee probe-gtfs.log
 
       - name: Upload the log
         if: always()

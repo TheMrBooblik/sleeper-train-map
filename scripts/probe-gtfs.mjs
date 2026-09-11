@@ -12,9 +12,11 @@
 // would be the same code five times.
 //
 // The job LOG is the delivery channel (a workflow artifact is not reachable from
-// the sandbox), so output is capped and the allowlist block is printed LAST —
-// a tail of the log still carries the part you paste.
+// the sandbox), so output is capped and each feed's allowlist block is printed
+// LAST — a tail of the log still carries the part you paste.
 //
+//   node scripts/probe-gtfs.mjs                        # sweep the catalogue's
+//                                                      # auth-free GTFS feeds
 //   node scripts/probe-gtfs.mjs --url https://…/feed.zip
 //   node scripts/probe-gtfs.mjs --source amtrak        # feedUrl from the registry
 //   node scripts/probe-gtfs.mjs --dir ./unzipped-feed  # skip the download
@@ -23,8 +25,11 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { downloadGtfs, loadGtfsDir } from "./lib/gtfs.mjs";
 import { loadRegistry } from "./lib/registry.mjs";
+
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const arg = (name, fallback = null) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -49,7 +54,9 @@ const hhmm = (secs) =>
       ).padStart(2, "0")}`;
 
 const dur = (secs) =>
-  secs === null ? "?" : `${Math.floor(secs / 3600)}h${String(Math.round((secs % 3600) / 60)).padStart(2, "0")}`;
+  secs === null
+    ? "?"
+    : `${Math.floor(secs / 3600)}h${String(Math.round((secs % 3600) / 60)).padStart(2, "0")}`;
 
 /** Weekday letters from a calendar.txt row, or "" when the feed has none. */
 export function daysOf(cal) {
@@ -77,40 +84,54 @@ export const EVENING_FROM_SECONDS = 16 * 3600;
  *
  * @param {{dep:number, arr:number}} run seconds since the service day's midnight
  */
-export function isOvernightCandidate({ dep, arr }, { minHours = 5, eveningFrom = EVENING_FROM_SECONDS } = {}) {
+export function isOvernightCandidate(
+  { dep, arr },
+  { minHours = 5, eveningFrom = EVENING_FROM_SECONDS } = {},
+) {
   if (!Number.isFinite(dep) || !Number.isFinite(arr)) return false;
   if (arr >= 24 * 3600) return true;
   return arr - dep >= minHours * 3600 && dep >= eveningFrom;
 }
 
-async function main() {
-  const sourceId = arg("source");
-  // An already-unzipped feed: lets you inspect one you downloaded by hand, and
-  // lets the parsing half be exercised without any network at all.
-  const localDir = arg("dir");
-  let url = arg("url");
-  if (!url && sourceId) {
-    const entry = loadRegistry().find((e) => e.id === sourceId);
-    url = entry?.params?.feedUrl ?? entry?.endpoint ?? null;
-    if (!url) {
-      console.error(`[probe-gtfs] source "${sourceId}" declares no params.feedUrl`);
-      process.exit(1);
+/**
+ * Every GTFS feed in the research catalogue that needs no credentials — the
+ * tier that can be built without waiting on anyone.
+ *
+ * This is the no-argument default because that is exactly what a
+ * `pull_request`-triggered run gets: workflow inputs do not exist on that
+ * event, and the useful question to ask with no input is "which of the open
+ * feeds are real, and what is in them".
+ *
+ * @param {object} catalog data/sources/official-sources.json
+ * @returns {Array<{operator:string, url:string, name:string}>}
+ */
+export function catalogueFeeds(catalog) {
+  const out = [];
+  for (const [operator, entry] of Object.entries(catalog?.operators ?? {})) {
+    for (const src of entry?.sources ?? []) {
+      if (!/gtfs/i.test(String(src?.format ?? ""))) continue;
+      // Key-gated feeds need a scrape secret configured first; listing them
+      // here would just produce a 401 per run.
+      if (src?.auth && src.auth !== "none") continue;
+      if (!/^https?:\/\//.test(String(src?.url ?? ""))) continue;
+      out.push({ operator, url: src.url, name: src.name ?? "GTFS" });
     }
   }
-  if (!url && !localDir) {
-    console.error("[probe-gtfs] need --url <feed.zip>, --source <registry id> or --dir <unzipped feed>");
-    process.exit(1);
-  }
+  return out;
+}
 
-  // An overnight train is one whose arrival runs past midnight — GTFS says so
-  // literally, with hours ≥ 24 — or that simply runs a long way through the
-  // night. Both, because some feeds reset the clock at midnight instead.
-  const minHours = Number(arg("min-hours", "5"));
-  const limit = Number(arg("limit", "40"));
+/**
+ * Download (or read) one feed and report what is in it.
+ *
+ * Returns false when the feed could not be fetched, rather than exiting — a
+ * sweep must carry on to the next feed, since knowing which of several answer
+ * is the whole point of running one.
+ */
+async function probeFeed({ url, localDir = null, minHours = 5, limit = 40 }) {
   const eveningFrom = EVENING_FROM_SECONDS;
-
   const dir = localDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "gtfs-probe-"));
   const t0 = Date.now();
+
   if (localDir) {
     console.log(`[probe-gtfs] reading ${localDir}`);
   } else {
@@ -121,15 +142,23 @@ async function main() {
       // Which layer broke: HTTP status, DNS (ENOTFOUND), the host refusing
       // (UND_ERR_CONNECT_TIMEOUT) or TLS — they need different fixes.
       const cause = err.cause ?? {};
-      console.error(`[probe-gtfs] download failed [${cause.code ?? err.code ?? err.name}]: ${err.message}`);
-      process.exit(1);
+      console.error(
+        `[probe-gtfs] download failed [${cause.code ?? err.code ?? err.name}]: ${err.message}`,
+      );
+      fs.rmSync(dir, { recursive: true, force: true });
+      return false;
     }
   }
+
   const files = fs.readdirSync(dir).filter((f) => f.endsWith(".txt")).sort();
   console.log(`[probe-gtfs] ${((Date.now() - t0) / 1000).toFixed(1)}s — tables: ${files.join(", ")}`);
   // No shapes.txt means the adapter must fall back to OSM geometry, which is
   // the single biggest cost difference between two otherwise identical feeds.
-  console.log(`[probe-gtfs] shapes.txt: ${files.includes("shapes.txt") ? "YES (real track geometry)" : "NO — geometry would come from route-geometry.mjs"}`);
+  console.log(
+    `[probe-gtfs] shapes.txt: ${
+      files.includes("shapes.txt") ? "YES (real track geometry)" : "NO — geometry would come from route-geometry.mjs"
+    }`,
+  );
 
   const gtfs = loadGtfsDir(dir);
   console.log(
@@ -148,15 +177,12 @@ async function main() {
     if (dep === null || arr === null) continue;
     const length = arr - dep;
     const prev = best.get(trip.route_id);
-    if (!prev || length > prev.length) {
-      best.set(trip.route_id, { trip, sts, dep, arr, length });
-    }
+    if (!prev || length > prev.length) best.set(trip.route_id, { trip, sts, dep, arr, length });
   }
 
   const candidates = [];
   for (const [routeId, r] of best) {
     if (!isOvernightCandidate(r, { minHours, eveningFrom })) continue;
-    const crossesMidnight = r.arr >= 24 * 3600;
     const route = gtfs.routesById.get(routeId) ?? {};
     candidates.push({
       short: (route.route_short_name || "").trim(),
@@ -165,7 +191,7 @@ async function main() {
       to: gtfs.stopsById.get(r.sts[r.sts.length - 1].stop_id)?.name ?? "?",
       dep: r.dep, arr: r.arr, length: r.length, stops: r.sts.length,
       days: daysOf(gtfs.calendarById.get(r.trip.service_id)),
-      crossesMidnight,
+      crossesMidnight: r.arr >= 24 * 3600,
     });
   }
   candidates.sort((a, b) => b.length - a.length);
@@ -195,16 +221,57 @@ async function main() {
   // Printed last, so a truncated log still ends with the part you paste.
   // gtfs-sleeper's allowlist takes route NAMES, or {from,to} endpoint pairs for
   // feeds whose route names are not stable identifiers.
-  const names = [...new Set(candidates.map((c) => c.long || c.short).filter(Boolean))];
-  console.log(`\n[probe-gtfs] draft allowlist for data/sources/<operator>-sleepers.json:`);
-  console.log(JSON.stringify({ routes: names.slice(0, limit) }, null, 2));
-  console.log(
-    "\n[probe-gtfs] Review it before committing — this heuristic finds overnight\n" +
-      "             RUNS, and a feed may class a daytime long-distance service the\n" +
-      "             same way. Keep only the ones that genuinely carry sleepers.",
-  );
+  if (candidates.length > 0) {
+    const names = [...new Set(candidates.map((c) => c.long || c.short).filter(Boolean))];
+    console.log(`\n[probe-gtfs] draft allowlist for data/sources/<operator>-sleepers.json:`);
+    console.log(JSON.stringify({ routes: names.slice(0, limit) }, null, 2));
+    console.log(
+      "\n[probe-gtfs] Review it before committing — this heuristic finds overnight\n" +
+        "             RUNS, and a feed may class a daytime long-distance service the\n" +
+        "             same way. Keep only the ones that genuinely carry sleepers.",
+    );
+  }
 
   if (!localDir) fs.rmSync(dir, { recursive: true, force: true });
+  return true;
+}
+
+async function main() {
+  const sourceId = arg("source");
+  // An already-unzipped feed: lets you inspect one you downloaded by hand, and
+  // lets the parsing half be exercised without any network at all.
+  const localDir = arg("dir");
+  let url = arg("url");
+  const minHours = Number(arg("min-hours", "5"));
+  const limit = Number(arg("limit", "40"));
+
+  if (!url && sourceId) {
+    const entry = loadRegistry().find((e) => e.id === sourceId);
+    url = entry?.params?.feedUrl ?? entry?.endpoint ?? null;
+    if (!url) {
+      console.error(`[probe-gtfs] source "${sourceId}" declares no params.feedUrl`);
+      process.exit(1);
+    }
+  }
+
+  // Nothing named: sweep the catalogue's open feeds.
+  if (!url && !localDir) {
+    const catalog = JSON.parse(
+      fs.readFileSync(path.join(ROOT, "data/sources/official-sources.json"), "utf8"),
+    );
+    const feeds = catalogueFeeds(catalog);
+    console.log(`[probe-gtfs] no feed named — sweeping ${feeds.length} auth-free GTFS feed(s) from the catalogue`);
+    let ok = 0;
+    for (const feed of feeds) {
+      console.log(`\n${"=".repeat(72)}\n== ${feed.operator} — ${feed.name}\n${"=".repeat(72)}`);
+      if (await probeFeed({ url: feed.url, minHours, limit })) ok++;
+    }
+    console.log(`\n[probe-gtfs] ${ok}/${feeds.length} feed(s) downloaded and parsed`);
+    // Not a failure: an unreachable feed is a finding, and the sweep reported it.
+    return;
+  }
+
+  if (!(await probeFeed({ url, localDir, minHours, limit }))) process.exit(1);
 }
 
 // Importing this file must not fire a download: the test suite imports the

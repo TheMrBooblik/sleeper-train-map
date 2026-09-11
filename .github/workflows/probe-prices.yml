@@ -13,6 +13,9 @@ name: Probe prices
 # `file_proposals: true` then runs the real probe, which files price.update
 # proposals onto the proposals branch for review in /data.
 
+# Two ways in — see the note in probe-gtfs.yml. `workflow_dispatch` needs this
+# file on the default branch; labelling the PR `run-probes` runs it from the
+# branch instead, so the result can be read before merging.
 on:
   workflow_dispatch:
     inputs:
@@ -29,9 +32,12 @@ on:
         type: boolean
         required: false
         default: false
+  pull_request:
+    types: [labeled]
 
 jobs:
   probe:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'run-probes'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +54,7 @@ jobs:
         run: |
           node scripts/probe-prices-debug.mjs \
             ${{ inputs.source && format('--source {0}', inputs.source) || '' }} \
-            --limit "${{ inputs.limit }}" | tee probe-output.log
+            --limit "${{ inputs.limit || '3' }}" | tee probe-output.log
 
       - name: File price proposals
         if: ${{ inputs.file_proposals }}
