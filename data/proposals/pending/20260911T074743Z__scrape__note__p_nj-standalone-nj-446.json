@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-446",
+  "createdAt": "2026-09-11T07:47:43.481Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 446 (Wien Hbf (Autoreisezuganlage) – Bregenz Bahnhof)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 446|NJ 19947\" → \"NJ 446|NJ 447\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_446",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "NJ 446|NJ 19947"
+  },
+  "after": {
+    "train numbers": "NJ 446|NJ 447"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
