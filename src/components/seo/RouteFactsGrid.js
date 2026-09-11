@@ -3,6 +3,7 @@ import {
   getOperatorPricing,
   formatPricingLabel,
   pricingAdvice,
+  formatCheckedAt,
 } from "../../lib/operatorPricing";
 import { getFlagEmoji } from "../../lib/countries";
 import PricingExplainer from "../PricingExplainer";
@@ -54,6 +55,7 @@ export default function RouteFactsGrid({ detail }) {
               label={priceLabel}
               className="mt-1"
               labelClassName="text-sm font-medium"
+              checkedAt={formatCheckedAt(pricing?.checkedAt)}
             />
           )}
         </Fact>

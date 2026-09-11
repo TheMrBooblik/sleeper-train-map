@@ -96,3 +96,20 @@ export function pricingAdvice(pricing, { hasLastMinuteDeals = false } = {}) {
       return null;
   }
 }
+
+/**
+ * "Checked September 2026" for a price's `checkedAt`, or "" when unknown.
+ *
+ * Month precision on purpose: a fare confirmed on the 3rd is no fresher than
+ * one confirmed on the 20th, and a to-the-day stamp invites a reader to trust
+ * it further than it deserves.
+ *
+ * @param {string|null|undefined} iso
+ * @param {string} [locale]
+ */
+export function formatCheckedAt(iso, locale = "en-GB") {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `Checked ${d.toLocaleDateString(locale, { month: "long", year: "numeric", timeZone: "UTC" })}`;
+}

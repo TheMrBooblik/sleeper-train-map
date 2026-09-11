@@ -8,9 +8,9 @@
  * until curated — the badge shows only the type until a value is filled in.
  */
 import OPERATOR_PRICING from "../../data/overrides/operator-pricing.json";
-import { pricingAdvice } from "./pricingAdvice.mjs";
+import { pricingAdvice, formatCheckedAt } from "./pricingAdvice.mjs";
 
-export { pricingAdvice };
+export { pricingAdvice, formatCheckedAt };
 
 export { OPERATOR_PRICING };
 

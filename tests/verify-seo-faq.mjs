@@ -9,7 +9,7 @@
 import { buildRouteFaq, buildConnectionFaq, costAnswer } from "../src/lib/seo/routeFaq.mjs";
 import OPERATOR_PRICING from "../data/overrides/operator-pricing.json" with { type: "json" };
 import OPERATOR_BOOKING from "../data/overrides/operator-booking.json" with { type: "json" };
-import { pricingAdvice } from "../src/lib/pricingAdvice.mjs";
+import { pricingAdvice, formatCheckedAt } from "../src/lib/pricingAdvice.mjs";
 
 const problems = [];
 const check = (cond, msg) => {
@@ -417,6 +417,36 @@ check(buildConnectionFaq({}).length === 0, "connection: empty input → []");
       pricingAdvice({ type: "fixed" }).guidance,
     "explainer: the two models must not give the same instruction",
   );
+}
+
+// ── A price has to carry its date ──────────────────────────────────────────
+// build-initial-data was dropping the probe's sampledAt, so nothing downstream
+// could say how old a figure was. That matters most for a hand-entered static
+// price: "from €29" with no date cannot be told apart from the same number
+// typed two years ago, and a fare that has moved since makes the page wrong
+// rather than merely stale.
+{
+  check(
+    formatCheckedAt("2026-09-11T07:00:00Z") === "Checked September 2026",
+    `formatCheckedAt: got "${formatCheckedAt("2026-09-11T07:00:00Z")}"`,
+  );
+  // Month precision on purpose — a to-the-day stamp invites more trust than a
+  // fare figure deserves.
+  check(
+    !/\b11\b/.test(formatCheckedAt("2026-09-11T07:00:00Z")),
+    "formatCheckedAt must not imply day-level precision",
+  );
+  // A date near midnight UTC must not slip a month via the local timezone.
+  check(
+    formatCheckedAt("2026-10-01T00:30:00Z").includes("October"),
+    `formatCheckedAt must read the date in UTC, got "${formatCheckedAt("2026-10-01T00:30:00Z")}"`,
+  );
+  for (const bad of [null, undefined, "", "not-a-date", 0]) {
+    check(
+      formatCheckedAt(bad) === "",
+      `formatCheckedAt(${JSON.stringify(bad)}) must render nothing rather than "Invalid Date"`,
+    );
+  }
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────

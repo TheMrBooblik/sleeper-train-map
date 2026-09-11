@@ -579,6 +579,12 @@ export function buildInitialData({
       currency: price.currency ?? operatorDefault?.currency ?? "EUR",
       fromPrice: price.fromPrice,
       source: price.source ?? null,
+      // When the figure was last confirmed. The probe records this and it was
+      // being dropped here, so nothing downstream could say how old a price
+      // was. It matters most for a hand-entered one: "from €29" with no date is
+      // indistinguishable from the same number typed two years ago, and a fare
+      // that has moved since makes the page wrong rather than merely stale.
+      checkedAt: price.sampledAt ?? null,
     };
     row.pricing = pricing;
     for (const [tripKey, trip] of Object.entries(filteredTrips)) {

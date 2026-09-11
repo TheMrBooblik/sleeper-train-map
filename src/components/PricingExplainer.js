@@ -16,6 +16,8 @@
  * `tone` picks the palette: "dark" for the SEO pages, "light" for the map panel.
  * `labelStyle` carries the map panel's per-model badge colour, which is an
  * inline style (getPricingBadgeStyle) rather than a class.
+ * `checkedAt` is formatCheckedAt()'s output — shown so a "from" price cannot be
+ * mistaken for one confirmed today.
  */
 
 const TONES = {
@@ -40,6 +42,7 @@ export default function PricingExplainer({
   className = "",
   labelClassName = "",
   labelStyle = undefined,
+  checkedAt = "",
 }) {
   // No recognised pricing model: render the label alone rather than a "?" that
   // opens an empty box.
@@ -84,6 +87,10 @@ export default function PricingExplainer({
             {advice.caveat.slice(1)}.
           </p>
         )}
+        {/* When the figure was last confirmed. A "from" price with no date
+            cannot be told apart from a stale one, and this panel is where a
+            reader has already asked for the detail. */}
+        {checkedAt && <p className="opacity-70">{checkedAt}</p>}
       </div>
     </details>
   );
