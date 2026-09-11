@@ -12,6 +12,7 @@ import {
   EVENING_FROM_SECONDS,
   daysOf,
   isOvernightCandidate,
+  selectRouteRuns,
   toSeconds,
 } from "../scripts/probe-gtfs.mjs";
 
@@ -90,5 +91,74 @@ check("daysOf renders a calendar row, collapsing a full week", () => {
   assert.strictEqual(daysOf(week()), "");
   assert.strictEqual(daysOf(null), "", "a calendar_dates-only feed has no row here");
 });
+
+// ─── The probe must choose the trip the ADAPTER will choose ────────────────
+// gtfs-sleeper matches allowlists against representativeTrip(), which takes the
+// trip with the MOST STATIONS. This probe first took the longest by DURATION —
+// a different trip on any route grouping several services, and SNCF groups
+// plenty. Since the endpoints printed here become {from,to} allowlist entries,
+// disagreeing with the adapter yields a config that silently matches nothing.
+{
+  const st = (...times) =>
+    times.map((t, i) => ({ seq: i + 1, stop_id: `S${i}`, arrival: t, departure: t }));
+
+  // One route, two trips: a 3-stop night run and a 6-stop daytime working.
+  const trips = [
+    { trip_id: "night", route_id: "R1" },
+    { trip_id: "day", route_id: "R1" },
+  ];
+  const stopTimes = new Map([
+    ["night", st("20:52:00", "25:40:00", "27:31:00")],
+    ["day", st("08:00:00", "09:00:00", "10:00:00", "11:00:00", "12:00:00", "13:00:00")],
+  ]);
+
+  const runs = selectRouteRuns(trips, stopTimes);
+  check("picks the fullest trip, as representativeTrip() does", () => {
+    assert.strictEqual(
+      runs.get("R1").trip.trip_id,
+      "day",
+      "the 6-stop trip must win over the 3-stop one, however much longer that one runs",
+    );
+  });
+
+  check("but still remembers the longest, so a day-train route can be flagged", () => {
+    assert.strictEqual(runs.get("R1").longest.trip.trip_id, "night");
+    // The representative is a day train while the route does run overnight —
+    // exactly the case where an allowlist entry matches the wrong thing.
+    assert.strictEqual(isOvernightCandidate(runs.get("R1")), false);
+    assert.strictEqual(isOvernightCandidate(runs.get("R1").longest), true);
+  });
+
+  check("a tie goes to the first trip, matching the adapter's strict >", () => {
+    const tied = selectRouteRuns(
+      [
+        { trip_id: "first", route_id: "R2" },
+        { trip_id: "second", route_id: "R2" },
+      ],
+      new Map([
+        ["first", st("20:00:00", "23:00:00")],
+        ["second", st("21:00:00", "23:30:00")],
+      ]),
+    );
+    assert.strictEqual(tied.get("R2").trip.trip_id, "first");
+  });
+
+  check("trips with unusable or missing stop times are skipped, not crashed on", () => {
+    const runs2 = selectRouteRuns(
+      [
+        { trip_id: "no-times", route_id: "R3" },
+        { trip_id: "one-stop", route_id: "R3" },
+        { trip_id: "good", route_id: "R3" },
+      ],
+      new Map([
+        ["one-stop", st("20:00:00")],
+        ["good", st("20:00:00", "27:00:00")],
+      ]),
+    );
+    assert.strictEqual(runs2.get("R3").trip.trip_id, "good");
+    assert.strictEqual(selectRouteRuns(null, null).size, 0);
+    assert.strictEqual(selectRouteRuns([{ trip_id: "x", route_id: "R" }], new Map()).size, 0);
+  });
+}
 
 console.log(`\n[verify-gtfs-probe] ${passed} checks passed`);

@@ -94,6 +94,51 @@ export function isOvernightCandidate(
 }
 
 /**
+ * One run per route, chosen the way the CONSUMER chooses it.
+ *
+ * gtfs-sleeper matches an allowlist against representativeTrip() in
+ * scripts/lib/gtfs.mjs, which takes the trip with the MOST STATIONS. This probe
+ * originally took the longest by duration — a different trip on any route that
+ * groups several services, and SNCF groups plenty (one route there is named
+ * "Paris - Latour-de-Carol" while its longest trip runs to Albi). Since the
+ * endpoints printed here become {from,to} allowlist entries, choosing
+ * differently from the adapter yields a config that silently matches nothing.
+ *
+ * `longest` rides along so a route whose fullest trip is a DAYTIME working can
+ * still be flagged — there the allowlist would match and get a day train.
+ *
+ * Pure: takes plain GTFS tables, so a test can pin the alignment.
+ *
+ * @param {Array<{trip_id:string, route_id:string}>} trips
+ * @param {Map<string, Array<{arrival:string, departure:string}>>} stopTimesByTrip
+ * @returns {Map<string, object>} route_id → run, each carrying `.longest`
+ */
+export function selectRouteRuns(trips, stopTimesByTrip) {
+  const best = new Map();
+  for (const trip of trips ?? []) {
+    const sts = stopTimesByTrip?.get(trip.trip_id);
+    if (!sts || sts.length < 2) continue;
+    const dep = toSeconds(sts[0].departure ?? sts[0].arrival);
+    const arr = toSeconds(sts[sts.length - 1].arrival ?? sts[sts.length - 1].departure);
+    if (dep === null || arr === null) continue;
+    const run = { trip, sts, dep, arr, length: arr - dep };
+    const prev = best.get(trip.route_id);
+    if (!prev) {
+      best.set(trip.route_id, { ...run, longest: run });
+      continue;
+    }
+    const longest = run.length > prev.longest.length ? run : prev.longest;
+    // Strictly greater, like representativeTrip's `>`: the first trip wins a
+    // tie, and both iterate trips.txt in file order.
+    best.set(
+      trip.route_id,
+      sts.length > prev.sts.length ? { ...run, longest } : { ...prev, longest },
+    );
+  }
+  return best;
+}
+
+/**
  * Every GTFS feed in the research catalogue that needs no credentials — the
  * tier that can be built without waiting on anyone.
  *
@@ -166,23 +211,13 @@ async function probeFeed({ url, localDir = null, minHours = 5, limit = 40 }) {
       `${gtfs.stopsById.size} stops, ${gtfs.calendarById.size} calendar services`,
   );
 
-  // One representative trip per route: the longest, which is the through
-  // service rather than a short working.
-  const best = new Map();
-  for (const trip of gtfs.trips) {
-    const sts = gtfs.stopTimesByTrip.get(trip.trip_id);
-    if (!sts || sts.length < 2) continue;
-    const dep = toSeconds(sts[0].departure ?? sts[0].arrival);
-    const arr = toSeconds(sts[sts.length - 1].arrival ?? sts[sts.length - 1].departure);
-    if (dep === null || arr === null) continue;
-    const length = arr - dep;
-    const prev = best.get(trip.route_id);
-    if (!prev || length > prev.length) best.set(trip.route_id, { trip, sts, dep, arr, length });
-  }
+  const best = selectRouteRuns(gtfs.trips, gtfs.stopTimesByTrip);
 
   const candidates = [];
   for (const [routeId, r] of best) {
-    if (!isOvernightCandidate(r, { minHours, eveningFrom })) continue;
+    const repIsNight = isOvernightCandidate(r, { minHours, eveningFrom });
+    const anyIsNight = isOvernightCandidate(r.longest, { minHours, eveningFrom });
+    if (!repIsNight && !anyIsNight) continue;
     const route = gtfs.routesById.get(routeId) ?? {};
     candidates.push({
       short: (route.route_short_name || "").trim(),
@@ -192,6 +227,9 @@ async function probeFeed({ url, localDir = null, minHours = 5, limit = 40 }) {
       dep: r.dep, arr: r.arr, length: r.length, stops: r.sts.length,
       days: daysOf(gtfs.calendarById.get(r.trip.service_id)),
       crossesMidnight: r.arr >= 24 * 3600,
+      // The fullest trip is a daytime working and only some other trip on this
+      // route runs overnight: an allowlist entry here matches the day train.
+      dayTrainWarning: !repIsNight && anyIsNight,
     });
   }
   candidates.sort((a, b) => b.length - a.length);
@@ -213,7 +251,8 @@ async function probeFeed({ url, localDir = null, minHours = 5, limit = 40 }) {
       `  ${(c.short || "—").padEnd(10)} ${dur(c.length).padStart(6)}  ` +
         `${hhmm(c.dep)}→${hhmm(c.arr)}${c.crossesMidnight ? "+1" : "  "}  ` +
         `${String(c.stops).padStart(3)} stops  ${(c.days || "?").padEnd(8)}  ` +
-        `${c.from} → ${c.to}${c.long ? `  [${c.long}]` : ""}`,
+        `${c.from} → ${c.to}${c.long ? `  [${c.long}]` : ""}` +
+        `${c.dayTrainWarning ? "   ! fullest trip is a DAY train" : ""}`,
     );
   }
   if (candidates.length > limit) console.log(`  … ${candidates.length - limit} more (raise --limit)`);
@@ -222,9 +261,17 @@ async function probeFeed({ url, localDir = null, minHours = 5, limit = 40 }) {
   // gtfs-sleeper's allowlist takes route NAMES, or {from,to} endpoint pairs for
   // feeds whose route names are not stable identifiers.
   if (candidates.length > 0) {
-    const names = [...new Set(candidates.map((c) => c.long || c.short).filter(Boolean))];
+    const usable = candidates.filter((c) => !c.dayTrainWarning).slice(0, limit);
+    const names = [...new Set(usable.map((c) => c.long || c.short).filter(Boolean))];
     console.log(`\n[probe-gtfs] draft allowlist for data/sources/<operator>-sleepers.json:`);
-    console.log(JSON.stringify({ routes: names.slice(0, limit) }, null, 2));
+    console.log(JSON.stringify({ routes: names }, null, 2));
+    // Route names are not always usable: SNCF calls half of them "INCONNU" and
+    // gives others a long name that contradicts the trip's own endpoints,
+    // because one route groups several services. gtfs-sleeper also accepts
+    // {from,to} pairs, matched against the representative trip's endpoints —
+    // which is exactly what is printed above, so this form always works.
+    console.log(`\n[probe-gtfs] …or as endpoint pairs, for a feed whose route names are unusable:`);
+    console.log(JSON.stringify({ routes: usable.map((c) => ({ from: c.from, to: c.to })) }, null, 2));
     console.log(
       "\n[probe-gtfs] Review it before committing — this heuristic finds overnight\n" +
         "             RUNS, and a feed may class a daytime long-distance service the\n" +
