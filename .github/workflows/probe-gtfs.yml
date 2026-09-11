@@ -1,0 +1,66 @@
+name: Probe GTFS feed
+
+# What is inside a GTFS feed, and which of its routes are night trains.
+#
+# Every remaining GTFS operator on the integration board is blocked on the same
+# step: scripts/adapters/gtfs-sleeper.mjs needs a curated allowlist of the routes
+# that carry sleeping cars, and that cannot be written without seeing the feed's
+# own route names. The dev sandbox has egress to no external host, so dispatch
+# this and read the job log — it ends with a draft allowlist you can paste into
+# data/sources/<operator>-sleepers.json.
+#
+# Read-only: downloads the zip, parses it, prints, deletes. Nothing is committed.
+#
+# Feeds worth pointing it at (from data/sources/official-sources.json):
+#   SNCF  https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip
+#   VR    https://rata.digitraffic.fi/api/v1/trains/gtfs-passenger-stops.zip
+
+on:
+  workflow_dispatch:
+    inputs:
+      feed_url:
+        description: "GTFS .zip URL (leave blank to use `source`)"
+        required: false
+        default: ""
+      source:
+        description: "Registry source id, to take params.feedUrl from (e.g. amtrak)"
+        required: false
+        default: ""
+      min_hours:
+        description: "Minimum run length for the evening-departure fallback"
+        required: false
+        default: "5"
+      limit:
+        description: "How many candidates to print"
+        required: false
+        default: "40"
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Probe the feed
+        run: |
+          node scripts/probe-gtfs.mjs \
+            ${{ inputs.feed_url && format('--url {0}', inputs.feed_url) || '' }} \
+            ${{ inputs.source && format('--source {0}', inputs.source) || '' }} \
+            --min-hours "${{ inputs.min_hours }}" \
+            --limit "${{ inputs.limit }}" | tee probe-gtfs.log
+
+      - name: Upload the log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gtfs-probe-log
+          path: probe-gtfs.log
+          retention-days: 7
+          if-no-files-found: warn

@@ -17,6 +17,7 @@ npm run parse-pkp-gtfs # Parse Polish GTFS (runs nightly inside `npm run scrape`
 npm run ai-tasks     # AI assist batch (GitHub Models; needs GITHUB_TOKEN with models:read)
 npm run probe-prices # Sample operator booking APIs → price.update proposals
 npm run probe-prices:debug # What the probe actually sees (status, shape, price fields)
+npm run probe-gtfs   # Inspect any GTFS feed → draft sleeper allowlist (needs egress; see the workflow)
 npm run bootstrap-seen # One-off: grandfather all current routes/stations as approved
 
 npm test             # Run Playwright E2E tests
@@ -31,7 +32,7 @@ npm run verify-route-geometry && npm run verify-es && npm run verify-chinese-123
 npm run verify-synthetic-scope && npm run verify-return-branches && npm run verify-es-timetable && \
 npm run verify-european-sleeper && npm run verify-station-times && npm run verify-marker-grouping && \
 npm run verify-seo-booking && npm run verify-seo-faq && npm run verify-seo-urls && \
-npm run verify-price-probe && \
+npm run verify-price-probe && npm run verify-gtfs-probe && \
 npm run verify-schedule-links
 ```
 
