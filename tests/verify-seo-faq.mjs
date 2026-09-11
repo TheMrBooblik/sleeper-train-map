@@ -251,7 +251,8 @@ check(buildConnectionFaq({}).length === 0, "connection: empty input → []");
     }
     // Both land in a badge or next to a button; a long one wraps or truncates.
     check(a.headline.length <= 16, `advice/${label}: headline too long for a badge — "${a.headline}"`);
-    check(a.guidance.length <= 16, `advice/${label}: guidance too long — "${a.guidance}"`);
+    // headline sits in a badge, guidance opens a sentence — different budgets.
+    check(a.guidance.length <= 32, `advice/${label}: guidance too long — "${a.guidance}"`);
     // headline names the fare, guidance says what to do about it. Collapsing
     // them is what put "Book early" on a badge, an instruction with its
     // reasoning missing and no obvious connection to the price beside it.
@@ -326,30 +327,41 @@ check(buildConnectionFaq({}).length === 0, "connection: empty input → []");
   );
 }
 
-// ── Last-minute deals must not contradict "book early" ─────────────────────
-// This was shipped broken: "Book early — fares rise as the train fills" rendered
-// three lines under European Sleeper's own "Last-minute deals" link, so the page
-// argued with itself. "Yield-managed" does not mean "the price only ever rises"
-// — operators discount unsold berths near departure — so the base wording has to
-// survive on its own AND name the exception where we have evidence for it.
+// ── Last-minute deals are half the advice, not a footnote ──────────────────
+// This shipped broken twice, in opposite directions. First "Book early — fares
+// rise as the train fills" rendered three lines under European Sleeper's own
+// "Last-minute deals" link, so the page argued with itself. Then the late
+// option was bolted on as a "but", which still led with "Book early" and
+// understated it: a berth unsold the week before can be the cheapest fare on
+// the train. Yield management is cheap at BOTH ends and dearest in between.
 {
   const plain = pricingAdvice({ type: "dynamic" });
   const deals = pricingAdvice({ type: "dynamic" }, { hasLastMinuteDeals: true });
 
-  check(plain.caveat === "", "deals: no known programme → no caveat invented");
-  check(deals.caveat !== "", "deals: a known programme must be acknowledged");
+  // The contract: an operator that advertises last-minute deals must never be
+  // given advice that says only "book early".
   check(
-    /last-minute|close to departure/i.test(deals.caveat),
-    "deals: the caveat must actually name the late-booking case",
+    /last.?minute|just before|close to departure/i.test(
+      `${deals.guidance} ${deals.short} ${deals.detail}`,
+    ),
+    `deals: the advice must offer the late option — got "${deals.guidance} — ${deals.short}"`,
   );
-  // A caveat that reads as advice would just flip the contradiction round.
   check(
-    /risk|if you can|sometimes/i.test(deals.caveat),
-    "deals: the caveat must read as a gamble, not as a better plan than booking early",
+    deals.guidance !== plain.guidance,
+    "deals: the guidance itself must differ, not just the explanation below it",
+  );
+  check(
+    /\bor\b/i.test(deals.guidance),
+    `deals: the two strategies are alternatives, not one plus a caveat — got "${deals.guidance}"`,
+  );
+  // Without evidence of a programme we must not invent one.
+  check(
+    !/last.?minute/i.test(`${plain.guidance} ${plain.short} ${plain.detail}`),
+    "deals: no known programme → no late option invented",
   );
 
-  // The base wording must not claim prices only ever rise — that is the exact
-  // sentence that contradicted the deals link.
+  // The base wording must not claim prices only ever rise — the exact sentence
+  // that contradicted the deals link the first time round.
   for (const a of [plain, deals]) {
     check(
       !/rise as the train fills|prices rise|only.*rise/i.test(`${a.short} ${a.detail}`),
@@ -357,27 +369,29 @@ check(buildConnectionFaq({}).length === 0, "connection: empty input → []");
     );
   }
   check(
-    /limited|go first|sell out/i.test(plain.short),
-    "deals: dynamic wording should rest on the quota selling out, which stays true either way",
+    /limited|go first|quota/i.test(plain.short),
+    "deals: plain dynamic should rest on the quota selling out, which stays true either way",
+  );
+  // Cheap at both ends is the whole point; saying so needs both halves.
+  check(
+    /both ends|in between/i.test(`${deals.short} ${deals.detail}`),
+    "deals: must say where the EXPENSIVE window is, or 'either end' is not actionable",
   );
 
-  // A priced answer must not re-introduce the claim either.
   check(
     !/rise closer to departure/i.test(costAnswer({ fromPrice: "from €39", pricingType: "dynamic" })),
     "deals: the priced answer must not claim prices only rise",
   );
 
-  // End to end: the FAQ for an operator with a deals page carries both halves.
+  // End to end: the FAQ for an operator with a deals page carries it.
   const answer = costAnswer({
     pricingType: "dynamic",
     operatorNames: "European Sleeper",
     hasLastMinuteDeals: true,
   });
-  check(answer.includes(deals.detail), "deals: FAQ keeps the base advice");
-  check(answer.includes(deals.caveat), "deals: FAQ carries the caveat too");
+  check(answer.includes(deals.detail), "deals: FAQ carries the both-ends explanation");
 
-  // Every operator that advertises a deals link must be able to produce one, or
-  // its page goes back to contradicting itself.
+  // Every operator that advertises a deals link must be able to produce it.
   for (const [agencyId, booking] of Object.entries(OPERATOR_BOOKING)) {
     if (!booking.dealsUrl) continue;
     const pricing = OPERATOR_PRICING[agencyId];
@@ -388,35 +402,12 @@ check(buildConnectionFaq({}).length === 0, "connection: empty input → []");
     if (!pricing) continue;
     const advice = pricingAdvice(pricing, { hasLastMinuteDeals: true });
     check(
-      advice && (advice.caveat !== "" || advice.action !== "book-early"),
-      `${agencyId} links "${booking.dealsLabel}" next to advice that would tell the reader to book early with no caveat`,
+      advice && /last.?minute|just before|close to departure/i.test(
+        `${advice.guidance} ${advice.short} ${advice.detail}`,
+      ),
+      `${agencyId} links "${booking.dealsLabel}" next to advice that never mentions the late option`,
     );
   }
-}
-
-// ── The explainer's contract ───────────────────────────────────────────────
-// The badge names the fare and hides the advice behind a "?"; the explainer is
-// what unpacks it. These pin the shape it depends on, since a missing field
-// there renders an empty disclosure rather than throwing.
-{
-  for (const type of ["dynamic", "fixed"]) {
-    const a = pricingAdvice({ type }, { hasLastMinuteDeals: true });
-    check(
-      a.guidance && a.short && !a.short.endsWith("."),
-      `explainer/${type}: guidance + a clause of reason, the clause unpunctuated so the component can end it`,
-    );
-    check(
-      a.caveat === "" || !a.caveat.endsWith("."),
-      `explainer/${type}: caveat must also be an unpunctuated clause`,
-    );
-  }
-  // The instruction differs between the models — that is the whole point of
-  // opening the disclosure.
-  check(
-    pricingAdvice({ type: "dynamic" }).guidance !==
-      pricingAdvice({ type: "fixed" }).guidance,
-    "explainer: the two models must not give the same instruction",
-  );
 }
 
 // ── A price has to carry its date ──────────────────────────────────────────

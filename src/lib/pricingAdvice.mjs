@@ -64,22 +64,37 @@
 export function pricingAdvice(pricing, { hasLastMinuteDeals = false } = {}) {
   switch (pricing?.type) {
     case "dynamic":
-      return {
-        action: "book-early",
-        headline: "Dynamic fare",
-        guidance: "Book early",
-        short: "the cheapest fares are limited and go first",
-        detail:
-          "at yield-managed fares: the price depends on the date, the comfort class " +
-          "and how far ahead you book. The cheapest fares are a limited quota and go " +
-          "first, so booking early is the reliable way to pay less",
-        // Real, but not a plan: it is a bet on the train not selling out.
-        caveat: hasLastMinuteDeals
-          ? "unsold berths are sometimes discounted close to departure, so a " +
-            "last-minute deal can beat an advance fare — if you can risk the train " +
-            "being full"
-          : "",
-      };
+      // Where the operator runs a last-minute programme, "book early" is not
+      // the whole advice and leading with it understates the other half: a
+      // berth still unsold the week before can be the cheapest fare on the
+      // train. Yield management is cheap at BOTH ENDS and dearest in between,
+      // and which dates fall where varies by departure. So the two strategies
+      // are given as alternatives rather than one advice plus a "but".
+      return hasLastMinuteDeals
+        ? {
+            action: "book-early",
+            headline: "Dynamic fare",
+            guidance: "Book early or last minute",
+            short: "cheapest far ahead or just before departure, dearest in between",
+            detail:
+              "at yield-managed fares, which are cheapest at both ends: a limited " +
+              "quota of advance fares goes first, and berths still unsold close to " +
+              "departure are discounted again. The weeks in between cost the most, " +
+              "and which dates are cheap varies by departure — so either book well " +
+              "ahead, or stay flexible and watch the last-minute offers",
+            caveat: "",
+          }
+        : {
+            action: "book-early",
+            headline: "Dynamic fare",
+            guidance: "Book early",
+            short: "the cheapest fares are limited and go first",
+            detail:
+              "at yield-managed fares: the price depends on the date, the comfort " +
+              "class and how far ahead you book. The cheapest fares are a limited " +
+              "quota and go first, so booking early is the reliable way to pay less",
+            caveat: "",
+          };
     case "fixed":
       return {
         action: "price-is-fixed",
