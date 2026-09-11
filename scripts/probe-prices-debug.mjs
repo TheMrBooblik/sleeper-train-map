@@ -49,6 +49,44 @@ function shapeOf(value, depth = 0) {
   return typeof value;
 }
 
+/** A descriptive agent, as the repo's other probes use — identification, not disguise. */
+const USER_AGENT =
+  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://github.com/TheMrBooblik/sleeper-train-map)";
+
+/**
+ * When the endpoint answers but rejects us, ask what it would accept.
+ *
+ * An undocumented booking backend returning 400 tells you the service is alive
+ * and your request is wrong, but not how. These are the cheap hypotheses — a
+ * real agent and language (many booking backends refuse a bare fetch), the
+ * usual query parameters, and the path without its last segment, which
+ * separates "this route does not exist" (404) from "it does, your arguments are
+ * wrong" (400). One run, several answers.
+ *
+ * If none of them work, the fastest remaining route is a human with devtools
+ * open on the operator's own booking page, copying the request it really makes.
+ */
+async function probeVariants(url) {
+  const withQuery = (q) => `${url}${url.includes("?") ? "&" : "?"}${q}`;
+  const variants = [
+    ["browser-ish headers", url, { accept: "application/json", "user-agent": USER_AGENT, "accept-language": "en-GB,en;q=0.9" }],
+    ["+ lang/currency", withQuery("lang=en&currency=EUR"), { accept: "application/json", "user-agent": USER_AGENT }],
+    ["+ one adult", withQuery("adults=1&children=0"), { accept: "application/json", "user-agent": USER_AGENT }],
+    ["path without the date", url.slice(0, url.lastIndexOf("/")), { accept: "application/json", "user-agent": USER_AGENT }],
+  ];
+
+  console.log("   — the host answered, so the request shape is what it rejects. Variants:");
+  for (const [label, target, headers] of variants) {
+    try {
+      const r = await fetchWithTimeout(target, { headers });
+      const text = (await r.text()).slice(0, 160).replace(/\s+/g, " ");
+      console.log(`     ${label.padEnd(22)} → ${r.status} ${text}`);
+    } catch (err) {
+      console.log(`     ${label.padEnd(22)} → failed: ${err.message}`);
+    }
+  }
+}
+
 async function main() {
   const registry = loadRegistry();
   const wanted = arg("source");
@@ -133,6 +171,11 @@ async function main() {
       const body = await res.text();
       if (!res.ok) {
         console.log(`   body: ${body.slice(0, 400)}`);
+        // A 4xx means the host is up and answering — the request SHAPE is what
+        // it rejects, which is a different problem from an unreachable API and
+        // needs different information to fix. Try the obvious variations in the
+        // same run rather than costing a whole dispatch per hypothesis.
+        if (res.status >= 400 && res.status < 500) await probeVariants(url);
         continue;
       }
 
