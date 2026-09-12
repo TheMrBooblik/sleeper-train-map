@@ -216,8 +216,8 @@
       "website": "https://www.vr.fi",
       "countries": ["FI"],
       "integrationStatus": "source-discovered",
-      "difficulty": "easy",
-      "notes": "Finland is the best-published railway on this list: Fintraffic's Digitraffic serves a daily-regenerated GTFS zip for passenger trains with no key and no registration, plus a documented REST API alongside it.",
+      "difficulty": "medium",
+      "notes": "Finland is the best-published railway on this list on paper: Fintraffic's Digitraffic serves a daily-regenerated GTFS zip for passenger trains with no key and no registration, plus a documented REST API alongside it. In practice the GTFS URL we hold returns 406 and headers are ruled out as the cause (see the source note), so the URL has to be found before any of this is buildable — hence medium rather than easy.",
       "sources": [
         {
           "name": "Digitraffic — GTFS, passenger trains",
@@ -226,10 +226,10 @@
           "format": "GTFS",
           "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
           "auth": "none",
-          "status": "discovered",
-          "lastChecked": null,
-          "probeWorkflow": null,
-          "notes": "Regenerated daily around 05:00 local. Straight gtfs-sleeper adapter work."
+          "status": "broken",
+          "lastChecked": "2026-09-12",
+          "probeWorkflow": "probe-gtfs.yml",
+          "notes": "This URL answers HTTP 406 and the cause is NOT headers — do not retry that. Probed 2026-09-12 with a Digitraffic-User identifying the client (their terms ask for one) AND an explicit Accept of application/zip, application/octet-stream, */*: still 406. A server honouring content negotiation cannot refuse */*, so 406 is being used as a generic rejection here and the path itself is the remaining suspect — the same bucket as the VY/ZSSK/HZPP entries, a wrong URL rather than a hostile server. Next step is finding the real GTFS path in digitraffic.fi's railway docs, not sending more headers. Regenerated daily around 05:00 local; once the URL is right this is straight gtfs-sleeper work."
         },
         {
           "name": "Digitraffic railway REST API",

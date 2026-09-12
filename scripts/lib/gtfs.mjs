@@ -71,15 +71,17 @@ export function readCsv(filePath) {
 /**
  * Per-host request headers, for a feed whose publisher asks for something
  * beyond a bare GET. Keyed by hostname so every other feed is fetched exactly
- * as before — several of them work today and none of them should be risked to
- * fix one that does not.
+ * as before — several of them work today and none of them should be risked for
+ * one that does not.
  *
- * rata.digitraffic.fi answers a bare GET with HTTP 406, which is the one
- * catalogued feed that fails for a reason inside our control. Two readings fit
- * that status and these headers satisfy both, because the log will say which:
  * Digitraffic's terms ask clients to identify themselves in a Digitraffic-User
- * header, and a 406 is literally what content negotiation returns when the
- * server cannot honour an Accept it was never sent.
+ * header, so we send one. Worth being clear that this does NOT fix the 406 that
+ * rata.digitraffic.fi answers with: the probe was run with these exact headers
+ * on 2026-09-12 and got 406 again, which also rules out content negotiation,
+ * since no server honouring a wildcard Accept can refuse it. The status is a
+ * generic rejection and the URL in official-sources.json is the suspect. The
+ * header stays because it is the courteous way to ask that host for anything,
+ * not because it is a fix.
  */
 const HOST_HEADERS = {
   "rata.digitraffic.fi": {
