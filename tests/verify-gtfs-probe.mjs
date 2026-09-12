@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import {
   EVENING_FROM_SECONDS,
   allowlistVerifiableSources,
+  catalogueFeeds,
   daysOf,
   isOvernightCandidate,
   reportAllowlist,
@@ -171,6 +172,35 @@ check("daysOf renders a calendar row, collapsing a full week", () => {
 }
 
 // ─── --verify-allowlists: which sources, and what it reports ────────────────
+
+check("the sweep skips sources it has nothing left to learn from", () => {
+  const catalog = {
+    operators: {
+      A: {
+        sources: [
+          { name: "good", format: "GTFS", auth: "none", url: "https://x.example/a.zip" },
+          // A 406, or a docs page where a zip should be: cannot start working
+          // until somebody edits the url.
+          { name: "broken", format: "GTFS", auth: "none", url: "https://x.example/b.zip", status: "broken" },
+          // Real, and deliberately not used — Entur's 3.5 GB national aggregate.
+          { name: "too big", format: "GTFS", auth: "none", url: "https://x.example/c.zip", sweep: false },
+          { name: "keyed", format: "GTFS", auth: "api-key", url: "https://x.example/d.zip" },
+          { name: "not gtfs", format: "NeTEx", auth: "none", url: "https://x.example/e.zip" },
+          { name: "no url", format: "GTFS", auth: "none", url: "see the docs" },
+        ],
+      },
+    },
+  };
+  const names = catalogueFeeds(catalog).map((f) => f.name);
+  assert.deepStrictEqual(names, ["good"], `swept: [${names.join(", ")}]`);
+  // sweep:true and an absent sweep both mean "fetch it".
+  assert.strictEqual(
+    catalogueFeeds({
+      operators: { A: { sources: [{ format: "GTFS", auth: "none", url: "https://x.example/f.zip", sweep: true }] } },
+    }).length,
+    1,
+  );
+});
 
 check("only gtfs-sleeper sources with a feed and a config are verifiable", () => {
   const ids = allowlistVerifiableSources(loadRegistry()).map((e) => e.id);

@@ -35,7 +35,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { downloadGtfs, loadGtfsDir, buildSleeperTrains } from "./lib/gtfs.mjs";
+import { downloadGtfs, loadGtfsDir, buildSleeperTrains, readCsv } from "./lib/gtfs.mjs";
 import { loadRegistry } from "./lib/registry.mjs";
 import { resolveCanonicalStationName } from "../src/pages/api/lib/primitives.mjs";
 
@@ -173,6 +173,14 @@ export function catalogueFeeds(catalog) {
       // Key-gated feeds need a scrape secret configured first; listing them
       // here would just produce a 401 per run.
       if (src?.auth && src.auth !== "none") continue;
+      // Two kinds of URL the sweep has nothing left to learn from. A broken one
+      // cannot start working until somebody edits the url — that is what broken
+      // means here (a 406, or a documentation page where a zip should be) — and
+      // `sweep: false` is for a source that works and is deliberately not used:
+      // Entur's national aggregate is real, and re-downloading 3.5 GB every run
+      // to print one "too big" line was three quarters of the sweep's time.
+      if (src?.status === "broken") continue;
+      if (src?.sweep === false) continue;
       if (!/^https?:\/\//.test(String(src?.url ?? ""))) continue;
       out.push({ operator, url: src.url, name: src.name ?? "GTFS" });
     }
@@ -391,7 +399,38 @@ async function probeFeed({ url, localDir = null, minHours = 5, limit = 40, entry
     console.log(
       "[probe-gtfs] none. Either the feed carries no night trains, or it resets\n" +
         "             times at midnight and runs shorter legs — retry with a lower\n" +
-        "             --min-hours, and check the route names above by hand.",
+        "             --min-hours.",
+    );
+  }
+
+  // "Nothing found" has two very different causes — the heuristic missed the
+  // trains, or the trains are not in this file — and only the route list tells
+  // them apart. Entur's rb_vyg feed answered that in one glance: 24 routes, all
+  // Oslo-area commuter lines, no F-line, so the night trains live under another
+  // codespace and no amount of --min-hours would have found them.
+  if (candidates.length <= 1) {
+    const agencies = [
+      ...new Set(
+        readCsv(path.join(dir, "agency.txt"))
+          .map((a) => a.agency_name)
+          .filter(Boolean),
+      ),
+    ];
+    if (agencies.length) {
+      console.log(
+        `[probe-gtfs] what this feed DOES carry — ${agencies.length} agenc${
+          agencies.length === 1 ? "y" : "ies"
+        }: ${agencies.slice(0, 12).join(", ")}${agencies.length > 12 ? ", …" : ""}`,
+      );
+    }
+    const routeLabels = [...gtfs.routesById.values()]
+      .map((r) =>
+        [r.route_short_name, r.route_long_name].filter(Boolean).join(" ").trim() || r.route_id,
+      )
+      .sort();
+    console.log(
+      `[probe-gtfs] ${routeLabels.length} route(s): ${routeLabels.slice(0, limit).join(" | ")}` +
+        (routeLabels.length > limit ? ` | … ${routeLabels.length - limit} more` : ""),
     );
   }
 
