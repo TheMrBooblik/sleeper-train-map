@@ -34,6 +34,7 @@
     "verify-station-selection": "node tests/verify-station-selection.mjs",
     "verify-synthetic-scope": "node tests/verify-synthetic-scope.mjs",
     "verify-return-branches": "node tests/verify-return-branches.mjs",
+    "verify-marker-thinning": "node tests/verify-marker-thinning.mjs",
     "verify-marker-grouping": "node tests/verify-marker-grouping.mjs",
     "verify-proposals": "node tests/verify-proposals-apply.mjs",
     "verify-classify": "node tests/verify-classify.mjs",

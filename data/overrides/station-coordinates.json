@@ -354,5 +354,57 @@
   "Sandnes sentrum": {
     "lat": 58.85231,
     "lon": 5.736655
+  },
+  "Die": {
+    "lat": 44.758238,
+    "lon": 5.363219
+  },
+  "Veynes Dévoluy": {
+    "lat": 44.532019,
+    "lon": 5.815807
+  },
+  "Saint-Raphaël Valescure": {
+    "lat": 43.423631,
+    "lon": 6.769037
+  },
+  "Sète": {
+    "lat": 43.412641,
+    "lon": 3.696571
+  },
+  "Saint-Vincent-de-Tyrosse": {
+    "lat": 43.657803,
+    "lon": -1.306421
+  },
+  "Saverdun": {
+    "lat": 43.239335,
+    "lon": 1.570636
+  },
+  "Tarascon-sur-Ariège": {
+    "lat": 42.849498,
+    "lon": 1.600042
+  },
+  "Souillac": {
+    "lat": 44.902127,
+    "lon": 1.466605
+  },
+  "Saint-Denis-près-Martel": {
+    "lat": 44.946029,
+    "lon": 1.666238
+  },
+  "Rocamadour - Padirac": {
+    "lat": 44.818243,
+    "lon": 1.657104
+  },
+  "Viviez - Decazeville": {
+    "lat": 44.555568,
+    "lon": 2.218258
+  },
+  "Aubin": {
+    "lat": 44.527276,
+    "lon": 2.239313
+  },
+  "Naucelle": {
+    "lat": 44.185439,
+    "lon": 2.363259
   }
 }
