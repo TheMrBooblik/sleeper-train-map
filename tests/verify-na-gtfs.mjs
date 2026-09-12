@@ -2,9 +2,11 @@
 // Offline unit test for the generic GTFS sleeper builder (scripts/lib/gtfs.mjs)
 // that powers the Amtrak + VIA Rail sources. Runs a committed GTFS fixture
 // through loadGtfsDir() + buildSleeperTrains() and asserts allowlist filtering
-// (by route name AND by endpoint city-pair), representative-trip selection,
-// shape vs station-chain geometry, ordered stations, calendar rendering, and
-// unmatched-allowlist reporting. Raw node, no network.
+// (by route name, by endpoint city-pair, and by named oriented pair),
+// representative-trip selection, shape vs station-chain geometry, ordered
+// stations, calendar rendering, station-name canonicalisation, the
+// same-route-name collision guard, and unmatched-allowlist reporting.
+// Raw node, no network.
 // Run: npm run verify-na-gtfs
 
 import path from "node:path";
@@ -116,6 +118,105 @@ if (!oc) {
   );
 }
 
+// ─── Named, oriented entries (SNCF) ────────────────────────────────────────
+// The fixture's N1/N2 both call themselves "-" with short name "INCONNU", and
+// N1 carries both directions, which is the shape SNCF's feed actually has.
+const sncfStats = {};
+const sncf = buildSleeperTrains({
+  gtfs,
+  allowlist: [
+    { name: "IC Nuit 3731", from: "Paris Austerlitz", to: "Tarbes" },
+    { name: "IC Nuit 3740", from: "Tarbes", to: "Paris Austerlitz" },
+    { name: "IC Nuit 5789", from: "Paris Austerlitz", to: "Briançon" },
+    { name: "IC Nuit 5772", from: "Nice-Ville", to: "Paris Austerlitz" },
+    // Never ran: Briançon is the destination, not the origin.
+    { name: "IC Nuit 9999", from: "Briançon", to: "Nice-Ville" },
+  ],
+  agency: "SNCF",
+  operator: "SNCF",
+  stats: sncfStats,
+  canonicalizeName: (n) => (n === "Nice-Ville" ? "Nice Ville" : n),
+});
+
+const sncfKeys = Object.keys(sncf).sort();
+check(
+  sncfKeys.length === 4,
+  `expected 4 named SNCF trains, got ${sncfKeys.length}: [${sncfKeys.join(", ")}]`,
+);
+// The whole point: keyed by the operator's own label, not by route_long_name,
+// so the two trains filed under "-" both survive.
+check(
+  sncfKeys.join("|") === "IC Nuit 3731|IC Nuit 3740|IC Nuit 5772|IC Nuit 5789",
+  `SNCF trains should be keyed by their labels, got [${sncfKeys.join(", ")}]`,
+);
+check(!("-" in sncf), 'no train may be keyed "-"');
+
+// One route_id, two directions, two trains — each with its own stop list.
+const out = sncf["IC Nuit 3731"];
+const back = sncf["IC Nuit 3740"];
+if (!out || !back) {
+  problems.push("both directions of N1 must resolve");
+} else {
+  check(
+    out.stations.map((s) => s.name).join(" -> ") ===
+      "Paris Austerlitz -> Toulouse Matabiau -> Tarbes",
+    `3731 should run Paris->Toulouse->Tarbes, got [${out.stations.map((s) => s.name).join(" -> ")}]`,
+  );
+  // n1c (4 stops) beats n1b (2 stops) within the Tarbes->Paris orientation.
+  check(
+    back.stations.map((s) => s.name).join(" -> ") ===
+      "Tarbes -> Lourdes -> Toulouse Matabiau -> Paris Austerlitz",
+    `3740 should take the fullest reverse trip, got [${back.stations.map((s) => s.name).join(" -> ")}]`,
+  );
+  check(
+    out.stations[0].departure === "22:11" && back.stations[0].departure === "19:00",
+    `each direction keeps its own times: ${out.stations[0].departure} / ${back.stations[0].departure}`,
+  );
+  check(out.agency_id === "SNCF" && out.operator === "SNCF", "SNCF stamps carry through");
+}
+
+// Orientation is not a suggestion: a pair that runs the other way is unmatched.
+check(
+  sncfStats.unmatched.length === 1 &&
+    sncfStats.unmatched[0].startsWith("IC Nuit 9999"),
+  `only the reversed entry should be unmatched, got [${(sncfStats.unmatched || []).join(", ")}]`,
+);
+
+// canonicalizeName runs on emitted stops, so a via name can still find the
+// coordinate-bearing station the rest of the payload knows.
+const nice = sncf["IC Nuit 5772"];
+check(
+  nice?.stations?.[0]?.name === "Nice Ville",
+  `feed's "Nice-Ville" should be canonicalised, got ${nice?.stations?.[0]?.name}`,
+);
+
+// Two route_ids sharing route_long_name must not collapse onto one key. Taken
+// through the unnamed pair form, which is where the collision used to bite:
+// both N1 and N2 come out called "-", and the second write silently won.
+const dashed = buildSleeperTrains({
+  gtfs,
+  allowlist: [
+    { from: "Paris Austerlitz", to: "Tarbes" },
+    { from: "Paris Austerlitz", to: "Briançon" },
+  ],
+  agency: "SNCF",
+  operator: "SNCF",
+});
+const dashedKeys = Object.keys(dashed);
+check(
+  dashedKeys.length === 2,
+  `both routes named "-" must survive, got ${dashedKeys.length}: [${dashedKeys.join(", ")}]`,
+);
+check(
+  dashedKeys.filter((k) => k === "-").length === 1 &&
+    dashedKeys.some((k) => k !== "-"),
+  `the second "-" route needs a distinct key, got [${dashedKeys.join(", ")}]`,
+);
+check(
+  new Set(dashedKeys.map((k) => dashed[k].stations.length)).size === 2,
+  "the two \"-\" routes must keep their own stop lists",
+);
+
 // Freshness safety net: the unmatched entry is reported, matched ones are not.
 check(
   stats.unmatched.length === 1 && stats.unmatched[0] === "Nonexistent Route",
@@ -133,5 +234,6 @@ if (problems.length) {
 }
 
 console.log(
-  `verify-na-gtfs: OK — ${keys.length} sleeper routes built (name + endpoint-pair matching)`,
+  `verify-na-gtfs: OK — ${keys.length} sleeper routes built by name/endpoint pair, ` +
+    `${sncfKeys.length} by named oriented pair`,
 );

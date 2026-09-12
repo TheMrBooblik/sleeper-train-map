@@ -98,9 +98,9 @@
     "SNCF": {
       "website": "https://www.sncf.com",
       "countries": ["FR"],
-      "integrationStatus": "source-discovered",
+      "integrationStatus": "in-progress",
       "difficulty": "easy",
-      "notes": "The cheapest real win on the board: a plain GTFS zip, no key, covering TGV/Intercités/TER for the next ~151 days. The generic gtfs-sleeper adapter already reads this shape — a registry entry plus a sleeper allowlist (Intercités de Nuit) should be most of the work.",
+      "notes": "Registry entry `sncf` reads the GTFS export nightly; the 'Probe GTFS feed' run confirmed it downloads and parses (698 routes, 39 040 trips, 8 720 stops) and carries all nine of our SNCF routes. Two things shape the integration: the feed has no shapes.txt, so geometry would be a station chain or OSM; and its route names are not addresses — route_long_name is \"-\" for six of the eleven Intercités de Nuit and files two of the named ones under another corridor — so the allowlist addresses each train as an oriented endpoint pair (data/sources/sncf-sleepers.json). Enrichment is via-only until a night's log shows whether the trip picked for a pair is the train itself or a through-portion: four of ten sampled runs disagreed with Back-on-Track by over an hour at one endpoint.",
       "sources": [
         {
           "name": "SNCF Open Data — theoretical timetables (GTFS)",
@@ -109,10 +109,10 @@
           "format": "GTFS",
           "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
           "auth": "none",
-          "status": "discovered",
-          "lastChecked": null,
-          "probeWorkflow": null,
-          "notes": "Also mirrored on the French national access point: https://transport.data.gouv.fr/datasets/horaires-sncf"
+          "status": "working",
+          "lastChecked": "2026-09-11",
+          "probeWorkflow": "probe-gtfs.yml",
+          "notes": "Also mirrored on the French national access point: https://transport.data.gouv.fr/datasets/horaires-sncf. Probed 2026-09-11: HTTP 200, unzips, tables agency/calendar_dates/feed_info/routes/stop_times/stops/transfers/trips — no shapes.txt and no calendar.txt (calendar_dates only, which serviceDisplay already summarises)."
         },
         {
           "name": "SNCF Open Data — theoretical timetables (NeTEx)",
@@ -124,7 +124,7 @@
           "status": "discovered",
           "lastChecked": null,
           "probeWorkflow": null,
-          "notes": "Same content as the GTFS export in the European standard format. Only worth it if the GTFS export turns out to be missing something."
+          "notes": "Same content as the GTFS export in the European standard format. Only worth it if the GTFS export turns out to be missing something — the one known gap is shapes.txt, so check whether NeTEx carries track geometry before reaching for OSM."
         }
       ]
     },

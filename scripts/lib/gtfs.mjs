@@ -277,6 +277,69 @@ function pairMatches(originNorm, destNorm, from, to) {
   );
 }
 
+// One direction only, for the named entries below: from must be the first
+// terminus and to the last, never the other way round. Both sides arrive
+// already normalised — this runs once per trip per entry, and normalising the
+// entry inside it would re-fold the same two strings 39 000 times.
+function orientedMatch(originNorm, destNorm, fromNorm, toNorm) {
+  return (
+    endpointMatchesCity(originNorm, fromNorm) &&
+    endpointMatchesCity(destNorm, toNorm)
+  );
+}
+
+/**
+ * Resolve each named pair entry to the one trip it describes, scanning every
+ * trip in the feed rather than one representative per route.
+ *
+ * Both halves of that matter for a feed like SNCF's. Its route_long_name is
+ * "-" for six of the eleven Intercites de Nuit and files two of the named ones
+ * under another train's corridor, so the route is not a usable address; and a
+ * single route_id there carries both directions plus the portions that split
+ * at Toulouse, so "the fullest trip on this route" answers a question nobody
+ * asked. An oriented endpoint pair addresses exactly one train, and the entry
+ * carries the operator's own label for it so the trains dict comes out keyed
+ * the way the enrichment will look it up.
+ *
+ * Endpoints are read from the first and last located stop, which is two map
+ * lookups per trip — the full station list is only built for the winner.
+ */
+function resolveNamedTrips(namedEntries, gtfs) {
+  const best = new Map(); // name → { trip, stopCount }
+  const wanted = namedEntries.map((e) => ({
+    name: e.name,
+    fromNorm: normLabel(e.from),
+    toNorm: normLabel(e.to),
+  }));
+  for (const trip of gtfs.trips) {
+    const sts = gtfs.stopTimesByTrip.get(trip.trip_id);
+    if (!sts || sts.length < 2) continue;
+    const first = firstLocatedStop(sts, gtfs, 1);
+    const last = firstLocatedStop(sts, gtfs, -1);
+    if (!first || !last || first === last) continue;
+    const originNorm = normLabel(first);
+    const destNorm = normLabel(last);
+    for (const e of wanted) {
+      if (!orientedMatch(originNorm, destNorm, e.fromNorm, e.toNorm)) continue;
+      const prev = best.get(e.name);
+      if (!prev || sts.length > prev.stopCount) {
+        best.set(e.name, { trip, stopCount: sts.length });
+      }
+    }
+  }
+  return best;
+}
+
+// The first (dir 1) or last (dir -1) stop of a trip that has coordinates.
+function firstLocatedStop(sts, gtfs, dir) {
+  const order = dir === -1 ? [...sts].reverse() : sts;
+  for (const st of order) {
+    const stop = gtfs.stopsById.get(st.stop_id);
+    if (stop && stop.lat !== null && stop.lon !== null) return stop.name;
+  }
+  return null;
+}
+
 // Pick the representative trip for a route: the one serving the most located
 // stations (full corridor), so seasonal/partial runs don't truncate it.
 function representativeTrip(trips, gtfs) {
@@ -319,14 +382,26 @@ function stationsForTrip(tripId, gtfs) {
 /**
  * Build the standard trains dict for the allowlisted routes of one feed.
  *
- * Allowlist entries can take either form (mix freely):
- *   - a string      → matched against route_long_name / route_short_name /
- *                     route_id, accent/space/punctuation-insensitive. Good for
- *                     Amtrak, whose route_long_name is the service name.
- *   - { from, to }  → matched against the route's two terminal stations, in
- *                     either direction and accent-folded. Robust for feeds that
- *                     name routes by city pair (VIA Rail: "Montréal - Halifax"),
- *                     where exact-name matching is brittle.
+ * Allowlist entries can take any of three forms (mix freely):
+ *   - a string            → matched against route_long_name / route_short_name
+ *                           / route_id, accent/space/punctuation-insensitive.
+ *                           Good for Amtrak, whose route_long_name is the
+ *                           service name.
+ *   - { from, to }        → matched against the route's two terminal stations,
+ *                           in either direction and accent-folded. Robust for
+ *                           feeds that name routes by city pair (VIA Rail:
+ *                           "Montréal - Halifax"), where exact-name matching is
+ *                           brittle.
+ *   - { from, to, name }  → the same pair, but oriented (from must be the
+ *                           origin) and keyed by `name` instead of the route's.
+ *                           For a feed whose routes are not addresses: SNCF
+ *                           calls six of its eleven night trains "-", files
+ *                           two of the named ones under another corridor, and
+ *                           runs both directions plus the split portions under
+ *                           one route_id. Naming the entry both disambiguates
+ *                           the train and lets the trains dict come out keyed
+ *                           by the operator's own label, which is what the
+ *                           trainsByNumber enrichment looks a row up by.
  *
  * @param {object} args
  * @param {object} args.gtfs       result of loadGtfsDir()
@@ -334,6 +409,10 @@ function stationsForTrip(tripId, gtfs) {
  * @param {string} args.agency     agency_id stamp (e.g. "AMTK")
  * @param {string} args.operator   display operator name (e.g. "Amtrak")
  * @param {(msg: string) => void} [args.log]
+ * @param {(name: string) => string} [args.canonicalizeName]
+ *                                 optional per-stop name canonicaliser (the
+ *                                 shared station-alias table), applied before
+ *                                 stationRenames.
  * @param {object} [args.stats]    optional out-param filled with
  *                                 { matched, unmatched, feedRouteCount } so the
  *                                 adapter can flag naming drift (an allowlist
@@ -348,13 +427,22 @@ export function buildSleeperTrains({
   log = () => {},
   stats = null,
   stationRenames = null,
+  canonicalizeName = null,
 }) {
   // Split the allowlist into name entries and endpoint-pair entries.
   const nameEntries = [];
   const pairEntries = [];
+  const namedEntries = [];
   for (const e of allowlist || []) {
     if (typeof e === "string" && e.trim()) {
       nameEntries.push({ raw: e, norm: normLabel(e) });
+    } else if (e && e.from && e.to && e.name) {
+      namedEntries.push({
+        raw: `${e.name} (${e.from} → ${e.to})`,
+        from: e.from,
+        to: e.to,
+        name: String(e.name).trim(),
+      });
     } else if (e && e.from && e.to) {
       pairEntries.push({ raw: `${e.from} – ${e.to}`, from: e.from, to: e.to });
     }
@@ -366,13 +454,18 @@ export function buildSleeperTrains({
           Object.entries(stationRenames).map(([k, v]) => [k.toLowerCase(), v]),
         )
       : null;
+  // Alias table first (feed spelling → the spelling the rest of the payload
+  // uses), then the source's own explicit corrections, which therefore get the
+  // last word on anything the table gets wrong for this feed.
   const renameStations = (list) =>
-    renameMap
-      ? list.map((s) => {
-          const to = s?.name ? renameMap.get(String(s.name).toLowerCase()) : null;
-          return to && to !== s.name ? { ...s, name: to } : s;
-        })
-      : list;
+    !renameMap && !canonicalizeName
+      ? list
+      : list.map((s) => {
+          if (!s?.name) return s;
+          let name = canonicalizeName ? canonicalizeName(s.name) : s.name;
+          name = renameMap?.get(String(name).toLowerCase()) ?? name;
+          return name !== s.name ? { ...s, name } : s;
+        });
 
   // Group every trip by its route; allowlist filtering happens per route below.
   const tripsByRoute = new Map();
@@ -383,6 +476,50 @@ export function buildSleeperTrains({
   }
 
   const trains = {};
+
+  const makeTrain = (lineName, trip, stations) => {
+    // Geometry: prefer the GTFS shape; fall back to the station chain.
+    const shapePts = trip.shape_id ? gtfs.shapePoints.get(trip.shape_id) : null;
+    const positions =
+      shapePts && shapePts.length >= 2
+        ? shapePts.map((p) => [p.lat, p.lon])
+        : stations.map((s) => [s.location.latitude, s.location.longitude]);
+    return {
+      lineName,
+      operator,
+      agency_id: agency,
+      frequency: serviceDisplay(trip.service_id, gtfs),
+      polyline: polyline.encode(positions),
+      stations: renameStations(stations),
+    };
+  };
+
+  // Two trains under one key is one train: a feed is free to give several
+  // route_ids the same route_long_name (SNCF gives six of them "-"), and the
+  // last one written would silently be the only one kept.
+  const claimKey = (preferred, suffix) =>
+    trains[preferred] === undefined ? preferred : `${preferred} (${suffix})`;
+
+  // Named entries first, so they get the unsuffixed key.
+  if (namedEntries.length) {
+    const resolved = resolveNamedTrips(namedEntries, gtfs);
+    for (const e of namedEntries) {
+      const hit = resolved.get(e.name);
+      if (!hit) continue;
+      const stations = stationsForTrip(hit.trip.trip_id, gtfs);
+      if (stations.length < 2) {
+        log(`skip ${e.raw}: no trip with ≥2 located stops`);
+        continue;
+      }
+      matchedEntries.add(e.raw);
+      trains[claimKey(e.name, hit.trip.trip_id)] = makeTrain(
+        e.name,
+        hit.trip,
+        stations,
+      );
+    }
+  }
+
   for (const [routeId, trips] of tripsByRoute.entries()) {
     const route = gtfs.routesById.get(routeId);
     const nameNorms = [
@@ -424,24 +561,14 @@ export function buildSleeperTrains({
       continue;
     }
 
-    // Geometry: prefer the GTFS shape; fall back to the station chain.
-    const shapePts = best.shape_id ? gtfs.shapePoints.get(best.shape_id) : null;
-    const positions =
-      shapePts && shapePts.length >= 2
-        ? shapePts.map((p) => [p.lat, p.lon])
-        : bestStations.map((s) => [s.location.latitude, s.location.longitude]);
-
-    trains[routeName] = {
-      lineName: routeName,
-      operator,
-      agency_id: agency,
-      frequency: serviceDisplay(best.service_id, gtfs),
-      polyline: polyline.encode(positions),
-      stations: renameStations(bestStations),
-    };
+    trains[claimKey(routeName, routeId)] = makeTrain(
+      routeName,
+      best,
+      bestStations,
+    );
   }
 
-  const unmatched = [...nameEntries, ...pairEntries]
+  const unmatched = [...nameEntries, ...pairEntries, ...namedEntries]
     .map((e) => e.raw)
     .filter((raw) => !matchedEntries.has(raw));
   if (stats) {

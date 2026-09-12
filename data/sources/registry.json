@@ -434,6 +434,47 @@
   },
   {
     "v": 1,
+    "id": "sncf",
+    "label": "SNCF",
+    "description": "Official SNCF Open Data GTFS (TGV / Intercit\u00e9s / TER), filtered to the Intercit\u00e9s de Nuit (data/sources/sncf-sleepers.json). The feed's routes are not addresses \u2014 route_long_name is \"-\" for six of these eleven trains and files two of the named ones under another corridor \u2014 so the allowlist selects them as oriented endpoint pairs and keys each by Back-on-Track's own \"IC Nuit NNNN\" label, which is what the trainsByNumber enrichment looks a view-map row up by. Enrichment is deliberately via-only for now: the feed has no shapes.txt, and one route_id there carries both directions plus the portions that split at Toulouse and Brive, so the fullest trip for a pair can be a through-portion whose endpoint times are not the train's (four of ten sampled runs disagreed with Back-on-Track by over an hour at one end). Stop lists survive that \u2014 every stop between the two endpoints is on the corridor either way \u2014 while times and durations would not, so setTimes/updateEndpoints/stamp stay off until a night's log settles it. Probe workflow: 'Probe GTFS feed'.",
+    "kind": "gtfs",
+    "adapter": "gtfs-sleeper",
+    "enabled": true,
+    "official": true,
+    "trusted": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.sncf.com",
+    "endpoint": "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip",
+    "docsUrl": "https://ressources.data.sncf.com/explore/dataset/horaires-sncf/",
+    "output": "sncf-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "SNCF", "operatorName": "SNCF" },
+    "synthetic": {
+      "idPrefix": "sncf_",
+      "agency": { "from": "fixed", "value": "SNCF" },
+      "resolveAliases": true,
+      "withService": true,
+      "excludeBotMatched": true,
+      "botMatchAgencies": ["SNCF"],
+      "dedupStrategy": null
+    },
+    "enrich": {
+      "strategy": "trainsByNumber",
+      "agencyIds": ["SNCF"],
+      "updateVia": true
+    },
+    "params": {
+      "feedUrl": "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip",
+      "configPath": "data/sources/sncf-sleepers.json",
+      "agency": "SNCF",
+      "operator": "SNCF",
+      "canonicalizeStationNames": true
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
     "id": "pkp-gtfs",
     "label": "PKP Intercity (Polish GTFS)",
     "description": "Official PKP Intercity timetable data (mkuran.pl is a mechanical daily conversion of the official NAP feed), plus Leo Express sleeper shapes discovered from the same polish_trains.zip (overnight LEO trips of 12h+). Committed as public/data/gtfs/pkpTrainShapes.json; regenerated nightly inside the scrape (npm run parse-pkp-gtfs). Enriches PKP and Leo Express rows with official stop lists and stamps them for trusted auto-approval.",

@@ -10,3 +10,9 @@ SAN,San Diego,32.7174,-117.1628
 MTL,Montréal Gare Centrale,45.4995,-73.5666
 MNC,Moncton,46.0878,-64.7782
 HFX,Halifax,44.6476,-63.5875
+PAZ,Paris Austerlitz,48.8420,2.3660
+TLS,Toulouse Matabiau,43.6110,1.4536
+TBS,Tarbes,43.2400,0.0742
+LRD,Lourdes,43.0958,-0.0453
+BRC,Briançon,44.8918,6.6359
+NCE,Nice-Ville,43.7047,7.2618
