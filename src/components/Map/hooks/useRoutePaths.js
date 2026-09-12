@@ -56,10 +56,37 @@ export function useRoutePaths({
   normalizeStationNameForLookup,
 }) {
   const [osmPolylines, setOsmPolylines] = useState(new Map());
+  // Precomputed "all routes" paths, so toggling "Show all routes" is instant.
+  //
+  // It carries the identity of everything it was built from, and that is
+  // load-bearing rather than tidy. The cache is WRITTEN in an effect and READ
+  // in the memo below — the memo runs during render, the effect after commit —
+  // so an unkeyed ref makes the first render after new data return the PREVIOUS
+  // data's paths, and a ref write triggers no re-render to correct it. That is
+  // exactly what the two-stage load does: `/api/initial-data` lands without
+  // geometry, `/api/route-geometry` lands a moment later and `assemble()`
+  // rebuilds viewMapData with the polylines merged in. So the map painted the
+  // stage-one paths — straight hops between stops, 6 408 vertices against the
+  // real 368 452, and nothing at all for the 57 routes with no drawable chain —
+  // and kept them until something else re-rendered. Selecting a route took the
+  // uncached branch and fixed it, which is why clicking a line and closing the
+  // panel "repaired" the map. A mismatched key now simply misses, and the memo
+  // does the full build in that same render.
   const precomputedAllPathsRef = useRef(null);
   // Polyline keys already requested, so the fetch effect below cannot ask for
   // the same file twice while the first request is still in flight.
   const requestedPolylineKeysRef = useRef(new Set());
+
+  // Everything buildAllRoutesPaths reads; all of them are either useInitialData
+  // state (new identity exactly when the data changes) or a module-level import.
+  const allPathsCacheIsFresh = (cache) =>
+    cache != null &&
+    cache.viewMapData === viewMapData &&
+    cache.stops === stops &&
+    cache.cities === cities &&
+    cache.trips === trips &&
+    cache.stationsToSkip === stationsToSkip &&
+    cache.normalizeStationNameForLookup === normalizeStationNameForLookup;
 
   const routePaths = useMemo(() => {
     if (!viewMapData || !stops?.length) return [];
@@ -111,9 +138,9 @@ export function useRoutePaths({
       showRoutes &&
       !selected &&
       selectedTrainRouteIds?.length === 0 &&
-      precomputedAllPathsRef.current != null
+      allPathsCacheIsFresh(precomputedAllPathsRef.current)
     ) {
-      const basePaths = precomputedAllPathsRef.current;
+      const basePaths = precomputedAllPathsRef.current.paths;
       return basePaths.map((path) => {
         if (path.osmRelationId && osmPolylines.has(path.osmRelationId)) {
           let osmCoords = osmPolylines.get(path.osmRelationId);
@@ -457,7 +484,15 @@ export function useRoutePaths({
       selectedTrainRouteIds?.length === 0 &&
       paths.length > 0
     ) {
-      precomputedAllPathsRef.current = paths;
+      precomputedAllPathsRef.current = {
+        viewMapData,
+        stops,
+        cities,
+        trips,
+        stationsToSkip,
+        normalizeStationNameForLookup,
+        paths,
+      };
     }
 
     return paths.map((path) => {
@@ -572,7 +607,15 @@ export function useRoutePaths({
   // Precompute "all routes" paths as soon as data is loaded so "Show all routes" is instant (like selected-station routes)
   useEffect(() => {
     if (!viewMapData || !stops?.length) return;
+    // The memo may already have built and keyed these during this very render —
+    // it does whenever "show all routes" is on and nothing is selected, which is
+    // the common case. Rebuilding would be a second full pass over all 293
+    // routes for identical inputs; now that the cache is keyed, "already fresh"
+    // is a question that can be asked.
+    if (allPathsCacheIsFresh(precomputedAllPathsRef.current)) return;
     precomputedAllPathsRef.current = null;
+    // Keyed with the same inputs the memo compares against, so the cache this
+    // effect leaves behind can only ever be used for the data it was built from.
     // Run synchronously so cache is ready before user can toggle; loading overlay still visible so no perceived delay
     const paths = buildAllRoutesPaths({
       viewMapData,
@@ -583,7 +626,15 @@ export function useRoutePaths({
       normalizeStationNameForLookup,
     });
     if (paths.length > 0) {
-      precomputedAllPathsRef.current = paths;
+      precomputedAllPathsRef.current = {
+        viewMapData,
+        stops,
+        cities,
+        trips,
+        stationsToSkip,
+        normalizeStationNameForLookup,
+        paths,
+      };
     }
   }, [
     viewMapData,
