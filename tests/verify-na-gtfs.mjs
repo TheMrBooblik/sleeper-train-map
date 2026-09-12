@@ -12,7 +12,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import polyline from "@mapbox/polyline";
-import { loadGtfsDir, buildSleeperTrains } from "../scripts/lib/gtfs.mjs";
+import { headersFor, loadGtfsDir, buildSleeperTrains } from "../scripts/lib/gtfs.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE = path.join(__dirname, "fixtures", "na-gtfs");
@@ -223,6 +223,34 @@ check(
 check(
   new Set(dashedKeys.map((k) => dashed[k].stations.length)).size === 2,
   "the two \"-\" routes must keep their own stop lists",
+);
+
+// ─── Per-host request headers ──────────────────────────────────────────────
+// The safety argument for touching the shared downloader is that no working
+// feed changes, so that is the assertion: a host with no entry is fetched with
+// exactly the headers it was before, which is none.
+for (const url of [
+  "https://content.amtrak.com/content/gtfs/GTFS.zip",
+  "https://www.viarail.ca/sites/all/files/gtfs/viarail.zip",
+  "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip",
+]) {
+  check(
+    Object.keys(headersFor(url)).length === 0,
+    `${new URL(url).hostname} must still be fetched with no headers`,
+  );
+}
+const vr = headersFor("https://rata.digitraffic.fi/api/v1/trains/gtfs-passenger-stops.zip");
+check(
+  vr["Digitraffic-User"] && /zip/.test(vr.Accept ?? ""),
+  `digitraffic should get an identifying user and an Accept, got ${JSON.stringify(vr)}`,
+);
+check(
+  headersFor("https://rata.digitraffic.fi/x.zip", { Accept: "text/plain" }).Accept === "text/plain",
+  "a caller's own header should win over the host default",
+);
+check(
+  Object.keys(headersFor("not a url")).length === 0,
+  "a malformed URL must not throw on the way to https.get",
 );
 
 // Freshness safety net: the unmatched entry is reported, matched ones are not.

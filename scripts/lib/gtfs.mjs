@@ -68,11 +68,43 @@ export function readCsv(filePath) {
   });
 }
 
-export function downloadFile(url, destPath) {
+/**
+ * Per-host request headers, for a feed whose publisher asks for something
+ * beyond a bare GET. Keyed by hostname so every other feed is fetched exactly
+ * as before — several of them work today and none of them should be risked to
+ * fix one that does not.
+ *
+ * rata.digitraffic.fi answers a bare GET with HTTP 406, which is the one
+ * catalogued feed that fails for a reason inside our control. Two readings fit
+ * that status and these headers satisfy both, because the log will say which:
+ * Digitraffic's terms ask clients to identify themselves in a Digitraffic-User
+ * header, and a 406 is literally what content negotiation returns when the
+ * server cannot honour an Accept it was never sent.
+ */
+const HOST_HEADERS = {
+  "rata.digitraffic.fi": {
+    "Digitraffic-User": "pingwi.com/sleeper-train-map",
+    Accept: "application/zip, application/octet-stream, */*",
+  },
+};
+
+export function headersFor(url, extra) {
+  let host = "";
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    // A malformed URL is the caller's problem, not this function's: fall
+    // through and let https.get report it.
+  }
+  return { ...(HOST_HEADERS[host] ?? {}), ...(extra ?? {}) };
+}
+
+export function downloadFile(url, destPath, extraHeaders = null) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destPath);
+    const headers = headersFor(url, extraHeaders);
     https
-      .get(url, (res) => {
+      .get(url, Object.keys(headers).length ? { headers } : {}, (res) => {
         if (res.statusCode === 301 || res.statusCode === 302) {
           const loc = res.headers.location;
           if (!loc) {
@@ -80,7 +112,9 @@ export function downloadFile(url, destPath) {
             return;
           }
           res.resume();
-          downloadFile(loc, destPath).then(resolve).catch(reject);
+          // Carry the headers across the hop: a redirect to another host
+          // re-resolves them for that host, which is what headersFor does.
+          downloadFile(loc, destPath, extraHeaders).then(resolve).catch(reject);
           return;
         }
         if (res.statusCode !== 200) {
@@ -98,10 +132,10 @@ export function downloadFile(url, destPath) {
 
 // Download + unzip a GTFS feed into destDir (returns destDir). Requires `unzip`
 // on PATH, exactly like the PKP/RegioJet parsers.
-export async function downloadGtfs(url, destDir) {
+export async function downloadGtfs(url, destDir, extraHeaders = null) {
   fs.mkdirSync(destDir, { recursive: true });
   const zipPath = path.join(destDir, "feed.zip");
-  await downloadFile(url, zipPath);
+  await downloadFile(url, zipPath, extraHeaders);
   execSync(`unzip -o -q "${zipPath}" -d "${destDir}"`, { stdio: "inherit" });
   return destDir;
 }
