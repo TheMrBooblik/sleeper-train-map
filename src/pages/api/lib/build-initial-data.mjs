@@ -26,6 +26,9 @@ import ROUTE_PRICES from "../../../../data/canonical/prices.json" with { type: "
 // Operator pricing defaults — provides the fixed/dynamic `type` half of the
 // stamped record so the existing badge keeps rendering.
 import OPERATOR_PRICING from "../../../../data/overrides/operator-pricing.json" with { type: "json" };
+// Manually verified station coordinates (see normalizeStops). Same file the
+// browser already applied through src/data/stationCoordinates.js.
+import STATION_COORDINATES from "../../../../data/overrides/station-coordinates.json" with { type: "json" };
 // TEMPORARY route previews: hand-authored future re-routings we want to show
 // ahead of Back-on-Track publishing them (e.g. the 14-Dec European Sleeper
 // 456/457 path). Each entry injects a synthetic viewMap row + trips and can
@@ -152,16 +155,52 @@ function filterViewMap(data, rawTrips, filteredTrips) {
 
 // ─── Stops ─────────────────────────────────────────────────────────────────
 
-function normalizeStops(rawStops) {
+// Manually verified coordinates beat Back-on-Track's, which are sometimes not
+// merely imprecise but somewhere else entirely: its Norwegian stops are all
+// stamped country NO while geocoded across Europe — "Tverlandet" on the Basque
+// coast, "Voss" in Germany, "Stjørdal" in Czechia, "Trondheim Airport Værnes"
+// in Stockholm. Nothing showed it until the Entur feed replaced 2–6 via points
+// with the operator's full stop list, because a station no route names never
+// gets a marker to be wrong in.
+//
+// The override table existed for exactly this ("values which are sometimes
+// wrong") but was applied only in the browser, in useInitialData via
+// enrichStationsWithCoordinates, so the SEO corridor maps have been drawing
+// every one of its entries at the coordinate it exists to replace. Doing it
+// here puts one set of coordinates in the payload; the client pass then agrees
+// with it instead of diverging from it.
+//
+// Keyed by stop_id and by stop_name because 703 records spell the two
+// differently, the same reason the payload projection matches on both.
+function overrideCoords(stop, byKey) {
+  const hit =
+    byKey.get(String(stop?.stop_id ?? "").toLowerCase().trim()) ??
+    byKey.get(String(stop?.stop_name ?? "").toLowerCase().trim());
+  if (!hit) return null;
+  const lat = Number(hit.lat);
+  const lon = Number(hit.lon);
+  return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
+}
+
+function normalizeStops(rawStops, coordOverrides = STATION_COORDINATES) {
   const stopsArray = Array.isArray(rawStops)
     ? rawStops
     : Object.values(rawStops || {});
-  return stopsArray.map((s) => ({
-    stop_id: s.stop_id,
-    stop_name: s.stop_name,
-    stop_lat: s.stop_lat,
-    stop_lon: s.stop_lon,
-  }));
+  const byKey = new Map(
+    Object.entries(coordOverrides || {}).map(([name, v]) => [
+      name.toLowerCase().trim(),
+      v,
+    ]),
+  );
+  return stopsArray.map((s) => {
+    const fixed = byKey.size ? overrideCoords(s, byKey) : null;
+    return {
+      stop_id: s.stop_id,
+      stop_name: s.stop_name,
+      stop_lat: fixed ? fixed.lat : s.stop_lat,
+      stop_lon: fixed ? fixed.lon : s.stop_lon,
+    };
+  });
 }
 
 // NightJet stations: keyed by exact name (first occurrence), stored under their
@@ -613,7 +652,7 @@ export function buildInitialData({
   );
 
   stampEndpointCountries(filteredViewMap, stops);
-  stampScheduleOriginCodes(filteredViewMap, operatorTrains);
+  stampScheduleOriginCodes(filteredViewMap, operatorTrains, registry);
 
   return {
     stops: trimmedStops,
@@ -637,21 +676,45 @@ export function buildInitialData({
  * somewhere else: ICN 1962 leaves Siracusa, ICN 1963 leaves Milano Centrale.
  * Silent by design — a train the sources don't carry leaves the field unset and
  * the schedule link falls back a tier rather than building a broken URL.
+ *
+ * And kept per source, in that source's own agency scope, because a bare train
+ * number is only unique within an operator — the collision this codebase has
+ * now met in four places. Flattening every source's trains into one map by
+ * number put an Entur quay id (`NSR:Quay:1080`, Trondheim S) on European
+ * Sleeper's ES 475 row the moment Norway was added, since SJ Nord runs a 475
+ * too. Nothing rendered wrong yet, only because no Vy or SJ Nord URL template
+ * names {originCode} — which is exactly the kind of latent wrong data that
+ * becomes a broken link the day someone adds one.
+ *
+ * A source that declares no scope stamps any row, as elsewhere; that stays
+ * right for operator-prefixed keys and is why the registry's Norwegian entries
+ * carry agencyIds.
  */
-function stampScheduleOriginCodes(viewMap, operatorTrains) {
-  const originCodeByTrain = new Map();
-  for (const trains of Object.values(operatorTrains || {})) {
-    for (const [name, train] of Object.entries(trains || {})) {
+function stampScheduleOriginCodes(viewMap, operatorTrains, registry) {
+  const perSource = [];
+  for (const entry of registry || []) {
+    const trains = operatorTrains?.[entry.id];
+    if (!trains) continue;
+    const codes = new Map();
+    for (const [name, train] of Object.entries(trains)) {
       const code = train?.stations?.[0]?.code;
-      if (code && !originCodeByTrain.has(name)) originCodeByTrain.set(name, code);
+      if (code && !codes.has(name)) codes.set(name, code);
     }
+    if (!codes.size) continue;
+    perSource.push({
+      codes,
+      scope: entry.enrich?.agencyIds ?? entry.synthetic?.botMatchAgencies ?? null,
+    });
   }
-  if (originCodeByTrain.size === 0) return;
+  if (perSource.length === 0) return;
 
   for (const row of Object.values(viewMap)) {
-    for (const dir of [0, 1]) {
-      const code = originCodeByTrain.get(row[`trip_short_name_${dir}`]);
-      if (code) row[`schedule_origin_code_${dir}`] = code;
+    for (const { codes, scope } of perSource) {
+      if (!inAgencyScope(row, scope)) continue;
+      for (const dir of [0, 1]) {
+        const code = codes.get(row[`trip_short_name_${dir}`]);
+        if (code) row[`schedule_origin_code_${dir}`] = code;
+      }
     }
   }
 }

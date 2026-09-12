@@ -314,6 +314,60 @@ function normLabel(s) {
     .trim();
 }
 
+// ─── Station-name canonicalisation at emit time ─────────────────────────────
+// A via station only becomes a map dot when a coordinate-bearing stop of that
+// exact name exists, so a feed's spelling has to be reconciled with the rest of
+// the payload before it is written — not on read, where every consumer would
+// need the same rule.
+//
+// Two registry params, composed in this order because they answer different
+// problems. `stripStationSuffixes` removes a word the feed appends to every
+// name: Entur writes "Drammen stasjon" where every other source in the dataset
+// (Back-on-Track included) writes "Drammen". `canonicalizeStationNames` then
+// puts what is left through the shared alias table, for the irregular cases a
+// rule cannot reach ("Oslo lufthavn" → "Oslo Airport Gardermoen"). The other
+// order needs an alias entry per station — 86 lines of mechanical JSON for
+// Norway alone, and another set for every Nordic feed added after it.
+//
+// The strip is only safe because it cannot collide: no station in the
+// Back-on-Track table is named "… stasjon", so there is no correct name for it
+// to destroy. Both params stay opt-in per source for exactly that reason — the
+// next feed's suffix has to earn the same check before it is added here.
+//
+// `resolveAlias` is injected rather than imported so this module keeps having
+// no dependency on src/; the two call sites (the adapter and probe-gtfs) share
+// this factory so the probe cannot report names the scrape would not write.
+
+export function stripStationSuffixes(name, suffixes) {
+  let out = String(name ?? "").trim();
+  for (const suffix of suffixes) {
+    const tail = String(suffix ?? "").trim();
+    if (!tail) continue;
+    if (out.length <= tail.length) continue;
+    const candidate = out.slice(0, out.length - tail.length);
+    if (out.slice(-tail.length).toLowerCase() !== tail.toLowerCase()) continue;
+    // Only at a word boundary, and never down to nothing: a station really
+    // called "Stasjon" keeps its name.
+    if (!/\s$/.test(candidate)) continue;
+    const trimmed = candidate.trim();
+    if (!trimmed) continue;
+    out = trimmed;
+  }
+  return out;
+}
+
+export function stationNameCanonicalizer(params, resolveAlias) {
+  const suffixes = Array.isArray(params?.stripStationSuffixes)
+    ? params.stripStationSuffixes.filter((s) => String(s ?? "").trim())
+    : [];
+  const alias = params?.canonicalizeStationNames ? resolveAlias : null;
+  if (!suffixes.length && !alias) return null;
+  return (name) => {
+    const stripped = suffixes.length ? stripStationSuffixes(name, suffixes) : name;
+    return alias ? alias(stripped) : stripped;
+  };
+}
+
 // Does a route endpoint (already normalised) start with an allowlist city?
 // Token-aware so "toronto union station" matches "toronto" but "new york"
 // never matches "york".

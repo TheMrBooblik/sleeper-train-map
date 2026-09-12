@@ -35,7 +35,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { downloadGtfs, loadGtfsDir, buildSleeperTrains, readCsv } from "./lib/gtfs.mjs";
+import {
+  downloadGtfs,
+  loadGtfsDir,
+  buildSleeperTrains,
+  readCsv,
+  stationNameCanonicalizer,
+} from "./lib/gtfs.mjs";
 import { loadRegistry } from "./lib/registry.mjs";
 import { resolveCanonicalStationName } from "../src/pages/api/lib/primitives.mjs";
 
@@ -262,9 +268,10 @@ export function reportAllowlist(entry, gtfs, limit = 40, rootDir = ROOT) {
       operator: entry.params?.operator || entry.label,
       stats,
       stationRenames: entry.synthetic?.stationRenames,
-      canonicalizeName: entry.params?.canonicalizeStationNames
-        ? resolveCanonicalStationName
-        : null,
+      canonicalizeName: stationNameCanonicalizer(
+        entry.params,
+        resolveCanonicalStationName,
+      ),
       log: (msg) => console.log(`  ${msg}`),
     });
   } catch (err) {

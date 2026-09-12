@@ -209,6 +209,63 @@ function writeSourceHealth(registry, results, runStartedAt) {
   write("source-health.json", { runStartedAt, runFinishedAt: nowIso, sources });
 }
 
+/**
+ * Which sources this run touches, from SCRAPE_ONLY (comma-separated ids).
+ *
+ * Exists so a branch can show real data. The enrichment only happens inside
+ * this runner, so a new source changes nothing a Vercel preview can serve
+ * until the nightly job has run on main — which means reviewing a data source
+ * meant merging it first and looking afterwards. A filtered run makes the
+ * opposite possible: scrape the one source under test, canonicalize, and the
+ * preview shows its stop lists.
+ */
+export function selectSources(registry, only) {
+  const ids = String(only ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!ids.length) return { sources: registry, filtered: false, unknown: [] };
+  const known = new Set(registry.map((e) => e.id));
+  return {
+    sources: registry.filter((e) => ids.includes(e.id)),
+    filtered: true,
+    // A typo would otherwise read as "that source produced nothing tonight".
+    unknown: ids.filter((id) => !known.has(id)),
+  };
+}
+
+/**
+ * Fill ctx.shared from the last committed Back-on-Track files.
+ *
+ * A filtered run still has to enrich — that is the whole point of it — and
+ * finalizeViewMap returns early without ctx.shared.viewMap, so an Entur-only
+ * run would quietly enrich nothing. Re-fetching the critical source instead
+ * would work, but it drags a night of unrelated upstream churn into the
+ * branch's diff and buries the one thing under review; the committed copy is
+ * the same file last night's run wrote, and reading it is the same fallback
+ * the Back-on-Track adapter already uses when its own fetch fails.
+ *
+ * Enrichment over an already-enriched view map is idempotent: trainsByNumber
+ * overwrites the row's fields, and a leftover synthetic row keys off its own
+ * route_id.
+ */
+function hydrateSharedFromDisk(ctx) {
+  const files = [
+    ["viewMap", "backontrack-view_ontd_map.json"],
+    ["stops", "backontrack-stops.json"],
+    ["trips", "backontrack-trips.json"],
+  ];
+  for (const [key, filename] of files) {
+    if (ctx.shared[key]) continue;
+    try {
+      const raw = JSON.parse(fs.readFileSync(path.join(DATA_DIR, filename), "utf8"));
+      if (raw?.data) ctx.shared[key] = raw.data;
+    } catch {
+      // Leave it unset; finalizeViewMap refuses to run without the view map.
+    }
+  }
+}
+
 // Whether a scheduled external entry runs tonight (mirrors the old workflow
 // conditions: weekly = Mondays, or any manual workflow_dispatch / forced run).
 function shouldRunToday(schedule) {
@@ -226,11 +283,26 @@ function shouldRunToday(schedule) {
 // ─── Main ──────────────────────────────────────────────────────────────────
 
 async function main() {
-  const registry = loadRegistry();
-  const problems = validateRegistry(registry);
+  const fullRegistry = loadRegistry();
+  const problems = validateRegistry(fullRegistry);
   if (problems.length) {
     problems.forEach((p) => console.error(`[scrape] registry: ${p}`));
     throw new Error("invalid source registry");
+  }
+
+  const selection = selectSources(fullRegistry, process.env.SCRAPE_ONLY);
+  if (selection.unknown.length) {
+    throw new Error(
+      `SCRAPE_ONLY names no such source: ${selection.unknown.join(", ")}`,
+    );
+  }
+  const registry = selection.sources;
+  if (selection.filtered) {
+    console.log(
+      `[scrape] SCRAPE_ONLY is set — running ${registry.length} of ` +
+        `${fullRegistry.length} source(s): ${registry.map((e) => e.id).join(", ")}\n` +
+        "[scrape] every other source keeps its last committed file.",
+    );
   }
 
   const errors = [];
@@ -304,6 +376,7 @@ async function main() {
     }
   }
 
+  if (selection.filtered) hydrateSharedFromDisk(ctx);
   await finalizeViewMap(ctx, registry);
   writeSourceHealth(registry, results, runStartedAt);
 
@@ -311,7 +384,12 @@ async function main() {
   if (errors.length) console.error("[scrape] errors:", errors);
 }
 
-main().catch((err) => {
-  console.error("[scrape] fatal:", err);
-  process.exit(1);
-});
+// Importing this file must not start a scrape: selectSources is unit-tested,
+// and without this guard `import` fetches every source. Same reason
+// probe-gtfs.mjs carries the same line.
+if (process.argv[1] && process.argv[1].endsWith("scrape-data.mjs")) {
+  main().catch((err) => {
+    console.error("[scrape] fatal:", err);
+    process.exit(1);
+  });
+}

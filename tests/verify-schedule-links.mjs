@@ -486,6 +486,70 @@ for (const [id, cfg] of scheduleOps) {
   );
 }
 
+// ── A station code belongs to one operator's train, not to a number ───────
+// The stamp used to flatten every source's trains into one map keyed by bare
+// train number, so adding Norway put SJ Nord's quay id for Trondheim S onto
+// European Sleeper's ES 475 row — the two operators both run a 475. Nothing
+// rendered wrong only because no Vy/SJ Nord template names {originCode}, which
+// is the worst kind of latent fault: correct-looking until someone adds one.
+{
+  const registry = [
+    {
+      id: "europeansleeper",
+      enabled: true,
+      output: "europeansleeper-trains.json",
+      synthetic: { idPrefix: "es_", agency: { from: "fixed", value: "ES" } },
+      enrich: { strategy: "trainsByNumber", agencyIds: ["ES"] },
+    },
+    {
+      id: "entur-sjn",
+      enabled: true,
+      output: "entur-sjn-trains.json",
+      synthetic: { idPrefix: "entur_sjn_", agency: { from: "fixed", value: "SJN" } },
+      enrich: { strategy: "trainsByNumber", agencyIds: ["VY", "SJN", "GA"] },
+    },
+  ];
+  const viewMap = {
+    es: {
+      route_id: "es",
+      agency_id: "ES",
+      trip_short_name_0: "474",
+      trip_short_name_1: "475",
+      is_active: "Y",
+    },
+    no: {
+      route_id: "no",
+      agency_id: "SJN",
+      trip_short_name_0: "475",
+      trip_short_name_1: "476",
+      is_active: "Y",
+    },
+  };
+  const trips = {
+    474: { route_id: "es", trip_short_name: "474", direction_id: 0, is_active: "Y" },
+    475: { route_id: "no", trip_short_name: "475", direction_id: 0, is_active: "Y" },
+  };
+  const operatorTrains = {
+    europeansleeper: {
+      474: { stations: [{ name: "Bruxelles-Midi", code: "ES-BRU" }] },
+      475: { stations: [{ name: "Praha hl.n.", code: "ES-PRG" }] },
+    },
+    "entur-sjn": {
+      475: { stations: [{ name: "Trondheim S", code: "NSR:Quay:1080" }] },
+      476: { stations: [{ name: "Bodø", code: "NSR:Quay:828" }] },
+    },
+  };
+  const built = buildInitialData({ stops: [], viewMap, trips, operatorTrains, registry });
+  eq(built.viewMap.es?.schedule_origin_code_0, "ES-BRU", "an ES row takes ES's code");
+  eq(
+    built.viewMap.es?.schedule_origin_code_1,
+    "ES-PRG",
+    "…and ES's 475, not SJ Nord's quay id for the same number",
+  );
+  eq(built.viewMap.no?.schedule_origin_code_0, "NSR:Quay:1080", "the SJN row takes Entur's");
+  eq(built.viewMap.no?.schedule_origin_code_1, "NSR:Quay:828", "…on both its directions");
+}
+
 // ── Tier order is the contract the resolver relies on ──────────────────────
 eq(SCHEDULE_TIERS.join(","), "route,train,country,operator", "tier order is most-specific first");
 

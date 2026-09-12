@@ -478,7 +478,7 @@
     "v": 1,
     "id": "entur-vy",
     "label": "Vy (Entur)",
-    "description": "Norway is centralised on Entur, which publishes a GTFS file per operator codespace with no key: rb_vyg-aggregated-gtfs.zip covers F4 Oslo S\u2013Bergen (Back-on-Track row 69, trains 605/606). Every allowlist entry is a NAMED ORIENTED pair, because Entur files each night train inside a whole line that also runs day services \u2014 the trip with the most stations, which a plain route name would select, is a day train \u2014 so the entry names the train and buildSleeperTrains requires the trip to cross midnight. Enrichment is via-only: Back-on-Track gives these routes 2 to 6 via points against the feed's full stop list, and every Norwegian station checked is already in the payload with coordinates, so no station aliasing is needed. Times and service days stay off for the same reason as SNCF, until a night's log shows they are the train's. shapes.txt here is 108\u2013416 MB, past MAX_SHAPES_BYTES, so geometry is the station chain through the official stops. Probe workflow: 'Probe GTFS feed'.",
+    "description": "Norway is centralised on Entur, which publishes a GTFS file per operator codespace with no key: rb_vyg-aggregated-gtfs.zip covers F4 Oslo S\u2013Bergen (Back-on-Track row 69, trains 605/606). Every allowlist entry is a NAMED ORIENTED pair, because Entur files each night train inside a whole line that also runs day services \u2014 the trip with the most stations, which a plain route name would select, is a day train \u2014 so the entry names the train and buildSleeperTrains requires the trip to cross midnight. Enrichment is via-only: Back-on-Track gives these routes 2 to 6 via points against the feed's full stop list. Two things that richer list forces, both invisible while the via lists were sparse. Entur appends \" stasjon\" to every station name where the rest of the dataset writes the bare name, so params.stripStationSuffixes takes it off before the alias table runs \u2014 without it not one of the 86 stops resolves to a coordinate-bearing station and the official stop list buys no map dots at all. And once they do resolve, 27 of the 86 land on a Back-on-Track coordinate that is somewhere else entirely: every one stamped country NO, 22 of them off by more than 400 km (Tverlandet on the Basque coast, Stj\u00f8rdal in Czechia, Voss in Germany, Trondheim Airport V\u00e6rnes in Stockholm), so station-coordinates.json now carries the operator's own coordinate for each. The 59 that agree agree within 1.26 km and nothing at all sits between that and 5.31 km, so the threshold is not a judgement call. Times and service days stay off for the same reason as SNCF, until a night's log shows they are the train's. shapes.txt here is 108\u2013416 MB, past MAX_SHAPES_BYTES, so geometry is the station chain through the official stops. Probe workflow: 'Probe GTFS feed'.",
     "kind": "gtfs",
     "adapter": "gtfs-sleeper",
     "enabled": true,
@@ -511,7 +511,11 @@
       "feedUrl": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_vyg-aggregated-gtfs.zip",
       "configPath": "data/sources/entur-vy-sleepers.json",
       "agency": "VY",
-      "operator": "Vy"
+      "operator": "Vy",
+      "canonicalizeStationNames": true,
+      "stripStationSuffixes": [
+        " stasjon"
+      ]
     },
     "freshness": { "ttlHours": 25 }
   },
@@ -519,7 +523,7 @@
     "v": 1,
     "id": "entur-sjn",
     "label": "SJ Nord (Entur)",
-    "description": "Norway is centralised on Entur, which publishes a GTFS file per operator codespace with no key: rb_sjn-aggregated-gtfs.zip covers F6 Dovrebanen and F7 Nordlandsbanen (rows 70 and 71, trains 405/406 and 475/476). Every allowlist entry is a NAMED ORIENTED pair, because Entur files each night train inside a whole line that also runs day services \u2014 the trip with the most stations, which a plain route name would select, is a day train \u2014 so the entry names the train and buildSleeperTrains requires the trip to cross midnight. Enrichment is via-only: Back-on-Track gives these routes 2 to 6 via points against the feed's full stop list, and every Norwegian station checked is already in the payload with coordinates, so no station aliasing is needed. Times and service days stay off for the same reason as SNCF, until a night's log shows they are the train's. shapes.txt here is 108\u2013416 MB, past MAX_SHAPES_BYTES, so geometry is the station chain through the official stops. Probe workflow: 'Probe GTFS feed'.",
+    "description": "Norway is centralised on Entur, which publishes a GTFS file per operator codespace with no key: rb_sjn-aggregated-gtfs.zip covers F6 Dovrebanen and F7 Nordlandsbanen (rows 70 and 71, trains 405/406 and 475/476). Every allowlist entry is a NAMED ORIENTED pair, because Entur files each night train inside a whole line that also runs day services \u2014 the trip with the most stations, which a plain route name would select, is a day train \u2014 so the entry names the train and buildSleeperTrains requires the trip to cross midnight. Enrichment is via-only: Back-on-Track gives these routes 2 to 6 via points against the feed's full stop list. Two things that richer list forces, both invisible while the via lists were sparse. Entur appends \" stasjon\" to every station name where the rest of the dataset writes the bare name, so params.stripStationSuffixes takes it off before the alias table runs \u2014 without it not one of the 86 stops resolves to a coordinate-bearing station and the official stop list buys no map dots at all. And once they do resolve, 27 of the 86 land on a Back-on-Track coordinate that is somewhere else entirely: every one stamped country NO, 22 of them off by more than 400 km (Tverlandet on the Basque coast, Stj\u00f8rdal in Czechia, Voss in Germany, Trondheim Airport V\u00e6rnes in Stockholm), so station-coordinates.json now carries the operator's own coordinate for each. The 59 that agree agree within 1.26 km and nothing at all sits between that and 5.31 km, so the threshold is not a judgement call. Times and service days stay off for the same reason as SNCF, until a night's log shows they are the train's. shapes.txt here is 108\u2013416 MB, past MAX_SHAPES_BYTES, so geometry is the station chain through the official stops. Probe workflow: 'Probe GTFS feed'.",
     "kind": "gtfs",
     "adapter": "gtfs-sleeper",
     "enabled": true,
@@ -552,7 +556,11 @@
       "feedUrl": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_sjn-aggregated-gtfs.zip",
       "configPath": "data/sources/entur-sjn-sleepers.json",
       "agency": "SJN",
-      "operator": "SJ Nord"
+      "operator": "SJ Nord",
+      "canonicalizeStationNames": true,
+      "stripStationSuffixes": [
+        " stasjon"
+      ]
     },
     "freshness": { "ttlHours": 25 }
   },
@@ -560,7 +568,7 @@
     "v": 1,
     "id": "entur-goa",
     "label": "Go-Ahead Nordic (Entur)",
-    "description": "Norway is centralised on Entur, which publishes a GTFS file per operator codespace with no key: rb_goa-aggregated-gtfs.zip covers F5 S\u00f8rtoget (row 65, trains F5 725/726). Every allowlist entry is a NAMED ORIENTED pair, because Entur files each night train inside a whole line that also runs day services \u2014 the trip with the most stations, which a plain route name would select, is a day train \u2014 so the entry names the train and buildSleeperTrains requires the trip to cross midnight. Enrichment is via-only: Back-on-Track gives these routes 2 to 6 via points against the feed's full stop list, and every Norwegian station checked is already in the payload with coordinates, so no station aliasing is needed. Times and service days stay off for the same reason as SNCF, until a night's log shows they are the train's. shapes.txt here is 108\u2013416 MB, past MAX_SHAPES_BYTES, so geometry is the station chain through the official stops. Probe workflow: 'Probe GTFS feed'.",
+    "description": "Norway is centralised on Entur, which publishes a GTFS file per operator codespace with no key: rb_goa-aggregated-gtfs.zip covers F5 S\u00f8rtoget (row 65, trains F5 725/726). Every allowlist entry is a NAMED ORIENTED pair, because Entur files each night train inside a whole line that also runs day services \u2014 the trip with the most stations, which a plain route name would select, is a day train \u2014 so the entry names the train and buildSleeperTrains requires the trip to cross midnight. Enrichment is via-only: Back-on-Track gives these routes 2 to 6 via points against the feed's full stop list. Two things that richer list forces, both invisible while the via lists were sparse. Entur appends \" stasjon\" to every station name where the rest of the dataset writes the bare name, so params.stripStationSuffixes takes it off before the alias table runs \u2014 without it not one of the 86 stops resolves to a coordinate-bearing station and the official stop list buys no map dots at all. And once they do resolve, 27 of the 86 land on a Back-on-Track coordinate that is somewhere else entirely: every one stamped country NO, 22 of them off by more than 400 km (Tverlandet on the Basque coast, Stj\u00f8rdal in Czechia, Voss in Germany, Trondheim Airport V\u00e6rnes in Stockholm), so station-coordinates.json now carries the operator's own coordinate for each. The 59 that agree agree within 1.26 km and nothing at all sits between that and 5.31 km, so the threshold is not a judgement call. Times and service days stay off for the same reason as SNCF, until a night's log shows they are the train's. shapes.txt here is 108\u2013416 MB, past MAX_SHAPES_BYTES, so geometry is the station chain through the official stops. Probe workflow: 'Probe GTFS feed'.",
     "kind": "gtfs",
     "adapter": "gtfs-sleeper",
     "enabled": true,
@@ -593,7 +601,11 @@
       "feedUrl": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_goa-aggregated-gtfs.zip",
       "configPath": "data/sources/entur-goa-sleepers.json",
       "agency": "GA",
-      "operator": "Go-Ahead Nordic"
+      "operator": "Go-Ahead Nordic",
+      "canonicalizeStationNames": true,
+      "stripStationSuffixes": [
+        " stasjon"
+      ]
     },
     "freshness": { "ttlHours": 25 }
   },

@@ -25,7 +25,12 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { downloadGtfs, loadGtfsDir, buildSleeperTrains } from "../lib/gtfs.mjs";
+import {
+  downloadGtfs,
+  loadGtfsDir,
+  buildSleeperTrains,
+  stationNameCanonicalizer,
+} from "../lib/gtfs.mjs";
 import { resolveCanonicalStationName } from "../../src/pages/api/lib/primitives.mjs";
 
 function loadAllowlist(configPath) {
@@ -38,8 +43,7 @@ function loadAllowlist(configPath) {
 }
 
 export async function run(entry, ctx) {
-  const { feedUrl, configPath, agency, operator, canonicalizeStationNames } =
-    entry.params ?? {};
+  const { feedUrl, configPath, agency, operator } = entry.params ?? {};
   if (!feedUrl || !configPath) {
     throw new Error(`${entry.id}: params.feedUrl and params.configPath are required`);
   }
@@ -69,9 +73,10 @@ export async function run(entry, ctx) {
     log,
     stats,
     stationRenames: entry.synthetic?.stationRenames,
-    canonicalizeName: canonicalizeStationNames
-      ? resolveCanonicalStationName
-      : null,
+    canonicalizeName: stationNameCanonicalizer(
+      entry.params,
+      resolveCanonicalStationName,
+    ),
   });
 
   const built = Object.keys(trains).length;
