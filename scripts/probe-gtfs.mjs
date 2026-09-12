@@ -15,10 +15,19 @@
 // the sandbox), so output is capped and each feed's allowlist block is printed
 // LAST — a tail of the log still carries the part you paste.
 //
+// --source also closes the other half of the loop. Drafting an allowlist is only
+// the first question; the second is whether the one now committed resolves
+// against the live feed, and without this the first answer would come from the
+// nightly scrape after a merge. So --source runs the entry's real allowlist
+// through gtfs-sleeper's own buildSleeperTrains and prints the trains it built.
+//
 //   node scripts/probe-gtfs.mjs                        # sweep the catalogue's
 //                                                      # auth-free GTFS feeds
 //   node scripts/probe-gtfs.mjs --url https://…/feed.zip
-//   node scripts/probe-gtfs.mjs --source amtrak        # feedUrl from the registry
+//   node scripts/probe-gtfs.mjs --source amtrak        # feedUrl from the registry,
+//                                                      # and run its real allowlist
+//   node scripts/probe-gtfs.mjs --verify-allowlists    # every committed allowlist
+//                                                      # against its live feed
 //   node scripts/probe-gtfs.mjs --dir ./unzipped-feed  # skip the download
 //   node scripts/probe-gtfs.mjs --url … --min-hours 4 --limit 60
 
@@ -26,8 +35,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { downloadGtfs, loadGtfsDir } from "./lib/gtfs.mjs";
+import { downloadGtfs, loadGtfsDir, buildSleeperTrains } from "./lib/gtfs.mjs";
 import { loadRegistry } from "./lib/registry.mjs";
+import { resolveCanonicalStationName } from "../src/pages/api/lib/primitives.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -172,7 +182,104 @@ export function catalogueFeeds(catalog) {
  * sweep must carry on to the next feed, since knowing which of several answer
  * is the whole point of running one.
  */
-async function probeFeed({ url, localDir = null, minHours = 5, limit = 40 }) {
+/**
+ * Run a registry entry's committed allowlist through the adapter's own builder
+ * and print what it produced. This is the check the nightly scrape would
+ * otherwise be the first to perform: an entry that names a train the feed does
+ * not carry, or spells a station differently, shows up here as an unmatched
+ * line rather than as a missing route on the map a day later.
+ */
+export function reportAllowlist(entry, gtfs, limit = 40, rootDir = ROOT) {
+  const configPath = entry?.params?.configPath;
+  if (!configPath) return null;
+  const full = path.join(rootDir, configPath);
+  if (!fs.existsSync(full)) {
+    console.log(`\n[probe-gtfs] ${entry.id}: ${configPath} does not exist yet`);
+    return null;
+  }
+
+  let allowlist;
+  try {
+    const parsed = JSON.parse(fs.readFileSync(full, "utf8"));
+    allowlist = Array.isArray(parsed) ? parsed : parsed?.routes;
+    if (!Array.isArray(allowlist)) throw new Error("no routes array");
+  } catch (err) {
+    console.error(`\n[probe-gtfs] ${entry.id}: ${configPath} unreadable: ${err.message}`);
+    return null;
+  }
+
+  const stats = {};
+  let trains;
+  try {
+    trains = buildSleeperTrains({
+      gtfs,
+      allowlist,
+      agency: entry.params?.agency || entry.id,
+      operator: entry.params?.operator || entry.label,
+      stats,
+      stationRenames: entry.synthetic?.stationRenames,
+      canonicalizeName: entry.params?.canonicalizeStationNames
+        ? resolveCanonicalStationName
+        : null,
+      log: (msg) => console.log(`  ${msg}`),
+    });
+  } catch (err) {
+    console.error(`\n[probe-gtfs] ${entry.id}: buildSleeperTrains threw: ${err.message}`);
+    return { built: [], unmatched: allowlist.map(String), threw: err.message };
+  }
+
+  const keys = Object.keys(trains);
+  console.log(
+    `\n[probe-gtfs] ${entry.id}: ${configPath} → ${keys.length} train(s) ` +
+      `from ${allowlist.length} allowlist entr${allowlist.length === 1 ? "y" : "ies"}`,
+  );
+  for (const key of keys.slice(0, limit)) {
+    const t = trains[key];
+    const first = t.stations[0];
+    const last = t.stations[t.stations.length - 1];
+    console.log(
+      `  ${key.padEnd(20)} ${String(t.stations.length).padStart(3)} stops  ` +
+        `${(first.departure || "—").padStart(5)}→${(last.arrival || "—").padStart(5)}  ` +
+        `${(t.frequency || "?").padEnd(24)}  ${first.name} → ${last.name}`,
+    );
+    // A via station only becomes a map dot under a name the payload already
+    // knows, so the stop list is the part worth reading, not just the count.
+    const via = t.stations.slice(1, -1).map((st) => st.name);
+    if (via.length) console.log(`    via ${via.join(" - ")}`);
+  }
+  if (keys.length > limit) console.log(`  … ${keys.length - limit} more (raise --limit)`);
+
+  // The whole reason to run this before merging.
+  if (stats.unmatched?.length) {
+    console.log(
+      `\n[probe-gtfs] ${entry.id}: ${stats.unmatched.length} allowlist entr` +
+        `${stats.unmatched.length === 1 ? "y" : "ies"} matched NOTHING in the feed:`,
+    );
+    stats.unmatched.forEach((raw) => console.log(`  ✗ ${raw}`));
+  } else {
+    console.log(`[probe-gtfs] ${entry.id}: every allowlist entry matched`);
+  }
+
+  return { built: keys, unmatched: stats.unmatched ?? [] };
+}
+
+/**
+ * The registry entries --verify-allowlists can actually check: the ones whose
+ * trains come out of buildSleeperTrains. European Sleeper reads GTFS too, but
+ * through its own date-expanded adapter, so running its file through this
+ * builder would report a drift that does not exist.
+ */
+export function allowlistVerifiableSources(registry) {
+  return (registry ?? []).filter(
+    (e) =>
+      e?.enabled &&
+      e.adapter === "gtfs-sleeper" &&
+      e.params?.configPath &&
+      (e.params?.feedUrl || e.endpoint),
+  );
+}
+
+async function probeFeed({ url, localDir = null, minHours = 5, limit = 40, entry = null }) {
   const eveningFrom = EVENING_FROM_SECONDS;
   const dir = localDir ?? fs.mkdtempSync(path.join(os.tmpdir(), "gtfs-probe-"));
   const t0 = Date.now();
@@ -279,6 +386,11 @@ async function probeFeed({ url, localDir = null, minHours = 5, limit = 40 }) {
     );
   }
 
+  // After the draft block, because an entry that already has an allowlist does
+  // not need one drafted — but seeing both together is how you tell a missing
+  // train from a misspelled one.
+  if (entry) reportAllowlist(entry, gtfs, limit);
+
   if (!localDir) fs.rmSync(dir, { recursive: true, force: true });
   return true;
 }
@@ -292,13 +404,41 @@ async function main() {
   const minHours = Number(arg("min-hours", "5"));
   const limit = Number(arg("limit", "40"));
 
-  if (!url && sourceId) {
-    const entry = loadRegistry().find((e) => e.id === sourceId);
-    url = entry?.params?.feedUrl ?? entry?.endpoint ?? null;
+  let entry = null;
+  if (sourceId) {
+    entry = loadRegistry().find((e) => e.id === sourceId) ?? null;
+    if (!entry) {
+      console.error(`[probe-gtfs] no registry source with id "${sourceId}"`);
+      process.exit(1);
+    }
+    // --url wins, so a candidate feed can be tried against a committed
+    // allowlist before the registry points at it.
+    url ??= entry.params?.feedUrl ?? entry.endpoint ?? null;
     if (!url) {
       console.error(`[probe-gtfs] source "${sourceId}" declares no params.feedUrl`);
       process.exit(1);
     }
+  }
+
+  // Every committed allowlist against its live feed. This is the question a PR
+  // asks — "does the allowlist I just wrote, or the one I did not touch, still
+  // match the feed?" — and it is the one `gtfs-sleeper`'s own 0-of-N guard only
+  // asks at 3 AM, after a merge. Naming one feed still wins over it: the flag
+  // is a default for "nothing named", not an override of what you did name.
+  if (!url && !localDir && process.argv.includes("--verify-allowlists")) {
+    const entries = allowlistVerifiableSources(loadRegistry());
+    console.log(
+      `[probe-gtfs] verifying ${entries.length} committed allowlist(s) against their live feeds`,
+    );
+    let ok = 0;
+    for (const e of entries) {
+      console.log(`\n${"=".repeat(72)}\n== ${e.id} — ${e.label}\n${"=".repeat(72)}`);
+      if (await probeFeed({ url: e.params.feedUrl ?? e.endpoint, minHours, limit, entry: e })) {
+        ok++;
+      }
+    }
+    console.log(`\n[probe-gtfs] ${ok}/${entries.length} feed(s) downloaded and parsed`);
+    return;
   }
 
   // Nothing named: sweep the catalogue's open feeds.
@@ -318,7 +458,7 @@ async function main() {
     return;
   }
 
-  if (!(await probeFeed({ url, localDir, minHours, limit }))) process.exit(1);
+  if (!(await probeFeed({ url, localDir, minHours, limit, entry }))) process.exit(1);
 }
 
 // Importing this file must not fire a download: the test suite imports the

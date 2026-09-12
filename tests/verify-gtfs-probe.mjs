@@ -8,13 +8,22 @@
 // arrival < departure check sees a negative duration and drops the very trains
 // this exists to find.
 import assert from "node:assert";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   EVENING_FROM_SECONDS,
+  allowlistVerifiableSources,
   daysOf,
   isOvernightCandidate,
+  reportAllowlist,
   selectRouteRuns,
   toSeconds,
 } from "../scripts/probe-gtfs.mjs";
+import { loadGtfsDir } from "../scripts/lib/gtfs.mjs";
+import { loadRegistry } from "../scripts/lib/registry.mjs";
+
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 let passed = 0;
 function check(name, fn) {
@@ -160,5 +169,108 @@ check("daysOf renders a calendar row, collapsing a full week", () => {
     assert.strictEqual(selectRouteRuns([{ trip_id: "x", route_id: "R" }], new Map()).size, 0);
   });
 }
+
+// ─── --verify-allowlists: which sources, and what it reports ────────────────
+
+check("only gtfs-sleeper sources with a feed and a config are verifiable", () => {
+  const ids = allowlistVerifiableSources(loadRegistry()).map((e) => e.id);
+  // European Sleeper reads GTFS through its own date-expanded adapter, so
+  // running its allowlist through buildSleeperTrains would report false drift.
+  assert.ok(!ids.includes("europeansleeper"), "ES must not be verified by this builder");
+  assert.ok(!ids.includes("backontrack"), "non-GTFS sources must not be included");
+  for (const id of ["amtrak", "viarail", "sncf"]) {
+    assert.ok(ids.includes(id), `${id} should be verifiable, got [${ids.join(", ")}]`);
+  }
+  assert.strictEqual(allowlistVerifiableSources(null).length, 0);
+  // A disabled source is not worth a feed download.
+  assert.strictEqual(
+    allowlistVerifiableSources([
+      { id: "off", enabled: false, adapter: "gtfs-sleeper", params: { configPath: "x", feedUrl: "u" } },
+      { id: "noconf", enabled: true, adapter: "gtfs-sleeper", params: { feedUrl: "u" } },
+    ]).length,
+    0,
+  );
+});
+
+check("reportAllowlist says which entries matched and which found nothing", () => {
+  const gtfs = loadGtfsDir(path.join(ROOT, "tests", "fixtures", "na-gtfs"));
+  const tmp = fs.mkdtempSync(path.join(ROOT, "tests", ".probe-allowlist-"));
+  try {
+    fs.writeFileSync(
+      path.join(tmp, "list.json"),
+      JSON.stringify({
+        routes: [
+          { name: "IC Nuit 3731", from: "Paris Austerlitz", to: "Tarbes" },
+          { name: "IC Nuit 5772", from: "Nice-Ville", to: "Paris Austerlitz" },
+          { name: "IC Nuit 0000", from: "Nowhere", to: "Elsewhere" },
+        ],
+      }),
+    );
+    const out = reportAllowlist(
+      {
+        id: "fixture",
+        label: "Fixture",
+        params: {
+          configPath: path.join(path.basename(tmp), "list.json"),
+          agency: "SNCF",
+          operator: "SNCF",
+          canonicalizeStationNames: true,
+        },
+      },
+      gtfs,
+      40,
+      path.join(ROOT, "tests"),
+    );
+    assert.deepStrictEqual(out.built.sort(), ["IC Nuit 3731", "IC Nuit 5772"]);
+    assert.strictEqual(out.unmatched.length, 1);
+    assert.ok(
+      out.unmatched[0].startsWith("IC Nuit 0000"),
+      `unmatched should name the entry, got ${out.unmatched[0]}`,
+    );
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+check("a missing or unreadable allowlist reports nothing rather than throwing", () => {
+  const gtfs = loadGtfsDir(path.join(ROOT, "tests", "fixtures", "na-gtfs"));
+  assert.strictEqual(
+    reportAllowlist({ id: "x", params: { configPath: "data/sources/nope.json" } }, gtfs),
+    null,
+  );
+  assert.strictEqual(reportAllowlist({ id: "x", params: {} }, gtfs), null);
+});
+
+// ─── The committed SNCF allowlist is well-formed ────────────────────────────
+// Cheap insurance: an oriented entry is only as good as its three strings, and
+// a typo here costs a train that nothing else would notice was missing.
+check("every SNCF allowlist entry names one oriented train", () => {
+  const list = JSON.parse(
+    fs.readFileSync(path.join(ROOT, "data", "sources", "sncf-sleepers.json"), "utf8"),
+  ).routes;
+  assert.ok(list.length >= 9, `expected the nine corridors both ways, got ${list.length}`);
+  for (const e of list) {
+    for (const k of ["name", "from", "to"]) {
+      assert.ok(
+        typeof e?.[k] === "string" && e[k].trim(),
+        `entry ${JSON.stringify(e)} needs a non-empty ${k}`,
+      );
+    }
+    assert.notStrictEqual(e.from, e.to, `${e.name} runs from and to the same place`);
+  }
+  const names = list.map((e) => e.name);
+  assert.strictEqual(
+    new Set(names).size,
+    names.length,
+    "two entries under one name would collapse onto one train",
+  );
+  // Both directions, or the enrichment only ever corrects half a route.
+  const pairs = new Set(list.map((e) => [e.from, e.to].sort().join("|")));
+  assert.strictEqual(
+    pairs.size * 2,
+    list.length,
+    "every corridor should appear once in each direction",
+  );
+});
 
 console.log(`\n[verify-gtfs-probe] ${passed} checks passed`);

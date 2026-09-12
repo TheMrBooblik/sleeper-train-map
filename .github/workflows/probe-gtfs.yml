@@ -9,6 +9,12 @@ name: Probe GTFS feed
 # this and read the job log — it ends with a draft allowlist you can paste into
 # data/sources/<operator>-sleepers.json.
 #
+# It answers the second question too: --verify-allowlists (the default on a
+# pull_request) runs every committed allowlist through the adapter's own builder
+# against the live feed, printing the trains it built and naming any entry that
+# matched nothing — so a new or drifted allowlist fails here rather than in the
+# nightly scrape after a merge.
+#
 # Read-only: downloads the zip, parses it, prints, deletes. Nothing is committed.
 #
 # Feeds worth pointing it at (from data/sources/official-sources.json):
@@ -29,9 +35,14 @@ on:
         required: false
         default: ""
       source:
-        description: "Registry source id, to take params.feedUrl from (e.g. amtrak)"
+        description: "Registry source id: takes params.feedUrl AND runs its committed allowlist (e.g. sncf)"
         required: false
         default: ""
+      verify_allowlists:
+        description: "Run every committed gtfs-sleeper allowlist against its live feed"
+        type: boolean
+        required: false
+        default: false
       min_hours:
         description: "Minimum run length for the evening-departure fallback"
         required: false
@@ -60,10 +71,14 @@ jobs:
 
       - name: Probe the feed
         run: |
-          # On a pull_request event there are no inputs, so nothing is named
-          # and the script sweeps the catalogue's auth-free GTFS feeds — which
-          # is the useful question to ask with no input.
+          # A pull_request event carries no inputs at all, so every ${{ inputs.x }}
+          # renders empty here. That makes --verify-allowlists the branch default,
+          # which is the right question for a PR: it runs each committed
+          # gtfs-sleeper allowlist against its live feed and names any entry that
+          # matched nothing. Dispatch with no inputs still sweeps the catalogue,
+          # which is the question you ask before an allowlist exists.
           node scripts/probe-gtfs.mjs \
+            ${{ (github.event_name == 'pull_request' || inputs.verify_allowlists == true) && '--verify-allowlists' || '' }} \
             ${{ inputs.feed_url && format('--url {0}', inputs.feed_url) || '' }} \
             ${{ inputs.source && format('--source {0}', inputs.source) || '' }} \
             --min-hours "${{ inputs.min_hours || '5' }}" \
