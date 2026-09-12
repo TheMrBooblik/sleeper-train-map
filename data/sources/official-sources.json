@@ -307,16 +307,28 @@
           "notes": "Open, no key (an identifying ET-Client-Name header is expected). Transmodel vocabulary, so the adapter maps concepts rather than reading GTFS."
         },
         {
-          "name": "Entur open data (NeTEx / GTFS bulk)",
-          "url": "https://developer.entur.no/apis/open",
+          "name": "Entur open data — national aggregated GTFS",
+          "url": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_norway-aggregated-gtfs.zip",
           "docsUrl": "https://developer.entur.no/apis/open",
-          "format": "NeTEx / GTFS",
+          "format": "GTFS",
           "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
           "auth": "none",
           "status": "discovered",
-          "lastChecked": null,
-          "probeWorkflow": null,
-          "notes": "Bulk export of the national dataset. Resolve the current download URL from this page — do not pin a snapshot."
+          "lastChecked": "2026-09-12",
+          "probeWorkflow": "probe-gtfs.yml",
+          "notes": "CANDIDATE URL, under probe. The value here until 2026-09-12 was the developer.entur.no documentation page, which the catalogue sweep dutifully downloaded as HTML every run — a GTFS-format source whose url is a docs page can only ever fail, and three of the four sweep failures were exactly that (see ZSSK and HŽPP). This is Entur's published GCS bucket for the aggregated national feed; it covers VY, SJ Nord and Go-Ahead in one file, which is what our four Norwegian night trains need. Expect it to be large (every mode in Norway), so if parsing it is unreasonable the per-codespace file below is the lighter answer. Resolve from the docsUrl if this 404s — do not guess further."
+        },
+        {
+          "name": "Entur open data — per-codespace GTFS (Vy)",
+          "url": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_vyg-aggregated-gtfs.zip",
+          "docsUrl": "https://developer.entur.no/apis/open",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": "2026-09-12",
+          "probeWorkflow": "probe-gtfs.yml",
+          "notes": "CANDIDATE URL, under probe alongside the aggregated one, to establish which shape Entur actually serves. Entur assigns each operator a codespace (Vy, SJ Nord, Go-Ahead) and publishes a file per codespace as well as the national aggregate; a per-codespace feed would be far cheaper to parse nightly than all of Norway. If this resolves, the sibling codespace files answer SJN and GA the same way. If it 404s and the aggregate works, the bucket pattern is right and only the codespace token is wrong."
         }
       ]
     },

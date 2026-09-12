@@ -41,6 +41,11 @@ import { resolveCanonicalStationName } from "../src/pages/api/lib/primitives.mjs
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+// How much stop_times.txt this probe will read into memory. Sized to clear any
+// single operator's feed by a wide margin (SNCF's whole national rail timetable
+// is 39 000 trips) while stopping a country's complete multimodal dataset.
+const MAX_STOP_TIMES_BYTES = 400e6;
+
 const arg = (name, fallback = null) => {
   const i = process.argv.indexOf(`--${name}`);
   return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
@@ -311,6 +316,31 @@ async function probeFeed({ url, localDir = null, minHours = 5, limit = 40, entry
       files.includes("shapes.txt") ? "YES (real track geometry)" : "NO — geometry would come from route-geometry.mjs"
     }`,
   );
+
+  // Sizes before parsing, because loadGtfsDir reads stop_times.txt entirely
+  // into memory and a national multimodal feed is a different order of
+  // magnitude from a single operator's. The sweep is the default on every PR
+  // now, so one oversized catalogue entry hanging it would take the probe down
+  // for everything else — and "too big for the generic path" is itself the
+  // finding, the one that says use the per-operator file instead.
+  const sizes = files.map((f) => [f, fs.statSync(path.join(dir, f)).size]);
+  console.log(
+    `[probe-gtfs] sizes: ${sizes
+      .map(([f, n]) => `${f} ${(n / 1e6).toFixed(1)} MB`)
+      .join(", ")}`,
+  );
+  const stopTimesBytes = sizes.find(([f]) => f === "stop_times.txt")?.[1] ?? 0;
+  if (stopTimesBytes > MAX_STOP_TIMES_BYTES) {
+    console.log(
+      `[probe-gtfs] NOT PARSED: stop_times.txt is ${(stopTimesBytes / 1e6).toFixed(0)} MB, over the ` +
+        `${(MAX_STOP_TIMES_BYTES / 1e6).toFixed(0)} MB ceiling this probe reads into memory.\n` +
+        "             The URL is right — the feed is simply a whole country's worth of\n" +
+        "             every mode. Point the source at a per-operator file if one exists,\n" +
+        "             or raise the ceiling deliberately for a one-off look.",
+    );
+    if (!localDir) fs.rmSync(dir, { recursive: true, force: true });
+    return true;
+  }
 
   const gtfs = loadGtfsDir(dir);
   console.log(
