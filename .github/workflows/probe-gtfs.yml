@@ -9,11 +9,14 @@ name: Probe GTFS feed
 # this and read the job log — it ends with a draft allowlist you can paste into
 # data/sources/<operator>-sleepers.json.
 #
-# It answers the second question too: --verify-allowlists (the default on a
-# pull_request) runs every committed allowlist through the adapter's own builder
-# against the live feed, printing the trains it built and naming any entry that
-# matched nothing — so a new or drifted allowlist fails here rather than in the
-# nightly scrape after a merge.
+# It answers the second question too: --verify-allowlists runs every committed
+# allowlist through the adapter's own builder against the live feed, printing the
+# trains it built and naming any entry that matched nothing — so a new or drifted
+# allowlist fails here rather than in the nightly scrape after a merge.
+#
+# A pull_request run does both, in that order: the sweep is the only path that
+# fetches a feed with no registry entry yet, so it is also how a fix to one of
+# the failing catalogue feeds gets tested before anything merges.
 #
 # Read-only: downloads the zip, parses it, prints, deletes. Nothing is committed.
 #
@@ -69,20 +72,32 @@ jobs:
 
       - run: npm ci
 
-      - name: Probe the feed
+      # A pull_request event carries no inputs at all, so every ${{ inputs.x }}
+      # renders empty and the event itself has to pick the mode. A PR wants both
+      # questions answered and the label already says "spend the downloads", so
+      # it gets both steps; a dispatch runs whichever one its inputs name.
+      - name: Sweep the catalogue's open feeds
+        if: github.event_name == 'pull_request' || !(inputs.feed_url || inputs.source || inputs.verify_allowlists)
         run: |
-          # A pull_request event carries no inputs at all, so every ${{ inputs.x }}
-          # renders empty here. That makes --verify-allowlists the branch default,
-          # which is the right question for a PR: it runs each committed
-          # gtfs-sleeper allowlist against its live feed and names any entry that
-          # matched nothing. Dispatch with no inputs still sweeps the catalogue,
-          # which is the question you ask before an allowlist exists.
+          # Which of the catalogued feeds are real, and what is in them — the
+          # question you ask BEFORE an allowlist exists. It is also the only
+          # path that fetches a feed with no registry entry yet, which is how a
+          # fix to one of them (VR's 406) gets tested before merging.
+          node scripts/probe-gtfs.mjs \
+            --min-hours "${{ inputs.min_hours || '5' }}" \
+            --limit "${{ inputs.limit || '40' }}" | tee -a probe-gtfs.log
+
+      - name: Verify the committed allowlists
+        if: github.event_name == 'pull_request' || inputs.verify_allowlists == true || inputs.feed_url || inputs.source
+        run: |
+          # Does the allowlist now in the repo still resolve against its feed —
+          # the question a PR asks. Printed last, so a log tail carries it.
           node scripts/probe-gtfs.mjs \
             ${{ (github.event_name == 'pull_request' || inputs.verify_allowlists == true) && '--verify-allowlists' || '' }} \
             ${{ inputs.feed_url && format('--url {0}', inputs.feed_url) || '' }} \
             ${{ inputs.source && format('--source {0}', inputs.source) || '' }} \
             --min-hours "${{ inputs.min_hours || '5' }}" \
-            --limit "${{ inputs.limit || '40' }}" | tee probe-gtfs.log
+            --limit "${{ inputs.limit || '40' }}" | tee -a probe-gtfs.log
 
       - name: Upload the log
         if: always()
