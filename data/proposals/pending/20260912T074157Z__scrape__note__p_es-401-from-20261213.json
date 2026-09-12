@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_es-401-from-20261213",
+  "createdAt": "2026-09-12T07:41:57.592Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: 401 (Bruxelles Midi – Milano Porta Garibaldi)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026-12-13 – 2027-03-18: Tue, Thu, Sun\" → \"2026-12-13 – 2027-09-07: Tue, Thu, Sun\"",
+  "target": {
+    "routeKey": "es_401_from_20261213",
+    "agencyId": "ES",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2026-12-13 – 2027-03-18: Tue, Thu, Sun"
+  },
+  "after": {
+    "operating days (outbound)": "2026-12-13 – 2027-09-07: Tue, Thu, Sun"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
