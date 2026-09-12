@@ -12,7 +12,12 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import polyline from "@mapbox/polyline";
-import { headersFor, loadGtfsDir, buildSleeperTrains } from "../scripts/lib/gtfs.mjs";
+import {
+  MAX_SHAPES_BYTES,
+  headersFor,
+  loadGtfsDir,
+  buildSleeperTrains,
+} from "../scripts/lib/gtfs.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE = path.join(__dirname, "fixtures", "na-gtfs");
@@ -223,6 +228,39 @@ check(
 check(
   new Set(dashedKeys.map((k) => dashed[k].stations.length)).size === 2,
   "the two \"-\" routes must keep their own stop lists",
+);
+
+// ─── Oversized shapes.txt is skipped, not fatal ────────────────────────────
+// Entur ships 416 MB of shapes for Vy against 7.6 MB of stop_times, and readCsv
+// reads a whole file into one string: that OOM'd the probe. Geometry is the
+// optional part, so it gets dropped and the feed stays usable.
+const skipped = loadGtfsDir(FIXTURE, { maxShapesBytes: 1 });
+check(skipped.shapesSkipped === true, "a shapes.txt past the ceiling must report itself skipped");
+check(skipped.shapePoints.size === 0, "skipped shapes must leave no points behind");
+check(
+  skipped.trips.length === gtfs.trips.length && skipped.stopTimesByTrip.size === gtfs.stopTimesByTrip.size,
+  "skipping shapes must not cost a single trip or stop time",
+);
+const chained = buildSleeperTrains({
+  gtfs: skipped,
+  allowlist: ["CALIFORNIA ZEPHYR"],
+  agency: "AMTK",
+  operator: "Amtrak",
+});
+// The CZ has a shape (sh1, 3 points) AND a 3-station chain; with shapes gone it
+// must fall back to the chain rather than emit nothing.
+const czChain = polyline.decode(chained["California Zephyr"].polyline);
+check(
+  czChain.length === 3 && approx(czChain[0][0], 41.8786) && approx(czChain[1][1], -95.9378),
+  `without shapes the CZ should fall back to its station chain, got ${czChain.length} pts`,
+);
+check(
+  gtfs.shapesSkipped === false && gtfs.shapesBytes > 0,
+  "the fixture's own shapes.txt must still be read at the default ceiling",
+);
+check(
+  MAX_SHAPES_BYTES > 17e6 && MAX_SHAPES_BYTES < 416e6,
+  `the default ceiling must clear Amtrak's 17 MB and stop Entur's 416 MB, got ${MAX_SHAPES_BYTES}`,
 );
 
 // ─── Per-host request headers ──────────────────────────────────────────────

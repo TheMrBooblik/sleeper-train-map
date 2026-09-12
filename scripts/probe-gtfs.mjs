@@ -313,7 +313,7 @@ async function probeFeed({ url, localDir = null, minHours = 5, limit = 40, entry
   // the single biggest cost difference between two otherwise identical feeds.
   console.log(
     `[probe-gtfs] shapes.txt: ${
-      files.includes("shapes.txt") ? "YES (real track geometry)" : "NO — geometry would come from route-geometry.mjs"
+      files.includes("shapes.txt") ? "present" : "NO — geometry would come from route-geometry.mjs"
     }`,
   );
 
@@ -329,6 +329,11 @@ async function probeFeed({ url, localDir = null, minHours = 5, limit = 40, entry
       .map(([f, n]) => `${f} ${(n / 1e6).toFixed(1)} MB`)
       .join(", ")}`,
   );
+  // Two ceilings, because the two files fail differently. An oversized
+  // shapes.txt costs only geometry, and loadGtfsDir skips it (station chains
+  // are the fallback, and SNCF has no shapes at all) — the feed is still fully
+  // usable. An oversized stop_times.txt is the timetable itself, so there is
+  // nothing to report and the feed is skipped.
   const stopTimesBytes = sizes.find(([f]) => f === "stop_times.txt")?.[1] ?? 0;
   if (stopTimesBytes > MAX_STOP_TIMES_BYTES) {
     console.log(
@@ -343,6 +348,13 @@ async function probeFeed({ url, localDir = null, minHours = 5, limit = 40, entry
   }
 
   const gtfs = loadGtfsDir(dir);
+  if (gtfs.shapesSkipped) {
+    console.log(
+      `[probe-gtfs] shapes.txt SKIPPED: ${(gtfs.shapesBytes / 1e6).toFixed(0)} MB is past the ` +
+        "parse ceiling, so geometry here would be the station chain.\n" +
+        "             Stops and times are unaffected — this feed is still usable.",
+    );
+  }
   console.log(
     `[probe-gtfs] ${gtfs.routesById.size} routes, ${gtfs.trips.length} trips, ` +
       `${gtfs.stopsById.size} stops, ${gtfs.calendarById.size} calendar services`,

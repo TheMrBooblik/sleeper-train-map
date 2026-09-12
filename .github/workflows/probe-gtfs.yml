@@ -79,6 +79,10 @@ jobs:
       - name: Sweep the catalogue's open feeds
         if: github.event_name == 'pull_request' || !(inputs.feed_url || inputs.source || inputs.verify_allowlists)
         run: |
+          # `| tee` makes bash report TEE's exit status, so a probe that crashes
+          # — an OOM on an oversized feed, say — leaves the step green. That is
+          # the same invisible failure this PR is about, so: pipefail.
+          set -o pipefail
           # Which of the catalogued feeds are real, and what is in them — the
           # question you ask BEFORE an allowlist exists. It is also the only
           # path that fetches a feed with no registry entry yet, which is how a
@@ -90,6 +94,7 @@ jobs:
       - name: Verify the committed allowlists
         if: github.event_name == 'pull_request' || inputs.verify_allowlists == true || inputs.feed_url || inputs.source
         run: |
+          set -o pipefail
           # Does the allowlist now in the repo still resolve against its feed —
           # the question a PR asks. Printed last, so a log tail carries it.
           node scripts/probe-gtfs.mjs \

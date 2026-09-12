@@ -292,7 +292,7 @@
       "countries": ["NO"],
       "integrationStatus": "source-discovered",
       "difficulty": "medium",
-      "notes": "Norway is fully centralised on Entur, which aggregates every Norwegian operator and serves an open, documented GraphQL journey planner plus NeTEx/GTFS bulk exports. One Entur integration covers VY, SJ Norge and Go-Ahead Nordic.",
+      "notes": "Norway is fully centralised on Entur, which aggregates every Norwegian operator and serves an open, documented GraphQL journey planner plus NeTEx/GTFS bulk exports, no key for either. One Entur integration covers VY, SJ Norge and Go-Ahead Nordic — four night routes between them, each of which Back-on-Track describes with 2 to 6 via points. Probed 2026-09-12: the per-codespace GTFS file is the one to build on (see its note); the national aggregate is real but 807 MB of stop_times. Norwegian station names need no alias work, unlike France — all 28 checked against the payload are already there with coordinates, Finse and Dombås and Fauske included.",
       "sources": [
         {
           "name": "Entur Journey Planner v3 (GraphQL)",
@@ -316,7 +316,7 @@
           "status": "discovered",
           "lastChecked": "2026-09-12",
           "probeWorkflow": "probe-gtfs.yml",
-          "notes": "CANDIDATE URL, under probe. The value here until 2026-09-12 was the developer.entur.no documentation page, which the catalogue sweep dutifully downloaded as HTML every run — a GTFS-format source whose url is a docs page can only ever fail, and three of the four sweep failures were exactly that (see ZSSK and HŽPP). This is Entur's published GCS bucket for the aggregated national feed; it covers VY, SJ Nord and Go-Ahead in one file, which is what our four Norwegian night trains need. Expect it to be large (every mode in Norway), so if parsing it is unreasonable the per-codespace file below is the lighter answer. Resolve from the docsUrl if this 404s — do not guess further."
+          "notes": "REAL but unusable nightly, confirmed 2026-09-12: downloads and unzips in 35 s, and then it is a whole country of every mode — stop_times.txt 807 MB, shapes.txt 2.6 GB. Past the probe's parse ceiling, and nothing we need is in here that the per-codespace file below does not have. Kept as the documented anchor for the bucket pattern, and as the place to look if a Norwegian operator ever lacks its own codespace file. (The value here until 2026-09-12 was the developer.entur.no documentation page, which the sweep downloaded as HTML every run — a GTFS-format source whose url is a docs page can only ever fail, and three of the four sweep failures were exactly that; see ZSSK and HŽPP.)"
         },
         {
           "name": "Entur open data — per-codespace GTFS (Vy)",
@@ -328,7 +328,7 @@
           "status": "discovered",
           "lastChecked": "2026-09-12",
           "probeWorkflow": "probe-gtfs.yml",
-          "notes": "CANDIDATE URL, under probe alongside the aggregated one, to establish which shape Entur actually serves. Entur assigns each operator a codespace (Vy, SJ Nord, Go-Ahead) and publishes a file per codespace as well as the national aggregate; a per-codespace feed would be far cheaper to parse nightly than all of Norway. If this resolves, the sibling codespace files answer SJN and GA the same way. If it 404s and the aggregate works, the bucket pattern is right and only the codespace token is wrong."
+          "notes": "WORKS — confirmed 2026-09-12, and this is the file to build on: 5.4 s to fetch, stop_times.txt 7.6 MB, trips.txt 1.8 MB, routes.txt 24 KB. The pattern is rb_<codespace>-aggregated-gtfs.zip in the same bucket, so the sibling tokens answer SJ Nord and Go-Ahead the same way. One catch worth knowing before anyone raises a ceiling: its shapes.txt is 415.9 MB — bigger than the whole SNCF feed — and parsing that is what OOM'd the first probe run. loadGtfsDir now skips a shapes.txt past MAX_SHAPES_BYTES and buildSleeperTrains falls back to the station chain per trip, so geometry here is a chain through the official stops (SNCF runs on exactly that, having no shapes at all). Stops and times, which are the whole point, are small and cheap."
         }
       ]
     },

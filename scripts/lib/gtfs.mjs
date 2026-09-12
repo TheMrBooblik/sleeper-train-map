@@ -144,6 +144,11 @@ export async function downloadGtfs(url, destDir, extraHeaders = null) {
 
 // ─── Parse a GTFS directory into in-memory tables ────────────────────────────
 
+// Above this, shapes.txt is skipped rather than parsed (see loadGtfsDir). Set
+// clear of every feed we read today — Amtrak's is the largest at 17 MB — and
+// well under the 416 MB that OOMs a default Node heap.
+export const MAX_SHAPES_BYTES = 200e6;
+
 const toNum = (v) => {
   const n = Number.parseFloat(v);
   return Number.isFinite(n) ? n : null;
@@ -153,7 +158,7 @@ const toNum = (v) => {
  * Parse the GTFS .txt tables we need into lookup structures.
  * @param {string} dir directory containing the unzipped feed
  */
-export function loadGtfsDir(dir) {
+export function loadGtfsDir(dir, { maxShapesBytes = MAX_SHAPES_BYTES } = {}) {
   const routesById = new Map();
   for (const r of readCsv(path.join(dir, "routes.txt"))) {
     if (r.route_id) routesById.set(r.route_id, r);
@@ -172,8 +177,19 @@ export function loadGtfsDir(dir) {
   }
 
   // shape_id → [{ seq, lat, lon }] (sorted by sequence)
+  //
+  // Geometry is the one optional part of a feed, and the heaviest by far: Entur
+  // ships 416 MB of shapes for Vy alone against 7.6 MB of stop_times, and 2.6 GB
+  // for the national aggregate. readCsv reads a whole file into one string and
+  // then splits it, so a file that size is several GB of heap before a single
+  // point is stored — which is precisely how the first Entur probe died. Skip it
+  // past a ceiling instead: buildSleeperTrains already falls back to the station
+  // chain per trip when a shape is missing, which is what SNCF runs on anyway.
+  const shapesPath = path.join(dir, "shapes.txt");
+  const shapesBytes = fs.existsSync(shapesPath) ? fs.statSync(shapesPath).size : 0;
+  const shapesSkipped = shapesBytes > maxShapesBytes;
   const shapePoints = new Map();
-  for (const row of readCsv(path.join(dir, "shapes.txt"))) {
+  for (const row of shapesSkipped ? [] : readCsv(shapesPath)) {
     const id = row.shape_id;
     if (!id) continue;
     const lat = toNum(row.shape_pt_lat);
@@ -230,6 +246,10 @@ export function loadGtfsDir(dir) {
     stopTimesByTrip,
     calendarById,
     addedDatesByService,
+    // So a caller can say so rather than leaving "no geometry" to be mistaken
+    // for a feed that never had any.
+    shapesSkipped,
+    shapesBytes,
   };
 }
 
