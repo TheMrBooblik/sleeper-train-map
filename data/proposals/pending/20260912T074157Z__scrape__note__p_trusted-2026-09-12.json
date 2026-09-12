@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-09-12",
+  "createdAt": "2026-09-12T07:41:57.594Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (1 routes, 0 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_NJ_247: NJ 247 (Wien Hbf – Bologna Centrale)",
+  "target": {
+    "routeKey": "trusted-2026-09-12",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
