@@ -8,6 +8,7 @@ import { useRoutes } from "../../hooks/requests/useRoutes";
 import { useTrips } from "../../hooks/requests/useTrips";
 import { getRouteFrequencyOverride } from "../../lib/routeFrequencyOverrides";
 import { buildPairSlug } from "../../lib/seo/slugify.mjs";
+import { viaScheduleForTrip } from "../../lib/viaSchedule.mjs";
 import { cityForStation } from "../../lib/seo/cities.mjs";
 import {
   checkRegioJetPrahaChop,
@@ -1298,6 +1299,22 @@ const TrainDetailPanel = ({
                       source: "pkp",
                     }
                   : null;
+
+                // Last resort: the row's own via list. Every schedule above is
+                // keyed by train number into one of nine operator feeds, so a
+                // train no feed carries — which is every Back-on-Track-only
+                // route, all of Norway and SNCF's Intercités de Nuit among them
+                // — showed NO stop list here at all, while the connection page
+                // for the same train showed one. This is that page's fallback,
+                // brought over: origin, the via names, destination, with the
+                // endpoint times the row already carries and no invented ones
+                // in between. Placed last in the chain below, so it never
+                // displaces a feed that does know the train, and it improves on
+                // its own when an enrichment rewrites via_* from official data.
+                const viaSchedule = viaScheduleForTrip(
+                  tripRoute,
+                  isDir1 ? 1 : 0,
+                );
                 // PKP is the source of truth for Polish trains: its GTFS
                 // origin-departure / destination-arrival win over the BoT times.
                 const pkpOriginDeparture =
@@ -1449,7 +1466,8 @@ const TrainDetailPanel = ({
                   caucasusSchedule ||
                   curatedSchedule ||
                   naSchedule ||
-                  esSchedule;
+                  esSchedule ||
+                  viaSchedule;
                 const validFrom = formatCalendarDate(schedule?.validFrom);
                 const validUntil = formatCalendarDate(schedule?.validUntil);
 
