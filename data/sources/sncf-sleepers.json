@@ -1,19 +1,47 @@
 {
-  "note": "SNCF Intercités de Nuit, one entry per direction. SNCF's GTFS route names are not addresses — route_long_name is \"-\" (short name \"INCONNU\") for six of these eleven trains, files Albi–Paris under \"Paris - Latour-de-Carol\" and Aurillac–Paris under \"Paris - Rodez / Albi\", and carries both directions plus the portions that split at Toulouse and Brive under a single route_id. So every entry is an oriented { from, to } pair, and `name` is Back-on-Track's own label for that direction — which is what the trainsByNumber enrichment looks a view-map row up by, so the feed's stop list lands on the row it belongs to rather than becoming a second copy of the route. `from`/`to` are the feed's station spellings (\"Latour-de-Carol - Enveitg\", \"Nice-Ville\"), matched accent-folded and prefix-wise. Day TGV and TER services that merely cross midnight are intentionally excluded.",
+  "note": "SNCF Intercités de Nuit, one entry per direction. SNCF's GTFS route names are not addresses — route_long_name is \"-\" (short name \"INCONNU\") for six of these trains, files Albi–Paris under \"Paris - Latour-de-Carol\" and Aurillac–Paris under \"Paris - Rodez / Albi\", and carries both directions plus the portions that split at Toulouse and Brive under a single route_id. So every entry is an oriented { from, to } pair, and `name` is Back-on-Track's own label for that direction — which is what the trainsByNumber enrichment looks a view-map row up by, so the feed's stop list lands on the row it belongs to rather than becoming a second copy of the route. `from`/`to` are the feed's station spellings (\"Latour-de-Carol - Enveitg\", \"Nice-Ville\"), matched accent-folded and prefix-wise. Day TGV and TER services that merely cross midnight are intentionally excluded, and buildSleeperTrains additionally requires a named entry's trip to run past midnight — the fullest Paris Austerlitz → Toulouse Matabiau trip in this feed is the 08:27 daytime Intercités via Limoges, which would otherwise have replaced the night train's Montauban routing under the night train's own number. Verified against the live feed by `probe-gtfs --verify-allowlists` (the 'Probe GTFS feed' workflow): the first run matched all 18 and returned 8–16 stops per train against Back-on-Track's 2–5. IC Nuit 3750/3751 are the two still under test — before the overnight rule they resolved to that day Intercités, so if the feed turns out to carry no overnight Paris↔Toulouse trip they will show up under \"matched NOTHING\" and should be dropped, leaving Back-on-Track's data in place.",
   "source": "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip",
   "routes": [
-    { "name": "IC Nuit 5789", "from": "Paris Austerlitz", "to": "Briançon" },
-    { "name": "IC Nuit 5790", "from": "Briançon", "to": "Paris Austerlitz" },
-
-    { "name": "IC Nuit 5781", "from": "Paris Austerlitz", "to": "Nice-Ville" },
-    { "name": "IC Nuit 5772", "from": "Nice-Ville", "to": "Paris Austerlitz" },
-
-    { "name": "IC Nuit 5737", "from": "Paris Austerlitz", "to": "Cerbère" },
-    { "name": "IC Nuit 5738", "from": "Cerbère", "to": "Paris Austerlitz" },
-
-    { "name": "IC Nuit 3731", "from": "Paris Austerlitz", "to": "Tarbes" },
-    { "name": "IC Nuit 3740", "from": "Tarbes", "to": "Paris Austerlitz" },
-
+    {
+      "name": "IC Nuit 5789",
+      "from": "Paris Austerlitz",
+      "to": "Briançon"
+    },
+    {
+      "name": "IC Nuit 5790",
+      "from": "Briançon",
+      "to": "Paris Austerlitz"
+    },
+    {
+      "name": "IC Nuit 5781",
+      "from": "Paris Austerlitz",
+      "to": "Nice-Ville"
+    },
+    {
+      "name": "IC Nuit 5772",
+      "from": "Nice-Ville",
+      "to": "Paris Austerlitz"
+    },
+    {
+      "name": "IC Nuit 5737",
+      "from": "Paris Austerlitz",
+      "to": "Cerbère"
+    },
+    {
+      "name": "IC Nuit 5738",
+      "from": "Cerbère",
+      "to": "Paris Austerlitz"
+    },
+    {
+      "name": "IC Nuit 3731",
+      "from": "Paris Austerlitz",
+      "to": "Tarbes"
+    },
+    {
+      "name": "IC Nuit 3740",
+      "from": "Tarbes",
+      "to": "Paris Austerlitz"
+    },
     {
       "name": "IC Nuit 3971",
       "from": "Paris Austerlitz",
@@ -24,7 +52,6 @@
       "from": "Latour-de-Carol - Enveitg",
       "to": "Paris Austerlitz"
     },
-
     {
       "name": "IC Nuit 3751",
       "from": "Paris Austerlitz",
@@ -35,7 +62,6 @@
       "from": "Toulouse Matabiau",
       "to": "Paris Austerlitz"
     },
-
     {
       "name": "IC Nuit 3755 (Sun)",
       "from": "Paris Austerlitz",
@@ -46,11 +72,25 @@
       "from": "Albi Ville",
       "to": "Paris Austerlitz"
     },
-
-    { "name": "IC Nuit 3755", "from": "Paris Austerlitz", "to": "Rodez" },
-    { "name": "IC Nuit 3754", "from": "Rodez", "to": "Paris Austerlitz" },
-
-    { "name": "IC Nuit 3789", "from": "Paris Austerlitz", "to": "Aurillac" },
-    { "name": "IC Nuit 3790", "from": "Aurillac", "to": "Paris Austerlitz" }
+    {
+      "name": "IC Nuit 3755",
+      "from": "Paris Austerlitz",
+      "to": "Rodez"
+    },
+    {
+      "name": "IC Nuit 3754",
+      "from": "Rodez",
+      "to": "Paris Austerlitz"
+    },
+    {
+      "name": "IC Nuit 3789",
+      "from": "Paris Austerlitz",
+      "to": "Aurillac"
+    },
+    {
+      "name": "IC Nuit 3790",
+      "from": "Aurillac",
+      "to": "Paris Austerlitz"
+    }
   ]
 }

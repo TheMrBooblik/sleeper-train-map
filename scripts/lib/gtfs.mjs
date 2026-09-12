@@ -314,6 +314,12 @@ function resolveNamedTrips(namedEntries, gtfs) {
   for (const trip of gtfs.trips) {
     const sts = gtfs.stopTimesByTrip.get(trip.trip_id);
     if (!sts || sts.length < 2) continue;
+    // An allowlist of sleepers has no use for a day train, and taking one is
+    // worse than taking nothing: SNCF's fullest Paris Austerlitz → Toulouse
+    // Matabiau trip is the 08:27 Intercités via Limoges, which would have
+    // overwritten the night train's Montauban routing with a different
+    // corridor under the night train's own number.
+    if (!crossesMidnight(sts)) continue;
     const first = firstLocatedStop(sts, gtfs, 1);
     const last = firstLocatedStop(sts, gtfs, -1);
     if (!first || !last || first === last) continue;
@@ -328,6 +334,28 @@ function resolveNamedTrips(namedEntries, gtfs) {
     }
   }
   return best;
+}
+
+/** "25:10:00" → 90600. GTFS writes a past-midnight time as hours ≥ 24. */
+function timeToSeconds(hhmmss) {
+  const parts = String(hhmmss ?? "").trim().split(":");
+  if (parts.length < 2) return null;
+  const [h, m, sec] = parts.map((n) => Number.parseInt(n, 10));
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  return h * 3600 + m * 60 + (Number.isFinite(sec) ? sec : 0);
+}
+
+/**
+ * Does this trip still be running after midnight? Two ways a feed can say so:
+ * the hours-≥-24 notation GTFS specifies, and — for a feed that resets at
+ * midnight instead — an arrival earlier in the day than the departure.
+ */
+function crossesMidnight(sts) {
+  const dep = timeToSeconds(sts[0]?.departure ?? sts[0]?.arrival);
+  const lastSt = sts[sts.length - 1];
+  const arr = timeToSeconds(lastSt?.arrival ?? lastSt?.departure);
+  if (dep === null || arr === null) return false;
+  return arr >= 24 * 3600 || arr < dep;
 }
 
 // The first (dir 1) or last (dir -1) stop of a trip that has coordinates.

@@ -157,10 +157,18 @@ const back = sncf["IC Nuit 3740"];
 if (!out || !back) {
   problems.push("both directions of N1 must resolve");
 } else {
+  // n1d is a FULLER Paris->Tarbes trip (4 stops) but runs 08:27→15:32 the same
+  // day, and a sleeper allowlist must not take it — SNCF's fullest Paris
+  // Austerlitz → Toulouse trip is the daytime Intercités via Limoges, and
+  // taking it would have rewritten the night train's corridor.
   check(
     out.stations.map((s) => s.name).join(" -> ") ===
       "Paris Austerlitz -> Toulouse Matabiau -> Tarbes",
-    `3731 should run Paris->Toulouse->Tarbes, got [${out.stations.map((s) => s.name).join(" -> ")}]`,
+    `3731 should take the overnight trip, not the fuller day one, got [${out.stations.map((s) => s.name).join(" -> ")}]`,
+  );
+  check(
+    out.stations[0].departure === "22:11",
+    `3731 must depart in the evening, got ${out.stations[0].departure}`,
   );
   // n1c (4 stops) beats n1b (2 stops) within the Tarbes->Paris orientation.
   check(
@@ -169,8 +177,8 @@ if (!out || !back) {
     `3740 should take the fullest reverse trip, got [${back.stations.map((s) => s.name).join(" -> ")}]`,
   );
   check(
-    out.stations[0].departure === "22:11" && back.stations[0].departure === "19:00",
-    `each direction keeps its own times: ${out.stations[0].departure} / ${back.stations[0].departure}`,
+    back.stations[0].departure === "19:00",
+    `each direction keeps its own times, got ${back.stations[0].departure} back`,
   );
   check(out.agency_id === "SNCF" && out.operator === "SNCF", "SNCF stamps carry through");
 }

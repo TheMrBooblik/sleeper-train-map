@@ -35,6 +35,23 @@ const KNOWN_DEDUP_STRATEGIES = new Set(["exact", "icn"]);
 
 const KNOWN_ENRICH_STRATEGIES = new Set(["trainsByNumber", "gtfsBundle"]);
 
+// Every enrich option is a plain boolean or string the strategy reads by name,
+// so a misspelled one does not fail — it silently means "off", which is the
+// same failure mode the probe.pricing adapter typo had. Enumerate them.
+const KNOWN_ENRICH_KEYS = new Set([
+  "strategy",
+  "agencyIds",
+  "setPolyline",
+  "polylineMode",
+  "geometryFallback",
+  "updateVia",
+  "viaOnlyIfRicher",
+  "setTimes",
+  "updateEndpoints",
+  "updateServiceDays",
+  "stamp",
+]);
+
 const KNOWN_SCHEDULES = new Set(["daily", "weekly", "manual"]);
 
 export function loadRegistry() {
@@ -108,6 +125,13 @@ export function validateRegistryEntry(entry) {
     }
     if (enrich.agencyIds != null && !(Array.isArray(enrich.agencyIds) && enrich.agencyIds.every((a) => typeof a === "string" && a))) {
       errors.push(`${tag} enrich.agencyIds must be an array of non-empty strings`);
+    }
+    const unknown = Object.keys(enrich).filter((k) => !KNOWN_ENRICH_KEYS.has(k));
+    if (unknown.length) {
+      errors.push(`${tag} unknown enrich option(s): ${unknown.join(", ")}`);
+    }
+    if (enrich.viaOnlyIfRicher && !enrich.updateVia) {
+      errors.push(`${tag} enrich.viaOnlyIfRicher guards updateVia, which is off`);
     }
   }
 

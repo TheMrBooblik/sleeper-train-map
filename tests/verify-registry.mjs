@@ -31,6 +31,16 @@ const invalidEntries = [
     { ...base, enrich: { strategy: "trainsByNumber", agencyIds: [""] } },
     "empty enrich agencyIds entry",
   ],
+  // An enrich option is read by name, so a misspelling silently means "off" —
+  // the same failure mode probe.pricing.adapter had.
+  [
+    { ...base, enrich: { strategy: "trainsByNumber", updateVai: true } },
+    "misspelled enrich option",
+  ],
+  [
+    { ...base, enrich: { strategy: "trainsByNumber", viaOnlyIfRicher: true } },
+    "viaOnlyIfRicher guarding an updateVia that is off",
+  ],
   [{ ...base, endpoint: "" }, "empty endpoint string"],
   [
     { ...base, endpoint: "https://a.example/feed.zip", params: { feedUrl: "https://b.example/feed.zip" } },
