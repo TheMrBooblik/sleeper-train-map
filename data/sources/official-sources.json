@@ -329,7 +329,7 @@
           "status": "discovered",
           "lastChecked": "2026-09-12",
           "probeWorkflow": "probe-gtfs.yml",
-          "notes": "Resolves and parses (24 routes, 9 496 trips, 930 stops) but carries the WRONG HALF of Vy: every route in it is an Oslo-area commuter line — R21 Stabekk–Moss and siblings — and there is no F-line at all, so the Oslo–Bergen night train is not here and no heuristic would have found it. Useful for two things nonetheless: it proves the bucket pattern rb_<codespace>-aggregated-gtfs.zip, and it is why the probe now prints a feed's own route list whenever it finds nothing, which is what answered this in one glance. Its shapes.txt is 415.9 MB — bigger than the whole SNCF feed — and parsing that OOM'd a probe run before loadGtfsDir learned to skip a shapes.txt past MAX_SHAPES_BYTES. Long-distance is presumably a separate codespace; the candidates below are the next guesses."
+          "notes": "WORKS and carries what we need: 24 routes, 9 496 trips, 930 stops, agencies Vy and Vy Tåg, and among the routes F1 Oslo S–Charlottenberg–Karlstad and F4 Oslo S–Bergen. F4 is Back-on-Track row 69, the Oslo–Bergen night train. (An earlier note here said this feed held only Vy's Oslo commuter network with no F-line — that was wrong, corrected once the probe started printing a feed's route list.) The night train does not show in the probe's candidate table because Entur writes a past-midnight arrival as 06:23 rather than 30:23, so a duration came out negative; the probe now treats an arrival earlier than its departure as overnight, which is the half of GTFS's two notations it had been missing. Even so the representative trip on F4 is a day train — one night train among thirty day services — so the allowlist entry has to be a NAMED ORIENTED pair, which scans every trip and requires it to cross midnight. shapes.txt is 415.9 MB and is skipped past MAX_SHAPES_BYTES; geometry is the station chain, as SNCF's is."
         },
         {
           "name": "Entur open data — per-codespace GTFS (SJ Nord)",
@@ -341,7 +341,7 @@
           "status": "discovered",
           "lastChecked": null,
           "probeWorkflow": "probe-gtfs.yml",
-          "notes": "CANDIDATE token, under probe. The bucket pattern is confirmed by rb_vyg; what is not known is each operator's codespace. SJ Nord runs the two Swedish-franchise night trains in Norway — Oslo–Trondheim (405/406) and Trondheim–Bodø (475/476) — so if this token resolves it answers Back-on-Track rows 70 and 71."
+          "notes": "WORKS, confirmed 2026-09-12: 7 routes, 912 trips, 500 stops, agency SJ Nord, and the route list is F6 Dovrebanen, F7 Nordlandsbanen, R60 Rørosbanen, R65 Raumabanen, R70 Trønderbanen, R71 Meråkerbanen, R75 Saltenpendelen. F6 and F7 are Back-on-Track rows 70 (Oslo–Trondheim 405/406) and 71 (Trondheim–Bodø 475/476). Small and cheap: stop_times.txt 0.9 MB. shapes.txt 139 MB is under the ceiling and parses. Like Vy, the night train is one trip inside a line that also runs day services, so the allowlist entries are named oriented pairs."
         },
         {
           "name": "Entur open data — per-codespace GTFS (Go-Ahead Nordic)",
@@ -353,7 +353,7 @@
           "status": "discovered",
           "lastChecked": null,
           "probeWorkflow": "probe-gtfs.yml",
-          "notes": "CANDIDATE token, under probe, for Back-on-Track row 65: the Oslo–Stavanger night train (F5 725/726) on the Sørlandsbanen. Same bucket pattern as rb_vyg."
+          "notes": "WORKS, confirmed 2026-09-12: 3 routes, 1 724 trips, 275 stops, agency Go-Ahead Norge AS — F5 Sørtoget region, L5 Jærbanen, R50 Sørtoget lokal. F5 is Back-on-Track row 65, the Oslo–Stavanger night train (F5 725/726). stop_times.txt 1.0 MB, shapes.txt 108 MB, both fine. The probe shows F5 as a 04:19→12:05 day train because that is the fullest trip on the line; the 22:25 night train is one trip inside it, hence a named oriented allowlist entry."
         },
         {
           "name": "Entur open data — per-codespace GTFS (Vy long-distance)",
@@ -362,10 +362,10 @@
           "format": "GTFS",
           "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
           "auth": "none",
-          "status": "discovered",
-          "lastChecked": null,
+          "status": "broken",
+          "lastChecked": "2026-09-12",
           "probeWorkflow": "probe-gtfs.yml",
-          "notes": "CANDIDATE token, under probe. rb_vyg turned out to be Vy's Oslo commuter network with no F-line in it, so Vy's long-distance trains — including Oslo–Bergen (605/606), Back-on-Track row 69 — must sit under a different codespace. NSB is Vy's former name and a plausible legacy token; this is the second and last guess for Vy. If it 404s, stop guessing and read the file list from the docsUrl instead."
+          "notes": "HTTP 404, and it should never have been tried: it was guessed from a false reading of rb_vyg (that Vy's long-distance was missing from it). F4 Oslo S–Bergen is in rb_vyg, so Vy needs no second codespace and there is nothing here to find. Kept only so the dead end is on the record."
         }
       ]
     },

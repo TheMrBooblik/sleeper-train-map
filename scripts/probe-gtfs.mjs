@@ -105,6 +105,14 @@ export function isOvernightCandidate(
 ) {
   if (!Number.isFinite(dep) || !Number.isFinite(arr)) return false;
   if (arr >= 24 * 3600) return true;
+  // The other way a feed says "next day": reset at midnight, so the arrival is
+  // EARLIER in the day than the departure. This half was missing, and it is the
+  // half that hides a night train rather than merely mistiming it — Entur
+  // writes Oslo S 23:03 → Bergen 06:23 as 06:23, so arr - dep came out
+  // NEGATIVE and every Norwegian night train read as no night train at all.
+  // Guarding only the hours-≥-24 notation left exactly the bug this function
+  // exists to prevent, pointing the other way.
+  if (arr < dep) return true;
   return arr - dep >= minHours * 3600 && dep >= eveningFrom;
 }
 
@@ -128,6 +136,13 @@ export function isOvernightCandidate(
  * @param {Map<string, Array<{arrival:string, departure:string}>>} stopTimesByTrip
  * @returns {Map<string, object>} route_id → run, each carrying `.longest`
  */
+// Does this run pass midnight, by either notation a feed may use for it?
+// Mirrors crossesMidnight in gtfs.mjs, which is what the adapter's named
+// entries are filtered on.
+function isOvernight({ dep, arr }) {
+  return arr >= 24 * 3600 || arr < dep;
+}
+
 export function selectRouteRuns(trips, stopTimesByTrip) {
   const best = new Map();
   for (const trip of trips ?? []) {
@@ -136,18 +151,34 @@ export function selectRouteRuns(trips, stopTimesByTrip) {
     const dep = toSeconds(sts[0].departure ?? sts[0].arrival);
     const arr = toSeconds(sts[sts.length - 1].arrival ?? sts[sts.length - 1].departure);
     if (dep === null || arr === null) continue;
-    const run = { trip, sts, dep, arr, length: arr - dep };
+    // Modulo a day, so a midnight-resetting feed reports a real duration
+    // instead of a negative one — which also kept `longest` from ever picking
+    // a night train on such a feed.
+    const length = arr >= dep ? arr - dep : arr + 24 * 3600 - dep;
+    const run = { trip, sts, dep, arr, length };
     const prev = best.get(trip.route_id);
     if (!prev) {
-      best.set(trip.route_id, { ...run, longest: run });
+      best.set(trip.route_id, { ...run, longest: run, overnight: isOvernight(run) ? run : null });
       continue;
     }
     const longest = run.length > prev.longest.length ? run : prev.longest;
+    // The fullest trip that actually runs through the night, kept separately
+    // from the representative. On a national operator the night train is one
+    // trip inside a line that also runs thirty day services, so the
+    // representative is a day train and the night train is invisible — which
+    // is exactly how Entur's F4 Oslo–Bergen, F6 Dovrebanen and F7
+    // Nordlandsbanen read as "no night trains in this feed" twice over.
+    const overnight =
+      isOvernight(run) && (!prev.overnight || sts.length > prev.overnight.sts.length)
+        ? run
+        : prev.overnight;
     // Strictly greater, like representativeTrip's `>`: the first trip wins a
     // tie, and both iterate trips.txt in file order.
     best.set(
       trip.route_id,
-      sts.length > prev.sts.length ? { ...run, longest } : { ...prev, longest },
+      sts.length > prev.sts.length
+        ? { ...run, longest, overnight }
+        : { ...prev, longest, overnight },
     );
   }
   return best;
@@ -373,17 +404,23 @@ async function probeFeed({ url, localDir = null, minHours = 5, limit = 40, entry
   const candidates = [];
   for (const [routeId, r] of best) {
     const repIsNight = isOvernightCandidate(r, { minHours, eveningFrom });
-    const anyIsNight = isOvernightCandidate(r.longest, { minHours, eveningFrom });
+    const anyIsNight =
+      isOvernightCandidate(r.longest, { minHours, eveningFrom }) || Boolean(r.overnight);
     if (!repIsNight && !anyIsNight) continue;
     const route = gtfs.routesById.get(routeId) ?? {};
+    // Report the night train when the route has one, even though the adapter's
+    // representative is a day train: the endpoints and times of the train being
+    // looked for are the useful thing to print, and dayTrainWarning still says
+    // that a plain name or pair entry here would select the day train instead.
+    const shown = repIsNight ? r : (r.overnight ?? r);
     candidates.push({
       short: (route.route_short_name || "").trim(),
       long: (route.route_long_name || "").trim(),
-      from: gtfs.stopsById.get(r.sts[0].stop_id)?.name ?? r.sts[0].stop_id,
-      to: gtfs.stopsById.get(r.sts[r.sts.length - 1].stop_id)?.name ?? "?",
-      dep: r.dep, arr: r.arr, length: r.length, stops: r.sts.length,
-      days: daysOf(gtfs.calendarById.get(r.trip.service_id)),
-      crossesMidnight: r.arr >= 24 * 3600,
+      from: gtfs.stopsById.get(shown.sts[0].stop_id)?.name ?? shown.sts[0].stop_id,
+      to: gtfs.stopsById.get(shown.sts[shown.sts.length - 1].stop_id)?.name ?? "?",
+      dep: shown.dep, arr: shown.arr, length: shown.length, stops: shown.sts.length,
+      days: daysOf(gtfs.calendarById.get(shown.trip.service_id)),
+      crossesMidnight: shown.arr >= 24 * 3600 || shown.arr < shown.dep,
       // The fullest trip is a daytime working and only some other trip on this
       // route runs overnight: an allowlist entry here matches the day train.
       dayTrainWarning: !repIsNight && anyIsNight,

@@ -1,0 +1,16 @@
+{
+  "note": "Norwegian night trains, one entry per direction, keyed by Back-on-Track's own trip label so the trainsByNumber enrichment finds the row it belongs to. Every entry is a NAMED ORIENTED pair rather than a route name, and the reason is the shape of a national feed: Entur files each night train inside a whole line that also runs day services — F4 Oslo S–Bergen among Vy's thirty-odd daily workings — so the trip with the most stations, which a plain name or { from, to } entry selects, is a DAY train. A named entry scans every trip and requires it to cross midnight. from/to are the feed's own station spellings; the probe's route list is where they come from. Verified against the live feed by `probe-gtfs --verify-allowlists` (the 'Probe GTFS feed' workflow). Vy (codespace vyg): F4 Oslo S–Bergen, Back-on-Track row 69.",
+  "source": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_vyg-aggregated-gtfs.zip",
+  "routes": [
+    {
+      "name": "605",
+      "from": "Oslo S",
+      "to": "Bergen"
+    },
+    {
+      "name": "606",
+      "from": "Bergen",
+      "to": "Oslo S"
+    }
+  ]
+}

@@ -171,6 +171,53 @@ check("daysOf renders a calendar row, collapsing a full week", () => {
   });
 }
 
+// ─── A feed that resets at midnight ────────────────────────────────────────
+// The notation the original guard missed, and the one that HIDES a night train
+// rather than mistiming it: Entur writes Oslo S 23:03 → Bergen 06:23 as 06:23,
+// so arr - dep is negative and every Norwegian night train read as none.
+check("a wrapped arrival is overnight, not a negative-length day trip", () => {
+  const wrapped = { dep: toSeconds("23:03:00"), arr: toSeconds("06:23:00") };
+  assert.strictEqual(isOvernightCandidate(wrapped), true);
+  // And the hours-≥-24 spelling of the same train stays overnight.
+  assert.strictEqual(
+    isOvernightCandidate({ dep: toSeconds("23:03:00"), arr: toSeconds("30:23:00") }),
+    true,
+  );
+  // A short evening hop that does not cross midnight is still not a candidate.
+  assert.strictEqual(
+    isOvernightCandidate({ dep: toSeconds("20:00:00"), arr: toSeconds("21:00:00") }),
+    false,
+  );
+});
+
+check("selectRouteRuns measures a wrapped run modulo a day, and finds it", () => {
+  const st = (...times) =>
+    times.map((t, i) => ({ seq: i + 1, stop_id: `S${i}`, arrival: t, departure: t }));
+  const runs = selectRouteRuns(
+    [
+      // A busy line: many day trips, one night train. This is the normal shape
+      // for a national operator — F4 Oslo–Bergen among thirty day services —
+      // and the representative trip is therefore a DAY train.
+      { trip_id: "day-fullest", route_id: "F4" },
+      { trip_id: "night", route_id: "F4" },
+    ],
+    new Map([
+      ["day-fullest", st("08:00:00", "10:00:00", "12:00:00", "14:55:00")],
+      ["night", st("23:03:00", "02:00:00", "06:23:00")],
+    ]),
+  );
+  const r = runs.get("F4");
+  assert.strictEqual(r.trip.trip_id, "day-fullest", "representative stays the fullest trip");
+  assert.strictEqual(r.overnight.trip.trip_id, "night", "the night train is kept alongside");
+  assert.strictEqual(r.overnight.length, 7 * 3600 + 20 * 60, "7h20 measured across midnight");
+  // A line with no night train keeps overnight null rather than guessing.
+  const dayOnly = selectRouteRuns(
+    [{ trip_id: "d", route_id: "L1" }],
+    new Map([["d", st("08:00:00", "09:00:00")]]),
+  );
+  assert.strictEqual(dayOnly.get("L1").overnight, null);
+});
+
 // ─── --verify-allowlists: which sources, and what it reports ────────────────
 
 check("the sweep skips sources it has nothing left to learn from", () => {
@@ -269,6 +316,46 @@ check("a missing or unreadable allowlist reports nothing rather than throwing", 
     null,
   );
   assert.strictEqual(reportAllowlist({ id: "x", params: {} }, gtfs), null);
+});
+
+// ─── Every committed named allowlist is well-formed ─────────────────────────
+check("the three Entur allowlists name oriented trains and enter the verify path", () => {
+  const ids = allowlistVerifiableSources(loadRegistry()).map((e) => e.id);
+  for (const id of ["entur-vy", "entur-sjn", "entur-goa"]) {
+    assert.ok(ids.includes(id), `${id} should be verifiable, got [${ids.join(", ")}]`);
+  }
+  const registry = loadRegistry();
+  let total = 0;
+  for (const id of ["entur-vy", "entur-sjn", "entur-goa"]) {
+    const entry = registry.find((e) => e.id === id);
+    // The collision guard: a bare 475 is also European Sleeper's train, so the
+    // enrichment must be scoped to the Norwegian operators or SJN's Bodø train
+    // would be looked up against the ES feed.
+    assert.deepStrictEqual(
+      entry.enrich.agencyIds,
+      ["VY", "SJN", "GA"],
+      `${id} must scope enrich to the Norwegian operators`,
+    );
+    assert.strictEqual(entry.enrich.viaOnlyIfRicher, true, `${id} needs the richer-via guard`);
+    assert.ok(!entry.enrich.setTimes && !entry.enrich.stamp, `${id} must stay via-only`);
+    const list = JSON.parse(
+      fs.readFileSync(path.join(ROOT, entry.params.configPath), "utf8"),
+    ).routes;
+    total += list.length;
+    for (const e of list) {
+      for (const k of ["name", "from", "to"]) {
+        assert.ok(
+          typeof e?.[k] === "string" && e[k].trim(),
+          `${id}: entry ${JSON.stringify(e)} needs a non-empty ${k}`,
+        );
+      }
+      assert.notStrictEqual(e.from, e.to, `${id}: ${e.name} runs from and to the same place`);
+    }
+    const pairs = new Set(list.map((e) => [e.from, e.to].sort().join("|")));
+    assert.strictEqual(pairs.size * 2, list.length, `${id}: each corridor needs both directions`);
+  }
+  // Four Norwegian night routes, both ways.
+  assert.strictEqual(total, 8, `expected 8 oriented entries across Norway, got ${total}`);
 });
 
 // ─── The committed SNCF allowlist is well-formed ────────────────────────────

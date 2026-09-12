@@ -476,6 +476,129 @@
   },
   {
     "v": 1,
+    "id": "entur-vy",
+    "label": "Vy (Entur)",
+    "description": "Norway is centralised on Entur, which publishes a GTFS file per operator codespace with no key: rb_vyg-aggregated-gtfs.zip covers F4 Oslo S\u2013Bergen (Back-on-Track row 69, trains 605/606). Every allowlist entry is a NAMED ORIENTED pair, because Entur files each night train inside a whole line that also runs day services \u2014 the trip with the most stations, which a plain route name would select, is a day train \u2014 so the entry names the train and buildSleeperTrains requires the trip to cross midnight. Enrichment is via-only: Back-on-Track gives these routes 2 to 6 via points against the feed's full stop list, and every Norwegian station checked is already in the payload with coordinates, so no station aliasing is needed. Times and service days stay off for the same reason as SNCF, until a night's log shows they are the train's. shapes.txt here is 108\u2013416 MB, past MAX_SHAPES_BYTES, so geometry is the station chain through the official stops. Probe workflow: 'Probe GTFS feed'.",
+    "kind": "gtfs",
+    "adapter": "gtfs-sleeper",
+    "enabled": true,
+    "official": true,
+    "trusted": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://developer.entur.no/apis/open",
+    "endpoint": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_vyg-aggregated-gtfs.zip",
+    "docsUrl": "https://developer.entur.no/apis/open",
+    "output": "entur-vy-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "VY", "operatorName": "Vy" },
+    "synthetic": {
+      "idPrefix": "entur_vy_",
+      "agency": { "from": "fixed", "value": "VY" },
+      "resolveAliases": true,
+      "withService": true,
+      "excludeBotMatched": true,
+      "botMatchAgencies": ["VY", "SJN", "GA"],
+      "dedupStrategy": null
+    },
+    "enrich": {
+      "strategy": "trainsByNumber",
+      "agencyIds": ["VY", "SJN", "GA"],
+      "updateVia": true,
+      "viaOnlyIfRicher": true
+    },
+    "params": {
+      "feedUrl": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_vyg-aggregated-gtfs.zip",
+      "configPath": "data/sources/entur-vy-sleepers.json",
+      "agency": "VY",
+      "operator": "Vy"
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
+    "id": "entur-sjn",
+    "label": "SJ Nord (Entur)",
+    "description": "Norway is centralised on Entur, which publishes a GTFS file per operator codespace with no key: rb_sjn-aggregated-gtfs.zip covers F6 Dovrebanen and F7 Nordlandsbanen (rows 70 and 71, trains 405/406 and 475/476). Every allowlist entry is a NAMED ORIENTED pair, because Entur files each night train inside a whole line that also runs day services \u2014 the trip with the most stations, which a plain route name would select, is a day train \u2014 so the entry names the train and buildSleeperTrains requires the trip to cross midnight. Enrichment is via-only: Back-on-Track gives these routes 2 to 6 via points against the feed's full stop list, and every Norwegian station checked is already in the payload with coordinates, so no station aliasing is needed. Times and service days stay off for the same reason as SNCF, until a night's log shows they are the train's. shapes.txt here is 108\u2013416 MB, past MAX_SHAPES_BYTES, so geometry is the station chain through the official stops. Probe workflow: 'Probe GTFS feed'.",
+    "kind": "gtfs",
+    "adapter": "gtfs-sleeper",
+    "enabled": true,
+    "official": true,
+    "trusted": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://developer.entur.no/apis/open",
+    "endpoint": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_sjn-aggregated-gtfs.zip",
+    "docsUrl": "https://developer.entur.no/apis/open",
+    "output": "entur-sjn-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "SJN", "operatorName": "SJ Nord" },
+    "synthetic": {
+      "idPrefix": "entur_sjn_",
+      "agency": { "from": "fixed", "value": "SJN" },
+      "resolveAliases": true,
+      "withService": true,
+      "excludeBotMatched": true,
+      "botMatchAgencies": ["VY", "SJN", "GA"],
+      "dedupStrategy": null
+    },
+    "enrich": {
+      "strategy": "trainsByNumber",
+      "agencyIds": ["VY", "SJN", "GA"],
+      "updateVia": true,
+      "viaOnlyIfRicher": true
+    },
+    "params": {
+      "feedUrl": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_sjn-aggregated-gtfs.zip",
+      "configPath": "data/sources/entur-sjn-sleepers.json",
+      "agency": "SJN",
+      "operator": "SJ Nord"
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
+    "id": "entur-goa",
+    "label": "Go-Ahead Nordic (Entur)",
+    "description": "Norway is centralised on Entur, which publishes a GTFS file per operator codespace with no key: rb_goa-aggregated-gtfs.zip covers F5 S\u00f8rtoget (row 65, trains F5 725/726). Every allowlist entry is a NAMED ORIENTED pair, because Entur files each night train inside a whole line that also runs day services \u2014 the trip with the most stations, which a plain route name would select, is a day train \u2014 so the entry names the train and buildSleeperTrains requires the trip to cross midnight. Enrichment is via-only: Back-on-Track gives these routes 2 to 6 via points against the feed's full stop list, and every Norwegian station checked is already in the payload with coordinates, so no station aliasing is needed. Times and service days stay off for the same reason as SNCF, until a night's log shows they are the train's. shapes.txt here is 108\u2013416 MB, past MAX_SHAPES_BYTES, so geometry is the station chain through the official stops. Probe workflow: 'Probe GTFS feed'.",
+    "kind": "gtfs",
+    "adapter": "gtfs-sleeper",
+    "enabled": true,
+    "official": true,
+    "trusted": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://developer.entur.no/apis/open",
+    "endpoint": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_goa-aggregated-gtfs.zip",
+    "docsUrl": "https://developer.entur.no/apis/open",
+    "output": "entur-goa-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "GA", "operatorName": "Go-Ahead Nordic" },
+    "synthetic": {
+      "idPrefix": "entur_goa_",
+      "agency": { "from": "fixed", "value": "GA" },
+      "resolveAliases": true,
+      "withService": true,
+      "excludeBotMatched": true,
+      "botMatchAgencies": ["VY", "SJN", "GA"],
+      "dedupStrategy": null
+    },
+    "enrich": {
+      "strategy": "trainsByNumber",
+      "agencyIds": ["VY", "SJN", "GA"],
+      "updateVia": true,
+      "viaOnlyIfRicher": true
+    },
+    "params": {
+      "feedUrl": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_goa-aggregated-gtfs.zip",
+      "configPath": "data/sources/entur-goa-sleepers.json",
+      "agency": "GA",
+      "operator": "Go-Ahead Nordic"
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
     "id": "pkp-gtfs",
     "label": "PKP Intercity (Polish GTFS)",
     "description": "Official PKP Intercity timetable data (mkuran.pl is a mechanical daily conversion of the official NAP feed), plus Leo Express sleeper shapes discovered from the same polish_trains.zip (overnight LEO trips of 12h+). Committed as public/data/gtfs/pkpTrainShapes.json; regenerated nightly inside the scrape (npm run parse-pkp-gtfs). Enriches PKP and Leo Express rows with official stop lists and stamps them for trusted auto-approval.",
