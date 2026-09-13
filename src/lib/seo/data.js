@@ -475,9 +475,19 @@ export function getRouteDetail(routeId) {
         departure: formatAnyTime(s.departure),
         arrival: formatAnyTime(s.arrival),
       }));
-      // Endpoint times prefer the gated viewMap value over the live feed.
+      // Endpoint times prefer the gated viewMap value over the live feed —
+      // and the OTHER endpoint field has to go, or the row and the feed each
+      // answer half of the same stop. A journey does not arrive where it
+      // starts or depart from where it ends, so those two fields carry no
+      // meaning at all; what they carried was the feed trip's own value
+      // sitting beside a row value from a different trip. Paris–Aurillac
+      // showed it plainly: `{"departure":"19:28","arrival":"18:27"}` on the
+      // origin, two trips in one stop. The fallback branch below already
+      // writes "" there; this is the same rule, applied where the feed wins.
       if (vmDeparture) stops[0].departure = vmDeparture;
       if (vmArrival) stops[stops.length - 1].arrival = vmArrival;
+      stops[0].arrival = "";
+      stops[stops.length - 1].departure = "";
     } else {
       const names = [origin, ...via, destination].filter(Boolean);
       stops = names.map((name, i) => {
