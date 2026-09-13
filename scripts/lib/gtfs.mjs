@@ -19,9 +19,13 @@ import https from "node:https";
 import { execSync } from "node:child_process";
 import polyline from "@mapbox/polyline";
 import {
+  DAY_KEYS,
   parseGtfsCalendar,
   renderCalendar,
 } from "../../src/pages/api/lib/calendar.mjs";
+
+// DAY_KEYS is Monday-first ("mon"…"sun"); JS Date.getDay() is Sunday-first.
+const DAY_KEY_TO_JS_DAY = [1, 2, 3, 4, 5, 6, 0];
 
 // ─── CSV / download / unzip (mirrors parse-pkp-gtfs.js) ──────────────────────
 
@@ -253,6 +257,70 @@ export function loadGtfsDir(dir, { maxShapesBytes = MAX_SHAPES_BYTES } = {}) {
   };
 }
 
+// ─── Timetable periods ───────────────────────────────────────────────────────
+//
+// A date-expanded feed publishes a whole year, and a train is free to change
+// its operating days at the European timetable change — the second Sunday in
+// December. So "which weekdays does this train run" is only answerable inside
+// one period: ask it of the whole file and a service that runs Fri-Sun in
+// winter and daily in July answers "Daily", which is true of no week of the
+// year. The European Sleeper adapter met this first (ES 400 advertised four
+// weekdays for a 3x/week train); these helpers are that lesson, shared.
+
+/** Second Sunday in December of `year`, as "YYYYMMDD". */
+export function decemberTimetableChange(year) {
+  const dec1 = new Date(Date.UTC(year, 11, 1));
+  const firstSunday = 1 + ((7 - dec1.getUTCDay()) % 7);
+  return `${year}12${String(firstSunday + 7).padStart(2, "0")}`;
+}
+
+/** The next timetable change strictly after "YYYYMMDD", or null if none is near. */
+export function nextTimetableChangeAfter(yyyymmdd) {
+  const year = Number(String(yyyymmdd).slice(0, 4));
+  for (const y of [year, year + 1]) {
+    const change = decemberTimetableChange(y);
+    if (change > yyyymmdd) return change;
+  }
+  return null;
+}
+
+/** "YYYYMMDD" for today, UTC. */
+export function todayCompact(now = new Date()) {
+  return now.toISOString().slice(0, 10).replace(/-/g, "");
+}
+
+/**
+ * The timetable period running now: [start, end) as compact dates, end
+ * exclusive and null when no change is near.
+ */
+export function currentTimetableWindow(now = new Date()) {
+  const start = todayCompact(now);
+  return { start, end: nextTimetableChangeAfter(start) };
+}
+
+/**
+ * Does a calendar.txt row's validity span intersect the window? A row with no
+ * readable span is kept — the window is there to exclude what it can prove is
+ * elsewhere in the year, not to drop a service for being undated.
+ */
+function calendarOverlapsWindow(calRow, window) {
+  if (!window) return true;
+  const span = (v) => (/^\d{8}$/.test(String(v ?? "")) ? String(v) : null);
+  const from = span(calRow.start_date);
+  const until = span(calRow.end_date);
+  if (window.end && from && from >= window.end) return false;
+  if (window.start && until && until < window.start) return false;
+  return true;
+}
+
+/** Is a compact date inside [start, end)? A null bound does not constrain. */
+function withinWindow(date, window) {
+  if (!window) return true;
+  if (window.start && date < window.start) return false;
+  if (window.end && date >= window.end) return false;
+  return true;
+}
+
 // ─── Service calendar → display string ───────────────────────────────────────
 
 const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -275,6 +343,81 @@ function summariseAddedDates(dates) {
   if (weekdays.size === 7) return "Daily";
   const order = [1, 2, 3, 4, 5, 6, 0];
   return order
+    .filter((d) => weekdays.has(d))
+    .map((d) => WEEKDAY_SHORT[d])
+    .join(", ");
+}
+
+/**
+ * "When does it run" for a train spread across MANY trips.
+ *
+ * A date-expanded feed gives every operating date its own trip and its own
+ * service_id, so one trip's service answers "when does this particular run
+ * go", not "when does this train run". SNCF's export is such a feed, and the
+ * single-trip answer was visibly incoherent: IC Nuit 3740 came out "Mon, Tue,
+ * Wed, Thu, Fri" while IC Nuit 3731 — the other direction of the same service —
+ * came out "Sun". Both cannot be the train's timetable.
+ *
+ * So union every trip that matched the entry: calendar.txt weekdays where the
+ * feed has them, plus the weekdays of every added date.
+ *
+ * But union WITHIN ONE TIMETABLE PERIOD, which is the half this first shipped
+ * without. A year-wide union answers "which weekdays does this train ever run
+ * on", and for a seasonal service that is every weekday: the first live SNCF
+ * run returned "Daily" for Paris-Latour-de-Carol and Paris-Cerbere, both of
+ * which Back-on-Track has as weekend services, and 13 of 18 trains came out
+ * Daily. Saturating at the value that means "no restriction" is the worst
+ * possible failure here, because it is indistinguishable from a train that
+ * genuinely runs daily — and eight of these genuinely do.
+ *
+ * The union is only as honest as the trips that feed it, which is why
+ * resolveNamedTrips keeps its overnight filter: a day train sharing the
+ * corridor must not lend its weekdays to the night train.
+ *
+ * @param {{start?: string, end?: string}|null} window compact dates, end
+ *        exclusive; null unions across everything the feed carries.
+ */
+function serviceDisplayForServices(serviceIds, gtfs, window = null) {
+  const ids = [...serviceIds].filter(Boolean);
+  if (ids.length === 0) return null;
+  if (ids.length === 1 && !window) return serviceDisplay(ids[0], gtfs);
+
+  // Collect weekdays as JS day numbers (0 = Sunday), from both shapes a feed
+  // can express a service in: calendar.txt weekday flags, and the dates in
+  // calendar_dates.txt that a date-expanded feed uses instead.
+  const weekdays = new Set();
+  let sawAny = false;
+  for (const id of ids) {
+    const calRow = gtfs.calendarById.get(id);
+    // A calendar.txt service states its own validity span, so it counts only
+    // where that span overlaps the window — a summer-only service must not
+    // lend its weekdays to a winter timetable.
+    if (calRow && calendarOverlapsWindow(calRow, window)) {
+      for (const day of parseGtfsCalendar(calRow).daysOfWeek ?? []) {
+        const i = DAY_KEYS.indexOf(day);
+        if (i !== -1) {
+          weekdays.add(DAY_KEY_TO_JS_DAY[i]);
+          sawAny = true;
+        }
+      }
+    }
+    for (const d of gtfs.addedDatesByService.get(id) ?? []) {
+      if (!withinWindow(d, window)) continue;
+      const dt = new Date(
+        Number(d.slice(0, 4)),
+        Number(d.slice(4, 6)) - 1,
+        Number(d.slice(6, 8)),
+      );
+      if (Number.isFinite(dt.getTime())) {
+        weekdays.add(dt.getDay());
+        sawAny = true;
+      }
+    }
+  }
+  if (!sawAny) return null;
+  if (weekdays.size === 7) return "Daily";
+  // Monday first, the order the rest of the payload reads in.
+  return [1, 2, 3, 4, 5, 6, 0]
     .filter((d) => weekdays.has(d))
     .map((d) => WEEKDAY_SHORT[d])
     .join(", ");
@@ -415,7 +558,10 @@ function orientedMatch(originNorm, destNorm, fromNorm, toNorm) {
  * lookups per trip — the full station list is only built for the winner.
  */
 function resolveNamedTrips(namedEntries, gtfs) {
-  const best = new Map(); // name → { trip, stopCount }
+  // name → { trip, stopCount, serviceIds }. The fullest trip supplies the stop
+  // list and the times; EVERY matching trip supplies a service, because on a
+  // date-expanded feed one trip's service_id is one operating date.
+  const best = new Map();
   const wanted = namedEntries.map((e) => ({
     name: e.name,
     fromNorm: normLabel(e.from),
@@ -438,8 +584,27 @@ function resolveNamedTrips(namedEntries, gtfs) {
     for (const e of wanted) {
       if (!orientedMatch(originNorm, destNorm, e.fromNorm, e.toNorm)) continue;
       const prev = best.get(e.name);
-      if (!prev || sts.length > prev.stopCount) {
-        best.set(e.name, { trip, stopCount: sts.length });
+      if (!prev) {
+        best.set(e.name, {
+          trip,
+          stopCount: sts.length,
+          serviceIds: new Set([trip.service_id]),
+          // What the union actually swept up. An entry matches on endpoints
+          // plus "runs past midnight" and nothing else, so if a corridor
+          // carries more than one overnight train they all land here and lend
+          // it their days — which is the first thing to check when a train
+          // comes out running more often than it does.
+          tripCount: 1,
+          shortNames: new Set([trip.trip_short_name].filter(Boolean)),
+        });
+        continue;
+      }
+      prev.serviceIds.add(trip.service_id);
+      prev.tripCount += 1;
+      if (trip.trip_short_name) prev.shortNames.add(trip.trip_short_name);
+      if (sts.length > prev.stopCount) {
+        prev.trip = trip;
+        prev.stopCount = sts.length;
       }
     }
   }
@@ -566,6 +731,11 @@ export function buildSleeperTrains({
   stats = null,
   stationRenames = null,
   canonicalizeName = null,
+  // Which timetable period "when does it run" is asked of. Injectable because
+  // the answer changes on the second Sunday in December, so a test pinning real
+  // dates against the live window would start failing on a calendar date rather
+  // than on a code change. null unions across the whole feed.
+  serviceWindow = currentTimetableWindow(),
 }) {
   // Split the allowlist into name entries and endpoint-pair entries.
   const nameEntries = [];
@@ -615,7 +785,10 @@ export function buildSleeperTrains({
 
   const trains = {};
 
-  const makeTrain = (lineName, trip, stations) => {
+  // `frequencyOverride` is how a named entry hands in the union of every trip
+  // that matched it; without one a single trip's service is the answer, which
+  // stays right for a feed with real calendar.txt weekdays (Amtrak, VIA).
+  const makeTrain = (lineName, trip, stations, frequencyOverride = null) => {
     // Geometry: prefer the GTFS shape; fall back to the station chain.
     const shapePts = trip.shape_id ? gtfs.shapePoints.get(trip.shape_id) : null;
     const positions =
@@ -626,7 +799,7 @@ export function buildSleeperTrains({
       lineName,
       operator,
       agency_id: agency,
-      frequency: serviceDisplay(trip.service_id, gtfs),
+      frequency: frequencyOverride ?? serviceDisplay(trip.service_id, gtfs),
       polyline: polyline.encode(positions),
       stations: renameStations(stations),
     };
@@ -650,10 +823,28 @@ export function buildSleeperTrains({
         continue;
       }
       matchedEntries.add(e.raw);
+      if (stats) {
+        const dates = [];
+        for (const id of hit.serviceIds) {
+          for (const d of gtfs.addedDatesByService.get(id) ?? []) dates.push(d);
+          const cal = gtfs.calendarById.get(id);
+          if (cal?.start_date) dates.push(String(cal.start_date));
+          if (cal?.end_date) dates.push(String(cal.end_date));
+        }
+        dates.sort();
+        (stats.namedMatches ??= {})[e.name] = {
+          trips: hit.tripCount,
+          services: hit.serviceIds.size,
+          shortNames: [...hit.shortNames].sort(),
+          firstDate: dates[0] ?? null,
+          lastDate: dates[dates.length - 1] ?? null,
+        };
+      }
       trains[claimKey(e.name, hit.trip.trip_id)] = makeTrain(
         e.name,
         hit.trip,
         stations,
+        serviceDisplayForServices(hit.serviceIds, gtfs, serviceWindow),
       );
     }
   }

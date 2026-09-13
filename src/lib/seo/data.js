@@ -137,6 +137,26 @@ export function getDataGeneratedAt() {
   return j.generatedAt || j.uploadedAt || new Date().toISOString();
 }
 
+/**
+ * "Is this a station?" over the published stops, for splitting a via string by
+ * station name rather than by the " - " separator that 437 of those names
+ * contain. Both spellings are indexed because 703 records give stop_id and
+ * stop_name different values.
+ */
+let _knownStation = null;
+function getKnownStation() {
+  if (!_knownStation) {
+    const keys = new Set();
+    for (const s of getPublished().stops) {
+      for (const n of [s?.stop_id, s?.stop_name]) {
+        if (n) keys.add(String(n).trim().toLowerCase());
+      }
+    }
+    _knownStation = (name) => keys.has(String(name ?? "").trim().toLowerCase());
+  }
+  return _knownStation;
+}
+
 /** name → [lat, lon] from the published stops (for map fallback geometry). */
 function getStopCoords() {
   if (!_stopCoords) {
@@ -298,7 +318,9 @@ function buildSummary(route) {
     const d = route[`destination_trip_${dir}`];
     if (o) stopNames.add(o);
     if (d) stopNames.add(d);
-    for (const v of parseViaList(route[`via_${dir}`])) stopNames.add(v);
+    for (const v of parseViaList(route[`via_${dir}`], getKnownStation())) {
+      stopNames.add(v);
+    }
     if (o && d) {
       cityPairs.push({
         originCity: cityForStation(o),
@@ -434,7 +456,7 @@ export function getRouteDetail(routeId) {
     if (!trainNumber) continue;
     const origin = route[`origin_trip_${dir}`] || "";
     const destination = route[`destination_trip_${dir}`] || "";
-    const via = parseViaList(route[`via_${dir}`]);
+    const via = parseViaList(route[`via_${dir}`], getKnownStation());
     const trip = trips.find((t) => Number(t.direction_id) === dir) || trips[dir] || null;
 
     const vmDeparture = formatAnyTime(route[`origin_departure_time_${dir}`]);

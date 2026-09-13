@@ -72,7 +72,14 @@ jobs:
       # is for, but it writes ~10 MB of unrelated upstream churn into the
       # branch and buries the one source under review, so the default is the
       # sources this branch touches: its registry entries, its allowlists, or
-      # an adapter it edits (which selects every operator sharing that adapter).
+      # any module its code reaches — the adapter and everything the adapter
+      # imports, which selects every operator sharing them.
+      #
+      # That last part was once the adapter's own file and nothing else, which
+      # made this step answer "nothing to refresh" for a branch that changed
+      # the GTFS library eight sources read. When it reports nothing now it
+      # also prints what it weighed, because a green 45-second run is the one
+      # answer here that looks identical whether it is right or broken.
       - name: Decide which sources to scrape
         id: pick
         run: |

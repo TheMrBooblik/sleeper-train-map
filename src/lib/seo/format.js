@@ -1,6 +1,13 @@
+import { splitViaString, VIA_SEPARATOR } from "../viaSplit.mjs";
+
 /**
- * Pure formatting helpers for the SEO pages. No imports so the logic stays
- * trivially testable and safe to run at build time.
+ * Pure formatting helpers for the SEO pages. Its one import is viaSplit.mjs,
+ * which is itself dependency-free — the rule this header states is about
+ * staying trivially testable and safe to run at build time, and a pure module
+ * with no imports of its own keeps both. It is imported rather than copied
+ * because the copy is exactly what went wrong: parseViaList held the twelfth
+ * hand-rolled split of a via string, and the only one that reached a public
+ * page.
  *
  * Two time encodings exist in the published data:
  *   - viewMap times are clean "HH:MM" strings ("21:03").
@@ -159,12 +166,17 @@ export function formatFutureFrom(dateStr) {
  * @param {string} value
  * @returns {string[]}
  */
-export function parseViaList(value) {
+export function parseViaList(value, isKnownStation = null) {
   if (!value) return [];
-  return String(value)
-    .split(/\s+-\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  // The separator is also part of 437 station names, so splitting on it alone
+  // invents places: "Rocamadour - Padirac" became "Rocamadour" and "Padirac",
+  // two names no stop answers to, printed on the connection page as though
+  // they were stations. Given a station table, split by what a station is
+  // CALLED. Whitespace is normalised first so the old regex's tolerance of
+  // "A  -  B" survives; a hyphen inside a name ("Mont-Dauphin") never had
+  // spaces around it and was never at risk either way.
+  const normalized = String(value).replace(/\s+-\s+/g, VIA_SEPARATOR);
+  return splitViaString(normalized, isKnownStation);
 }
 
 /**

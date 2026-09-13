@@ -27,6 +27,7 @@ import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "./operatorColors";
 import { parseCoord } from "../../../helpers/enrichStationsWithCoordinates";
 import polyline from "@mapbox/polyline";
 import { cachedReturnGeometryBranches } from "./returnGeometryBranches";
+import { splitViaString } from "../../../lib/viaSplit.mjs";
 
 function isInactiveRoute(route) {
   return (route?.is_active || "Y").toString().toUpperCase() === "N";
@@ -120,9 +121,11 @@ export function buildAllRoutesPaths({
       if (c) sequence.push(c);
     }
     if (viaStations) {
-      viaStations
-        .split(" - ")
-        .map((s) => s.trim())
+      // Split by what a station is CALLED, not by the separator: 437 stops
+      // have " - " inside their own name, and tearing one in half loses
+      // the vertex entirely, so the line skips the stop it runs through.
+      // findStationCoords IS the station predicate here.
+      splitViaString(viaStations, (n) => !!findStationCoords(n))
         .forEach((via) => {
           if (!isStationSkipped(via)) {
             const c = findStationCoords(via);
