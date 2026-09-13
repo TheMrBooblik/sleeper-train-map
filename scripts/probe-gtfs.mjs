@@ -300,6 +300,30 @@ export function reportAllowlist(entry, gtfs, limit = 40, rootDir = ROOT) {
   }
   if (keys.length > limit) console.log(`  … ${keys.length - limit} more (raise --limit)`);
 
+  // What each named entry swept up, which is the question a frequency of
+  // "Daily" raises and nothing in the train list can answer. A named entry
+  // matches on endpoints plus "runs past midnight" and nothing else, so a
+  // corridor carrying two overnight trains gives both of them to whichever
+  // entry names it — and the union then reports the days of both. If the
+  // trains column shows one number per entry, that is not happening; if it
+  // shows several, the entry is not addressing one train.
+  if (stats.namedMatches && Object.keys(stats.namedMatches).length) {
+    console.log(`\n[probe-gtfs] ${entry.id}: what each named entry matched`);
+    console.log(
+      `  ${"entry".padEnd(20)} ${"trips".padStart(5)} ${"svcs".padStart(5)}  ` +
+        `${"dates".padEnd(21)} feed trip_short_name(s)`,
+    );
+    for (const [name, m] of Object.entries(stats.namedMatches)) {
+      const span = m.firstDate ? `${m.firstDate}–${m.lastDate}` : "(none)";
+      const names = m.shortNames.length ? m.shortNames.join(",") : "(feed carries none)";
+      const flag = m.shortNames.length > 1 ? " ← several trains" : "";
+      console.log(
+        `  ${name.padEnd(20)} ${String(m.trips).padStart(5)} ${String(m.services).padStart(5)}  ` +
+          `${span.padEnd(21)} ${names}${flag}`,
+      );
+    }
+  }
+
   // The whole reason to run this before merging.
   if (stats.unmatched?.length) {
     console.log(

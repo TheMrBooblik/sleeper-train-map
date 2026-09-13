@@ -589,10 +589,19 @@ function resolveNamedTrips(namedEntries, gtfs) {
           trip,
           stopCount: sts.length,
           serviceIds: new Set([trip.service_id]),
+          // What the union actually swept up. An entry matches on endpoints
+          // plus "runs past midnight" and nothing else, so if a corridor
+          // carries more than one overnight train they all land here and lend
+          // it their days — which is the first thing to check when a train
+          // comes out running more often than it does.
+          tripCount: 1,
+          shortNames: new Set([trip.trip_short_name].filter(Boolean)),
         });
         continue;
       }
       prev.serviceIds.add(trip.service_id);
+      prev.tripCount += 1;
+      if (trip.trip_short_name) prev.shortNames.add(trip.trip_short_name);
       if (sts.length > prev.stopCount) {
         prev.trip = trip;
         prev.stopCount = sts.length;
@@ -814,6 +823,23 @@ export function buildSleeperTrains({
         continue;
       }
       matchedEntries.add(e.raw);
+      if (stats) {
+        const dates = [];
+        for (const id of hit.serviceIds) {
+          for (const d of gtfs.addedDatesByService.get(id) ?? []) dates.push(d);
+          const cal = gtfs.calendarById.get(id);
+          if (cal?.start_date) dates.push(String(cal.start_date));
+          if (cal?.end_date) dates.push(String(cal.end_date));
+        }
+        dates.sort();
+        (stats.namedMatches ??= {})[e.name] = {
+          trips: hit.tripCount,
+          services: hit.serviceIds.size,
+          shortNames: [...hit.shortNames].sort(),
+          firstDate: dates[0] ?? null,
+          lastDate: dates[dates.length - 1] ?? null,
+        };
+      }
       trains[claimKey(e.name, hit.trip.trip_id)] = makeTrain(
         e.name,
         hit.trip,

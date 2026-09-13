@@ -479,6 +479,64 @@ check(
     calendarBounded["IC Nuit 3971"]?.frequency === "Fri, Sat, Sun",
     `seasonal: a calendar.txt span outside the window is excluded, got ${JSON.stringify(calendarBounded["IC Nuit 3971"]?.frequency)}`,
   );
+
+  // ── Two trains on one corridor: what the union cannot tell you itself ──
+  // A named entry matches on endpoints plus "runs past midnight" and nothing
+  // else — it never reads trip_short_name — so a corridor carrying a second
+  // overnight service gives it to whichever entry names that corridor, and the
+  // union then reports the days of both. There is nothing in a frequency of
+  // "Daily" to say whether that happened, which is why stats.namedMatches
+  // exists and why probe-gtfs prints it: one entry, several feed train
+  // numbers, is the signature.
+  const twoTrains = [
+    ...["20260918", "20260919"].map((d) => ({ num: "3971", d })),
+    ...["20260921", "20260922", "20260923", "20260924"].map((d) => ({ num: "9999", d })),
+  ].map(({ num, d }) => ({
+    route_id: "ICN", service_id: `${num}_${d}`, trip_id: `t${num}_${d}`,
+    trip_short_name: num, direction_id: "0", shape_id: "",
+  }));
+  const sweepStats = {};
+  const swept = buildSleeperTrains({
+    gtfs: {
+      ...dateExpanded,
+      trips: twoTrains,
+      stopTimesByTrip: new Map(twoTrains.map((t) => [t.trip_id, [
+        { seq: 1, stop_id: "PAR", arrival: "", departure: "21:30:00" },
+        { seq: 2, stop_id: "TAR", arrival: "06:10:00", departure: "" },
+      ]])),
+      addedDatesByService: new Map(twoTrains.map((t) => [t.service_id, [t.service_id.split("_")[1]]])),
+    },
+    allowlist: entry,
+    agency: "SNCF",
+    operator: "SNCF",
+    stats: sweepStats,
+    serviceWindow: AUTUMN_2026,
+  });
+  // The train runs Fri/Sat; the other one's four weekdays come along with it.
+  check(
+    swept["IC Nuit 3971"]?.frequency === "Mon, Tue, Wed, Thu, Fri, Sat",
+    `two trains: the union takes both, got ${JSON.stringify(swept["IC Nuit 3971"]?.frequency)}`,
+  );
+  const m = sweepStats.namedMatches?.["IC Nuit 3971"];
+  check(!!m, "two trains: the entry recorded what it matched");
+  if (m) {
+    check(
+      m.shortNames.join(",") === "3971,9999",
+      `two trains: both feed numbers are reported, got ${JSON.stringify(m.shortNames)}`,
+    );
+    check(m.trips === 6, `two trains: every matching trip counted, got ${m.trips}`);
+    check(
+      m.firstDate === "20260918" && m.lastDate === "20260924",
+      `two trains: the date span is reported, got ${m.firstDate}–${m.lastDate}`,
+    );
+  }
+  // And the honest case reports one number, so the signal discriminates.
+  const cleanStats = {};
+  buildSleeperTrains({ ...seasonArgs, stats: cleanStats, serviceWindow: AUTUMN_2026 });
+  check(
+    cleanStats.namedMatches?.["IC Nuit 3971"]?.shortNames.join(",") === "3971",
+    `one train: a single feed number, got ${JSON.stringify(cleanStats.namedMatches?.["IC Nuit 3971"]?.shortNames)}`,
+  );
 }
 
 if (problems.length) {
