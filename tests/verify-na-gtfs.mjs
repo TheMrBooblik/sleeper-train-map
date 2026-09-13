@@ -301,6 +301,99 @@ check(
   `stats.matched should include the endpoint pair, got [${(stats.matched || []).join(", ")}]`,
 );
 
+// ── A date-expanded feed: one trip per operating date ──────────────────────
+// SNCF's export is this shape, and reading service days off the single trip
+// the entry resolves to was visibly incoherent in the first live run: IC Nuit
+// 3740 came out "Mon, Tue, Wed, Thu, Fri" while IC Nuit 3731 — the other
+// direction of the same service — came out "Sun". Both cannot be the train's
+// timetable; each was one run's own date.
+{
+  const stopsById = new Map([
+    ["PAR", { name: "Paris Austerlitz", lat: 48.8423, lon: 2.3649, parent: "" }],
+    ["TAR", { name: "Tarbes", lat: 43.2333, lon: 0.0667, parent: "" }],
+    ["LOU", { name: "Lourdes", lat: 43.0995, lon: -0.0453, parent: "" }],
+  ]);
+  // Four operating dates in Sep 2026: Thu 17th, Fri 18th, Sat 19th, Sun 20th.
+  const dates = ["20260917", "20260918", "20260919", "20260920"];
+  const trips = dates.map((d, i) => ({
+    route_id: "ICN",
+    service_id: `SVC_${d}`,
+    trip_id: `t_${d}`,
+    trip_short_name: "3740",
+    direction_id: "0",
+    shape_id: "",
+  }));
+  const stopTimesByTrip = new Map(
+    trips.map((t, i) => [
+      t.trip_id,
+      [
+        { seq: 1, stop_id: "PAR", arrival: "", departure: "19:00:00" },
+        // The 19th's run calls at one extra stop, so it is the "fullest" trip
+        // and supplies the stop list — while every run supplies a day.
+        ...(i === 2 ? [{ seq: 2, stop_id: "LOU", arrival: "23:30:00", departure: "23:32:00" }] : []),
+        { seq: 9, stop_id: "TAR", arrival: "07:03:00", departure: "" },
+      ],
+    ]),
+  );
+  const dateExpanded = {
+    routesById: new Map([["ICN", { route_id: "ICN", route_long_name: "-", route_short_name: "INCONNU" }]]),
+    stopsById,
+    shapePoints: new Map(),
+    trips,
+    stopTimesByTrip,
+    calendarById: new Map(),
+    addedDatesByService: new Map(dates.map((d) => [`SVC_${d}`, [d]])),
+    shapesSkipped: false,
+    shapesBytes: 0,
+  };
+
+  const built = buildSleeperTrains({
+    gtfs: dateExpanded,
+    allowlist: [{ from: "Paris Austerlitz", to: "Tarbes", name: "IC Nuit 3740" }],
+    agency: "SNCF",
+    operator: "SNCF",
+  });
+  const train = built["IC Nuit 3740"];
+  check(!!train, "date-expanded: the named entry resolved");
+  if (train) {
+    // Without the union this reads "Sat" — whichever single run won the stop
+    // count — rather than the four days the train actually runs.
+    check(
+      train.frequency === "Thu, Fri, Sat, Sun",
+      `date-expanded: service days union every matching run, got ${JSON.stringify(train.frequency)}`,
+    );
+    check(
+      train.stations.length === 3,
+      `date-expanded: the fullest run still supplies the stop list, got ${train.stations.length}`,
+    );
+  }
+
+  // Seven days of runs must read "Daily", not a seven-item list.
+  const week = ["20260914", "20260915", "20260916", "20260917", "20260918", "20260919", "20260920"];
+  const weekTrips = week.map((d) => ({
+    route_id: "ICN", service_id: `W_${d}`, trip_id: `w_${d}`,
+    trip_short_name: "3740", direction_id: "0", shape_id: "",
+  }));
+  const daily = buildSleeperTrains({
+    gtfs: {
+      ...dateExpanded,
+      trips: weekTrips,
+      stopTimesByTrip: new Map(weekTrips.map((t) => [t.trip_id, [
+        { seq: 1, stop_id: "PAR", arrival: "", departure: "19:00:00" },
+        { seq: 2, stop_id: "TAR", arrival: "07:03:00", departure: "" },
+      ]])),
+      addedDatesByService: new Map(week.map((d) => [`W_${d}`, [d]])),
+    },
+    allowlist: [{ from: "Paris Austerlitz", to: "Tarbes", name: "IC Nuit 3740" }],
+    agency: "SNCF",
+    operator: "SNCF",
+  });
+  check(
+    daily["IC Nuit 3740"]?.frequency === "Daily",
+    `date-expanded: seven weekdays read "Daily", got ${JSON.stringify(daily["IC Nuit 3740"]?.frequency)}`,
+  );
+}
+
 if (problems.length) {
   problems.forEach((p) => console.error(`  ✗ ${p}`));
   console.error(`\nverify-na-gtfs: ${problems.length} problem(s)`);

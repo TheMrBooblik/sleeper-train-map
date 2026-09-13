@@ -19,9 +19,13 @@ import https from "node:https";
 import { execSync } from "node:child_process";
 import polyline from "@mapbox/polyline";
 import {
+  DAY_KEYS,
   parseGtfsCalendar,
   renderCalendar,
 } from "../../src/pages/api/lib/calendar.mjs";
+
+// DAY_KEYS is Monday-first ("mon"…"sun"); JS Date.getDay() is Sunday-first.
+const DAY_KEY_TO_JS_DAY = [1, 2, 3, 4, 5, 6, 0];
 
 // ─── CSV / download / unzip (mirrors parse-pkp-gtfs.js) ──────────────────────
 
@@ -280,6 +284,67 @@ function summariseAddedDates(dates) {
     .join(", ");
 }
 
+/**
+ * "When does it run" for a train spread across MANY trips.
+ *
+ * A date-expanded feed gives every operating date its own trip and its own
+ * service_id, so one trip's service answers "when does this particular run
+ * go", not "when does this train run". SNCF's export is such a feed, and the
+ * single-trip answer was visibly incoherent: IC Nuit 3740 came out "Mon, Tue,
+ * Wed, Thu, Fri" while IC Nuit 3731 — the other direction of the same service —
+ * came out "Sun". Both cannot be the train's timetable.
+ *
+ * So union every trip that matched the entry: calendar.txt weekdays where the
+ * feed has them, plus the weekdays of every added date. `summariseAddedDates`
+ * already turns a date list into weekdays and says "Daily" at seven, so feeding
+ * it the union is the whole job.
+ *
+ * The union is only as honest as the trips that feed it, which is why
+ * resolveNamedTrips keeps its overnight filter: a day train sharing the
+ * corridor must not lend its weekdays to the night train.
+ */
+function serviceDisplayForServices(serviceIds, gtfs) {
+  const ids = [...serviceIds].filter(Boolean);
+  if (ids.length === 0) return null;
+  if (ids.length === 1) return serviceDisplay(ids[0], gtfs);
+
+  // Collect weekdays as JS day numbers (0 = Sunday), from both shapes a feed
+  // can express a service in: calendar.txt weekday flags, and the dates in
+  // calendar_dates.txt that a date-expanded feed uses instead.
+  const weekdays = new Set();
+  let sawAny = false;
+  for (const id of ids) {
+    const calRow = gtfs.calendarById.get(id);
+    if (calRow) {
+      for (const day of parseGtfsCalendar(calRow).daysOfWeek ?? []) {
+        const i = DAY_KEYS.indexOf(day);
+        if (i !== -1) {
+          weekdays.add(DAY_KEY_TO_JS_DAY[i]);
+          sawAny = true;
+        }
+      }
+    }
+    for (const d of gtfs.addedDatesByService.get(id) ?? []) {
+      const dt = new Date(
+        Number(d.slice(0, 4)),
+        Number(d.slice(4, 6)) - 1,
+        Number(d.slice(6, 8)),
+      );
+      if (Number.isFinite(dt.getTime())) {
+        weekdays.add(dt.getDay());
+        sawAny = true;
+      }
+    }
+  }
+  if (!sawAny) return null;
+  if (weekdays.size === 7) return "Daily";
+  // Monday first, the order the rest of the payload reads in.
+  return [1, 2, 3, 4, 5, 6, 0]
+    .filter((d) => weekdays.has(d))
+    .map((d) => WEEKDAY_SHORT[d])
+    .join(", ");
+}
+
 // Resolve a trip's service to a human "when does it run" string.
 function serviceDisplay(serviceId, gtfs) {
   const calRow = gtfs.calendarById.get(serviceId);
@@ -415,7 +480,10 @@ function orientedMatch(originNorm, destNorm, fromNorm, toNorm) {
  * lookups per trip — the full station list is only built for the winner.
  */
 function resolveNamedTrips(namedEntries, gtfs) {
-  const best = new Map(); // name → { trip, stopCount }
+  // name → { trip, stopCount, serviceIds }. The fullest trip supplies the stop
+  // list and the times; EVERY matching trip supplies a service, because on a
+  // date-expanded feed one trip's service_id is one operating date.
+  const best = new Map();
   const wanted = namedEntries.map((e) => ({
     name: e.name,
     fromNorm: normLabel(e.from),
@@ -438,8 +506,18 @@ function resolveNamedTrips(namedEntries, gtfs) {
     for (const e of wanted) {
       if (!orientedMatch(originNorm, destNorm, e.fromNorm, e.toNorm)) continue;
       const prev = best.get(e.name);
-      if (!prev || sts.length > prev.stopCount) {
-        best.set(e.name, { trip, stopCount: sts.length });
+      if (!prev) {
+        best.set(e.name, {
+          trip,
+          stopCount: sts.length,
+          serviceIds: new Set([trip.service_id]),
+        });
+        continue;
+      }
+      prev.serviceIds.add(trip.service_id);
+      if (sts.length > prev.stopCount) {
+        prev.trip = trip;
+        prev.stopCount = sts.length;
       }
     }
   }
@@ -615,7 +693,10 @@ export function buildSleeperTrains({
 
   const trains = {};
 
-  const makeTrain = (lineName, trip, stations) => {
+  // `frequencyOverride` is how a named entry hands in the union of every trip
+  // that matched it; without one a single trip's service is the answer, which
+  // stays right for a feed with real calendar.txt weekdays (Amtrak, VIA).
+  const makeTrain = (lineName, trip, stations, frequencyOverride = null) => {
     // Geometry: prefer the GTFS shape; fall back to the station chain.
     const shapePts = trip.shape_id ? gtfs.shapePoints.get(trip.shape_id) : null;
     const positions =
@@ -626,7 +707,7 @@ export function buildSleeperTrains({
       lineName,
       operator,
       agency_id: agency,
-      frequency: serviceDisplay(trip.service_id, gtfs),
+      frequency: frequencyOverride ?? serviceDisplay(trip.service_id, gtfs),
       polyline: polyline.encode(positions),
       stations: renameStations(stations),
     };
@@ -654,6 +735,7 @@ export function buildSleeperTrains({
         e.name,
         hit.trip,
         stations,
+        serviceDisplayForServices(hit.serviceIds, gtfs),
       );
     }
   }
