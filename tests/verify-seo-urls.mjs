@@ -12,6 +12,7 @@ import { slugify, buildPairSlug, orderCityPair } from "../src/lib/seo/slugify.mj
 import { buildRouteSlugMaps } from "../src/lib/seo/routeSlugs.mjs";
 import { cityForStation, stationsMissingCityOverride } from "../src/lib/seo/cities.mjs";
 import { pairSlugForRoute, flattenRedirects } from "../scripts/build-seo-redirects.mjs";
+import { lastmodFor, CONTENT_VERSION_DATE } from "../src/lib/seo/lastmod.mjs";
 
 const problems = [];
 const check = (cond, msg) => {
@@ -29,6 +30,65 @@ const routes = Object.values(viewMap);
 const redirects = JSON.parse(
   fs.readFileSync(new URL("../data/seo/redirects.json", import.meta.url), "utf8"),
 );
+
+// ── sitemap lastmod ────────────────────────────────────────────────────────
+// Every URL used to carry the payload's generation timestamp, so each nightly
+// scrape claimed the whole site had changed. lastmod is now per-URL, and the two
+// ways to get it wrong are: a date in the future (crawlers discard the file),
+// and going back to one value for everything.
+{
+  const FALLBACK = "2026-09-10T16:15:16.757Z";
+  const floor = "2026-06-01";
+
+  check(
+    lastmodFor("2026-09-08", FALLBACK, floor) === "2026-09-08",
+    "a route's own change date wins when it is newer than the floor",
+  );
+  check(
+    lastmodFor("2026-01-15", FALLBACK, floor) === floor,
+    "a route older than the template floor is lifted to it, not left in January",
+  );
+  check(
+    lastmodFor("", FALLBACK, floor) === FALLBACK,
+    "a URL with no history at all keeps the payload date — better than no lastmod",
+  );
+  for (const junk of [null, undefined, "yesterday", "2026-9-8", 20260908, "2026-09-08T00:00:00Z"]) {
+    check(
+      lastmodFor(junk, FALLBACK, floor) === FALLBACK,
+      `malformed lastChanged (${JSON.stringify(junk)}) must fall back, not reach the sitemap`,
+    );
+  }
+
+  check(
+    /^\d{4}-\d{2}-\d{2}$/.test(CONTENT_VERSION_DATE),
+    `CONTENT_VERSION_DATE must be a W3C date, got ${CONTENT_VERSION_DATE}`,
+  );
+  check(
+    CONTENT_VERSION_DATE <= new Date().toISOString().slice(0, 10),
+    `CONTENT_VERSION_DATE ${CONTENT_VERSION_DATE} is in the future — crawlers discard a sitemap that claims that`,
+  );
+
+  // The point of the change: the committed history really does spread the
+  // routes out, so per-URL lastmod is a signal and not 297 copies of one date.
+  const history = JSON.parse(
+    fs.readFileSync(
+      new URL("../public/data/published/route-history.json", import.meta.url),
+      "utf8",
+    ),
+  ).routes;
+  const dates = new Set(
+    Object.values(history)
+      .map((h) => h.lastChanged)
+      .filter(Boolean),
+  );
+  check(
+    dates.size > 1,
+    `route-history.json has ${dates.size} distinct lastChanged value(s) — per-URL lastmod would be pointless`,
+  );
+  const today = new Date().toISOString().slice(0, 10);
+  const future = [...dates].filter((d) => d > today);
+  check(future.length === 0, `route-history.json has future lastChanged dates: ${future.join(", ")}`);
+}
 
 // ── slugify: characters with no NFD decomposition ──────────────────────────
 {

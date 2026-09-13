@@ -29,6 +29,21 @@ function dedupePush(arr, summary) {
   if (!arr.some((r) => r.routeId === summary.routeId)) arr.push(summary);
 }
 
+/**
+ * The most recent "YYYY-MM-DD" any of these routes actually changed, or "".
+ *
+ * A hub page is as fresh as its freshest route, and plain string comparison is
+ * correct for ISO dates. Routes with no history contribute nothing rather than
+ * dragging the page's date to the epoch.
+ */
+function lastChangedOf(routes) {
+  let latest = "";
+  for (const r of routes) {
+    if (r.lastChanged && r.lastChanged > latest) latest = r.lastChanged;
+  }
+  return latest;
+}
+
 /** code → { country, routes[] } for every hub country with ≥1 route. */
 function getCountryMap() {
   if (!_countryMap) {
@@ -110,7 +125,11 @@ function getPairMap() {
 /** [{ country, routeCount }] sorted by name, for the index + sitemap. */
 export function getAllCountryHubs() {
   return [...getCountryMap().values()]
-    .map(({ country, routes }) => ({ country, routeCount: routes.length }))
+    .map(({ country, routes }) => ({
+      country,
+      routeCount: routes.length,
+      lastChanged: lastChangedOf(routes),
+    }))
     .sort((a, b) => a.country.name.localeCompare(b.country.name));
 }
 
@@ -247,7 +266,11 @@ export function getConnectedCountries(countrySlug) {
 export function getAllOperatorHubs() {
   getOperatorMap();
   return [...getOperatorMap().values()]
-    .map(({ operator, routes }) => ({ operator, routeCount: routes.length }))
+    .map(({ operator, routes }) => ({
+      operator,
+      routeCount: routes.length,
+      lastChanged: lastChangedOf(routes),
+    }))
     .sort((a, b) => a.operator.name.localeCompare(b.operator.name));
 }
 
@@ -271,6 +294,7 @@ export function getAllCityPairs() {
       cityA: p.cityA,
       cityB: p.cityB,
       routeCount: p.routes.length,
+      lastChanged: lastChangedOf(p.routes),
     }))
     .sort((a, b) => a.slug.localeCompare(b.slug));
 }
@@ -389,7 +413,12 @@ export function getStationHubsForCountry(countrySlug) {
   if (!byStation) return [];
   return [...byStation.values()]
     .filter((st) => st.routes.length >= MIN_ROUTES_PER_STATION)
-    .map((st) => ({ name: st.name, slug: st.slug, routeCount: st.routes.length }))
+    .map((st) => ({
+      name: st.name,
+      slug: st.slug,
+      routeCount: st.routes.length,
+      lastChanged: lastChangedOf(st.routes),
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 

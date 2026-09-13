@@ -61,6 +61,10 @@ import DISABLED_ROUTES from "../../../data/overrides/disabled-routes.json";
 const PUBLISHED_PATH = "public/data/published/initial-data.json";
 const RAW_STOPS_PATH = "public/data/scraped/backontrack-stops.json";
 const AGENCIES_PATH = "public/data/scraped/backontrack-agencies.json";
+// Per-route { firstSeen, lastSeen, lastChanged }, projected from seen.json by
+// canonicalize. Optional: a build without it degrades to the payload's own
+// generation date, which is what every URL used to claim anyway.
+const ROUTE_HISTORY_PATH = "public/data/published/route-history.json";
 
 let _publishedFull;
 let _publishedNormalized;
@@ -70,6 +74,7 @@ let _agencies;
 let _tripsByRoute;
 let _slugMaps;
 let _summaries;
+let _routeHistory;
 
 function readJson(relPath) {
   const abs = path.join(process.cwd(), relPath);
@@ -98,6 +103,32 @@ function getPublished() {
     };
   }
   return _publishedNormalized;
+}
+
+/**
+ * routeId → "YYYY-MM-DD" of the last real change to that route (any fingerprint
+ * difference, stop-sequence drift included), memoized.
+ *
+ * The sitemap used to stamp the payload's generation date on all 241 URLs, so
+ * every nightly scrape told crawlers the whole site had changed — which spends a
+ * rationed crawl budget re-reading 162 routes that have not moved since June.
+ * Missing file, or a route missing from it, yields "" and the caller falls back.
+ */
+function getRouteHistory() {
+  if (!_routeHistory) {
+    try {
+      _routeHistory = readJson(ROUTE_HISTORY_PATH)?.routes ?? {};
+    } catch (err) {
+      // Degrading to the payload's own date is deliberate — the sitemap must
+      // never 500 over a missing optional artifact — but it degrades to exactly
+      // the flat lastmod this replaced, which is invisible from the output. Say
+      // so once, so a lambda that cannot reach the file shows up in the logs
+      // instead of quietly undoing the change.
+      console.warn(`[seo] ${ROUTE_HISTORY_PATH} unreadable, lastmod falls back to the payload date: ${err.message}`);
+      _routeHistory = {};
+    }
+  }
+  return _routeHistory;
 }
 
 /** ISO timestamp of the data's last generation (for sitemap lastmod). */
@@ -338,6 +369,8 @@ function buildSummary(route) {
     durationText: formatDurationMinutes(durationMinutes),
     pricing,
     fromPrice: formatFromPrice(pricing),
+    // "YYYY-MM-DD" or "" — every hub page's lastmod is the max over its routes.
+    lastChanged: getRouteHistory()[String(routeId)]?.lastChanged || "",
     futureStartDate,
     futureFrom: formatFutureFrom(futureStartDate),
     hasPolyline: Boolean(route.nj_polyline_0 || route.nj_polyline_1),

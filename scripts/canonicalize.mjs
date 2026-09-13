@@ -13,6 +13,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildInitialData } from "../src/pages/api/lib/build-initial-data.mjs";
 import { loadRegistry, validateRegistry } from "./lib/registry.mjs";
+import { inAgencyScope } from "../src/pages/api/lib/primitives.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -33,6 +34,40 @@ function readEnvelope(name) {
 
 function trainsOf(envelope) {
   return envelope?.data?.trains ?? {};
+}
+
+/**
+ * Rows the source's enrichment landed on, for the health check below.
+ *
+ * "Trains present but no <prefix> routes built" reads as a broken source, and
+ * for NightJet or Amtrak it is one. For a source that only enriches, zero is
+ * the healthy answer and the best one available: SNCF and the three Entur
+ * feeds exist to put an official stop list on a Back-on-Track row, and they
+ * declare `synthetic` purely as the fallback for a train Back-on-Track does
+ * not carry. All eight Entur trains matched a row on the first live run, so
+ * the old assertion failed the whole publish on a completely successful
+ * scrape.
+ *
+ * What the check should ask is whether the source's trains reached the payload
+ * at all, so count the rows its enrichment can see: in agency scope, with a
+ * trip_short_name the trains file has a key for. That still fails loudly on
+ * the real fault — train keys drifting out of step with Back-on-Track's
+ * labels, which is exactly how these sources go quiet — while a source that
+ * corroborated every row it was built for passes.
+ */
+function enrichedRowCount(entry, viewMap, trains) {
+  const keys = new Set(Object.keys(trains ?? {}));
+  if (!keys.size || entry.enrich?.strategy !== "trainsByNumber") return 0;
+  const scope = entry.enrich.agencyIds ?? entry.synthetic?.botMatchAgencies ?? null;
+  let matched = 0;
+  for (const route of Object.values(viewMap ?? {})) {
+    if (!inAgencyScope(route, scope)) continue;
+    const named = [route.trip_short_name_0, route.trip_short_name_1]
+      .filter(Boolean)
+      .map((n) => n.toString().trim());
+    if (named.some((n) => keys.has(n))) matched += 1;
+  }
+  return matched;
 }
 
 function assert(condition, message) {
@@ -156,11 +191,14 @@ function main() {
     const gatedWithPrefix = (stats.gatedRouteKeys ?? []).filter((k) =>
       k.startsWith(prefix),
     ).length;
-    syntheticCounts.push(`${entry.id} ${count}`);
+    const enriched = enrichedRowCount(entry, payload.viewMap, operatorTrains[entry.id]);
+    syntheticCounts.push(
+      enriched ? `${entry.id} ${count}+${enriched}e` : `${entry.id} ${count}`,
+    );
     if (Object.keys(operatorTrains[entry.id]).length > 0) {
       assert(
-        count + gatedWithPrefix > 0,
-        `${entry.id} trains present but no ${prefix} routes built`,
+        count + gatedWithPrefix + enriched > 0,
+        `${entry.id} trains present but reached no route — neither a ${prefix} route nor an enriched Back-on-Track row`,
       );
     }
   }

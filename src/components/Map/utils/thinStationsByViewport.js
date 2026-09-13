@@ -30,8 +30,16 @@ function isInBounds(lat, lon, bounds) {
   );
 }
 
-function getStationScore(stop, cities, normalizeStationNameForLookup) {
-  const normalizedStopId = normalizeStationNameForLookup(stop.stop_id);
+// `normalizedStopId` is passed in because the caller's loop has already
+// computed it: normalising a station name is the only non-trivial per-stop cost
+// left in this function, and it was being done three times per stop on every
+// pan frame.
+function getStationScore(
+  stop,
+  cities,
+  normalizeStationNameForLookup,
+  normalizedStopId = normalizeStationNameForLookup(stop.stop_id),
+) {
   const cityInfo = cities[normalizedStopId] || cities[stop.stop_id];
   const routeCount = countRouteIds(cityInfo?.stop_route_ids);
   const nonViaBonus = cityInfo?.isViaStation ? 0 : 1000;
@@ -79,38 +87,48 @@ export function thinStationsByViewport({
     return { visibleStops: stops, hiddenStops: [] };
   }
 
-  const alwaysShowRules = (alwaysShowStations || [])
-    .map((name) => (typeof name === "string" ? name.trim() : ""))
-    .filter(Boolean)
-    .map((rawRule) => {
-      const isPrefixRule = rawRule.endsWith("*");
-      const ruleValue = isPrefixRule ? rawRule.slice(0, -1) : rawRule;
-      return {
-        isPrefixRule,
-        value: normalizeForAllowlistMatch(ruleValue, normalizeStationNameForLookup),
-      };
-    })
-    .filter((rule) => rule.value);
+  // Exact rules in a Set, prefix rules in a list — because this runs on every
+  // pan and zoom frame, and the rule list is mostly not a curated allowlist.
+  // The caller appends every endpoint of every route (they must not vanish
+  // when zoomed out), so `alwaysShowStations` is ~1 100 entries of which
+  // exactly one, "Frankfurt*", is a prefix. Scanning all of them per stop made
+  // this 1 863 × 1 136 ≈ 2.1 million string comparisons a frame — 14 ms
+  // against a 16.7 ms budget, which is the map's "lags when you drag it", and
+  // it grows with every stop an official stop list adds. A Set lookup plus one
+  // prefix check is the same answer in constant time.
+  const exactRules = new Set();
+  const prefixRules = [];
+  for (const name of alwaysShowStations || []) {
+    const rawRule = typeof name === "string" ? name.trim() : "";
+    if (!rawRule) continue;
+    const isPrefixRule = rawRule.endsWith("*");
+    const value = normalizeForAllowlistMatch(
+      isPrefixRule ? rawRule.slice(0, -1) : rawRule,
+      normalizeStationNameForLookup,
+    );
+    if (!value) continue;
+    if (isPrefixRule) prefixRules.push(value);
+    else exactRules.add(value);
+  }
   const selectedNormalizedId = selectedStopId
     ? normalizeForAllowlistMatch(selectedStopId, normalizeStationNameForLookup)
     : null;
 
-  const shouldAlwaysKeep = (stop) => {
-    if (!stop?.stop_id) return false;
-    const normalizedStopId = normalizeForAllowlistMatch(
-      stop.stop_id,
-      normalizeStationNameForLookup,
-    );
-    const matchesAllowlist = alwaysShowRules.some((rule) =>
-      rule.isPrefixRule
-        ? normalizedStopId.startsWith(rule.value)
-        : normalizedStopId === rule.value,
-    );
-    return (
-      normalizedStopId === selectedNormalizedId ||
-      matchesAllowlist
-    );
+  // Takes the already-normalised id where the caller has one: the main loop
+  // normalises every stop_id anyway, and doing it twice per stop doubled the
+  // only other per-stop cost in here.
+  const shouldAlwaysKeepNormalized = (normalizedForMatch) => {
+    if (!normalizedForMatch) return false;
+    if (normalizedForMatch === selectedNormalizedId) return true;
+    if (exactRules.has(normalizedForMatch)) return true;
+    return prefixRules.some((value) => normalizedForMatch.startsWith(value));
   };
+
+  const shouldAlwaysKeep = (stop) =>
+    !!stop?.stop_id &&
+    shouldAlwaysKeepNormalized(
+      normalizeForAllowlistMatch(stop.stop_id, normalizeStationNameForLookup),
+    );
 
   // On first render we may not have bounds yet. Keep only forced markers
   // to avoid dense "flash" at low zoom.
@@ -153,7 +171,11 @@ export function thinStationsByViewport({
     }
 
     const normalizedStopId = normalizeStationNameForLookup(stop.stop_id);
-    if (shouldAlwaysKeep(stop)) {
+    const normalizedForMatch =
+      typeof normalizedStopId === "string"
+        ? normalizedStopId.trim().toLowerCase()
+        : "";
+    if (shouldAlwaysKeepNormalized(normalizedForMatch)) {
       if (!forcedStopsByName.has(normalizedStopId)) {
         forcedStopsByName.set(normalizedStopId, stop);
       }
@@ -175,6 +197,7 @@ export function thinStationsByViewport({
       stop,
       cities,
       normalizeStationNameForLookup,
+      normalizedStopId,
     );
 
     const existing = winnersByCell.get(cellKey);

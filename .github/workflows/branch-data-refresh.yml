@@ -1,0 +1,151 @@
+name: Refresh branch data
+
+# Scrape the sources this branch changes, merge them, and commit the result to
+# the branch — so the PR's own Vercel preview serves the real payload.
+#
+# Why this has to exist. The enrichment that puts an official stop list on a
+# Back-on-Track row happens inside `npm run scrape`, which runs nightly against
+# main. So a branch that adds a data source changes the pipeline and nothing a
+# preview can show: you open the preview, see Back-on-Track's three via points
+# exactly as before, and the only way to find out whether the new source works
+# is to merge it and wait for 03:00 UTC. That is reviewing blind.
+#
+# The probe workflows solved the same problem for LOGS. This one closes it for
+# DATA: label the PR and its preview shows the stop lists the source actually
+# produces. It earned that immediately — the first branch run of the Entur
+# sources showed the enrichment resolving 0 of 168 via stations to a coordinate
+# (the feed writes "Drammen stasjon", the dataset writes "Drammen"), and once
+# that was fixed, 27 of them landing on a Back-on-Track coordinate in the wrong
+# country. Both would otherwise have reached main.
+#
+# It COMMITS, unlike the probes, so it has its own label — `refresh-data`
+# rather than `run-probes`. Same-repo branches only: a fork's token cannot push
+# to it and silently doing nothing would be worse than saying so.
+
+on:
+  workflow_dispatch:
+    inputs:
+      sources:
+        description: "Registry source ids, comma-separated (blank = whatever this branch changes)"
+        required: false
+        default: ""
+      all_sources:
+        description: "Scrape every source instead (a full nightly run on this branch)"
+        type: boolean
+        required: false
+        default: false
+  pull_request:
+    types: [labeled]
+
+# One refresh per branch at a time: two runs pushing the same branch is the
+# non-fast-forward the nightly job learned to avoid.
+concurrency:
+  group: branch-data-refresh-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.label.name == 'refresh-data' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # The branch itself, not the merge commit a pull_request event checks out
+      # by default — this pushes back, and you cannot push a detached merge ref.
+      # Full history so the base-ref diff below can resolve a merge base.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      # What to fetch. Scraping everything also works and is what `all_sources`
+      # is for, but it writes ~10 MB of unrelated upstream churn into the
+      # branch and buries the one source under review, so the default is the
+      # sources this branch touches: its registry entries, its allowlists, or
+      # an adapter it edits (which selects every operator sharing that adapter).
+      - name: Decide which sources to scrape
+        id: pick
+        run: |
+          set -o pipefail
+          BASE="origin/${{ github.event.pull_request.base.ref || github.event.repository.default_branch || 'main' }}"
+          git fetch --no-tags origin "${{ github.event.pull_request.base.ref || 'main' }}" || true
+          if [ "${{ inputs.all_sources }}" = "true" ]; then
+            echo "Scraping every source (all_sources)."
+            echo "only=" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ inputs.sources }}" ]; then
+            echo "only=${{ inputs.sources }}" >> "$GITHUB_OUTPUT"
+          else
+            ONLY="$(node scripts/changed-sources.mjs --base "$BASE")"
+            echo "only=$ONLY" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Nothing to fetch is a successful answer, not a detection failure: a
+      # branch that only touches the merge or the components needs no scrape.
+      - name: Nothing to refresh
+        if: steps.pick.outputs.only == '' && inputs.all_sources != true
+        run: echo "This branch changes no data source — nothing to refresh."
+
+      - name: Scrape
+        if: steps.pick.outputs.only != '' || inputs.all_sources == true
+        run: npm run scrape
+        env:
+          SCRAPE_ONLY: ${{ steps.pick.outputs.only }}
+          PLK_API_KEY: ${{ secrets.PLK_API_KEY }}
+
+      # Canonicalize is what the preview actually reads: /api/initial-data
+      # serves public/data/published/initial-data.json when it is fresh. Its own
+      # assertions are the first review of the run — a source that scraped
+      # trains and reached no route fails here.
+      #
+      # Deliberately NOT classify: the review queue lives on the `proposals`
+      # branch and a branch preview has no business filing proposals. The gate
+      # is a no-op here anyway (canonicalize passes a null seen index).
+      - name: Canonicalize
+        if: steps.pick.outputs.only != '' || inputs.all_sources == true
+        run: npm run canonicalize
+
+      - name: Rebuild the redirect map
+        if: steps.pick.outputs.only != '' || inputs.all_sources == true
+        run: npm run build-redirects
+
+      # Push to the branch, never to main. No rebase-and-retry like the nightly
+      # job: if the branch moved under us, the right answer is to fail and let
+      # the label be re-applied, because a data commit rebased onto someone
+      # else's push is a data commit nobody reviewed against those inputs.
+      - name: Commit & push to the branch
+        if: steps.pick.outputs.only != '' || inputs.all_sources == true
+        env:
+          HUSKY: "0"
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/scraped/*.json public/data/published/*.json \
+                  public/data/gtfs/pkpTrainShapes.json data/seo/redirects.json
+          if git diff --cached --quiet; then
+            echo "Scrape produced no change to the committed data."
+            exit 0
+          fi
+          git commit -m "chore: refresh data for ${{ steps.pick.outputs.only || 'all sources' }} on this branch [skip ci]"
+          git push origin HEAD:"${{ github.event.pull_request.head.ref || github.ref_name }}"
+
+      - name: Say what changed
+        if: always() && (steps.pick.outputs.only != '' || inputs.all_sources == true)
+        run: |
+          echo "### Branch data refresh" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Sources scraped: \`${{ steps.pick.outputs.only || 'all' }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          git log --oneline -1 >> "$GITHUB_STEP_SUMMARY"
+          git show --stat --oneline HEAD | tail -n +2 >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

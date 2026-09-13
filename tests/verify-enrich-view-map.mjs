@@ -160,6 +160,81 @@ await check("trainsByNumber full options: via/times/per-direction polyline/stamp
   assert.strictEqual(viewMap[9].official_sources, undefined);
 });
 
+await check("viaOnlyIfRicher: a stub stop list does not replace a fuller one", async () => {
+  // SNCF's feed carries the Paris–Aurillac portion as a 3-stop stub. Its one
+  // via station would have replaced Back-on-Track's three, so official data
+  // wins here only when it is also more complete. Off by default, because a
+  // source whose stop list is authoritative even when shorter — a diverted
+  // train calling at fewer stations — wants the replacement.
+  const sncfEntry = (viaOnlyIfRicher) => ({
+    id: "sncf",
+    enabled: true,
+    output: "sncf-trains.json",
+    enrich: {
+      strategy: "trainsByNumber",
+      agencyIds: ["SNCF"],
+      updateVia: true,
+      ...(viaOnlyIfRicher ? { viaOnlyIfRicher: true } : {}),
+    },
+  });
+  const rows = () => ({
+    262: {
+      agency_id: "SNCF",
+      trip_short_name_0: "IC Nuit 3789",
+      trip_short_name_1: "IC Nuit 3790",
+      via_0: "St-Denis-lès-Martel - Bretenoux Biars - Laroquebrou",
+      via_1: "Laroquebrou - Bretenoux Biars - St-Denis-lès-Martel",
+    },
+    // A row whose via the feed genuinely improves on, in the same pass.
+    264: { agency_id: "SNCF", trip_short_name_0: "IC Nuit 3750", via_0: "Montauban Ville Bourbon" },
+  });
+  const trains = () => ({
+    "IC Nuit 3790": {
+      stations: [station("Aurillac"), station("St-Denis-lès-Martel"), station("Paris Austerlitz")],
+    },
+    "IC Nuit 3750": {
+      stations: [
+        station("Toulouse Matabiau"),
+        station("Montauban Ville Bourbon"),
+        station("Caussade"),
+        station("Paris Austerlitz"),
+      ],
+    },
+  });
+
+  const guarded = rows();
+  await enrichViewMap({
+    registry: [sncfEntry(true)],
+    viewMap: guarded,
+    getTrains: trains,
+    readJson: () => null,
+  });
+  assert.strictEqual(
+    guarded[262].via_1,
+    "Laroquebrou - Bretenoux Biars - St-Denis-lès-Martel",
+    "one via station must not displace three",
+  );
+  assert.strictEqual(guarded[262].via_0, "St-Denis-lès-Martel - Bretenoux Biars - Laroquebrou");
+  assert.strictEqual(
+    guarded[264].via_0,
+    "Montauban Ville Bourbon - Caussade",
+    "a richer official list still wins under the guard",
+  );
+
+  const unguarded = rows();
+  await enrichViewMap({
+    registry: [sncfEntry(false)],
+    viewMap: unguarded,
+    getTrains: trains,
+    readJson: () => null,
+  });
+  assert.strictEqual(
+    unguarded[262].via_1,
+    "St-Denis-lès-Martel",
+    "without the guard the feed replaces the row regardless of length",
+  );
+});
+
 await check("updateEndpoints: the feed's own endpoints replace stale BoT ones", async () => {
   // Back-on-Track still calls ES 474/475 "Berlin Hbf" while the operator runs
   // them out of Berlin-Spandau and into Berlin Gesundbrunnen. The row's own

@@ -10,13 +10,28 @@
 //   configPath repo-relative JSON allowlist (array of route names, or { routes: [] })
 //   agency     agency_id stamp (e.g. "AMTK")
 //   operator   display operator name (e.g. "Amtrak")
+//   canonicalizeStationNames
+//              run every emitted stop name through the shared alias table.
+//              Opt-in, because it only helps a feed whose stations are also in
+//              Back-on-Track's table under another spelling: the enrichment
+//              writes these names into via_*, and a via station only becomes a
+//              map dot when a coordinate-bearing stop of that exact name
+//              exists — SNCF's "Nice-Ville" has to become "Nice Ville" or the
+//              stop is text on a page and nothing on the map. Left off for
+//              Amtrak/VIA, whose stations are not in that table at all.
 //
 // Run a single source against an already-unpacked feed (skips download):
 //   node -e "import('./scripts/adapters/gtfs-sleeper.mjs')" — see GTFS_DIR below.
 
 import fs from "node:fs";
 import path from "node:path";
-import { downloadGtfs, loadGtfsDir, buildSleeperTrains } from "../lib/gtfs.mjs";
+import {
+  downloadGtfs,
+  loadGtfsDir,
+  buildSleeperTrains,
+  stationNameCanonicalizer,
+} from "../lib/gtfs.mjs";
+import { resolveCanonicalStationName } from "../../src/pages/api/lib/primitives.mjs";
 
 function loadAllowlist(configPath) {
   const parsed = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -58,6 +73,10 @@ export async function run(entry, ctx) {
     log,
     stats,
     stationRenames: entry.synthetic?.stationRenames,
+    canonicalizeName: stationNameCanonicalizer(
+      entry.params,
+      resolveCanonicalStationName,
+    ),
   });
 
   const built = Object.keys(trains).length;

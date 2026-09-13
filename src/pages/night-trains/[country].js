@@ -19,6 +19,7 @@ import {
 import { buildCountryFaq } from "../../lib/seo/faq";
 import { toCardRoute } from "../../lib/seo/data";
 import { getFlagEmoji } from "../../lib/countries";
+import { getOperatorPricing } from "../../lib/operatorPricing";
 import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
 export default function CountryHub({
@@ -253,11 +254,21 @@ export async function getStaticProps({ params }) {
     name: c.name,
     slug: c.slug,
   }));
+  // Only answer about booking timing when every operator on the hub agrees:
+  // on a country served by both a yield-managed and a fixed-tariff operator,
+  // "book early" would be wrong for half the trains listed on the page.
+  const pricingTypes = new Set(
+    hub.operators
+      .map((o) => getOperatorPricing({ agency_id: o.id })?.type)
+      .filter(Boolean),
+  );
+
   const faq = buildCountryFaq({
     country: hub.country,
     operators: hub.operators,
     facts: hub.facts,
     connectedCountries,
+    pricingType: pricingTypes.size === 1 ? [...pricingTypes][0] : "",
   });
   return {
     props: {

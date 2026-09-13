@@ -73,12 +73,24 @@ function trainsByNumber({ entry, viewMap, trains, log }) {
         route[`nj_polyline_${d}`] = match.polyline;
       }
       if (opts.updateVia && match.stations?.length >= 2) {
-        const via = match.stations
+        const stops = match.stations
           .slice(1, -1)
           .map((s) => s?.name)
-          .filter(Boolean)
-          .join(" - ");
-        if (via) route[`via_${d}`] = via;
+          .filter(Boolean);
+        // Official is better than Back-on-Track when it is more complete, and
+        // that is not a given per row: SNCF's feed carries the Aurillac
+        // portion as a 3-stop stub, whose one via station would have replaced
+        // Back-on-Track's Laroquebrou / Bretenoux Biars / St-Denis-lès-Martel.
+        // Opt-in, because a source whose stop list is authoritative even when
+        // shorter (a diverted train calling at fewer stations) wants the
+        // replacement.
+        const ok =
+          !opts.viaOnlyIfRicher ||
+          stops.length >=
+            String(route[`via_${d}`] ?? "")
+              .split(" - ")
+              .filter((n) => n.trim()).length;
+        if (stops.length && ok) route[`via_${d}`] = stops.join(" - ");
       }
       if (opts.setTimes && match.stations?.length >= 2) {
         const dep = toHHMM(match.stations[0]?.departure);

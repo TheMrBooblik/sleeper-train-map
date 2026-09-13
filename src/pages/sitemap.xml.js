@@ -6,6 +6,7 @@ import {
   getStationHubsForCountry,
 } from "../lib/seo/aggregate";
 import { SITE_URL } from "../lib/seo/site";
+import { lastmodFor } from "../lib/seo/lastmod.mjs";
 
 /**
  * Staged indexation. At ~25 crawls/month Google samples and rations, so shipping
@@ -58,14 +59,21 @@ function generateSiteMap() {
   try {
     entries.push(urlEntry(`${SITE_URL}/connections`, lastmod, "weekly", "0.9"));
 
-    for (const { country } of getAllCountryHubs()) {
-      entries.push(urlEntry(`${SITE_URL}/night-trains/${country.slug}`, lastmod, "weekly", "0.8"));
+    for (const hub of getAllCountryHubs()) {
+      entries.push(
+        urlEntry(
+          `${SITE_URL}/night-trains/${hub.country.slug}`,
+          lastmodFor(hub.lastChanged, lastmod),
+          "weekly",
+          "0.8",
+        ),
+      );
       if (SITEMAP_BATCH >= 2) {
-        for (const st of getStationHubsForCountry(country.slug)) {
+        for (const st of getStationHubsForCountry(hub.country.slug)) {
           entries.push(
             urlEntry(
-              `${SITE_URL}/night-trains/${country.slug}/from/${st.slug}`,
-              lastmod,
+              `${SITE_URL}/night-trains/${hub.country.slug}/from/${st.slug}`,
+              lastmodFor(st.lastChanged, lastmod),
               "weekly",
               "0.5",
             ),
@@ -74,8 +82,15 @@ function generateSiteMap() {
       }
     }
 
-    for (const { operator } of getAllOperatorHubs()) {
-      entries.push(urlEntry(`${SITE_URL}/operators/${operator.slug}`, lastmod, "weekly", "0.7"));
+    for (const hub of getAllOperatorHubs()) {
+      entries.push(
+        urlEntry(
+          `${SITE_URL}/operators/${hub.operator.slug}`,
+          lastmodFor(hub.lastChanged, lastmod),
+          "weekly",
+          "0.7",
+        ),
+      );
     }
 
     // Connections are the money pages, so they outrank the station hubs. In
@@ -85,7 +100,14 @@ function generateSiteMap() {
     );
     const shipped = SITEMAP_BATCH >= 2 ? pairs : pairs.slice(0, BATCH_1_CONNECTIONS);
     for (const pair of shipped) {
-      entries.push(urlEntry(`${SITE_URL}/connections/${pair.slug}`, lastmod, "weekly", "0.8"));
+      entries.push(
+        urlEntry(
+          `${SITE_URL}/connections/${pair.slug}`,
+          lastmodFor(pair.lastChanged, lastmod),
+          "weekly",
+          "0.8",
+        ),
+      );
     }
   } catch (err) {
     console.error("[sitemap] failed to build data-derived URLs:", err);

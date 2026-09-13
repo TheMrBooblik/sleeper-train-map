@@ -20,6 +20,8 @@ import { getRouteDetail } from "../../lib/seo/data";
 import { formatTrainNumber } from "../../lib/operatorAgencies.mjs";
 import { buildConnectionFaq } from "../../lib/seo/routeFaq.mjs";
 import { getFlagEmoji } from "../../lib/countries";
+import { getOperatorPricing, pricingAdvice } from "../../lib/operatorPricing";
+import { offerFromPricing, offerLd } from "../../lib/seo/offers.mjs";
 import { OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
 /**
@@ -37,14 +39,21 @@ export default function ConnectionPage({
   countries,
   related,
   faq,
+  fromPrice,
 }) {
   const canonical = absoluteUrl(`/connections/${slug}`);
   const title = `Night Trains ${cityA} to ${cityB} — Times, Stops & Tickets | Pingwi`;
   const operatorNames = operators.map((o) => o.name).join(", ");
+  // "What does it cost" is the question searchers ask and the one a snippet can
+  // answer in four words, so the price displaces the generic "Compare…" tail
+  // rather than being appended past where the description gets truncated. It is
+  // only ever a real sampled fare — no price, no sentence.
   const description =
     `${trains.length} night ${trains.length === 1 ? "train connects" : "trains connect"} ${cityA} and ${cityB}` +
     (operatorNames ? `, run by ${operatorNames}.` : ".") +
-    " Compare timetables, stops, journey time and where to book.";
+    (fromPrice
+      ? ` Tickets ${fromPrice}. Timetables, stops, journey time and where to book.`
+      : " Compare timetables, stops, journey time and where to book.");
 
   const itemListLd = {
     "@context": "https://schema.org",
@@ -63,6 +72,7 @@ export default function ConnectionPage({
           : {}),
         departureStation: { "@type": "TrainStation", name: t.origin },
         arrivalStation: { "@type": "TrainStation", name: t.destination },
+        ...(t.offer ? { offers: offerLd(t.offer) } : {}),
       },
     })),
   };
@@ -180,6 +190,7 @@ export default function ConnectionPage({
                       booking={t.booking}
                       origin={t.origin}
                       destination={t.destination}
+                      advice={t.advice}
                     />
                   </div>
                 )}
@@ -235,6 +246,17 @@ export default function ConnectionPage({
   );
 }
 
+/**
+ * The route's cheapest known fare as { lowPrice, currency }, or null.
+ * Route-level price first, operator default second — getOperatorPricing()'s own
+ * precedence, the same seam RouteFactsGrid renders the "From" tile through.
+ */
+function numericOffer(detail) {
+  return offerFromPricing(
+    getOperatorPricing({ agency_id: detail.agencyId, pricing: detail.pricing }),
+  );
+}
+
 export async function getStaticPaths() {
   return {
     paths: getAllCityPairs().map((p) => ({ params: { pair: p.slug } })),
@@ -269,6 +291,19 @@ export async function getStaticProps({ params }) {
       booking: d.booking,
       countries: d.countries,
       countryCodes: d.countryCodes,
+      // Numeric floor for the TrainTrip offers, resolved through the same seam
+      // RouteFactsGrid renders the "From" tile with, so the markup and the
+      // visible price can never disagree.
+      offer: numericOffer(d),
+      // Buy now or later — resolved here so the CTA, the facts tile and the FAQ
+      // on this page all read the same pricingAdvice() record. The deals link
+      // the CTA renders is the evidence for the last-minute caveat, so it is
+      // taken from the SAME booking record rather than looked up again: the
+      // advice and the link cannot then disagree about whether one exists.
+      advice: pricingAdvice(
+        getOperatorPricing({ agency_id: d.agencyId, pricing: d.pricing }),
+        { hasLastMinuteDeals: Boolean(d.booking?.dealsUrl) },
+      ),
       directions: d.directions.map((x) => ({
         ...x,
         trainNumber: formatTrainNumber(x.trainNumber, d.agencyId),
@@ -292,6 +327,16 @@ export async function getStaticProps({ params }) {
     ? priced.reduce((a, b) => (a.pricing.fromPrice <= b.pricing.fromPrice ? a : b))
     : null;
 
+  // Whether booking early helps is an answer we can give on every page even
+  // with no figure, and the two models say opposite things. Taken from the
+  // trains themselves so a corridor with one operator answers about that one;
+  // a mixed corridor answers only when its operators agree.
+  const pricingTypes = new Set(
+    trains
+      .map((t) => getOperatorPricing({ agency_id: t.agencyId, pricing: t.pricing })?.type)
+      .filter(Boolean),
+  );
+
   const faq = buildConnectionFaq({
     originCity: pair.cityA,
     destCity: pair.cityB,
@@ -299,6 +344,8 @@ export async function getStaticProps({ params }) {
     operators: pair.operators.map((o) => o.name),
     fastestDurationText: fastest?.durationText || "",
     fromPrice: cheapest?.fromPrice || "",
+    pricingType: pricingTypes.size === 1 ? [...pricingTypes][0] : "",
+    hasLastMinuteDeals: trains.some((t) => t.booking?.dealsUrl),
   });
 
   // Drop the map from all but the first train that has one.
@@ -318,6 +365,10 @@ export async function getStaticProps({ params }) {
       countries: pair.countries,
       related: getRelatedConnections(pair.slug, 8),
       faq,
+      // Already formatted ("from €39") by buildSummary; the FAQ answer above
+      // uses the same string, so the snippet and the page cannot quote
+      // different figures.
+      fromPrice: cheapest?.fromPrice || null,
     },
   };
 }

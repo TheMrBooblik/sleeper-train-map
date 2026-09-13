@@ -13,9 +13,11 @@ import {
 } from "../../lib/seo/aggregate";
 import { toCardRoute } from "../../lib/seo/data";
 import { getFlagEmoji } from "../../lib/countries";
+import { getOperatorPricing, pricingAdvice } from "../../lib/operatorPricing";
+import { hasLastMinuteDeals } from "../../lib/operatorBooking";
 import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
-export default function OperatorHub({ operator, routes, countries, connections }) {
+export default function OperatorHub({ operator, routes, countries, connections, advice }) {
   const canonical = absoluteUrl(`/operators/${operator.slug}`);
   const title = `${operator.name} Night Train Routes & Destinations | Pingwi`;
   const countryNames = countries.map((c) => c.name).join(", ");
@@ -77,6 +79,18 @@ export default function OperatorHub({ operator, routes, countries, connections }
             </h1>
             <p className="mt-4 text-white/60 leading-relaxed">{description}</p>
           </header>
+
+          {advice && (
+            <section className="mt-8 max-w-3xl rounded-lg border border-white/10 bg-white/[0.02] p-5">
+              <h2 className="text-sm font-semibold text-white">
+                {advice.headline} — how {operator.name} prices tickets
+              </h2>
+              <p className="mt-2 text-sm text-white/60 leading-relaxed text-pretty">
+                {operator.name} sells {advice.detail}.
+                {advice.caveat ? ` That said, ${advice.caveat}.` : ""}
+              </p>
+            </section>
+          )}
 
           {countries.length > 0 && (
             <section className="mt-10">
@@ -151,6 +165,13 @@ export async function getStaticProps({ params }) {
       routes,
       countries: hub.countries,
       connections: getConnectionsForOperator(params.operator),
+      // "Should I book this operator early?" is an operator-level question, so
+      // the operator's own hub is where it belongs — and it was the one page
+      // that said nothing about fares at all.
+      advice:
+        pricingAdvice(getOperatorPricing({ agency_id: hub.operator.id }), {
+          hasLastMinuteDeals: hasLastMinuteDeals(hub.operator.id),
+        }) ?? null,
     },
   };
 }

@@ -8,6 +8,9 @@
  * until curated — the badge shows only the type until a value is filled in.
  */
 import OPERATOR_PRICING from "../../data/overrides/operator-pricing.json";
+import { pricingAdvice, formatCheckedAt } from "./pricingAdvice.mjs";
+
+export { pricingAdvice, formatCheckedAt };
 
 export { OPERATOR_PRICING };
 
@@ -41,26 +44,25 @@ export function getOperatorPricing(routeOrTrip) {
 }
 
 /**
- * Human-readable label for a pricing record, e.g. "Dynamic pricing",
- * "Fixed fare", or "Fixed fare · from €39". Returns null when not renderable.
+ * Label for a pricing record, e.g. "Book early", "Fixed fare · from €39".
+ * Returns null when not renderable.
+ *
+ * The headline is the traveller-facing ADVICE, not the name of the pricing
+ * model: this label renders in the facts tile directly above the Book button
+ * and in the map panel's trip badge, and "Dynamic pricing" in that position
+ * told the reader nothing they could act on. See pricingAdvice.mjs.
  */
 export function formatPricingLabel(pricing) {
-  if (!pricing) return null;
-  const typeLabel =
-    pricing.type === "dynamic"
-      ? "Dynamic pricing"
-      : pricing.type === "fixed"
-        ? "Fixed fare"
-        : null;
-  if (!typeLabel) return null;
+  const advice = pricingAdvice(pricing);
+  if (!advice) return null;
 
   if (pricing.fromPrice != null) {
     const symbol =
       CURRENCY_SYMBOLS[pricing.currency] ||
       (pricing.currency ? `${pricing.currency} ` : "");
-    return `${typeLabel} · from ${symbol}${pricing.fromPrice}`;
+    return `${advice.headline} · from ${symbol}${pricing.fromPrice}`;
   }
-  return typeLabel;
+  return advice.headline;
 }
 
 /**
