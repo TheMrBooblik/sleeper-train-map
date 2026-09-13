@@ -936,6 +936,7 @@ const TrainMap = ({
           onRouteLeave={handleRouteLeave}
           viewMapData={viewMapData}
           trips={trips}
+          cities={cities}
         />
       </div>
 

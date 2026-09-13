@@ -44,6 +44,7 @@ import {
   selectMajorViaStations,
 } from "../../lib/viaDisplay.mjs";
 import { MOBILE_MQ } from "../../hooks/useIsMobile";
+import { splitViaString } from "../../lib/viaSplit.mjs";
 
 /**
  * How much of the viewport the panel occupies, so the map can frame a selected
@@ -407,7 +408,9 @@ const TrainDetailPanel = ({
     const onwardCount = (trip) => {
       const sequence = [
         trip.trip_origin,
-        ...String(trip.via || "").split(" - "),
+        // Split by station name: a torn name matches no endpoint, so the
+        // selected station is not found and the direction ordering flips.
+        ...splitViaString(trip.via),
         trip.trip_headsign,
       ]
         .map((s) => (s || "").trim())

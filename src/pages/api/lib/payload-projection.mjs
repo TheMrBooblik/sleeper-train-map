@@ -23,6 +23,7 @@
 // under raw node against the committed payload.
 
 import { normalizeStationNameForLookup } from "../../../lib/stationKey.mjs";
+import { viaNameCandidates } from "../../../lib/viaSplit.mjs";
 
 /** Route fields naming a single station. */
 const ENDPOINT_FIELDS = [
@@ -72,9 +73,14 @@ export function routeStationKeys(viewMap) {
     for (const field of ENDPOINT_FIELDS) add(route[field]);
     for (const field of VIA_FIELDS) {
       if (!route[field]) continue;
-      String(route[field])
-        .split(" - ")
-        .forEach((name) => add(name.trim()));
+      // Not a plain " - " split: 437 stops have that separator inside their own
+      // name, and splitting on it dropped the real station from the payload
+      // entirely — "Rocamadour - Padirac" arrived as two fragments matching no
+      // stop, so the browser never received the station and no amount of
+      // downstream care could give it a marker. Keeping is a superset
+      // operation, so every candidate reading is added and the wrong ones
+      // simply match nothing.
+      viaNameCandidates(route[field]).forEach(add);
     }
     for (const field of SCHEDULE_FIELDS) {
       if (!Array.isArray(route[field])) continue;

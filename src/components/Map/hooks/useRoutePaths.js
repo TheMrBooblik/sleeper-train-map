@@ -27,6 +27,7 @@ import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../utils/operatorCol
 import { buildAllRoutesPaths } from "../utils/buildAllRoutesPaths";
 import polyline from "@mapbox/polyline";
 import { cachedReturnGeometryBranches } from "../utils/returnGeometryBranches";
+import { splitViaString } from "../../../lib/viaSplit.mjs";
 
 // Number of leading coordinates to skip per OSM relation key.
 // Some OSM relations have station approach segments at the start
@@ -217,9 +218,11 @@ export function useRoutePaths({
         if (c) sequence.push(c);
       }
       if (viaStations) {
-        viaStations
-          .split(" - ")
-          .map((s) => s.trim())
+        // Split by what a station is CALLED, not by the separator: 437 stops
+        // have " - " inside their own name, and tearing one in half loses
+        // the vertex entirely, so the line skips the stop it runs through.
+        // findStationCoords IS the station predicate here.
+        splitViaString(viaStations, (n) => !!findStationCoords(n))
           .forEach((via) => {
             if (!isStationSkipped(via)) {
               const c = findStationCoords(via);

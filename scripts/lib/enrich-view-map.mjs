@@ -24,6 +24,7 @@ import {
 } from "../../src/lib/pkpTrainKeyExtract.js";
 import { buildVia } from "../../src/lib/pkpGtfsMerge.js";
 import { inAgencyScope } from "../../src/pages/api/lib/primitives.mjs";
+import { splitViaString } from "../../src/lib/viaSplit.mjs";
 
 // "2026-06-11T18:13:00.000Z" → "18:13" (BoT rows carry plain HH:MM strings).
 function toHHMM(iso) {
@@ -42,8 +43,9 @@ function stampOfficialSource(route, sourceId) {
 }
 
 
-function trainsByNumber({ entry, viewMap, trains, log }) {
+function trainsByNumber({ entry, viewMap, trains, stopCoords, log }) {
   const opts = entry.enrich;
+  const isKnownStation = stopCoords ? (n) => !!stopCoords(n) : null;
   let touched = 0;
 
   Object.values(viewMap).forEach((route) => {
@@ -84,12 +86,15 @@ function trainsByNumber({ entry, viewMap, trains, log }) {
         // Opt-in, because a source whose stop list is authoritative even when
         // shorter (a diverted train calling at fewer stations) wants the
         // replacement.
+        // Count the incumbent by STATION, not by separator. 437 stops carry
+        // " - " inside their own name, so a plain split counts "Rocamadour -
+        // Padirac" as two — the existing list looks richer than it is and a
+        // genuinely better official list is refused. Exactly backwards for a
+        // guard whose whole job is "only replace with something fuller".
         const ok =
           !opts.viaOnlyIfRicher ||
           stops.length >=
-            String(route[`via_${d}`] ?? "")
-              .split(" - ")
-              .filter((n) => n.trim()).length;
+            splitViaString(route[`via_${d}`], isKnownStation).length;
         if (stops.length && ok) route[`via_${d}`] = stops.join(" - ");
       }
       if (opts.setTimes && match.stations?.length >= 2) {
@@ -183,7 +188,9 @@ async function gtfsBundle({ entry, viewMap, bundle, stopCoords, resolveGeometry,
         if (!label) continue;
         const names = [
           route[`origin_trip_${d}`],
-          ...(route[`via_${d}`] ?? "").split(" - "),
+          // A torn name resolves to no coordinate, so the chain silently
+          // loses the vertex and the drawn line skips the stop.
+          ...splitViaString(route[`via_${d}`], (n) => !!stopCoords?.(n)),
           route[`destination_trip_${d}`],
         ].filter(Boolean);
         const stops = names.map((name) => ({ name, ...(stopCoords?.(name) ?? {}) }));
