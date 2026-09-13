@@ -322,6 +322,22 @@ export function reportAllowlist(entry, gtfs, limit = 40, rootDir = ROOT) {
           `${span.padEnd(21)} ${names}${flag}`,
       );
     }
+    // A feed with no train numbers at all is a finding, not a blank column:
+    // it means an endpoint-matched entry CANNOT be shown to address a single
+    // train, so however many trips it took, there is no way to tell one train
+    // with several service patterns from two trains sharing a corridor. Stop
+    // lists survive that — they come from one trip, the fullest — but service
+    // days are a union over all of them and should not be promoted to a row.
+    const anyNames = Object.values(stats.namedMatches).some((m) => m.shortNames.length);
+    if (!anyNames) {
+      console.log(
+        `  ⚠ this feed carries no trip_short_name, so an entry cannot be verified to
+` +
+          `    address one train — treat its service days as unattributed, and prefer
+` +
+          `    stop lists (one trip) over days (a union).`,
+      );
+    }
   }
 
   // The whole reason to run this before merging.
