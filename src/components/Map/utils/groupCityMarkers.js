@@ -1,9 +1,68 @@
 /**
  * Groups overlapping city markers for the map.
  * When isGrouped is true, stations in the same city (e.g. "Amsterdam Centraal", "Amsterdam Sloterdijk")
- * are combined into one marker with averaged/prioritized coordinates.
+ * are combined into one marker anchored on the city's principal station.
  */
 import { distanceKm } from "./returnGeometryBranches.js";
+
+/**
+ * Names that say "this is the city's main station" in the languages the dataset
+ * actually contains. Direction words — Nord, Süd, Est, West, Ost — are
+ * deliberately absent: they say where a station points, not what rank it holds,
+ * and including "nord" picks Bruxelles Nord over Midi and Paris Gare du Nord
+ * over Austerlitz.
+ */
+const PRINCIPAL_STATION_NAME =
+  /(\bhbf\b|hauptbahnhof|\bhl\.\s?n\.|hlavní nádraží|\bhl\.\s?st\.|centrale\b|centraal\b|\bcentral\b|centralna\b|\bgł(ówny)?\.?\b|\btermini\b|sentralstasjon)/i;
+
+/**
+ * Which station a grouped marker sits on.
+ *
+ * The marker used to sit at the AVERAGE of its members, and an average is never
+ * a place. With one station in the bucket that costs nothing; the moment a
+ * second arrives the dot slides into the countryside between them. Oslo is the
+ * case that showed it: the Entur enrichment put "Oslo Airport Gardermoen" into a
+ * via list, so the bucket went from one station to two and the Oslo dot moved
+ * 18.6 km out of Oslo, onto no station at all.
+ *
+ * So anchor it on a real station instead — and on the RIGHT one, which needs
+ * more than "the first non-via member" (that picks Frankfurt's airport and
+ * Berlin Gesundbrunnen) and more than "the most routes" (that picks München Ost
+ * over Hbf, and Venezia Mestre over Santa Lucia). Three rules, in order:
+ *
+ *   1. a name that declares itself principal — Hbf, hl.n., Centrale, Główny,
+ *      Termini — and among several, the one serving most routes;
+ *   2. else the busiest station the city's trains START or END at, which is what
+ *      fixes Oslo (Oslo S is an endpoint, Gardermoen is via-only) and is the
+ *      right answer wherever a city has no "Hauptbahnhof" by name: İstanbul
+ *      Halkalı and Shanghai Songjiang really are where those trains call;
+ *   3. else the busiest station in the bucket.
+ *
+ * Every anchor is somewhere a train actually stops, which is the property the
+ * average could never have.
+ *
+ * @param {Array} stations one proximity cluster
+ * @param {object} cities  deriveCities output (route ids + isViaStation)
+ * @param {(name: string) => string} normalizeForLookup
+ * @returns {object} the station the marker takes its position and identity from
+ */
+export function pickAnchorStation(stations, cities, normalizeForLookup) {
+  const infoFor = (station) =>
+    cities[normalizeForLookup(station.stop_id)] || cities[station.stop_id] || {};
+  const routeCount = (station) =>
+    String(infoFor(station).stop_route_ids || "").split(",").filter(Boolean).length;
+  // Ties break on the earlier member so the anchor cannot flip between renders.
+  const busiest = (list) =>
+    list.reduce((best, s) => (routeCount(s) > routeCount(best) ? s : best), list[0]);
+
+  const named = stations.filter((s) => PRINCIPAL_STATION_NAME.test(s.stop_id ?? ""));
+  if (named.length) return busiest(named);
+
+  const endpoints = stations.filter((s) => infoFor(s).isViaStation === false);
+  if (endpoints.length) return busiest(endpoints);
+
+  return busiest(stations);
+}
 
 /**
  * A city name is not a location. normalizeStationNameForDisplay matches on
@@ -110,42 +169,19 @@ export function groupCityMarkers(
           isGrouped: false,
         });
       } else {
-        const mainStation =
-          stations.find((station) => {
-            const normalizedId = normalizeStationNameForLookup(station.stop_id);
-            const cityInfo = cities[normalizedId] || cities[station.stop_id];
-            return cityInfo && !cityInfo.isViaStation;
-          }) || stations[0];
-
-        let finalLat, finalLon;
-        if (mainStation.coordinatesSource === "custom") {
-          finalLat = mainStation.stop_lat;
-          finalLon = mainStation.stop_lon;
-        } else {
-          const withCustom = stations.filter(
-            (s) => s.coordinatesSource === "custom",
-          );
-          if (withCustom.length > 0) {
-            finalLat =
-              withCustom.reduce((sum, s) => sum + s.stop_lat, 0) /
-              withCustom.length;
-            finalLon =
-              withCustom.reduce((sum, s) => sum + s.stop_lon, 0) /
-              withCustom.length;
-          } else {
-            finalLat =
-              stations.reduce((sum, s) => sum + s.stop_lat, 0) /
-              stations.length;
-            finalLon =
-              stations.reduce((sum, s) => sum + s.stop_lon, 0) /
-              stations.length;
-          }
-        }
+        // Identity and position both come from the anchor, so the dot sits on
+        // the station whose name it carries. The old ladder preferred a member
+        // with a custom coordinate and otherwise averaged; the anchor's own
+        // coordinate already is that custom value where one exists, since
+        // enrichStationsWithCoordinates applied it upstream.
+        const anchor = pickAnchorStation(
+          stations,
+          cities,
+          normalizeStationNameForLookup,
+        );
 
         groupedMarkers.push({
-          ...mainStation,
-          stop_lat: finalLat,
-          stop_lon: finalLon,
+          ...anchor,
           groupedStations: stations,
           isGrouped: true,
           groupSize: stations.length,
