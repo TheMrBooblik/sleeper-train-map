@@ -45,6 +45,7 @@ import {
 } from "../../lib/viaDisplay.mjs";
 import { MOBILE_MQ } from "../../hooks/useIsMobile";
 import { splitViaString } from "../../lib/viaSplit.mjs";
+import { officialRowSchedule } from "../../lib/officialRowSchedule.mjs";
 
 /**
  * How much of the viewport the panel occupies, so the map can frame a selected
@@ -1231,6 +1232,20 @@ const TrainDetailPanel = ({
                 // and 36 where Back-on-Track records one number for both.
                 const scheduleDirection =
                   Number(trip.direction_id) === 1 ? 1 : 0;
+
+                // The row the enrichment corrected, when an official feed
+                // corroborated it. Enrichment rewrites the ROW and never the
+                // trips table, so every value below that falls through to
+                // `trip.*` is Back-on-Track's copy of a timetable the operator
+                // has already replaced — 183 minutes out on IC Nuit 3750, and a
+                // 2-stop via list where the row carries 14. Sits directly above
+                // the trip fallback and below every per-operator feed: a feed
+                // that knows this train is still the better answer, and where
+                // one exists it is usually what stamped the row anyway.
+                const officialRow = officialRowSchedule(
+                  tripRoute,
+                  trip.direction_id,
+                );
                 const scheduleLink = resolveScheduleLink({
                   agencyId: operatorAgencyId,
                   agencies,
@@ -1251,7 +1266,7 @@ const TrainDetailPanel = ({
                   operatorAgencyId,
                 );
                 const viaSummary = selectMajorViaStations(
-                  esVia || trip.via,
+                  esVia || officialRow?.via || trip.via,
                   majorViaContext,
                 );
 
@@ -1680,6 +1695,8 @@ const TrainDetailPanel = ({
                       naDestinationArrival ||
                       esOriginDeparture ||
                       esDestinationArrival ||
+                      officialRow?.departure ||
+                      officialRow?.arrival ||
                       formatTime(
                         trip.origin_departure_time ||
                           nightjetOriginDeparture ||
@@ -1699,6 +1716,7 @@ const TrainDetailPanel = ({
                             {pkpOriginDeparture ||
                               naOriginDeparture ||
                               esOriginDeparture ||
+                              officialRow?.departure ||
                               formatTime(
                                 trip.origin_departure_time ||
                                   nightjetOriginDeparture ||
@@ -1714,6 +1732,7 @@ const TrainDetailPanel = ({
                             {pkpDestinationArrival ||
                               naDestinationArrival ||
                               esDestinationArrival ||
+                              officialRow?.arrival ||
                               formatTime(
                                 trip.destination_arrival_time ||
                                   nightjetDestinationArrival ||
@@ -1724,15 +1743,25 @@ const TrainDetailPanel = ({
                       </div>
                     )}
 
-                    {(esDuration || trip.duration) && (
+                    {/* Back-on-Track's `duration` was computed from the times
+                        the enrichment replaced, so on a corrected row it
+                        contradicts the two numbers printed right above it —
+                        IC Nuit 5789 reads 11h30 against its own 20:57 → 08:24. */}
+                    {(esDuration ||
+                      officialRow?.durationText ||
+                      trip.duration) && (
                       <div className="text-xs text-gray-600">
-                        Duration: {esDuration || formatTime(trip.duration)}
+                        Duration:{" "}
+                        {esDuration ||
+                          officialRow?.durationText ||
+                          formatTime(trip.duration)}
                       </div>
                     )}
 
                     {/* Frequency — PKP GTFS run-days win; BoT/override fallback */}
                     {(pkpSchedule?.days ||
                       esSchedule?.days ||
+                      officialRow?.serviceDays ||
                       trip.service_id ||
                       getRouteFrequencyOverride(trip.route_id)) && (
                       <div className="space-y-1">
@@ -1769,7 +1798,11 @@ const TrainDetailPanel = ({
                             }
                             // The feed's own service days, which carry the
                             // period they apply to; BoT's copy is undated.
-                            return esSchedule?.days || trip.service_id;
+                            return (
+                              esSchedule?.days ||
+                              officialRow?.serviceDays ||
+                              trip.service_id
+                            );
                           })()}
                         </div>
                       </div>
