@@ -7,10 +7,15 @@ import React from "react";
  * Use showTimes=true when a specific train route is selected; otherwise station name only.
  * Used by NightTrainLayer and Back-on-Track station markers (e.g. useMapMarkers).
  */
-export function StationTooltipContent({ name, departure, arrival, showTimes }) {
+export function StationTooltipContent({ name, departure, arrival, showTimes, note }) {
   return (
     <div>
       <div style={{ fontWeight: 600 }}>{name}</div>
+      {/* Why this dot is faded — without it the difference is visible but
+          unexplained until the user opens the legend. */}
+      {note && (
+        <div style={{ opacity: 0.75, fontSize: "0.9em" }}>{note}</div>
+      )}
       {showTimes && (
         <>
           {departure && (

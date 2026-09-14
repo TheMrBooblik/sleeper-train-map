@@ -17,6 +17,8 @@ const {
   inferTripFrequencyRank,
   hasUnknownStart,
   countListedWeekdays,
+  routeHasNotStartedYet,
+  upcomingPreviewRouteIds,
 } = mod;
 
 function assert(cond, msg) {
@@ -141,5 +143,73 @@ const announced = {
 };
 assert(!hasUnknownStart(240, announced), "a concrete date is not an unknown start");
 assert(getRouteStyleFromFrequency(240, announced).weight === 4.5, "announced route keeps full weight");
+
+// ─── A preview of a period that has not begun contributes no station dots ───
+// appendSyntheticRoutes emits the next timetable period as its own row, drawn
+// as a preview line on purpose. Its via stations were rendering as ordinary
+// green dots, so the same train appeared on two contradictory routings at once.
+// shouldHideRouteDueToFutureDate cannot see it: that reads trips, and a
+// synthetic row has none — the dates live on the row itself.
+const NOW = new Date(2026, 8, 4); // 2026-09-04
+
+const december = {
+  route_id: "es_400_from_20261214",
+  draw_as_active: true,
+  service_id_0: "2026-12-14 – 2027-03-17: Mon, Wed, Fri",
+  service_id_1: "2026-12-13 – 2027-03-18: Tue, Thu, Sun",
+};
+assert(routeHasNotStartedYet(december, NOW), "a December window has not started in September");
+
+// The row this one previews: same train, already selling, slash-formatted.
+const running = {
+  route_id: "es_400",
+  service_id_0: "2026/09/09-12/11: Wed, Fri, Sun",
+  service_id_1: "2026/09/10-12/10: Mon, Thu, Sat",
+};
+assert(routeHasNotStartedYet(running, NOW), "es_400's own window opens five days out");
+
+// ...and that is exactly why the date alone must not decide. Five Amtrak routes
+// run today off GTFS feeds that publish only their 2027 season; hiding their
+// stations on a future start date would be a regression.
+const amtrak = { route_id: "amtrak_Empire_Builder", service_id_0: "2027/04/07-08/30: Daily" };
+assert(routeHasNotStartedYet(amtrak, NOW), "the Amtrak window is future by date");
+assert(
+  upcomingPreviewRouteIds({ a: amtrak, b: running }, NOW).size === 0,
+  "a future start date alone never hides a route's stations",
+);
+
+// One direction already open is enough: the route is running.
+assert(
+  !routeHasNotStartedYet(
+    { service_id_0: "2026-09-01 – 2026-12-11: Daily", service_id_1: "2026-12-14 – 2027-03-17: Daily" },
+    NOW,
+  ),
+  "a route with one open direction is running",
+);
+
+// Anything unreadable must not be called future — most rows look like this.
+assert(!routeHasNotStartedYet({ service_id_0: "2026: Daily" }, NOW), "a year-only window is not future");
+assert(!routeHasNotStartedYet({ service_id_0: "Daily" }, NOW), "a bare day list is not future");
+assert(!routeHasNotStartedYet({}, NOW), "a row with no window is not future");
+assert(!routeHasNotStartedYet(null, NOW), "no row is not future");
+
+// A window that has already closed is a past season, not a future one.
+assert(
+  !routeHasNotStartedYet({ service_id_0: "2026-01-05 – 2026-03-17: Daily" }, NOW),
+  "a finished season is not 'not started yet'",
+);
+
+// Both conditions together, and only the preview matches.
+const ids = upcomingPreviewRouteIds(
+  { a: december, b: running, c: amtrak, d: { route_id: "n", service_id_0: "2026: Daily" } },
+  NOW,
+);
+assert(ids.size === 1 && ids.has("es_400_from_20261214"), `only the preview row is pending, got ${[...ids].join(",")}`);
+
+// On sale early but already running: flagged, yet not a pending preview.
+assert(
+  upcomingPreviewRouteIds({ a: { route_id: "live", draw_as_active: true, service_id_0: "2026-08-01 – 2026-12-11: Daily" } }, NOW).size === 0,
+  "draw_as_active on a running route is not a pending preview",
+);
 
 console.log("verify-route-style-utils.mjs OK");

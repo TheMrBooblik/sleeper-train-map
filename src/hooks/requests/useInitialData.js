@@ -2,6 +2,10 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { enrichStationsWithCoordinates } from "../../helpers/enrichStationsWithCoordinates";
 import { stationCoordinates } from "../../data/stationCoordinates";
 import { normalizeStationNameForLookup } from "./useCities";
+import {
+  splitViaString,
+  knownStationPredicate,
+} from "../../lib/viaSplit.mjs";
 import { attachPkpGtfsPolylinesToViewMap } from "../../lib/pkpGtfsMerge";
 import { hydratePkpBundle } from "../../lib/pkpTrainKeyExtract";
 import { attachRjGtfsToViewMap } from "../../lib/rjGtfsMerge";
@@ -37,7 +41,7 @@ function once(slot, fn) {
  * Derive city-to-route mapping from viewMap data.
  * Same logic as useCities but without a separate fetch.
  */
-function deriveCities(mapData) {
+function deriveCities(mapData, isKnownStation = null) {
   const cityRouteMap = {};
   if (!mapData) return cityRouteMap;
 
@@ -77,11 +81,10 @@ function deriveCities(mapData) {
 
     [route.via_0, route.via_1].forEach((viaStr) => {
       if (!viaStr) return;
-      viaStr
-        .split(" - ")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .forEach((viaStation) => {
+      // Split by station name, not by the separator. 437 stops carry " - "
+      // inside their own name, and a torn name links neither half to the route,
+      // so the station gets no marker and the line does not chain through it.
+      splitViaString(viaStr, isKnownStation).forEach((viaStation) => {
           const normalized = normalizeStationNameForLookup(viaStation);
           if (!cityRouteMap[normalized]) {
             cityRouteMap[normalized] = {
@@ -202,7 +205,10 @@ function assemble(core, enrichments = {}) {
 
   return {
     stops: stopsArray,
-    cities: deriveCities(viewMapRaw),
+    cities: deriveCities(
+      viewMapRaw,
+      knownStationPredicate(stopsArray, normalizeStationNameForLookup),
+    ),
     viewMapData: viewMapRaw,
     trips: tripsRaw,
   };

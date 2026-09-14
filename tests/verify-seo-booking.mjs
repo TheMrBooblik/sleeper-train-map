@@ -5,6 +5,8 @@
 import fs from "node:fs";
 import { resolveRouteBooking } from "../src/lib/routeBooking.mjs";
 import OPERATOR_BOOKING from "../data/overrides/operator-booking.json" with { type: "json" };
+import OPERATOR_PRICING from "../data/overrides/operator-pricing.json" with { type: "json" };
+import { offerFromPricing, offerLd } from "../src/lib/seo/offers.mjs";
 
 const problems = [];
 const check = (cond, msg) => {
@@ -238,6 +240,57 @@ for (const row of Object.values(published.data.viewMap)) {
     check(
       Object.values(r).every((v) => v !== undefined),
       `coverage: route ${row.route_id} booking has undefined fields`,
+    );
+  }
+}
+
+// ── The price a connection page publishes ──────────────────────────────────
+// /connections/[pair] resolves each train's fare through getOperatorPricing()
+// and hands it to offerFromPricing(). What matters is that a route with no
+// concrete figure publishes nothing at all: an operator record saying only
+// "dynamic pricing" must not become an offer of 0, and a page must never quote
+// a price the facts tile does not show.
+{
+  check(
+    offerFromPricing({ fromPrice: 39, currency: "EUR" })?.lowPrice === 39,
+    "offerFromPricing drops a concrete fare",
+  );
+  check(
+    offerFromPricing({ fromPrice: 12.5, currency: "TRY" })?.currency === "TRY",
+    "offerFromPricing keeps the record's own currency",
+  );
+  check(
+    offerFromPricing({ fromPrice: 39 })?.currency === "EUR",
+    "offerFromPricing defaults a missing currency to EUR",
+  );
+  for (const empty of [null, undefined, {}, { type: "dynamic", fromPrice: null }, { fromPrice: 0 }, { fromPrice: "39" }, { fromPrice: NaN }]) {
+    check(
+      offerFromPricing(empty) === null,
+      `offerFromPricing must publish nothing for ${JSON.stringify(empty)}`,
+    );
+  }
+  check(offerLd(null) === null, "offerLd renders nothing without an offer");
+
+  const ld = offerLd(offerFromPricing({ fromPrice: 39, currency: "EUR" }));
+  check(ld["@type"] === "AggregateOffer", "a sampled floor is an AggregateOffer, not an Offer");
+  check(ld.lowPrice === 39 && ld.priceCurrency === "EUR", "AggregateOffer carries lowPrice + currency");
+  check(
+    !("url" in ld) && !("price" in ld),
+    "the affiliate booking URL and a fixed `price` must stay out of structured data",
+  );
+
+  // Today every operator record is a null fromPrice awaiting the review queue,
+  // so no page publishes an offer. That is correct, not a bug — but if a figure
+  // is ever added, it has to be a real number, not a placeholder string.
+  for (const [agencyId, pricing] of Object.entries(OPERATOR_PRICING)) {
+    const offer = offerFromPricing(pricing);
+    check(
+      offer === null || (Number.isFinite(offer.lowPrice) && offer.lowPrice > 0),
+      `operator-pricing ${agencyId}: fromPrice must be a positive number or null`,
+    );
+    check(
+      pricing.currency == null || /^[A-Z]{3}$/.test(pricing.currency),
+      `operator-pricing ${agencyId}: currency must be an ISO-4217 code`,
     );
   }
 }

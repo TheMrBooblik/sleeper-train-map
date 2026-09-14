@@ -61,6 +61,10 @@ import DISABLED_ROUTES from "../../../data/overrides/disabled-routes.json";
 const PUBLISHED_PATH = "public/data/published/initial-data.json";
 const RAW_STOPS_PATH = "public/data/scraped/backontrack-stops.json";
 const AGENCIES_PATH = "public/data/scraped/backontrack-agencies.json";
+// Per-route { firstSeen, lastSeen, lastChanged }, projected from seen.json by
+// canonicalize. Optional: a build without it degrades to the payload's own
+// generation date, which is what every URL used to claim anyway.
+const ROUTE_HISTORY_PATH = "public/data/published/route-history.json";
 
 let _publishedFull;
 let _publishedNormalized;
@@ -70,6 +74,7 @@ let _agencies;
 let _tripsByRoute;
 let _slugMaps;
 let _summaries;
+let _routeHistory;
 
 function readJson(relPath) {
   const abs = path.join(process.cwd(), relPath);
@@ -100,10 +105,56 @@ function getPublished() {
   return _publishedNormalized;
 }
 
+/**
+ * routeId → "YYYY-MM-DD" of the last real change to that route (any fingerprint
+ * difference, stop-sequence drift included), memoized.
+ *
+ * The sitemap used to stamp the payload's generation date on all 241 URLs, so
+ * every nightly scrape told crawlers the whole site had changed — which spends a
+ * rationed crawl budget re-reading 162 routes that have not moved since June.
+ * Missing file, or a route missing from it, yields "" and the caller falls back.
+ */
+function getRouteHistory() {
+  if (!_routeHistory) {
+    try {
+      _routeHistory = readJson(ROUTE_HISTORY_PATH)?.routes ?? {};
+    } catch (err) {
+      // Degrading to the payload's own date is deliberate — the sitemap must
+      // never 500 over a missing optional artifact — but it degrades to exactly
+      // the flat lastmod this replaced, which is invisible from the output. Say
+      // so once, so a lambda that cannot reach the file shows up in the logs
+      // instead of quietly undoing the change.
+      console.warn(`[seo] ${ROUTE_HISTORY_PATH} unreadable, lastmod falls back to the payload date: ${err.message}`);
+      _routeHistory = {};
+    }
+  }
+  return _routeHistory;
+}
+
 /** ISO timestamp of the data's last generation (for sitemap lastmod). */
 export function getDataGeneratedAt() {
   const j = getPublishedFull();
   return j.generatedAt || j.uploadedAt || new Date().toISOString();
+}
+
+/**
+ * "Is this a station?" over the published stops, for splitting a via string by
+ * station name rather than by the " - " separator that 437 of those names
+ * contain. Both spellings are indexed because 703 records give stop_id and
+ * stop_name different values.
+ */
+let _knownStation = null;
+function getKnownStation() {
+  if (!_knownStation) {
+    const keys = new Set();
+    for (const s of getPublished().stops) {
+      for (const n of [s?.stop_id, s?.stop_name]) {
+        if (n) keys.add(String(n).trim().toLowerCase());
+      }
+    }
+    _knownStation = (name) => keys.has(String(name ?? "").trim().toLowerCase());
+  }
+  return _knownStation;
 }
 
 /** name → [lat, lon] from the published stops (for map fallback geometry). */
@@ -267,7 +318,9 @@ function buildSummary(route) {
     const d = route[`destination_trip_${dir}`];
     if (o) stopNames.add(o);
     if (d) stopNames.add(d);
-    for (const v of parseViaList(route[`via_${dir}`])) stopNames.add(v);
+    for (const v of parseViaList(route[`via_${dir}`], getKnownStation())) {
+      stopNames.add(v);
+    }
     if (o && d) {
       cityPairs.push({
         originCity: cityForStation(o),
@@ -338,6 +391,8 @@ function buildSummary(route) {
     durationText: formatDurationMinutes(durationMinutes),
     pricing,
     fromPrice: formatFromPrice(pricing),
+    // "YYYY-MM-DD" or "" — every hub page's lastmod is the max over its routes.
+    lastChanged: getRouteHistory()[String(routeId)]?.lastChanged || "",
     futureStartDate,
     futureFrom: formatFutureFrom(futureStartDate),
     hasPolyline: Boolean(route.nj_polyline_0 || route.nj_polyline_1),
@@ -401,7 +456,7 @@ export function getRouteDetail(routeId) {
     if (!trainNumber) continue;
     const origin = route[`origin_trip_${dir}`] || "";
     const destination = route[`destination_trip_${dir}`] || "";
-    const via = parseViaList(route[`via_${dir}`]);
+    const via = parseViaList(route[`via_${dir}`], getKnownStation());
     const trip = trips.find((t) => Number(t.direction_id) === dir) || trips[dir] || null;
 
     const vmDeparture = formatAnyTime(route[`origin_departure_time_${dir}`]);
@@ -420,9 +475,19 @@ export function getRouteDetail(routeId) {
         departure: formatAnyTime(s.departure),
         arrival: formatAnyTime(s.arrival),
       }));
-      // Endpoint times prefer the gated viewMap value over the live feed.
+      // Endpoint times prefer the gated viewMap value over the live feed —
+      // and the OTHER endpoint field has to go, or the row and the feed each
+      // answer half of the same stop. A journey does not arrive where it
+      // starts or depart from where it ends, so those two fields carry no
+      // meaning at all; what they carried was the feed trip's own value
+      // sitting beside a row value from a different trip. Paris–Aurillac
+      // showed it plainly: `{"departure":"19:28","arrival":"18:27"}` on the
+      // origin, two trips in one stop. The fallback branch below already
+      // writes "" there; this is the same rule, applied where the feed wins.
       if (vmDeparture) stops[0].departure = vmDeparture;
       if (vmArrival) stops[stops.length - 1].arrival = vmArrival;
+      stops[0].arrival = "";
+      stops[stops.length - 1].departure = "";
     } else {
       const names = [origin, ...via, destination].filter(Boolean);
       stops = names.map((name, i) => {

@@ -273,6 +273,60 @@ check(
   "an empty agency id yields no link",
 );
 
+// ── Norway: the timetable is a PDF, and the label has to say so ────────────
+// All four Norwegian night routes publish their timetable as a PDF rather than a
+// page, keyed per route because one PDF is one line: Vy's Bergensbanen (605/606),
+// SJ Nord's Dovre (405/406) and Nordland (475/476), Go-Ahead's Sørtoget (F5
+// 725/726). Go-Ahead had no schedule link at all before — no operator page was
+// ever confirmed for it — so its entry is a route-tier link with nothing beneath.
+{
+  const NORWAY = [
+    ["GA", "65", "F5 725", "cdn.sanity.io"],
+    ["VY", "69", "605", "vy.no"],
+    ["SJN", "70", "405", "sj.no"],
+    ["SJN", "71", "475", "sj.no"],
+  ];
+  for (const [agencyId, routeId, train, host] of NORWAY) {
+    const link = resolveScheduleLink({ agencyId, train, routeId });
+    check(Boolean(link), `${agencyId} route ${routeId} has a timetable link`);
+    if (!link) continue;
+    eq(link.tier, "route", `${agencyId} route ${routeId} resolves at the route tier`);
+    check(
+      link.url.startsWith(`https://www.${host}/`) || link.url.startsWith(`https://${host}/`),
+      `${agencyId} route ${routeId} links to ${host} (got ${link.url})`,
+    );
+    check(/\.pdf$/i.test(link.url), `${agencyId} route ${routeId} links to a PDF`);
+    eq(
+      link.label,
+      "Official timetable (PDF)",
+      `${agencyId} route ${routeId} says the link is a PDF`,
+    );
+  }
+
+  // The label follows the URL, not the operator — which is the whole reason it
+  // takes one. Vy's route-tier link for 605 is a PDF while the operator-tier
+  // fallback behind it is an ordinary page, so a per-operator flag would have to
+  // be wrong about one of the two.
+  const vyFallback = resolveScheduleLink({ agencyId: "VY", train: "605", routeId: "no-such-route" });
+  eq(vyFallback?.tier, "operator", "a VY route with no PDF falls back to the operator page");
+  eq(
+    vyFallback?.label,
+    "Official timetable",
+    "the operator-tier page is not labelled a PDF",
+  );
+  eq(getScheduleLabel("VY"), "Official timetable", "no url means no PDF claim");
+  eq(
+    getScheduleLabel("VY", "https://example.com/t.pdf?v=2"),
+    "Official timetable (PDF)",
+    "a query string does not hide the extension",
+  );
+  eq(
+    getScheduleLabel("VY", "https://example.com/pdfviewer"),
+    "Official timetable",
+    "\"pdf\" inside a path is not a PDF",
+  );
+}
+
 // ── Labels + affiliate marking ─────────────────────────────────────────────
 eq(getScheduleLabel("UZ"), "Official timetable", "default label");
 eq(getScheduleLabel("nope"), "Official timetable", "unknown operator gets the default label");
@@ -484,6 +538,70 @@ for (const [id, cfg] of scheduleOps) {
     noCodes.viewMap.r1?.schedule_origin_code_0 === undefined,
     "a feed without station codes stamps nothing rather than a broken value",
   );
+}
+
+// ── A station code belongs to one operator's train, not to a number ───────
+// The stamp used to flatten every source's trains into one map keyed by bare
+// train number, so adding Norway put SJ Nord's quay id for Trondheim S onto
+// European Sleeper's ES 475 row — the two operators both run a 475. Nothing
+// rendered wrong only because no Vy/SJ Nord template names {originCode}, which
+// is the worst kind of latent fault: correct-looking until someone adds one.
+{
+  const registry = [
+    {
+      id: "europeansleeper",
+      enabled: true,
+      output: "europeansleeper-trains.json",
+      synthetic: { idPrefix: "es_", agency: { from: "fixed", value: "ES" } },
+      enrich: { strategy: "trainsByNumber", agencyIds: ["ES"] },
+    },
+    {
+      id: "entur-sjn",
+      enabled: true,
+      output: "entur-sjn-trains.json",
+      synthetic: { idPrefix: "entur_sjn_", agency: { from: "fixed", value: "SJN" } },
+      enrich: { strategy: "trainsByNumber", agencyIds: ["VY", "SJN", "GA"] },
+    },
+  ];
+  const viewMap = {
+    es: {
+      route_id: "es",
+      agency_id: "ES",
+      trip_short_name_0: "474",
+      trip_short_name_1: "475",
+      is_active: "Y",
+    },
+    no: {
+      route_id: "no",
+      agency_id: "SJN",
+      trip_short_name_0: "475",
+      trip_short_name_1: "476",
+      is_active: "Y",
+    },
+  };
+  const trips = {
+    474: { route_id: "es", trip_short_name: "474", direction_id: 0, is_active: "Y" },
+    475: { route_id: "no", trip_short_name: "475", direction_id: 0, is_active: "Y" },
+  };
+  const operatorTrains = {
+    europeansleeper: {
+      474: { stations: [{ name: "Bruxelles-Midi", code: "ES-BRU" }] },
+      475: { stations: [{ name: "Praha hl.n.", code: "ES-PRG" }] },
+    },
+    "entur-sjn": {
+      475: { stations: [{ name: "Trondheim S", code: "NSR:Quay:1080" }] },
+      476: { stations: [{ name: "Bodø", code: "NSR:Quay:828" }] },
+    },
+  };
+  const built = buildInitialData({ stops: [], viewMap, trips, operatorTrains, registry });
+  eq(built.viewMap.es?.schedule_origin_code_0, "ES-BRU", "an ES row takes ES's code");
+  eq(
+    built.viewMap.es?.schedule_origin_code_1,
+    "ES-PRG",
+    "…and ES's 475, not SJ Nord's quay id for the same number",
+  );
+  eq(built.viewMap.no?.schedule_origin_code_0, "NSR:Quay:1080", "the SJN row takes Entur's");
+  eq(built.viewMap.no?.schedule_origin_code_1, "NSR:Quay:828", "…on both its directions");
 }
 
 // ── Tier order is the contract the resolver relies on ──────────────────────

@@ -1,0 +1,114 @@
+name: Probe GTFS feed
+
+# What is inside a GTFS feed, and which of its routes are night trains.
+#
+# Every remaining GTFS operator on the integration board is blocked on the same
+# step: scripts/adapters/gtfs-sleeper.mjs needs a curated allowlist of the routes
+# that carry sleeping cars, and that cannot be written without seeing the feed's
+# own route names. The dev sandbox has egress to no external host, so dispatch
+# this and read the job log — it ends with a draft allowlist you can paste into
+# data/sources/<operator>-sleepers.json.
+#
+# It answers the second question too: --verify-allowlists runs every committed
+# allowlist through the adapter's own builder against the live feed, printing the
+# trains it built and naming any entry that matched nothing — so a new or drifted
+# allowlist fails here rather than in the nightly scrape after a merge.
+#
+# A pull_request run does both, in that order: the sweep is the only path that
+# fetches a feed with no registry entry yet, so it is also how a fix to one of
+# the failing catalogue feeds gets tested before anything merges.
+#
+# Read-only: downloads the zip, parses it, prints, deletes. Nothing is committed.
+#
+# Feeds worth pointing it at (from data/sources/official-sources.json):
+#   SNCF  https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip
+#   VR    https://rata.digitraffic.fi/api/v1/trains/gtfs-passenger-stops.zip
+
+# Two ways in, because `workflow_dispatch` only works once the workflow file is
+# on the DEFAULT branch — which is exactly what makes a new probe unrunnable
+# until its own PR merges. A `pull_request` trigger runs from the PR head
+# instead, including a workflow added in that same PR, so labelling the PR
+# `run-probes` runs this on the branch and the result can be read before
+# merging anything.
+on:
+  workflow_dispatch:
+    inputs:
+      feed_url:
+        description: "GTFS .zip URL (leave blank to use `source`)"
+        required: false
+        default: ""
+      source:
+        description: "Registry source id: takes params.feedUrl AND runs its committed allowlist (e.g. sncf)"
+        required: false
+        default: ""
+      verify_allowlists:
+        description: "Run every committed gtfs-sleeper allowlist against its live feed"
+        type: boolean
+        required: false
+        default: false
+      min_hours:
+        description: "Minimum run length for the evening-departure fallback"
+        required: false
+        default: "5"
+      limit:
+        description: "How many candidates to print"
+        required: false
+        default: "40"
+  pull_request:
+    types: [labeled]
+
+jobs:
+  probe:
+    # Only on the label, never on every push: this downloads several feeds.
+    if: github.event_name != 'pull_request' || github.event.label.name == 'run-probes'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      # A pull_request event carries no inputs at all, so every ${{ inputs.x }}
+      # renders empty and the event itself has to pick the mode. A PR wants both
+      # questions answered and the label already says "spend the downloads", so
+      # it gets both steps; a dispatch runs whichever one its inputs name.
+      - name: Sweep the catalogue's open feeds
+        if: github.event_name == 'pull_request' || !(inputs.feed_url || inputs.source || inputs.verify_allowlists)
+        run: |
+          # `| tee` makes bash report TEE's exit status, so a probe that crashes
+          # — an OOM on an oversized feed, say — leaves the step green. That is
+          # the same invisible failure this PR is about, so: pipefail.
+          set -o pipefail
+          # Which of the catalogued feeds are real, and what is in them — the
+          # question you ask BEFORE an allowlist exists. It is also the only
+          # path that fetches a feed with no registry entry yet, which is how a
+          # fix to one of them (VR's 406) gets tested before merging.
+          node scripts/probe-gtfs.mjs \
+            --min-hours "${{ inputs.min_hours || '5' }}" \
+            --limit "${{ inputs.limit || '40' }}" | tee -a probe-gtfs.log
+
+      - name: Verify the committed allowlists
+        if: github.event_name == 'pull_request' || inputs.verify_allowlists == true || inputs.feed_url || inputs.source
+        run: |
+          set -o pipefail
+          # Does the allowlist now in the repo still resolve against its feed —
+          # the question a PR asks. Printed last, so a log tail carries it.
+          node scripts/probe-gtfs.mjs \
+            ${{ (github.event_name == 'pull_request' || inputs.verify_allowlists == true) && '--verify-allowlists' || '' }} \
+            ${{ inputs.feed_url && format('--url {0}', inputs.feed_url) || '' }} \
+            ${{ inputs.source && format('--source {0}', inputs.source) || '' }} \
+            --min-hours "${{ inputs.min_hours || '5' }}" \
+            --limit "${{ inputs.limit || '40' }}" | tee -a probe-gtfs.log
+
+      - name: Upload the log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gtfs-probe-log
+          path: probe-gtfs.log
+          retention-days: 7
+          if-no-files-found: warn

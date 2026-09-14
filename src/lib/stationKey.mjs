@@ -3,8 +3,27 @@
 // build does — the serve-time stops projection (api/lib/payload-projection.mjs)
 // decides which stations ship to the browser from exactly this key, so a
 // divergence would silently drop markers.
+// Memoised, because this is 45 regex replacements and it sits in the map's
+// per-frame path. `useMapMarkers`' viewport thinning depends on mapZoom and
+// mapBounds, so it re-runs on every pan and zoom, normalising every station a
+// route names — 1 863 names at 1.67 µs is 3.1 ms of a 16.7 ms frame for one
+// pass, and the thinning used to make three passes per stop. The function is
+// pure and its input domain is the station table, so a cache is exactly right;
+// `buildAllRoutesPaths` already kept a local one, which was this fix applied
+// one caller at a time instead of at the source.
+//
+// Bounded so a long-lived lambda cannot grow one string at a time: the whole
+// payload is ~30 000 names, and clearing wholesale (rather than evicting one
+// entry) keeps this a plain Map — the next frames refill what they touch.
+const NORMALIZE_CACHE_LIMIT = 40000;
+const normalizeCache = new Map();
+
 export const normalizeStationNameForLookup = (stationName) => {
   if (!stationName) return stationName;
+  if (typeof stationName === "string") {
+    const hit = normalizeCache.get(stationName);
+    if (hit !== undefined) return hit;
+  }
 
   // Step 1: Remove French bilingual parts (e.g., " / Anvers-Central", " / Bruxelles-Midi", " / Luik-*")
   let normalized = stationName
@@ -52,5 +71,9 @@ export const normalizeStationNameForLookup = (stationName) => {
     .replace(/\s+hlavni\s+nadrazi\s*$/i, " hl.n.")   // ASCII diacritic-free variant
     .trim();
 
+  if (typeof stationName === "string") {
+    if (normalizeCache.size >= NORMALIZE_CACHE_LIMIT) normalizeCache.clear();
+    normalizeCache.set(stationName, normalized);
+  }
   return normalized;
 };

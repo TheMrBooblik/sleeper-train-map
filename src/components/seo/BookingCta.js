@@ -11,11 +11,15 @@ import { abbreviateStationName } from "../Map/utils/stationNameUtils";
  *
  * Outbound booking links may carry referral tags, so they are marked
  * rel="sponsored nofollow". `compact` renders the button alone for CTA rows.
+ *
+ * `advice` is pricingAdvice() for the route's operator; when present the CTA
+ * also says whether booking early is what makes this ticket cheap.
  */
 export default function BookingCta({
   booking,
   origin,
   destination,
+  advice = null,
   compact = false,
 }) {
   if (!booking || (!booking.href && !booking.dealsUrl)) return null;
@@ -31,6 +35,25 @@ export default function BookingCta({
   }
   const joined = captionParts.join(" · ");
   const caption = joined ? joined.charAt(0).toUpperCase() + joined.slice(1) : "";
+
+  // Whether to buy now or later is the question a reader has WHILE looking at
+  // this button, and the two pricing models answer it in opposite directions.
+  // Its own line, not appended to the caption above: that line is about which
+  // shop opens and what it costs, and burying the timing in it would lose it.
+  //
+  // The caveat matters most exactly here, because the deals link sits inches
+  // away: "Book early" rendered three lines under the operator's own
+  // "Last-minute deals" was the page arguing with itself. With the caveat the
+  // two read as one answer — book early for the reliable fare, or gamble on an
+  // unsold berth.
+  // `guidance` ("Book early"), not `headline` ("Dynamic fare"): this is a
+  // sentence at the point of purchase, so it opens with the instruction. The
+  // fare's NAME belongs on the badge in the facts tile, where the explainer
+  // unpacks it.
+  const timing = advice
+    ? `${advice.guidance} — ${advice.short}` +
+      (advice.caveat ? `, but ${advice.caveat}.` : ".")
+    : "";
 
   const button = booking.href && (
     <a
@@ -63,6 +86,9 @@ export default function BookingCta({
         )}
       </div>
       {caption && <p className="mt-2 text-xs text-white/50">{caption}</p>}
+      {timing && (
+        <p className="mt-1 text-xs text-white/70 text-pretty">{timing}</p>
+      )}
     </div>
   );
 }

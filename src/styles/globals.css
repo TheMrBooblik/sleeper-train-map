@@ -24,6 +24,18 @@ body {
   overflow-x: hidden;
   overflow-y: hidden;
   height: 100%;
+  /* The canvas, not decoration. Every dark page paints its black onto a
+   * `h-dvh` scroll container (SeoLayout, /about, /privacy), and the browser
+   * fills everything that container does not reach with the ROOT element's
+   * background — which was transparent, i.e. white. Two things routinely
+   * leave a strip: the rubber-band overscroll past the end of a connection
+   * page, and any moment 100dvh resolves shorter than the visible area (an
+   * iOS toolbar transition, an orientation change). Either one flashed a
+   * white block under the footer of an otherwise black page. #000 is the
+   * `theme-color` the app already ships, so the gap now matches the chrome
+   * instead of shouting. Next's built-in 404 sets its own body background
+   * from a <style> inside <body>, so it still wins here and stays readable. */
+  background-color: #000;
 }
 
 a {

@@ -1,10 +1,9 @@
 {
-  "note": "Amtrak routes that offer sleeping accommodations (Roomette/Bedroom). The gtfs-sleeper adapter keeps only feed routes whose route_long_name / route_short_name / route_id matches one of these (case/space/punctuation-insensitive). Day corridors (Acela, Northeast Regional, state-supported services) are intentionally excluded. Edit this list to add/remove sleeper routes; no code change needed.",
+  "note": "Amtrak routes that offer sleeping accommodations (Roomette/Bedroom). The gtfs-sleeper adapter keeps only feed routes whose route_long_name / route_short_name / route_id matches one of these (case/space/punctuation-insensitive). Day corridors (Acela, Northeast Regional, state-supported services) are intentionally excluded. Edit this list to add/remove sleeper routes; no code change needed. Removed 2026-09: \"Capitol Limited\" and \"Silver Star\" — the feed no longer carries either, and the Floridian, which it does carry (Miami – Washington – Pittsburgh – Cleveland – Chicago, 46 stops), runs the corridors they used to. Found by `probe-gtfs --verify-allowlists`, which reported them as matching nothing; left in place they would have made that warning permanent and hidden the next real drift.",
   "source": "https://content.amtrak.com/content/gtfs/GTFS.zip",
   "routes": [
     "Auto Train",
     "California Zephyr",
-    "Capitol Limited",
     "Floridian",
     "Cardinal",
     "City of New Orleans",
@@ -13,7 +12,6 @@
     "Empire Builder",
     "Lake Shore Limited",
     "Silver Meteor",
-    "Silver Star",
     "Southwest Chief",
     "Sunset Limited",
     "Texas Eagle"

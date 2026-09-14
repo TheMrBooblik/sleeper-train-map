@@ -13,14 +13,14 @@
 //
 // Raw node, no network. Run: npm run verify-station-times
 import assert from "node:assert";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 // The module fs-reads public/data/scraped relative to process.cwd() and
 // memoizes on first use, so the fixture root has to be current before it loads.
-process.chdir(
-  path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures", "station-times"),
-);
+const TESTS_DIR = path.dirname(fileURLToPath(import.meta.url));
+process.chdir(path.join(TESTS_DIR, "fixtures", "station-times"));
 const { getStationTimesForTrain } = await import("../src/lib/seo/stationTimes.mjs");
 
 let passed = 0;
@@ -107,6 +107,55 @@ check("train numbers match regardless of spacing and case", () => {
     names(getStationTimesForTrain(" 475 ", { origin: "Trondheim S", destination: "Bodø" })),
     ["Trondheim S", "Steinkjer", "Mo i Rana", "Bodø"],
   );
+});
+
+// ── The assembled page: a stop belongs to one journey ─────────────────────
+// getStationTimesForTrain hands over a feed trip's stops; src/lib/seo/data.js
+// then overrides the endpoint times from the gated viewMap row. It overrode
+// only half of each endpoint, so the origin kept the FEED's arrival beside the
+// ROW's departure and the destination the reverse — two trips in one stop, and
+// on Paris–Aurillac (where the enrichment had deliberately refused the feed's
+// 2-stop portion) that printed `{"departure":"19:28","arrival":"18:27"}`.
+// A journey does not arrive where it starts or depart from where it ends, so
+// both fields are meaningless whatever their source. Asserted against the
+// BUILT pages, because the defect lives in the assembly rather than in either
+// function, and the assembly reads the committed artifact.
+check("no built page gives an origin an arrival or a destination a departure", () => {
+  const dir = path.join(TESTS_DIR, "..", ".next", "server", "pages", "connections");
+  if (!fs.existsSync(dir)) {
+    console.log("      (skipped — run `npm run build` first)");
+    return;
+  }
+  let pages = 0;
+  let offenders = [];
+  let intermediatesWithTimes = 0;
+  for (const file of fs.readdirSync(dir)) {
+    if (!file.endsWith(".html")) continue;
+    pages += 1;
+    const html = fs.readFileSync(path.join(dir, file), "utf8");
+    for (const m of html.matchAll(/"stops":\[(.*?)\](?=,"serviceDays")/g)) {
+      let stops;
+      try {
+        stops = JSON.parse(`[${m[1]}]`);
+      } catch {
+        continue;
+      }
+      if (stops.length < 2) continue;
+      if (stops[0].arrival) offenders.push(`${file}: origin ${stops[0].name} arrives ${stops[0].arrival}`);
+      const last = stops[stops.length - 1];
+      if (last.departure) offenders.push(`${file}: destination ${last.name} departs ${last.departure}`);
+      for (const s of stops.slice(1, -1)) if (s.arrival || s.departure) intermediatesWithTimes += 1;
+    }
+  }
+  assert.ok(pages > 100, `expected the built connection pages, found ${pages}`);
+  assert.deepStrictEqual(offenders.slice(0, 5), [], `${offenders.length} endpoint(s) carry a time they cannot have`);
+  // The inverse: clearing the endpoints must not have cost the stops in
+  // between their times, which are the whole reason to prefer a feed.
+  assert.ok(
+    intermediatesWithTimes > 2000,
+    `intermediate stops lost their times: only ${intermediatesWithTimes} carry any`,
+  );
+  console.log(`      (${pages} pages, ${intermediatesWithTimes} intermediate stops still timed)`);
 });
 
 console.log(`\n[verify-station-times] ${passed} checks passed`);

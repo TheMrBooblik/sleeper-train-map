@@ -16,6 +16,7 @@
  * payload; the curated catalogue only fills in what the data cannot know.
  */
 import { OPERATORS, splitAgencyIds } from "../seo/operatorNames.mjs";
+import { viaNameCandidates } from "../viaSplit.mjs";
 
 export const BACKONTRACK_SOURCE_ID = "backontrack";
 
@@ -108,10 +109,10 @@ export function routeStations(row) {
       const name = (row?.[field] ?? "").trim();
       if (name) out.add(name);
     }
-    for (const name of String(row?.[`via_${d}`] ?? "").split(" - ")) {
-      const trimmed = name.trim();
-      if (trimmed) out.add(trimmed);
-    }
+    // Candidates rather than a plain split: 437 stops carry " - " inside their
+    // own name. This set counts a route's stations, so an extra reading that
+    // matches no stop is harmless while a torn name loses the real one.
+    for (const name of viaNameCandidates(row?.[`via_${d}`])) out.add(name);
   }
   return out;
 }

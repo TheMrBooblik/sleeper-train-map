@@ -12,6 +12,7 @@ import { slugify, buildPairSlug, orderCityPair } from "../src/lib/seo/slugify.mj
 import { buildRouteSlugMaps } from "../src/lib/seo/routeSlugs.mjs";
 import { cityForStation, stationsMissingCityOverride } from "../src/lib/seo/cities.mjs";
 import { pairSlugForRoute, flattenRedirects } from "../scripts/build-seo-redirects.mjs";
+import { lastmodFor, CONTENT_VERSION_DATE } from "../src/lib/seo/lastmod.mjs";
 
 const problems = [];
 const check = (cond, msg) => {
@@ -29,6 +30,65 @@ const routes = Object.values(viewMap);
 const redirects = JSON.parse(
   fs.readFileSync(new URL("../data/seo/redirects.json", import.meta.url), "utf8"),
 );
+
+// ── sitemap lastmod ────────────────────────────────────────────────────────
+// Every URL used to carry the payload's generation timestamp, so each nightly
+// scrape claimed the whole site had changed. lastmod is now per-URL, and the two
+// ways to get it wrong are: a date in the future (crawlers discard the file),
+// and going back to one value for everything.
+{
+  const FALLBACK = "2026-09-10T16:15:16.757Z";
+  const floor = "2026-06-01";
+
+  check(
+    lastmodFor("2026-09-08", FALLBACK, floor) === "2026-09-08",
+    "a route's own change date wins when it is newer than the floor",
+  );
+  check(
+    lastmodFor("2026-01-15", FALLBACK, floor) === floor,
+    "a route older than the template floor is lifted to it, not left in January",
+  );
+  check(
+    lastmodFor("", FALLBACK, floor) === FALLBACK,
+    "a URL with no history at all keeps the payload date — better than no lastmod",
+  );
+  for (const junk of [null, undefined, "yesterday", "2026-9-8", 20260908, "2026-09-08T00:00:00Z"]) {
+    check(
+      lastmodFor(junk, FALLBACK, floor) === FALLBACK,
+      `malformed lastChanged (${JSON.stringify(junk)}) must fall back, not reach the sitemap`,
+    );
+  }
+
+  check(
+    /^\d{4}-\d{2}-\d{2}$/.test(CONTENT_VERSION_DATE),
+    `CONTENT_VERSION_DATE must be a W3C date, got ${CONTENT_VERSION_DATE}`,
+  );
+  check(
+    CONTENT_VERSION_DATE <= new Date().toISOString().slice(0, 10),
+    `CONTENT_VERSION_DATE ${CONTENT_VERSION_DATE} is in the future — crawlers discard a sitemap that claims that`,
+  );
+
+  // The point of the change: the committed history really does spread the
+  // routes out, so per-URL lastmod is a signal and not 297 copies of one date.
+  const history = JSON.parse(
+    fs.readFileSync(
+      new URL("../public/data/published/route-history.json", import.meta.url),
+      "utf8",
+    ),
+  ).routes;
+  const dates = new Set(
+    Object.values(history)
+      .map((h) => h.lastChanged)
+      .filter(Boolean),
+  );
+  check(
+    dates.size > 1,
+    `route-history.json has ${dates.size} distinct lastChanged value(s) — per-URL lastmod would be pointless`,
+  );
+  const today = new Date().toISOString().slice(0, 10);
+  const future = [...dates].filter((d) => d > today);
+  check(future.length === 0, `route-history.json has future lastChanged dates: ${future.join(", ")}`);
+}
 
 // ── slugify: characters with no NFD decomposition ──────────────────────────
 {
@@ -126,9 +186,36 @@ const validPairSlugs = new Set();
   );
 
   // Every destination must be a page the build actually emits.
+  //
+  // Connection pages are settled here: validPairSlugs IS the emitted set. Hub
+  // pages are not — getStationMap() nests a city under its endpoint's country
+  // and gates on MIN_ROUTES_PER_STATION, and neither the country table nor the
+  // stop→country index loads in raw node (extensionless imports, and the
+  // published stops carry no country). So a hub destination is checked for the
+  // part this file can settle: the city segment must be spelled the way the
+  // build spells it. That it also clears the route threshold is asserted
+  // end-to-end against a live server in tests/seo-redirects.spec.js, which
+  // fetches every non-connection destination.
   const emitted = new Set(["/connections", "/", "/about", "/privacy"]);
   for (const s of validPairSlugs) emitted.add(`/connections/${s}`);
-  const dangling = Object.entries(redirects).filter(([, d]) => !emitted.has(d));
+
+  const citySlugs = new Set();
+  for (const r of routes) {
+    for (const f of ["origin_trip_0", "destination_trip_0", "origin_trip_1", "destination_trip_1"]) {
+      const city = cityForStation(r[f] || "");
+      if (city) citySlugs.add(slugify(city));
+    }
+  }
+  const HUB = /^\/night-trains\/[a-z0-9-]+(?:\/from\/([a-z0-9-]+))?$/;
+
+  const dangling = Object.entries(redirects).filter(([, d]) => {
+    if (emitted.has(d)) return false;
+    const hub = HUB.exec(d);
+    // A country hub (no /from/) is emitted for every country with routes; a city
+    // hub must name a city some endpoint resolves to.
+    if (hub) return hub[1] ? !citySlugs.has(hub[1]) : false;
+    return true;
+  });
   check(
     dangling.length === 0,
     `${dangling.length} redirect(s) point at a URL the build does not emit, e.g. ${dangling
@@ -152,6 +239,62 @@ const validPairSlugs = new Set();
   check(
     missing.length === 0,
     `${missing.length} /trains/ URL(s) missing from the redirect map — run npm run build-redirects`,
+  );
+}
+
+// ── one route, one connection page ─────────────────────────────────────────
+// getPairMap() indexes a route under EVERY direction's city pair, so a row whose
+// two directions resolve to different cities emits two pages with identical
+// content — and buildSummary's pairSlug (the canonical) names only one of them,
+// leaving the other an orphan duplicate. European Sleeper's Berlin–Paris row was
+// exactly that: ES 474 arrives at Paris Gare du Nord and ES 475 departs from
+// Mitry-Claye while Gare du Nord is under works, so the corridor had a
+// /connections/berlin-to-mitry-claye twin nobody would ever search for.
+{
+  for (const r of routes) {
+    const slugs = new Set();
+    for (const d of [0, 1]) {
+      const o = r[`origin_trip_${d}`];
+      const x = r[`destination_trip_${d}`];
+      if (!o || !x) continue;
+      const a = cityForStation(o);
+      const b = cityForStation(x);
+      if (!a || !b || a === b) continue;
+      slugs.add(buildPairSlug(a, b));
+    }
+    check(
+      slugs.size <= 1,
+      `route ${r.route_id} emits ${slugs.size} connection pages ([...slugs] = ${[...slugs].join(", ")}); ` +
+        `its two directions resolve to different cities — add the odd endpoint to station-cities.json`,
+    );
+  }
+}
+
+// ── the missing-city reporter must see an unrecognised qualifier ────────────
+// Its original rule only reported a name the fallback had CHANGED, which made it
+// blind to the shape that actually costs pages: a qualifier the fallback does not
+// know, so the name is left alone and quietly becomes its own city. "Hamburg
+// Altona" and "Milano Certosa" sat in the payload unreported for months with
+// "Hamburg Harburg" and "Milano Centrale" already one line away in the table.
+{
+  const reported = new Set(
+    stationsMissingCityOverride([
+      "Hamburg Dammtor", // not in the table; "Hamburg *" siblings are
+      "Sofia", // genuinely its own city, single token, no sibling
+      "Bologna Centrale", // fallback handles it, still worth a human look
+    ]),
+  );
+  check(
+    reported.has("Hamburg Dammtor"),
+    'stationsMissingCityOverride missed "Hamburg Dammtor" — a sibling in the table names its city',
+  );
+  check(
+    !reported.has("Sofia"),
+    'stationsMissingCityOverride reported "Sofia", which is already its own city',
+  );
+  check(
+    reported.has("Bologna Centrale"),
+    'stationsMissingCityOverride stopped reporting a name the fallback rewrites',
   );
 }
 

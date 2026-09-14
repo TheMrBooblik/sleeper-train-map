@@ -8,6 +8,7 @@ import { useRoutes } from "../../hooks/requests/useRoutes";
 import { useTrips } from "../../hooks/requests/useTrips";
 import { getRouteFrequencyOverride } from "../../lib/routeFrequencyOverrides";
 import { buildPairSlug } from "../../lib/seo/slugify.mjs";
+import { viaScheduleForTrip } from "../../lib/viaSchedule.mjs";
 import { cityForStation } from "../../lib/seo/cities.mjs";
 import {
   checkRegioJetPrahaChop,
@@ -18,16 +19,19 @@ import {
   hexWithAlpha,
 } from "../Map/utils/operatorColors";
 import { abbreviateStationName } from "../Map/utils/stationNameUtils";
+import PricingExplainer from "../PricingExplainer";
 import {
   getOperatorPricing,
   formatPricingLabel,
   getPricingBadgeStyle,
+  pricingAdvice,
 } from "../../lib/operatorPricing";
 import {
   formatTrainNumber,
   resolveOperatorComponents,
   resolveScheduleLink,
 } from "../../lib/operatorAgencies.mjs";
+import { hasLastMinuteDeals } from "../../lib/operatorBooking";
 import {
   esScheduleForTrip,
   isEuropeanSleeperRoute,
@@ -40,6 +44,8 @@ import {
   selectMajorViaStations,
 } from "../../lib/viaDisplay.mjs";
 import { MOBILE_MQ } from "../../hooks/useIsMobile";
+import { splitViaString } from "../../lib/viaSplit.mjs";
+import { officialRowSchedule } from "../../lib/officialRowSchedule.mjs";
 
 /**
  * How much of the viewport the panel occupies, so the map can frame a selected
@@ -403,7 +409,9 @@ const TrainDetailPanel = ({
     const onwardCount = (trip) => {
       const sequence = [
         trip.trip_origin,
-        ...String(trip.via || "").split(" - "),
+        // Split by station name: a torn name matches no endpoint, so the
+        // selected station is not found and the direction ordering flips.
+        ...splitViaString(trip.via),
         trip.trip_headsign,
       ]
         .map((s) => (s || "").trim())
@@ -1224,6 +1232,20 @@ const TrainDetailPanel = ({
                 // and 36 where Back-on-Track records one number for both.
                 const scheduleDirection =
                   Number(trip.direction_id) === 1 ? 1 : 0;
+
+                // The row the enrichment corrected, when an official feed
+                // corroborated it. Enrichment rewrites the ROW and never the
+                // trips table, so every value below that falls through to
+                // `trip.*` is Back-on-Track's copy of a timetable the operator
+                // has already replaced — 183 minutes out on IC Nuit 3750, and a
+                // 2-stop via list where the row carries 14. Sits directly above
+                // the trip fallback and below every per-operator feed: a feed
+                // that knows this train is still the better answer, and where
+                // one exists it is usually what stamped the row anyway.
+                const officialRow = officialRowSchedule(
+                  tripRoute,
+                  trip.direction_id,
+                );
                 const scheduleLink = resolveScheduleLink({
                   agencyId: operatorAgencyId,
                   agencies,
@@ -1244,7 +1266,7 @@ const TrainDetailPanel = ({
                   operatorAgencyId,
                 );
                 const viaSummary = selectMajorViaStations(
-                  esVia || trip.via,
+                  esVia || officialRow?.via || trip.via,
                   majorViaContext,
                 );
 
@@ -1295,6 +1317,22 @@ const TrainDetailPanel = ({
                       source: "pkp",
                     }
                   : null;
+
+                // Last resort: the row's own via list. Every schedule above is
+                // keyed by train number into one of nine operator feeds, so a
+                // train no feed carries — which is every Back-on-Track-only
+                // route, all of Norway and SNCF's Intercités de Nuit among them
+                // — showed NO stop list here at all, while the connection page
+                // for the same train showed one. This is that page's fallback,
+                // brought over: origin, the via names, destination, with the
+                // endpoint times the row already carries and no invented ones
+                // in between. Placed last in the chain below, so it never
+                // displaces a feed that does know the train, and it improves on
+                // its own when an enrichment rewrites via_* from official data.
+                const viaSchedule = viaScheduleForTrip(
+                  tripRoute,
+                  isDir1 ? 1 : 0,
+                );
                 // PKP is the source of truth for Polish trains: its GTFS
                 // origin-departure / destination-arrival win over the BoT times.
                 const pkpOriginDeparture =
@@ -1446,7 +1484,8 @@ const TrainDetailPanel = ({
                   caucasusSchedule ||
                   curatedSchedule ||
                   naSchedule ||
-                  esSchedule;
+                  esSchedule ||
+                  viaSchedule;
                 const validFrom = formatCalendarDate(schedule?.validFrom);
                 const validUntil = formatCalendarDate(schedule?.validUntil);
 
@@ -1462,6 +1501,12 @@ const TrainDetailPanel = ({
                 const pricing = getOperatorPricing(trip);
                 const pricingLabel = formatPricingLabel(pricing);
                 const pricingBadgeStyle = getPricingBadgeStyle(pricing);
+                // Keyed to the SELLING agency, because a deals page is a
+                // selling-side thing and BookingActions renders that link right
+                // below — the two must not disagree about whether one exists.
+                const pricingHelp = pricingAdvice(pricing, {
+                  hasLastMinuteDeals: hasLastMinuteDeals(bookingAgencyId),
+                });
 
                 return (
                   <div
@@ -1561,20 +1606,20 @@ const TrainDetailPanel = ({
                         ))}
                     </div>
 
-                    {/* Pricing */}
+                    {/* Pricing — the badge names the fare model; the circled
+                        "?" opens what it means for booking (PricingExplainer). */}
                     {pricingLabel && pricingBadgeStyle && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500 uppercase">
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs text-gray-500 uppercase mt-0.5">
                           Price
                         </span>
-                        <span
-                          className="rounded-md px-2 py-0.5 text-xs font-medium"
-                          style={{
-                            ...pricingBadgeStyle,
-                          }}
-                        >
-                          {pricingLabel}
-                        </span>
+                        <PricingExplainer
+                          advice={pricingHelp}
+                          label={pricingLabel}
+                          tone="light"
+                          labelClassName="rounded-md px-2 py-0.5 text-xs font-medium"
+                          labelStyle={pricingBadgeStyle}
+                        />
                       </div>
                     )}
 
@@ -1650,6 +1695,8 @@ const TrainDetailPanel = ({
                       naDestinationArrival ||
                       esOriginDeparture ||
                       esDestinationArrival ||
+                      officialRow?.departure ||
+                      officialRow?.arrival ||
                       formatTime(
                         trip.origin_departure_time ||
                           nightjetOriginDeparture ||
@@ -1669,6 +1716,7 @@ const TrainDetailPanel = ({
                             {pkpOriginDeparture ||
                               naOriginDeparture ||
                               esOriginDeparture ||
+                              officialRow?.departure ||
                               formatTime(
                                 trip.origin_departure_time ||
                                   nightjetOriginDeparture ||
@@ -1684,6 +1732,7 @@ const TrainDetailPanel = ({
                             {pkpDestinationArrival ||
                               naDestinationArrival ||
                               esDestinationArrival ||
+                              officialRow?.arrival ||
                               formatTime(
                                 trip.destination_arrival_time ||
                                   nightjetDestinationArrival ||
@@ -1694,15 +1743,25 @@ const TrainDetailPanel = ({
                       </div>
                     )}
 
-                    {(esDuration || trip.duration) && (
+                    {/* Back-on-Track's `duration` was computed from the times
+                        the enrichment replaced, so on a corrected row it
+                        contradicts the two numbers printed right above it —
+                        IC Nuit 5789 reads 11h30 against its own 20:57 → 08:24. */}
+                    {(esDuration ||
+                      officialRow?.durationText ||
+                      trip.duration) && (
                       <div className="text-xs text-gray-600">
-                        Duration: {esDuration || formatTime(trip.duration)}
+                        Duration:{" "}
+                        {esDuration ||
+                          officialRow?.durationText ||
+                          formatTime(trip.duration)}
                       </div>
                     )}
 
                     {/* Frequency — PKP GTFS run-days win; BoT/override fallback */}
                     {(pkpSchedule?.days ||
                       esSchedule?.days ||
+                      officialRow?.serviceDays ||
                       trip.service_id ||
                       getRouteFrequencyOverride(trip.route_id)) && (
                       <div className="space-y-1">
@@ -1739,7 +1798,11 @@ const TrainDetailPanel = ({
                             }
                             // The feed's own service days, which carry the
                             // period they apply to; BoT's copy is undated.
-                            return esSchedule?.days || trip.service_id;
+                            return (
+                              esSchedule?.days ||
+                              officialRow?.serviceDays ||
+                              trip.service_id
+                            );
                           })()}
                         </div>
                       </div>

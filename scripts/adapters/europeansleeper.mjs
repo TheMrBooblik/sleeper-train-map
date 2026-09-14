@@ -32,7 +32,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import polyline from "@mapbox/polyline";
-import { downloadGtfs, loadGtfsDir } from "../lib/gtfs.mjs";
+import {
+  downloadGtfs,
+  loadGtfsDir,
+  decemberTimetableChange,
+  nextTimetableChangeAfter,
+} from "../lib/gtfs.mjs";
 import { renderCalendar, DAY_KEYS } from "../../src/pages/api/lib/calendar.mjs";
 import { resolveCanonicalStationName } from "../../src/pages/api/lib/primitives.mjs";
 import { distanceKm } from "../../src/components/Map/utils/returnGeometryBranches.js";
@@ -188,23 +193,9 @@ function dayKeyOf(yyyymmdd) {
 // current period has no such floor: a train still running even once should show.
 const MIN_FUTURE_PERIOD_TRIPS = 3;
 
-/** Second Sunday in December of `year`, as "YYYYMMDD". */
-function decemberTimetableChange(year) {
-  const dec1 = new Date(Date.UTC(year, 11, 1));
-  const firstSunday = 1 + ((7 - dec1.getUTCDay()) % 7);
-  const day = firstSunday + 7;
-  return `${year}${"12"}${String(day).padStart(2, "0")}`;
-}
-
-/** The next timetable change strictly after "YYYYMMDD", or null if none is near. */
-function nextTimetableChangeAfter(yyyymmdd) {
-  const year = Number(yyyymmdd.slice(0, 4));
-  for (const y of [year, year + 1]) {
-    const change = decemberTimetableChange(y);
-    if (change > yyyymmdd) return change;
-  }
-  return null;
-}
+// decemberTimetableChange / nextTimetableChangeAfter now live in lib/gtfs.mjs,
+// because the same question — which weekdays does this train run — has the same
+// wrong answer in any date-expanded feed read as one window. SNCF hit it next.
 
 /**
  * Split a route's future trips into [current, next?] timetable periods.

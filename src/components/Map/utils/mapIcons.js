@@ -7,6 +7,17 @@
  * invisible 24px hit polylines on routes.
  */
 
+/**
+ * Fade for a stop only the next timetable period calls at.
+ *
+ * Deliberately NOT `MAP_LEGEND_LINE_BASE_STYLES.futureGhost.opacity` (0.35),
+ * which is the same idea for the line: a 16px dot carries far less ink than a
+ * 4.5px-wide stroke running across the map, so the same alpha reads much fainter
+ * on it. This is the value that makes the dot say "not yet running" as loudly as
+ * the line does. The legend swatch reads it from here so the two cannot drift.
+ */
+export const FUTURE_STATION_OPACITY = 0.55;
+
 /** Finger-sized tap target: a fingertip is far bigger than a 20px dot. */
 const HIT_TOUCH = 44;
 /**
@@ -27,10 +38,11 @@ export function stationHitSize() {
     : HIT_TOUCH;
 }
 
-function stationDotHtml({ hit, size, gradient, border, shadow, zIndex }) {
+function stationDotHtml({ hit, size, gradient, border, shadow, zIndex, opacity }) {
   const offset = (hit - size) / 2;
+  const fade = opacity == null ? "" : `opacity:${opacity};`;
   return `<div style="width:${hit}px;height:${hit}px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
-    <div style="width:${size}px;height:${size}px;margin:${offset}px;background:${gradient};border-radius:50%;border:${border};box-shadow:${shadow};transition:all 0.3s ease;z-index:${zIndex};"></div>
+    <div style="width:${size}px;height:${size}px;margin:${offset}px;background:${gradient};border-radius:50%;border:${border};box-shadow:${shadow};transition:all 0.3s ease;z-index:${zIndex};${fade}"></div>
   </div>`;
 }
 
@@ -88,5 +100,26 @@ export function createMapIcons(Leaflet) {
     iconAnchor: [HIT / 2, HIT / 2],
   });
 
-  return { defaultIcon, selectedIcon, viaIcon };
+  // A stop only the next timetable period calls at: the intermediate-stop dot,
+  // faded so it reads as a preview alongside the line through it (see
+  // FUTURE_STATION_OPACITY). Hiding these instead left the December
+  // Brussels–Milan line visibly running through Eindhoven and Breda with no
+  // markers on it, which reads as a bug rather than as a preview.
+  const futureIcon = new Leaflet.DivIcon({
+    className: "via-dot future-dot",
+    html: stationDotHtml({
+      hit: HIT,
+      size: 16,
+      gradient: "linear-gradient(135deg, #4CAF50, #388E3C)",
+      border: "2px solid white",
+      shadow:
+        "0 2px 6px rgba(76, 175, 80, 0.35), 0 0 0 1px rgba(76, 175, 80, 0.2)",
+      zIndex: 90,
+      opacity: FUTURE_STATION_OPACITY,
+    }),
+    iconSize: [HIT, HIT],
+    iconAnchor: [HIT / 2, HIT / 2],
+  });
+
+  return { defaultIcon, selectedIcon, viaIcon, futureIcon };
 }

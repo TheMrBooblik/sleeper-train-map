@@ -4,6 +4,8 @@ import React, { useCallback } from "react";
 import { buildRouteColorMap, NEUTRAL_FALLBACK_COLOR } from "../Map/utils/operatorColors";
 import { normalizeStationNameForDisplay, abbreviateStationName } from "../Map/utils/stationNameUtils";
 import { shouldHideRouteDueToFutureDate } from "../Map/utils/routeStyleUtils";
+import { splitViaString } from "../../lib/viaSplit.mjs";
+import { normalizeStationNameForLookup } from "../../lib/stationKey.mjs";
 
 /**
  * Bottom bar showing routes (Back-on-Track + NightJet/EuroNight) for the selected station.
@@ -21,10 +23,19 @@ const TrainBottomBar = ({
   onRouteLeave,
   viewMapData,
   trips,
+  cities,
 }) => {
   const hideRoute = useCallback(
     (routeId) => shouldHideRouteDueToFutureDate(routeId, trips),
     [trips],
+  );
+
+  // "Is this a station?" for splitting a via string. `cities` is keyed by the
+  // same normalizer and already holds whole names rather than fragments, so it
+  // is the map's own answer and cannot disagree with what got a marker.
+  const isKnownStation = useCallback(
+    (name) => !!cities?.[normalizeStationNameForLookup(String(name ?? ""))],
+    [cities],
   );
 
   // Guard against undefined viewMapData; hide future "From …" and outside service_id seasons.
@@ -69,7 +80,9 @@ const TrainBottomBar = ({
       // with a substring fallback for cities not in the known list.
       let viaText = "";
       if (viaStationsRaw && selectedNormalizedName) {
-        const viaList = viaStationsRaw.split(" - ");
+        // A station whose own name holds " - " must not be shown as two
+        // places ("Rocamadour" + "Padirac" for one SNCF stop).
+        const viaList = splitViaString(viaStationsRaw, isKnownStation);
         const filteredVia = viaList.filter((station) => {
           const normalizedVia = normalizeStationNameForDisplay(station.trim());
           return (

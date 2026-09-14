@@ -98,9 +98,9 @@
     "SNCF": {
       "website": "https://www.sncf.com",
       "countries": ["FR"],
-      "integrationStatus": "source-discovered",
+      "integrationStatus": "in-progress",
       "difficulty": "easy",
-      "notes": "The cheapest real win on the board: a plain GTFS zip, no key, refreshed daily and covering roughly 90–160 days ahead — long enough to carry the December timetable change that the europeansleeper adapter currently has to split by hand. Licensed ODbL (attribution + share-alike on derived data). The generic gtfs-sleeper adapter already reads this shape, so a registry entry plus a sleeper allowlist (Intercités de Nuit) should be most of the work. A GTFS-RT feed exists too and is deliberately out of scope: the map has no realtime surface to spend it on.",
+      "notes": "Registry entry `sncf` reads the GTFS export nightly; the 'Probe GTFS feed' run confirmed it downloads and parses (698 routes, 39 040 trips, 8 720 stops) and carries all nine of our SNCF routes. Two things shape the integration: the feed has no shapes.txt, so geometry would be a station chain or OSM; and its route names are not addresses — route_long_name is \"-\" for six of the eleven Intercités de Nuit and files two of the named ones under another corridor — so the allowlist addresses each train as an oriented endpoint pair (data/sources/sncf-sleepers.json). Enrichment is via-only: the live run matched all 18 oriented entries and returned 8\u201316 stops per train against Back-on-Track's 2\u20135, but endpoint times disagreed with it by over an hour on four of ten runs and service days came out per-trip, because a date-expanded feed gives each trip its own service_id. Verified by `probe-gtfs --verify-allowlists` on every run of the 'Probe GTFS feed' workflow.",
       "sources": [
         {
           "name": "SNCF Open Data — theoretical timetables (GTFS)",
@@ -109,10 +109,10 @@
           "format": "GTFS",
           "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
           "auth": "none",
-          "status": "discovered",
-          "lastChecked": null,
-          "probeWorkflow": null,
-          "notes": "Also mirrored on the French national access point: https://transport.data.gouv.fr/datasets/horaires-sncf"
+          "status": "working",
+          "lastChecked": "2026-09-11",
+          "probeWorkflow": "probe-gtfs.yml",
+          "notes": "Also mirrored on the French national access point: https://transport.data.gouv.fr/datasets/horaires-sncf. Probed 2026-09-11: HTTP 200, unzips, tables agency/calendar_dates/feed_info/routes/stop_times/stops/transfers/trips — no shapes.txt and no calendar.txt (calendar_dates only, which serviceDisplay already summarises)."
         },
         {
           "name": "SNCF Open Data — theoretical timetables (NeTEx)",
@@ -124,7 +124,7 @@
           "status": "discovered",
           "lastChecked": null,
           "probeWorkflow": null,
-          "notes": "Same content as the GTFS export in the European standard format. Only worth it if the GTFS export turns out to be missing something."
+          "notes": "Same content as the GTFS export in the European standard format. Only worth it if the GTFS export turns out to be missing something — the one known gap is shapes.txt, so check whether NeTEx carries track geometry before reaching for OSM."
         }
       ]
     },
@@ -216,8 +216,8 @@
       "website": "https://www.vr.fi",
       "countries": ["FI"],
       "integrationStatus": "source-discovered",
-      "difficulty": "easy",
-      "notes": "Finland is the best-published railway on this list: Fintraffic's Digitraffic serves a daily-regenerated GTFS zip for passenger trains with no key and no registration, plus a documented REST API alongside it.",
+      "difficulty": "medium",
+      "notes": "Finland is the best-published railway on this list on paper: Fintraffic's Digitraffic serves a daily-regenerated GTFS zip for passenger trains with no key and no registration, plus a documented REST API alongside it. In practice the GTFS URL we hold returns 406 and headers are ruled out as the cause (see the source note), so the URL has to be found before any of this is buildable — hence medium rather than easy.",
       "sources": [
         {
           "name": "Digitraffic — GTFS, passenger trains",
@@ -226,10 +226,10 @@
           "format": "GTFS",
           "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
           "auth": "none",
-          "status": "discovered",
-          "lastChecked": null,
-          "probeWorkflow": null,
-          "notes": "Regenerated daily around 05:00 local. Straight gtfs-sleeper adapter work."
+          "status": "broken",
+          "lastChecked": "2026-09-12",
+          "probeWorkflow": "probe-gtfs.yml",
+          "notes": "This URL answers HTTP 406 and the cause is NOT headers — do not retry that. Probed 2026-09-12 with a Digitraffic-User identifying the client (their terms ask for one) AND an explicit Accept of application/zip, application/octet-stream, */*: still 406. A server honouring content negotiation cannot refuse */*, so 406 is being used as a generic rejection here and the path itself is the remaining suspect — the same bucket as the VY/ZSSK/HZPP entries, a wrong URL rather than a hostile server. Next step is finding the real GTFS path in digitraffic.fi's railway docs, not sending more headers. Regenerated daily around 05:00 local; once the URL is right this is straight gtfs-sleeper work."
         },
         {
           "name": "Digitraffic railway REST API",
@@ -292,7 +292,7 @@
       "countries": ["NO"],
       "integrationStatus": "source-discovered",
       "difficulty": "medium",
-      "notes": "Norway is fully centralised on Entur, which aggregates every Norwegian operator and serves an open, documented GraphQL journey planner plus NeTEx/GTFS bulk exports. One Entur integration covers VY, SJ Norge and Go-Ahead Nordic.",
+      "notes": "Norway is fully centralised on Entur, which aggregates every Norwegian operator and serves an open, documented GraphQL journey planner plus NeTEx/GTFS bulk exports, no key for either. One Entur integration covers VY, SJ Norge and Go-Ahead Nordic — four night routes between them, each of which Back-on-Track describes with 2 to 6 via points. Probed 2026-09-12: the per-codespace GTFS file is the one to build on (see its note); the national aggregate is real but 807 MB of stop_times. Norwegian station names need no alias work, unlike France — all 28 checked against the payload are already there with coordinates, Finse and Dombås and Fauske included.",
       "sources": [
         {
           "name": "Entur Journey Planner v3 (GraphQL)",
@@ -307,16 +307,65 @@
           "notes": "Open, no key (an identifying ET-Client-Name header is expected). Transmodel vocabulary, so the adapter maps concepts rather than reading GTFS."
         },
         {
-          "name": "Entur open data (NeTEx / GTFS bulk)",
-          "url": "https://developer.entur.no/apis/open",
+          "name": "Entur open data — national aggregated GTFS",
+          "url": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_norway-aggregated-gtfs.zip",
           "docsUrl": "https://developer.entur.no/apis/open",
-          "format": "NeTEx / GTFS",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "none",
+          "status": "working",
+          "sweep": false,
+          "lastChecked": "2026-09-12",
+          "probeWorkflow": "probe-gtfs.yml",
+          "notes": "REAL but unusable nightly, confirmed 2026-09-12: downloads and unzips in 35 s, and then it is a whole country of every mode — stop_times.txt 807 MB, shapes.txt 2.6 GB. Past the probe's parse ceiling, and nothing we need is in here that the per-codespace file below does not have. Kept as the documented anchor for the bucket pattern, and as the place to look if a Norwegian operator ever lacks its own codespace file. (The value here until 2026-09-12 was the developer.entur.no documentation page, which the sweep downloaded as HTML every run — a GTFS-format source whose url is a docs page can only ever fail, and three of the four sweep failures were exactly that; see ZSSK and HŽPP.)"
+        },
+        {
+          "name": "Entur open data — per-codespace GTFS (Vy)",
+          "url": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_vyg-aggregated-gtfs.zip",
+          "docsUrl": "https://developer.entur.no/apis/open",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": "2026-09-12",
+          "probeWorkflow": "probe-gtfs.yml",
+          "notes": "WORKS and carries what we need: 24 routes, 9 496 trips, 930 stops, agencies Vy and Vy Tåg, and among the routes F1 Oslo S–Charlottenberg–Karlstad and F4 Oslo S–Bergen. F4 is Back-on-Track row 69, the Oslo–Bergen night train. (An earlier note here said this feed held only Vy's Oslo commuter network with no F-line — that was wrong, corrected once the probe started printing a feed's route list.) The night train does not show in the probe's candidate table because Entur writes a past-midnight arrival as 06:23 rather than 30:23, so a duration came out negative; the probe now treats an arrival earlier than its departure as overnight, which is the half of GTFS's two notations it had been missing. Even so the representative trip on F4 is a day train — one night train among thirty day services — so the allowlist entry has to be a NAMED ORIENTED pair, which scans every trip and requires it to cross midnight. shapes.txt is 415.9 MB and is skipped past MAX_SHAPES_BYTES; geometry is the station chain, as SNCF's is."
+        },
+        {
+          "name": "Entur open data — per-codespace GTFS (SJ Nord)",
+          "url": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_sjn-aggregated-gtfs.zip",
+          "docsUrl": "https://developer.entur.no/apis/open",
+          "format": "GTFS",
           "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
           "auth": "none",
           "status": "discovered",
           "lastChecked": null,
-          "probeWorkflow": null,
-          "notes": "Bulk export of the national dataset. Resolve the current download URL from this page — do not pin a snapshot."
+          "probeWorkflow": "probe-gtfs.yml",
+          "notes": "WORKS, confirmed 2026-09-12: 7 routes, 912 trips, 500 stops, agency SJ Nord, and the route list is F6 Dovrebanen, F7 Nordlandsbanen, R60 Rørosbanen, R65 Raumabanen, R70 Trønderbanen, R71 Meråkerbanen, R75 Saltenpendelen. F6 and F7 are Back-on-Track rows 70 (Oslo–Trondheim 405/406) and 71 (Trondheim–Bodø 475/476). Small and cheap: stop_times.txt 0.9 MB. shapes.txt 139 MB is under the ceiling and parses. Like Vy, the night train is one trip inside a line that also runs day services, so the allowlist entries are named oriented pairs."
+        },
+        {
+          "name": "Entur open data — per-codespace GTFS (Go-Ahead Nordic)",
+          "url": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_goa-aggregated-gtfs.zip",
+          "docsUrl": "https://developer.entur.no/apis/open",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
+          "probeWorkflow": "probe-gtfs.yml",
+          "notes": "WORKS, confirmed 2026-09-12: 3 routes, 1 724 trips, 275 stops, agency Go-Ahead Norge AS — F5 Sørtoget region, L5 Jærbanen, R50 Sørtoget lokal. F5 is Back-on-Track row 65, the Oslo–Stavanger night train (F5 725/726). stop_times.txt 1.0 MB, shapes.txt 108 MB, both fine. The probe shows F5 as a 04:19→12:05 day train because that is the fullest trip on the line; the 22:25 night train is one trip inside it, hence a named oriented allowlist entry."
+        },
+        {
+          "name": "Entur open data — per-codespace GTFS (Vy long-distance)",
+          "url": "https://storage.googleapis.com/marduk-production/outbound/gtfs/rb_nsb-aggregated-gtfs.zip",
+          "docsUrl": "https://developer.entur.no/apis/open",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "none",
+          "status": "broken",
+          "lastChecked": "2026-09-12",
+          "probeWorkflow": "probe-gtfs.yml",
+          "notes": "HTTP 404, and it should never have been tried: it was guessed from a false reading of rb_vyg (that Vy's long-distance was missing from it). F4 Oslo S–Bergen is in rb_vyg, so Vy needs no second codespace and there is nothing here to find. Kept only so the dead end is on the record."
         }
       ]
     },

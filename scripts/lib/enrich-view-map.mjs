@@ -25,12 +25,35 @@ import {
 import { buildVia } from "../../src/lib/pkpGtfsMerge.js";
 import { inAgencyScope } from "../../src/pages/api/lib/primitives.mjs";
 import { describeError } from "./describe-error.mjs";
+import { splitViaString } from "../../src/lib/viaSplit.mjs";
 
 // "2026-06-11T18:13:00.000Z" → "18:13" (BoT rows carry plain HH:MM strings).
-function toHHMM(iso) {
-  if (!iso || typeof iso !== "string") return null;
-  const m = iso.match(/T(\d{2}:\d{2})/);
-  return m ? m[1] : null;
+/**
+ * "HH:MM" out of the shapes the sources emit, or null.
+ *
+ * Three formats are in the tree and only two were handled. NightJet writes
+ * "2026-09-13T16:01:00.000Z" and European Sleeper "2026-09-13T15:55:00" (plus
+ * a `T`-prefixed wrap for past-midnight times), which the `T` anchor catches.
+ * But `gtfs-sleeper` — SNCF, Entur, Amtrak, VIA — writes a bare "22:47", and
+ * against that the `T` anchor returned null: `setTimes` would have been a
+ * SILENT no-op for every one of them, the shape of fault that looks correct
+ * right up until somebody switches the option on.
+ *
+ * The bare form is anchored to the whole string so a date can never be read as
+ * a time, and the `T` match still wins where both could apply. GTFS's past-
+ * midnight hours (25:10) never reach here — buildSleeperTrains wraps them
+ * before emitting, confirmed across all 1 838 times in the committed files —
+ * but they are wrapped here too rather than trusted to stay that way.
+ */
+function toHHMM(value) {
+  if (!value || typeof value !== "string") return null;
+  const iso = value.match(/T(\d{1,2}):(\d{2})/);
+  const bare = iso ? null : value.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  const m = iso ?? bare;
+  if (!m) return null;
+  const hours = Number(m[1]);
+  if (!Number.isFinite(hours)) return null;
+  return `${String(hours % 24).padStart(2, "0")}:${m[2]}`;
 }
 
 // Recomputed from a fresh BoT view map every night, so stamps never
@@ -43,8 +66,9 @@ function stampOfficialSource(route, sourceId) {
 }
 
 
-function trainsByNumber({ entry, viewMap, trains, log }) {
+function trainsByNumber({ entry, viewMap, trains, stopCoords, log }) {
   const opts = entry.enrich;
+  const isKnownStation = stopCoords ? (n) => !!stopCoords(n) : null;
   let touched = 0;
 
   Object.values(viewMap).forEach((route) => {
@@ -64,6 +88,7 @@ function trainsByNumber({ entry, viewMap, trains, log }) {
     }
 
     let matchedAny = false;
+    let tookAnyFeedTrip = false;
     for (const d of [0, 1]) {
       const name = route[`trip_short_name_${d}`];
       const match = name ? trains[name.toString().trim()] : null;
@@ -73,15 +98,40 @@ function trainsByNumber({ entry, viewMap, trains, log }) {
       if (opts.setPolyline && opts.polylineMode === "perDirection" && match.polyline) {
         route[`nj_polyline_${d}`] = match.polyline;
       }
+      // Whether this row takes the feed's trip at all. It gates the stop
+      // list, the times AND the stamp together, because a row describes ONE
+      // train: taking a trip's stops while keeping someone else's times is not
+      // a compromise, it is a row that contradicts itself. It did — on the
+      // published payload 16 of 18 SNCF directions carried the feed's exact
+      // stop list beside Back-on-Track's endpoint times, disagreeing on 16 of
+      // them and by an hour or more on 6, worst 183 minutes.
+      let takesFeedTrip = true;
       if (opts.updateVia && match.stations?.length >= 2) {
-        const via = match.stations
+        const stops = match.stations
           .slice(1, -1)
           .map((s) => s?.name)
-          .filter(Boolean)
-          .join(" - ");
-        if (via) route[`via_${d}`] = via;
+          .filter(Boolean);
+        // Official is better than Back-on-Track when it is more complete, and
+        // that is not a given per row: SNCF's feed carries the Aurillac
+        // portion as a 3-stop stub, whose one via station would have replaced
+        // Back-on-Track's Laroquebrou / Bretenoux Biars / St-Denis-lès-Martel.
+        // Opt-in, because a source whose stop list is authoritative even when
+        // shorter (a diverted train calling at fewer stations) wants the
+        // replacement.
+        // Count the incumbent by STATION, not by separator. 437 stops carry
+        // " - " inside their own name, so a plain split counts "Rocamadour -
+        // Padirac" as two — the existing list looks richer than it is and a
+        // genuinely better official list is refused. Exactly backwards for a
+        // guard whose whole job is "only replace with something fuller".
+        const ok =
+          !opts.viaOnlyIfRicher ||
+          stops.length >=
+            splitViaString(route[`via_${d}`], isKnownStation).length;
+        takesFeedTrip = Boolean(stops.length && ok);
+        if (takesFeedTrip) route[`via_${d}`] = stops.join(" - ");
       }
-      if (opts.setTimes && match.stations?.length >= 2) {
+      if (takesFeedTrip) tookAnyFeedTrip = true;
+      if (takesFeedTrip && opts.setTimes && match.stations?.length >= 2) {
         const dep = toHHMM(match.stations[0]?.departure);
         const arr = toHHMM(match.stations[match.stations.length - 1]?.arrival);
         if (dep) route[`origin_departure_time_${d}`] = dep;
@@ -93,7 +143,7 @@ function trainsByNumber({ entry, viewMap, trains, log }) {
       // Gesundbrunnen — so the row's own polyline reached a different place
       // than its endpoint marker. Off by default; a source opts in only when
       // its feed is the operator's own timetable.
-      if (opts.updateEndpoints && match.stations?.length >= 2) {
+      if (takesFeedTrip && opts.updateEndpoints && match.stations?.length >= 2) {
         const origin = match.stations[0]?.name;
         const dest = match.stations[match.stations.length - 1]?.name;
         if (origin) route[`origin_trip_${d}`] = origin;
@@ -107,7 +157,11 @@ function trainsByNumber({ entry, viewMap, trains, log }) {
       }
     }
 
-    if (matchedAny && opts.stamp) {
+    // Stamp only where official data actually landed. A row whose feed trip
+    // was refused kept Back-on-Track's everything, and claiming corroboration
+    // for it would tell the integrations dashboard a first-party source feeds
+    // a route it does not.
+    if (tookAnyFeedTrip && opts.stamp) {
       stampOfficialSource(route, entry.id);
       touched++;
     }
@@ -172,7 +226,9 @@ async function gtfsBundle({ entry, viewMap, bundle, stopCoords, resolveGeometry,
         if (!label) continue;
         const names = [
           route[`origin_trip_${d}`],
-          ...(route[`via_${d}`] ?? "").split(" - "),
+          // A torn name resolves to no coordinate, so the chain silently
+          // loses the vertex and the drawn line skips the stop.
+          ...splitViaString(route[`via_${d}`], (n) => !!stopCoords?.(n)),
           route[`destination_trip_${d}`],
         ].filter(Boolean);
         const stops = names.map((name) => ({ name, ...(stopCoords?.(name) ?? {}) }));
@@ -231,7 +287,12 @@ export async function enrichViewMap({
     if (!entry?.enabled || !strategy) continue;
     try {
       if (entry.enrich.strategy === "trainsByNumber") {
-        strategy({ entry, viewMap, trains: getTrains?.(entry) ?? {}, log });
+        // stopCoords too: trainsByNumber needs it to count the incumbent via
+        // list by STATION rather than by separator. Without it the count falls
+        // back to the naive split, "Mont-Dauphin - Guillestre" reads as two,
+        // and viaOnlyIfRicher refuses an official list that is exactly as
+        // complete — 13 of 18 SNCF directions, silently.
+        strategy({ entry, viewMap, trains: getTrains?.(entry) ?? {}, stopCoords, log });
       } else {
         const bundle = entry.params?.statusFile ? readJson?.(entry.params.statusFile) : null;
         await strategy({ entry, viewMap, bundle, stopCoords, resolveGeometry, log });

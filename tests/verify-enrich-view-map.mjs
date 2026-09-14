@@ -160,6 +160,176 @@ await check("trainsByNumber full options: via/times/per-direction polyline/stamp
   assert.strictEqual(viewMap[9].official_sources, undefined);
 });
 
+await check("a refused stop list refuses that trip's times and stamp with it", async () => {
+  // A row describes ONE train. Taking a trip's stops while keeping someone
+  // else's times is not a compromise, it is a row that contradicts itself —
+  // and it did: on the published payload 16 of 18 SNCF directions carried the
+  // feed's exact stop list beside Back-on-Track's endpoint times, disagreeing
+  // on 16 and by an hour or more on 6, worst 183 minutes. So the via verdict
+  // gates the times, the endpoints and the stamp together.
+  const entry = {
+    id: "sncf",
+    enabled: true,
+    output: "sncf-trains.json",
+    enrich: {
+      strategy: "trainsByNumber",
+      agencyIds: ["SNCF"],
+      updateVia: true,
+      viaOnlyIfRicher: true,
+      setTimes: true,
+      stamp: true,
+    },
+  };
+  const viewMap = {
+    // Refused: the feed's stub has fewer stops than Back-on-Track's list.
+    900: {
+      agency_id: "SNCF",
+      trip_short_name_0: "STUB",
+      via_0: "A - B - C",
+      origin_departure_time_0: "19:28",
+      destination_arrival_time_0: "07:30",
+    },
+    // Accepted: the feed is at least as complete.
+    901: {
+      agency_id: "SNCF",
+      trip_short_name_0: "FULL",
+      via_0: "X",
+      origin_departure_time_0: "19:44",
+      destination_arrival_time_0: "07:03",
+    },
+  };
+  await enrichViewMap({
+    registry: [entry],
+    viewMap,
+    getTrains: () => ({
+      STUB: {
+        stations: [
+          { ...station("Paris Austerlitz"), departure: "18:27" },
+          { ...station("Aurillac"), arrival: "07:42" },
+        ],
+      },
+      FULL: {
+        stations: [
+          { ...station("Paris Austerlitz"), departure: "22:47" },
+          station("Montauban Ville Bourbon"),
+          station("Caussade"),
+          { ...station("Toulouse Matabiau"), arrival: "07:22" },
+        ],
+      },
+    }),
+    readJson: () => null,
+  });
+
+  // Refused row: stops, times AND stamp all stay Back-on-Track's.
+  assert.strictEqual(viewMap[900].via_0, "A - B - C", "stub must not replace the via list");
+  assert.strictEqual(
+    viewMap[900].origin_departure_time_0,
+    "19:28",
+    "a refused trip must not lend its departure time",
+  );
+  assert.strictEqual(
+    viewMap[900].destination_arrival_time_0,
+    "07:30",
+    "a refused trip must not lend its arrival time",
+  );
+  assert.ok(
+    !viewMap[900].official_sources?.includes("sncf"),
+    "a row that kept Back-on-Track's everything must not be stamped official",
+  );
+
+  // Accepted row: stops and times both come from the same trip.
+  assert.strictEqual(
+    viewMap[901].via_0,
+    "Montauban Ville Bourbon - Caussade",
+    "the fuller feed list must replace the incumbent",
+  );
+  // The fixture uses the BARE "HH:MM" that gtfs-sleeper actually writes, not
+  // the ISO form NightJet and European Sleeper use. toHHMM only understood the
+  // ISO one, so setTimes was a silent no-op for SNCF, Entur, Amtrak and VIA —
+  // it would have shipped as "fixed" and changed nothing.
+  assert.strictEqual(viewMap[901].origin_departure_time_0, "22:47", "times follow the stop list");
+  assert.strictEqual(viewMap[901].destination_arrival_time_0, "07:22", "times follow the stop list");
+  assert.ok(
+    viewMap[901].official_sources?.includes("sncf"),
+    "a row carrying the feed's trip should be stamped",
+  );
+});
+
+await check("viaOnlyIfRicher: a stub stop list does not replace a fuller one", async () => {
+  // SNCF's feed carries the Paris–Aurillac portion as a 3-stop stub. Its one
+  // via station would have replaced Back-on-Track's three, so official data
+  // wins here only when it is also more complete. Off by default, because a
+  // source whose stop list is authoritative even when shorter — a diverted
+  // train calling at fewer stations — wants the replacement.
+  const sncfEntry = (viaOnlyIfRicher) => ({
+    id: "sncf",
+    enabled: true,
+    output: "sncf-trains.json",
+    enrich: {
+      strategy: "trainsByNumber",
+      agencyIds: ["SNCF"],
+      updateVia: true,
+      ...(viaOnlyIfRicher ? { viaOnlyIfRicher: true } : {}),
+    },
+  });
+  const rows = () => ({
+    262: {
+      agency_id: "SNCF",
+      trip_short_name_0: "IC Nuit 3789",
+      trip_short_name_1: "IC Nuit 3790",
+      via_0: "St-Denis-lès-Martel - Bretenoux Biars - Laroquebrou",
+      via_1: "Laroquebrou - Bretenoux Biars - St-Denis-lès-Martel",
+    },
+    // A row whose via the feed genuinely improves on, in the same pass.
+    264: { agency_id: "SNCF", trip_short_name_0: "IC Nuit 3750", via_0: "Montauban Ville Bourbon" },
+  });
+  const trains = () => ({
+    "IC Nuit 3790": {
+      stations: [station("Aurillac"), station("St-Denis-lès-Martel"), station("Paris Austerlitz")],
+    },
+    "IC Nuit 3750": {
+      stations: [
+        station("Toulouse Matabiau"),
+        station("Montauban Ville Bourbon"),
+        station("Caussade"),
+        station("Paris Austerlitz"),
+      ],
+    },
+  });
+
+  const guarded = rows();
+  await enrichViewMap({
+    registry: [sncfEntry(true)],
+    viewMap: guarded,
+    getTrains: trains,
+    readJson: () => null,
+  });
+  assert.strictEqual(
+    guarded[262].via_1,
+    "Laroquebrou - Bretenoux Biars - St-Denis-lès-Martel",
+    "one via station must not displace three",
+  );
+  assert.strictEqual(guarded[262].via_0, "St-Denis-lès-Martel - Bretenoux Biars - Laroquebrou");
+  assert.strictEqual(
+    guarded[264].via_0,
+    "Montauban Ville Bourbon - Caussade",
+    "a richer official list still wins under the guard",
+  );
+
+  const unguarded = rows();
+  await enrichViewMap({
+    registry: [sncfEntry(false)],
+    viewMap: unguarded,
+    getTrains: trains,
+    readJson: () => null,
+  });
+  assert.strictEqual(
+    unguarded[262].via_1,
+    "St-Denis-lès-Martel",
+    "without the guard the feed replaces the row regardless of length",
+  );
+});
+
 await check("updateEndpoints: the feed's own endpoints replace stale BoT ones", async () => {
   // Back-on-Track still calls ES 474/475 "Berlin Hbf" while the operator runs
   // them out of Berlin-Spandau and into Berlin Gesundbrunnen. The row's own
