@@ -463,7 +463,9 @@
       "strategy": "trainsByNumber",
       "agencyIds": ["SNCF"],
       "updateVia": true,
-      "viaOnlyIfRicher": true
+      "viaOnlyIfRicher": true,
+      "setTimes": true,
+      "stamp": true
     },
     "params": {
       "feedUrl": "https://eu.ftp.opendatasoft.com/sncf/plandata/Export_OpenData_SNCF_GTFS_NewTripId.zip",

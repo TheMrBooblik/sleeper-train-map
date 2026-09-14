@@ -123,8 +123,8 @@
     },
     "scheduleUrl": "https://www.sj.no/en/train-schedules/",
     "schedulePages": {
-      "70": "https://www.sj.no/en/strekning/dovrebanen-2/",
-      "71": "https://www.sj.no/en/strekning/nordlandsbanen/"
+      "70": "https://www.sj.no/wp-content/uploads/2025/12/the-dovre-line.pdf",
+      "71": "https://www.sj.no/wp-content/uploads/2026/02/the-nordland-line.pdf"
     }
   },
   "VY": {
@@ -134,7 +134,10 @@
       "Oslo S": "59872",
       "Bergen": "59983"
     },
-    "scheduleUrl": "https://www.vy.no/en/traffic/times"
+    "scheduleUrl": "https://www.vy.no/en/traffic/times",
+    "schedulePages": {
+      "69": "https://www.vy.no/files/eyx1eny7/vyno-production/1a59a4739641425403b40e55f982106ad61c6aa7.pdf"
+    }
   },
   "GA": {
     "urlTemplate": "https://entur.no/travel-result?startId=NSR:StopPlace:{origin}&stopId=NSR:StopPlace:{dest}",
@@ -142,6 +145,9 @@
     "stationNames": {
       "Oslo S": "59872",
       "Stavanger": "61291"
+    },
+    "schedulePages": {
+      "65": "https://cdn.sanity.io/files/slt575ja/production/4abced09136558d150aba73037c6b9c2601358dd.pdf"
     }
   },
   "ATC": {

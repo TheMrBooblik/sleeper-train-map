@@ -31,6 +31,22 @@ test.describe("retired URLs redirect in one hop", () => {
     const res = await request.get(SAMPLE[0]);
     expect(res.status()).toBe(200);
   });
+
+  // verify-seo-urls settles /connections/ destinations against the pair map it can
+  // compute, but a hub destination depends on the country table and the
+  // MIN_ROUTES_PER_STATION threshold, neither of which loads in raw node. There are
+  // only a handful of those, so check every one of them for real.
+  test("every non-connection destination is a live page", async ({ request }) => {
+    const targets = [...new Set(Object.values(redirects))].filter(
+      (d) => !d.startsWith("/connections"),
+    );
+    const dead = [];
+    for (const target of targets) {
+      const res = await request.get(target, { maxRedirects: 0 });
+      if (res.status() !== 200) dead.push(`${target} → ${res.status()}`);
+    }
+    expect(dead, "redirect destinations that do not return 200").toEqual([]);
+  });
 });
 
 test.describe("sitemap", () => {

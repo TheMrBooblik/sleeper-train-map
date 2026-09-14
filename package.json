@@ -40,6 +40,7 @@
     "verify-classify": "node tests/verify-classify.mjs",
     "verify-enrich": "node tests/verify-enrich-view-map.mjs",
     "verify-via-split": "node tests/verify-via-split.mjs",
+    "verify-official-row": "node tests/verify-official-row.mjs",
     "verify-via-schedule": "node tests/verify-via-schedule.mjs",
     "verify-integrations": "node tests/verify-integrations.mjs",
     "verify-route-geometry": "node tests/verify-route-geometry.mjs",

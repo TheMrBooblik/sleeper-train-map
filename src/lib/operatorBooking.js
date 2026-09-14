@@ -299,9 +299,31 @@ export function buildScheduleCandidate({
   return booking.scheduleUrl ? wrap(booking.scheduleUrl, "operator") : null;
 }
 
-/** Link text for an operator's timetable link. */
-export function getScheduleLabel(agencyId) {
-  return getOperatorBooking(agencyId)?.scheduleLabel || "Official timetable";
+/**
+ * Link text for an operator's timetable link.
+ *
+ * The `url` argument is what keeps a PDF honest. Several operators publish the
+ * timetable itself as a PDF rather than a page — Vy's Bergensbanen, SJ Nord's
+ * Dovre and Nordland lines, Go-Ahead's Sørtoget — and an unlabelled link to one
+ * starts a download instead of opening a page, which is a worse surprise on a
+ * phone than anywhere else. The fact belongs to the URL and not to the operator,
+ * which is why this reads the RESOLVED url rather than a per-operator flag: Vy's
+ * route-tier link for 605 is a PDF while its operator-tier fallback
+ * (vy.no/en/traffic/times) is an ordinary page, and one label on the operator
+ * would have to be wrong about one of them.
+ *
+ * @param {string} agencyId
+ * @param {string} [url] the resolved link, when the caller has it
+ */
+export function getScheduleLabel(agencyId, url) {
+  const label = getOperatorBooking(agencyId)?.scheduleLabel || "Official timetable";
+  if (!isPdfLink(url) || /\bpdf\b/i.test(label)) return label;
+  return `${label} (PDF)`;
+}
+
+/** A link that downloads rather than opens: ".pdf", with or without a query. */
+export function isPdfLink(url) {
+  return /\.pdf(?:[?#]|$)/i.test(String(url ?? ""));
 }
 
 /** True when the operator's schedule link carries affiliate tracking. */
