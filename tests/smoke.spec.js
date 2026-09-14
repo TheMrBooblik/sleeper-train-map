@@ -24,9 +24,39 @@ test.describe('Pre-commit Smoke Tests', () => {
     const response = await page.goto('/plan');
     expect(response?.ok()).toBeTruthy();
 
-    await expect(page.getByRole('heading', { name: 'Where could you go tonight?' })).toBeVisible();
-    await expect(page.getByLabel('From')).toBeVisible();
-    await expect(page.getByLabel('When')).toBeVisible();
+    const heading = page.getByRole('heading', { name: 'Where could you go tonight?' });
+    const from = page.getByLabel('From');
+    const when = page.getByLabel('When');
+
+    await expect(heading).toBeVisible();
+    await expect(from).toBeVisible();
+    await expect(when).toBeVisible();
+
+    // DOM presence is not enough: the planner must be visually readable on
+    // Pingwi's dark global background.
+    for (const element of [heading, from, when]) {
+      await expect(element).toBeInViewport();
+      const visibility = await element.evaluate((node) => {
+        const style = window.getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        return {
+          color: style.color,
+          backgroundColor: style.backgroundColor,
+          opacity: style.opacity,
+          width: rect.width,
+          height: rect.height,
+        };
+      });
+
+      expect(visibility.opacity).not.toBe('0');
+      expect(visibility.width).toBeGreaterThan(0);
+      expect(visibility.height).toBeGreaterThan(0);
+    }
+
+    await expect(from).toHaveCSS('color', 'rgb(255, 255, 255)');
+    await expect(heading).toHaveCSS('color', 'rgb(255, 255, 255)');
+
+    await page.screenshot({ path: 'test-results/plan-page.png', fullPage: true });
 
     expect(pageErrors, `Page errors detected: ${pageErrors.join(', ')}`).toHaveLength(0);
   });
