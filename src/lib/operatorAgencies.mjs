@@ -213,7 +213,7 @@ export function resolveScheduleLink({
     if (!winner) continue;
     return {
       url: winner.url,
-      label: getScheduleLabel(winner.id),
+      label: getScheduleLabel(winner.id, winner.url),
       operatorId: winner.id,
       operatorName: agencies?.[winner.id]?.agency_name || winner.id,
       tier: winner.tier,

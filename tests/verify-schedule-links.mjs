@@ -273,6 +273,60 @@ check(
   "an empty agency id yields no link",
 );
 
+// ── Norway: the timetable is a PDF, and the label has to say so ────────────
+// All four Norwegian night routes publish their timetable as a PDF rather than a
+// page, keyed per route because one PDF is one line: Vy's Bergensbanen (605/606),
+// SJ Nord's Dovre (405/406) and Nordland (475/476), Go-Ahead's Sørtoget (F5
+// 725/726). Go-Ahead had no schedule link at all before — no operator page was
+// ever confirmed for it — so its entry is a route-tier link with nothing beneath.
+{
+  const NORWAY = [
+    ["GA", "65", "F5 725", "cdn.sanity.io"],
+    ["VY", "69", "605", "vy.no"],
+    ["SJN", "70", "405", "sj.no"],
+    ["SJN", "71", "475", "sj.no"],
+  ];
+  for (const [agencyId, routeId, train, host] of NORWAY) {
+    const link = resolveScheduleLink({ agencyId, train, routeId });
+    check(Boolean(link), `${agencyId} route ${routeId} has a timetable link`);
+    if (!link) continue;
+    eq(link.tier, "route", `${agencyId} route ${routeId} resolves at the route tier`);
+    check(
+      link.url.startsWith(`https://www.${host}/`) || link.url.startsWith(`https://${host}/`),
+      `${agencyId} route ${routeId} links to ${host} (got ${link.url})`,
+    );
+    check(/\.pdf$/i.test(link.url), `${agencyId} route ${routeId} links to a PDF`);
+    eq(
+      link.label,
+      "Official timetable (PDF)",
+      `${agencyId} route ${routeId} says the link is a PDF`,
+    );
+  }
+
+  // The label follows the URL, not the operator — which is the whole reason it
+  // takes one. Vy's route-tier link for 605 is a PDF while the operator-tier
+  // fallback behind it is an ordinary page, so a per-operator flag would have to
+  // be wrong about one of the two.
+  const vyFallback = resolveScheduleLink({ agencyId: "VY", train: "605", routeId: "no-such-route" });
+  eq(vyFallback?.tier, "operator", "a VY route with no PDF falls back to the operator page");
+  eq(
+    vyFallback?.label,
+    "Official timetable",
+    "the operator-tier page is not labelled a PDF",
+  );
+  eq(getScheduleLabel("VY"), "Official timetable", "no url means no PDF claim");
+  eq(
+    getScheduleLabel("VY", "https://example.com/t.pdf?v=2"),
+    "Official timetable (PDF)",
+    "a query string does not hide the extension",
+  );
+  eq(
+    getScheduleLabel("VY", "https://example.com/pdfviewer"),
+    "Official timetable",
+    "\"pdf\" inside a path is not a PDF",
+  );
+}
+
 // ── Labels + affiliate marking ─────────────────────────────────────────────
 eq(getScheduleLabel("UZ"), "Official timetable", "default label");
 eq(getScheduleLabel("nope"), "Official timetable", "unknown operator gets the default label");
