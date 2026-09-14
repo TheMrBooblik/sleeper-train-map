@@ -1,4 +1,4 @@
-// lib/file-store.js
+// lib/file-store.mjs
 // Filesystem-backed store for scraped JSON datasets.
 // Reads from public/data/scraped/ — files committed via GitHub Actions daily scrape.
 // Writes are no-ops in Vercel serverless; only the scrape script writes to disk.

@@ -19,7 +19,7 @@ import {
   getTrainsBySource,
   getPublishedInitialData,
   isFresh,
-} from "./file-store";
+} from "./file-store.mjs";
 import { buildInitialData, stripDisabledRoutes } from "./build-initial-data.mjs";
 import SOURCE_REGISTRY from "../../../../data/sources/registry.json" with { type: "json" };
 // Routes the admin turned off from the map. Applied at serve time (over both

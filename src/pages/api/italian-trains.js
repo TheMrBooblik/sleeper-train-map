@@ -1,7 +1,7 @@
 // pages/api/italian-trains.js
 // Thin alias of /api/operator-trains?source=italian (kept for back-compat).
 
-import { createTrainsFileHandler } from "./lib/operator-trains-handler";
+import { createTrainsFileHandler } from "./lib/operator-trains-handler.mjs";
 
 export default createTrainsFileHandler({
   file: "italian-trains.json",
