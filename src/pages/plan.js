@@ -136,6 +136,7 @@ export default function Plan() {
 
 const styles = `
   .plan-page {
+    color: #fff;
     min-height: calc(100vh - 64px);
     display: flex;
     justify-content: center;
@@ -193,8 +194,14 @@ const styles = `
     padding: 0 14px;
     border: 1px solid currentColor;
     border-radius: 10px;
-    background: transparent;
+    background: rgba(255, 255, 255, 0.04);
+    color: #fff;
     font: inherit;
+    outline: none;
+  }
+
+  .plan-field input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
   }
 
   .plan-error {
