@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import Layout from "@components/Layout";
 import { SITE_URL } from "../lib/seo/site";
 
 const TITLE = "Plan a Sleeper Train Trip | Pingwi";
@@ -74,7 +73,7 @@ export default function Plan() {
   }
 
   return (
-    <Layout>
+    <>
       <Head>
         <title>{TITLE}</title>
         <meta name="description" content={DESCRIPTION} />
@@ -131,7 +130,7 @@ export default function Plan() {
           )}
         </section>
       </main>
-    </Layout>
+    </>
   );
 }
 
