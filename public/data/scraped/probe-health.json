@@ -1,0 +1,19 @@
+{
+  "uploadedAt": "2026-09-14T08:33:39.327Z",
+  "data": {
+    "runStartedAt": "2026-09-14T08:33:34.610Z",
+    "runFinishedAt": "2026-09-14T08:33:39.327Z",
+    "probes": {
+      "nightjet": {
+        "adapter": "nightjet-offers",
+        "lastRunAt": "2026-09-14T08:33:39.327Z",
+        "lastSuccessAt": null,
+        "lastFailureAt": "2026-09-14T08:33:39.327Z",
+        "lastError": "NJ 13466: HTTP 400",
+        "attempted": 4,
+        "found": 0,
+        "consecutiveEmptyRuns": 1
+      }
+    }
+  }
+}
