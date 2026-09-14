@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-247",
+  "createdAt": "2026-09-14T08:33:01.757Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 247 (Wien Hbf – Bologna Centrale)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 247|NJ 40294\" → \"NJ 247|NJ 40238\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_247",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "NJ 247|NJ 40294"
+  },
+  "after": {
+    "train numbers": "NJ 247|NJ 40238"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
