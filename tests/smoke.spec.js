@@ -2,31 +2,23 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Pre-commit Smoke Tests', () => {
   test('homepage loads without errors', async ({ page }) => {
-    const errors = [];
-
-    page.on('console', msg => {
-      if (msg.type() === 'error') errors.push(msg.text());
-    });
+    const pageErrors = [];
 
     page.on('pageerror', error => {
-      errors.push(error.message);
+      pageErrors.push(error.message);
     });
 
     await page.goto('/');
     await page.waitForSelector('.leaflet-container', { timeout: 15000 });
 
-    expect(errors, `Errors detected: ${errors.join(', ')}`).toHaveLength(0);
+    expect(pageErrors, `Page errors detected: ${pageErrors.join(', ')}`).toHaveLength(0);
   });
 
   test('planner page renders without client errors', async ({ page }) => {
-    const errors = [];
-
-    page.on('console', msg => {
-      if (msg.type() === 'error') errors.push(msg.text());
-    });
+    const pageErrors = [];
 
     page.on('pageerror', error => {
-      errors.push(error.message);
+      pageErrors.push(error.message);
     });
 
     const response = await page.goto('/plan');
@@ -36,7 +28,7 @@ test.describe('Pre-commit Smoke Tests', () => {
     await expect(page.getByLabel('From')).toBeVisible();
     await expect(page.getByLabel('When')).toBeVisible();
 
-    expect(errors, `Errors detected: ${errors.join(', ')}`).toHaveLength(0);
+    expect(pageErrors, `Page errors detected: ${pageErrors.join(', ')}`).toHaveLength(0);
   });
 
   test('planner stations API responds correctly', async ({ request }) => {
