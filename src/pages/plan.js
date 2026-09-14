@@ -172,12 +172,14 @@ const styles = `
 
   .plan-form {
     display: grid;
+    min-width: 0;
     grid-template-columns: 1fr 220px;
     gap: 16px;
   }
 
   .plan-field {
     display: flex;
+    min-width: 0;
     flex-direction: column;
     gap: 8px;
   }
@@ -189,6 +191,8 @@ const styles = `
 
   .plan-field input {
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
     box-sizing: border-box;
     min-height: 52px;
     padding: 0 14px;
