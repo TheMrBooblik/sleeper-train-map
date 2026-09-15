@@ -1,4 +1,0 @@
-attribution_id,organization_name,attribution_url,is_producer,is_operator,is_authority,is_data_source
-KM,Data: Koleje Mazowieckie - KM sp. z o.o. (2026-08-13 02:45:12),https://bip.mazowieckie.com.pl/pl/ponowne-wykorzystywanie-informacji-sektora-publicznego,0,1,0,1
-MK,GTFS: Mikołaj Kuranowski,https://mkuran.pl/gtfs/,1,0,0,0
-PLK,Data: PKP Polskie linie Kolejowe S.A.,https://www.plk-sa.pl/klienci-i-kontrahenci/api-otwarte-dane,0,0,1,1

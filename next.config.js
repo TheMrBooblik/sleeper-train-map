@@ -18,6 +18,88 @@ const SITE_ORIGIN = 'https://pingwi.com';
 const isProd = process.env.VERCEL_ENV === 'production';
 const dest = (pathname) => (isProd ? `${SITE_ORIGIN}${pathname}` : pathname);
 
+// ---------------------------------------------------------------------------
+// Serverless bundle tracing.
+//
+// Vercel's Deployment Storage bills the build output PLUS one function bundle
+// per route, for every deployment it retains. The nightly scrape commits to
+// main, so the project produces a deployment a day and pays that per-route
+// cost again each time.
+//
+// file-store.mjs reads its datasets as `fs.readFileSync(path.join(DIR, name))`,
+// where DIR is a literal and `name` is a runtime argument. @vercel/nft resolves
+// the literal, cannot resolve the argument, and so conservatively pulls in the
+// WHOLE directory. file-store.mjs is reachable from nearly every API route, so
+// all ~24 MB of committed data under public/data/ landed in all ~15 lambdas —
+// 370 MB of function bundles per deployment, of which /api/osm-relation's copy
+// was 24.6 MB carrying 0.5 MB of code it actually runs.
+//
+// The fix is to tell the tracer what each route genuinely cannot reach. Note
+// the ordering rule in next/dist/build/collect-build-traces.js: includes are
+// merged in FIRST and excludes filter the merged set AFTERWARDS. A blanket
+// `'*': ['./public/data/**']` would therefore delete the per-route includes
+// below and break the routes it was meant to slim. Excludes must be per route.
+//
+// Keys are matched against the route with picomatch `contains`, so they are
+// spelled in full to keep one route's rule from claiming another's.
+// ---------------------------------------------------------------------------
+
+// The four heavyweight groups under public/data, by what reads them.
+const DATA = {
+  published: './public/data/published/**', //  5.0 MB  canonicalize's merged artifact
+  gtfsBundle: './public/data/gtfs/**', //  1.7 MB  PKP/RegioJet bundles
+  botRaw: './public/data/scraped/backontrack-*.json', // 12.4 MB  raw Back-on-Track
+  osmCache: './public/data/scraped/osm-*.json', //  2.3 MB  cached OSM relations
+  operatorTrains: './public/data/scraped/*-trains.json', //  2.5 MB  per-source trains
+};
+const ALL_DATA = Object.values(DATA);
+const except = (...keep) => ALL_DATA.filter((g) => !keep.includes(g));
+
+// /data and every /api/admin/* route are loopback-only (src/lib/localAdmin.mjs
+// refuses outright when VERCEL is set), so their deployed bundles answer 404
+// and never open a data file. /api/suggest only writes to the proposals branch.
+// '/api/admin' covers all four admin routes by containment. Spelling out
+// '/api/admin/proposals/[id]' would not: picomatch reads [id] as a character
+// class, so the literal bracketed segment never matches its own name.
+const NO_DATA_ROUTES = ['/api/data-status', '/api/admin', '/api/suggest'];
+
+// Operator trains: one generic route plus the five legacy per-operator aliases,
+// all of which read nothing but public/data/scraped/<source>-trains.json.
+const OPERATOR_TRAIN_ROUTES = [
+  '/api/operator-trains',
+  '/api/nightjet-trains',
+  '/api/cd-trains',
+  '/api/chinese-trains',
+  '/api/italian-trains',
+  '/api/caucasus-trains',
+];
+
+const outputFileTracingExcludes = {
+  // Both halves of the map payload run the same tiered resolver
+  // (api/lib/resolve-payload.mjs): published artifact → scraped file store →
+  // Back-on-Track on GitHub → stale artifact. Every tier but the OSM cache is
+  // reachable, so only that one is dropped — the map must never blank, and
+  // trimming a tier to save 2 MB is not worth removing a rung from that ladder.
+  '/api/initial-data': except(DATA.published, DATA.gtfsBundle, DATA.botRaw, DATA.operatorTrains),
+  '/api/route-geometry': except(DATA.published, DATA.gtfsBundle, DATA.botRaw, DATA.operatorTrains),
+
+  // Serves the raw Back-on-Track datasets by ?type=, nothing else.
+  '/api/trains': except(DATA.botRaw),
+
+  // Reads its OSM relation cache, falling back to the Overpass API.
+  '/api/osm-relation': except(DATA.osmCache),
+
+  ...Object.fromEntries(OPERATOR_TRAIN_ROUTES.map((r) => [r, except(DATA.operatorTrains)])),
+  ...Object.fromEntries(NO_DATA_ROUTES.map((r) => [r, ALL_DATA])),
+
+  // The sitemap reads the published artifact and the raw stops (for the
+  // station → country derivation behind the country hubs). It keeps the
+  // per-source trains too: src/lib/seo/stationTimes.mjs reads that whole
+  // directory, and the page swallows a data-layer throw to stay HTTP 200 —
+  // so a missing file would silently ship a shorter sitemap rather than fail.
+  '/sitemap.xml': except(DATA.published, DATA.botRaw, DATA.operatorTrains),
+};
+
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
@@ -32,6 +114,9 @@ const nextConfig = {
       './public/data/scraped/backontrack-stops.json',
     ],
   },
+  // Per-route bundle trimming — see the DATA table above for why this is needed
+  // and why it cannot be expressed as a single wildcard rule.
+  outputFileTracingExcludes,
   async headers() {
     return [
       {

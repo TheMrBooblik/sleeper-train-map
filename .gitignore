@@ -48,3 +48,11 @@ gtfs-data/polish-trains-unpacked/
 .playwright-cli/
 # Downloaded GTFS feeds unpacked by the scrape (regenerated each run)
 gtfs-data/*-unpacked/
+
+# Playwright output (the HTML report, and the screenshots the specs write)
+/playwright-report/
+/tests/screenshots/
+
+# Ad-hoc dev screenshots. preview.png is the exception — README embeds it.
+/*.png
+!/preview.png

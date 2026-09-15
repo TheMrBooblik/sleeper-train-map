@@ -2,7 +2,7 @@
 // Proxies Back-on-Track data by type.
 // Reads from the daily-scrape file store when fresh; falls back to GitHub.
 
-import { getBlobData, isFresh } from "./lib/file-store";
+import { getBlobData, isFresh } from "./lib/file-store.mjs";
 import {
   isActiveRecord,
   isTrain4you,

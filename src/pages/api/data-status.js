@@ -10,7 +10,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { getBlobData, getOsmRelation, getTrainsBySource } from "./lib/file-store";
+import { getBlobData, getOsmRelation, getTrainsBySource } from "./lib/file-store.mjs";
 import SOURCE_REGISTRY from "../../../data/sources/registry.json" with { type: "json" };
 import { rejectUnlessLocalAdmin } from "../../lib/localAdmin.mjs";
 

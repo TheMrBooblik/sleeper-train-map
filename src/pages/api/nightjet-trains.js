@@ -3,7 +3,7 @@
 // Serves the NightJet / EuroNight trains file written by the daily scrape as
 // { uploadedAt, trains: { "NJ 403": { stations, polyline, ... }, ... } }.
 
-import { createTrainsFileHandler } from "./lib/operator-trains-handler";
+import { createTrainsFileHandler } from "./lib/operator-trains-handler.mjs";
 
 export default createTrainsFileHandler({
   file: "nightjet-trains.json",

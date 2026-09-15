@@ -1,11 +1,11 @@
-// lib/operator-trains-handler.js
+// lib/operator-trains-handler.mjs
 // Shared handler for serving a per-source scraped trains file
 // ({ uploadedAt, trains } envelope under public/data/scraped/).
 //
 // missing: "empty" → 200 with { uploadedAt: null, trains: {} } when absent
 //          "404"   → 404 when absent or stale (legacy cd-trains behaviour)
 
-import { getTrainsBySource, isFresh } from "./file-store";
+import { getTrainsBySource, isFresh } from "./file-store.mjs";
 
 export function createTrainsFileHandler({ file, label, missing = "empty" }) {
   return async function handler(_req, res) {
