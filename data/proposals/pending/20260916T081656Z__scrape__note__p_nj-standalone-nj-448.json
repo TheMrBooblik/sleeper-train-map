@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-448",
+  "createdAt": "2026-09-16T08:16:56.076Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 448 (Wien Hbf – Bruxelles Midi)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"NJ 448|NJ 469\" → \"NJ 448|NJ 449\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_448",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "NJ 448|NJ 469"
+  },
+  "after": {
+    "train numbers": "NJ 448|NJ 449"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
