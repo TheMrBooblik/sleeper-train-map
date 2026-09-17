@@ -567,6 +567,27 @@ check(
     "the fixture's representative trip must still sit on the four-day service",
   );
 
+  // Union as far as the feed can tell trains apart, and no further. Unioning a
+  // whole route folds its two directions together: the Cardinal runs three
+  // times a week each way on DIFFERENT days, and the first cut of this change
+  // reported six weekdays for it against the live feed.
+  const twoWay = buildSleeperTrains({
+    gtfs,
+    allowlist: ["Cardinal Two-Way"],
+    agency: "AMTK",
+    operator: "Amtrak",
+    serviceWindow: window,
+  });
+  const twoWayFreq = Object.values(twoWay)[0]?.frequency;
+  check(
+    twoWayFreq === "2026: Wed, Fri, Sun",
+    `the union must stop at the train, got ${JSON.stringify(twoWayFreq)}`,
+  );
+  check(
+    twoWayFreq !== "2026: Mon, Wed, Thu, Fri, Sat, Sun",
+    "six weekdays is both directions folded together, which is the fault",
+  );
+
   // The inverse: a service that really is part-year keeps saying so, with the
   // days coming from the calendar row's weekday flags rather than from whichever
   // weekdays its season happens to start and end on.

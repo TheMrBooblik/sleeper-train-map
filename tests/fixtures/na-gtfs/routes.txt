@@ -8,3 +8,4 @@ N2,SNCF,INCONNU,-,2
 N3,SNCF,770B,Paris Austerlitz - Nice,2
 CNO,AMTK,59,City of New Orleans,2
 SUM,CFR,1920,Black Sea Summer,2
+CAR,AMTK,50,Cardinal Two-Way,2

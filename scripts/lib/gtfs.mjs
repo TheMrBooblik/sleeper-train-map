@@ -913,6 +913,21 @@ export function stitchLegs(legs) {
  *                                 entry that matched nothing).
  * @returns {Record<string, object>} trains dict in the shape build-initial-data expects
  */
+/**
+ * Which of a route's trips describe the same train as `best`.
+ *
+ * Most specific rung the feed supports: a train number, else a direction, else
+ * the whole route. A feed that populates neither (SNCF, Entur) gets the route,
+ * which is the widest honest answer rather than a guess.
+ */
+function sameTrainAs(best) {
+  const num = String(best?.trip_short_name ?? "").trim();
+  if (num) return (t) => String(t.trip_short_name ?? "").trim() === num;
+  const dir = String(best?.direction_id ?? "").trim();
+  if (dir) return (t) => String(t.direction_id ?? "").trim() === dir;
+  return () => true;
+}
+
 export function buildSleeperTrains({
   gtfs,
   allowlist,
@@ -1176,19 +1191,25 @@ export function buildSleeperTrains({
       continue;
     }
 
-    // "When does it run" is a property of the ROUTE, not of whichever trip was
+    // "When does it run" is a property of the TRAIN, not of whichever trip was
     // representative. Reading one trip's calendar.txt row is how Amtrak's City
-    // of New Orleans — a year-round daily train — came to state
-    // "2026/09/13-09/16", a four-day window: the feed splits a daily service
-    // across many short-dated calendar rows and the representative trip lands
-    // on one of them. Union every trip on the route instead, which is what the
-    // named-entry path has always done.
+    // of New Orleans — year-round, daily — came to state "2026/09/13-09/16", a
+    // four-day window, and the California Zephyr "2027/03/13-03/13: Sat", a
+    // single day: the feed splits a daily service across many short-dated
+    // calendar rows and the representative trip lands on one of them.
+    //
+    // Union across trips, but only as far as the feed can tell them apart —
+    // unioning the whole route folds both directions together, which turned
+    // the Cardinal (three times a week each way, on different days) into six
+    // weekdays. So: the same train number where the feed populates one, else
+    // the same direction, else the route. SNCF and Entur populate neither and
+    // land on the last rung, which is what they had before.
     trains[claimKey(routeName, routeId)] = makeTrain(
       routeName,
       best,
       bestStations,
       seasonalOrYearlyDisplay(
-        new Set(trips.map((t) => t.service_id).filter(Boolean)),
+        new Set(trips.filter(sameTrainAs(best)).map((t) => t.service_id).filter(Boolean)),
         gtfs,
         serviceWindow,
       ),
