@@ -413,12 +413,12 @@
       "resolveAliases": true,
       "withService": true,
       "excludeBotMatched": true,
-      "botMatchAgencies": ["CFR", "CFR/MÁV", "CFM/CFR", "TCDD/BDŽ/CFR", "CFR/MÁV/ÖBB", "MÁV/CFR", "CFR/CFM", "ÖBB/MÁV/CFR"],
+      "botMatchAgencies": ["CFR", "CFR/MÁV", "CFM/CFR", "TCDD/BDŽ/CFR", "CFR/MÁV/ÖBB", "MÁV/CFR", "CFR/CFM", "ÖBB/MÁV/CFR", "UZ"],
       "dedupStrategy": null
     },
     "enrich": {
       "strategy": "trainsByNumber",
-      "agencyIds": ["CFR", "CFR/MÁV", "CFM/CFR", "TCDD/BDŽ/CFR", "CFR/MÁV/ÖBB", "MÁV/CFR", "CFR/CFM", "ÖBB/MÁV/CFR"],
+      "agencyIds": ["CFR", "CFR/MÁV", "CFM/CFR", "TCDD/BDŽ/CFR", "CFR/MÁV/ÖBB", "MÁV/CFR", "CFR/CFM", "ÖBB/MÁV/CFR", "UZ"],
       "setPolyline": true,
       "polylineMode": "perDirection",
       "updateVia": true,
