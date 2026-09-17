@@ -433,6 +433,7 @@
       "agency": "CFR",
       "operator": "CFR Călători",
       "canonicalizeStationNames": true,
+      "feedAgencyIds": ["6100826"],
       "stripStationSuffixes": [" Gr.A", " Gr.B", " Hm.", " hc.", " Hc.", " H."]
     },
     "freshness": { "ttlHours": 25 }

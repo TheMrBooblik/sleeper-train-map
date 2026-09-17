@@ -228,7 +228,20 @@ export async function run(entry, ctx) {
     stats,
     stationRenames: entry.synthetic?.stationRenames,
     canonicalizeName: stationNameCanonicalizer(entry.params, resolveCanonicalStationName),
+    feedAgencyIds: entry.params?.feedAgencyIds,
   });
+
+  // A national feed carries every licensed carrier, and this one carries seven.
+  // An allowlist entry naming another carrier's route is a mistake in the
+  // allowlist, not a feed outage, so it fails the source rather than quietly
+  // publishing that carrier's train under this one's name: four entries picked
+  // by the "IR-N" night-train prefix were Astra Trans Carpatic, and one drew a
+  // second line over the Back-on-Track row for the same train.
+  if (stats.wrongAgency?.length) {
+    throw new Error(
+      `${entry.id}: ${stats.wrongAgency.length} allowlist entr${stats.wrongAgency.length === 1 ? "y names a route" : "ies name routes"} belonging to another carrier — ${stats.wrongAgency.join("; ")}`,
+    );
+  }
 
   if (Object.keys(trains).length === 0 && stats.feedRouteCount > 0) {
     throw new Error(

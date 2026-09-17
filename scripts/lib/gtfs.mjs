@@ -948,6 +948,15 @@ export function buildSleeperTrains({
   stats = null,
   stationRenames = null,
   canonicalizeName = null,
+  // Which carriers' routes this allowlist may select, as GTFS agency_ids.
+  // A national feed carries every licensed operator — Romania's has seven —
+  // and an allowlist keyed by route id will happily take any of them, then the
+  // source stamps the lot with its own agency. Four entries selected by the
+  // "IR-N" night-train prefix turned out to be Astra Trans Carpatic, and one
+  // of them drew a second line over a Back-on-Track row for the same train
+  // under the wrong operator. Absent means "any", which is right for a feed
+  // that publishes one carrier.
+  feedAgencyIds = null,
   // Which timetable period "when does it run" is asked of. Injectable because
   // the answer changes on the second Sunday in December, so a test pinning real
   // dates against the live window would start failing on a calendar date rather
@@ -985,6 +994,14 @@ export function buildSleeperTrains({
     }
   }
   const matchedEntries = new Set();
+  // Reported rather than skipped: a route from the wrong carrier means the
+  // allowlist is wrong, and quietly dropping it would leave a night train
+  // missing with nothing to say why.
+  const wrongAgency = [];
+  const agencyAllowed = (route) =>
+    !Array.isArray(feedAgencyIds) ||
+    feedAgencyIds.length === 0 ||
+    feedAgencyIds.map(String).includes(String(route?.agency_id ?? ""));
   const renameMap =
     stationRenames && Object.keys(stationRenames).length
       ? new Map(
@@ -1114,6 +1131,12 @@ export function buildSleeperTrains({
           missing = leg.raw;
           break;
         }
+        const legRoute = gtfs.routesById.get(routeId);
+        if (!agencyAllowed(legRoute)) {
+          wrongAgency.push(`${e.raw}: route ${leg.raw} belongs to agency ${legRoute?.agency_id}`);
+          missing = leg.raw;
+          break;
+        }
         const rep = representativeTrip(legTrips, gtfs);
         if (!rep.trip || rep.stations.length < 2) {
           missing = leg.raw;
@@ -1191,6 +1214,12 @@ export function buildSleeperTrains({
     }
 
     if (nameHits.length === 0 && pairHits.length === 0) continue;
+    if (!agencyAllowed(route)) {
+      wrongAgency.push(
+        `${route.route_short_name || route.route_long_name || routeId}: agency ${route.agency_id}`,
+      );
+      continue;
+    }
     [...nameHits, ...pairHits].forEach((h) => matchedEntries.add(h.raw));
 
     const { trip: best, stations: bestStations } = getRep();
@@ -1234,6 +1263,12 @@ export function buildSleeperTrains({
     stats.matched = [...matchedEntries];
     stats.unmatched = unmatched;
     stats.feedRouteCount = tripsByRoute.size;
+    stats.wrongAgency = wrongAgency;
+  }
+  if (wrongAgency.length) {
+    log(
+      `WARNING: ${wrongAgency.length} allowlist entr${wrongAgency.length === 1 ? "y" : "ies"} name a route belonging to another carrier: ${wrongAgency.join("; ")}`,
+    );
   }
   if (unmatched.length) {
     log(

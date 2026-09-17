@@ -159,7 +159,7 @@
   "/trains/chicago-union-station-to-seattle-empire-builder": "/connections/chicago-to-seattle",
   "/trains/chisinau-to-bucuresti-nord-401": "/connections/bucharest-to-chisinau",
   "/trains/chop-to-praha-hl-n-1020": "/connections/chop-to-prague",
-  "/trains/constanta-to-arad-ir-n-11502": "/connections/arad-to-constanta",
+  "/trains/constanta-to-arad-ir-n-11502": "/connections",
   "/trains/constanta-to-iasi-ir-n-1960": "/connections/constanta-to-iasi",
   "/trains/constanta-to-oradea-irn-1920": "/connections/constanta-to-oradea",
   "/trains/constanta-to-timisoara-nord-ir-n-1990": "/connections/constanta-to-timisoara",

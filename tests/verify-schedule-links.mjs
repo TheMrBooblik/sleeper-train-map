@@ -605,7 +605,7 @@ for (const [id, cfg] of scheduleOps) {
 }
 
 // ── Tier order is the contract the resolver relies on ──────────────────────
-eq(SCHEDULE_TIERS.join(","), "route,train,country,operator", "tier order is most-specific first");
+eq(SCHEDULE_TIERS.join(","), "train-page,route,train,country,operator", "tier order is most-specific first");
 
 // ── Against the real published payload ─────────────────────────────────────
 {
@@ -642,6 +642,38 @@ eq(SCHEDULE_TIERS.join(","), "route,train,country,operator", "tier order is most
     stamped.length >= 150,
     `the merge stamps endpoint countries on the Back-on-Track rows (got ${stamped.length})`,
   );
+}
+
+// ─── A per-train page beats a per-route one, because a route has two ends ───
+// Ukrainian Railways numbers a train 099 but reaches its timetable at
+// ?ntrain=105997&by_id=1 — an internal id not derivable from the number. 099
+// and 100 are opposite directions of route 174 and have separate pages, so
+// schedulePages[routeId], which is one page for a whole line, cannot express
+// them.
+{
+  const dir0 = buildScheduleCandidate({ agencyId: "UZ", train: "099", routeId: "174" });
+  const dir1 = buildScheduleCandidate({ agencyId: "UZ", train: "100", routeId: "174" });
+  eq(dir0?.tier, "train-page", "UZ 099 resolves at the per-train tier");
+  eq(dir1?.tier, "train-page", "UZ 100 resolves at the per-train tier");
+  check(
+    dir0?.url?.includes("ntrain=105997") && dir0.url.includes("by_id=1"),
+    `UZ 099 links to its own train page (got ${dir0?.url})`,
+  );
+  check(
+    dir1?.url?.includes("ntrain=106002"),
+    `UZ 100 links to its own train page (got ${dir1?.url})`,
+  );
+  check(
+    dir0?.url !== dir1?.url,
+    "the two directions of one route must not share a timetable link",
+  );
+
+  // Nothing else moves: a UZ train with no recorded id keeps the number search,
+  // and a route with a schedulePages entry keeps its route page.
+  const plain = buildScheduleCandidate({ agencyId: "UZ", train: "051", routeId: "140" });
+  eq(plain?.tier, "train", "a UZ train with no recorded id keeps the number search");
+  const perRoute = buildScheduleCandidate({ agencyId: "UZ", train: "40149", routeId: "60" });
+  eq(perRoute?.tier, "route", "a route with its own page keeps it");
 }
 
 if (problems.length) {
