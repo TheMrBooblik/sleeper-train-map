@@ -4,34 +4,32 @@
  * runs. See MAP_LEGEND_LINE_BASE_STYLES for the full grammar.
  */
 
-// BoT calendar window in a service_id, e.g. "2026/06/26-2026/08/30: Daily".
+// BoT calendar window in a service_id. Two spellings are in the data and the
+// end year is optional in one: "2026/06/26-2026/08/30: Daily" and
+// "2026/06/26-08/30: Daily". 88 service strings across the payload use the
+// short one, and for a long time it fell through to "cannot parse, therefore
+// runs" — which is how Constanța–Oradea went on being drawn as a daily service
+// nine days after its last run.
 //
-// A year on BOTH sides is required, which leaves the short spelling
-// ("2026/06/22-08/30") unparseable and so treated as "runs year-round". That
-// reads like an oversight and was very nearly fixed as one: widening the regex
-// hides 17 more routes, and measuring which ones is what showed why it must
-// not yet. Amtrak's rows carry windows that are not seasons — "City of New
-// Orleans: 2026/09/13-09/16", "California Zephyr: 2027/03/13-03/13: Sat" —
-// because gtfs-sleeper renders ONE representative trip's calendar.txt row and
-// Amtrak splits a daily train across many short-dated services. Widening this
-// would hide the City of New Orleans, a year-round daily train, on the
-// strength of a four-day window. 88 service strings across the payload use the
-// short form, so it is worth fixing — after a route-level season is derived
-// from all of a route's services instead of from whichever trip was picked.
+// Reading it was blocked on something else first, and the order mattered.
+// gtfs-sleeper used to render "when does it run" from ONE representative
+// trip's calendar row, so Amtrak — which splits a daily train across many
+// short-dated services — stated "City of New Orleans: 2026/09/13-09/16" and
+// "California Zephyr: 2027/03/13-03/13: Sat". Acting on those would have
+// retired two year-round daily trains. The union in gtfs.mjs fixed the source,
+// a branch refresh rewrote the strings against the live feed, and only then
+// was this safe to widen.
 const SERVICE_ID_CALENDAR_RANGE_RE =
-  /(\d{4})\/(\d{1,2})\/(\d{1,2})\s*-\s*(\d{4})\/(\d{1,2})\/(\d{1,2})/;
+  /(\d{4})\/(\d{1,2})\/(\d{1,2})\s*-\s*(?:(\d{4})\/)?(\d{1,2})\/(\d{1,2})/;
 
-/**
- * Parse YYYY/MM/DD-YYYY/MM/DD from Back-on-Track service_id (optional ": …" suffix).
- * @param {string} [serviceId]
- * @returns {{ start: Date, end: Date } | null} Local-date start/end (inclusive).
- */
 export function parseBoTServiceIdDateRange(serviceId) {
   if (!serviceId || typeof serviceId !== "string") return null;
   const m = serviceId.match(SERVICE_ID_CALENDAR_RANGE_RE);
   if (!m) return null;
   const start = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  const end = new Date(Number(m[4]), Number(m[5]) - 1, Number(m[6]));
+  // The short spelling omits the end year; a season that does not state one
+  // lies within the year it began, which is what that spelling means.
+  const end = new Date(Number(m[4] ?? m[1]), Number(m[5]) - 1, Number(m[6]));
   start.setHours(0, 0, 0, 0);
   end.setHours(0, 0, 0, 0);
   return { start, end };

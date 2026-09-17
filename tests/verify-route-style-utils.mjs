@@ -3,6 +3,7 @@
  * Validates getRouteStyleFromFrequency / inferTripFrequencyRank (no server).
  * Run: node tests/verify-route-style-utils.mjs
  */
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -252,24 +253,69 @@ assert(
   "a corrected row outvotes an export nobody updates",
 );
 
-// ─── The short season spelling stays unparseable ON PURPOSE ─────────────────
-// 88 service strings in the payload are written "2026/06/22-08/30", and making
-// this parser read them hides 17 more routes — among them Amtrak's City of New
-// Orleans, a year-round daily train whose row says "2026/09/13-09/16" because
-// gtfs-sleeper renders one representative trip's calendar row. Until a route's
-// season comes from all of its services, reading that string would be acting on
-// data that does not mean what it says.
-assert(
-  parseBoTServiceIdDateRange("2026/06/22-08/30: Daily") === null,
-  "the short spelling must stay unparsed until route-level seasons exist",
-);
+// ─── Both spellings of a season are read ────────────────────────────────────
+// 88 service strings in the payload write the end without its year, and for a
+// long time they fell through to "cannot parse, therefore runs" — which is how
+// Constanta-Oradea stayed on the map nine days after its last run.
+//
+// Reading them was blocked on something else first, and the order is the whole
+// lesson. gtfs-sleeper rendered "when does it run" from ONE representative
+// trip's calendar row, so Amtrak — which splits a daily train across many
+// short-dated services — stated "City of New Orleans: 2026/09/13-09/16" and
+// "California Zephyr: 2027/03/13-03/13: Sat". Acting on those would have
+// retired two year-round daily trains. The union in gtfs.mjs fixed the source
+// and a branch refresh rewrote the strings against the live feed; only then was
+// widening this safe.
 assert(
   parseBoTServiceIdDateRange("2026/06/26-2026/08/30: Daily") !== null,
-  "the spelling with both years is the one that is acted on",
+  "the spelling with both years parses",
+);
+const shortForm = parseBoTServiceIdDateRange("2026/06/22-08/30: Daily");
+assert(shortForm !== null, "the spelling without the end year parses too");
+assert(
+  shortForm.end.getFullYear() === 2026 && shortForm.end.getMonth() === 7,
+  "an omitted end year means the year the season began",
 );
 assert(
-  !routeSeasonHasClosed({ service_id_0: "2026/06/22-08/30: Daily" }, NOW),
-  "a short-form window that has passed is still not acted on (Amtrak's four-day rows)",
+  parseBoTServiceIdDateRange("2026: Daily") === null,
+  "a bare year is not a season and must never hide a route",
 );
+assert(
+  routeSeasonHasClosed({ service_id_0: "2026/06/22-08/30: Daily" }, NOW),
+  "a short-form season that has passed now closes the route",
+);
+
+// ─── No route may claim a season too short to be one ────────────────────────
+// This is the shape the Amtrak fault had, and the assertion that would have
+// caught it: gtfs-sleeper rendered one representative trip's calendar row, so
+// the City of New Orleans claimed four days and the California Zephyr one.
+// Against the payload as built there are none, and a window that short is an
+// artifact of how a feed was read rather than a timetable anybody publishes.
+{
+  const payload = JSON.parse(
+    fs.readFileSync(
+      path.join(root, "public", "data", "published", "initial-data.json"),
+      "utf8",
+    ),
+  ).data;
+  const tooShort = [];
+  const scan = (where, value) => {
+    const r = parseBoTServiceIdDateRange(value || "");
+    if (!r) return;
+    const days = Math.round((r.end - r.start) / 86400000) + 1;
+    if (days < 14) tooShort.push(`${where}: ${value} (${days} days)`);
+  };
+  for (const [key, row] of Object.entries(payload.viewMap)) {
+    scan(`row ${key}`, row.service_id_0);
+    scan(`row ${key}`, row.service_id_1);
+  }
+  for (const trip of Object.values(payload.trips)) {
+    scan(`trip ${trip.route_id}`, trip.service_id);
+  }
+  assert(
+    tooShort.length === 0,
+    `service windows too short to be a season: ${tooShort.slice(0, 3).join("; ")}`,
+  );
+}
 
 console.log("verify-route-style-utils.mjs OK");
