@@ -1,4 +1,19 @@
 // scripts/adapters/cfr.mjs
+//
+// NOT REFERENCED BY THE REGISTRY. The `cfr` entry now runs on
+// scripts/adapters/cfr-gtfs.mjs, because data.gov.ro is not reachable from the
+// nightly runner: this adapter failed 14 nights in a row with
+// `lastSuccessAt: null` — it has never once produced data, so every Romanian
+// route on the map was still running on Back-on-Track's via lists. The same
+// timetable arrives as GTFS through the Mobility Database on a host that IS
+// reachable, and carries coordinates, track geometry and per-date calendars
+// this XML does not.
+//
+// Kept rather than deleted because the code is sound and the only thing wrong
+// with it is the address: if data.gov.ro ever becomes reachable from CI, this
+// path is one registry edit away. scripts/lib/cfr-mers-tren.mjs is still live
+// either way — cfr-gtfs imports foldStationName from it.
+//
 // CFR Călători (Romania) from the official open-data timetable on data.gov.ro.
 //
 // Flow, nightly:

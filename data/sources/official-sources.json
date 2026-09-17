@@ -56,21 +56,33 @@
     "CFR": {
       "website": "https://www.cfrcalatori.ro",
       "countries": ["RO"],
-      "integrationStatus": "in-progress",
-      "difficulty": "medium",
-      "notes": "Romania publishes the annual national timetable as open data on data.gov.ro — one dataset per licensed carrier, valid 12 months from the second Sunday in December. Static planning data, not live running info. The `cfr` registry entry (scripts/adapters/cfr.mjs) reads it nightly: the current year's resource is resolved through the CKAN API, the XML parsed for the train numbers on Back-on-Track's CFR rows, and each row gets the official stop list, times and OSM/chain geometry. No coordinates in the file — they come from Back-on-Track's station table — and it stops at the border, so international trains keep Back-on-Track's foreign stretch. Flip `trusted` once a night's log shows the expected ~36 legs matched.",
+      "integrationStatus": "integrated",
+      "difficulty": "easy",
+      "notes": "Romania's annual national timetable, valid 12 months from the second Sunday in December. Two ways in, and only one of them works from CI. data.gov.ro publishes the source XML but is NOT reachable from the GitHub Actions runner — the `cfr` entry pointed there for 14 nights and never once succeeded (lastSuccessAt: null, 'fetch failed' after a ~10s connect timeout). The same timetable arrives as GTFS through the Mobility Database (mdb-3236, Transitous' conversion of the S.C. Informatică Feroviară data) on the self-updating latest.zip alias already used for European Sleeper, and that host is reachable. The GTFS is also strictly richer: coordinates on all 1695 stops, real shapes.txt geometry, per-date calendars, and the operator's own IR-N (InterRegio de Noapte) category, which is the night-train allowlist rather than a heuristic over it. The feed stops at the national border, so scripts/adapters/cfr-gtfs.mjs splices Back-on-Track's foreign stretch back on and drops any train whose endpoints then disagree with its row. Flip `trusted` once a night's log on main shows 36 entries matched and 0 dropped.",
       "sources": [
         {
-          "name": "data.gov.ro — Mers tren, SNTFC \"CFR Calatori\" S.A.",
+          "name": "Mobility Database mdb-3236 — Romanian railway operators (GTFS)",
+          "url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-3236/latest.zip",
+          "docsUrl": "https://mobilitydatabase.org/feeds/gtfs/mdb-3236",
+          "format": "GTFS",
+          "provides": ["trains", "stops", "times", "calendar", "geometry"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": "2026-09-17",
+          "probeWorkflow": "probe-gtfs.yml",
+          "notes": "What the nightly `cfr` entry reads. latest.zip is the self-updating alias, refreshed on the same cadence as mdb-3107 (European Sleeper). feed_info declares 20251214-20261212, the current annual timetable. Carries all seven Romanian carriers; the allowlist in data/sources/cfr-sleepers.json selects the 36 Back-on-Track row directions. Check it against the live feed with `npm run probe-gtfs -- --verify-allowlists`."
+        },
+        {
+          "name": "data.gov.ro — Mers tren, SNTFC \"CFR Calatori\" S.A. (upstream XML)",
           "url": "https://data.gov.ro/dataset/mers-tren-sntfc-cfr-calatori-s-a",
           "docsUrl": "https://data.gov.ro/dataset?tags=mers+tren",
           "format": "XML",
-          "provides": ["trains", "stops", "times", "calendar"],
+          "provides": ["trains", "times", "calendar"],
           "auth": "none",
-          "status": "discovered",
-          "lastChecked": null,
+          "status": "broken",
+          "lastChecked": "2026-09-17",
           "probeWorkflow": "probe-cfr.yml",
-          "notes": "Resolved nightly via https://data.gov.ro/api/3/action/package_show?id=mers-tren-sntfc-cfr-calatori-s-a (the resource UUID changes each timetable year, so it is never pinned). Field names the parser expects are centralised in scripts/lib/cfr-mers-tren.mjs FIELDS; 'Probe CFR source' prints the live file's tag/attribute census and a sample train."
+          "notes": "The primary publication, and the upstream of the GTFS above. Recorded as broken for US specifically: unreachable from the GitHub Actions runner (14 consecutive nightly failures) and from a dev sandbox. scripts/adapters/cfr.mjs still reads it and is no longer referenced by the registry — kept so the path is one registry edit away should the host become reachable."
         }
       ]
     },

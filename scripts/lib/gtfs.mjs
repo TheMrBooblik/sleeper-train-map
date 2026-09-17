@@ -682,6 +682,88 @@ function stationsForTrip(tripId, gtfs) {
   return stations;
 }
 
+// ─── Through-car stitching ──────────────────────────────────────────────────
+// A Back-on-Track row can name two feed trains: "IRN 472/IRN 1743" is ONE
+// journey (Bucuresti -> Oradea) that the operator timetables under two numbers,
+// and the feed carries each leg as its own route. Concatenating them is wrong,
+// because leg one runs PAST the junction — 472 carries on to the Hungarian
+// border — so the drawn line would reach Curtici, jump back to Arad and set off
+// again. The legs are therefore joined at the last station they share, and each
+// leg's geometry is cut at that station too.
+
+/** Index of the position closest to a lat/lon, longitudes scaled by latitude. */
+function nearestPointIndex(positions, lat, lon) {
+  let best = -1;
+  let bestD = Infinity;
+  const scale = Math.cos((lat * Math.PI) / 180);
+  for (let i = 0; i < positions.length; i++) {
+    const dLat = positions[i][0] - lat;
+    const dLon = (positions[i][1] - lon) * scale;
+    const d = dLat * dLat + dLon * dLon;
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/**
+ * Join consecutive legs of one journey at the last station they share.
+ *
+ * The junction keeps leg one's arrival and leg two's departure, because that is
+ * what a through car does there: 472 reaches Arad at 02:17 and the portion does
+ * not leave again until 1743 does, at 06:07. Taking leg one's departure would
+ * state a wait that never happens.
+ *
+ * Returns null when a consecutive pair shares no station — the caller then
+ * keeps the legs apart rather than drawing a line through a junction that is
+ * not one.
+ *
+ * @param {Array<{stations: Array, positions: Array}>} legs in journey order
+ */
+export function stitchLegs(legs) {
+  if (!legs?.length) return null;
+  let stations = legs[0].stations;
+  let positions = legs[0].positions;
+  for (let n = 1; n < legs.length; n++) {
+    const next = legs[n];
+    const nextNorms = next.stations.map((st) => normLabel(st.name));
+    // Latest junction in what we have so far: a through car rejoins once, and
+    // taking the earliest shared name would drop every stop in between.
+    let cut = -1;
+    let nextCut = -1;
+    for (let i = stations.length - 1; i >= 0 && cut < 0; i--) {
+      const k = nextNorms.indexOf(normLabel(stations[i].name));
+      if (k >= 0) {
+        cut = i;
+        nextCut = k;
+      }
+    }
+    if (cut < 0) return null;
+    const junction = {
+      ...stations[cut],
+      departure: next.stations[nextCut]?.departure ?? stations[cut].departure,
+    };
+    const { latitude, longitude } = junction.location;
+    const head =
+      positions.length >= 2
+        ? positions.slice(0, nearestPointIndex(positions, latitude, longitude) + 1)
+        : positions;
+    const tail =
+      next.positions.length >= 2
+        ? next.positions.slice(nearestPointIndex(next.positions, latitude, longitude))
+        : next.positions;
+    stations = [
+      ...stations.slice(0, cut),
+      junction,
+      ...next.stations.slice(nextCut + 1),
+    ];
+    positions = [...head, ...tail];
+  }
+  return { stations, positions };
+}
+
 /**
  * Build the standard trains dict for the allowlisted routes of one feed.
  *
@@ -705,6 +787,16 @@ function stationsForTrip(tripId, gtfs) {
  *                           the train and lets the trains dict come out keyed
  *                           by the operator's own label, which is what the
  *                           trainsByNumber enrichment looks a row up by.
+ *   - { route, name }     → match a feed route by its OWN name/short name/id
+ *     { routes: [], name }  and key the train by `name`. Romania's feed is what
+ *                           this exists for: route_id IS the train number and
+ *                           route_short_name is "IR-N 346", while the row it
+ *                           has to land on is labelled "D 346". `routes` lists
+ *                           the legs of a through car, joined by stitchLegs.
+ *                           Unlike { from, to, name } it never reads endpoints,
+ *                           so it is the right form for a feed that addresses
+ *                           its trains by number and truncates them at a
+ *                           border (where the endpoints are not the train's).
  *
  * @param {object} args
  * @param {object} args.gtfs       result of loadGtfsDir()
@@ -741,9 +833,21 @@ export function buildSleeperTrains({
   const nameEntries = [];
   const pairEntries = [];
   const namedEntries = [];
+  const routeNamedEntries = [];
   for (const e of allowlist || []) {
     if (typeof e === "string" && e.trim()) {
       nameEntries.push({ raw: e, norm: normLabel(e) });
+    } else if (e && e.name && (e.route || Array.isArray(e.routes))) {
+      const legs = (Array.isArray(e.routes) ? e.routes : [e.route])
+        .map((r) => String(r ?? "").trim())
+        .filter(Boolean);
+      if (legs.length) {
+        routeNamedEntries.push({
+          raw: `${e.name} (${legs.join(" + ")})`,
+          name: String(e.name).trim(),
+          legs: legs.map((r) => ({ raw: r, norm: normLabel(r) })),
+        });
+      }
     } else if (e && e.from && e.to && e.name) {
       namedEntries.push({
         raw: `${e.name} (${e.from} → ${e.to})`,
@@ -788,13 +892,22 @@ export function buildSleeperTrains({
   // `frequencyOverride` is how a named entry hands in the union of every trip
   // that matched it; without one a single trip's service is the answer, which
   // stays right for a feed with real calendar.txt weekdays (Amtrak, VIA).
-  const makeTrain = (lineName, trip, stations, frequencyOverride = null) => {
-    // Geometry: prefer the GTFS shape; fall back to the station chain.
+  // Geometry: prefer the GTFS shape; fall back to the station chain.
+  const positionsFor = (trip, stations) => {
     const shapePts = trip.shape_id ? gtfs.shapePoints.get(trip.shape_id) : null;
-    const positions =
-      shapePts && shapePts.length >= 2
-        ? shapePts.map((p) => [p.lat, p.lon])
-        : stations.map((s) => [s.location.latitude, s.location.longitude]);
+    return shapePts && shapePts.length >= 2
+      ? shapePts.map((p) => [p.lat, p.lon])
+      : stations.map((s) => [s.location.latitude, s.location.longitude]);
+  };
+
+  const makeTrain = (
+    lineName,
+    trip,
+    stations,
+    frequencyOverride = null,
+    positionsOverride = null,
+  ) => {
+    const positions = positionsOverride ?? positionsFor(trip, stations);
     return {
       lineName,
       operator,
@@ -849,6 +962,76 @@ export function buildSleeperTrains({
     }
   }
 
+  // Route-keyed named entries. Resolved before the generic loop so they claim
+  // the unsuffixed key, and kept separate from { from, to, name } because they
+  // deliberately never read endpoints: a feed that stops at a national border
+  // states endpoints that are not the train's, and matching on them would
+  // reject every international train it carries.
+  if (routeNamedEntries.length) {
+    const routeIdByNorm = new Map();
+    for (const [routeId, route] of gtfs.routesById) {
+      for (const candidate of [
+        route.route_long_name,
+        route.route_short_name,
+        route.route_id,
+      ]) {
+        const norm = normLabel(candidate);
+        if (norm && !routeIdByNorm.has(norm)) routeIdByNorm.set(norm, routeId);
+      }
+    }
+    for (const e of routeNamedEntries) {
+      const legs = [];
+      let missing = null;
+      for (const leg of e.legs) {
+        const routeId = routeIdByNorm.get(leg.norm);
+        const legTrips = routeId ? tripsByRoute.get(routeId) : null;
+        if (!legTrips?.length) {
+          missing = leg.raw;
+          break;
+        }
+        const rep = representativeTrip(legTrips, gtfs);
+        if (!rep.trip || rep.stations.length < 2) {
+          missing = leg.raw;
+          break;
+        }
+        legs.push({
+          trip: rep.trip,
+          stations: rep.stations,
+          positions: positionsFor(rep.trip, rep.stations),
+        });
+      }
+      if (missing) {
+        log(`skip ${e.raw}: feed has no usable route "${missing}"`);
+        continue;
+      }
+      const joined =
+        legs.length === 1
+          ? { stations: legs[0].stations, positions: legs[0].positions }
+          : stitchLegs(legs);
+      if (!joined) {
+        log(`skip ${e.raw}: legs share no junction station`);
+        continue;
+      }
+      matchedEntries.add(e.raw);
+      // The first leg's calendar, not a union over the legs: a through portion
+      // runs when the train carrying it out of the origin runs, and unioning
+      // would report days on which the journey cannot be made. Windowed, so a
+      // service whose season has ended answers null rather than a day list
+      // belonging to another part of the year.
+      trains[claimKey(e.name, legs[0].trip.trip_id)] = makeTrain(
+        e.name,
+        legs[0].trip,
+        joined.stations,
+        serviceDisplayForServices(
+          new Set([legs[0].trip.service_id]),
+          gtfs,
+          serviceWindow,
+        ),
+        joined.positions,
+      );
+    }
+  }
+
   for (const [routeId, trips] of tripsByRoute.entries()) {
     const route = gtfs.routesById.get(routeId);
     const nameNorms = [
@@ -897,7 +1080,7 @@ export function buildSleeperTrains({
     );
   }
 
-  const unmatched = [...nameEntries, ...pairEntries, ...namedEntries]
+  const unmatched = [...nameEntries, ...pairEntries, ...namedEntries, ...routeNamedEntries]
     .map((e) => e.raw)
     .filter((raw) => !matchedEntries.has(raw));
   if (stats) {
