@@ -17,6 +17,7 @@
 import { indexLegsByCity, segmentOf } from "./legs.mjs";
 import { availabilityFor, isOfferable, STATUS_RANK } from "./availability.mjs";
 import { addDays, clampStay, hopDates } from "./url.mjs";
+import { suggestionScore } from "./prominence.mjs";
 
 /** Wrap a raw index (legs + cities) with the lookups the search needs. */
 export function createPlanner(index) {
@@ -119,10 +120,10 @@ function compareDestinations(a, b) {
   if (rank) return rank;
   if (a.best.isOvernight !== b.best.isOvernight) return a.best.isOvernight ? -1 : 1;
   if (a.best.isTerminus !== b.best.isTerminus) return a.best.isTerminus ? -1 : 1;
-  const terminus = (b.city.terminusCount ?? 0) - (a.city.terminusCount ?? 0);
-  if (terminus) return terminus;
-  const hub = (b.city.legCount ?? 0) - (a.city.legCount ?? 0);
-  if (hub) return hub;
+  // Below every fact about the ride, and never above one: a confirmed train to
+  // a de-emphasised city still outranks an unconfirmed train to a headline one.
+  const suggested = suggestionScore(b.city) - suggestionScore(a.city);
+  if (suggested) return suggested;
   return String(a.city.name).localeCompare(String(b.city.name), undefined, {
     sensitivity: "base",
   });

@@ -6,8 +6,9 @@
  * the map's region list) and adds code normalization + slug lookups.
  */
 
-import { COUNTRIES } from "../countries";
+import { COUNTRIES } from "../countries.js";
 import { slugify } from "./slugify.mjs";
+import { normalizeCountryCode } from "../countryCode.mjs";
 
 // United Kingdom is not in the map's region list but has real night-train content.
 const SEO_ONLY_COUNTRIES = [
@@ -26,18 +27,11 @@ for (const c of SEO_COUNTRIES) {
   BY_SLUG.set(entry.slug, entry);
 }
 
-/**
- * Normalize a raw country code to the canonical ISO-2 used here.
- * Back-on-Track stops use "UK"; trips use "GB" — collapse both to "GB".
- * @param {string} code
- * @returns {string}
- */
-export function normalizeCountryCode(code) {
-  if (!code) return "";
-  const up = String(code).trim().toUpperCase();
-  if (up === "UK") return "GB";
-  return up;
-}
+// Defined in a dependency-free .mjs rather than here, because the plan-index
+// build runs in raw node. Imported as well as re-exported: this file calls it
+// itself (getSeoCountry, countrySlug), and `export … from` creates no local
+// binding — which failed the build rather than anything subtler.
+export { normalizeCountryCode };
 
 /** Country metadata by (normalized) code, or null if not a hub country. */
 export function getSeoCountry(code) {

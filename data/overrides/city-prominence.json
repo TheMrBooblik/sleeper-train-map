@@ -1,0 +1,32 @@
+{
+  "_readme": [
+    "Per-country weight on how prominently the trip planner SUGGESTS a city.",
+    "Default is 1. This only reorders discovery surfaces — the landing page's",
+    "'start from' chips, the city picker's default list, and ties between",
+    "equally-good destinations. It NEVER filters: every route stays searchable,",
+    "stays on the map, keeps its /connections page, and is returned in full when",
+    "a plan asks for it. Typing 'Lviv' still puts Lviv first.",
+    "tests/verify-plan.mjs pins that distinction."
+  ],
+  "weights": {
+    "UA": {
+      "weight": 0.15,
+      "reason": "Ukraine is at war. Ukrainian Railways runs these trains and the data is accurate, but heading a leisure trip planner with 'start from Kyiv' is the wrong default. Still fully searchable and routable."
+    },
+    "CN": {
+      "weight": 0.1,
+      "reason": "China Railway sleepers are in the dataset but are not the European night-train market this site serves; Chengdu as a suggested starting point is noise for almost every visitor."
+    },
+    "US": {
+      "weight": 0.1,
+      "reason": "Amtrak — same reason as CN: real data, wrong market for a European hub list."
+    },
+    "CA": {
+      "weight": 0.1,
+      "reason": "VIA Rail — same reason as US."
+    },
+    "GE": { "weight": 0.4, "reason": "Caucasus: real rail, peripheral to the European corridors this site sells." },
+    "AM": { "weight": 0.4, "reason": "Caucasus — same as GE." },
+    "AZ": { "weight": 0.4, "reason": "Caucasus — same as GE." }
+  }
+}

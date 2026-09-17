@@ -17,7 +17,12 @@ export default function DateField({ value, today, onChange }) {
   ];
 
   return (
-    <div className="flex flex-col gap-2">
+    // min-w-0 all the way down: a grid/flex item defaults to min-width:auto, so
+    // it will not shrink below its content's intrinsic width — and iOS Safari
+    // gives input[type=date] a wide intrinsic width from its native control.
+    // Desktop Chromium's control is narrower, which is why this overflowed on a
+    // phone and measured 0 px in a headless viewport of the same width.
+    <div className="flex min-w-0 flex-col gap-2">
       <label htmlFor="plan-date" className="text-sm font-medium text-white/70">
         Departing
       </label>
@@ -27,7 +32,7 @@ export default function DateField({ value, today, onChange }) {
         min={today}
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full min-w-0 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-base text-white [color-scheme:dark] focus:border-primary-green/60 focus:outline-none focus:ring-1 focus:ring-primary-green/40"
+        className="box-border w-full min-w-0 max-w-full appearance-none rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-left text-base text-white [color-scheme:dark] focus:border-primary-green/60 focus:outline-none focus:ring-1 focus:ring-primary-green/40"
       />
       <div className="flex flex-wrap gap-2">
         {picks.map((pick) => (

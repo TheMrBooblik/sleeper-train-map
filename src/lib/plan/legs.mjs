@@ -75,6 +75,9 @@ function splitAgencies(value) {
  * @param {(routeId: string, direction: number) => string} [options.pairSlugFor]
  *   Connection-page slug for a leg, so a result can link to the page that
  *   already carries the timetable, booking CTA and FAQ. Omitted → no link.
+ * @param {(station: string, operatorIds: string[]) => string} [options.countryForStation]
+ *   ISO-2 country for a station name. Injected because the published payload
+ *   does not carry one (see countryOf below).
  * @param {(route: object) => object|null} [options.pricingFor]
  *   The route's pricing record. Injected rather than imported because
  *   operatorPricing.js cannot load in raw node (see pricingResolve.mjs).
@@ -95,11 +98,22 @@ export function buildLegs(payload, options = {}) {
   );
   const isKnownStation = (name) => knownStations.has(String(name).trim().toLowerCase());
 
+  // Country per station. The published payload cannot supply it: normalizeStops()
+  // trims a stop to id/name/lat/lon, so `stop.stop_country` is undefined on all
+  // 29 810 of them and reading it here left every city country-less — no flag in
+  // the picker, and nothing to weight a ranking by. It comes from the caller
+  // instead, which at build time can read the raw stop index the same way
+  // getStopCountryIndex() does, plus the `origin_country_*` stamps the rows
+  // already carry.
   const countryOf = new Map();
   for (const stop of stops) {
     const name = String(stop?.stop_name || "").trim();
     if (name && stop?.stop_country) countryOf.set(name.toLowerCase(), String(stop.stop_country));
   }
+  const countryForStation = (station, operatorIds) =>
+    options.countryForStation?.(station, operatorIds) ||
+    countryOf.get(station.toLowerCase()) ||
+    "";
 
   const tripsByRoute = new Map();
   for (const trip of Object.values(trips)) {
@@ -112,7 +126,7 @@ export function buildLegs(payload, options = {}) {
   const legs = [];
   const cityIndex = new Map();
 
-  const noteCity = (name, station) => {
+  const noteCity = (name, station, operatorIds) => {
     const slug = slugify(name);
     if (!slug) return null;
     let entry = cityIndex.get(slug);
@@ -121,7 +135,7 @@ export function buildLegs(payload, options = {}) {
       cityIndex.set(slug, entry);
     }
     entry.stations.add(station);
-    if (!entry.country) entry.country = countryOf.get(station.toLowerCase()) || "";
+    if (!entry.country) entry.country = countryForStation(station, operatorIds);
     return entry;
   };
 
@@ -139,6 +153,7 @@ export function buildLegs(payload, options = {}) {
       const chain = [origin, ...via, destination];
 
       const train = String(route[`trip_short_name_${direction}`] || "").trim();
+      const operatorIds = splitAgencies(route.bot_agency_id || route.agency_id);
       const feedTimes =
         options.stopTimesFor?.({ train, origin, destination, routeId, direction }) || null;
 
@@ -146,7 +161,7 @@ export function buildLegs(payload, options = {}) {
       const seenCities = new Set();
       for (const station of chain) {
         const city = cityForStation(station);
-        const entry = noteCity(city, station);
+        const entry = noteCity(city, station, operatorIds);
         if (!entry) continue;
         // A train that calls twice in one city (Berlin Spandau then Berlin Hbf)
         // is one place to board, listed once, at its first call.
@@ -174,8 +189,6 @@ export function buildLegs(payload, options = {}) {
       const timed = hasRealTimes(rawDeparture, rawArrival);
       const departure = timed ? toClock(rawDeparture) : "";
       const arrival = timed ? toClock(rawArrival) : "";
-
-      const operatorIds = splitAgencies(route.bot_agency_id || route.agency_id);
 
       legs.push({
         id: `${routeId}:${direction}`,

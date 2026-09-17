@@ -11,6 +11,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { hydratePlanIndex } from "./index-codec.mjs";
+import { bySuggestionScore } from "./prominence.mjs";
 
 const INDEX_PATH = "public/data/published/plan-index.json";
 
@@ -36,7 +37,11 @@ export function getPlanIndex() {
 
 /**
  * The cities worth offering as a starting point: somewhere a night train
- * actually begins or ends, busiest first.
+ * actually begins or ends, ranked by how prominently we suggest it.
+ *
+ * Ranked by raw connectivity this list opened with Lviv, Kyiv and Beijing —
+ * see prominence.mjs for why that is the wrong first impression and what the
+ * weighting does and does not touch.
  * @param {number} limit
  */
 export function getTopStartCities(limit = 24) {
@@ -44,13 +49,14 @@ export function getTopStartCities(limit = 24) {
   if (!index) return [];
   return index.cities
     .filter((city) => city.terminusCount > 0)
-    .sort((a, b) => b.legCount - a.legCount || a.name.localeCompare(b.name))
+    .sort(bySuggestionScore)
     .slice(0, limit)
-    .map(({ slug, name, country, legCount, terminusCount }) => ({
+    .map(({ slug, name, country, legCount, terminusCount, prominence }) => ({
       slug,
       name,
       country,
       legCount,
       terminusCount,
+      prominence,
     }));
 }

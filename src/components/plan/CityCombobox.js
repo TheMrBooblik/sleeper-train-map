@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { getFlagEmoji } from "../../lib/countries";
+import { MAX_RESULTS, rankCities } from "../../lib/plan/citySearch.mjs";
 
 /**
  * City picker for the planner.
@@ -12,38 +13,6 @@ import { getFlagEmoji } from "../../lib/countries";
  * offers Vienna before Vienne, and matching station names too so "Meidling"
  * finds Vienna.
  */
-const MAX_RESULTS = 8;
-
-function normalize(value) {
-  return String(value || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "");
-}
-
-/** Rank: a name that starts with the query beats one that merely contains it. */
-export function rankCities(cities, query, limit = MAX_RESULTS) {
-  const q = normalize(query).trim();
-  if (!q) {
-    return [...cities].sort((a, b) => (b.legCount ?? 0) - (a.legCount ?? 0)).slice(0, limit);
-  }
-  const scored = [];
-  for (const city of cities) {
-    const name = normalize(city.name);
-    let score = null;
-    if (name === q) score = 0;
-    else if (name.startsWith(q)) score = 1;
-    else if (name.includes(q)) score = 2;
-    else if (normalize(city.slug).includes(q)) score = 3;
-    if (score === null) continue;
-    scored.push({ city, score });
-  }
-  scored.sort(
-    (a, b) => a.score - b.score || (b.city.legCount ?? 0) - (a.city.legCount ?? 0),
-  );
-  return scored.slice(0, limit).map((s) => s.city);
-}
-
 export default function CityCombobox({
   label,
   value,
@@ -105,7 +74,7 @@ export default function CityCombobox({
   }
 
   return (
-    <div className="flex flex-col gap-2" ref={wrapRef}>
+    <div className="flex min-w-0 flex-col gap-2" ref={wrapRef}>
       <label htmlFor={id} className="text-sm font-medium text-white/70">
         {label}
       </label>

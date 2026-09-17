@@ -25,6 +25,7 @@ import {
   parsePlanPath,
 } from "../../lib/plan/url.mjs";
 import { formatPlanDate } from "../../lib/plan/format.mjs";
+import { bySuggestionScore } from "../../lib/plan/prominence.mjs";
 import { absoluteUrl, OG_IMAGE } from "../../lib/seo/site";
 import { getFlagEmoji } from "../../lib/countries";
 
@@ -192,7 +193,7 @@ export default function PlanPage({ seoCities, initialPlan }) {
               onSelect={(city) => city && go({ cities: [...cities, city.slug] })}
             />
           )}
-          <div className={cities.length >= 1 ? "sm:col-span-2" : ""}>
+          <div className={`min-w-0 ${cities.length >= 1 ? "sm:col-span-2" : ""}`}>
             {today && (
               <DateField
                 value={date}
@@ -222,10 +223,13 @@ export default function PlanPage({ seoCities, initialPlan }) {
               Start from a city with the most night trains
             </h2>
             <ul className="mt-5 flex flex-wrap gap-2">
+              {/* Same order as getTopStartCities, which renders this list before
+                  the index has loaded — sorting it differently here would make
+                  the chips visibly reshuffle on hydration. */}
               {(planner?.cities ?? seoCities)
                 .filter((c) => (c.terminusCount ?? 0) > 0)
                 .slice()
-                .sort((a, b) => (b.legCount ?? 0) - (a.legCount ?? 0))
+                .sort(bySuggestionScore)
                 .slice(0, 24)
                 .map((city) => (
                   <li key={city.slug}>
@@ -235,7 +239,11 @@ export default function PlanPage({ seoCities, initialPlan }) {
                     >
                       <span aria-hidden="true">{getFlagEmoji(city.country) || "🚂"}</span>
                       {city.name}
-                      <span className="text-xs text-white/35">{city.legCount}</span>
+                      {/* Trains that START or END here — what a "start from"
+                          chip is actually offering. legCount counts every train
+                          that merely calls, which is why it used to head this
+                          list with corridor stops. */}
+                      <span className="text-xs text-white/35">{city.terminusCount}</span>
                     </Link>
                   </li>
                 ))}

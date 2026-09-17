@@ -30,9 +30,18 @@ import {
   findJourneys,
   isInterchange,
   resolvePlan,
+  ridesBetween,
 } from "../src/lib/plan/search.mjs";
 import { hydratePlanIndex, packPlanIndex } from "../src/lib/plan/index-codec.mjs";
 import { formatPlanDate } from "../src/lib/plan/format.mjs";
+import {
+  bySuggestionScore,
+  prominenceLookup,
+  scoreCities,
+  suggestionScore,
+} from "../src/lib/plan/prominence.mjs";
+import { rankCities } from "../src/lib/plan/citySearch.mjs";
+import CITY_PROMINENCE from "../data/overrides/city-prominence.json" with { type: "json" };
 import { slugify } from "../src/lib/seo/slugify.mjs";
 import { cityForStation } from "../src/lib/seo/cities.mjs";
 import { buildPlanIndex, readPublished } from "../scripts/build-plan-index.mjs";
@@ -492,6 +501,120 @@ check("a ride carries every field the card renders", () => {
   assert.ok(priced, "some leg must carry pricing");
   const ridesWithPricing = destinations.filter((d) => d.best.pricing?.type).length;
   assert.ok(ridesWithPricing > 0, "pricing must survive the leg → ride copy");
+});
+
+check("every terminus city knows its country", () => {
+  // The published payload cannot supply one — normalizeStops() trims a stop to
+  // id/name/lat/lon — so this reads the raw stop index and the row stamps. It
+  // was silently 0 of 189, which left the picker flagless and the suggestion
+  // weighting with nothing to weight by.
+  const terms = planner.cities.filter((c) => c.terminusCount > 0);
+  const withCountry = terms.filter((c) => c.country);
+  assert.ok(
+    withCountry.length > terms.length * 0.9,
+    `only ${withCountry.length} of ${terms.length} terminus cities have a country`,
+  );
+  // Cyrillic-stored Ukrainian stations resolve only through stop_name_romanized.
+  assert.equal(planner.cityBySlug.get("kyiv")?.country, "UA");
+  assert.equal(planner.cityBySlug.get("lviv")?.country, "UA");
+  // A synthetic operator's stations are absent from Back-on-Track's table and
+  // fall back to the operator's own country.
+  assert.equal(planner.cityBySlug.get("beijing")?.country, "CN");
+  assert.equal(planner.cityBySlug.get("vienna")?.country, "AT");
+});
+
+check("suggestion weighting reorders and never filters", () => {
+  // The line this whole feature rests on. Every de-emphasised city must still
+  // be in the index, still be findable by name, and still be routable.
+  const damped = planner.cities.filter((c) => c.prominence < 1);
+  assert.ok(damped.length > 0, "nothing is de-emphasised — is the table wired?");
+  for (const slug of ["kyiv", "lviv", "beijing", "odesa", "kharkiv"]) {
+    const city = planner.cityBySlug.get(slug);
+    assert.ok(city, `${slug} was dropped from the index`);
+    assert.ok(city.prominence < 1, `${slug} should be de-emphasised`);
+    assert.ok(city.legCount > 0, `${slug} lost its legs`);
+  }
+  // Typing the name still puts it first: match quality outranks weighting.
+  for (const [query, expected] of [["lviv", "Lviv"], ["kyiv", "Kyiv"], ["beijing", "Beijing"]]) {
+    assert.equal(rankCities(planner.cities, query)[0]?.name, expected, query);
+  }
+  // And it is still routable — a plan that asks for it gets the real answer.
+  const rides = ridesBetween(planner, { from: "przemysl", to: "kyiv", date: "2026-09-18" });
+  assert.ok(rides.length > 0, "Przemyśl → Kyiv must still return trains");
+});
+
+check("the suggested starting cities are European hubs", () => {
+  const top = planner.cities
+    .filter((c) => c.terminusCount > 0)
+    .sort(bySuggestionScore)
+    .slice(0, 24);
+  const slugs = top.map((c) => c.slug);
+  for (const city of ["vienna", "paris", "prague", "berlin", "munich", "milan", "amsterdam"]) {
+    assert.ok(slugs.includes(city), `${city} should be a suggested start, got ${slugs.join(", ")}`);
+  }
+  // Ranked by raw connectivity this list held six Ukrainian and five Chinese
+  // cities, with Paris 19th.
+  for (const code of ["UA", "CN", "US", "CA"]) {
+    assert.equal(
+      top.filter((c) => c.country === code).length,
+      0,
+      `${code} should not headline the suggestions`,
+    );
+  }
+});
+
+check("a city is measured by where its trains go, not by who terminates there", () => {
+  // Przemyśl has 20 terminating night trains and nineteen of them are Ukraine's.
+  // It is a Polish city and must not be weighted as a Ukrainian one — but it
+  // must not be suggested above Prague either.
+  const przemysl = planner.cityBySlug.get("przemysl");
+  assert.ok(przemysl);
+  assert.equal(przemysl.prominence, 1, "Przemyśl is Polish and keeps full weight");
+  assert.ok(
+    przemysl.terminusReach < przemysl.terminusCount,
+    "its reach must be damped by the network it serves",
+  );
+  const rank = (slug) =>
+    planner.cities
+      .filter((c) => c.terminusCount > 0)
+      .sort(bySuggestionScore)
+      .findIndex((c) => c.slug === slug);
+  assert.ok(rank("przemysl") > rank("prague"), "Prague outranks Przemyśl");
+  // A city whose trains all go to full-weight places is untouched.
+  const vienna = planner.cityBySlug.get("vienna");
+  assert.ok(vienna.terminusReach > vienna.terminusCount * 0.9, "Vienna is not damped");
+});
+
+check("an unknown or missing country keeps full weight", () => {
+  // Eight terminus cities resolve to no country (Helsinki, Inverness, …). The
+  // default must be "suggest normally", never "hide".
+  const weightFor = prominenceLookup(CITY_PROMINENCE);
+  assert.equal(weightFor(""), 1);
+  assert.equal(weightFor("ZZ"), 1);
+  assert.equal(weightFor("at"), 1);
+  assert.equal(weightFor("ua"), 0.15, "lookup is case-insensitive");
+  for (const city of planner.cities) {
+    if (!city.country) assert.equal(city.prominence, 1, `${city.name} was damped with no country`);
+  }
+});
+
+check("scoreCities is pure and total over a minimal graph", () => {
+  const cities = [
+    { slug: "a", name: "A", country: "AT", legCount: 1, terminusCount: 1 },
+    { slug: "b", name: "B", country: "UA", legCount: 1, terminusCount: 1 },
+  ];
+  const legs = [{ stops: [{ citySlug: "a" }, { citySlug: "b" }] }];
+  scoreCities(legs, cities, prominenceLookup(CITY_PROMINENCE));
+  const [a, b] = cities;
+  assert.equal(a.prominence, 1);
+  assert.equal(b.prominence, 0.15);
+  // A reaches a de-emphasised place, so its reach is damped even at weight 1.
+  assert.equal(a.terminusReach, 0.15);
+  assert.equal(b.terminusReach, 1);
+  assert.ok(suggestionScore(b) < suggestionScore(a) * 2);
+  // A leg with fewer than two stops is skipped rather than throwing.
+  scoreCities([{ stops: [{ citySlug: "a" }] }, { stops: [] }, {}], cities, () => 1);
+  assert.equal(cities[0].reach, 0);
 });
 
 check("every leg's stops resolve to a real city in the index", () => {

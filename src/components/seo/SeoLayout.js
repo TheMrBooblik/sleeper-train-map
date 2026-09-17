@@ -18,17 +18,21 @@ export default function SeoLayout({ children }) {
           <div className="flex items-center justify-between h-16">
             <Link
               href="/"
-              className="text-white font-medium hover:text-primary-green transition-colors"
+              className="min-w-0 truncate text-white font-medium hover:text-primary-green transition-colors"
             >
               Pingwi{" "}
               <span className="italic text-primary-green">sleeper train</span> map
             </Link>
-            <div className="flex items-center gap-4 sm:gap-6">
+            <div className="flex shrink-0 items-center gap-3 sm:gap-6">
               <Link
                 href="/plan"
-                className="text-sm text-white/70 hover:text-white transition-colors"
+                className="shrink-0 text-sm text-white/70 hover:text-white transition-colors"
               >
-                Plan a trip
+                {/* "Plan a trip" pushed the wordmark onto two lines at 375px.
+                    The link has to stay on mobile — it is the only nav entry to
+                    the planner from an SEO page — so it shortens instead. */}
+                <span className="sm:hidden">Plan</span>
+                <span className="hidden sm:inline">Plan a trip</span>
               </Link>
               <Link
                 href="/connections"

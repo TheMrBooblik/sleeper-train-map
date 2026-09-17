@@ -31,7 +31,11 @@ export function packPlanIndex(index) {
   const citySlugIds = new Map();
   const cities = index.cities.map((city, i) => {
     citySlugIds.set(city.slug, i);
-    return [city.slug, city.name, city.country || "", city.legCount || 0, city.terminusCount || 0];
+    return [
+      city.slug, city.name, city.country || "", city.legCount || 0,
+      city.terminusCount || 0, city.prominence ?? 1,
+      city.reach ?? 0, city.terminusReach ?? 0,
+    ];
   });
 
   // A stop's times are usually empty, so they ride as a trailing pair that is
@@ -69,13 +73,18 @@ export function hydratePlanIndex(index) {
   if (!index || !index.packed) return index;
 
   const names = index.names ?? [];
-  const cities = index.cities.map(([slug, name, country, legCount, terminusCount]) => ({
-    slug,
-    name,
-    country,
-    legCount,
-    terminusCount: terminusCount || 0,
-  }));
+  const cities = index.cities.map(
+    ([slug, name, country, legCount, terminusCount, prominence, reach, terminusReach]) => ({
+      slug,
+      name,
+      country,
+      legCount,
+      terminusCount: terminusCount || 0,
+      prominence: prominence ?? 1,
+      reach: reach ?? 0,
+      terminusReach: terminusReach ?? 0,
+    }),
+  );
 
   const pricings = index.pricings ?? [];
   const legs = index.legs.map(({ p, ...leg }) => ({

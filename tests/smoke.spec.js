@@ -51,6 +51,29 @@ test.describe('Planner Smoke Tests', () => {
     expect(errors, `Errors detected: ${errors.join(', ')}`).toHaveLength(0);
   });
 
+  test('the planner fits the narrowest phone', async ({ page }) => {
+    // The date field spilled past the card on a real phone: a native
+    // input[type=date] has a wide intrinsic width, and a grid item defaults to
+    // min-width:auto, so it refuses to shrink. 320px is an iPhone SE.
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto('/plan/amsterdam/2026-09-18');
+    await page.waitForSelector('#plan-date');
+
+    const overflow = await page.evaluate(() => {
+      const doc = document.documentElement;
+      const input = document.getElementById('plan-date');
+      const card = input.closest('section');
+      return {
+        page: doc.scrollWidth - doc.clientWidth,
+        spill: Math.round(
+          input.getBoundingClientRect().right - card.getBoundingClientRect().right,
+        ),
+      };
+    });
+    expect(overflow.page, 'page scrolls sideways').toBe(0);
+    expect(overflow.spill, 'date field spills past its card').toBeLessThanOrEqual(0);
+  });
+
   test('a shared plan URL resolves on a cold load', async ({ page }) => {
     await page.goto('/plan/amsterdam-to-vienna/2026-09-18');
     await expect(page.getByRole('heading', { level: 1 })).toContainText(
