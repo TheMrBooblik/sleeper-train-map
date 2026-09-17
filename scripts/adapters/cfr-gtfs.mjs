@@ -325,6 +325,17 @@ export async function run(entry, ctx) {
 
   let spliced = 0;
   let dropped = 0;
+  // A spliced-in station with no coordinate is kept in the stop list and then
+  // silently filtered out of the geometry by `chainOf`. That is correct for
+  // row 28's Bulgarian via names, which are text in a via string and nothing
+  // else — and it is the worst possible shape for a TYPO, because the station
+  // appears in the list exactly as if it had worked while the line ignores it.
+  // Back-on-Track spells the Moldovan stop "Bălți Oras"; "Bălți" or "Balti"
+  // resolve to nothing, so an upstream edit using either would look correct
+  // everywhere except on the map. Reported rather than failed: being coordless
+  // is legitimate, being coordless *by accident* is not, and only a person
+  // reading the name can tell the two apart.
+  const coordless = [];
   for (const [key, train] of Object.entries(trains)) {
     const hit = rowByLabel.get(train.lineName);
     // No row: a synthetic-only sleeper from the allowlist's extras. Nothing to
@@ -356,6 +367,14 @@ export async function run(entry, ctx) {
     if (joined.head || joined.tail) {
       spliced++;
       train.stations = joined.stations;
+      for (const st of [
+        ...joined.stations.slice(0, joined.head),
+        ...(joined.tail ? joined.stations.slice(joined.stations.length - joined.tail) : []),
+      ]) {
+        if (!Number.isFinite(st?.location?.latitude)) {
+          coordless.push(`${train.lineName}: ${st.name}`);
+        }
+      }
       // Re-encode the line, or the row keeps a polyline that stops at the
       // frontier while its stop list runs on to Wien — the drawn route would
       // end in the middle of nowhere with markers beyond it. The feed's shape
@@ -382,5 +401,11 @@ export async function run(entry, ctx) {
   log(
     `built ${built} train(s) — ${spliced} spliced past the border, ${dropped} dropped on an endpoint mismatch`,
   );
+  if (coordless.length) {
+    log(
+      `${coordless.length} spliced station(s) have no coordinate and are drawn nowhere — check the spelling against Back-on-Track's station table:`,
+    );
+    for (const c of coordless) log(`  ${c}`);
+  }
   ctx.write(entry.output, { uploadedAt: ctx.today, trains });
 }
