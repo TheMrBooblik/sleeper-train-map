@@ -51,6 +51,7 @@ const SCHEDULE_KEYS = [
   "scheduleUrlTemplate",
   "scheduleCountryPages",
   "schedulePages",
+  "scheduleTrainPages",
   "scheduleLabel",
   "affiliateWrapper",
   "homeCountry",

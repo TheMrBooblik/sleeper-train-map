@@ -314,6 +314,33 @@ export function appendSyntheticLeftovers({ entry, viewMap, trains, log = () => {
   const synthetic = entry?.synthetic;
   if (!synthetic?.idPrefix) return;
 
+  // Withdraw before appending. This function used only to add, and the view map
+  // it writes to is committed — so a row it created outlived its train forever,
+  // and removing an allowlist entry did nothing visible at all. Four entries
+  // selected by Romania's "IR-N" night-train prefix turned out to belong to
+  // Astra Trans Carpatic rather than CFR; taking them out of the allowlist left
+  // their rows sitting in the file, one of them a second line over the
+  // Back-on-Track row for the same train, and only a hand edit removed them.
+  //
+  // Safe against an outage because the sticky merge runs first: a source that
+  // fails to fetch keeps yesterday's trains for seven days, so a train missing
+  // from `trains` here is one the source has genuinely stopped carrying.
+  const withdrawn = [];
+  for (const key of Object.keys(viewMap)) {
+    if (!key.startsWith(synthetic.idPrefix)) continue;
+    const row = viewMap[key];
+    const names = [row?.trip_short_name_0, row?.trip_short_name_1]
+      .filter(Boolean)
+      .map((n) => n.toString().trim());
+    if (names.length && names.every((n) => !trains[n])) {
+      delete viewMap[key];
+      withdrawn.push(key);
+    }
+  }
+  if (withdrawn.length) {
+    log(`${entry.id}: withdrew ${withdrawn.length} synthetic row(s) whose train is gone: ${withdrawn.join(", ")}`);
+  }
+
   // Scoped like excludeBotMatched in build-initial-data: a bare number is only
   // unique within an operator, so an unscoped match lets e.g. BoT's CFM/CFR 401
   // swallow European Sleeper's ES 401 (and break its reverse pairing).

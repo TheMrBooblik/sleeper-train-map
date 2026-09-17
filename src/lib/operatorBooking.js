@@ -243,7 +243,7 @@ export function buildScheduleUrl(args) {
 }
 
 /** Schedule tiers, most specific first. Exported for the compound-id resolver. */
-export const SCHEDULE_TIERS = ["route", "train", "country", "operator"];
+export const SCHEDULE_TIERS = ["train-page", "route", "train", "country", "operator"];
 
 /**
  * As buildScheduleUrl(), but also reports which tier matched so a compound
@@ -263,6 +263,24 @@ export function buildScheduleCandidate({
   const booking = getOperatorBooking(agencyId);
   if (!booking) return null;
   const wrap = (url, tier) => ({ url: applyAffiliateWrapper(booking, url), tier });
+
+  // Most specific of all: the operator's own page for THIS train, by whatever
+  // id that operator addresses it with. Ukrainian Railways numbers a train 099
+  // but reaches its timetable at ?ntrain=105997&by_id=1 — an internal id that
+  // is not derivable from the number, so it has to be recorded rather than
+  // built. It beats schedulePages[routeId], which is one page for a whole line
+  // (Norway's PDFs) and therefore cannot name a direction: 099 and 100 are
+  // opposite directions of one route and have separate pages.
+  //
+  // Keyed by the normalised number, like scheduleUrlTemplate's {train}, and the
+  // map lives inside one operator's record — which is what makes a bare number
+  // safe here, the collision this repo keeps meeting being across operators.
+  const perTrain = booking.scheduleTrainPages;
+  if (perTrain) {
+    const number = scheduleTrainNumber(train);
+    const hit = number ? perTrain[number] : null;
+    if (hit) return wrap(hit, "train-page");
+  }
 
   const perRoute = routeId ? booking.schedulePages?.[String(routeId)] : null;
   if (perRoute) return wrap(perRoute, "route");

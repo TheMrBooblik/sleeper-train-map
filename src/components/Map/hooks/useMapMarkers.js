@@ -61,15 +61,15 @@ export function useMapMarkers({
     // Breda with no markers on it. Those stops stay, faded — see futureIcon.
     const upcomingPreviews = upcomingPreviewRouteIds(viewMapData);
     const isUpcomingPreview = (routeId) => upcomingPreviews.has(String(routeId));
-    const seasonHasPassed = (routeId) =>
-      shouldHideRouteDueToFutureDate(routeId, trips) &&
+    const seasonHasPassed = (routeId, route) =>
+      shouldHideRouteDueToFutureDate(routeId, trips, route) &&
       !isUpcomingPreview(routeId);
 
     if (hideIntermediateStations && viewMapData) {
       if (!filteredStops?.length) return [];
       const nightTrainStationIds = new Set();
       Object.values(viewMapData).forEach((route) => {
-        if (route?.route_id && seasonHasPassed(route.route_id)) return;
+        if (route?.route_id && seasonHasPassed(route.route_id, route)) return;
         if (route) {
           [
             route.origin_trip_0,
@@ -110,7 +110,9 @@ export function useMapMarkers({
           .split(",")
           .map((id) => id.trim())
           .filter(Boolean);
-        return routeIds.some((routeId) => !seasonHasPassed(routeId));
+        return routeIds.some(
+          (routeId) => !seasonHasPassed(routeId, viewMapData?.[routeId]),
+        );
       });
     }
 
@@ -133,7 +135,7 @@ export function useMapMarkers({
       const routeEndpointStations = [];
       if (viewMapData) {
         Object.values(viewMapData).forEach((route) => {
-          if (route?.route_id && seasonHasPassed(route.route_id)) return;
+          if (route?.route_id && seasonHasPassed(route.route_id, route)) return;
           [
             route?.origin_trip_0,
             route?.destination_trip_0,

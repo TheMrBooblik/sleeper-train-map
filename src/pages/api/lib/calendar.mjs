@@ -41,9 +41,13 @@ export function parseBotServiceString(input) {
     const prefix = raw.slice(0, colonIdx).trim();
     daysPart = raw.slice(colonIdx + 1).trim();
 
-    // "2026" or "2026/06/22-08/30" (a season within one year)
+    // "2026", "2026/06/22-08/30", or "2026/06/22-2026/08/30" — a season within
+    // one year. The repeated year is the spelling Back-on-Track's trips use and
+    // the only one parseBoTServiceIdDateRange (which decides whether the map
+    // still draws the line) can read, so both have to parse here or the two
+    // halves of the payload disagree about the same string.
     const seasonMatch = prefix.match(
-      /^(\d{4})\/(\d{2})\/(\d{2})-(\d{2})\/(\d{2})$/,
+      /^(\d{4})\/(\d{2})\/(\d{2})-(?:\d{4}\/)?(\d{2})\/(\d{2})$/,
     );
     const yearMatch = prefix.match(/^(\d{4})$/);
     if (seasonMatch) {

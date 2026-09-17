@@ -10,7 +10,7 @@
 //
 // Vercel CDN caches this for 1 hour so only ~1 serverless invocation per hour.
 
-import { getGtfsBundleStationNames } from "./lib/file-store";
+import { getGtfsBundleStationNames } from "./lib/file-store.mjs";
 import {
   resolveInitialPayload,
   setCacheHeaders,

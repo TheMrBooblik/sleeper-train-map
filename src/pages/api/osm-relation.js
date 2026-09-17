@@ -3,7 +3,7 @@
 // Reads from Vercel Blob (daily scrape) when fresh; falls back to Overpass API.
 // Supports comma-separated IDs (e.g. "3347914,15014175") to combine segments.
 
-import { getOsmRelation, putOsmRelation, isFresh } from "./lib/file-store";
+import { getOsmRelation, putOsmRelation, isFresh } from "./lib/file-store.mjs";
 import { extractCoordsFromRelation, deduplicateConsecutive } from "./lib/osm-geo.mjs";
 
 const OVERPASS_ENDPOINTS = [

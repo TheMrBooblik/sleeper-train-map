@@ -476,6 +476,105 @@ function serviceDisplayForServices(serviceIds, gtfs, window = null) {
     .join(", ");
 }
 
+/**
+ * "When does it run" for a service that only runs part of the year.
+ *
+ * `serviceDisplayForServices` answers within a window, so a train whose season
+ * has already closed gets `null` — true, and useless: the row then keeps
+ * Back-on-Track's "2026: Daily" and the map advertises a train that stopped
+ * running in September. Thirteen of Romania's forty-two night trains are summer
+ * Black Sea services, and two of them are rows we publish.
+ *
+ * So when a service's own dates cover only part of a year, say so in the shape
+ * the rest of the payload already reads: "2026/06/13-2026/09/06: Daily", which
+ * `parseBoTServiceIdDateRange` parses to hide the line once the season closes
+ * and `parseBotServiceString` parses back into a calendar. Note that is the
+ * *trips* spelling, with a year on both sides — `renderCalendar` emits a
+ * shorter "2026/06/13-09/06" that only calendar.mjs understands, and picking
+ * the form the map can act on is the whole point.
+ *
+ * Returns null when the service is not seasonal (so the caller keeps the plain
+ * windowed answer) or when its span crosses a year boundary, which this shape
+ * cannot express and which a year-round timetable looks like anyway.
+ */
+/** "YYYYMMDD" as a local Date at midnight. */
+function asLocalDate(d) {
+  return new Date(Number(d.slice(0, 4)), Number(d.slice(4, 6)) - 1, Number(d.slice(6, 8)));
+}
+
+export function seasonalServiceDisplay(serviceIds, gtfs, { maxSeasonDays = 300 } = {}) {
+  const spanDates = [];
+  const weekdays = new Set();
+  let sawWeekday = false;
+
+  for (const id of [...serviceIds].filter(Boolean)) {
+    for (const d of gtfs.addedDatesByService.get(id) ?? []) {
+      if (!/^\d{8}$/.test(String(d))) continue;
+      spanDates.push(String(d));
+      weekdays.add(asLocalDate(String(d)).getDay());
+      sawWeekday = true;
+    }
+    const cal = gtfs.calendarById.get(id);
+    if (!cal) continue;
+    // The span comes from the row's own validity, but the DAYS come from its
+    // weekday flags. Taking them from the two endpoint dates instead reports a
+    // daily summer service as "Fri, Sat" — whichever weekdays the season
+    // happens to start and finish on.
+    if (cal.start_date && cal.end_date) {
+      spanDates.push(String(cal.start_date), String(cal.end_date));
+    }
+    for (const day of parseGtfsCalendar(cal).daysOfWeek ?? []) {
+      const i = DAY_KEYS.indexOf(day);
+      if (i !== -1) {
+        weekdays.add(DAY_KEY_TO_JS_DAY[i]);
+        sawWeekday = true;
+      }
+    }
+  }
+
+  if (spanDates.length < 2 || !sawWeekday) return null;
+  spanDates.sort();
+  const first = spanDates[0];
+  const last = spanDates[spanDates.length - 1];
+  if (first.slice(0, 4) !== last.slice(0, 4)) return null;
+
+  const spanDays =
+    Math.round((asLocalDate(last) - asLocalDate(first)) / 86400000) + 1;
+  if (spanDays > maxSeasonDays) return null;
+
+  const days =
+    weekdays.size === 7
+      ? "Daily"
+      : [1, 2, 3, 4, 5, 6, 0]
+          .filter((d) => weekdays.has(d))
+          .map((d) => WEEKDAY_SHORT[d])
+          .join(", ");
+  if (!days) return null;
+  const slash = (d) => `${d.slice(0, 4)}/${d.slice(4, 6)}/${d.slice(6, 8)}`;
+  return `${slash(first)}-${slash(last)}: ${days}`;
+}
+
+/**
+ * The service string a route-named entry writes onto its row: the season when
+ * there is one, else the plain weekday list under the year it belongs to.
+ *
+ * The year matters as much as the days. Back-on-Track writes "2026: Daily" and
+ * the row is read by `parseBotServiceString`, which turns a bare "Daily" into a
+ * calendar with no validity at all — so dropping the prefix trades a real loss
+ * on every year-round train for a fix on the seasonal few.
+ */
+export function seasonalOrYearlyDisplay(serviceIds, gtfs, serviceWindow = null) {
+  const seasonal = seasonalServiceDisplay(serviceIds, gtfs);
+  if (seasonal) return seasonal;
+  const plain = serviceDisplayForServices(serviceIds, gtfs, serviceWindow);
+  if (!plain) return null;
+  // serviceDisplay() can already render a prefixed string for a calendar.txt
+  // feed; never stack a second year on it.
+  if (/^\d{4}\s*[:/]/.test(plain)) return plain;
+  const year = String(serviceWindow?.start ?? todayCompact()).slice(0, 4);
+  return /^\d{4}$/.test(year) ? `${year}: ${plain}` : plain;
+}
+
 // Resolve a trip's service to a human "when does it run" string.
 function serviceDisplay(serviceId, gtfs) {
   const calRow = gtfs.calendarById.get(serviceId);
@@ -735,6 +834,88 @@ function stationsForTrip(tripId, gtfs) {
   return stations;
 }
 
+// ─── Through-car stitching ──────────────────────────────────────────────────
+// A Back-on-Track row can name two feed trains: "IRN 472/IRN 1743" is ONE
+// journey (Bucuresti -> Oradea) that the operator timetables under two numbers,
+// and the feed carries each leg as its own route. Concatenating them is wrong,
+// because leg one runs PAST the junction — 472 carries on to the Hungarian
+// border — so the drawn line would reach Curtici, jump back to Arad and set off
+// again. The legs are therefore joined at the last station they share, and each
+// leg's geometry is cut at that station too.
+
+/** Index of the position closest to a lat/lon, longitudes scaled by latitude. */
+function nearestPointIndex(positions, lat, lon) {
+  let best = -1;
+  let bestD = Infinity;
+  const scale = Math.cos((lat * Math.PI) / 180);
+  for (let i = 0; i < positions.length; i++) {
+    const dLat = positions[i][0] - lat;
+    const dLon = (positions[i][1] - lon) * scale;
+    const d = dLat * dLat + dLon * dLon;
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/**
+ * Join consecutive legs of one journey at the last station they share.
+ *
+ * The junction keeps leg one's arrival and leg two's departure, because that is
+ * what a through car does there: 472 reaches Arad at 02:17 and the portion does
+ * not leave again until 1743 does, at 06:07. Taking leg one's departure would
+ * state a wait that never happens.
+ *
+ * Returns null when a consecutive pair shares no station — the caller then
+ * keeps the legs apart rather than drawing a line through a junction that is
+ * not one.
+ *
+ * @param {Array<{stations: Array, positions: Array}>} legs in journey order
+ */
+export function stitchLegs(legs) {
+  if (!legs?.length) return null;
+  let stations = legs[0].stations;
+  let positions = legs[0].positions;
+  for (let n = 1; n < legs.length; n++) {
+    const next = legs[n];
+    const nextNorms = next.stations.map((st) => normLabel(st.name));
+    // Latest junction in what we have so far: a through car rejoins once, and
+    // taking the earliest shared name would drop every stop in between.
+    let cut = -1;
+    let nextCut = -1;
+    for (let i = stations.length - 1; i >= 0 && cut < 0; i--) {
+      const k = nextNorms.indexOf(normLabel(stations[i].name));
+      if (k >= 0) {
+        cut = i;
+        nextCut = k;
+      }
+    }
+    if (cut < 0) return null;
+    const junction = {
+      ...stations[cut],
+      departure: next.stations[nextCut]?.departure ?? stations[cut].departure,
+    };
+    const { latitude, longitude } = junction.location;
+    const head =
+      positions.length >= 2
+        ? positions.slice(0, nearestPointIndex(positions, latitude, longitude) + 1)
+        : positions;
+    const tail =
+      next.positions.length >= 2
+        ? next.positions.slice(nearestPointIndex(next.positions, latitude, longitude))
+        : next.positions;
+    stations = [
+      ...stations.slice(0, cut),
+      junction,
+      ...next.stations.slice(nextCut + 1),
+    ];
+    positions = [...head, ...tail];
+  }
+  return { stations, positions };
+}
+
 /**
  * Build the standard trains dict for the allowlisted routes of one feed.
  *
@@ -758,6 +939,16 @@ function stationsForTrip(tripId, gtfs) {
  *                           the train and lets the trains dict come out keyed
  *                           by the operator's own label, which is what the
  *                           trainsByNumber enrichment looks a row up by.
+ *   - { route, name }     → match a feed route by its OWN name/short name/id
+ *     { routes: [], name }  and key the train by `name`. Romania's feed is what
+ *                           this exists for: route_id IS the train number and
+ *                           route_short_name is "IR-N 346", while the row it
+ *                           has to land on is labelled "D 346". `routes` lists
+ *                           the legs of a through car, joined by stitchLegs.
+ *                           Unlike { from, to, name } it never reads endpoints,
+ *                           so it is the right form for a feed that addresses
+ *                           its trains by number and truncates them at a
+ *                           border (where the endpoints are not the train's).
  *
  * @param {object} args
  * @param {object} args.gtfs       result of loadGtfsDir()
@@ -775,6 +966,32 @@ function stationsForTrip(tripId, gtfs) {
  *                                 entry that matched nothing).
  * @returns {Record<string, object>} trains dict in the shape build-initial-data expects
  */
+/**
+ * Which of a route's trips describe the same train as `best`.
+ *
+ * Direction first, train number second, and that order was settled by running
+ * both against the live Amtrak feed rather than by reasoning.
+ *
+ * Direction is what actually needs separating: one route_id holds both ways,
+ * and unioning across them turned the Cardinal — three times a week each way,
+ * on different days — into six weekdays. Grouping by `trip_short_name` fixes
+ * that too, but it is finer than the question being asked and fragments where
+ * a feed numbers its runs rather than its trains: the California Zephyr, a
+ * daily train, came back as "2027/03/13-2027/03/13: Sat", one Saturday, which
+ * is the very fault this whole change exists to remove. Direction is coarse
+ * enough not to fragment and fine enough to answer.
+ *
+ * A feed that populates neither (SNCF, Entur) gets the whole route, which is
+ * the widest honest answer rather than a guess, and is where it already was.
+ */
+function sameTrainAs(best) {
+  const dir = String(best?.direction_id ?? "").trim();
+  if (dir) return (t) => String(t.direction_id ?? "").trim() === dir;
+  const num = String(best?.trip_short_name ?? "").trim();
+  if (num) return (t) => String(t.trip_short_name ?? "").trim() === num;
+  return () => true;
+}
+
 export function buildSleeperTrains({
   gtfs,
   allowlist,
@@ -784,6 +1001,15 @@ export function buildSleeperTrains({
   stats = null,
   stationRenames = null,
   canonicalizeName = null,
+  // Which carriers' routes this allowlist may select, as GTFS agency_ids.
+  // A national feed carries every licensed operator — Romania's has seven —
+  // and an allowlist keyed by route id will happily take any of them, then the
+  // source stamps the lot with its own agency. Four entries selected by the
+  // "IR-N" night-train prefix turned out to be Astra Trans Carpatic, and one
+  // of them drew a second line over a Back-on-Track row for the same train
+  // under the wrong operator. Absent means "any", which is right for a feed
+  // that publishes one carrier.
+  feedAgencyIds = null,
   // Which timetable period "when does it run" is asked of. Injectable because
   // the answer changes on the second Sunday in December, so a test pinning real
   // dates against the live window would start failing on a calendar date rather
@@ -794,9 +1020,21 @@ export function buildSleeperTrains({
   const nameEntries = [];
   const pairEntries = [];
   const namedEntries = [];
+  const routeNamedEntries = [];
   for (const e of allowlist || []) {
     if (typeof e === "string" && e.trim()) {
       nameEntries.push({ raw: e, norm: normLabel(e) });
+    } else if (e && e.name && (e.route || Array.isArray(e.routes))) {
+      const legs = (Array.isArray(e.routes) ? e.routes : [e.route])
+        .map((r) => String(r ?? "").trim())
+        .filter(Boolean);
+      if (legs.length) {
+        routeNamedEntries.push({
+          raw: `${e.name} (${legs.join(" + ")})`,
+          name: String(e.name).trim(),
+          legs: legs.map((r) => ({ raw: r, norm: normLabel(r) })),
+        });
+      }
     } else if (e && e.from && e.to && e.name) {
       namedEntries.push({
         raw: `${e.name} (${e.from} → ${e.to})`,
@@ -809,6 +1047,14 @@ export function buildSleeperTrains({
     }
   }
   const matchedEntries = new Set();
+  // Reported rather than skipped: a route from the wrong carrier means the
+  // allowlist is wrong, and quietly dropping it would leave a night train
+  // missing with nothing to say why.
+  const wrongAgency = [];
+  const agencyAllowed = (route) =>
+    !Array.isArray(feedAgencyIds) ||
+    feedAgencyIds.length === 0 ||
+    feedAgencyIds.map(String).includes(String(route?.agency_id ?? ""));
   const renameMap =
     stationRenames && Object.keys(stationRenames).length
       ? new Map(
@@ -841,13 +1087,22 @@ export function buildSleeperTrains({
   // `frequencyOverride` is how a named entry hands in the union of every trip
   // that matched it; without one a single trip's service is the answer, which
   // stays right for a feed with real calendar.txt weekdays (Amtrak, VIA).
-  const makeTrain = (lineName, trip, stations, frequencyOverride = null) => {
-    // Geometry: prefer the GTFS shape; fall back to the station chain.
+  // Geometry: prefer the GTFS shape; fall back to the station chain.
+  const positionsFor = (trip, stations) => {
     const shapePts = trip.shape_id ? gtfs.shapePoints.get(trip.shape_id) : null;
-    const positions =
-      shapePts && shapePts.length >= 2
-        ? shapePts.map((p) => [p.lat, p.lon])
-        : stations.map((s) => [s.location.latitude, s.location.longitude]);
+    return shapePts && shapePts.length >= 2
+      ? shapePts.map((p) => [p.lat, p.lon])
+      : stations.map((s) => [s.location.latitude, s.location.longitude]);
+  };
+
+  const makeTrain = (
+    lineName,
+    trip,
+    stations,
+    frequencyOverride = null,
+    positionsOverride = null,
+  ) => {
+    const positions = positionsOverride ?? positionsFor(trip, stations);
     return {
       lineName,
       operator,
@@ -902,6 +1157,86 @@ export function buildSleeperTrains({
     }
   }
 
+  // Route-keyed named entries. Resolved before the generic loop so they claim
+  // the unsuffixed key, and kept separate from { from, to, name } because they
+  // deliberately never read endpoints: a feed that stops at a national border
+  // states endpoints that are not the train's, and matching on them would
+  // reject every international train it carries.
+  if (routeNamedEntries.length) {
+    const routeIdByNorm = new Map();
+    for (const [routeId, route] of gtfs.routesById) {
+      for (const candidate of [
+        route.route_long_name,
+        route.route_short_name,
+        route.route_id,
+      ]) {
+        const norm = normLabel(candidate);
+        if (norm && !routeIdByNorm.has(norm)) routeIdByNorm.set(norm, routeId);
+      }
+    }
+    for (const e of routeNamedEntries) {
+      const legs = [];
+      let missing = null;
+      for (const leg of e.legs) {
+        const routeId = routeIdByNorm.get(leg.norm);
+        const legTrips = routeId ? tripsByRoute.get(routeId) : null;
+        if (!legTrips?.length) {
+          missing = leg.raw;
+          break;
+        }
+        const legRoute = gtfs.routesById.get(routeId);
+        if (!agencyAllowed(legRoute)) {
+          wrongAgency.push(`${e.raw}: route ${leg.raw} belongs to agency ${legRoute?.agency_id}`);
+          missing = leg.raw;
+          break;
+        }
+        const rep = representativeTrip(legTrips, gtfs);
+        if (!rep.trip || rep.stations.length < 2) {
+          missing = leg.raw;
+          break;
+        }
+        legs.push({
+          trip: rep.trip,
+          stations: rep.stations,
+          positions: positionsFor(rep.trip, rep.stations),
+        });
+      }
+      if (missing) {
+        log(`skip ${e.raw}: feed has no usable route "${missing}"`);
+        continue;
+      }
+      const joined =
+        legs.length === 1
+          ? { stations: legs[0].stations, positions: legs[0].positions }
+          : stitchLegs(legs);
+      if (!joined) {
+        log(`skip ${e.raw}: legs share no junction station`);
+        continue;
+      }
+      matchedEntries.add(e.raw);
+      // The first leg's calendar, not a union over the legs: a through portion
+      // runs when the train carrying it out of the origin runs, and unioning
+      // would report days on which the journey cannot be made. Windowed, so a
+      // service whose season has ended answers null rather than a day list
+      // belonging to another part of the year.
+      trains[claimKey(e.name, legs[0].trip.trip_id)] = makeTrain(
+        e.name,
+        legs[0].trip,
+        joined.stations,
+        // A seasonal service states its own dates; a year-round one keeps the
+        // bare year the rest of the payload writes. Without that prefix every
+        // "2026: Daily" came back as "Daily" — 28 of 35 directions quietly
+        // losing the year they already had, to fix the seven that were wrong.
+        seasonalOrYearlyDisplay(
+          new Set([legs[0].trip.service_id]),
+          gtfs,
+          serviceWindow,
+        ),
+        joined.positions,
+      );
+    }
+  }
+
   for (const [routeId, trips] of tripsByRoute.entries()) {
     const route = gtfs.routesById.get(routeId);
     const nameNorms = [
@@ -932,6 +1267,12 @@ export function buildSleeperTrains({
     }
 
     if (nameHits.length === 0 && pairHits.length === 0) continue;
+    if (!agencyAllowed(route)) {
+      wrongAgency.push(
+        `${route.route_short_name || route.route_long_name || routeId}: agency ${route.agency_id}`,
+      );
+      continue;
+    }
     [...nameHits, ...pairHits].forEach((h) => matchedEntries.add(h.raw));
 
     const { trip: best, stations: bestStations } = getRep();
@@ -943,20 +1284,44 @@ export function buildSleeperTrains({
       continue;
     }
 
+    // "When does it run" is a property of the TRAIN, not of whichever trip was
+    // representative. Reading one trip's calendar.txt row is how Amtrak's City
+    // of New Orleans — year-round, daily — came to state "2026/09/13-09/16", a
+    // four-day window, and the California Zephyr "2027/03/13-03/13: Sat", a
+    // single day: the feed splits a daily service across many short-dated
+    // calendar rows and the representative trip lands on one of them.
+    //
+    // Union across trips, but only as far as the feed can tell them apart —
+    // unioning the whole route folds both directions together, which turned
+    // the Cardinal (three times a week each way, on different days) into six
+    // weekdays. So: the same train number where the feed populates one, else
+    // the same direction, else the route. SNCF and Entur populate neither and
+    // land on the last rung, which is what they had before.
     trains[claimKey(routeName, routeId)] = makeTrain(
       routeName,
       best,
       bestStations,
+      seasonalOrYearlyDisplay(
+        new Set(trips.filter(sameTrainAs(best)).map((t) => t.service_id).filter(Boolean)),
+        gtfs,
+        serviceWindow,
+      ),
     );
   }
 
-  const unmatched = [...nameEntries, ...pairEntries, ...namedEntries]
+  const unmatched = [...nameEntries, ...pairEntries, ...namedEntries, ...routeNamedEntries]
     .map((e) => e.raw)
     .filter((raw) => !matchedEntries.has(raw));
   if (stats) {
     stats.matched = [...matchedEntries];
     stats.unmatched = unmatched;
     stats.feedRouteCount = tripsByRoute.size;
+    stats.wrongAgency = wrongAgency;
+  }
+  if (wrongAgency.length) {
+    log(
+      `WARNING: ${wrongAgency.length} allowlist entr${wrongAgency.length === 1 ? "y" : "ies"} name a route belonging to another carrier: ${wrongAgency.join("; ")}`,
+    );
   }
   if (unmatched.length) {
     log(

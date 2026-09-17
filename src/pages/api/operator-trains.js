@@ -5,7 +5,7 @@
 // aliases of this for the same files.
 
 import SOURCE_REGISTRY from "../../../data/sources/registry.json" with { type: "json" };
-import { createTrainsFileHandler } from "./lib/operator-trains-handler";
+import { createTrainsFileHandler } from "./lib/operator-trains-handler.mjs";
 
 // Handler per source, built once at module load.
 const HANDLERS = new Map(
