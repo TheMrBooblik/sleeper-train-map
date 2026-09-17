@@ -59,6 +59,27 @@ function hasRealTimes(departure, arrival) {
   return !(toClock(departure) === "00:00" && toClock(arrival) === "00:00");
 }
 
+/**
+ * `trip.duration` as minutes.
+ *
+ * Back-on-Track's export writes a duration as a spreadsheet time — an instant
+ * on the Lotus/Excel epoch day, "1899-12-30T12:47:00.000Z" for 12h47m — so a
+ * journey of more than a day lands on 1899-12-31 and the day carries the extra
+ * 24 hours. Seventeen trips in the payload are longer than a day.
+ * @param {object|null} trip
+ * @returns {number|null}
+ */
+export function tripDurationMinutes(trip) {
+  const raw = String(trip?.duration ?? "");
+  const time = raw.match(/T(\d{2}):(\d{2})/);
+  if (!time) return null;
+  const day = raw.match(/^1899-12-(\d{2})/);
+  const extraDays = day ? Number(day[1]) - 30 : 0;
+  if (!Number.isFinite(extraDays) || extraDays < 0) return null;
+  const minutes = extraDays * 1440 + Number(time[1]) * 60 + Number(time[2]);
+  return minutes > 0 ? minutes : null;
+}
+
 /** agency_id may be compound ("MÁV/ÖBB", "CFM/CFR"). */
 function splitAgencies(value) {
   return String(value || "")
@@ -199,7 +220,16 @@ export function buildLegs(payload, options = {}) {
         stops: stopList,
         departure,
         arrival,
-        durationMinutes: timed ? durationBetween(rawDeparture, rawArrival) : null,
+        // The trips table states the journey time outright and can express more
+        // than a day; two endpoint clocks cannot. Across the payload the two
+        // agree within five minutes on 267 of 318 legs and differ by almost
+        // exactly 24 hours on 15 — every one of those a train the clocks read
+        // a day short.
+        durationMinutes:
+          tripDurationMinutes(trip) ?? (timed ? durationBetween(rawDeparture, rawArrival) : null),
+        // Set by the caller: the journey time is not believable for the ground
+        // it covers, so nothing may print it or filter on it.
+        durationSuspect: false,
         service: serviceRaw,
         serviceText: renderCalendar(calendar) || "",
         days: calendar.daysOfWeek,
@@ -260,8 +290,19 @@ export function segmentOf(leg, boardIndex, alightIndex) {
   const departure = board.departure || (fromEnd ? leg.departure : "");
   const arrival = alight.arrival || (toEnd ? leg.arrival : "");
   // A duration needs both clocks; with either missing there is nothing to
-  // measure and a made-up number is worse than a blank.
-  const durationMinutes = departure && arrival ? durationBetween(departure, arrival) : null;
+  // measure and a made-up number is worse than a blank. And on a leg whose own
+  // journey time is not believable, no clock arithmetic on it is either — see
+  // `durationSuspect`.
+  //
+  // Riding the whole leg takes the leg's OWN duration where it has one, because
+  // that came from the trips table and can express more than a day, while two
+  // clocks cannot: computing it here instead read UZ 099 Kyiv → București, a
+  // 23-hour journey, as thirteen minutes.
+  const wholeRoute = fromEnd && toEnd;
+  const durationMinutes = leg.durationSuspect
+    ? null
+    : (wholeRoute && Number.isFinite(leg.durationMinutes) ? leg.durationMinutes : null) ??
+      (departure && arrival ? durationBetween(departure, arrival) : null);
   return {
     from: board,
     to: alight,
@@ -274,14 +315,17 @@ export function segmentOf(leg, boardIndex, alightIndex) {
     // is a real call of a real sleeper and it is 36 minutes long, so offering
     // it beside Amsterdam → Prague as though they were the same kind of trip is
     // what makes an "overnight destinations" list read like a stopping pattern.
-    isOvernight: isOvernightRide(departure, arrival, durationMinutes),
+    // A suspect leg is a long-distance train read short by the 24-hour wrap
+    // (the Cardinal, the Canadian, the Doğu Express). It certainly crosses a
+    // night, and with its duration withheld nothing else would say so.
+    isOvernight: leg.durationSuspect || isOvernightRide(departure, arrival, durationMinutes),
     // Where the train ENDS, regardless of where you got on. Distinct from
     // isWholeRoute, which also requires boarding at the origin: ES 453 runs
     // Brussels → Prague, so from Amsterdam Prague is the train's destination
     // while the ride is not the whole route. Ranking destinations on
     // isWholeRoute therefore filed Prague with the villages it passes at 3am.
     isTerminus: toEnd,
-    isWholeRoute: fromEnd && toEnd,
+    isWholeRoute: wholeRoute,
     intermediate: stops.slice(boardIndex + 1, alightIndex),
   };
 }
@@ -305,6 +349,28 @@ export function isOvernightRide(departure, arrival, durationMinutes) {
 
 /** Five hours: below it a ride is an evening connection, not a night's sleep. */
 const MIN_OVERNIGHT_MINUTES = 300;
+
+/**
+ * Four hours: below it a ride is not what anyone came to a sleeper planner for.
+ *
+ * Amsterdam → Utrecht is 26 minutes and Vienna → Wiener Neustadt is 36; both are
+ * real calls of real night trains, and offering them beside Amsterdam → Prague
+ * turns "where could you go tonight" into a stopping pattern. 39% of the
+ * segments whose duration we know are under this.
+ *
+ * It hides a ride only where the duration is KNOWN and TRUSTED — see
+ * `durationSuspect`. An unknown duration is never hidden, because 31% of
+ * segments have none and silence about a train is not evidence against it.
+ */
+export const MIN_TRIP_MINUTES = 240;
+
+/**
+ * True only for a ride we can prove is too short to be worth offering.
+ * @param {number|null} durationMinutes
+ */
+export function isShortHop(durationMinutes) {
+  return Number.isFinite(durationMinutes) && durationMinutes < MIN_TRIP_MINUTES;
+}
 
 /** citySlug → [{ leg, index }] for every leg calling there, built once. */
 export function indexLegsByCity(legs) {

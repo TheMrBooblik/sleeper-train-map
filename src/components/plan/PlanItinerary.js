@@ -91,6 +91,16 @@ export default function PlanItinerary({ plan, stays, onStayChange, onRemoveCity 
 
             {hop.best ? (
               <>
+                {/* The corridor is real but every train on it is a day-train
+                    distance. Saying so beats both hiding it (a corridor that
+                    has trains is not "no train") and presenting it as a night
+                    on a sleeper. */}
+                {hop.onlyShortHops && (
+                  <p className="rounded-lg border border-amber-400/20 bg-amber-400/5 px-3 py-2 text-xs text-amber-200/80">
+                    Under four hours — this is a day-train distance, not a night
+                    on board. Shown because you asked for this pair.
+                  </p>
+                )}
                 <RideCard ride={hop.best} />
                 {alternatives.length > 0 && (
                   <div>

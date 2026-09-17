@@ -23,7 +23,15 @@ import {
   splitCorridor,
 } from "../src/lib/plan/url.mjs";
 import { availabilityFor, isOfferable, weekdayOf } from "../src/lib/plan/availability.mjs";
-import { buildLegs, isOvernightRide, segmentOf, toMinutes } from "../src/lib/plan/legs.mjs";
+import {
+  buildLegs,
+  isOvernightRide,
+  isShortHop,
+  MIN_TRIP_MINUTES,
+  segmentOf,
+  toMinutes,
+  tripDurationMinutes,
+} from "../src/lib/plan/legs.mjs";
 import {
   createPlanner,
   departuresFrom,
@@ -539,7 +547,7 @@ check("suggestion weighting reorders and never filters", () => {
     assert.equal(rankCities(planner.cities, query)[0]?.name, expected, query);
   }
   // And it is still routable — a plan that asks for it gets the real answer.
-  const rides = ridesBetween(planner, { from: "przemysl", to: "kyiv", date: "2026-09-18" });
+  const { rides } = ridesBetween(planner, { from: "przemysl", to: "kyiv", date: "2026-09-18" });
   assert.ok(rides.length > 0, "Przemyśl → Kyiv must still return trains");
 });
 
@@ -615,6 +623,106 @@ check("scoreCities is pure and total over a minimal graph", () => {
   // A leg with fewer than two stops is skipped rather than throwing.
   scoreCities([{ stops: [{ citySlug: "a" }] }, { stops: [] }, {}], cities, () => 1);
   assert.equal(cities[0].reach, 0);
+});
+
+check("a ride we can prove is under four hours is not offered", () => {
+  // Amsterdam → Utrecht is 26 minutes and Vienna → Wiener Neustadt is 36 — real
+  // calls of real night trains, and not what anyone came to a sleeper planner
+  // for. 39% of the segments whose duration we know are under the line.
+  for (const from of ["amsterdam", "vienna", "brussels", "munich", "zurich"]) {
+    const { destinations } = departuresFrom(planner, { from, date: "2026-09-18" });
+    for (const d of destinations) {
+      assert.ok(
+        !isShortHop(d.best.durationMinutes),
+        `${from} still offers ${d.city.name} at ${d.best.durationMinutes}m`,
+      );
+    }
+    // And the filter must actually be doing something on these origins.
+    const withShort = departuresFrom(planner, {
+      from,
+      date: "2026-09-18",
+      includeShortHops: true,
+    });
+    assert.ok(
+      withShort.destinations.length > destinations.length,
+      `${from} lost nothing to the short-hop filter`,
+    );
+  }
+  assert.equal(isShortHop(239), true);
+  assert.equal(isShortHop(MIN_TRIP_MINUTES), false);
+  // An unknown duration is never hidden — 31% of segments have none.
+  assert.equal(isShortHop(null), false);
+  assert.equal(isShortHop(undefined), false);
+});
+
+check("an explicitly asked-for pair is never told it has no train", () => {
+  // European Sleeper really does run Brussels → Amsterdam in about three
+  // hours. Someone who typed that pair asked about it; answering "no night
+  // train we know of" would be false. The short rides come back, flagged.
+  const { rides, onlyShortHops } = ridesBetween(planner, {
+    from: "brussels",
+    to: "amsterdam",
+    date: "2026-09-18",
+  });
+  assert.ok(rides.length > 0, "Brussels → Amsterdam must still return trains");
+  assert.equal(onlyShortHops, true, "and must be flagged as a short-hop-only corridor");
+  const plan = resolvePlan(planner, { cities: ["brussels", "amsterdam"], date: "2026-09-18" });
+  assert.ok(plan.hops[0].best, "the hop keeps a train");
+  assert.equal(plan.hops[0].onlyShortHops, true);
+  // A corridor with a real sleeper is not flagged.
+  const long = ridesBetween(planner, { from: "amsterdam", to: "prague", date: "2026-09-18" });
+  assert.equal(long.onlyShortHops, false);
+});
+
+check("a journey never changes trains onto a short hop", () => {
+  const journeys = findJourneys(planner, {
+    from: "amsterdam",
+    to: "vienna",
+    date: "2026-09-18",
+    maxLegs: 3,
+    limit: 8,
+  });
+  for (const journey of journeys) {
+    for (const hop of journey.hops) {
+      if (!hop.best || hop.onlyShortHops) continue;
+      assert.ok(
+        !isShortHop(hop.best.durationMinutes),
+        `${journey.cities.join(">")} hops ${hop.best.durationMinutes}m`,
+      );
+    }
+  }
+});
+
+check("a journey time longer than a day is not read as a short one", () => {
+  // Two endpoint clocks cannot express more than 24h, so durationBetween wraps
+  // and the longest trains read as the shortest. UZ 099 Kyiv → București is 23
+  // hours and came out as thirteen minutes; the Cardinal's 26h30 as 3h28.
+  const uz = planner.legs.find((l) => l.train === "099");
+  assert.ok(uz, "UZ 099 should be in the index");
+  const whole = segmentOf(uz, 0, uz.stops.length - 1);
+  assert.ok(whole.durationMinutes > 1200, `UZ 099 reads ${whole.durationMinutes}m`);
+  assert.equal(isShortHop(whole.durationMinutes), false);
+
+  // Where nothing in the data can supply a correct figure, it is withheld
+  // rather than guessed — and the ride is still known to cross a night.
+  const suspect = planner.legs.filter((l) => l.durationSuspect);
+  assert.ok(suspect.length > 20, `only ${suspect.length} legs flagged`);
+  for (const leg of suspect) {
+    const ride = segmentOf(leg, 0, leg.stops.length - 1);
+    assert.equal(ride.durationMinutes, null, `${leg.train} still prints a duration`);
+    assert.equal(ride.isOvernight, true, `${leg.train} reads as a day trip`);
+    assert.equal(isShortHop(ride.durationMinutes), false);
+  }
+  const cardinal = planner.legs.find((l) => l.train === "Cardinal");
+  assert.ok(cardinal?.durationSuspect, "the Cardinal must be flagged");
+});
+
+check("trip.duration is read off the spreadsheet epoch, including past a day", () => {
+  assert.equal(tripDurationMinutes({ duration: "1899-12-30T12:47:00.000Z" }), 767);
+  assert.equal(tripDurationMinutes({ duration: "1899-12-31T02:26:00.000Z" }), 1586);
+  assert.equal(tripDurationMinutes({ duration: "" }), null);
+  assert.equal(tripDurationMinutes(null), null);
+  assert.equal(tripDurationMinutes({ duration: "1899-12-30T00:00:00.000Z" }), null);
 });
 
 check("every leg's stops resolve to a real city in the index", () => {

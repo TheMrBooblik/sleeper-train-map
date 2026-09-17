@@ -55,9 +55,10 @@ export function packPlanIndex(index) {
     return id;
   };
 
-  const legs = index.legs.map(({ pricing, ...leg }) => ({
+  const legs = index.legs.map(({ pricing, durationSuspect, ...leg }) => ({
     ...leg,
     p: internPricing(pricing),
+    ...(durationSuspect ? { ds: 1 } : {}),
     stops: leg.stops.map((stop) => {
       const base = [intern(stop.station), citySlugIds.get(stop.citySlug) ?? -1];
       if (stop.arrival || stop.departure) base.push(stop.arrival || "", stop.departure || "");
@@ -87,9 +88,10 @@ export function hydratePlanIndex(index) {
   );
 
   const pricings = index.pricings ?? [];
-  const legs = index.legs.map(({ p, ...leg }) => ({
+  const legs = index.legs.map(({ p, ds, ...leg }) => ({
     ...leg,
     pricing: pricings[p] ?? null,
+    durationSuspect: Boolean(ds),
     stops: leg.stops.map(([nameId, cityId, arrival, departure]) => {
       const city = cities[cityId] ?? { slug: "", name: "" };
       return {

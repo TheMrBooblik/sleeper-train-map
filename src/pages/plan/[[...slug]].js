@@ -473,6 +473,12 @@ function DataHonesty() {
           otherwise, so an intermediate stop may show no time at all rather than a guessed one.
         </li>
         <li>
+          We only suggest rides of <strong className="font-medium text-white/70">four hours
+          or more</strong> — a night train calls at places 30 minutes down the line, and
+          those are day-train journeys. A corridor you ask for by name is always shown,
+          however short.
+        </li>
+        <li>
           We don't yet carry live availability or fares. Each train links to its connection page
           for timetables and where to book.
         </li>

@@ -14,7 +14,7 @@
  * Pure: no fetching, no dates from the clock, no DOM. Everything comes in.
  */
 
-import { indexLegsByCity, segmentOf } from "./legs.mjs";
+import { indexLegsByCity, isShortHop, MIN_TRIP_MINUTES, segmentOf } from "./legs.mjs";
 import { availabilityFor, isOfferable, STATUS_RANK } from "./availability.mjs";
 import { addDays, clampStay, hopDates } from "./url.mjs";
 import { suggestionScore } from "./prominence.mjs";
@@ -57,7 +57,12 @@ function rideFor(leg, boardIndex, alightIndex, date) {
  * @returns {{city: object|null, destinations: object[]}}
  *   destinations are grouped per city, each with the rides that serve it.
  */
-export function departuresFrom(planner, { from, date, includeUnavailable = false } = {}) {
+export function departuresFrom(planner, {
+  from,
+  date,
+  includeUnavailable = false,
+  includeShortHops = false,
+} = {}) {
   const city = planner.cityBySlug.get(from) || null;
   const calls = planner.byCity.get(from) || [];
   const grouped = new Map();
@@ -67,6 +72,12 @@ export function departuresFrom(planner, { from, date, includeUnavailable = false
       const ride = rideFor(leg, index, j, date);
       if (!ride) continue;
       if (!includeUnavailable && !isOfferable(ride.availability.status)) continue;
+      // A ride we can prove is under four hours is not a sleeper journey, and
+      // offering it here is what turned "where could you go tonight" into the
+      // stopping pattern of whichever train happens to pass. An UNKNOWN
+      // duration is kept: 31% of segments have none, and a long-distance train
+      // whose stated time is not believable withholds it entirely.
+      if (!includeShortHops && isShortHop(ride.durationMinutes)) continue;
 
       const slug = ride.to.citySlug;
       if (slug === from) continue;
@@ -131,22 +142,33 @@ function compareDestinations(a, b) {
 
 /**
  * Every ride that gets you from one city to another on a given night.
- * @returns {object[]} ranked, best first
+ *
+ * Short hops are dropped here too — but never to the point of claiming a
+ * corridor has no train. Someone who typed Brussels → Amsterdam asked about
+ * that pair specifically, and European Sleeper really does run it in 3h09; the
+ * honest answer is the train with a caveat, not "no night train we know of".
+ * So when the filter would empty the result, the short rides come back and the
+ * caller is told (`onlyShortHops`).
+ *
+ * @returns {{rides: object[], onlyShortHops: boolean}}
  */
 export function ridesBetween(planner, { from, to, date, includeUnavailable = true } = {}) {
   const calls = planner.byCity.get(from) || [];
-  const rides = [];
+  const all = [];
   for (const { leg, index } of calls) {
     for (let j = index + 1; j < leg.stops.length; j++) {
       if (leg.stops[j].citySlug !== to) continue;
       const ride = rideFor(leg, index, j, date);
       if (!ride) continue;
       if (!includeUnavailable && !isOfferable(ride.availability.status)) continue;
-      rides.push(ride);
+      all.push(ride);
     }
   }
-  rides.sort(compareRides);
-  return rides;
+  all.sort(compareRides);
+  const worthwhile = all.filter((r) => !isShortHop(r.durationMinutes));
+  return worthwhile.length > 0
+    ? { rides: worthwhile, onlyShortHops: false }
+    : { rides: all, onlyShortHops: all.length > 0 };
 }
 
 /**
@@ -170,7 +192,7 @@ export function resolvePlan(planner, { cities = [], date, stays = [] } = {}) {
     const from = cities[i];
     const to = cities[i + 1];
     const hopDate = dates[i];
-    const rides = ridesBetween(planner, { from, to, date: hopDate });
+    const { rides, onlyShortHops } = ridesBetween(planner, { from, to, date: hopDate });
     hops.push({
       index: i,
       from: planner.cityBySlug.get(from) || { slug: from, name: titleFromSlug(from) },
@@ -179,6 +201,10 @@ export function resolvePlan(planner, { cities = [], date, stays = [] } = {}) {
       stayNights: i > 0 ? clampStay(stays[i - 1] ?? 0) : 0,
       rides,
       best: rides[0] || null,
+      // True when the only trains on this corridor are under four hours: the
+      // hop is real but it is a day-train distance, and the UI says so rather
+      // than presenting it as a night on a sleeper.
+      onlyShortHops,
       // A hop is served when at least one train could plausibly run it.
       served: rides.some((r) => isOfferable(r.availability.status)),
     });
