@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
+import Header from "@components/Header";
 import { SITE_URL } from "../lib/seo/site";
 
 const TITLE = "Plan a Sleeper Train Trip | Pingwi";
@@ -23,6 +24,10 @@ export default function Plan() {
   const [destinations, setDestinations] = useState([]);
   const [loadingDestinations, setLoadingDestinations] = useState(false);
   const [destinationError, setDestinationError] = useState("");
+  const [isGrouped, setIsGrouped] = useState(true);
+  const [showRoutes, setShowRoutes] = useState(false);
+  const [hideIntermediateStations, setHideIntermediateStations] = useState(false);
+  const [showRailwayOverlay, setShowRailwayOverlay] = useState(false);
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -108,105 +113,143 @@ export default function Plan() {
   }
 
   return (
-    <>
-      <Head>
-        <title>{TITLE}</title>
-        <meta name="description" content={DESCRIPTION} />
-        <link rel="canonical" href={`${SITE_URL}/plan`} />
-      </Head>
+    <div className="plan-shell">
+      <Header
+        isGrouped={isGrouped}
+        setIsGrouped={setIsGrouped}
+        showRoutes={showRoutes}
+        setShowRoutes={setShowRoutes}
+        hideIntermediateStations={hideIntermediateStations}
+        setHideIntermediateStations={setHideIntermediateStations}
+        showRailwayOverlay={showRailwayOverlay}
+        setShowRailwayOverlay={setShowRailwayOverlay}
+        stops={[]}
+        stopsLoading={false}
+      />
 
-      <main className="plan-page">
-        <section className="plan-hero" aria-labelledby="plan-title">
-          <p className="plan-eyebrow">Sleeper train planner</p>
-          <h1 id="plan-title">Where could you go tonight?</h1>
-          <p className="plan-intro">
-            Choose where you start and when you want to travel. We&apos;ll help you
-            discover where a night train can take you.
-          </p>
+      <div className="plan-scroll">
+        <Head>
+          <title>{TITLE}</title>
+          <meta name="description" content={DESCRIPTION} />
+          <link rel="canonical" href={`${SITE_URL}/plan`} />
+        </Head>
 
-          <div className="plan-form" aria-label="Trip planning">
-            <div className="plan-field">
-              <label htmlFor="plan-origin">From</label>
-              <input
-                id="plan-origin"
-                name="origin"
-                type="text"
-                list="plan-stations"
-                value={origin}
-                onChange={handleOriginChange}
-                placeholder={loadingStations ? "Loading stations..." : "Departure station"}
-                autoComplete="off"
-                disabled={loadingStations && stations.length === 0}
-              />
-              <datalist id="plan-stations">
-                {stationNames.map((name) => <option key={name} value={name} />)}
-              </datalist>
-              {stationError && <span className="plan-error">{stationError}</span>}
+        <main className="plan-page">
+          <section className="plan-hero" aria-labelledby="plan-title">
+            <p className="plan-eyebrow">Sleeper train planner</p>
+            <h1 id="plan-title">Where could you go tonight?</h1>
+            <p className="plan-intro">
+              Choose where you start and when you want to travel. We&apos;ll help you
+              discover where a night train can take you.
+            </p>
+
+            <div className="plan-form" aria-label="Trip planning">
+              <div className="plan-field">
+                <label htmlFor="plan-origin">From</label>
+                <input
+                  id="plan-origin"
+                  name="origin"
+                  type="text"
+                  list="plan-stations"
+                  value={origin}
+                  onChange={handleOriginChange}
+                  placeholder={loadingStations ? "Loading stations..." : "Departure station"}
+                  autoComplete="off"
+                  disabled={loadingStations && stations.length === 0}
+                />
+                <datalist id="plan-stations">
+                  {stationNames.map((name) => <option key={name} value={name} />)}
+                </datalist>
+                {stationError && <span className="plan-error">{stationError}</span>}
+              </div>
+
+              <div className="plan-field">
+                <label htmlFor="plan-date">When</label>
+                <input
+                  id="plan-date"
+                  name="date"
+                  type="date"
+                  min={today()}
+                  value={date}
+                  onChange={handleDateChange}
+                />
+              </div>
             </div>
 
-            <div className="plan-field">
-              <label htmlFor="plan-date">When</label>
-              <input
-                id="plan-date"
-                name="date"
-                type="date"
-                min={today()}
-                value={date}
-                onChange={handleDateChange}
-              />
-            </div>
-          </div>
+            {origin && date && (
+              <section className="plan-results" aria-live="polite" aria-labelledby="plan-results-title">
+                <div className="plan-results-header">
+                  <h2 id="plan-results-title">
+                    {loadingDestinations ? "Looking for night trains..." : "You could go to"}
+                  </h2>
+                  {!loadingDestinations && destinations.length > 0 && (
+                    <span>{destinations.length} destination{destinations.length === 1 ? "" : "s"}</span>
+                  )}
+                </div>
 
-          {origin && date && (
-            <section className="plan-results" aria-live="polite" aria-labelledby="plan-results-title">
-              <div className="plan-results-header">
-                <h2 id="plan-results-title">
-                  {loadingDestinations ? "Looking for night trains..." : "You could go to"}
-                </h2>
-                {!loadingDestinations && destinations.length > 0 && (
-                  <span>{destinations.length} destination{destinations.length === 1 ? "" : "s"}</span>
+                {destinationError && <p className="plan-error">{destinationError}</p>}
+
+                {!loadingDestinations && !destinationError && destinations.length === 0 && (
+                  <p className="plan-empty">
+                    No sleeper trains found from <strong>{origin}</strong> on this date.
+                  </p>
                 )}
-              </div>
 
-              {destinationError && <p className="plan-error">{destinationError}</p>}
+                <div className="plan-results-list">
+                  {destinations.map((item) => (
+                    <article
+                      className="plan-result"
+                      key={`${item.destination}|${item.train}|${item.departure}`}
+                    >
+                      <div className="plan-result-main">
+                        <p className="plan-result-destination">{item.destination}</p>
+                        {item.via && <p className="plan-result-via">via {item.via}</p>}
+                      </div>
+                      <div className="plan-result-times">
+                        {item.departure && <strong>{item.departure}</strong>}
+                        <span>overnight</span>
+                        {item.arrival && <strong>{item.arrival}</strong>}
+                      </div>
+                      {item.train && <p className="plan-result-train">{item.train}</p>}
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+          </section>
+        </main>
+      </div>
 
-              {!loadingDestinations && !destinationError && destinations.length === 0 && (
-                <p className="plan-empty">
-                  No sleeper trains found from <strong>{origin}</strong> on this date.
-                </p>
-              )}
+      <style jsx>{`
+        .plan-shell {
+          height: 100dvh;
+          min-height: 100dvh;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          background: #000;
+        }
 
-              <div className="plan-results-list">
-                {destinations.map((item) => (
-                  <article
-                    className="plan-result"
-                    key={`${item.destination}|${item.train}|${item.departure}`}
-                  >
-                    <div className="plan-result-main">
-                      <p className="plan-result-destination">{item.destination}</p>
-                      {item.via && <p className="plan-result-via">via {item.via}</p>}
-                    </div>
-                    <div className="plan-result-times">
-                      {item.departure && <strong>{item.departure}</strong>}
-                      <span>overnight</span>
-                      {item.arrival && <strong>{item.arrival}</strong>}
-                    </div>
-                    {item.train && <p className="plan-result-train">{item.train}</p>}
-                  </article>
-                ))}
-              </div>
-            </section>
-          )}
-        </section>
-      </main>
-    </>
+        .plan-scroll {
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow-y: auto;
+          overflow-x: hidden;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior-y: contain;
+        }
+
+        .plan-page {
+          min-height: 100%;
+        }
+      `}</style>
+    </div>
   );
 }
 
 const styles = `
   .plan-page {
     color: #fff;
-    min-height: calc(100vh - 64px);
     display: flex;
     justify-content: center;
     padding: 64px 24px 96px;
