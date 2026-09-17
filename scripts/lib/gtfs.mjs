@@ -916,15 +916,26 @@ export function stitchLegs(legs) {
 /**
  * Which of a route's trips describe the same train as `best`.
  *
- * Most specific rung the feed supports: a train number, else a direction, else
- * the whole route. A feed that populates neither (SNCF, Entur) gets the route,
- * which is the widest honest answer rather than a guess.
+ * Direction first, train number second, and that order was settled by running
+ * both against the live Amtrak feed rather than by reasoning.
+ *
+ * Direction is what actually needs separating: one route_id holds both ways,
+ * and unioning across them turned the Cardinal — three times a week each way,
+ * on different days — into six weekdays. Grouping by `trip_short_name` fixes
+ * that too, but it is finer than the question being asked and fragments where
+ * a feed numbers its runs rather than its trains: the California Zephyr, a
+ * daily train, came back as "2027/03/13-2027/03/13: Sat", one Saturday, which
+ * is the very fault this whole change exists to remove. Direction is coarse
+ * enough not to fragment and fine enough to answer.
+ *
+ * A feed that populates neither (SNCF, Entur) gets the whole route, which is
+ * the widest honest answer rather than a guess, and is where it already was.
  */
 function sameTrainAs(best) {
-  const num = String(best?.trip_short_name ?? "").trim();
-  if (num) return (t) => String(t.trip_short_name ?? "").trim() === num;
   const dir = String(best?.direction_id ?? "").trim();
   if (dir) return (t) => String(t.direction_id ?? "").trim() === dir;
+  const num = String(best?.trip_short_name ?? "").trim();
+  if (num) return (t) => String(t.trip_short_name ?? "").trim() === num;
   return () => true;
 }
 
