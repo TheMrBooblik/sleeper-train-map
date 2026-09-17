@@ -60,6 +60,12 @@ jobs:
       # recorded the night it appears.
       - run: npm run build-redirects
 
+      # Rebuild the trip planner's leg graph from tonight's payload. It is a
+      # static asset rather than an endpoint, so it has to be regenerated here
+      # or /plan serves last night's network — and verify-plan fails the build
+      # when it drifts out of step with the published dataset.
+      - run: npm run build-plan-index
+
       # AI assist (GitHub Models, free tier): enrich tonight's proposals,
       # suggest station aliases, extract prices from configured pages.
       # Strictly best-effort and budget-capped — never blocks the pipeline.

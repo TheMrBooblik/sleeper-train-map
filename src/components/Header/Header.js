@@ -11,6 +11,7 @@ import {
   FaTrain,
   FaSearch,
   FaMapMarkerAlt,
+  FaRegCalendarAlt,
 } from "react-icons/fa";
 
 import Container from "@components/Container";
@@ -248,6 +249,15 @@ const Header = ({
                       Trains near me
                     </button>
                   )}
+                  <Link
+                    href="/plan"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-sky-400 transition-colors hover:bg-white/10 hover:text-sky-300"
+                  >
+                    <span className="text-sky-400/70">
+                      <FaRegCalendarAlt size={14} />
+                    </span>
+                    Plan a trip
+                  </Link>
                   <Link
                     href="/connections"
                     className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-sky-400 transition-colors hover:bg-white/10 hover:text-sky-300"

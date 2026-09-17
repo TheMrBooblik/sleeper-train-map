@@ -279,14 +279,20 @@ const validPairSlugs = new Set();
 {
   const reported = new Set(
     stationsMissingCityOverride([
-      "Hamburg Dammtor", // not in the table; "Hamburg *" siblings are
+      // The sample used to be "Hamburg Dammtor". The trip planner needed it to
+      // mean Hamburg and it is via-only, so it went into the table and stopped
+      // being an example of an unmapped name. Wilhelmsburg is a real Hamburg
+      // station this dataset does not carry, so the rule under test — a
+      // qualifier the fallback cannot strip, with "Hamburg *" siblings already
+      // in the table — is exercised exactly as before.
+      "Hamburg Wilhelmsburg",
       "Sofia", // genuinely its own city, single token, no sibling
       "Bologna Centrale", // fallback handles it, still worth a human look
     ]),
   );
   check(
-    reported.has("Hamburg Dammtor"),
-    'stationsMissingCityOverride missed "Hamburg Dammtor" — a sibling in the table names its city',
+    reported.has("Hamburg Wilhelmsburg"),
+    'stationsMissingCityOverride missed "Hamburg Wilhelmsburg" — a sibling in the table names its city',
   );
   check(
     !reported.has("Sofia"),
