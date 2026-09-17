@@ -3,6 +3,7 @@
  * Validates getRouteStyleFromFrequency / inferTripFrequencyRank (no server).
  * Run: node tests/verify-route-style-utils.mjs
  */
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -18,6 +19,9 @@ const {
   hasUnknownStart,
   countListedWeekdays,
   routeHasNotStartedYet,
+  routeSeasonHasClosed,
+  parseBoTServiceIdDateRange,
+  isRouteOutsideServiceIdSeason,
   upcomingPreviewRouteIds,
 } = mod;
 
@@ -211,5 +215,107 @@ assert(
   upcomingPreviewRouteIds({ a: { route_id: "live", draw_as_active: true, service_id_0: "2026-08-01 – 2026-12-11: Daily" } }, NOW).size === 0,
   "draw_as_active on a running route is not a pending preview",
 );
+
+// ─── A season that has CLOSED, read off the row ──────────────────────────────
+// The trips table is the upstream export and nothing writes to it, so a route
+// whose operator feed knows the season ended keeps "2026: Daily" there forever.
+// Romania's Constanta-Oradea went on being drawn as a daily service nine days
+// after its last run for exactly that reason.
+
+assert(
+  routeSeasonHasClosed(
+    { service_id_0: "2026/06/13-2026/08/30: Daily", service_id_1: "2026/06/12-2026/08/29: Daily" },
+    NOW,
+  ),
+  "both directions finished means the season has closed",
+);
+assert(
+  !routeSeasonHasClosed(
+    { service_id_0: "2026/06/13-2026/08/30: Daily", service_id_1: "2026: Daily" },
+    NOW,
+  ),
+  "a route with one year-round direction is still a route",
+);
+assert(!routeSeasonHasClosed({ service_id_0: "2026: Daily" }, NOW), "no window means running");
+assert(!routeSeasonHasClosed({ service_id_0: "who knows" }, NOW), "an unparseable window means running");
+assert(!routeSeasonHasClosed(null, NOW), "no row means running");
+assert(
+  !routeSeasonHasClosed({ service_id_0: "2026/06/13-2026/12/06: Daily" }, NOW),
+  "a window still open is not closed",
+);
+// The row is consulted before the trips, because only the row is ever corrected.
+assert(
+  isRouteOutsideServiceIdSeason(
+    "r",
+    { t: { route_id: "r", service_id: "2026: Daily" } },
+    { service_id_0: "2026/06/13-2026/08/30: Daily" },
+  ),
+  "a corrected row outvotes an export nobody updates",
+);
+
+// ─── Both spellings of a season are read ────────────────────────────────────
+// 88 service strings in the payload write the end without its year, and for a
+// long time they fell through to "cannot parse, therefore runs" — which is how
+// Constanta-Oradea stayed on the map nine days after its last run.
+//
+// Reading them was blocked on something else first, and the order is the whole
+// lesson. gtfs-sleeper rendered "when does it run" from ONE representative
+// trip's calendar row, so Amtrak — which splits a daily train across many
+// short-dated services — stated "City of New Orleans: 2026/09/13-09/16" and
+// "California Zephyr: 2027/03/13-03/13: Sat". Acting on those would have
+// retired two year-round daily trains. The union in gtfs.mjs fixed the source
+// and a branch refresh rewrote the strings against the live feed; only then was
+// widening this safe.
+assert(
+  parseBoTServiceIdDateRange("2026/06/26-2026/08/30: Daily") !== null,
+  "the spelling with both years parses",
+);
+const shortForm = parseBoTServiceIdDateRange("2026/06/22-08/30: Daily");
+assert(shortForm !== null, "the spelling without the end year parses too");
+assert(
+  shortForm.end.getFullYear() === 2026 && shortForm.end.getMonth() === 7,
+  "an omitted end year means the year the season began",
+);
+assert(
+  parseBoTServiceIdDateRange("2026: Daily") === null,
+  "a bare year is not a season and must never hide a route",
+);
+assert(
+  routeSeasonHasClosed({ service_id_0: "2026/06/22-08/30: Daily" }, NOW),
+  "a short-form season that has passed now closes the route",
+);
+
+// ─── No route may claim a season too short to be one ────────────────────────
+// This is the shape the Amtrak fault had, and the assertion that would have
+// caught it: gtfs-sleeper rendered one representative trip's calendar row, so
+// the City of New Orleans claimed four days and the California Zephyr one.
+// Against the payload as built there are none, and a window that short is an
+// artifact of how a feed was read rather than a timetable anybody publishes.
+{
+  const payload = JSON.parse(
+    fs.readFileSync(
+      path.join(root, "public", "data", "published", "initial-data.json"),
+      "utf8",
+    ),
+  ).data;
+  const tooShort = [];
+  const scan = (where, value) => {
+    const r = parseBoTServiceIdDateRange(value || "");
+    if (!r) return;
+    const days = Math.round((r.end - r.start) / 86400000) + 1;
+    if (days < 14) tooShort.push(`${where}: ${value} (${days} days)`);
+  };
+  for (const [key, row] of Object.entries(payload.viewMap)) {
+    scan(`row ${key}`, row.service_id_0);
+    scan(`row ${key}`, row.service_id_1);
+  }
+  for (const trip of Object.values(payload.trips)) {
+    scan(`trip ${trip.route_id}`, trip.service_id);
+  }
+  assert(
+    tooShort.length === 0,
+    `service windows too short to be a season: ${tooShort.slice(0, 3).join("; ")}`,
+  );
+}
 
 console.log("verify-route-style-utils.mjs OK");

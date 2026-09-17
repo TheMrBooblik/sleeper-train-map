@@ -1,7 +1,7 @@
 // pages/api/chinese-trains.js
 // Thin alias of /api/operator-trains?source=chinese (kept for back-compat).
 
-import { createTrainsFileHandler } from "./lib/operator-trains-handler";
+import { createTrainsFileHandler } from "./lib/operator-trains-handler.mjs";
 
 export default createTrainsFileHandler({
   file: "chinese-trains.json",

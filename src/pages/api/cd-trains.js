@@ -2,7 +2,7 @@
 // Thin alias of /api/operator-trains?source=cd (kept for back-compat).
 // Serves Czech Railways (cd.cz) EC/EN timetables from the daily scrape.
 
-import { createTrainsFileHandler } from "./lib/operator-trains-handler";
+import { createTrainsFileHandler } from "./lib/operator-trains-handler.mjs";
 
 export default createTrainsFileHandler({
   file: "cd-trains.json",

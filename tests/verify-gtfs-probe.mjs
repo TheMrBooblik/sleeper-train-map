@@ -255,9 +255,17 @@ check("only gtfs-sleeper sources with a feed and a config are verifiable", () =>
   // running its allowlist through buildSleeperTrains would report false drift.
   assert.ok(!ids.includes("europeansleeper"), "ES must not be verified by this builder");
   assert.ok(!ids.includes("backontrack"), "non-GTFS sources must not be included");
-  for (const id of ["amtrak", "viarail", "sncf"]) {
+  for (const id of ["amtrak", "viarail", "sncf", "cfr"]) {
     assert.ok(ids.includes(id), `${id} should be verifiable, got [${ids.join(", ")}]`);
   }
+  // cfr rides its own adapter but is the generic builder plus a post-step, so
+  // the entry-matched-nothing check still applies to it.
+  assert.strictEqual(
+    allowlistVerifiableSources([
+      { id: "x", enabled: true, adapter: "cfr-gtfs", params: { configPath: "c", feedUrl: "u" } },
+    ]).length,
+    1,
+  );
   assert.strictEqual(allowlistVerifiableSources(null).length, 0);
   // A disabled source is not worth a feed download.
   assert.strictEqual(

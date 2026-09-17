@@ -1,6 +1,69 @@
 {
-  "note": "CFR Călători (Romania) — the cfr adapter (scripts/adapters/cfr.mjs) reads the official national timetable published as open data on data.gov.ro and rebuilds the stop list, times and geometry of every Back-on-Track row whose operator includes CFR (CFR, CFR/MÁV, CFM/CFR, TCDD/BDŽ/CFR, …). Those rows need no entry here: their trip labels ('IRN 1669', 'IC 472', 'IRN 1954/R 8824') name the train numbers to look up. Use `trains` only for sleepers Back-on-Track does not list (they become synthetic cfr_ rows): { label, numbers?, origin?, destination?, frequency? } — numbers default to the digits in the label, origin/destination (Back-on-Track spellings) validate the match when given. Use `stations` for coordinates of official stop names that no Back-on-Track stop carries (key = the name as the XML spells it, value = { lat, lon }); every other stop is resolved by diacritic-insensitive name against Back-on-Track's station table.",
-  "source": "https://data.gov.ro/dataset/mers-tren-sntfc-cfr-calatori-s-a",
-  "trains": [],
-  "stations": {}
+  "note": "CFR Călători (Romania) — one entry per Back-on-Track row DIRECTION, matched against the Romanian national GTFS feed (Mobility Database mdb-3236, Transitous' conversion of the S.C. Informatică Feroviară open data). Each entry is { route | routes, name }: `route` names the feed's route (its route_id IS the train number, route_short_name is 'IR-N 346'), and `name` is Back-on-Track's own label for that direction, which is the key the trainsByNumber enrichment looks a row up by. Use `routes` for a through car that the operator timetables under several numbers — LEGS MUST BE IN JOURNEY ORDER, not in the order Back-on-Track's label happens to list them: row 13's 'IRN 1954/R 8824' runs Mangalia → Suceava, so its legs are ['8824', '1954']. gtfs.mjs joins them at the last station they share and cuts each leg's geometry there. The feed stops at the national border, so an international train lists only the legs the feed carries and scripts/adapters/cfr-gtfs.mjs splices Back-on-Track's foreign stretch back on (row 28's Turkish 12503/12504 are not in the feed at all, and need no entry). Four numbers were renumbered in the 2025/2026 timetable and Back-on-Track still carries the old ones — 12641→1641, 12642→1642, 12941→1941, 12942→1942 — so `route` is the feed's number while `name` stays Back-on-Track's. UZ/CFM 351 (Kyiv–Chişinău, row 195) is a Ukrainian train the Romanian feed does not carry — it never enters Romania, and no feed anywhere carries its Moldovan half. UZ 099/100 (Kyiv–Bucureşti, row 174) the feed DOES carry, because south of Ungheni that train IS 401/402: the Kyiv cars run attached to the Chişinău train, which is why both rows state the same Bucureşti times to the minute (arrive 06:38, depart 19:06). So feed routes 401 and 402 are each claimed TWICE — once under Back-on-Track's label for row 22 and once under row 174's — and the splice then gives each row its own foreign stretch back (Ungheni for 22, Kyiv/Vinnytsia/Zhmerynka for 174). Naming one feed route from two entries is allowed: claimKey guards duplicate KEYS, not duplicate routes. Row 174 is the reason `enrich.agencyIds` and `synthetic.botMatchAgencies` carry a bare UZ: 099 and 100 are unique to it across the whole payload, so no other Ukrainian row can match. Entries after the Back-on-Track block are night trains the feed carries and Back-on-Track does not: they have no row to land on, so they are keyed by the operator's own label and become synthetic cfr_ rows through the review queue. One of the four runs year-round; the other three are summer Black Sea services whose season has closed, and they carry their own dates so the map hides them until next June rather than drawing a train that is not running. IR-N 11500/11501/11502/11504 are deliberately NOT here: the 'IR-N' night-train prefix selects them, but they belong to Astra Trans Carpatic rather than CFR Calatori, and 11500/11501 is the train Back-on-Track row 24 already carries - so they arrived as a second line over an existing route, stamped with the wrong operator. params.feedAgencyIds now fails the source on such an entry instead. Verify a change with `npm run probe-gtfs -- --verify-allowlists`. (The old data.gov.ro adapter also read `trains`/`stations` keys from this file; the GTFS path needs neither — the feed carries coordinates for all 1695 of its stops — so they are gone rather than sitting here empty.)",
+  "source": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-3236/latest.zip",
+  "routes": [
+    { "route": "1837", "name": "IRN 1837" },
+    { "route": "1838", "name": "IRN 1838" },
+
+    { "route": "472", "name": "IC 472" },
+    { "route": "473", "name": "IC 473" },
+
+    { "route": "1952", "name": "IRN 1952" },
+    { "routes": ["8824", "1954"], "name": "IRN 1954/R 8824" },
+
+    { "routes": ["472", "1743"], "name": "IRN 472/IRN 1743" },
+    { "routes": ["1744", "79"], "name": "IRN 1744/IRN 79" },
+
+    { "route": "1763", "name": "IRN 1763" },
+    { "route": "1765", "name": "IRN 1765" },
+
+    { "route": "78", "name": "IRN / IC 78" },
+    { "route": "79", "name": "IRN / IC 79" },
+
+    { "route": "1659", "name": "IRN 1659" },
+    { "route": "1658", "name": "IRN 1658" },
+
+    { "route": "1641", "name": "IRN 12641" },
+    { "route": "1642", "name": "IRN 12642" },
+
+    { "route": "1821", "name": "IRN 1821" },
+    { "route": "1822", "name": "IRN 1822" },
+
+    { "route": "401", "name": "401" },
+    { "route": "402", "name": "402" },
+    { "route": "401", "name": "099" },
+    { "route": "402", "name": "100" },
+
+    { "route": "1669", "name": "IRN 1669" },
+    { "route": "1668", "name": "IRN 1668" },
+
+    { "route": "1941", "name": "IRN 12941" },
+    { "routes": ["8810", "1942"], "name": "IRN 12942/R 8810" },
+
+    { "route": "1920", "name": "IRN 1920" },
+    { "route": "1922", "name": "IRN 1922" },
+
+    { "route": "460", "name": "12503/460" },
+    { "route": "461", "name": "461/12504" },
+
+    { "route": "346", "name": "D 346" },
+    { "route": "347", "name": "D 347" },
+
+    { "route": "406", "name": "IC 406" },
+    { "route": "407", "name": "IC 407" },
+
+    { "routes": ["4007", "1642"], "name": "R-E 4007/IRN 12642" },
+    { "routes": ["1641", "4008"], "name": "IRN 12641/R-E 4008" },
+
+    { "routes": ["1641", "1643"], "name": "IRN 12641/IRN 1643" },
+    { "routes": ["1644", "1642"], "name": "IRN 1644/IRN 12642" },
+
+    { "route": "12820", "name": "IR-N 12820" },
+
+    { "route": "1947", "name": "IR-N 1947" },
+    { "route": "1960", "name": "IR-N 1960" },
+    { "route": "1962", "name": "IR-N 1962" },
+    { "route": "1990", "name": "IR-N 1990" },
+    { "route": "1992", "name": "IR-N 1992" }
+  ]
 }

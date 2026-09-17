@@ -72,6 +72,15 @@ function isoDate(year, month, day) {
  *   "2026/06/22-08/30"            a season inside one year
  *   "2026/06/13-2026/09/06"       the same with the year repeated
  *   "2026-12-14 – 2027-09-06"     a cross-year window
+ *
+ * The repeated-year spelling is the one Back-on-Track's trips use and the only
+ * one parseBoTServiceIdDateRange can read — that is the parser deciding whether
+ * the map still draws the line — so both spellings have to resolve here or the
+ * two halves of the payload disagree about the same string. Note this reads the
+ * SECOND year when one is given: a range whose two ends sit in different years
+ * is exactly what the en-dash form below carries, and taking the first year for
+ * both ends turns "2026/12/14-2027/09/06" into a window that closed nine months
+ * before it opened.
  * The last one is the shape renderCalendar itself emits for a range spanning
  * two years, so before it was read here the module could not re-read its own
  * output — six legs in the published payload arrived as unparseable notes for

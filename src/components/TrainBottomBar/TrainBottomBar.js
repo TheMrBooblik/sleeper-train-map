@@ -26,8 +26,8 @@ const TrainBottomBar = ({
   cities,
 }) => {
   const hideRoute = useCallback(
-    (routeId) => shouldHideRouteDueToFutureDate(routeId, trips),
-    [trips],
+    (routeId) => shouldHideRouteDueToFutureDate(routeId, trips, viewMapData?.[routeId]),
+    [trips, viewMapData],
   );
 
   // "Is this a station?" for splitting a via string. `cities` is keyed by the

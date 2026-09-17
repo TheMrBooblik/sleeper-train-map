@@ -17,7 +17,7 @@ import {
   getBlobData,
   getPublishedInitialData,
   getScrapedFile,
-} from "../lib/file-store.js";
+} from "../lib/file-store.mjs";
 import {
   buildOperatorRows,
   buildRouteRows,

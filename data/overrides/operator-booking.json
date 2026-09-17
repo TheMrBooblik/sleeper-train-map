@@ -307,6 +307,10 @@
   },
   "UZ": {
     "scheduleUrlTemplate": "https://uz.gov.ua/en/passengers/timetable/?ntrain={train}&ntrain_out={train}&by_number=Search",
+    "scheduleTrainPages": {
+      "99": "https://www.uz.gov.ua/en/passengers/timetable/?ntrain=105997&by_id=1",
+      "100": "https://www.uz.gov.ua/en/passengers/timetable/?ntrain=106002&by_id=1"
+    },
     "schedulePages": {
       "60": "https://uz.gov.ua/en/passengers/timetable/"
     }

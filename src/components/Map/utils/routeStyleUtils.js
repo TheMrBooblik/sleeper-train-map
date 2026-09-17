@@ -4,34 +4,60 @@
  * runs. See MAP_LEGEND_LINE_BASE_STYLES for the full grammar.
  */
 
-// BoT calendar window in trip.service_id, e.g. "2026/06/26-2026/08/30: Daily"
+// BoT calendar window in a service_id. Two spellings are in the data and the
+// end year is optional in one: "2026/06/26-2026/08/30: Daily" and
+// "2026/06/26-08/30: Daily". 88 service strings across the payload use the
+// short one, and for a long time it fell through to "cannot parse, therefore
+// runs" — which is how Constanța–Oradea went on being drawn as a daily service
+// nine days after its last run.
+//
+// Reading it was blocked on something else first, and the order mattered.
+// gtfs-sleeper used to render "when does it run" from ONE representative
+// trip's calendar row, so Amtrak — which splits a daily train across many
+// short-dated services — stated "City of New Orleans: 2026/09/13-09/16" and
+// "California Zephyr: 2027/03/13-03/13: Sat". Acting on those would have
+// retired two year-round daily trains. The union in gtfs.mjs fixed the source,
+// a branch refresh rewrote the strings against the live feed, and only then
+// was this safe to widen.
 const SERVICE_ID_CALENDAR_RANGE_RE =
-  /(\d{4})\/(\d{1,2})\/(\d{1,2})\s*-\s*(\d{4})\/(\d{1,2})\/(\d{1,2})/;
+  /(\d{4})\/(\d{1,2})\/(\d{1,2})\s*-\s*(?:(\d{4})\/)?(\d{1,2})\/(\d{1,2})/;
 
-/**
- * Parse YYYY/MM/DD-YYYY/MM/DD from Back-on-Track service_id (optional ": …" suffix).
- * @param {string} [serviceId]
- * @returns {{ start: Date, end: Date } | null} Local-date start/end (inclusive).
- */
 export function parseBoTServiceIdDateRange(serviceId) {
   if (!serviceId || typeof serviceId !== "string") return null;
   const m = serviceId.match(SERVICE_ID_CALENDAR_RANGE_RE);
   if (!m) return null;
   const start = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  const end = new Date(Number(m[4]), Number(m[5]) - 1, Number(m[6]));
+  // The short spelling omits the end year; a season that does not state one
+  // lies within the year it began, which is what that spelling means.
+  const end = new Date(Number(m[4] ?? m[1]), Number(m[5]) - 1, Number(m[6]));
   start.setHours(0, 0, 0, 0);
   end.setHours(0, 0, 0, 0);
   return { start, end };
 }
 
 /**
- * True when every trip on this route has a calendar service_id range and today is outside all of them.
- * If any trip has no such range (e.g. "2026: Daily"), the route stays visible year-round.
+ * True when a season has closed: today is past every validity window this route
+ * states, and it states at least one.
+ *
+ * Two places state one, and only the row is ever corrected. The trips table is
+ * the upstream Back-on-Track export and nothing in the pipeline writes to it,
+ * so a route whose operator feed knows the season ended keeps "2026: Daily"
+ * there forever — which is how two Romanian summer trains went on being drawn
+ * as daily services nine days after their last run. `routeSeasonHasClosed`
+ * reads the row, the same way `routeHasNotStartedYet` already does for the
+ * other end of the window, and it is consulted FIRST: an enrichment that
+ * corrected the row is better evidence than an export nobody updates.
+ *
+ * `route` is optional so the existing callers keep working unchanged; pass it
+ * wherever the viewMap row is to hand.
+ *
  * @param {string|number} routeId
  * @param {Record<string, object>} trips
+ * @param {object} [route] viewMap row, when the caller has it
  * @returns {boolean}
  */
-export function isRouteOutsideServiceIdSeason(routeId, trips) {
+export function isRouteOutsideServiceIdSeason(routeId, trips, route = undefined) {
+  if (routeSeasonHasClosed(route)) return true;
   if (!trips || routeId == null) return false;
 
   const routeTrips = Object.values(trips).filter(
@@ -652,8 +678,8 @@ export const REGIOJET_COLOR = "#F0AB00";
  * @param {Object} trips - Trips data
  * @returns {boolean}
  */
-export function shouldHideRouteDueToFutureDate(routeId, trips) {
-  if (isRouteOutsideServiceIdSeason(routeId, trips)) return true;
+export function shouldHideRouteDueToFutureDate(routeId, trips, route = undefined) {
+  if (isRouteOutsideServiceIdSeason(routeId, trips, route)) return true;
   return false;
 }
 
@@ -680,6 +706,43 @@ const ROW_SERVICE_ID_START_RES = [
  * @param {Date} [now]
  * @returns {boolean}
  */
+/**
+ * Has this row's stated season already finished?
+ *
+ * The row twin of `isRouteOutsideServiceIdSeason`'s trips walk, and the mirror
+ * of `routeHasNotStartedYet`: that one asks whether the window has opened, this
+ * one whether it has shut. Both read the same two fields and both are
+ * conservative — a window they cannot parse, or one still open, means
+ * "running", because hiding a train that does run is far worse than drawing one
+ * that does not.
+ *
+ * A row is only judged closed when EVERY direction it states is closed: a route
+ * whose outbound is seasonal and whose return runs year-round is still a route.
+ *
+ * @param {object} route viewMap row
+ * @param {Date} [now]
+ * @returns {boolean}
+ */
+export function routeSeasonHasClosed(route, now = new Date()) {
+  if (!route) return false;
+
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+
+  let sawRange = false;
+  for (const field of ["service_id_0", "service_id_1"]) {
+    const value = route[field];
+    if (!value) continue;
+    const range = parseBoTServiceIdDateRange(String(value));
+    // An unparseable window could be running today; that decides it.
+    if (!range) return false;
+    sawRange = true;
+    if (range.end >= today) return false;
+  }
+
+  return sawRange;
+}
+
 export function routeHasNotStartedYet(route, now = new Date()) {
   if (!route) return false;
 
