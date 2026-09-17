@@ -247,7 +247,7 @@ export function useRoutePaths({
       if (!route) return;
 
       // Calendar service_id (e.g. summer-only): omit lines entirely outside BoT window.
-      if (isRouteOutsideServiceIdSeason(routeId, trips)) {
+      if (isRouteOutsideServiceIdSeason(routeId, trips, route)) {
         return;
       }
 

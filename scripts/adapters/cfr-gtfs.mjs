@@ -1,11 +1,11 @@
 // scripts/adapters/cfr-gtfs.mjs
 // CFR Călători (Romania) from the Romanian national railway GTFS feed.
 //
-// Why this exists instead of scripts/adapters/cfr.mjs: that adapter reads the
-// annual timetable XML off data.gov.ro, and data.gov.ro is not reachable from
-// the nightly runner. It had failed 14 nights running with `lastSuccessAt:
-// null` — it has never once produced data, so every Romanian route on the map
-// still runs on Back-on-Track's hand-maintained via lists.
+// Why this exists: Romania publishes the timetable as XML on data.gov.ro, and
+// the adapter that read it (scripts/adapters/cfr.mjs, deleted with this change)
+// was never reachable from the nightly runner. It failed 14 nights running with
+// `lastSuccessAt: null` — it never once produced data, so every Romanian route
+// on the map still ran on Back-on-Track's hand-maintained via lists.
 //
 // The same timetable arrives as GTFS through the Mobility Database
 // (`mdb-3236`, Transitous' conversion of the S.C. Informatică Feroviară open
@@ -44,7 +44,6 @@ import {
   buildSleeperTrains,
   stationNameCanonicalizer,
 } from "../lib/gtfs.mjs";
-import { foldStationName } from "../lib/cfr-mers-tren.mjs";
 import { resolveCanonicalStationName } from "../../src/pages/api/lib/primitives.mjs";
 import { splitViaString } from "../../src/lib/viaSplit.mjs";
 
@@ -58,6 +57,38 @@ function readScraped(rootDir, name) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Comparison key for a station name across the spellings this source has to
+ * reconcile: the feed's, Back-on-Track's and Hungary's. "Bucuresti Nord" =
+ * "Bucuresti Nord" with diacritics, "Timisoara Nord" = cedilla-s = comma-s,
+ * "Cluj Napoca" = "Cluj-Napoca", "Lokoshaza" = "Lokoshaza" with accents. NFD
+ * alone does not do it: s-comma and t-comma decompose, but Polish l-stroke and
+ * Croatian d-stroke are single code points with no combining form.
+ *
+ * Deliberately not `normLabel` from gtfs.mjs, which strips every non-ASCII
+ * letter outright instead of folding it: that turns "Istanbul Halkali" spelled
+ * with a dotless i into "istanbul halkal", so a name written with the dotless
+ * form on one side only would silently stop matching.
+ */
+export function foldStationName(name) {
+  return String(name ?? "")
+    .toLowerCase()
+    .replace(/ş/g, "s")
+    .replace(/ţ/g, "t")
+    .replace(/ș/g, "s")
+    .replace(/ț/g, "t")
+    .replace(/ł/g, "l")
+    .replace(/đ/g, "d")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/\bh\.\s*/g, " ")
+    .replace(/\bhm\.\s*/g, " ")
+    .replace(/[.,'’"()]/g, " ")
+    .replace(/[-–—/]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function loadAllowlist(configPath) {

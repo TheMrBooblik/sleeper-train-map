@@ -19,10 +19,16 @@
 //      replaces, and viaOnlyIfRicher then refused the whole train.
 
 import assert from "node:assert/strict";
-import { stitchLegs, buildSleeperTrains } from "../scripts/lib/gtfs.mjs";
+import {
+  stitchLegs,
+  buildSleeperTrains,
+  seasonalServiceDisplay,
+  seasonalOrYearlyDisplay,
+} from "../scripts/lib/gtfs.mjs";
 import {
   botChain,
   endpointsAgree,
+  foldStationName,
   spliceForeignStretch,
 } from "../scripts/adapters/cfr-gtfs.mjs";
 
@@ -43,6 +49,32 @@ const at = (name, lat, lon, arrival = null, departure = null) => ({
   dropoff: true,
 });
 const chain = (stations) => stations.map((s) => [s.location.latitude, s.location.longitude]);
+
+// ─── 0. foldStationName ─────────────────────────────────────────────────────
+// Carried over from the retired verify-cfr suite: the helper moved into this
+// adapter when the data.gov.ro path was deleted, and the spellings it has to
+// reconcile did not change with it.
+
+check("foldStationName equates the spellings this source has to reconcile", () => {
+  const same = (a, b) =>
+    assert.strictEqual(foldStationName(a), foldStationName(b), `${a} vs ${b}`);
+  same("Bucuresti Nord", "București Nord");
+  same("Timisoara Nord", "Timişoara Nord");
+  same("Timişoara Nord", "Timișoara Nord"); // cedilla vs comma below
+  same("Cluj Napoca", "Cluj-Napoca");
+  same("Vatra Dornei Bai", "Vatra Dornei Băi");
+  same("Chisinau", "Chişinău");
+  same("Lokoshaza", "Lőkösháza"); // the Hungarian border station, both ways
+  assert.strictEqual(foldStationName("h. Posada"), "posada");
+  assert.strictEqual(foldStationName("Bușteni Hm."), "busteni");
+});
+
+check("foldStationName folds a non-decomposing letter rather than dropping it", () => {
+  // The reason this is not normLabel from gtfs.mjs: that one strips every
+  // non-ASCII letter, so a dotless ı vanishes instead of becoming "i".
+  assert.strictEqual(foldStationName("İstanbul Halkalı").includes("halkal"), true);
+  assert.strictEqual(foldStationName("Zdunska Wola"), foldStationName("Zduńska Wola"));
+});
 
 // ─── 1. stitchLegs ──────────────────────────────────────────────────────────
 
@@ -347,6 +379,74 @@ check("endpointsAgree rejects a train that ends in the wrong place", () => {
   const row = { origin_trip_0: "București Nord", destination_trip_0: "Wien Hbf" };
   const stations = [at("București Nord", 44.44, 26.07), at("Budapest Keleti", 47.5, 19.08)];
   assert.equal(endpointsAgree(stations, row, 0), false);
+});
+
+// ─── 5. seasonal service strings ────────────────────────────────────────────
+// Thirteen of Romania's forty-two night trains are summer Black Sea services,
+// and two of them are rows we publish. Before this, the row kept
+// Back-on-Track's "2026: Daily" and the map drew Constanța–Oradea as a daily
+// train nine days after its last run — one of them still carried a season from
+// 2024.
+
+const seasonGtfs = {
+  addedDatesByService: new Map([
+    // A summer service: mid-June to early September, every day.
+    ["summer", ["20260613", "20260614", "20260615", "20260616", "20260617", "20260618", "20260619", "20260906"]],
+    // A year-round one: a full week inside the window so every weekday is
+    // represented, bracketed by the first and last day of the timetable period
+    // so the span is the whole year rather than a season.
+    [
+      "yearRound",
+      [
+        "20251214",
+        "20260921", "20260922", "20260923", "20260924", "20260925", "20260926", "20260927",
+        "20261212",
+      ],
+    ],
+  ]),
+  calendarById: new Map(),
+};
+
+check("a part-year service states its own dates, in the spelling the map reads", () => {
+  const out = seasonalServiceDisplay(new Set(["summer"]), seasonGtfs);
+  assert.equal(out, "2026/06/13-2026/09/06: Daily");
+  // The trips spelling, with a year on BOTH sides. renderCalendar emits a
+  // shorter "2026/06/13-09/06" that parseBoTServiceIdDateRange cannot read, so
+  // writing that form would state the season and change nothing on the map.
+  assert.match(out, /^\d{4}\/\d{2}\/\d{2}-\d{4}\/\d{2}\/\d{2}: /);
+});
+
+check("a year-round service is not called seasonal", () => {
+  assert.equal(seasonalServiceDisplay(new Set(["yearRound"]), seasonGtfs), null);
+});
+
+check("THE REGRESSION: a year-round row keeps its year prefix", () => {
+  // serviceDisplayForServices answers in bare weekdays, so taking it verbatim
+  // turned "2026: Daily" into "Daily" on 28 of 35 directions — a real loss on
+  // every year-round train, to fix the seven that were wrong.
+  const out = seasonalOrYearlyDisplay(new Set(["yearRound"]), seasonGtfs, {
+    start: "20260917",
+    end: "20261213",
+  });
+  assert.equal(out, "2026: Daily");
+});
+
+check("a season is preferred over the year prefix", () => {
+  const out = seasonalOrYearlyDisplay(new Set(["summer"]), seasonGtfs, {
+    start: "20260917",
+    end: "20261213",
+  });
+  assert.equal(out, "2026/06/13-2026/09/06: Daily");
+});
+
+check("a span crossing a year boundary is left alone", () => {
+  const crossing = {
+    addedDatesByService: new Map([["winter", ["20261220", "20270105"]]]),
+    calendarById: new Map(),
+  };
+  // "2026/12/20-2027/01/05" would parse, but a two-date sample says nothing
+  // about weekdays and the shape exists for seasons inside one year.
+  assert.equal(seasonalServiceDisplay(new Set(["winter"]), crossing), null);
 });
 
 console.log(`[verify-cfr-gtfs] ${checks} checks passed`);

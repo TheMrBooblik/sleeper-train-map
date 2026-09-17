@@ -423,6 +423,85 @@ function serviceDisplayForServices(serviceIds, gtfs, window = null) {
     .join(", ");
 }
 
+/**
+ * "When does it run" for a service that only runs part of the year.
+ *
+ * `serviceDisplayForServices` answers within a window, so a train whose season
+ * has already closed gets `null` — true, and useless: the row then keeps
+ * Back-on-Track's "2026: Daily" and the map advertises a train that stopped
+ * running in September. Thirteen of Romania's forty-two night trains are summer
+ * Black Sea services, and two of them are rows we publish.
+ *
+ * So when a service's own dates cover only part of a year, say so in the shape
+ * the rest of the payload already reads: "2026/06/13-2026/09/06: Daily", which
+ * `parseBoTServiceIdDateRange` parses to hide the line once the season closes
+ * and `parseBotServiceString` parses back into a calendar. Note that is the
+ * *trips* spelling, with a year on both sides — `renderCalendar` emits a
+ * shorter "2026/06/13-09/06" that only calendar.mjs understands, and picking
+ * the form the map can act on is the whole point.
+ *
+ * Returns null when the service is not seasonal (so the caller keeps the plain
+ * windowed answer) or when its span crosses a year boundary, which this shape
+ * cannot express and which a year-round timetable looks like anyway.
+ */
+export function seasonalServiceDisplay(serviceIds, gtfs, { maxSeasonDays = 300 } = {}) {
+  const dates = [];
+  for (const id of [...serviceIds].filter(Boolean)) {
+    for (const d of gtfs.addedDatesByService.get(id) ?? []) {
+      if (/^\d{8}$/.test(String(d))) dates.push(String(d));
+    }
+    const cal = gtfs.calendarById.get(id);
+    // A calendar.txt service states its span directly; its weekdays still come
+    // from the dates below, so a row with no calendar_dates contributes none.
+    if (cal?.start_date && cal?.end_date) {
+      dates.push(String(cal.start_date), String(cal.end_date));
+    }
+  }
+  if (dates.length < 2) return null;
+  dates.sort();
+  const first = dates[0];
+  const last = dates[dates.length - 1];
+  if (first.slice(0, 4) !== last.slice(0, 4)) return null;
+
+  const asDate = (d) =>
+    new Date(Number(d.slice(0, 4)), Number(d.slice(4, 6)) - 1, Number(d.slice(6, 8)));
+  const spanDays = Math.round((asDate(last) - asDate(first)) / 86400000) + 1;
+  if (spanDays > maxSeasonDays) return null;
+
+  const weekdays = new Set(dates.map((d) => asDate(d).getDay()));
+  const days =
+    weekdays.size === 7
+      ? "Daily"
+      : [1, 2, 3, 4, 5, 6, 0]
+          .filter((d) => weekdays.has(d))
+          .map((d) => WEEKDAY_SHORT[d])
+          .join(", ");
+  if (!days) return null;
+  const slash = (d) => `${d.slice(0, 4)}/${d.slice(4, 6)}/${d.slice(6, 8)}`;
+  return `${slash(first)}-${slash(last)}: ${days}`;
+}
+
+/**
+ * The service string a route-named entry writes onto its row: the season when
+ * there is one, else the plain weekday list under the year it belongs to.
+ *
+ * The year matters as much as the days. Back-on-Track writes "2026: Daily" and
+ * the row is read by `parseBotServiceString`, which turns a bare "Daily" into a
+ * calendar with no validity at all — so dropping the prefix trades a real loss
+ * on every year-round train for a fix on the seasonal few.
+ */
+export function seasonalOrYearlyDisplay(serviceIds, gtfs, serviceWindow = null) {
+  const seasonal = seasonalServiceDisplay(serviceIds, gtfs);
+  if (seasonal) return seasonal;
+  const plain = serviceDisplayForServices(serviceIds, gtfs, serviceWindow);
+  if (!plain) return null;
+  // serviceDisplay() can already render a prefixed string for a calendar.txt
+  // feed; never stack a second year on it.
+  if (/^\d{4}\s*[:/]/.test(plain)) return plain;
+  const year = String(serviceWindow?.start ?? todayCompact()).slice(0, 4);
+  return /^\d{4}$/.test(year) ? `${year}: ${plain}` : plain;
+}
+
 // Resolve a trip's service to a human "when does it run" string.
 function serviceDisplay(serviceId, gtfs) {
   const calRow = gtfs.calendarById.get(serviceId);
@@ -1022,7 +1101,11 @@ export function buildSleeperTrains({
         e.name,
         legs[0].trip,
         joined.stations,
-        serviceDisplayForServices(
+        // A seasonal service states its own dates; a year-round one keeps the
+        // bare year the rest of the payload writes. Without that prefix every
+        // "2026: Daily" came back as "Daily" — 28 of 35 directions quietly
+        // losing the year they already had, to fix the seven that were wrong.
+        seasonalOrYearlyDisplay(
           new Set([legs[0].trip.service_id]),
           gtfs,
           serviceWindow,

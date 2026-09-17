@@ -81,8 +81,8 @@
           "auth": "none",
           "status": "broken",
           "lastChecked": "2026-09-17",
-          "probeWorkflow": "probe-cfr.yml",
-          "notes": "The primary publication, and the upstream of the GTFS above. Recorded as broken for US specifically: unreachable from the GitHub Actions runner (14 consecutive nightly failures) and from a dev sandbox. scripts/adapters/cfr.mjs still reads it and is no longer referenced by the registry — kept so the path is one registry edit away should the host become reachable."
+          "probeWorkflow": null,
+          "notes": "The primary publication, and the upstream of the GTFS above. Recorded as broken for US specifically: unreachable from the GitHub Actions runner (14 consecutive nightly failures) and from a dev sandbox. The adapter that read it directly is deleted — a path nobody can run is not a path — so reviving this would mean restoring scripts/adapters/cfr.mjs and scripts/lib/cfr-mers-tren.mjs from git history."
         }
       ]
     },

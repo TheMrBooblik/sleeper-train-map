@@ -18,6 +18,9 @@ const {
   hasUnknownStart,
   countListedWeekdays,
   routeHasNotStartedYet,
+  routeSeasonHasClosed,
+  parseBoTServiceIdDateRange,
+  isRouteOutsideServiceIdSeason,
   upcomingPreviewRouteIds,
 } = mod;
 
@@ -210,6 +213,63 @@ assert(ids.size === 1 && ids.has("es_400_from_20261214"), `only the preview row 
 assert(
   upcomingPreviewRouteIds({ a: { route_id: "live", draw_as_active: true, service_id_0: "2026-08-01 – 2026-12-11: Daily" } }, NOW).size === 0,
   "draw_as_active on a running route is not a pending preview",
+);
+
+// ─── A season that has CLOSED, read off the row ──────────────────────────────
+// The trips table is the upstream export and nothing writes to it, so a route
+// whose operator feed knows the season ended keeps "2026: Daily" there forever.
+// Romania's Constanta-Oradea went on being drawn as a daily service nine days
+// after its last run for exactly that reason.
+
+assert(
+  routeSeasonHasClosed(
+    { service_id_0: "2026/06/13-2026/08/30: Daily", service_id_1: "2026/06/12-2026/08/29: Daily" },
+    NOW,
+  ),
+  "both directions finished means the season has closed",
+);
+assert(
+  !routeSeasonHasClosed(
+    { service_id_0: "2026/06/13-2026/08/30: Daily", service_id_1: "2026: Daily" },
+    NOW,
+  ),
+  "a route with one year-round direction is still a route",
+);
+assert(!routeSeasonHasClosed({ service_id_0: "2026: Daily" }, NOW), "no window means running");
+assert(!routeSeasonHasClosed({ service_id_0: "who knows" }, NOW), "an unparseable window means running");
+assert(!routeSeasonHasClosed(null, NOW), "no row means running");
+assert(
+  !routeSeasonHasClosed({ service_id_0: "2026/06/13-2026/12/06: Daily" }, NOW),
+  "a window still open is not closed",
+);
+// The row is consulted before the trips, because only the row is ever corrected.
+assert(
+  isRouteOutsideServiceIdSeason(
+    "r",
+    { t: { route_id: "r", service_id: "2026: Daily" } },
+    { service_id_0: "2026/06/13-2026/08/30: Daily" },
+  ),
+  "a corrected row outvotes an export nobody updates",
+);
+
+// ─── The short season spelling stays unparseable ON PURPOSE ─────────────────
+// 88 service strings in the payload are written "2026/06/22-08/30", and making
+// this parser read them hides 17 more routes — among them Amtrak's City of New
+// Orleans, a year-round daily train whose row says "2026/09/13-09/16" because
+// gtfs-sleeper renders one representative trip's calendar row. Until a route's
+// season comes from all of its services, reading that string would be acting on
+// data that does not mean what it says.
+assert(
+  parseBoTServiceIdDateRange("2026/06/22-08/30: Daily") === null,
+  "the short spelling must stay unparsed until route-level seasons exist",
+);
+assert(
+  parseBoTServiceIdDateRange("2026/06/26-2026/08/30: Daily") !== null,
+  "the spelling with both years is the one that is acted on",
+);
+assert(
+  !routeSeasonHasClosed({ service_id_0: "2026/06/22-08/30: Daily" }, NOW),
+  "a short-form window that has passed is still not acted on (Amtrak's four-day rows)",
 );
 
 console.log("verify-route-style-utils.mjs OK");

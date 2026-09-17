@@ -50,7 +50,6 @@
     "verify-european-sleeper": "node tests/verify-european-sleeper.mjs",
     "verify-station-times": "node tests/verify-station-times.mjs",
     "verify-chinese-12306": "node tests/verify-chinese-12306.mjs",
-    "verify-cfr": "node tests/verify-cfr.mjs",
     "verify-cfr-gtfs": "node tests/verify-cfr-gtfs.mjs",
     "verify-calendar": "node tests/verify-calendar.mjs",
     "verify-canonical-routes": "node tests/verify-canonical-routes.mjs",

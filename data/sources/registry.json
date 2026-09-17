@@ -393,7 +393,7 @@
     "v": 1,
     "id": "cfr",
     "label": "CFR Călători",
-    "description": "Romanian national timetable as GTFS — Mobility Database mdb-3236, Transitous' conversion of the S.C. Informatică Feroviară (InfoFer) open data, on the self-updating latest.zip alias that already feeds European Sleeper. Replaces the data.gov.ro XML path (scripts/adapters/cfr.mjs), which failed 14 nights running with lastSuccessAt: null — that host is not reachable from the nightly runner. Strictly richer than the XML: coordinates on all 1695 stops, real shapes.txt geometry, per-date calendars, and the operator's own IR-N (InterRegio de Noapte) night-train category, which is the allowlist rather than a heuristic over it. The feed stops at the national border, so cfr-gtfs splices Back-on-Track's foreign stretch back on and drops any train whose endpoints then disagree with its row.",
+    "description": "Romanian national timetable as GTFS — Mobility Database mdb-3236, Transitous' conversion of the S.C. Informatică Feroviară (InfoFer) open data, on the self-updating latest.zip alias that already feeds European Sleeper. Replaces the data.gov.ro XML path, which failed 14 nights running with lastSuccessAt: null — that host is not reachable from the nightly runner, so its adapter was deleted. Strictly richer than the XML: coordinates on all 1695 stops, real shapes.txt geometry, per-date calendars, and the operator's own IR-N (InterRegio de Noapte) night-train category, which is the allowlist rather than a heuristic over it. The feed stops at the national border, so cfr-gtfs splices Back-on-Track's foreign stretch back on and drops any train whose endpoints then disagree with its row.",
     "kind": "gtfs",
     "adapter": "cfr-gtfs",
     "enabled": true,
@@ -424,6 +424,7 @@
       "updateVia": true,
       "viaOnlyIfRicher": true,
       "setTimes": true,
+      "updateServiceDays": true,
       "stamp": true
     },
     "params": {
