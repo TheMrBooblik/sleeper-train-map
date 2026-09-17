@@ -359,12 +359,22 @@ export function reportAllowlist(entry, gtfs, limit = 40, rootDir = ROOT) {
  * trains come out of buildSleeperTrains. European Sleeper reads GTFS too, but
  * through its own date-expanded adapter, so running its file through this
  * builder would report a drift that does not exist.
+ *
+ * `cfr-gtfs` IS listed, because it is the generic builder plus a post-step: it
+ * calls buildSleeperTrains with an ordinary allowlist and only then splices the
+ * foreign stretch on. The probe therefore checks the thing that actually rots —
+ * whether each entry still names a route the feed carries, which is exactly the
+ * question the December timetable change asks, having already renumbered four
+ * of these trains once (12641 -> 1641 and friends). What it does not exercise
+ * is the splice, so a run reports those internationals ending at the border.
  */
+const ALLOWLIST_BUILDER_ADAPTERS = new Set(["gtfs-sleeper", "cfr-gtfs"]);
+
 export function allowlistVerifiableSources(registry) {
   return (registry ?? []).filter(
     (e) =>
       e?.enabled &&
-      e.adapter === "gtfs-sleeper" &&
+      ALLOWLIST_BUILDER_ADAPTERS.has(e.adapter) &&
       e.params?.configPath &&
       (e.params?.feedUrl || e.endpoint),
   );

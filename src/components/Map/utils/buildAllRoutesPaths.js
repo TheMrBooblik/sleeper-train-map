@@ -150,7 +150,7 @@ export function buildAllRoutesPaths({
     const route = routeMap.get(routeId);
     if (!route) return;
 
-    if (isRouteOutsideServiceIdSeason(routeId, trips)) {
+    if (isRouteOutsideServiceIdSeason(routeId, trips, route)) {
       return;
     }
 
