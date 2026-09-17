@@ -24,15 +24,14 @@ export default function SeoLayout({ children }) {
               <span className="italic text-primary-green">sleeper train</span> map
             </Link>
             <div className="flex shrink-0 items-center gap-3 sm:gap-6">
+              {/* Hidden below sm, like "All routes": the full label pushes the
+                  wordmark onto two lines at 375px, and a bare "Plan" is not a
+                  label. Mobile reaches the planner from the footer. */}
               <Link
                 href="/plan"
-                className="shrink-0 text-sm text-white/70 hover:text-white transition-colors"
+                className="hidden sm:inline shrink-0 text-sm text-white/70 hover:text-white transition-colors"
               >
-                {/* "Plan a trip" pushed the wordmark onto two lines at 375px.
-                    The link has to stay on mobile — it is the only nav entry to
-                    the planner from an SEO page — so it shortens instead. */}
-                <span className="sm:hidden">Plan</span>
-                <span className="hidden sm:inline">Plan a trip</span>
+                Plan a trip
               </Link>
               <Link
                 href="/connections"
