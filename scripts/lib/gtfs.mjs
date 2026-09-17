@@ -444,31 +444,51 @@ function serviceDisplayForServices(serviceIds, gtfs, window = null) {
  * windowed answer) or when its span crosses a year boundary, which this shape
  * cannot express and which a year-round timetable looks like anyway.
  */
+/** "YYYYMMDD" as a local Date at midnight. */
+function asLocalDate(d) {
+  return new Date(Number(d.slice(0, 4)), Number(d.slice(4, 6)) - 1, Number(d.slice(6, 8)));
+}
+
 export function seasonalServiceDisplay(serviceIds, gtfs, { maxSeasonDays = 300 } = {}) {
-  const dates = [];
+  const spanDates = [];
+  const weekdays = new Set();
+  let sawWeekday = false;
+
   for (const id of [...serviceIds].filter(Boolean)) {
     for (const d of gtfs.addedDatesByService.get(id) ?? []) {
-      if (/^\d{8}$/.test(String(d))) dates.push(String(d));
+      if (!/^\d{8}$/.test(String(d))) continue;
+      spanDates.push(String(d));
+      weekdays.add(asLocalDate(String(d)).getDay());
+      sawWeekday = true;
     }
     const cal = gtfs.calendarById.get(id);
-    // A calendar.txt service states its span directly; its weekdays still come
-    // from the dates below, so a row with no calendar_dates contributes none.
-    if (cal?.start_date && cal?.end_date) {
-      dates.push(String(cal.start_date), String(cal.end_date));
+    if (!cal) continue;
+    // The span comes from the row's own validity, but the DAYS come from its
+    // weekday flags. Taking them from the two endpoint dates instead reports a
+    // daily summer service as "Fri, Sat" — whichever weekdays the season
+    // happens to start and finish on.
+    if (cal.start_date && cal.end_date) {
+      spanDates.push(String(cal.start_date), String(cal.end_date));
+    }
+    for (const day of parseGtfsCalendar(cal).daysOfWeek ?? []) {
+      const i = DAY_KEYS.indexOf(day);
+      if (i !== -1) {
+        weekdays.add(DAY_KEY_TO_JS_DAY[i]);
+        sawWeekday = true;
+      }
     }
   }
-  if (dates.length < 2) return null;
-  dates.sort();
-  const first = dates[0];
-  const last = dates[dates.length - 1];
+
+  if (spanDates.length < 2 || !sawWeekday) return null;
+  spanDates.sort();
+  const first = spanDates[0];
+  const last = spanDates[spanDates.length - 1];
   if (first.slice(0, 4) !== last.slice(0, 4)) return null;
 
-  const asDate = (d) =>
-    new Date(Number(d.slice(0, 4)), Number(d.slice(4, 6)) - 1, Number(d.slice(6, 8)));
-  const spanDays = Math.round((asDate(last) - asDate(first)) / 86400000) + 1;
+  const spanDays =
+    Math.round((asLocalDate(last) - asLocalDate(first)) / 86400000) + 1;
   if (spanDays > maxSeasonDays) return null;
 
-  const weekdays = new Set(dates.map((d) => asDate(d).getDay()));
   const days =
     weekdays.size === 7
       ? "Daily"
@@ -1156,10 +1176,22 @@ export function buildSleeperTrains({
       continue;
     }
 
+    // "When does it run" is a property of the ROUTE, not of whichever trip was
+    // representative. Reading one trip's calendar.txt row is how Amtrak's City
+    // of New Orleans — a year-round daily train — came to state
+    // "2026/09/13-09/16", a four-day window: the feed splits a daily service
+    // across many short-dated calendar rows and the representative trip lands
+    // on one of them. Union every trip on the route instead, which is what the
+    // named-entry path has always done.
     trains[claimKey(routeName, routeId)] = makeTrain(
       routeName,
       best,
       bestStations,
+      seasonalOrYearlyDisplay(
+        new Set(trips.map((t) => t.service_id).filter(Boolean)),
+        gtfs,
+        serviceWindow,
+      ),
     );
   }
 

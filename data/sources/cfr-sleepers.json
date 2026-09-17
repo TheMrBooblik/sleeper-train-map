@@ -1,5 +1,5 @@
 {
-  "note": "CFR Călători (Romania) — one entry per Back-on-Track row DIRECTION, matched against the Romanian national GTFS feed (Mobility Database mdb-3236, Transitous' conversion of the S.C. Informatică Feroviară open data). Each entry is { route | routes, name }: `route` names the feed's route (its route_id IS the train number, route_short_name is 'IR-N 346'), and `name` is Back-on-Track's own label for that direction, which is the key the trainsByNumber enrichment looks a row up by. Use `routes` for a through car that the operator timetables under several numbers — LEGS MUST BE IN JOURNEY ORDER, not in the order Back-on-Track's label happens to list them: row 13's 'IRN 1954/R 8824' runs Mangalia → Suceava, so its legs are ['8824', '1954']. gtfs.mjs joins them at the last station they share and cuts each leg's geometry there. The feed stops at the national border, so an international train lists only the legs the feed carries and scripts/adapters/cfr-gtfs.mjs splices Back-on-Track's foreign stretch back on (row 28's Turkish 12503/12504 are not in the feed at all, and need no entry). Four numbers were renumbered in the 2025/2026 timetable and Back-on-Track still carries the old ones — 12641→1641, 12642→1642, 12941→1941, 12942→1942 — so `route` is the feed's number while `name` stays Back-on-Track's. UZ/CFM 351 (Kyiv–Chişinău, row 195) is a Ukrainian train the Romanian feed does not carry. Verify a change with `npm run probe-gtfs -- --verify-allowlists`. (The old data.gov.ro adapter also read `trains`/`stations` keys from this file; the GTFS path needs neither — the feed carries coordinates for all 1695 of its stops — so they are gone rather than sitting here empty.)",
+  "note": "CFR Călători (Romania) — one entry per Back-on-Track row DIRECTION, matched against the Romanian national GTFS feed (Mobility Database mdb-3236, Transitous' conversion of the S.C. Informatică Feroviară open data). Each entry is { route | routes, name }: `route` names the feed's route (its route_id IS the train number, route_short_name is 'IR-N 346'), and `name` is Back-on-Track's own label for that direction, which is the key the trainsByNumber enrichment looks a row up by. Use `routes` for a through car that the operator timetables under several numbers — LEGS MUST BE IN JOURNEY ORDER, not in the order Back-on-Track's label happens to list them: row 13's 'IRN 1954/R 8824' runs Mangalia → Suceava, so its legs are ['8824', '1954']. gtfs.mjs joins them at the last station they share and cuts each leg's geometry there. The feed stops at the national border, so an international train lists only the legs the feed carries and scripts/adapters/cfr-gtfs.mjs splices Back-on-Track's foreign stretch back on (row 28's Turkish 12503/12504 are not in the feed at all, and need no entry). Four numbers were renumbered in the 2025/2026 timetable and Back-on-Track still carries the old ones — 12641→1641, 12642→1642, 12941→1941, 12942→1942 — so `route` is the feed's number while `name` stays Back-on-Track's. UZ/CFM 351 (Kyiv–Chişinău, row 195) is a Ukrainian train the Romanian feed does not carry. Entries after the Back-on-Track block are night trains the feed carries and Back-on-Track does not: they have no row to land on, so they are keyed by the operator's own label and become synthetic cfr_ rows through the review queue. Two of the six run year-round; the other four are summer Black Sea services whose season has closed, and they carry their own dates so the map hides them until next June rather than drawing a train that is not running. Verify a change with `npm run probe-gtfs -- --verify-allowlists`. (The old data.gov.ro adapter also read `trains`/`stations` keys from this file; the GTFS path needs neither — the feed carries coordinates for all 1695 of its stops — so they are gone rather than sitting here empty.)",
   "source": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-3236/latest.zip",
   "routes": [
     { "route": "1837", "name": "IRN 1837" },
@@ -54,6 +54,18 @@
     { "routes": ["1641", "4008"], "name": "IRN 12641/R-E 4008" },
 
     { "routes": ["1641", "1643"], "name": "IRN 12641/IRN 1643" },
-    { "routes": ["1644", "1642"], "name": "IRN 1644/IRN 12642" }
+    { "routes": ["1644", "1642"], "name": "IRN 1644/IRN 12642" },
+
+    { "route": "11500", "name": "IR-N 11500" },
+    { "route": "11501", "name": "IR-N 11501" },
+    { "route": "12820", "name": "IR-N 12820" },
+
+    { "route": "11502", "name": "IR-N 11502" },
+    { "route": "11504", "name": "IR-N 11504" },
+    { "route": "1947", "name": "IR-N 1947" },
+    { "route": "1960", "name": "IR-N 1960" },
+    { "route": "1962", "name": "IR-N 1962" },
+    { "route": "1990", "name": "IR-N 1990" },
+    { "route": "1992", "name": "IR-N 1992" }
   ]
 }

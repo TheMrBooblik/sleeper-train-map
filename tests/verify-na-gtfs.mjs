@@ -539,6 +539,51 @@ check(
   );
 }
 
+// ─── "When does it run" is a property of the route, not of one trip ─────────
+// Amtrak splits a daily train across many short-dated calendar.txt rows, so the
+// representative trip lands on whichever one it lands on. Reading that single
+// row is how the City of New Orleans — year-round, daily — came to state
+// "2026/09/13-09/16", a four-day window, in the published payload. The fixture
+// reproduces exactly that shape: four services covering 2026 between them, with
+// the fullest trip deliberately sitting on the four-day one.
+{
+  const window = { start: "20260917", end: "20261213" };
+  const split = buildSleeperTrains({
+    gtfs,
+    allowlist: ["City of New Orleans"],
+    agency: "AMTK",
+    operator: "Amtrak",
+    serviceWindow: window,
+  });
+  const freq = Object.values(split)[0]?.frequency;
+  check(
+    freq === "2026: Daily",
+    `a daily train split across short calendar rows must read as daily, got ${JSON.stringify(freq)}`,
+  );
+  // And the fault this replaced, so the fixture cannot quietly stop reproducing it.
+  const repTrip = gtfs.trips.find((t) => t.trip_id === "cno_a");
+  check(
+    repTrip?.service_id === "CNO_SHORT",
+    "the fixture's representative trip must still sit on the four-day service",
+  );
+
+  // The inverse: a service that really is part-year keeps saying so, with the
+  // days coming from the calendar row's weekday flags rather than from whichever
+  // weekdays its season happens to start and end on.
+  const seasonal = buildSleeperTrains({
+    gtfs,
+    allowlist: ["Black Sea Summer"],
+    agency: "CFR",
+    operator: "CFR Calatori",
+    serviceWindow: window,
+  });
+  const seasonFreq = Object.values(seasonal)[0]?.frequency;
+  check(
+    seasonFreq === "2026/06/13-2026/09/06: Daily",
+    `a real season must survive the union and stay daily, got ${JSON.stringify(seasonFreq)}`,
+  );
+}
+
 if (problems.length) {
   problems.forEach((p) => console.error(`  ✗ ${p}`));
   console.error(`\nverify-na-gtfs: ${problems.length} problem(s)`);
