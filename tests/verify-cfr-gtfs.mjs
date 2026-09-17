@@ -194,6 +194,34 @@ check("{ routes, name } stitches the legs of a through car under one key", () =>
   ]);
 });
 
+// Two rows, one train. South of Ungheni the Kyiv–București sleeper IS the
+// Chișinău–București one — same physical train, which is why rows 174 and 22
+// state the same București times to the minute — so both rows have to be fed
+// from the same feed route under their own labels. claimKey guards duplicate
+// KEYS; a route being named twice is not a duplicate, and if that ever became
+// one, row 174 would silently lose its stop list with nothing to say why.
+check("one feed route may be claimed by two entries under different keys", () => {
+  const trains = buildSleeperTrains({
+    gtfs: miniGtfs(),
+    allowlist: [
+      { route: "346", name: "401" },
+      { route: "346", name: "099" },
+    ],
+    agency: "CFR",
+    operator: "CFR Călători",
+    serviceWindow: null,
+  });
+  assert.deepEqual(Object.keys(trains).sort(), ["099", "401"]);
+  // Both must carry the whole trip — a second claim that came back short would
+  // mean the first had consumed the route's trips rather than just read them.
+  assert.equal(trains["401"].stations.length, 3);
+  assert.equal(trains["099"].stations.length, 3);
+  assert.deepEqual(
+    trains["099"].stations.map((s) => s.name),
+    trains["401"].stations.map((s) => s.name),
+  );
+});
+
 check("a named entry the feed cannot serve is reported, not silently skipped", () => {
   const stats = {};
   buildSleeperTrains({
