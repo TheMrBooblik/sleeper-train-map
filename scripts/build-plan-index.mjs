@@ -27,6 +27,8 @@ import { hydratePlanIndex, packPlanIndex } from "../src/lib/plan/index-codec.mjs
 import { buildPairSlug } from "../src/lib/seo/slugify.mjs";
 import { cityForStation } from "../src/lib/seo/cities.mjs";
 import { getStationTimesForTrain } from "../src/lib/seo/stationTimes.mjs";
+import { resolvePricing } from "../src/lib/pricingResolve.mjs";
+import OPERATOR_PRICING from "../data/overrides/operator-pricing.json" with { type: "json" };
 import { stripDisabledRoutes } from "../src/pages/api/lib/build-initial-data.mjs";
 import DISABLED_ROUTES from "../data/overrides/disabled-routes.json" with { type: "json" };
 
@@ -81,7 +83,9 @@ export function buildPlanIndex(payload, { generatedAt = "" } = {}) {
     return byName.size ? byName : null;
   };
 
-  const { legs, cities } = buildLegs(payload, { pairSlugFor, stopTimesFor });
+  const pricingFor = (route) => resolvePricing(route, OPERATOR_PRICING);
+
+  const { legs, cities } = buildLegs(payload, { pairSlugFor, stopTimesFor, pricingFor });
 
   // A city is worth CHANGING trains in when trains actually start or end there.
   // Without this the journey search happily routes Amsterdam → Vienna via Bad
@@ -135,9 +139,14 @@ function main() {
     `[build-plan-index] ${withDays} legs have operating days, ${cadence} state only a cadence, ` +
       `${expanded.legs.length - withDays - cadence} have nothing, ${timed} have both endpoint times`,
   );
+  const priced = expanded.legs.filter((l) => l.pricing?.fromPrice != null).length;
+  const advised = expanded.legs.filter((l) => l.pricing?.type).length;
   console.log(
     `[build-plan-index] ${perStop} legs carry per-stop feed times (${stopClocks} stop clocks), ` +
       `${hubs} of ${expanded.cities.length} cities are a terminus`,
+  );
+  console.log(
+    `[build-plan-index] ${advised} legs carry pricing advice, ${priced} carry a from-price`,
   );
 }
 

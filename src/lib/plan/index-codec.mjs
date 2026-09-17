@@ -36,8 +36,24 @@ export function packPlanIndex(index) {
 
   // A stop's times are usually empty, so they ride as a trailing pair that is
   // simply absent when there is nothing to say.
-  const legs = index.legs.map((leg) => ({
+  // 452 legs share 21 pricing records. Repeating them costs 40 KB for nothing.
+  const pricings = [];
+  const pricingIds = new Map();
+  const internPricing = (pricing) => {
+    if (!pricing) return -1;
+    const key = JSON.stringify(pricing);
+    let id = pricingIds.get(key);
+    if (id === undefined) {
+      id = pricings.length;
+      pricings.push(pricing);
+      pricingIds.set(key, id);
+    }
+    return id;
+  };
+
+  const legs = index.legs.map(({ pricing, ...leg }) => ({
     ...leg,
+    p: internPricing(pricing),
     stops: leg.stops.map((stop) => {
       const base = [intern(stop.station), citySlugIds.get(stop.citySlug) ?? -1];
       if (stop.arrival || stop.departure) base.push(stop.arrival || "", stop.departure || "");
@@ -45,7 +61,7 @@ export function packPlanIndex(index) {
     }),
   }));
 
-  return { ...index, packed: true, names, cities, legs };
+  return { ...index, packed: true, names, pricings, cities, legs };
 }
 
 /** @param {object} index @returns {object} the expanded shape */
@@ -61,8 +77,10 @@ export function hydratePlanIndex(index) {
     terminusCount: terminusCount || 0,
   }));
 
-  const legs = index.legs.map((leg) => ({
+  const pricings = index.pricings ?? [];
+  const legs = index.legs.map(({ p, ...leg }) => ({
     ...leg,
+    pricing: pricings[p] ?? null,
     stops: leg.stops.map(([nameId, cityId, arrival, departure]) => {
       const city = cities[cityId] ?? { slug: "", name: "" };
       return {
@@ -75,6 +93,6 @@ export function hydratePlanIndex(index) {
     }),
   }));
 
-  const { packed, names: _names, ...rest } = index;
+  const { packed, names: _names, pricings: _pricings, ...rest } = index;
   return { ...rest, cities, legs };
 }

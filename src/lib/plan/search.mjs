@@ -41,7 +41,7 @@ function rideFor(leg, boardIndex, alightIndex, date) {
     train: leg.train,
     operatorIds: leg.operatorIds,
     pairSlug: leg.pairSlug,
-    fromPrice: leg.fromPrice,
+    pricing: leg.pricing,
     date,
     ...segment,
     availability: availabilityFor(leg, date),
@@ -103,17 +103,24 @@ function compareRides(a, b) {
 /**
  * Which destination to show first.
  *
- * Alphabetical put Amersfoort, Bad Schandau and Děčín above Berlin and Prague —
- * they are all stops of the same train, and listing them by name turns "where
- * could you go tonight" into that train's stopping pattern. So: what we can
- * stand behind first, then somewhere you would actually sleep on the way to,
- * then the city more night trains serve.
+ * Alphabetical turns "where could you go tonight" into a stopping pattern: from
+ * Amsterdam it put Amersfoort and Bad Schandau above Berlin and Prague, and
+ * from Paris it opened with Assier, Aubin, Capdenac, Cransac and Gramat — five
+ * villages on the Rodez sleeper, above Rodez and Toulouse.
+ *
+ * So, in order: what we can stand behind, then somewhere you would actually
+ * sleep on the way to, then whether the train ENDS there (a destination rather
+ * than a stop it passes through at three in the morning), then how much of the
+ * night-train network that city sees.
  */
 function compareDestinations(a, b) {
   const rank =
     STATUS_RANK[a.best.availability.status] - STATUS_RANK[b.best.availability.status];
   if (rank) return rank;
   if (a.best.isOvernight !== b.best.isOvernight) return a.best.isOvernight ? -1 : 1;
+  if (a.best.isTerminus !== b.best.isTerminus) return a.best.isTerminus ? -1 : 1;
+  const terminus = (b.city.terminusCount ?? 0) - (a.city.terminusCount ?? 0);
+  if (terminus) return terminus;
   const hub = (b.city.legCount ?? 0) - (a.city.legCount ?? 0);
   if (hub) return hub;
   return String(a.city.name).localeCompare(String(b.city.name), undefined, {

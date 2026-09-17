@@ -3,6 +3,7 @@ import Link from "next/link";
 import AvailabilityBadge from "./AvailabilityBadge";
 import { getOperatorMeta } from "../../lib/seo/operators";
 import { formatDurationMinutes } from "../../lib/seo/format";
+import { formatFromPrice, pricingAdvice } from "../../lib/operatorPricing";
 
 /**
  * "2026/09/14-12/11: Mon, Wed, Fri" → "Mon, Wed, Fri · until 11 Dec".
@@ -99,11 +100,22 @@ export default function RideCard({ ride, action = null, compact = false }) {
         ) : departure && arrival ? (
           <span className="text-sm text-white/45">same evening</span>
         ) : null}
-        {/* A price slot exists so the probe pipeline has one place to land.
-            Nothing feeds these routes yet, so nothing renders. */}
-        {ride.fromPrice ? (
+        {/* No operator carries a from-price yet, so today this renders the
+            pricing MODEL as advice a traveller can act on. The figure takes the
+            same slot the day a probe produces one — see pricingResolve.mjs. */}
+        {formatFromPrice(ride.pricing) ? (
           <span className="text-sm font-medium text-primary-green">
-            from {ride.fromPrice}
+            from {formatFromPrice(ride.pricing)}
+          </span>
+        ) : pricingAdvice(ride.pricing)?.guidance ? (
+          // .guidance, not the record: pricingAdvice returns an object, and
+          // rendering it directly throws "Objects are not valid as a React
+          // child". The guidance is the traveller-facing line ("Book early").
+          <span
+            className="text-sm text-white/45"
+            title={pricingAdvice(ride.pricing).short || undefined}
+          >
+            {pricingAdvice(ride.pricing).guidance}
           </span>
         ) : null}
       </div>

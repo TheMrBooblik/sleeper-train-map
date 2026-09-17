@@ -38,6 +38,8 @@ import { cityForStation } from "../src/lib/seo/cities.mjs";
 import { buildPlanIndex, readPublished } from "../scripts/build-plan-index.mjs";
 import { stripDisabledRoutes } from "../src/pages/api/lib/build-initial-data.mjs";
 import DISABLED_ROUTES from "../data/overrides/disabled-routes.json" with { type: "json" };
+import OPERATOR_PRICING from "../data/overrides/operator-pricing.json" with { type: "json" };
+import { resolvePricing } from "../src/lib/pricingResolve.mjs";
 
 let passed = 0;
 function check(name, fn) {
@@ -241,9 +243,13 @@ check("a segment reports only the times it actually has", () => {
   assert.equal(whole.departure, "22:00");
   assert.equal(whole.arrival, "07:00");
   assert.equal(whole.isWholeRoute, true);
+  assert.equal(whole.isTerminus, true);
 
   // Boarding mid-route: no published departure, so no invented one.
   const mid = segmentOf(leg, 1, 2);
+  assert.equal(mid.isWholeRoute, false, "boarding mid-route is not the whole route");
+  assert.equal(mid.isTerminus, true, "but the train still ends there");
+  assert.equal(segmentOf(leg, 0, 1).isTerminus, false);
   assert.equal(mid.departure, "", "an intermediate boarding has no published time");
   assert.equal(mid.arrival, "07:00");
   assert.equal(mid.durationMinutes, null, "a duration needs two clocks");
@@ -336,6 +342,33 @@ check("destinations rank by what we can stand behind, then by a night's sleep", 
   }
 });
 
+check("a destination the train terminates at outranks one it passes through", () => {
+  // From Paris the list opened with Assier, Aubin, Capdenac, Cransac and
+  // Gramat — five villages on the Rodez sleeper, above Rodez and Toulouse.
+  const { destinations } = departuresFrom(planner, { from: "paris", date: "2026-09-18" });
+  const running = destinations.filter((d) => d.best.availability.status === "runs");
+  assert.ok(running.length > 10, `only ${running.length} running destinations from Paris`);
+  const firstPassThrough = running.findIndex((d) => !d.best.isTerminus);
+  const lastTerminus = running.reduce((last, d, i) => (d.best.isTerminus ? i : last), -1);
+  assert.ok(
+    lastTerminus < firstPassThrough,
+    "every terminus destination must outrank every pass-through stop",
+  );
+  const top = running.slice(0, 9).map((d) => d.city.slug);
+  for (const city of ["rodez", "toulouse", "nice"]) {
+    assert.ok(top.includes(city), `${city} should be a headline Paris destination, got ${top}`);
+  }
+
+  // Amsterdam is the sharper case: ES 453 runs Brussels → Prague, so from
+  // Amsterdam the ride is not the whole route but Prague is still where the
+  // train ends — and it must not be filed with the villages it passes at 3am.
+  const ams = departuresFrom(planner, { from: "amsterdam", date: "2026-09-18" }).destinations;
+  const prague = ams.findIndex((d) => d.city.slug === "prague");
+  const decin = ams.findIndex((d) => d.city.slug === "decin");
+  assert.ok(prague !== -1 && decin !== -1, "both Prague and Děčín should be reachable");
+  assert.ok(prague < decin, "Prague is the destination; Děčín is a stop on the way");
+});
+
 check("a journey only changes trains where trains start or end", () => {
   // Without this the search answers Amsterdam → Vienna with a change at Bad
   // Schandau and another at Děčín — two village stops on the through train it
@@ -414,6 +447,51 @@ check("the shipped index stays inside its budget", () => {
   const file = path.join(ROOT, "public/data/published/plan-index.json");
   const bytes = fs.statSync(file).size;
   assert.ok(bytes < 900 * 1024, `plan-index.json is ${(bytes / 1024).toFixed(0)} KB`);
+});
+
+check("the planner and the UI resolve a price the same way", () => {
+  // getOperatorPricing() is the definition but cannot load in raw node, so the
+  // plan-index build calls resolvePricing() with the table passed in. Two
+  // copies of "which price wins" is exactly the drift this repo keeps paying
+  // for, so the two are asserted to agree.
+  const table = OPERATOR_PRICING;
+  for (const agency of Object.keys(table)) {
+    assert.deepEqual(resolvePricing({ agency_id: agency }, table), table[agency]);
+  }
+  assert.equal(resolvePricing({ agency_id: "NOT_AN_OPERATOR" }, table), null);
+  // A route's own pricing beats its operator's — the route-first seam.
+  const own = { type: "fixed", fromPrice: 39 };
+  assert.equal(resolvePricing({ agency_id: "ÖBB", pricing: own }, table), own);
+
+  const advised = planner.legs.filter((l) => l.pricing?.type).length;
+  assert.ok(advised > 400, `only ${advised} legs carry pricing advice`);
+  // Nothing may invent a figure: every from-price must come from the table.
+  for (const leg of planner.legs) {
+    if (leg.pricing?.fromPrice == null) continue;
+    assert.ok(
+      Object.values(table).some((p) => p.fromPrice === leg.pricing.fromPrice),
+      `leg ${leg.id} has a from-price no operator declares`,
+    );
+  }
+});
+
+check("a ride carries every field the card renders", () => {
+  // rideFor() copies named fields off the leg, so renaming one on the leg and
+  // not here drops it silently: the pricing advice simply stopped appearing on
+  // every card, with nothing failing anywhere.
+  const { destinations } = departuresFrom(planner, { from: "amsterdam", date: "2026-09-18" });
+  const ride = destinations[0].best;
+  for (const field of [
+    "key", "legId", "routeId", "train", "operatorIds", "pairSlug", "pricing",
+    "date", "from", "to", "departure", "arrival", "durationMinutes",
+    "isOvernight", "isTerminus", "isWholeRoute", "availability",
+  ]) {
+    assert.ok(field in ride, `ride is missing "${field}"`);
+  }
+  const priced = planner.legs.find((l) => l.pricing?.type);
+  assert.ok(priced, "some leg must carry pricing");
+  const ridesWithPricing = destinations.filter((d) => d.best.pricing?.type).length;
+  assert.ok(ridesWithPricing > 0, "pricing must survive the leg → ride copy");
 });
 
 check("every leg's stops resolve to a real city in the index", () => {

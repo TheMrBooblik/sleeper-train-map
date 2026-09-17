@@ -75,6 +75,9 @@ function splitAgencies(value) {
  * @param {(routeId: string, direction: number) => string} [options.pairSlugFor]
  *   Connection-page slug for a leg, so a result can link to the page that
  *   already carries the timetable, booking CTA and FAQ. Omitted → no link.
+ * @param {(route: object) => object|null} [options.pricingFor]
+ *   The route's pricing record. Injected rather than imported because
+ *   operatorPricing.js cannot load in raw node (see pricingResolve.mjs).
  * @param {(leg: {train: string, origin: string, destination: string}) => Map<string, {arrival: string, departure: string}>|null} [options.stopTimesFor]
  *   Per-stop times from an operator feed, keyed by station name. Optional
  *   because only the build has the raw feeds on disk; without it the graph is
@@ -193,10 +196,12 @@ export function buildLegs(payload, options = {}) {
         serviceNote: calendar.note,
         irregularity: String(route[`irregularities_${direction}`] || "").trim(),
         pairSlug: options.pairSlugFor?.(routeId, direction) || "",
-        // No price source feeds the planner yet. The field is here so the tile,
-        // the FAQ and the structured data have one shape to read when the price
-        // probes reach these routes — see getOperatorPricing()'s route-first seam.
-        fromPrice: null,
+        // The whole pricing record, not just a figure. No operator carries a
+        // `fromPrice` today, but 21 declare a pricing MODEL, which is advice a
+        // traveller can act on now ("book early" for a yield-managed sleeper),
+        // and the figure renders through the same field the day a price probe
+        // produces one.
+        pricing: options.pricingFor?.(route) ?? null,
       });
 
       for (const slug of seenCities) cityIndex.get(slug).legCount++;
@@ -257,6 +262,12 @@ export function segmentOf(leg, boardIndex, alightIndex) {
     // it beside Amsterdam → Prague as though they were the same kind of trip is
     // what makes an "overnight destinations" list read like a stopping pattern.
     isOvernight: isOvernightRide(departure, arrival, durationMinutes),
+    // Where the train ENDS, regardless of where you got on. Distinct from
+    // isWholeRoute, which also requires boarding at the origin: ES 453 runs
+    // Brussels → Prague, so from Amsterdam Prague is the train's destination
+    // while the ride is not the whole route. Ranking destinations on
+    // isWholeRoute therefore filed Prague with the villages it passes at 3am.
+    isTerminus: toEnd,
     isWholeRoute: fromEnd && toEnd,
     intermediate: stops.slice(boardIndex + 1, alightIndex),
   };

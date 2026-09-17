@@ -321,6 +321,29 @@ export default function PlanPage({ seoCities, initialPlan }) {
               />
             </div>
 
+            {/* A two-city plan with no direct train and no chain either. Saying
+                nothing reads as a page that failed to load; the search really
+                did run and really did come back empty. */}
+            {cities.length === 2 && !plan.complete && journeys.length === 0 && !isLoading && (
+              <div className="mt-8 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-5">
+                <p className="text-white/70">
+                  We couldn&apos;t chain night trains from {cityLabel(planner, cities[0])} to{" "}
+                  {cityLabel(planner, cities[1])} within three nights either.
+                </p>
+                <p className="mt-2 text-sm text-white/45">
+                  Sleeper networks don&apos;t cover every corridor — a day train for part of
+                  the way is often the answer. Try a nearer destination, or{" "}
+                  <Link
+                    href={buildPlanHref({ cities: [cities[0]], date: parsed.date })}
+                    className="underline underline-offset-4 hover:text-white"
+                  >
+                    see where {cityLabel(planner, cities[0])}&apos;s night trains do reach
+                  </Link>
+                  .
+                </p>
+              </div>
+            )}
+
             {journeys.length > 0 && (
               <div className="mt-10">
                 <h3 className="text-lg font-semibold text-white">
