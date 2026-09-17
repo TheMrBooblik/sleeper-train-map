@@ -59,6 +59,17 @@ function readScraped(rootDir, name) {
   }
 }
 
+// A plain override file, read the way the oncf/europeansleeper/chinese adapters
+// read the same one. Missing or unreadable is not fatal: it only costs the
+// positions it would have supplied.
+function readJsonSafe(filePath) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Comparison key for a station name across the spellings this source has to
  * reconcile: the feed's, Back-on-Track's and Hungary's. "Bucuresti Nord" =
@@ -272,7 +283,33 @@ export async function run(entry, ctx) {
     const key = foldStationName(stop.stop_name);
     if (!coordIndex.has(key)) coordIndex.set(key, { lat: stop.stop_lat, lon: stop.stop_lon });
   }
-  const stopCoords = (name) => coordIndex.get(foldStationName(name)) ?? null;
+  // foldStationName folds diacritics and punctuation, which is what makes
+  // "Cluj Napoca" meet "Cluj-Napoca" — but it does not transliterate, and the
+  // splice's head is foreign by definition. Back-on-Track names Ukraine in
+  // Latin in its ROWS ("Kyiv Pasazhyrskyi") and in Cyrillic in its STOP TABLE
+  // ("Київ Пасажирський"), so every head station came back coordless and
+  // `chainOf` dropped it: row 174 drew the Romanian half in full track geometry
+  // and then stopped dead at the Moldovan border. That reads as a bug in a way
+  // the short Romania-only stub it replaced never did.
+  //
+  // station-coordinates.json is the name → position table, and it already
+  // carries "Kyiv Pasazhyrskyi" and "Zhmerynka" at the right coordinates: 24 of
+  // its entries match no stop in the payload, Latin spellings of Ukrainian and
+  // Bulgarian stations somebody fixed by hand that have never once applied,
+  // because that table only overrides stops that already exist. Reading it here
+  // is what makes them live. Deliberately NOT the alias table: an alias says
+  // two NAMES are one station, so resolving through it also renames — the
+  // synthetic injection would then publish three duplicate Cyrillic stop
+  // records beside the ones already there. All that is wanted is a position.
+  const overrideCoords = new Map(
+    Object.entries(
+      readJsonSafe(path.join(ctx.rootDir, "data", "overrides", "station-coordinates.json")) ?? {},
+    )
+      .filter(([, v]) => Number.isFinite(v?.lat) && Number.isFinite(v?.lon))
+      .map(([k, v]) => [foldStationName(k), { lat: v.lat, lon: v.lon }]),
+  );
+  const stopCoords = (name) =>
+    coordIndex.get(foldStationName(name)) ?? overrideCoords.get(foldStationName(name)) ?? null;
   const isKnownStation = (name) => Boolean(stopCoords(name));
 
   // label → the row/direction it belongs to, so a train knows its own journey.
