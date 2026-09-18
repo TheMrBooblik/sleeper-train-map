@@ -481,14 +481,21 @@ abbr {
    left to scroll to. It rides the chevron rather than the button around it,
    deliberately — a button that never stops moving never passes Playwright's
    actionability check, so a test that clicks this arrow would hang forever
-   on an animation a thumb does not even notice. */
+   on an animation a thumb does not even notice.
+
+   The travel is symmetric about the chevron's resting position — the ends sit
+   at -2px and the middle at +2px, so the glyph swings evenly through the
+   centre of its circle. The obvious way to write this (0 → +3 → 0) only ever
+   moves downward and reads as an off-centre twitch rather than a nod, because
+   the eye takes the circle's centre as the rest point and that version never
+   returns above it. */
 @keyframes tour-scroll-hint-bounce {
   0%,
   100% {
-    transform: translateY(0);
+    transform: translateY(-2px);
   }
   50% {
-    transform: translateY(3px);
+    transform: translateY(2px);
   }
 }
 
