@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_cfr-ir-n-12820",
+  "createdAt": "2026-09-18T07:56:43.707Z",
+  "source": "scrape",
+  "sourceDetail": "cfr",
+  "kind": "route.add",
+  "title": "New train: IR-N 12820 (Arad – București Nord)",
+  "summary": "Route \"cfr_IR-N_12820\" appeared in tonight's scrape and is withheld from the map until approved. Via: Radna - Săvârșin - Câmpuri Surduc - Ilia - Deva - Simeria - Călan - Subcetate - Petroșani - Valea Sadului - Târgu Jiu - Cărbunești - Filiași - Craiova - Caracal - Fărcașele - Drăgănești Olt - Roșiori Nord - Videle",
+  "target": {
+    "routeKey": "cfr_IR-N_12820",
+    "agencyId": "CFR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "IR-N 12820",
+    "returnTrain": null,
+    "origin": "Arad",
+    "destination": "București Nord",
+    "operator": "CFR",
+    "operatingDays": "2026: Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "cfr_IR-N_12820"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
