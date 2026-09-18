@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_25",
+  "createdAt": "2026-09-18T07:56:43.705Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: IRN 12941 (Satu Mare – Mangalia)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2024/06/14-2024/09/07: Daily\" → \"2026/06/12-2026/09/05: Daily\"",
+  "target": {
+    "routeKey": "25",
+    "agencyId": "CFR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2024/06/14-2024/09/07: Daily"
+  },
+  "after": {
+    "operating days (outbound)": "2026/06/12-2026/09/05: Daily"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
