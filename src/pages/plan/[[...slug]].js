@@ -351,7 +351,13 @@ export default function PlanPage({ seoCities, initialPlan }) {
             {explore.destinations.length === 0 ? (
               <EmptyExplore city={cityLabel(planner, cities[0])} date={date} />
             ) : (
-              <div className="mt-5 grid gap-3">
+              // grid-cols-1, not a bare `grid`: an implicit column is sized
+              // `auto`, which floors the track at the item's min-content, and a
+              // grid item defaults to min-width:auto and so cannot shrink below
+              // it. The ride cards measured 440px wide inside a 288px container
+              // — the date field's fault one level up. Tailwind's grid-cols-1 is
+              // `repeat(1, minmax(0, 1fr))`, and that minmax(0, …) is the fix.
+              <div className="mt-5 grid grid-cols-1 gap-3">
                 {explore.destinations.map(({ city, best, rides }) => (
                   <RideCard
                     key={city.slug}
@@ -436,7 +442,7 @@ export default function PlanPage({ seoCities, initialPlan }) {
                   No single night train covers this. These chains do — each hop is one
                   night on a train.
                 </p>
-                <ul className="mt-4 grid gap-3">
+                <ul className="mt-4 grid grid-cols-1 gap-3">
                   {journeys.map((journey) => (
                     <li key={journey.cities.join(">")}>
                       <Link

@@ -74,6 +74,49 @@ test.describe('Planner Smoke Tests', () => {
     expect(overflow.spill, 'date field spills past its card').toBeLessThanOrEqual(0);
   });
 
+  test('the results fit the narrowest phone too', async ({ page }) => {
+    // The check above passed while the ride cards visibly spilled off a real
+    // phone, because it asked the wrong two questions. It measured
+    // documentElement.scrollWidth — but the app scrolls an inner
+    // `h-dvh overflow-y-auto` div and body is overflow-x:hidden, so the
+    // document reports 0 however far the content runs — and it measured before
+    // any result had rendered, so the only thing on screen was the form.
+    //
+    // What actually broke: `<div className="grid gap-3">` with no column
+    // template sizes its implicit column `auto`, which floors the track at the
+    // item's min-content, and a grid item defaults to min-width:auto. The ride
+    // cards came out 440px wide inside a 288px container — the date field's
+    // fault one level up. So the question to ask is the blunt one: after the
+    // results are on screen, does ANY element reach past the viewport.
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto('/plan/vienna/2026-09-18');
+    await page.waitForSelector('article', { timeout: 20000 });
+
+    const worst = await page.evaluate(() => {
+      const limit = document.documentElement.clientWidth;
+      let over = 0;
+      let who = '';
+      for (const el of document.querySelectorAll('*')) {
+        const rect = el.getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0) continue;
+        const past = Math.round(rect.right - limit);
+        if (past > over) {
+          over = past;
+          who = `${el.tagName.toLowerCase()}.${String(el.className || '')
+            .split(' ')
+            .slice(0, 3)
+            .join('.')}`;
+        }
+      }
+      return { over, who, cards: document.querySelectorAll('article').length };
+    });
+
+    // A blank page overflows by nothing, so the count is what stops this
+    // passing vacuously.
+    expect(worst.cards, 'no ride cards rendered').toBeGreaterThan(10);
+    expect(worst.over, `${worst.who} reaches past the viewport`).toBe(0);
+  });
+
   test('the start chips are a real top, per region', async ({ page }) => {
     // Two faults in one: the list was ranked by a score that was not the number
     // on the chips (so it read as alphabetical), and all three products —
