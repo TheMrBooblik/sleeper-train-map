@@ -92,6 +92,20 @@ export function groupByRegion(cities) {
 }
 
 /**
+ * How many "start from" chips a region shows.
+ *
+ * 24 cut Europe one slot above Amsterdam, and took Brussels, London, Stockholm
+ * and Sofia with it — the cities a reader scans for first, absent from a list
+ * headed "the most night trains" while Bohumín and Gdynia were on it. 32 ends
+ * Europe at six trains, which is still a hub, and stops short of the long tail
+ * of 4–5-train towns. It lives here, as one constant, because the server
+ * pre-renders these chips and the client re-renders them from the loaded index:
+ * two literals is two lists, and the difference shows up as the list changing
+ * length a second after the page paints.
+ */
+export const START_CITY_LIMIT = 32;
+
+/**
  * The "start from" chips, per region, already ranked and cut.
  *
  * Shared by the build-time reader and the page so the chips the server renders
@@ -102,7 +116,7 @@ export function groupByRegion(cities) {
  * @param {{limit?: number, compare?: (a: object, b: object) => number}} [options]
  * @returns {Map<string, object[]>} region id → cities
  */
-export function topStartCitiesByRegion(cities, { limit = 24, compare } = {}) {
+export function topStartCitiesByRegion(cities, { limit = START_CITY_LIMIT, compare } = {}) {
   const startable = (cities ?? []).filter((c) => (c?.terminusCount ?? 0) > 0);
   const grouped = groupByRegion(startable);
   const out = new Map();

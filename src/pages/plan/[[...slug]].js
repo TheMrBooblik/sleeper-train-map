@@ -26,7 +26,12 @@ import {
 } from "../../lib/plan/url.mjs";
 import { formatPlanDate } from "../../lib/plan/format.mjs";
 import { byStartCityScore, prominenceLookup } from "../../lib/plan/prominence.mjs";
-import { DEFAULT_REGION, REGIONS, topStartCitiesByRegion } from "../../lib/plan/regions.mjs";
+import {
+  DEFAULT_REGION,
+  REGIONS,
+  START_CITY_LIMIT,
+  topStartCitiesByRegion,
+} from "../../lib/plan/regions.mjs";
 import CITY_PROMINENCE from "../../../data/overrides/city-prominence.json";
 import { absoluteUrl, OG_IMAGE } from "../../lib/seo/site";
 import { getFlagEmoji } from "../../lib/countries";
@@ -76,7 +81,7 @@ export default function PlanPage({ seoCities, initialPlan }) {
   const startCitiesByRegion = useMemo(
     () =>
       topStartCitiesByRegion(planner?.cities ?? seoCities, {
-        limit: 24,
+        limit: START_CITY_LIMIT,
         compare: START_CITY_ORDER,
       }),
     [planner, seoCities],
@@ -586,7 +591,7 @@ export async function getStaticProps({ params }) {
 
   return {
     props: {
-      seoCities: getTopStartCities(24),
+      seoCities: getTopStartCities(),
       // Parsed with the same function the client uses, so the two can never
       // read one URL as two different plans.
       initialPlan: { cities, date, stays: [] },

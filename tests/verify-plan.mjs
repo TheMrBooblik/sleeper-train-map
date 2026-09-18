@@ -55,6 +55,7 @@ import {
   CITY_COUNTRY_OVERRIDES,
   DEFAULT_REGION,
   REGIONS,
+  START_CITY_LIMIT,
   regionForCity,
   regionForCountry,
   topStartCitiesByRegion,
@@ -629,7 +630,7 @@ check("the start chips are ranked by the number they print", () => {
   // 36, 29, 24, 22, 20, 16, 10, 9, 12, 12, 5 and anyone looking at it concluded
   // it was alphabetical. Sort key and printed value must be one number.
   const compare = byStartCityScore(prominenceLookup(CITY_PROMINENCE, "always"));
-  const byRegion = topStartCitiesByRegion(planner.cities, { limit: 24, compare });
+  const byRegion = topStartCitiesByRegion(planner.cities, { limit: START_CITY_LIMIT, compare });
   for (const { id, label } of REGIONS) {
     const list = byRegion.get(id);
     assert.ok(list.length > 0, `${label} rendered nothing`);
@@ -644,6 +645,13 @@ check("the start chips are ranked by the number they print", () => {
       assert.ok(city.terminusCount > 0, `${city.name} is not a start city`);
       assert.equal(regionForCity(city), id, `${city.name} is in the wrong tab`);
     }
+  }
+  // The cut is not just "some number of chips": at 24 it landed one slot above
+  // Amsterdam and took Brussels, London, Stockholm and Sofia with it, so a list
+  // headed "the most night trains" showed Bohumín and Gdynia and not them.
+  const europe = byRegion.get("europe").map((c) => c.slug);
+  for (const hub of ["amsterdam", "brussels", "london", "stockholm", "sofia", "berlin", "paris"]) {
+    assert.ok(europe.includes(hub), `${hub} should be offered as a starting point`);
   }
   // And the tabs must actually separate the three products: ranked together
   // Beijing (40) heads the list, above Vienna (25).
@@ -662,7 +670,10 @@ check("a de-emphasised city is pushed behind the tab, never out of it", () => {
     .filter((c) => c.terminusCount > 0 && regionForCity(c) === "europe")
     .sort(compare);
   const firstDamped = europe.findIndex((c) => isDeEmphasised(c, weightFor));
-  assert.ok(firstDamped > 24, `a de-emphasised city reaches the shown window at ${firstDamped}`);
+  assert.ok(
+    firstDamped > START_CITY_LIMIT,
+    `a de-emphasised city reaches the shown window at ${firstDamped}`,
+  );
   for (const slug of ["lviv", "kyiv"]) {
     const at = europe.findIndex((c) => c.slug === slug);
     assert.ok(at >= firstDamped, `${slug} must sit in the de-emphasised block`);

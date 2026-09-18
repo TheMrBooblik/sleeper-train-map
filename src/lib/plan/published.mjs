@@ -12,7 +12,7 @@ import path from "node:path";
 
 import { hydratePlanIndex } from "./index-codec.mjs";
 import { byStartCityScore, prominenceLookup } from "./prominence.mjs";
-import { topStartCitiesByRegion } from "./regions.mjs";
+import { START_CITY_LIMIT, topStartCitiesByRegion } from "./regions.mjs";
 import CITY_PROMINENCE from "../../../data/overrides/city-prominence.json" with { type: "json" };
 
 const INDEX_PATH = "public/data/published/plan-index.json";
@@ -50,7 +50,7 @@ export function getPlanIndex() {
  * one number and printing another is what made this list read as alphabetical.
  * @param {number} limit - per region
  */
-export function getTopStartCities(limit = 24) {
+export function getTopStartCities(limit = START_CITY_LIMIT) {
   const index = getPlanIndex();
   if (!index) return [];
   const compare = byStartCityScore(prominenceLookup(CITY_PROMINENCE, "always"));
