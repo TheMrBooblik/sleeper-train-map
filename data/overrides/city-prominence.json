@@ -1,0 +1,54 @@
+{
+  "_readme": [
+    "Per-country weight on how prominently the trip planner SUGGESTS a city.",
+    "Default is 1. This only reorders discovery surfaces — the city picker's",
+    "default list and ties between equally-good destinations. It NEVER filters:",
+    "every route stays searchable, stays on the map, keeps its /connections page,",
+    "and is returned in full when a plan asks for it. Typing 'Lviv' still puts",
+    "Lviv first. tests/verify-plan.mjs pins that distinction.",
+    "",
+    "scope says where a weight applies:",
+    "  'always' — everywhere, including the region-filtered 'start from' chips.",
+    "  'global' — only where cities from every continent compete in one list.",
+    "Since the chips gained Europe/Asia/North America tabs, a whole continent no",
+    "longer needs damping there: the tab already says which product you want, and",
+    "damping inside a tab would make the visible train counts stop descending."
+  ],
+  "weights": {
+    "UA": {
+      "weight": 0.15,
+      "reason": "Ukraine is at war. Ukrainian Railways runs these trains and the data is accurate, but heading a leisure trip planner with 'start from Kyiv' is the wrong default. Still fully searchable and routable.",
+      "scope": "always"
+    },
+    "CN": {
+      "weight": 0.1,
+      "reason": "China Railway sleepers are in the dataset but are not the European night-train market this site serves; Chengdu as a suggested starting point is noise for almost every visitor.",
+      "scope": "global"
+    },
+    "US": {
+      "weight": 0.1,
+      "reason": "Amtrak — same reason as CN: real data, wrong market for a European hub list.",
+      "scope": "global"
+    },
+    "CA": {
+      "weight": 0.1,
+      "reason": "VIA Rail — same reason as US.",
+      "scope": "global"
+    },
+    "GE": {
+      "weight": 0.4,
+      "reason": "Caucasus: real rail, peripheral to the European corridors this site sells.",
+      "scope": "global"
+    },
+    "AM": {
+      "weight": 0.4,
+      "reason": "Caucasus — same as GE.",
+      "scope": "global"
+    },
+    "AZ": {
+      "weight": 0.4,
+      "reason": "Caucasus — same as GE.",
+      "scope": "global"
+    }
+  }
+}

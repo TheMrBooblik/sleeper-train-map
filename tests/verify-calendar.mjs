@@ -19,6 +19,19 @@ function roundTrip(input) {
   assert.strictEqual(renderCalendar(parseBotServiceString(input)), input, input);
 }
 
+/**
+ * Some inputs spell a calendar more verbosely than the renderer does
+ * ("Saturday" for "Sat", a repeated year in a same-year range). Those are
+ * canonicalised rather than preserved, so the contract is that rendering is a
+ * FIXED POINT: render once, and rendering again changes nothing. Every one of
+ * the 70 distinct service strings in the published payload satisfies this.
+ */
+function stableRender(input, expected) {
+  const once = renderCalendar(parseBotServiceString(input));
+  assert.strictEqual(once, expected, input);
+  assert.strictEqual(renderCalendar(parseBotServiceString(once)), once, once);
+}
+
 check("BoT day-list round-trips", () => {
   roundTrip("2026: Mon, Wed, Fri");
   roundTrip("2026: Tue, Thu, Sun");
@@ -36,6 +49,60 @@ check("bare frequency round-trips", () => {
 check("unparseable input survives as note", () => {
   roundTrip("runs when the moon is full");
   roundTrip("2025/26 winter: alternate days");
+});
+check("cross-year range round-trips — renderCalendar's own output", () => {
+  // This is the shape renderCalendar emits when validFrom/validUntil span two
+  // years. Until the parser learned to read it back, six legs of the published
+  // payload arrived as unparseable notes because the module could not re-read
+  // what it had itself written.
+  roundTrip("2026-12-14 – 2027-09-06: Mon, Wed, Fri");
+  const cal = parseBotServiceString("2024-01-01 – 2030-12-31: Wed, Sun");
+  assert.strictEqual(cal.validFrom, "2024-01-01");
+  assert.strictEqual(cal.validUntil, "2030-12-31");
+  assert.deepStrictEqual(cal.daysOfWeek, ["wed", "sun"]);
+  assert.strictEqual(cal.note, null);
+});
+check('"Daily, except X" resolves to the six days it means', () => {
+  const cal = parseBotServiceString("2026: Daily, except Sat");
+  assert.deepStrictEqual(cal.daysOfWeek, ["mon", "tue", "wed", "thu", "fri", "sun"]);
+  assert.strictEqual(cal.note, null);
+  roundTrip("2026: Daily, except Sat");
+  // Long day names and a full-year range are canonicalised, not lost.
+  stableRender(
+    "2026/03/27-11/01: Daily, except Saturday",
+    "2026/03/27-11/01: Daily, except Sat",
+  );
+});
+check("range with the year repeated on both sides parses", () => {
+  const cal = parseBotServiceString("2026/06/13-2026/09/06: Daily");
+  assert.strictEqual(cal.validFrom, "2026-06-13");
+  assert.strictEqual(cal.validUntil, "2026-09-06");
+  stableRender("2026/06/13-2026/09/06: Daily", "2026/06/13-09/06: Daily");
+});
+check("cadence is kept as cadence, never as a weekday list", () => {
+  // "Every 2nd day" says how often, not which days. Inventing a day list here
+  // is what makes a planner claim a train runs on a date nobody knows about:
+  // 50 legs of the published payload say exactly this.
+  const cal = parseBotServiceString("2026: Every 2nd day");
+  assert.deepStrictEqual(cal.daysOfWeek, []);
+  assert.strictEqual(cal.cadence, "Every 2nd day");
+  assert.strictEqual(cal.note, null);
+  roundTrip("2026: Every 2nd day");
+  roundTrip("2026: 2-3 times per week");
+  assert.strictEqual(parseBotServiceString("2026: Every other day").cadence, "Every other day");
+});
+check("German day spelling and the 'Son' slip are read as Sunday", () => {
+  stableRender("2026: Mon, Wed, Fri, Sat, Son", "2026: Mon, Wed, Fri, Sat, Sun");
+  assert.deepStrictEqual(
+    parseBotServiceString("2026: Montag, Sonntag").daysOfWeek,
+    ["mon", "sun"],
+  );
+});
+check("a day list that is only partly readable stays a note", () => {
+  // Half-understood is worse than not understood: it would silently drop days.
+  const cal = parseBotServiceString("2026: Mon, whenever, Fri");
+  assert.strictEqual(cal.note, "2026: Mon, whenever, Fri");
+  assert.deepStrictEqual(cal.daysOfWeek, []);
 });
 check("parse extracts structure", () => {
   const cal = parseBotServiceString("2026/06/22-08/30: Mon, Sat");
