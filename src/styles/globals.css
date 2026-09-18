@@ -484,18 +484,24 @@ abbr {
    on an animation a thumb does not even notice.
 
    The travel is symmetric about the chevron's resting position — the ends sit
-   at -2px and the middle at +2px, so the glyph swings evenly through the
+   at -1.5px and the middle at +1.5px, so the glyph swings evenly through the
    centre of its circle. The obvious way to write this (0 → +3 → 0) only ever
    moves downward and reads as an off-centre twitch rather than a nod, because
    the eye takes the circle's centre as the rest point and that version never
-   returns above it. */
+   returns above it.
+
+   The half-amplitude is 1.5px and not 3px because centring the swing doubles
+   what the eye sees: the number that meant "3px of travel" while the motion
+   was one-sided means 6px once it runs both ways. 1.5px holds the total travel
+   at the 3px this started with, which is as much as a 20px glyph carries
+   before the nod turns into a jitter. */
 @keyframes tour-scroll-hint-bounce {
   0%,
   100% {
-    transform: translateY(-2px);
+    transform: translateY(-1.5px);
   }
   50% {
-    transform: translateY(2px);
+    transform: translateY(1.5px);
   }
 }
 
