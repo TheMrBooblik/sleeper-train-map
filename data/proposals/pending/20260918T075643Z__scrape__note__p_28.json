@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_28",
+  "createdAt": "2026-09-18T07:56:43.705Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: 12503/460 (İstanbul Halkalı – București Nord)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026/06/11-10/09: Daily\" → \"2026/06/12-2026/10/12: Daily\"; operating days (return): \"2026/06/13-10/12: Daily\" → \"2026/06/12-2026/10/12: Daily\"",
+  "target": {
+    "routeKey": "28",
+    "agencyId": "TCDD/BDŽ/CFR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2026/06/11-10/09: Daily",
+    "operating days (return)": "2026/06/13-10/12: Daily"
+  },
+  "after": {
+    "operating days (outbound)": "2026/06/12-2026/10/12: Daily",
+    "operating days (return)": "2026/06/12-2026/10/12: Daily"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
