@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_13",
+  "createdAt": "2026-09-18T07:56:43.704Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: IRN 1952 (Suceava Nord – Mangalia)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2024/06/14-2024/09/07: Daily\" → \"2026/04/30-2026/09/05: Daily\"; operating days (return): \"2026/06/13-2026/09/06: Daily\" → \"2026/05/01-2026/09/06: Daily\"",
+  "target": {
+    "routeKey": "13",
+    "agencyId": "CFR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2024/06/14-2024/09/07: Daily",
+    "operating days (return)": "2026/06/13-2026/09/06: Daily"
+  },
+  "after": {
+    "operating days (outbound)": "2026/04/30-2026/09/05: Daily",
+    "operating days (return)": "2026/05/01-2026/09/06: Daily"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
