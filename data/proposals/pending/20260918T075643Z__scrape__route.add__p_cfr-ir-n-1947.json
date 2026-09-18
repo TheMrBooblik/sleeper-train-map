@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_cfr-ir-n-1947",
+  "createdAt": "2026-09-18T07:56:43.707Z",
+  "source": "scrape",
+  "sourceDetail": "cfr",
+  "kind": "route.add",
+  "title": "New train: IR-N 1947 (Brașov – Cluj Napoca)",
+  "summary": "Route \"cfr_IR-N_1947\" appeared in tonight's scrape and is withheld from the map until approved. Via: Augustin - Racoș - Rupea - Sighișoara - Dumbrăveni - Mediaș - Copșa Mică - Blaj - Teiuș - Aiud - Războieni - Câmpia Turzii",
+  "target": {
+    "routeKey": "cfr_IR-N_1947",
+    "agencyId": "CFR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "IR-N 1947",
+    "returnTrain": null,
+    "origin": "Brașov",
+    "destination": "Cluj Napoca",
+    "operator": "CFR",
+    "operatingDays": "2026/06/13-2026/09/06: Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "cfr_IR-N_1947"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
