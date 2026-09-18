@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_26",
+  "createdAt": "2026-09-18T07:56:43.705Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: IRN 1920 (Constanța – Oradea)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026/06/11-09/06: Daily\" → \"2026/06/13-2026/09/06: Daily\"; operating days (return): \"2026/06/11-09/06: Daily\" → \"2026/06/12-2026/09/05: Daily\"",
+  "target": {
+    "routeKey": "26",
+    "agencyId": "CFR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2026/06/11-09/06: Daily",
+    "operating days (return)": "2026/06/11-09/06: Daily"
+  },
+  "after": {
+    "operating days (outbound)": "2026/06/13-2026/09/06: Daily",
+    "operating days (return)": "2026/06/12-2026/09/05: Daily"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
