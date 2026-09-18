@@ -26,6 +26,7 @@ import { buildLegs, segmentOf } from "../src/lib/plan/legs.mjs";
 import { distanceKm } from "../src/components/Map/utils/returnGeometryBranches.js";
 import { hydratePlanIndex, packPlanIndex } from "../src/lib/plan/index-codec.mjs";
 import { prominenceLookup, scoreCities } from "../src/lib/plan/prominence.mjs";
+import { CITY_COUNTRY_OVERRIDES, REGIONS, regionForCity } from "../src/lib/plan/regions.mjs";
 import CITY_PROMINENCE from "../data/overrides/city-prominence.json" with { type: "json" };
 import { buildPairSlug } from "../src/lib/seo/slugify.mjs";
 import { cityForStation } from "../src/lib/seo/cities.mjs";
@@ -204,12 +205,30 @@ export function buildPlanIndex(payload, { generatedAt = "" } = {}) {
   // Schandau and Děčín — two village stops on the same through train, offered
   // as if they were a place to break the trip.
   const terminusLegs = new Map();
+  // Night TRAINS, not legs: a route is one service and its two directions are
+  // one train. This is the number the "start from" chips both rank by and
+  // print, so it has to mean what the heading says it means.
+  const routesByCity = new Map();
   for (const leg of legs) {
     for (const end of [leg.stops[0], leg.stops[leg.stops.length - 1]]) {
       terminusLegs.set(end.citySlug, (terminusLegs.get(end.citySlug) || 0) + 1);
     }
+    for (const stop of leg.stops) {
+      if (!routesByCity.has(stop.citySlug)) routesByCity.set(stop.citySlug, new Set());
+      routesByCity.get(stop.citySlug).add(leg.routeId);
+    }
   }
-  for (const city of cities) city.terminusCount = terminusLegs.get(city.slug) || 0;
+  for (const city of cities) {
+    city.terminusCount = terminusLegs.get(city.slug) || 0;
+    city.routeCount = routesByCity.get(city.slug)?.size || 0;
+    // Eight hubs — Feldkirch and Helsinki among them — are absent from
+    // Back-on-Track's stop table under the spelling their routes use, so
+    // nothing in the payload can place them. Without this they carry no flag
+    // and fall out of every region tab, which is worse than either.
+    if (!city.country && CITY_COUNTRY_OVERRIDES[city.slug]) {
+      city.country = CITY_COUNTRY_OVERRIDES[city.slug];
+    }
+  }
   // The per-city station list is build scaffolding — the planner works in
   // cities, and shipping it would be a third of the file for nothing.
   const slim = cities.map(({ stations, ...city }) => city);
@@ -274,6 +293,15 @@ function main() {
   console.log(
     `[build-plan-index] ${suspectLegs} legs withhold an unbelievable duration, ` +
       `${shortHops} run end-to-end in under 4h`,
+  );
+  const startable = expanded.cities.filter((c) => c.terminusCount > 0);
+  const perRegion = REGIONS.map(
+    ({ id, label }) => `${label} ${startable.filter((c) => regionForCity(c) === id).length}`,
+  ).join(", ");
+  const unplaced = startable.filter((c) => !regionForCity(c)).length;
+  console.log(
+    `[build-plan-index] ${startable.length} start cities by region: ${perRegion}` +
+      `${unplaced ? `, unplaced ${unplaced}` : ""}`,
   );
 }
 

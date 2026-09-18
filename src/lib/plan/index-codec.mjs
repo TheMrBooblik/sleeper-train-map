@@ -35,6 +35,9 @@ export function packPlanIndex(index) {
       city.slug, city.name, city.country || "", city.legCount || 0,
       city.terminusCount || 0, city.prominence ?? 1,
       city.reach ?? 0, city.terminusReach ?? 0,
+      // Appended rather than slotted in: the tuple is positional, so a field
+      // added at the end still reads out of an index built before it existed.
+      city.routeCount || 0,
     ];
   });
 
@@ -75,7 +78,9 @@ export function hydratePlanIndex(index) {
 
   const names = index.names ?? [];
   const cities = index.cities.map(
-    ([slug, name, country, legCount, terminusCount, prominence, reach, terminusReach]) => ({
+    ([
+      slug, name, country, legCount, terminusCount, prominence, reach, terminusReach, routeCount,
+    ]) => ({
       slug,
       name,
       country,
@@ -84,6 +89,7 @@ export function hydratePlanIndex(index) {
       prominence: prominence ?? 1,
       reach: reach ?? 0,
       terminusReach: terminusReach ?? 0,
+      routeCount: routeCount || 0,
     }),
   );
 

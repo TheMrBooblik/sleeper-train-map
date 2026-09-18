@@ -11,7 +11,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { hydratePlanIndex } from "./index-codec.mjs";
-import { bySuggestionScore } from "./prominence.mjs";
+import { byStartCityScore, prominenceLookup } from "./prominence.mjs";
+import { topStartCitiesByRegion } from "./regions.mjs";
+import CITY_PROMINENCE from "../../../data/overrides/city-prominence.json" with { type: "json" };
 
 const INDEX_PATH = "public/data/published/plan-index.json";
 
@@ -37,26 +39,31 @@ export function getPlanIndex() {
 
 /**
  * The cities worth offering as a starting point: somewhere a night train
- * actually begins or ends, ranked by how prominently we suggest it.
+ * actually begins or ends, ranked by how many night trains serve it.
  *
- * Ranked by raw connectivity this list opened with Lviv, Kyiv and Beijing —
- * see prominence.mjs for why that is the wrong first impression and what the
- * weighting does and does not touch.
- * @param {number} limit
+ * Every region's top, not the global one. The page shows one region at a time
+ * and these props are what it paints before the index finishes downloading —
+ * with only the default region pre-rendered, switching tabs on a slow
+ * connection would land on an empty list.
+ *
+ * The count shown on a chip IS the sort key (see startCityScore); ranking by
+ * one number and printing another is what made this list read as alphabetical.
+ * @param {number} limit - per region
  */
 export function getTopStartCities(limit = 24) {
   const index = getPlanIndex();
   if (!index) return [];
-  return index.cities
-    .filter((city) => city.terminusCount > 0)
-    .sort(bySuggestionScore)
-    .slice(0, limit)
-    .map(({ slug, name, country, legCount, terminusCount, prominence }) => ({
+  const compare = byStartCityScore(prominenceLookup(CITY_PROMINENCE, "always"));
+  const byRegion = topStartCitiesByRegion(index.cities, { limit, compare });
+  return [...byRegion.values()]
+    .flat()
+    .map(({ slug, name, country, legCount, terminusCount, routeCount, prominence }) => ({
       slug,
       name,
       country,
       legCount,
       terminusCount,
+      routeCount,
       prominence,
     }));
 }

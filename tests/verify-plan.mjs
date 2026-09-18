@@ -43,11 +43,22 @@ import {
 import { hydratePlanIndex, packPlanIndex } from "../src/lib/plan/index-codec.mjs";
 import { formatPlanDate } from "../src/lib/plan/format.mjs";
 import {
+  byStartCityScore,
   bySuggestionScore,
+  isDeEmphasised,
   prominenceLookup,
   scoreCities,
+  startCityScore,
   suggestionScore,
 } from "../src/lib/plan/prominence.mjs";
+import {
+  CITY_COUNTRY_OVERRIDES,
+  DEFAULT_REGION,
+  REGIONS,
+  regionForCity,
+  regionForCountry,
+  topStartCitiesByRegion,
+} from "../src/lib/plan/regions.mjs";
 import { rankCities } from "../src/lib/plan/citySearch.mjs";
 import CITY_PROMINENCE from "../data/overrides/city-prominence.json" with { type: "json" };
 import { slugify } from "../src/lib/seo/slugify.mjs";
@@ -569,6 +580,132 @@ check("the suggested starting cities are European hubs", () => {
       `${code} should not headline the suggestions`,
     );
   }
+});
+
+check("every start city lands in exactly one region tab", () => {
+  // A city we cannot place is in NO region rather than quietly in the default
+  // one — a wrong tab is worse than an absent chip. So the count that matters
+  // is the unplaced one, and it must be zero: every hub is reachable from some
+  // tab, or it is unreachable from the landing page entirely.
+  const startable = planner.cities.filter((c) => c.terminusCount > 0);
+  const counts = new Map(REGIONS.map((r) => [r.id, 0]));
+  let unplaced = 0;
+  for (const city of startable) {
+    const region = regionForCity(city);
+    if (counts.has(region)) counts.set(region, counts.get(region) + 1);
+    else unplaced++;
+  }
+  assert.equal(unplaced, 0, "every start city must belong to a tab");
+  assert.equal(
+    [...counts.values()].reduce((a, b) => a + b, 0),
+    startable.length,
+    "the tabs must partition the start cities",
+  );
+  for (const [id, n] of counts) assert.ok(n > 0, `${id} has no cities to offer`);
+  assert.ok(counts.get("europe") > counts.get("asia"), "Europe is the bigger half");
+  assert.ok(REGIONS.some((r) => r.id === DEFAULT_REGION), "the default region must exist");
+  assert.equal(regionForCountry("at"), "europe", "the lookup is case-insensitive");
+  assert.equal(regionForCountry("ZZ"), "", "an unknown country is in no region");
+  assert.equal(regionForCountry(""), "");
+});
+
+check("the eight placeless hubs get a country rather than falling out of every tab", () => {
+  // Their station name is absent from Back-on-Track's stop table under the
+  // spelling their routes use, so nothing in the payload can place them —
+  // and Feldkirch is one of Europe's busiest hubs by night trains.
+  for (const [slug, code] of Object.entries(CITY_COUNTRY_OVERRIDES)) {
+    const city = planner.cityBySlug.get(slug);
+    if (!city) continue;
+    assert.equal(city.country, code, `${slug} should carry ${code}`);
+    assert.equal(regionForCity(city), "europe", `${slug} belongs in Europe`);
+  }
+  assert.equal(planner.cityBySlug.get("feldkirch")?.country, "AT");
+  assert.ok(planner.cityBySlug.get("feldkirch")?.routeCount >= 10, "Feldkirch is a real hub");
+});
+
+check("the start chips are ranked by the number they print", () => {
+  // The whole complaint this answers: the list WAS ranked, by a score mixing
+  // weighted reach with terminus reach — so the numbers on the chips read
+  // 36, 29, 24, 22, 20, 16, 10, 9, 12, 12, 5 and anyone looking at it concluded
+  // it was alphabetical. Sort key and printed value must be one number.
+  const compare = byStartCityScore(prominenceLookup(CITY_PROMINENCE, "always"));
+  const byRegion = topStartCitiesByRegion(planner.cities, { limit: 24, compare });
+  for (const { id, label } of REGIONS) {
+    const list = byRegion.get(id);
+    assert.ok(list.length > 0, `${label} rendered nothing`);
+    for (let i = 1; i < list.length; i++) {
+      assert.ok(
+        list[i].routeCount <= list[i - 1].routeCount,
+        `${label}: ${list[i].name} (${list[i].routeCount}) above ` +
+          `${list[i - 1].name} (${list[i - 1].routeCount})`,
+      );
+    }
+    for (const city of list) {
+      assert.ok(city.terminusCount > 0, `${city.name} is not a start city`);
+      assert.equal(regionForCity(city), id, `${city.name} is in the wrong tab`);
+    }
+  }
+  // And the tabs must actually separate the three products: ranked together
+  // Beijing (40) heads the list, above Vienna (25).
+  assert.equal(byRegion.get("europe")[0].slug, "vienna");
+  assert.equal(byRegion.get("asia")[0].slug, "beijing");
+  assert.equal(byRegion.get("north-america")[0].slug, "chicago");
+});
+
+check("a de-emphasised city is pushed behind the tab, never out of it", () => {
+  // Damping is a multiplier, and a multiplied score interleaved with undamped
+  // ones puts Lviv's 43 between a 7 and a 6 — which is the broken-looking list
+  // all over again. Behind them all, both blocks descend on their own count.
+  const weightFor = prominenceLookup(CITY_PROMINENCE, "always");
+  const compare = byStartCityScore(weightFor);
+  const europe = planner.cities
+    .filter((c) => c.terminusCount > 0 && regionForCity(c) === "europe")
+    .sort(compare);
+  const firstDamped = europe.findIndex((c) => isDeEmphasised(c, weightFor));
+  assert.ok(firstDamped > 24, `a de-emphasised city reaches the shown window at ${firstDamped}`);
+  for (const slug of ["lviv", "kyiv"]) {
+    const at = europe.findIndex((c) => c.slug === slug);
+    assert.ok(at >= firstDamped, `${slug} must sit in the de-emphasised block`);
+    assert.ok(europe[at].routeCount > europe[0].routeCount, `${slug} keeps its real count`);
+  }
+  // Only a weight scoped "always" survives into a tab: a continent does not
+  // need damping once it has a tab of its own, and damping inside one would
+  // break the descending numbers all over again.
+  assert.equal(weightFor("UA"), 0.15);
+  assert.equal(weightFor("CN"), 1, "China is a tab, not a penalty");
+  assert.equal(weightFor("US"), 1);
+  assert.equal(weightFor("GE"), 1);
+  assert.equal(prominenceLookup(CITY_PROMINENCE, "global")("CN"), 0.1, "still damped globally");
+  assert.equal(prominenceLookup(CITY_PROMINENCE)("CN"), 0.1, '"any" takes every entry');
+  // startCityScore is the printed number, weighted and nothing else.
+  assert.equal(startCityScore({ routeCount: 9, country: "AT" }, weightFor), 9);
+  assert.equal(startCityScore({}, weightFor), 0);
+  assert.equal(startCityScore({ routeCount: 4 }), 4, "no lookup means no weighting");
+});
+
+check("routeCount counts night trains, and survives the wire format", () => {
+  // legCount counts LEGS — both directions of one service — so a chip headed
+  // "the most night trains" must not print it.
+  for (const city of planner.cities) {
+    assert.ok(city.routeCount <= city.legCount, `${city.name} has more routes than legs`);
+    assert.ok(Number.isInteger(city.routeCount), `${city.name} routeCount is not an integer`);
+  }
+  const vienna = planner.cityBySlug.get("vienna");
+  assert.ok(vienna.routeCount > 0 && vienna.routeCount < vienna.legCount);
+  // Straight off the graph, independent of the build.
+  const direct = new Set(
+    planner.legs
+      .filter((l) => l.stops.some((s) => s.citySlug === "vienna"))
+      .map((l) => l.routeId),
+  );
+  assert.equal(vienna.routeCount, direct.size, "routeCount must be distinct routes calling");
+  // The city tuple is positional and routeCount was appended, so an index built
+  // before it existed still hydrates — with a zero rather than a crash.
+  const legacy = packPlanIndex(hydratePlanIndex(index));
+  legacy.cities = legacy.cities.map((tuple) => tuple.slice(0, 8));
+  const old = hydratePlanIndex(legacy);
+  assert.equal(old.cities[0].routeCount, 0);
+  assert.ok(old.cities[0].slug);
 });
 
 check("a city is measured by where its trains go, not by who terminates there", () => {

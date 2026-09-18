@@ -25,9 +25,15 @@ import {
   parsePlanPath,
 } from "../../lib/plan/url.mjs";
 import { formatPlanDate } from "../../lib/plan/format.mjs";
-import { bySuggestionScore } from "../../lib/plan/prominence.mjs";
+import { byStartCityScore, prominenceLookup } from "../../lib/plan/prominence.mjs";
+import { DEFAULT_REGION, REGIONS, topStartCitiesByRegion } from "../../lib/plan/regions.mjs";
+import CITY_PROMINENCE from "../../../data/overrides/city-prominence.json";
 import { absoluteUrl, OG_IMAGE } from "../../lib/seo/site";
 import { getFlagEmoji } from "../../lib/countries";
+
+// Only a weight scoped "always" survives into a region tab — a continent does
+// not need damping once it has a tab of its own. See city-prominence.json.
+const START_CITY_ORDER = byStartCityScore(prominenceLookup(CITY_PROMINENCE, "always"));
 
 const TITLE = "Plan a Night Train Trip | Pingwi";
 const DESCRIPTION =
@@ -58,6 +64,42 @@ export default function PlanPage({ seoCities, initialPlan }) {
   const knownSlugs = useMemo(
     () => (planner ? new Set(planner.cities.map((c) => c.slug)) : undefined),
     [planner],
+  );
+
+  // Which part of the world the "start from" chips offer. The dataset is three
+  // products in one table — European sleepers, China Railway, Amtrak/VIA — and
+  // ranked together neither wins: Beijing has more night trains than Vienna and
+  // nobody shopping for one is shopping for the other.
+  const [region, setRegion] = useState(DEFAULT_REGION);
+  // seoCities already carries every region's top, so a tab switched before the
+  // index lands is a full list rather than an empty one.
+  const startCitiesByRegion = useMemo(
+    () =>
+      topStartCitiesByRegion(planner?.cities ?? seoCities, {
+        limit: 24,
+        compare: START_CITY_ORDER,
+      }),
+    [planner, seoCities],
+  );
+  const regionTabs = useMemo(
+    () => REGIONS.filter((r) => (startCitiesByRegion.get(r.id) ?? []).length > 0),
+    [startCitiesByRegion],
+  );
+  const startCities = startCitiesByRegion.get(region) ?? [];
+
+  // Arrow keys move between tabs, which is what makes a tablist a tablist.
+  const onRegionKeyDown = useCallback(
+    (event) => {
+      const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+      if (!step) return;
+      event.preventDefault();
+      const at = regionTabs.findIndex((r) => r.id === region);
+      const next = regionTabs[(at + step + regionTabs.length) % regionTabs.length];
+      if (!next) return;
+      setRegion(next.id);
+      document.getElementById(`region-tab-${next.id}`)?.focus();
+    },
+    [region, regionTabs],
   );
 
   // The plan starts as whatever getStaticProps read off the path, NOT as
@@ -222,31 +264,64 @@ export default function PlanPage({ seoCities, initialPlan }) {
             <h2 id="popular-starts" className="text-xl font-semibold text-white">
               Start from a city with the most night trains
             </h2>
-            <ul className="mt-5 flex flex-wrap gap-2">
-              {/* Same order as getTopStartCities, which renders this list before
-                  the index has loaded — sorting it differently here would make
-                  the chips visibly reshuffle on hydration. */}
-              {(planner?.cities ?? seoCities)
-                .filter((c) => (c.terminusCount ?? 0) > 0)
-                .slice()
-                .sort(bySuggestionScore)
-                .slice(0, 24)
-                .map((city) => (
-                  <li key={city.slug}>
-                    <Link
-                      href={buildPlanHref({ cities: [city.slug] })}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.02] px-3.5 py-1.5 text-sm text-white/70 transition-colors hover:border-primary-green/50 hover:text-white"
+
+            {regionTabs.length > 1 && (
+              <div
+                role="tablist"
+                aria-label="Part of the world"
+                onKeyDown={onRegionKeyDown}
+                className="mt-4 inline-flex flex-wrap gap-1 rounded-full border border-white/10 bg-white/[0.02] p-1"
+              >
+                {regionTabs.map((tab) => {
+                  const selected = tab.id === region;
+                  return (
+                    <button
+                      key={tab.id}
+                      id={`region-tab-${tab.id}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={selected}
+                      aria-controls="start-city-chips"
+                      tabIndex={selected ? 0 : -1}
+                      onClick={() => setRegion(tab.id)}
+                      className={`rounded-full px-3.5 py-1.5 text-sm transition-colors ${
+                        selected
+                          ? "bg-primary-green/15 text-white"
+                          : "text-white/50 hover:text-white"
+                      }`}
                     >
-                      <span aria-hidden="true">{getFlagEmoji(city.country) || "🚂"}</span>
-                      {city.name}
-                      {/* Trains that START or END here — what a "start from"
-                          chip is actually offering. legCount counts every train
-                          that merely calls, which is why it used to head this
-                          list with corridor stops. */}
-                      <span className="text-xs text-white/35">{city.terminusCount}</span>
-                    </Link>
-                  </li>
-                ))}
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <ul
+              id="start-city-chips"
+              role="tabpanel"
+              aria-labelledby={`region-tab-${region}`}
+              className="mt-5 flex flex-wrap gap-2"
+            >
+              {/* Same list, same order as getTopStartCities, which renders this
+                  before the index has loaded — sorting it differently here
+                  would make the chips visibly reshuffle on hydration. */}
+              {startCities.map((city) => (
+                <li key={city.slug}>
+                  <Link
+                    href={buildPlanHref({ cities: [city.slug] })}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.02] px-3.5 py-1.5 text-sm text-white/70 transition-colors hover:border-primary-green/50 hover:text-white"
+                  >
+                    <span aria-hidden="true">{getFlagEmoji(city.country) || "🚂"}</span>
+                    {city.name}
+                    {/* Night TRAINS serving the city, which is what the heading
+                        promises AND what the list is sorted by — ranking on one
+                        number while printing another is what made this read as
+                        alphabetical. */}
+                    <span className="text-xs text-white/35">{city.routeCount}</span>
+                  </Link>
+                </li>
+              ))}
             </ul>
             <p className="mt-8 text-sm text-white/40">
               Prefer to browse?{" "}

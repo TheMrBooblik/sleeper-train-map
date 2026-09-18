@@ -19,13 +19,76 @@
  * it, so a city cannot be ranked one way in the build and another in the picker.
  */
 
-/** @param {object} table - city-prominence.json @returns {(code: string) => number} */
-export function prominenceLookup(table) {
+/**
+ * @param {object} table - city-prominence.json
+ * @param {"always"|"global"|"any"} [scope] - which weights to honour. "any"
+ *   takes every entry (the global surfaces); "always" takes only those a
+ *   region-filtered list should still apply — see the file's own readme.
+ * @returns {(code: string) => number}
+ */
+export function prominenceLookup(table, scope = "any") {
   const weights = table?.weights ?? {};
   return (countryCode) => {
     const entry = weights[String(countryCode || "").toUpperCase()];
     const weight = typeof entry === "number" ? entry : entry?.weight;
-    return Number.isFinite(weight) && weight >= 0 ? weight : 1;
+    if (!Number.isFinite(weight) || weight < 0) return 1;
+    if (scope === "any") return weight;
+    const entryScope = typeof entry === "number" ? "always" : (entry?.scope ?? "always");
+    return entryScope === scope ? weight : 1;
+  };
+}
+
+/**
+ * How high to put a city in the region-filtered "start from" chips.
+ *
+ * Deliberately NOT suggestionScore: that mixes weighted reach with terminus
+ * reach, so the number it ranks by is not the number on the chip, and a reader
+ * sees 36, 29, 24, 22, 20, 16, 10, 9, 12, 12, 5 and concludes the list is not
+ * ranked at all. Here the sort key IS the count shown — night trains serving
+ * the city — so the list reads as the top it claims to be. The only weight that
+ * survives into a tab is one scoped "always", because a continent no longer
+ * needs damping once it has a tab of its own.
+ *
+ * @param {object} city
+ * @param {(code: string) => number} weightFor
+ */
+export function startCityScore(city, weightFor) {
+  return (city?.routeCount ?? 0) * (weightFor ? weightFor(city?.country) : 1);
+}
+
+/** Whether we de-emphasise this city's country in discovery at all. */
+export function isDeEmphasised(city, weightFor) {
+  return weightFor ? weightFor(city?.country) < 1 : false;
+}
+
+/**
+ * "Start from" order as one comparator, so the pre-rendered chips and the ones
+ * the loaded index replaces them with cannot be sorted differently — that
+ * difference is invisible in review and shows up as the list reshuffling under
+ * the reader a second after the page paints.
+ *
+ * A de-emphasised city goes BEHIND every city we do suggest, rather than being
+ * interleaved by its multiplied score. That is not a stronger de-emphasis, it
+ * is the only one compatible with printing the count: Lviv has 43 night trains
+ * and a damped score of 6.45, which sorts it between Milan's 7 and Amsterdam's
+ * 6 — so the chips would read 8, 7, 7, 7, 43, 6, and a list whose numbers jump
+ * like that reads as unsorted, which is the exact complaint this ranking exists
+ * to answer. Pushed to the back, both blocks descend on their own count and the
+ * shown window is the undamped one. Nothing is filtered: every city is still in
+ * the list, still searchable by name, still on the map.
+ *
+ * @param {(code: string) => number} weightFor
+ */
+export function byStartCityScore(weightFor) {
+  return (a, b) => {
+    const demoted =
+      Number(isDeEmphasised(a, weightFor)) - Number(isDeEmphasised(b, weightFor));
+    if (demoted) return demoted;
+    const diff = startCityScore(b, weightFor) - startCityScore(a, weightFor);
+    if (diff) return diff;
+    return String(a?.name ?? "").localeCompare(String(b?.name ?? ""), undefined, {
+      sensitivity: "base",
+    });
   };
 }
 

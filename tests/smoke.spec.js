@@ -74,6 +74,39 @@ test.describe('Planner Smoke Tests', () => {
     expect(overflow.spill, 'date field spills past its card').toBeLessThanOrEqual(0);
   });
 
+  test('the start chips are a real top, per region', async ({ page }) => {
+    // Two faults in one: the list was ranked by a score that was not the number
+    // on the chips (so it read as alphabetical), and all three products —
+    // European sleepers, China Railway, Amtrak/VIA — were ranked against each
+    // other, which put Beijing above Vienna.
+    await page.goto('/plan');
+    const counts = async () =>
+      page.$$eval('#start-city-chips li a span:last-child', (els) =>
+        els.map((e) => Number(e.textContent)),
+      );
+
+    for (const region of ['Europe', 'Asia', 'North America']) {
+      await page.getByRole('tab', { name: region }).click();
+      await expect(page.getByRole('tab', { name: region })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      const nums = await counts();
+      expect(nums.length, `${region} rendered no chips`).toBeGreaterThan(0);
+      for (let i = 1; i < nums.length; i++) {
+        expect(nums[i], `${region} chip ${i} is out of order`).toBeLessThanOrEqual(
+          nums[i - 1],
+        );
+      }
+    }
+
+    // Europe is the default, and it is what the server pre-rendered — a
+    // different order here would reshuffle the chips a second after paint.
+    await page.getByRole('tab', { name: 'Europe' }).click();
+    const first = await page.locator('#start-city-chips li a').first().textContent();
+    expect(first).toContain('Vienna');
+  });
+
   test('a shared plan URL resolves on a cold load', async ({ page }) => {
     await page.goto('/plan/amsterdam-to-vienna/2026-09-18');
     await expect(page.getByRole('heading', { level: 1 })).toContainText(
