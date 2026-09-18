@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_cfr-ir-n-1990",
+  "createdAt": "2026-09-18T07:56:43.707Z",
+  "source": "scrape",
+  "sourceDetail": "cfr",
+  "kind": "route.add",
+  "title": "New train: IR-N 1990 (Constanța – Timișoara Nord)",
+  "summary": "Route \"cfr_IR-N_1990\" appeared in tonight's scrape and is withheld from the map until approved. Via: Medgidia - Cernavodă Pod - Fetești - Ciulnița - București Băneasa - Videle - Roșiori Nord - Caracal - Craiova - Filiași - Strehaia - Igiroasa - Balota - Drobeta Tr. Severin - Orșova - Băile Herculane - Armeniș - Caransebeș - Căvăran - Lugoj",
+  "target": {
+    "routeKey": "cfr_IR-N_1990",
+    "agencyId": "CFR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "IR-N 1990",
+    "returnTrain": "IR-N 1992",
+    "origin": "Constanța",
+    "destination": "Timișoara Nord",
+    "operator": "CFR",
+    "operatingDays": "2026/06/13-2026/09/06: Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "cfr_IR-N_1990"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
