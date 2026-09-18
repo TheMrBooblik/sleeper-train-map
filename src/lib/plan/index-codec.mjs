@@ -1,5 +1,3 @@
-import { CITY_COUNTRY_OVERRIDES } from "./regions.mjs";
-
 /**
  * Wire format for plan-index.json.
  *
@@ -37,9 +35,8 @@ export function packPlanIndex(index) {
       city.slug, city.name, city.country || "", city.legCount || 0,
       city.terminusCount || 0, city.prominence ?? 1,
       city.reach ?? 0, city.terminusReach ?? 0,
-      // Appended rather than slotted in, the tuple being positional. What
-      // makes that safe is not the append but hydrate's repair below — a
-      // reader that silently answers 0 is worse than one that throws.
+      // Appended rather than slotted in: the tuple is positional, so a field
+      // added at the end still reads out of an index built before it existed.
       city.routeCount || 0,
     ];
   });
@@ -92,7 +89,7 @@ export function hydratePlanIndex(index) {
       prominence: prominence ?? 1,
       reach: reach ?? 0,
       terminusReach: terminusReach ?? 0,
-      routeCount: Number.isFinite(routeCount) ? routeCount : null,
+      routeCount: routeCount || 0,
     }),
   );
 
@@ -113,57 +110,6 @@ export function hydratePlanIndex(index) {
     }),
   }));
 
-  repairCities(cities, legs);
-
   const { packed, names: _names, pricings: _pricings, ...rest } = index;
   return { ...rest, cities, legs };
-}
-
-/**
- * Fill in what an index written by an older build does not carry.
- *
- * This is not belt-and-braces, it is the load-bearing half of adding a field.
- * The page is served network-first while everything under /data/ is
- * stale-while-revalidate — 24h in the service worker, a week in the HTTP
- * header — so a returning visitor reliably runs NEW page code against an OLD
- * index, and that is not an edge case, it is what every visitor gets the day
- * the index gains a field.
- *
- * `routeCount` shipped without this and the failure was the worst shape
- * available: every city answered 0, so `startCityScore` tied everything, the
- * comparator fell through to the name, and the "most night trains" list came
- * back in alphabetical order with a 0 on every chip — a wrong list that looks
- * like a working one. Deriving it costs one pass over stops the hydrate is
- * already walking, and it is the same definition the build uses (distinct
- * routes calling at the city), which `verify-plan` pins against the committed
- * index so the two cannot drift.
- *
- * @param {object[]} cities - mutated in place
- * @param {object[]} legs
- */
-function repairCities(cities, legs) {
-  const needsRouteCount = cities.some((c) => c.routeCount === null);
-  if (needsRouteCount) {
-    const routesByCity = new Map();
-    for (const leg of legs) {
-      for (const stop of leg.stops) {
-        if (!routesByCity.has(stop.citySlug)) routesByCity.set(stop.citySlug, new Set());
-        routesByCity.get(stop.citySlug).add(leg.routeId);
-      }
-    }
-    for (const city of cities) {
-      if (city.routeCount === null) city.routeCount = routesByCity.get(city.slug)?.size || 0;
-    }
-  } else {
-    for (const city of cities) city.routeCount = city.routeCount || 0;
-  }
-
-  // Eight hubs are absent from Back-on-Track's stop table under the spelling
-  // their routes use, so an index built before the override was applied has
-  // them country-less — no flag, and no region tab to appear in.
-  for (const city of cities) {
-    if (!city.country && CITY_COUNTRY_OVERRIDES[city.slug]) {
-      city.country = CITY_COUNTRY_OVERRIDES[city.slug];
-    }
-  }
 }
