@@ -9,6 +9,7 @@
  */
 import OPERATOR_PRICING from "../../data/overrides/operator-pricing.json";
 import { pricingAdvice, formatCheckedAt } from "./pricingAdvice.mjs";
+import { resolvePricing } from "./pricingResolve.mjs";
 
 export { pricingAdvice, formatCheckedAt };
 
@@ -38,9 +39,7 @@ const CURRENCY_SYMBOLS = {
  * so callers can render nothing instead of a guess.
  */
 export function getOperatorPricing(routeOrTrip) {
-  if (routeOrTrip?.pricing) return routeOrTrip.pricing;
-  const agencyId = (routeOrTrip?.agency_id || "").trim();
-  return OPERATOR_PRICING[agencyId] || null;
+  return resolvePricing(routeOrTrip, OPERATOR_PRICING);
 }
 
 /**

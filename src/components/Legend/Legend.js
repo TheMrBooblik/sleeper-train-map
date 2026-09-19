@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 
 import { getOperatorName } from "../../lib/seo/operators";
 import { OPERATOR_BRAND_COLORS } from "../Map/utils/operatorColors";
@@ -76,6 +77,10 @@ const Legend = ({ variant = "inline" }) => {
   const nightTrainMapLinkClass =
     "inline-flex w-fit max-w-full items-center gap-1 rounded-sm py-0.5 text-xs font-semibold text-sky-400 underline decoration-2 underline-offset-[3px] decoration-sky-400/90 outline-offset-2 hover:bg-sky-400/10 hover:text-sky-300 hover:decoration-sky-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-400/70";
 
+  /** Trip planner — the legend's one action, so it reads like the tour's own CTAs (green) rather than its reference links (sky). */
+  const plannerLinkClass =
+    "inline-flex w-fit max-w-full items-center gap-1 rounded-sm text-xs font-semibold text-primary-green no-underline outline-offset-2 transition-colors hover:text-primary-green-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-green/70";
+
   /** Buy Me a Coffee — full-width yellow pill (use !text-black: global `a{color:inherit}` is unlayered and wins over layered utilities). */
   const buyMeACoffeeLinkClass =
     "flex w-full min-w-0 max-w-full items-center justify-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold !text-black no-underline bg-[#ffdd00] shadow-sm outline-offset-2 transition-colors hover:bg-[#ffcc33] focus-visible:outline focus-visible:outline-2 focus-visible:outline-yellow-400/90";
@@ -99,6 +104,34 @@ const Legend = ({ variant = "inline" }) => {
           <span className="text-white">Click on any station</span> to see direct
           sleeper trains from that station!
         </p>
+      </div>
+
+      {/* Trip planner. The map answers "what routes exist"; /plan answers the
+          question a traveller actually arrives with — where a night train can
+          take me, from my station, on my date. Same border treatment as the
+          intro above, which hardcodes it for both variants. */}
+      <div
+        className={
+          isPanel
+            ? "flex flex-col gap-2 border-b border-white/15 pb-3"
+            : "flex max-w-[min(100%,24rem)] flex-col gap-2 border-b border-white/15 pb-3"
+        }
+      >
+        <p className={labelClass}>
+          <span className="text-white">Planning a trip?</span> Pick your
+          departure station and a date, and the planner lists every city a night
+          train reaches from there that evening.
+        </p>
+        {/* New tab, like every other link in the tour: the map sits behind this
+            panel with a selection and a viewport worth keeping. */}
+        <Link
+          href="/plan"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={plannerLinkClass}
+        >
+          Plan a trip →
+        </Link>
       </div>
 
       {/* Route colors = train operator; shades = several routes same company */}

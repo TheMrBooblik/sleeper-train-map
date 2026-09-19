@@ -48,6 +48,10 @@ function generateSiteMap() {
 
   entries.push(urlEntry(SITE_URL, lastmod, "weekly", "1.0"));
   entries.push(urlEntry(`${SITE_URL}/about`, lastmod, "monthly", "0.9"));
+  // Only the planner's landing page. Everything under it (/plan/{cities}/{date})
+  // is one of an unbounded number of URLs differing by a date, which is a crawl
+  // trap, and carries noindex for the same reason.
+  entries.push(urlEntry(`${SITE_URL}/plan`, lastmod, "monthly", "0.8"));
   entries.push(urlEntry(`${SITE_URL}/privacy`, lastmod, "yearly", "0.3"));
 
   // Data-derived pages. Wrapped so a read failure degrades to the core sitemap

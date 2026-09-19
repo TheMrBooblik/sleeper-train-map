@@ -19,6 +19,8 @@
 //      replaces, and viaOnlyIfRicher then refused the whole train.
 
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import polyline from "@mapbox/polyline";
 import {
   stitchLegs,
   buildSleeperTrains,
@@ -192,6 +194,34 @@ check("{ routes, name } stitches the legs of a through car under one key", () =>
     "Arad",
     "Oradea",
   ]);
+});
+
+// Two rows, one train. South of Ungheni the Kyiv–București sleeper IS the
+// Chișinău–București one — same physical train, which is why rows 174 and 22
+// state the same București times to the minute — so both rows have to be fed
+// from the same feed route under their own labels. claimKey guards duplicate
+// KEYS; a route being named twice is not a duplicate, and if that ever became
+// one, row 174 would silently lose its stop list with nothing to say why.
+check("one feed route may be claimed by two entries under different keys", () => {
+  const trains = buildSleeperTrains({
+    gtfs: miniGtfs(),
+    allowlist: [
+      { route: "346", name: "401" },
+      { route: "346", name: "099" },
+    ],
+    agency: "CFR",
+    operator: "CFR Călători",
+    serviceWindow: null,
+  });
+  assert.deepEqual(Object.keys(trains).sort(), ["099", "401"]);
+  // Both must carry the whole trip — a second claim that came back short would
+  // mean the first had consumed the route's trips rather than just read them.
+  assert.equal(trains["401"].stations.length, 3);
+  assert.equal(trains["099"].stations.length, 3);
+  assert.deepEqual(
+    trains["099"].stations.map((s) => s.name),
+    trains["401"].stations.map((s) => s.name),
+  );
 });
 
 check("a named entry the feed cannot serve is reported, not silently skipped", () => {
@@ -448,5 +478,73 @@ check("a span crossing a year boundary is left alone", () => {
   // about weekdays and the shape exists for seasons inside one year.
   assert.equal(seasonalServiceDisplay(new Set(["winter"]), crossing), null);
 });
+
+// ─── 6. the spliced line reaches the row's own origin ───────────────────────
+//
+// The fourth fault, and the only one no fixture could have caught: the splice
+// keeps a coordless station with a null location, and `chainOf` then drops it
+// from the geometry — correct for row 28's Bulgarian via names, which are text
+// in a via string and nothing else, and wrong for Ukraine, where the station
+// exists in Back-on-Track's table under a Cyrillic name while every row spells
+// it in Latin. Row 174 therefore drew the Romanian half in full track geometry
+// and stopped dead at the Moldovan border, 410 km short of Kyiv. It looked
+// worse than the Romania-only stub it replaced, because a long correct line
+// ending in the wrong country reads as a bug rather than as missing data.
+//
+// So this is asserted against the PUBLISHED payload rather than a fixture: the
+// defect was in what the adapter wires into `stopCoords`, not in any function a
+// fixture exercises. Distance rather than equality, because the polyline's
+// first vertex is the station's own coordinate and the table may correct it.
+{
+  const published = JSON.parse(
+    fs.readFileSync("public/data/published/initial-data.json", "utf8"),
+  ).data;
+  const distanceKm = (a, b) => {
+    const R = 6371;
+    const rad = (x) => (x * Math.PI) / 180;
+    const dLat = rad(b[0] - a[0]);
+    const dLon = rad(b[1] - a[1]);
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(rad(a[0])) * Math.cos(rad(b[0])) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  };
+  const stopAt = (name) => {
+    const s = published.stops.find((x) => x.stop_name === name);
+    return s && Number.isFinite(s.stop_lat) ? [s.stop_lat, s.stop_lon] : null;
+  };
+
+  check("a spliced row's line starts at the station the row says it does", () => {
+    // Every cfr-stamped row, both directions — not row 174 alone, or the next
+    // border this meets goes unnoticed the same way.
+    const offenders = [];
+    for (const row of Object.values(published.viewMap)) {
+      if (!row.official_sources?.includes("cfr")) continue;
+      for (const d of [0, 1]) {
+        const enc = row[`nj_polyline_${d}`];
+        const origin = stopAt(row[`origin_trip_${d}`]);
+        if (!enc || !origin) continue;
+        const first = polyline.decode(enc)[0];
+        const gap = distanceKm(first, origin);
+        if (gap > 25) {
+          offenders.push(`${row.route_id} dir${d}: line starts ${gap.toFixed(0)} km from ${row[`origin_trip_${d}`]}`);
+        }
+      }
+    }
+    assert.deepEqual(offenders, []);
+  });
+
+  check("THE REGRESSION: row 174's line runs Kyiv → București, not Ungheni →", () => {
+    const row = published.viewMap["174"];
+    const first = polyline.decode(row.nj_polyline_0)[0];
+    // Ungheni is where the Romanian feed's own trip begins; the row begins two
+    // countries earlier, and the head is what carries it there.
+    assert.ok(
+      distanceKm(first, [47.2036, 27.7996]) > 300,
+      `line still starts at the Moldovan border: ${first}`,
+    );
+    assert.ok(distanceKm(first, [50.44, 30.489]) < 25, `line does not start at Kyiv: ${first}`);
+  });
+}
 
 console.log(`[verify-cfr-gtfs] ${checks} checks passed`);
