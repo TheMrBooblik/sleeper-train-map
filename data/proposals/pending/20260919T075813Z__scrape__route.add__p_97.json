@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_97",
+  "createdAt": "2026-09-19T07:58:13.188Z",
+  "source": "scrape",
+  "sourceDetail": "backontrack",
+  "kind": "route.add",
+  "title": "New train: IC Notte 754 (Lecce – Torino Lingotto)",
+  "summary": "Route \"97\" appeared in tonight's scrape and is withheld from the map until approved. Via: Brindisi - Bari Centrale - Foggia - Bologna Centrale",
+  "target": {
+    "routeKey": "97",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "IC Notte 754",
+    "returnTrain": "IC Notte 757",
+    "origin": "Lecce",
+    "destination": "Torino Lingotto",
+    "operator": "FS",
+    "operatingDays": "2026: Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "97"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
