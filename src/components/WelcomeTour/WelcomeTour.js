@@ -5,6 +5,14 @@ import { getFlagEmoji } from "../../lib/countries";
 import TourCard from "./TourCard";
 
 /**
+ * How close to the end of the mobile sheet counts as "already there". Rubber
+ * banding and sub-pixel heights mean the remaining distance rarely settles at
+ * exactly 0, and an arrow flickering back on at the last pixel is worse than
+ * one that gives up a little early.
+ */
+const SCROLL_END_SLOP_PX = 24;
+
+/**
  * First-visit welcome tour: a non-blocking HUD of small cards over the map,
  * each anchored near the control it explains. The map stays fully interactive
  * between the cards (pointer-events pass through everywhere but the cards).
@@ -33,8 +41,11 @@ export default function WelcomeTour({
   onDismiss,
 }) {
   const [phase, setPhase] = useState("static");
+  // Whether the mobile sheet has more below the fold — drives the scroll arrow.
+  const [canScrollDown, setCanScrollDown] = useState(false);
   const regionRef = useRef(null);
   const sheetRef = useRef(null);
+  const contentRef = useRef(null);
   // Tracks a downward drag on the sheet header to dismiss (mobile only).
   const dragRef = useRef({ active: false, startY: 0, pointerId: null });
 
@@ -71,6 +82,53 @@ export default function WelcomeTour({
     }
     if (dy > 72) onDismiss?.();
   };
+
+  // Jump to the two closing actions at the end of the sheet (support the map,
+  // then start exploring) rather than making the reader swipe past every card.
+  const scrollToEnd = () => {
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    const reduceMotion = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    )?.matches;
+    sheet.scrollTo({
+      top: sheet.scrollHeight,
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+  };
+
+  // Keep the arrow honest about what is still below. On desktop the wrapper is
+  // `md:static` with visible overflow, so scrollHeight === clientHeight and the
+  // hint stays off without a media query here.
+  useEffect(() => {
+    const sheet = sheetRef.current;
+    if (!sheet) return undefined;
+
+    const update = () => {
+      const remaining =
+        sheet.scrollHeight - sheet.clientHeight - sheet.scrollTop;
+      setCanScrollDown(remaining > SCROLL_END_SLOP_PX);
+    };
+
+    update();
+    sheet.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    // The content keeps growing after mount — the coffee mark decodes, the
+    // chip rows wrap, the viewport rotates — and none of that fires a scroll
+    // event, so the sheet and its card stack are both observed.
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    if (observer) {
+      observer.observe(sheet);
+      if (contentRef.current) observer.observe(contentRef.current);
+    }
+
+    return () => {
+      sheet.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      observer?.disconnect();
+    };
+  }, [phase]);
 
   useEffect(() => {
     setPhase(loading ? "waiting" : "enter");
@@ -114,9 +172,9 @@ export default function WelcomeTour({
         phase === "enter" ? "" : "opacity-0"
       }`}
     >
-      {/* Mobile (<768px): scrollable bottom sheet — drag handle and the primary
-          CTA stay pinned (sticky top/bottom) so they are reachable at any scroll
-          offset; SEO cards (browse hubs, legend) stay in DOM below the fold.
+      {/* Mobile (<768px): scrollable bottom sheet — the drag handle stays pinned
+          (sticky top) and a pinned arrow says the rest is below; SEO cards
+          (browse hubs, legend) stay in DOM below the fold.
           Desktop: the wrapper dissolves and cards break out to absolute anchors. */}
       <div
         ref={sheetRef}
@@ -150,7 +208,10 @@ export default function WelcomeTour({
           </button>
         </div>
 
-        <div className="px-4 max-md:divide-y max-md:divide-white/10 md:space-y-0 md:p-0">
+        <div
+          ref={contentRef}
+          className="px-4 max-md:divide-y max-md:divide-white/10 md:space-y-0 md:p-0"
+        >
           {/* ① Hero: the crawlable h1 + primary dismiss */}
           <TourCard
             className="md:pointer-events-auto md:absolute md:top-4 md:left-16 md:w-80"
@@ -339,27 +400,55 @@ export default function WelcomeTour({
             <div className="mt-2 md:max-h-[45vh] md:overflow-y-auto md:pr-1">
               <Legend variant="panel" />
             </div>
-            {/* Mobile gets this CTA pinned to the sheet instead (see below), so
-                it is reachable without scrolling past every card. */}
+            {/* The end of the sheet on mobile: it sits directly under the
+                legend's "Buy me a coffee" pill, and the arrow below brings
+                both into view in one tap. Taller tap target below md, where
+                this is a thumb rather than a cursor. */}
             <button
               type="button"
               onClick={onDismiss}
-              className="mt-3 hidden w-full cursor-pointer rounded-lg bg-primary-green px-3 py-2 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors md:block"
+              className="mt-3 block w-full cursor-pointer rounded-lg bg-primary-green px-3 py-2.5 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors md:py-2"
             >
               Start exploring →
             </button>
           </TourCard>
         </div>
 
-        {/* Mobile-only pinned CTA: the tour is a tall scroll, so the primary
-            dismiss must not depend on reaching the last card. */}
-        <div className="sticky bottom-0 z-10 border-t border-white/10 bg-black/95 px-4 py-3 md:hidden">
+        {/* Mobile-only scroll affordance, in place of the pinned CTA. The tour
+            is a tall scroll whose two closing actions now sit together at its
+            end, so the arrow does the two jobs the pinned button could not:
+            it says there is more below, and it jumps to both in one tap.
+            It fades once the end is reached — an arrow parked on top of the
+            buttons it points at is worse than no arrow — while the wrapper
+            stays in flow as the breathing room beneath them. */}
+        <div
+          className="pointer-events-none sticky bottom-0 z-10 flex justify-center bg-gradient-to-t from-black/95 via-black/80 to-transparent px-4 pb-3 pt-8 md:hidden"
+          aria-hidden={!canScrollDown}
+        >
           <button
             type="button"
-            onClick={onDismiss}
-            className="w-full cursor-pointer rounded-lg bg-primary-green px-3 py-2.5 text-sm font-semibold text-black hover:bg-primary-green-light transition-colors"
+            onClick={scrollToEnd}
+            tabIndex={canScrollDown ? 0 : -1}
+            aria-label="Scroll to the end of the tour"
+            className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-opacity duration-200 hover:bg-white/20 ${
+              canScrollDown
+                ? "pointer-events-auto opacity-100"
+                : "pointer-events-none opacity-0"
+            }`}
           >
-            Start exploring →
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className={`h-5 w-5 ${canScrollDown ? "tour-scroll-hint" : ""}`}
+              aria-hidden
+            >
+              <path
+                fillRule="evenodd"
+                d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z"
+                clipRule="evenodd"
+              />
+            </svg>
           </button>
         </div>
       </div>

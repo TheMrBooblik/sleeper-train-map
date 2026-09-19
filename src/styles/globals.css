@@ -475,8 +475,46 @@ abbr {
   }
 }
 
+/* Mobile tour sheet: the arrow that says the sheet scrolls and jumps to the
+   two closing actions at its end. A static arrow on a dark sheet reads as
+   decoration, so it nods; the class is only applied while there is something
+   left to scroll to. It rides the chevron rather than the button around it,
+   deliberately — a button that never stops moving never passes Playwright's
+   actionability check, so a test that clicks this arrow would hang forever
+   on an animation a thumb does not even notice.
+
+   The travel is symmetric about the chevron's resting position — the ends sit
+   at -1.5px and the middle at +1.5px, so the glyph swings evenly through the
+   centre of its circle. The obvious way to write this (0 → +3 → 0) only ever
+   moves downward and reads as an off-centre twitch rather than a nod, because
+   the eye takes the circle's centre as the rest point and that version never
+   returns above it.
+
+   The half-amplitude is 1.5px and not 3px because centring the swing doubles
+   what the eye sees: the number that meant "3px of travel" while the motion
+   was one-sided means 6px once it runs both ways. 1.5px holds the total travel
+   at the 3px this started with, which is as much as a 20px glyph carries
+   before the nod turns into a jitter. */
+@keyframes tour-scroll-hint-bounce {
+  0%,
+  100% {
+    transform: translateY(-1.5px);
+  }
+  50% {
+    transform: translateY(1.5px);
+  }
+}
+
+.tour-scroll-hint {
+  animation: tour-scroll-hint-bounce 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tour-card-enter {
+    animation: none;
+  }
+
+  .tour-scroll-hint {
     animation: none;
   }
 
