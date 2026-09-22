@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-09-22",
+  "createdAt": "2026-09-22T08:18:13.199Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (0 routes, 3 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation Aachen Hauptbahnhof (europeansleeper)\nstation Verviers-Palais (europeansleeper)\nstation Xianglan(香兰) (chinese)",
+  "target": {
+    "routeKey": "trusted-2026-09-22",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
