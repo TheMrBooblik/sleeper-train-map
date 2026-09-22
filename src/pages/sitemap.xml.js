@@ -18,8 +18,15 @@ import { lastmodFor } from "../lib/seo/lastmod.mjs";
  *
  * Flip to 2 once Search Console shows batch 1 indexing. That is the whole
  * migration step — one line.
+ *
+ * Flipped 2026-09-22. Batch 1 is indexing: over the three months to 2026-09-20
+ * the homepage, 25 country hubs and 220 connection pages all earned
+ * impressions, so rationing has done its job. What it was still withholding is
+ * the tail — 160 of the 240 pairs and ALL 77 station hubs, which Google had
+ * found through the /connections index anyway and was ranking without ever
+ * being told they exist.
  */
-const SITEMAP_BATCH = 1;
+const SITEMAP_BATCH = 2;
 const BATCH_1_CONNECTIONS = 80;
 
 function urlEntry(loc, lastmod, changefreq, priority) {
