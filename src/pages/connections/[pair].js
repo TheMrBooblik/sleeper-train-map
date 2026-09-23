@@ -18,8 +18,7 @@ import {
 } from "../../lib/seo/aggregate";
 import { getRouteDetail } from "../../lib/seo/data";
 import { cityForStation } from "../../lib/seo/cities.mjs";
-import { connectionSnippet } from "../../lib/seo/snippet.mjs";
-import { variantFor } from "../../lib/seo/experiment.mjs";
+import { FACTS, connectionSnippet } from "../../lib/seo/snippet.mjs";
 import { formatTrainNumber } from "../../lib/operatorAgencies.mjs";
 import { buildConnectionFaq } from "../../lib/seo/routeFaq.mjs";
 import { getFlagEmoji } from "../../lib/countries";
@@ -117,10 +116,10 @@ export default function ConnectionPage({
             <h1 className="mt-2 text-3xl sm:text-4xl font-bold text-white tracking-tight text-balance">
               Night Trains from {cityA} to {cityB}
             </h1>
-            {/* `intro` and not `description`: the snippet experiment varies the
-                meta description per arm, and rendering it here would vary the
-                page's body text with it — so the readout would be measuring
-                rankings rather than clicks. See src/lib/seo/snippet.mjs. */}
+            {/* `intro` and not `description`: the meta description now leads
+                with the train and its clock, which is a snippet and not an
+                opening sentence. `intro` is the prose the page has always
+                opened with. See src/lib/seo/snippet.mjs. */}
             <p className="mt-4 text-white/70 leading-relaxed text-pretty">
               {intro} Trains run in both directions — {cityA} to {cityB} and{" "}
               {cityB} to {cityA}.
@@ -389,7 +388,7 @@ export async function getStaticProps({ params }) {
     operatorNames: pair.operators.map((o) => o.name).join(", "),
     fromPrice,
     directions: snippetDirections,
-    variant: variantFor(pair.slug),
+    variant: FACTS,
   });
 
   return {
@@ -403,8 +402,8 @@ export async function getStaticProps({ params }) {
       related: getRelatedConnections(pair.slug, 8),
       title: snippet.title,
       description: snippet.description,
-      // The control description under both arms — the page's visible opening
-      // paragraph must not move with the meta description.
+      // The page's visible opening paragraph, which is deliberately not the
+      // meta description any more.
       intro: snippet.intro,
       faq,
     },

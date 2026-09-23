@@ -1,7 +1,6 @@
 {
   "id": "connection-snippet-facts-v1",
-  "variant": "facts",
-  "startedAt": "2026-09-22",
+  "shippedAt": "2026-09-23",
   "baselineWindow": {
     "from": "2026-06-21",
     "to": "2026-09-20"
@@ -10,1441 +9,1201 @@
   "sitemapBatchFlippedAt": "2026-09-22",
   "pages": {
     "aberdeen-to-london": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 461,
       "position": 39.71
     },
     "albi-to-paris": {
-      "group": "control",
       "clicks": 0,
       "impressions": 183,
       "position": 44.33
     },
     "amsterdam-to-innsbruck": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 116,
       "position": 17.6
     },
     "amsterdam-to-milan": {
-      "group": "control",
       "clicks": 0,
       "impressions": 231,
       "position": 45.3
     },
     "amsterdam-to-vienna": {
-      "group": "treatment",
       "clicks": 1,
       "impressions": 244,
       "position": 39.41
     },
     "amsterdam-to-zurich": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 285,
       "position": 39.71
     },
     "ankara-to-istanbul": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 143,
       "position": 36.08
     },
     "ankara-to-izmir": {
-      "group": "control",
       "clicks": 0,
       "impressions": 27,
       "position": 63.93
     },
     "ankara-to-kars": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 9,
       "position": 48.33
     },
     "ankara-to-kurtalan": {
-      "group": "control",
       "clicks": 0,
       "impressions": 14,
       "position": 31.79
     },
     "ankara-to-malatya": {
-      "group": "control",
       "clicks": 0,
       "impressions": 17,
       "position": 36.41
     },
     "ankara-to-tatvan": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 11,
       "position": 33.36
     },
     "arad-to-bucharest": {
-      "group": "control",
       "clicks": 1,
       "impressions": 145,
       "position": 16.15
     },
     "aurillac-to-paris": {
-      "group": "control",
       "clicks": 0,
       "impressions": 660,
       "position": 64.9
     },
     "baku-to-tbilisi": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 62,
       "position": 43.74
     },
     "baoji-to-guangzhou": {
-      "group": "control",
       "clicks": 0,
       "impressions": 4,
       "position": 7.75
     },
     "baotou-to-guangzhou": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "baotou-to-hangzhou": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 3,
       "position": 11
     },
     "baotou-to-shenzhen": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "bar-to-belgrade": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 3,
       "position": 30.33
     },
     "batumi-to-tbilisi": {
-      "group": "treatment",
       "clicks": 1,
       "impressions": 24,
       "position": 41.42
     },
     "beijing-to-chengdu": {
-      "group": "control",
       "clicks": 0,
       "impressions": 292,
       "position": 33.86
     },
     "beijing-to-ganzhou": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 3,
       "position": 51.33
     },
     "beijing-to-guangzhou": {
-      "group": "control",
       "clicks": 0,
       "impressions": 3,
       "position": 62.33
     },
     "beijing-to-hangzhou": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 143,
       "position": 34.13
     },
     "beijing-to-harbin": {
-      "group": "control",
       "clicks": 1,
       "impressions": 390,
       "position": 39.92
     },
     "beijing-to-lhasa": {
-      "group": "control",
       "clicks": 0,
       "impressions": 2,
       "position": 72.5
     },
     "beijing-to-mudanjiang": {
-      "group": "control",
       "clicks": 0,
       "impressions": 4,
       "position": 6.75
     },
     "beijing-to-nanning": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 117,
       "position": 37.44
     },
     "beijing-to-panzhihua": {
-      "group": "control",
       "clicks": 0,
       "impressions": 4,
       "position": 6.5
     },
     "beijing-to-qingdao": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 5,
       "position": 54.8
     },
     "beijing-to-qiqihar": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 20,
       "position": 12.25
     },
     "beijing-to-sanya": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 5,
       "position": 17.4
     },
     "beijing-to-shanghai": {
-      "group": "control",
       "clicks": 0,
       "impressions": 46,
       "position": 43.61
     },
     "beijing-to-ulaanbaatar": {
-      "group": "control",
       "clicks": 0,
       "impressions": 27,
       "position": 50.93
     },
     "beijing-to-urumqi": {
-      "group": "control",
       "clicks": 0,
       "impressions": 8,
       "position": 50
     },
     "beijing-to-xiamen": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 3,
       "position": 16
     },
     "beijing-to-xian": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 199,
       "position": 55.56
     },
     "bergen-to-oslo": {
-      "group": "control",
       "clicks": 0,
       "impressions": 8,
       "position": 27.5
     },
     "berlin-to-budapest": {
-      "group": "control",
       "clicks": 0,
       "impressions": 14,
       "position": 10.14
     },
     "berlin-to-graz": {
-      "group": "control",
       "clicks": 0,
       "impressions": 14,
       "position": 9.71
     },
     "berlin-to-paris": {
-      "group": "control",
       "clicks": 0,
       "impressions": 67,
       "position": 16.75
     },
     "berlin-to-stockholm": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 170,
       "position": 34.65
     },
     "berlin-to-zurich": {
-      "group": "control",
       "clicks": 0,
       "impressions": 111,
       "position": 18.89
     },
     "bielsko-biala-to-kolobrzeg": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 17,
       "position": 23.06
     },
     "bielsko-biala-to-swinoujscie": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 3,
       "position": 19.67
     },
     "bistrita-to-bucharest": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 1,
       "position": 8
     },
     "bodo-to-trondheim": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 65,
       "position": 18.77
     },
     "bohumin-to-hel": {
-      "group": "control",
       "clicks": 0,
       "impressions": 5,
       "position": 8
     },
     "bohumin-to-leba": {
-      "group": "control",
       "clicks": 0,
       "impressions": 1,
       "position": 10
     },
     "bologna-to-munich": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 93,
       "position": 16.58
     },
     "bologna-to-vienna": {
-      "group": "treatment",
       "clicks": 1,
       "impressions": 229,
       "position": 8.82
     },
     "bolzano-to-rome": {
-      "group": "control",
       "clicks": 0,
       "impressions": 4,
       "position": 8.5
     },
     "boston-to-chicago": {
-      "group": "control",
       "clicks": 0,
       "impressions": 11,
       "position": 45.27
     },
     "brasov-to-budapest": {
-      "group": "control",
       "clicks": 0,
       "impressions": 130,
       "position": 14.87
     },
     "brasov-to-cluj-napoca": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "bratislava-to-humenne": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 13,
       "position": 14.38
     },
     "bregenz-to-vienna": {
-      "group": "control",
       "clicks": 0,
       "impressions": 67,
       "position": 13.57
     },
     "briancon-to-paris": {
-      "group": "control",
       "clicks": 0,
       "impressions": 12,
       "position": 49.58
     },
     "brussels-to-milan": {
-      "group": "treatment",
       "clicks": 3,
       "impressions": 486,
       "position": 18.87
     },
     "brussels-to-prague": {
-      "group": "control",
       "clicks": 0,
       "impressions": 9,
       "position": 43.89
     },
     "brussels-to-vienna": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 45,
       "position": 34.78
     },
     "bucharest-to-budapest": {
-      "group": "control",
       "clicks": 2,
       "impressions": 483,
       "position": 13.38
     },
     "bucharest-to-chisinau": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 9,
       "position": 44.78
     },
     "bucharest-to-cluj-napoca": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 30,
       "position": 10.8
     },
     "bucharest-to-iasi": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 21,
       "position": 7.14
     },
     "bucharest-to-istanbul": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 42,
       "position": 19.05
     },
     "bucharest-to-kyiv": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 15,
       "position": 6.13
     },
     "bucharest-to-oradea": {
-      "group": "control",
       "clicks": 0,
       "impressions": 23,
       "position": 15.17
     },
     "bucharest-to-satu-mare": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "bucharest-to-vatra-dornei": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 2,
       "position": 8
     },
     "bucharest-to-vienna": {
-      "group": "control",
       "clicks": 0,
       "impressions": 27,
       "position": 11.33
     },
     "budapest-to-koper": {
-      "group": "control",
       "clicks": 0,
       "impressions": 9,
       "position": 8.67
     },
     "budapest-to-kyiv": {
-      "group": "control",
       "clicks": 0,
       "impressions": 24,
       "position": 7.62
     },
     "budapest-to-rijeka": {
-      "group": "control",
       "clicks": 0,
       "impressions": 5,
       "position": 5
     },
     "budapest-to-split": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 51,
       "position": 27.8
     },
     "budapest-to-stuttgart": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 3,
       "position": 7.33
     },
     "budapest-to-warsaw": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 33,
       "position": 18.67
     },
     "budapest-to-zurich": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 52,
       "position": 18.67
     },
     "burgas-to-sofia": {
-      "group": "control",
       "clicks": 1,
       "impressions": 48,
       "position": 25.96
     },
     "cerbere-to-paris": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 9,
       "position": 7
     },
     "chelm-to-kharkiv": {
-      "group": "control",
       "clicks": 0,
       "impressions": 21,
       "position": 7.76
     },
     "chelm-to-kyiv": {
-      "group": "control",
       "clicks": 1,
       "impressions": 358,
       "position": 8.73
     },
     "chelm-to-swinoujscie": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "chengdu-to-jiamusi": {
-      "group": "control",
       "clicks": 0,
       "impressions": 5,
       "position": 7.8
     },
     "chengdu-to-qiqihar": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "chengdu-to-shanghai": {
-      "group": "control",
       "clicks": 0,
       "impressions": 282,
       "position": 42.1
     },
     "chengdu-to-yangzhou": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 1,
       "position": 70
     },
     "cherkasy-to-ivano-frankivsk": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 2,
       "position": 10
     },
     "chernihiv-to-ivano-frankivsk": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "chernivtsi-to-dnipro": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 3,
       "position": 61.67
     },
     "chernivtsi-to-kharkiv": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 3,
       "position": 9
     },
     "chernivtsi-to-kryvyi-rih": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "chernivtsi-to-kyiv": {
-      "group": "control",
       "clicks": 0,
       "impressions": 2,
       "position": 7.5
     },
     "chernivtsi-to-odesa": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 3,
       "position": 7.67
     },
     "chicago-to-emeryville": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "chicago-to-los-angeles": {
-      "group": "control",
       "clicks": 0,
       "impressions": 8,
       "position": 6.75
     },
     "chicago-to-miami": {
-      "group": "control",
       "clicks": 0,
       "impressions": 2,
       "position": 10
     },
     "chicago-to-new-orleans": {
-      "group": "control",
       "clicks": 0,
       "impressions": 10,
       "position": 40.6
     },
     "chicago-to-new-york": {
-      "group": "control",
       "clicks": 0,
       "impressions": 5,
       "position": 37.4
     },
     "chicago-to-seattle": {
-      "group": "control",
       "clicks": 0,
       "impressions": 17,
       "position": 43.18
     },
     "chisinau-to-kyiv": {
-      "group": "control",
       "clicks": 0,
       "impressions": 15,
       "position": 7.6
     },
     "chongqing-to-guangzhou": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 185,
       "position": 43.52
     },
     "chongqing-to-huizhou": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "chop-to-kyiv": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 7,
       "position": 7.57
     },
     "chop-to-prague": {
-      "group": "control",
       "clicks": 0,
       "impressions": 16,
       "position": 7.69
     },
     "churchill-to-winnipeg": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 7,
       "position": 40.71
     },
     "cluj-napoca-to-iasi": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 9,
       "position": 7.11
     },
     "constanta-to-iasi": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "constanta-to-oradea": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 4,
       "position": 7.75
     },
     "constanta-to-timisoara": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "dazhou-to-guangzhou": {
-      "group": "control",
       "clicks": 0,
       "impressions": 2,
       "position": 12
     },
     "dnipro-to-kovel": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "dnipro-to-lviv": {
-      "group": "control",
       "clicks": 0,
       "impressions": 2,
       "position": 10.5
     },
     "dnipro-to-odesa": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "dnipro-to-truskavets": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "dnipro-to-uzhhorod": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 23,
       "position": 12.04
     },
     "dobrich-to-sofia": {
-      "group": "control",
       "clicks": 0,
       "impressions": 17,
       "position": 10.35
     },
     "duved-to-malmo": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 1,
       "position": 4
     },
     "duved-to-stockholm": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "edinburgh-to-london": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 22,
       "position": 50.59
     },
     "edirne-to-villach": {
-      "group": "control",
       "clicks": 0,
       "impressions": 7,
       "position": 8.43
     },
     "feldkirch-to-zurich": {
-      "group": "treatment",
       "clicks": 2,
       "impressions": 80,
       "position": 8.05
     },
     "fort-william-to-london": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 39,
       "position": 49.41
     },
     "frankfurt-to-przemysl": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 33,
       "position": 7.3
     },
     "gdynia-to-prague": {
-      "group": "control",
       "clicks": 0,
       "impressions": 19,
       "position": 11.68
     },
     "gdynia-to-zakopane": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 2,
       "position": 31
     },
     "glasgow-to-london": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 69,
       "position": 49.29
     },
     "graz-to-zurich": {
-      "group": "treatment",
       "clicks": 2,
       "impressions": 280,
       "position": 8.06
     },
     "guangzhou-to-langzhong": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "guangzhou-to-lhasa": {
-      "group": "control",
       "clicks": 0,
       "impressions": 5,
       "position": 60.6
     },
     "guangzhou-to-shenyang": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 1,
       "position": 3
     },
     "haikou-to-harbin": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "haikou-to-shanghai": {
-      "group": "control",
       "clicks": 0,
       "impressions": 2,
       "position": 35.5
     },
     "halifax-to-montreal": {
-      "group": "control",
       "clicks": 0,
       "impressions": 27,
       "position": 25.96
     },
     "hamburg-to-innsbruck": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 40,
       "position": 24.4
     },
     "hamburg-to-vienna": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 21,
       "position": 21.43
     },
     "hamburg-to-zurich": {
-      "group": "control",
       "clicks": 0,
       "impressions": 65,
       "position": 36.02
     },
     "hel-to-krakow": {
-      "group": "control",
       "clicks": 0,
       "impressions": 1,
       "position": 83
     },
     "helsinki-to-kemijarvi": {
-      "group": "control",
       "clicks": 0,
       "impressions": 5,
       "position": 9.2
     },
     "helsinki-to-kolari": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 14,
       "position": 10.43
     },
     "helsinki-to-rovaniemi": {
-      "group": "control",
       "clicks": 0,
       "impressions": 158,
       "position": 57.92
     },
     "humenne-to-prague": {
-      "group": "control",
       "clicks": 0,
       "impressions": 9,
       "position": 19.33
     },
     "iasi-to-timisoara": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 10,
       "position": 16.2
     },
     "inverness-to-london": {
-      "group": "control",
       "clicks": 0,
       "impressions": 57,
       "position": 45.07
     },
     "istanbul-to-sofia": {
-      "group": "treatment",
       "clicks": 1,
       "impressions": 30,
       "position": 25.4
     },
     "ivano-frankivsk-to-kharkiv": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "ivano-frankivsk-to-kryvyi-rih": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 1,
       "position": 10
     },
     "ivano-frankivsk-to-kyiv": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "izmir-to-konya": {
-      "group": "control",
       "clicks": 0,
       "impressions": 30,
       "position": 21.97
     },
     "kamianets-podilskyi-to-kyiv": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "kharkiv-to-lviv": {
-      "group": "control",
       "clicks": 0,
       "impressions": 2,
       "position": 2.5
     },
     "kharkiv-to-odesa": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "kharkiv-to-przemysl": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 14,
       "position": 7.36
     },
     "kharkiv-to-uzhhorod": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 17,
       "position": 15.53
     },
     "kharkiv-to-vorokhta": {
-      "group": "control",
       "clicks": 0,
       "impressions": 2,
       "position": 1.5
     },
     "kolobrzeg-to-krakow": {
-      "group": "control",
       "clicks": 0,
       "impressions": 46,
       "position": 34.74
     },
     "kovel-to-kyiv": {
-      "group": "control",
       "clicks": 0,
       "impressions": 2,
       "position": 9
     },
     "kovel-to-odesa": {
-      "group": "control",
       "clicks": 0,
       "impressions": 1,
       "position": 1
     },
     "krakow-to-leba": {
-      "group": "control",
       "clicks": 0,
       "impressions": 1,
       "position": 29
     },
     "krakow-to-swinoujscie": {
-      "group": "control",
       "clicks": 0,
       "impressions": 9,
       "position": 26.67
     },
     "kremenchuk-to-mukacheve": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 3,
       "position": 33.67
     },
     "kremenchuk-to-przemysl": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 16,
       "position": 7.19
     },
     "kryvyi-rih-to-kyiv": {
-      "group": "control",
       "clicks": 1,
       "impressions": 2,
       "position": 6
     },
     "kunming-to-shanghai": {
-      "group": "control",
       "clicks": 0,
       "impressions": 79,
       "position": 48.53
     },
     "kyiv-to-lviv": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 1,
       "position": 43
     },
     "kyiv-to-mykolaiv": {
-      "group": "control",
       "clicks": 0,
       "impressions": 3,
       "position": 10.33
     },
     "kyiv-to-odesa": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 83,
       "position": 21.92
     },
     "kyiv-to-przemysl": {
-      "group": "control",
       "clicks": 0,
       "impressions": 22,
       "position": 7.32
     },
     "kyiv-to-rakhiv": {
-      "group": "control",
       "clicks": 0,
       "impressions": 6,
       "position": 5
     },
     "kyiv-to-solotvyno": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 3,
       "position": 6.33
     },
     "kyiv-to-truskavets": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 3,
       "position": 8.67
     },
     "kyiv-to-uzhhorod": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 50,
       "position": 11.22
     },
     "kyiv-to-vienna": {
-      "group": "control",
       "clicks": 0,
       "impressions": 25,
       "position": 13.4
     },
     "kyiv-to-warsaw": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 18,
       "position": 13.28
     },
     "kyiv-to-zaporizhzhia": {
-      "group": "control",
       "clicks": 0,
       "impressions": 2,
       "position": 42.5
     },
     "latour-de-carol-to-paris": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 11,
       "position": 13.82
     },
     "lecce-to-milan": {
-      "group": "control",
       "clicks": 0,
       "impressions": 97,
       "position": 40.32
     },
     "lecce-to-rome": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 8,
       "position": 27.62
     },
     "lecce-to-turin": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 46,
       "position": 8.3
     },
     "lhasa-to-shanghai": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 1,
       "position": 53
     },
     "london-to-penzance": {
-      "group": "control",
       "clicks": 0,
       "impressions": 13,
       "position": 53.62
     },
     "lorton-to-sanford": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "los-angeles-to-new-orleans": {
-      "group": "control",
       "clicks": 0,
       "impressions": 4,
       "position": 49.5
     },
     "los-angeles-to-seattle": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 4,
       "position": 43.25
     },
     "lozova-to-lviv": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 11,
       "position": 44.36
     },
     "lozova-to-mykolaiv": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "lulea-to-stockholm": {
-      "group": "control",
       "clicks": 0,
       "impressions": 5,
       "position": 17.8
     },
     "lviv-to-mykolaiv": {
-      "group": "control",
       "clicks": 0,
       "impressions": 1,
       "position": 11
     },
     "lviv-to-odesa": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 4,
       "position": 8.5
     },
     "lviv-to-zaporizhzhia": {
-      "group": "control",
       "clicks": 0,
       "impressions": 24,
       "position": 17.29
     },
     "malmo-to-stockholm": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 38,
       "position": 46.21
     },
     "malmo-to-storlien": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 24,
       "position": 7.96
     },
     "mangalia-to-satu-mare": {
-      "group": "control",
       "clicks": 0,
       "impressions": 5,
       "position": 21
     },
     "mangalia-to-suceava": {
-      "group": "control",
       "clicks": 0,
       "impressions": 7,
       "position": 14.43
     },
     "messina-to-palermo": {
-      "group": "control",
       "clicks": 2,
       "impressions": 130,
       "position": 9.21
     },
     "miami-to-new-york": {
-      "group": "control",
       "clicks": 0,
       "impressions": 21,
       "position": 39.86
     },
     "milan-to-siracusa": {
-      "group": "control",
       "clicks": 0,
       "impressions": 4,
       "position": 34
     },
     "munich-to-przemysl": {
-      "group": "control",
       "clicks": 0,
       "impressions": 25,
       "position": 10.16
     },
     "munich-to-rome": {
-      "group": "control",
       "clicks": 0,
       "impressions": 23,
       "position": 29.35
     },
     "munich-to-venice": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 4,
       "position": 48
     },
     "munich-to-warsaw": {
-      "group": "control",
       "clicks": 0,
       "impressions": 39,
       "position": 36.23
     },
     "new-orleans-to-new-york": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "nice-to-paris": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 113,
       "position": 30.63
     },
     "odesa-to-przemysl": {
-      "group": "control",
       "clicks": 0,
       "impressions": 3,
       "position": 10.33
     },
     "odesa-to-uzhhorod": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 1,
       "position": 11
     },
     "osijek-to-split": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 19,
       "position": 14.63
     },
     "oslo-to-stavanger": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 10,
       "position": 15.1
     },
     "oslo-to-trondheim": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 21,
       "position": 49.9
     },
     "paris-to-rodez": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 4,
       "position": 7.25
     },
     "paris-to-tarbes": {
-      "group": "control",
       "clicks": 0,
       "impressions": 9,
       "position": 18.11
     },
     "paris-to-toulouse": {
-      "group": "control",
       "clicks": 0,
       "impressions": 3,
       "position": 30
     },
     "prague-to-przemysl": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 68,
       "position": 18.9
     },
     "prague-to-warsaw": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 56,
       "position": 50.57
     },
     "prague-to-zurich": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 15,
       "position": 42.4
     },
     "przemysl-to-swinoujscie": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 4,
       "position": 41.75
     },
     "przemysl-to-zaporizhzhia": {
-      "group": "control",
       "clicks": 0,
       "impressions": 14,
       "position": 7.36
     },
     "rakhiv-to-sumy": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "reggio-calabria-to-turin": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "rijeka-to-warsaw": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 7,
       "position": 28.86
     },
     "rome-to-siracusa": {
-      "group": "control",
       "clicks": 0,
       "impressions": 41,
       "position": 24.24
     },
     "rome-to-trieste": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 36,
       "position": 49.86
     },
     "rome-to-vienna": {
-      "group": "control",
       "clicks": 0,
       "impressions": 30,
       "position": 10.37
     },
     "rovaniemi-to-turku": {
-      "group": "control",
       "clicks": 0,
       "impressions": 1,
       "position": 8
     },
     "salerno-to-turin": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 81,
       "position": 45.05
     },
     "silistra-to-sofia": {
-      "group": "control",
       "clicks": 0,
       "impressions": 10,
       "position": 16.6
     },
     "sofia-to-varna": {
-      "group": "control",
       "clicks": 0,
       "impressions": 297,
       "position": 15.74
     },
     "solotvyno-to-zaporizhzhia": {
-      "group": "control",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "split-to-vienna": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 36,
       "position": 17.11
     },
     "split-to-zagreb": {
-      "group": "control",
       "clicks": 0,
       "impressions": 29,
       "position": 50.1
     },
     "stuttgart-to-venice": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 125,
       "position": 20.7
     },
     "stuttgart-to-zagreb": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 32,
       "position": 30.84
     },
     "swinoujscie-to-zakopane": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 3,
       "position": 21.67
     },
     "szklarska-poreba-to-warsaw": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 2,
       "position": 10.5
     },
     "tbilisi-to-yerevan": {
-      "group": "control",
       "clicks": 0,
       "impressions": 44,
       "position": 44.39
     },
     "toronto-to-vancouver": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 2,
       "position": 26.5
     },
     "venice-to-vienna": {
-      "group": "control",
       "clicks": 1,
       "impressions": 690,
       "position": 10.48
     },
     "vienna-to-zurich": {
-      "group": "treatment",
       "clicks": 8,
       "impressions": 973,
       "position": 11.49
     },
     "yasinia-to-zaporizhzhia": {
-      "group": "treatment",
       "clicks": 0,
       "impressions": 0,
       "position": 0
     },
     "zagreb-to-zurich": {
-      "group": "control",
       "clicks": 1,
       "impressions": 55,
       "position": 12.67

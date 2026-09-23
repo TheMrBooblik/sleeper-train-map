@@ -1,19 +1,20 @@
 #!/usr/bin/env node
 /**
- * The connection-page snippet experiment.
+ * The connection-page snippets.
  *
  * Two things here are load-bearing and neither is visible by reading a page.
  *
- * The CONTROL variant has to reproduce the templates the pages carried before
- * the experiment, byte for byte, or half the pages silently changed and the
- * arm they are supposed to anchor is not a baseline at all. The templates are
- * restated below rather than imported: two independent expressions of the same
- * string, so a typo in either one fails.
+ * The CONTROL variant renders nowhere, and still has to reproduce the templates
+ * the pages carried before this change, byte for byte. It is the baseline the
+ * before/after report measures against and the wording a revert restores, so if
+ * it drifts there is no longer any record of what the pages used to say. The
+ * templates are restated below rather than imported: two independent
+ * expressions of the same string, so a typo in either one fails.
  *
- * And `intro` — the page's visible opening paragraph — must NOT move with the
- * meta description. The page renders one of them in its <header>, and if that
- * is the varying one then the treatment arm changed its body text too, the
- * rankings move with it, and the CTR readout means nothing.
+ * And `intro` — the page's visible opening paragraph — must NOT be the meta
+ * description. That description now opens "Nightjet NJ 466 leaves Vienna
+ * 19:39…", which is a snippet and not an opening sentence; the page renders one
+ * of the two in its <header> and it has to be the prose.
  *
  * Assertions run against the published payload rather than a fixture, for the
  * reason `verify-station-times` does: the failure mode is a real route with a
@@ -32,12 +33,7 @@ import {
   frequencyPhrase,
   pickPrimaryDirection,
 } from "../src/lib/seo/snippet.mjs";
-import {
-  CONTROL_GROUP,
-  TREATMENT_GROUP,
-  assignGroups,
-} from "../src/lib/seo/experiment-split.mjs";
-import { variantFor } from "../src/lib/seo/experiment.mjs";
+import { benchmarkCtr, winnableClicks } from "../src/lib/seo/ctrBenchmark.mjs";
 
 const TITLE_MAX = 60;
 const DESCRIPTION_MAX = 160;
@@ -49,7 +45,7 @@ const check = (name, fn) => {
   console.log(`  ok  ${name}`);
 };
 
-// --- the pre-experiment templates, restated ---------------------------------
+// --- the previous templates, restated ---------------------------------
 
 const legacyTitle = (cityA, cityB) =>
   `Night Trains ${cityA} to ${cityB} — Times, Stops & Tickets | Pingwi`;
@@ -62,13 +58,13 @@ const legacyDescription = ({ cityA, cityB, trainCount, operatorNames, fromPrice 
     : " Compare timetables, stops, journey time and where to book.");
 
 const pairs = getPublishedPairs();
-const experiment = JSON.parse(fs.readFileSync("data/seo/snippet-experiment.json", "utf8"));
+const baseline = JSON.parse(fs.readFileSync("data/seo/snippet-baseline.json", "utf8"));
 
 console.log(`\nseo snippets — ${pairs.length} published pairs\n`);
 
 // --- 1. parity --------------------------------------------------------------
 
-check("control reproduces the pre-experiment templates on every pair", () => {
+check("control reproduces the templates the pages shipped with before", () => {
   assert.ok(pairs.length >= 200, `expected the full pair set, got ${pairs.length}`);
   for (const p of pairs) {
     const got = connectionSnippet({ ...p, variant: CONTROL });
@@ -87,7 +83,7 @@ check("control parity holds for the price branch that has never yet fired", () =
 
 // --- 2. invariance ----------------------------------------------------------
 
-check("intro is identical under both variants, on every pair", () => {
+check("intro is the prose, not the meta description, on every pair", () => {
   for (const p of pairs) {
     const control = connectionSnippet({ ...p, variant: CONTROL });
     const facts = connectionSnippet({ ...p, variant: FACTS });
@@ -96,7 +92,7 @@ check("intro is identical under both variants, on every pair", () => {
   }
 });
 
-check("the page renders intro, not description, in its header", () => {
+check("the page renders intro in its header, and ships FACTS", () => {
   // The defect is structural and the component's extensionless imports will not
   // load in raw node, so the source is what there is to assert — the same
   // reason verify-via-schedule pins the panel's chain order.
@@ -104,11 +100,12 @@ check("the page renders intro, not description, in its header", () => {
   const header = page.slice(page.indexOf("<header"), page.indexOf("</header>"));
   assert.ok(header.includes("{intro}"), "the header paragraph must render {intro}");
   assert.ok(!header.includes("{description}"), "the header paragraph must not render {description}");
+  assert.match(page, /variant:\s*FACTS/, "every pair page must render the FACTS variant");
 });
 
 // --- 3. length --------------------------------------------------------------
 
-check("treatment stays inside the title and description budgets", () => {
+check("the shipped snippet stays inside the title and description budgets", () => {
   for (const p of pairs) {
     const { title, description } = connectionSnippet({ ...p, variant: FACTS });
     assert.ok(title.length <= TITLE_MAX, `${p.slug}: title ${title.length} > ${TITLE_MAX} — ${title}`);
@@ -119,13 +116,14 @@ check("treatment stays inside the title and description budgets", () => {
   }
 });
 
-check("treatment earns its place: most pages carry a fact the control did not", () => {
+check("the shipped variant earns its place: most titles carry a fact", () => {
   const withFact = pairs.filter((p) => !connectionSnippet({ ...p, variant: FACTS }).title.includes("Times, Stops & Tickets"));
   // 231 of 240 today. A change that drops this sharply has broken the data path
-  // rather than the formula, and the experiment would measure a reordering.
+  // rather than the formula, and the pages would be reordered wording and
+  // nothing else.
   assert.ok(
     withFact.length >= pairs.length * 0.8,
-    `only ${withFact.length}/${pairs.length} treatment titles carry a fact`,
+    `only ${withFact.length}/${pairs.length} titles carry a fact`,
   );
 });
 
@@ -210,49 +208,46 @@ check("the described direction is the one the title names", () => {
   assert.equal(pickPrimaryDirection("Vienna", []), null);
 });
 
-// --- 5. assignment integrity ------------------------------------------------
+// --- 5. the frozen baseline -------------------------------------------------
 
-check("the committed split covers every published pair, disjointly", () => {
+check("the baseline covers every published pair", () => {
   const slugs = new Set(pairs.map((p) => p.slug));
-  const assigned = Object.keys(experiment.pages);
-  assert.equal(assigned.length, slugs.size, "the split and the published pairs are different sizes");
-  for (const slug of assigned) assert.ok(slugs.has(slug), `${slug} is in the split but not published`);
-  for (const slug of slugs) assert.ok(experiment.pages[slug], `${slug} is published but not in the split`);
-  for (const [slug, page] of Object.entries(experiment.pages)) {
-    assert.ok(
-      page.group === TREATMENT_GROUP || page.group === CONTROL_GROUP,
-      `${slug} has group ${JSON.stringify(page.group)}`,
-    );
+  const recorded = Object.keys(baseline.pages);
+  assert.equal(recorded.length, slugs.size, "the baseline and the published pairs are different sizes");
+  for (const slug of recorded) assert.ok(slugs.has(slug), `${slug} is in the baseline but not published`);
+  // A pair with no row has no "before", so it silently drops out of the report.
+  for (const slug of slugs) assert.ok(baseline.pages[slug], `${slug} is published but absent from the baseline`);
+});
+
+check("the baseline is a frozen snapshot, not a live count", () => {
+  for (const [slug, page] of Object.entries(baseline.pages)) {
+    for (const field of ["clicks", "impressions", "position"]) {
+      assert.equal(typeof page[field], "number", `${slug}.${field} is not a number`);
+      assert.ok(page[field] >= 0, `${slug}.${field} is negative`);
+    }
+    // `group` is what the abandoned split wrote. Its presence means somebody
+    // reseeded from a file that still carried the arms.
+    assert.ok(!("group" in page), `${slug} still carries an experiment arm`);
   }
+  assert.match(baseline.shippedAt, /^\d{4}-\d{2}-\d{2}$/, "shippedAt must be a plain date");
+  assert.match(baseline.sitemapBatchFlippedAt, /^\d{4}-\d{2}-\d{2}$/, "sitemapBatchFlippedAt must be a plain date");
+  assert.ok(
+    baseline.baselineWindow.from < baseline.baselineWindow.to,
+    "the baseline window runs backwards",
+  );
 });
 
-check("the committed split is still what the rule produces from its own baseline", () => {
-  const recomputed = assignGroups(experiment.pages);
-  for (const [slug, page] of Object.entries(experiment.pages)) {
-    assert.equal(recomputed.get(slug), page.group, `${slug} has drifted from the assignment rule`);
+check("the benchmark curve ranks a bad position below a good one", () => {
+  // The report bands on this, so a curve that stopped descending would let a
+  // page nothing could win dilute the pages a title can move.
+  for (let p = 2; p <= 60; p += 1) {
+    assert.ok(benchmarkCtr(p) <= benchmarkCtr(p - 1), `CTR at ${p} exceeds ${p - 1}`);
   }
-});
-
-check("the arms are matched on volume", () => {
-  const arm = (group) => Object.values(experiment.pages).filter((p) => p.group === group);
-  const impressions = (group) => arm(group).reduce((n, p) => n + p.impressions, 0);
-  const t = arm(TREATMENT_GROUP);
-  const c = arm(CONTROL_GROUP);
-  assert.ok(Math.abs(t.length - c.length) <= 1, `arm sizes ${t.length} vs ${c.length}`);
-  const skew = Math.abs(impressions(TREATMENT_GROUP) - impressions(CONTROL_GROUP)) /
-    Math.max(impressions(TREATMENT_GROUP) + impressions(CONTROL_GROUP), 1);
-  assert.ok(skew <= 0.02, `baseline impressions are ${(100 * skew).toFixed(1)}% apart between arms`);
-});
-
-check("variantFor enrols only what the committed file names", () => {
-  const treated = Object.entries(experiment.pages).find(([, p]) => p.group === TREATMENT_GROUP)[0];
-  const held = Object.entries(experiment.pages).find(([, p]) => p.group === CONTROL_GROUP)[0];
-  assert.equal(variantFor(treated), FACTS);
-  assert.equal(variantFor(held), CONTROL);
-  // A pair published after the split was frozen has no baseline to be measured
-  // against, so it must never be enrolled by accident.
-  assert.equal(variantFor("a-pair-that-does-not-exist"), CONTROL);
-  assert.equal(variantFor(undefined), CONTROL);
+  assert.ok(benchmarkCtr(1) > benchmarkCtr(10), "position 1 must beat position 10");
+  assert.equal(winnableClicks({ impressions: 1000, position: 1 }), 280);
+  // aurillac-to-paris: 660 impressions at position 65 is worth a third of a click.
+  assert.ok(winnableClicks({ impressions: 660, position: 65 }) < 1);
+  assert.equal(winnableClicks({}), 0);
 });
 
 console.log(`\n${checks} checks passed\n`);

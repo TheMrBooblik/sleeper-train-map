@@ -1,29 +1,32 @@
 /**
- * Titles and meta descriptions for the `/connections/{pair}` pages, in two
- * variants, so the pair pages can run a matched A/B on the snippet alone.
+ * Titles and meta descriptions for the `/connections/{pair}` pages.
  *
- * Three months of Search Console said the problem is the snippet and not the
- * ranking: in positions 5-20 the site earned 45 clicks from 7 276 impressions
- * (0.62%) against a 2-5% benchmark, with /connections/venice-to-vienna sitting
- * at position 10.5 on 690 impressions and ONE click. Every title and
- * description was a template carrying no fact a searcher wants, while the
- * facts sat one field away: duration on 398/398 trips, departure and arrival
- * on every top-impression page, operating days on 450/547 directions and
- * `classes` — sleeper / couchette / seat — on 396 of 398 trips.
+ * Three months of Search Console said the pair pages rank and are not clicked:
+ * in positions 5-20, where clicks are winnable, 45 clicks from 7 276
+ * impressions (0.62%) against a 2-5% benchmark, with
+ * /connections/venice-to-vienna at position 10.5 on 690 impressions and ONE
+ * click. Every title and description was a template carrying no fact a searcher
+ * wants, while the facts sat one field away: duration on 398/398 trips,
+ * departure and arrival on every top-impression page, operating days on 450/547
+ * directions, and `classes` — sleeper / couchette / seat — on 396 of 398 trips,
+ * printed in RouteFactsGrid and never once in a snippet.
  *
- * `control` reproduces those templates BYTE FOR BYTE. It is what the control
- * arm renders and what `verify-seo-snippets` pins, so wiring this module in is
- * a no-op for half the pages and the experiment has a real baseline.
+ * `FACTS` is what every pair page renders. It puts the query entity first with
+ * one number in the title, and opens the description with the train, its clock
+ * and how often it runs.
  *
- * `facts` puts the query entity first and carries one number in the title, and
- * opens the description with the train, its clock and how often it runs.
+ * `CONTROL` reproduces the old templates BYTE FOR BYTE and renders nowhere. It
+ * is not dead weight: it is the baseline the before/after report measures
+ * against, it supplies `intro` (below), and it is what a revert restores —
+ * `verify-seo-snippets` pins it against every published pair, so "what the
+ * pages used to say" cannot quietly drift.
  *
  * The module is dependency-free `.mjs` for the reason `slugify.mjs` and
  * `routeFaq.mjs` are: `verify-seo-snippets` must compute in raw node exactly
  * what the Next build computes, or the test pins nothing.
  */
 
-/** Variant ids. `variantFor()` in experiment.mjs answers with one of these. */
+/** Variant ids. The pages pass FACTS; CONTROL is the pinned former wording. */
 export const CONTROL = "control";
 export const FACTS = "facts";
 
@@ -304,11 +307,11 @@ function factsDescription({
 /**
  * Title, meta description and the visible intro paragraph for a pair page.
  *
- * `intro` is the CONTROL description under both variants, and that is the
- * invariant the whole experiment rests on: the page renders the meta
- * description as its opening paragraph, so without a separate field the
- * treatment arm would change its body text too and the readout would be
- * measuring rankings rather than clicks.
+ * `intro` is the CONTROL description under both variants, and it is why the
+ * page keeps reading like a page. The pair page rendered its meta description
+ * as its visible opening paragraph; a description that now leads "Nightjet NJ
+ * 466 leaves Vienna 19:39…" is a snippet and not an opening sentence, so the
+ * prose and the meta part company here rather than in the component.
  *
  * @param {object} input
  * @param {string} input.cityA
