@@ -410,5 +410,33 @@
   "Naucelle": {
     "lat": 44.185439,
     "lon": 2.363259
+  },
+  "Vierzon": {
+    "lat": 47.226474,
+    "lon": 2.059869
+  },
+  "Uzerche": {
+    "lat": 45.440654,
+    "lon": 1.570272
+  },
+  "Saint-Pierre-des-Corps": {
+    "lat": 47.38614,
+    "lon": 0.723539
+  },
+  "Vallo Della Lucania-Castelnuovo": {
+    "lat": 40.233316,
+    "lon": 15.266511
+  },
+  "Rosarno": {
+    "lat": 38.488593,
+    "lon": 15.970149
+  },
+  "Rapallo": {
+    "lat": 44.351398,
+    "lon": 9.231282
+  },
+  "Tortona": {
+    "lat": 44.900126,
+    "lon": 8.861777
   }
 }

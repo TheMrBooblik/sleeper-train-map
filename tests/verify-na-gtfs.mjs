@@ -9,6 +9,8 @@
 // Raw node, no network.
 // Run: npm run verify-na-gtfs
 
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import polyline from "@mapbox/polyline";
@@ -16,6 +18,8 @@ import {
   MAX_SHAPES_BYTES,
   headersFor,
   loadGtfsDir,
+  readCsv,
+  forEachCsvRow,
   buildSleeperTrains,
 } from "../scripts/lib/gtfs.mjs";
 
@@ -603,6 +607,39 @@ check(
     seasonFreq === "2026/06/13-2026/09/06: Daily",
     `a real season must survive the union and stay daily, got ${JSON.stringify(seasonFreq)}`,
   );
+}
+
+// ─── Streamed CSV reader ─────────────────────────────────────────────────────
+// loadGtfsDir reads every table through forEachCsvRow: readCsv held the whole
+// file as a string plus an object per row, and SNCF's export outgrew the 2 GB
+// heap on 23 September — the nightly scrape died on it every night after, and
+// took every source registered after SNCF with it. The streamed reader must be
+// row-for-row the same parse, including across a chunk boundary that falls
+// inside a line, and inside a multi-byte character.
+{
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "csv-"));
+  const file = path.join(dir, "stop_times.txt");
+  fs.writeFileSync(
+    file,
+    '\uFEFFtrip_id,stop_name ,arrival_time\r\n' +
+      't1,"Malmö, Centralstation",23:17:00\r\n' +
+      '\r\n' +
+      't2,Köbenhavn Syd,30:01:00\n' +
+      't3,"say ""hi""",\n' +
+      't4,Umeå',
+  );
+  const whole = readCsv(file);
+  for (const chunkBytes of [1, 5, 7, 64, 1 << 20]) {
+    const streamed = [];
+    const n = forEachCsvRow(file, (r) => streamed.push(r), { chunkBytes });
+    check(
+      JSON.stringify(streamed) === JSON.stringify(whole) && n === whole.length,
+      `forEachCsvRow (chunk ${chunkBytes} B) must parse exactly as readCsv: ${JSON.stringify(streamed)} vs ${JSON.stringify(whole)}`,
+    );
+  }
+  check(whole.length === 4 && whole[0].stop_name === "Malmö, Centralstation", "fixture parses as intended");
+  check(forEachCsvRow(path.join(dir, "missing.txt"), () => {}) === 0, "a missing table is empty, not an error");
+  fs.rmSync(dir, { recursive: true, force: true });
 }
 
 if (problems.length) {

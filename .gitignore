@@ -48,6 +48,8 @@ gtfs-data/polish-trains-unpacked/
 .playwright-cli/
 # Downloaded GTFS feeds unpacked by the scrape (regenerated each run)
 gtfs-data/*-unpacked/
+# Streamed straight out of the zip instead (trafiklab: 650 MB, deleted after use)
+gtfs-data/*.zip
 
 # Playwright output (the HTML report, and the screenshots the specs write)
 /playwright-report/

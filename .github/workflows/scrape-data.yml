@@ -34,9 +34,18 @@ jobs:
       # PLK_API_KEY: official PLK "Otwarte Dane Kolejowe" API key, consumed by the
       # pkp-plk adapter to enrich PKP station info. Optional — absent key just
       # leaves the GTFS bundle as-is. Add it as a repo secret to enable.
+      # TRAFIKLAB_API_KEY: Trafiklab key for GTFS Sweden 3, consumed by the
+      # trafiklab adapter (one download a night; Bronze allows 60 per 30 days).
+      # Optional — absent or out of quota, the adapter reads the keyless
+      # Mobility Database mirror of the same feed instead.
       - run: npm run scrape
         env:
           PLK_API_KEY: ${{ secrets.PLK_API_KEY }}
+          TRAFIKLAB_API_KEY: ${{ secrets.TRAFIKLAB_API_KEY }}
+          # Headroom over Node's ~2 GB default: the runner has 16 GB, and an
+          # out-of-memory kills the whole scrape rather than one source (it
+          # did, on SNCF, every night from 23 September).
+          NODE_OPTIONS: --max-old-space-size=6144
 
       # Classify tonight's changes BEFORE canonicalize: new trains/stations
       # file proposals on the `proposals` branch (reviewed in /data) and update

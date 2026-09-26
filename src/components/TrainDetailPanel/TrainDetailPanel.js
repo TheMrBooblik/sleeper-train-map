@@ -9,6 +9,10 @@ import { useTrips } from "../../hooks/requests/useTrips";
 import { getRouteFrequencyOverride } from "../../lib/routeFrequencyOverrides";
 import { buildPairSlug } from "../../lib/seo/slugify.mjs";
 import { viaScheduleForTrip } from "../../lib/viaSchedule.mjs";
+import {
+  sourceFeedIdForRoute,
+  sourceFeedSchedule,
+} from "../../lib/sourceFeedSchedule.mjs";
 import { cityForStation } from "../../lib/seo/cities.mjs";
 import {
   checkRegioJetPrahaChop,
@@ -30,8 +34,13 @@ import {
   formatTrainNumber,
   resolveOperatorComponents,
   resolveScheduleLink,
+  splitAgencyIds,
 } from "../../lib/operatorAgencies.mjs";
-import { hasLastMinuteDeals } from "../../lib/operatorBooking";
+import {
+  buildBookingUrl,
+  hasLastMinuteDeals,
+} from "../../lib/operatorBooking";
+import { formatPlanDate } from "../../lib/plan/format.mjs";
 import {
   esScheduleForTrip,
   isEuropeanSleeperRoute,
@@ -45,7 +54,11 @@ import {
 } from "../../lib/viaDisplay.mjs";
 import { MOBILE_MQ } from "../../hooks/useIsMobile";
 import { splitViaString } from "../../lib/viaSplit.mjs";
-import { officialRowSchedule } from "../../lib/officialRowSchedule.mjs";
+import {
+  officialRowSchedule,
+  durationMinutesBetween,
+  formatDurationShort,
+} from "../../lib/officialRowSchedule.mjs";
 
 /**
  * How much of the viewport the panel occupies, so the map can frame a selected
@@ -147,6 +160,21 @@ function isNorthAmericaRoute(routeId) {
   return id.startsWith("amtrak_") || id.startsWith("via_");
 }
 
+// A trip one of the per-operator feeds below already knows how to time. Only a
+// trip none of them claims reads its row's `timetable_source` instead, so no
+// trains file is fetched twice under two names.
+function isKnownFeedTrip(t) {
+  return (
+    isNightJetOrEuroNightTrainNumber(t.trip_short_name) ||
+    isChinaRailwayTrainNumber(t.trip_short_name) ||
+    isItalianICNTrainNumber(t.trip_short_name) ||
+    isCaucasusTrainNumber(t.trip_short_name) ||
+    isNorthAmericaRoute(t.route_id) ||
+    isEuropeanSleeperRoute(t.route_id) ||
+    String(t.route_id || "").startsWith("curated_")
+  );
+}
+
 /**
  * Journey length between two wall-clock "HH:MM" strings.
  *
@@ -244,6 +272,10 @@ const TrainDetailPanel = ({
   const [esTrainData, setEsTrainData] = useState(null);
   const [esLoadFailed, setEsLoadFailed] = useState(false);
   const [esLoading, setEsLoading] = useState(false);
+  // Synthetic rows built by any other registry source, keyed by source id.
+  const [sourceFeedData, setSourceFeedData] = useState({});
+  const [sourceFeedLoadFailed, setSourceFeedLoadFailed] = useState(false);
+  const [sourceFeedLoading, setSourceFeedLoading] = useState(false);
   const [suggestContext, setSuggestContext] = useState(null);
   const sheetRef = useRef(null);
   // Tracks a drag on the sheet handle: down collapses/dismisses, up expands.
@@ -380,19 +412,18 @@ const TrainDetailPanel = ({
       pushDirection("1");
     });
 
-    // Only keep trains we can recognize as NJ/EN, CR, Italian ICN, Caucasus,
-    // North American (Amtrak/VIA), European Sleeper, or admin-curated routes;
-    // otherwise fall back to empty-state.
-    return next.filter(
-      (t) =>
-        isNightJetOrEuroNightTrainNumber(t.trip_short_name) ||
-        isChinaRailwayTrainNumber(t.trip_short_name) ||
-        isItalianICNTrainNumber(t.trip_short_name) ||
-        isCaucasusTrainNumber(t.trip_short_name) ||
-        isNorthAmericaRoute(t.route_id) ||
-        isEuropeanSleeperRoute(t.route_id) ||
-        String(t.route_id || "").startsWith("curated_"),
-    );
+    // Keep trains we can recognize as NJ/EN, CR, Italian ICN, Caucasus,
+    // North American (Amtrak/VIA), European Sleeper, or admin-curated routes —
+    // and any other synthetic row, whose timetable comes from the registry
+    // source that built it (`source_feed`, see sourceFeedSchedule.mjs). Only a
+    // row none of those can place falls back to the empty state.
+    return next
+      .map((t) => {
+        if (isKnownFeedTrip(t)) return t;
+        const sourceFeed = sourceFeedIdForRoute(routes[t.route_id]);
+        return sourceFeed ? { ...t, source_feed: sourceFeed } : null;
+      })
+      .filter(Boolean);
   }, [selectedRouteIds, routes, relevantTrips.length]);
 
   const tripsToRender =
@@ -546,6 +577,26 @@ const TrainDetailPanel = ({
   // European Sleeper appears both as synthetic rows and as enriched
   // Back-on-Track ones, and only the former go through fallbackTrips.
   const hasESTrips = tripsToRender.some(isEuropeanSleeperTrip);
+  // The trains file each rendered trip is timed from when no per-operator feed
+  // claims it: a synthetic row's own source, or the official source that
+  // corroborated a Back-on-Track row (Trafiklab for SJ 91, whose card otherwise
+  // lists 13 stops with a time only at each end).
+  const sourceFeedIdForTrip = (t) =>
+    t.source_feed ||
+    (!isKnownFeedTrip(t) && !isEuropeanSleeperTrip(t)
+      ? sourceFeedIdForRoute(routes?.[String(t.route_id)])
+      : null);
+  // One key per distinct source, so the effect below refetches only when the
+  // set of sources changes rather than on every render.
+  const sourceFeedIds = [
+    ...new Set(tripsToRender.map(sourceFeedIdForTrip).filter(Boolean)),
+  ]
+    .sort()
+    .join(",");
+  // Only a synthetic row depends on that file for its stop list at all; a
+  // corroborated Back-on-Track row still has its via names, so a failed fetch
+  // there is not worth a warning.
+  const sourceFeedRequired = fallbackTrips.some((t) => t.source_feed);
 
   useEffect(() => {
     if (!isOpen || !hasNJFallback) {
@@ -796,6 +847,43 @@ const TrainDetailPanel = ({
       active = false;
     };
   }, [isOpen, hasESTrips]);
+
+  // Any other registry source's trains file, for its synthetic rows.
+  useEffect(() => {
+    if (!isOpen || !sourceFeedIds) {
+      setSourceFeedData({});
+      setSourceFeedLoadFailed(false);
+      setSourceFeedLoading(false);
+      return;
+    }
+
+    let active = true;
+    const loadSourceFeeds = async () => {
+      setSourceFeedLoading(true);
+      setSourceFeedLoadFailed(false);
+      const ids = sourceFeedIds.split(",");
+      const results = await Promise.all(
+        ids.map((id) =>
+          fetch(`/api/operator-trains?source=${encodeURIComponent(id)}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null),
+        ),
+      );
+      if (!active) return;
+      const next = {};
+      ids.forEach((id, i) => {
+        if (results[i]?.trains) next[id] = results[i].trains;
+      });
+      setSourceFeedData(next);
+      setSourceFeedLoadFailed(Object.keys(next).length < ids.length);
+      setSourceFeedLoading(false);
+    };
+
+    loadSourceFeeds();
+    return () => {
+      active = false;
+    };
+  }, [isOpen, sourceFeedIds]);
 
   const nightjetTrainByNumber = useMemo(() => {
     const trains = nightjetData?.trains || {};
@@ -1151,6 +1239,11 @@ const TrainDetailPanel = ({
                   European Sleeper timetable is currently unavailable.
                 </div>
               )}
+              {sourceFeedLoadFailed && sourceFeedRequired && (
+                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                  Detailed timetable is currently unavailable.
+                </div>
+              )}
 
               {orderedTrips.map((trip, index) => {
                 // Operator brand color for accent styling
@@ -1358,10 +1451,15 @@ const TrainDetailPanel = ({
                 // Booking origin: prefer the station the user clicked on the map
                 // (so the deep link starts from where they are), but only when it
                 // isn't the destination. Otherwise use the train's own origin.
+                // The corrected row's endpoints when an official feed moved
+                // them (Trafiklab runs SJ 91 from Umeå; the trip still says
+                // Luleå), so the deep link searches the train the card shows.
+                const bookingDest =
+                  officialRow?.destination || trip.trip_headsign;
                 const bookingOrigin =
-                  selectedStation && selectedStation !== trip.trip_headsign
+                  selectedStation && selectedStation !== bookingDest
                     ? selectedStation
-                    : trip.trip_origin;
+                    : officialRow?.origin || trip.trip_origin;
                 // One entry per operating company ("PKP/ČD" → PKP + ČD), each
                 // carrying its logo plus the best link that operator sells this
                 // ticket through (deep link → booking page → fare portal →
@@ -1473,6 +1571,27 @@ const TrainDetailPanel = ({
                   null;
                 const naSchedule =
                   naScheduleByTrainNumber.get(normalizedTrainNumber) || null;
+                // A synthetic row from any other registry source (Trafiklab,
+                // CFR, …): its own trains file, by its own label.
+                const sourceFeedId = sourceFeedIdForTrip(trip);
+                const sourceSchedule = sourceFeedId
+                  ? sourceFeedSchedule(sourceFeedData[sourceFeedId], trip)
+                  : null;
+                const sourceStops = sourceSchedule?.stops || [];
+                const sourceOriginDeparture =
+                  sourceStops[0]?.departure || sourceStops[0]?.arrival || null;
+                const sourceDestinationArrival =
+                  sourceStops[sourceStops.length - 1]?.arrival ||
+                  sourceStops[sourceStops.length - 1]?.departure ||
+                  null;
+                // Same "8h 57m" shape as the corroborated row's own duration,
+                // which this replaces on the same card.
+                const sourceDuration = formatDurationShort(
+                  durationMinutesBetween(
+                    sourceOriginDeparture,
+                    sourceDestinationArrival,
+                  ),
+                );
                 const schedule =
                   // PKP GTFS is the source of truth for Polish trains.
                   pkpSchedule ||
@@ -1485,7 +1604,32 @@ const TrainDetailPanel = ({
                   curatedSchedule ||
                   naSchedule ||
                   esSchedule ||
+                  sourceSchedule ||
                   viaSchedule;
+                // Nights in the next fortnight on which the train runs a
+                // different timetable (engineering works, an extension), read
+                // from the same source as the timetable they differ from.
+                const upcomingChanges =
+                  schedule === sourceSchedule ? sourceSchedule?.changes || [] : [];
+                const upcomingChangeNights = upcomingChanges.reduce(
+                  (n, c) => n + c.dates.length,
+                  0,
+                );
+                // A search on the operator's own site for that night, when it
+                // has a dated deep link (sj.se); otherwise nothing, since a
+                // homepage cannot show a particular night's timetable.
+                const changeSearchUrl = (change, night) => {
+                  for (const id of splitAgencyIds(bookingAgencyId)) {
+                    const url = buildBookingUrl({
+                      agencyId: id,
+                      origin: change.from,
+                      dest: change.to,
+                      isoDate: night.date,
+                    });
+                    if (url) return url;
+                  }
+                  return null;
+                };
                 const validFrom = formatCalendarDate(schedule?.validFrom);
                 const validUntil = formatCalendarDate(schedule?.validUntil);
 
@@ -1629,10 +1773,14 @@ const TrainDetailPanel = ({
                         Route
                       </div>
                       <div className="text-sm font-medium text-gray-900">
-                        {abbreviateStationName(esOrigin || trip.trip_origin)}{" "}
+                        {abbreviateStationName(
+                          esOrigin || officialRow?.origin || trip.trip_origin,
+                        )}{" "}
                         {"->"}{" "}
                         {abbreviateStationName(
-                          esDestination || trip.trip_headsign,
+                          esDestination ||
+                            officialRow?.destination ||
+                            trip.trip_headsign,
                         )}
                       </div>
                       {viaSummary && (
@@ -1695,6 +1843,8 @@ const TrainDetailPanel = ({
                       naDestinationArrival ||
                       esOriginDeparture ||
                       esDestinationArrival ||
+                      sourceOriginDeparture ||
+                      sourceDestinationArrival ||
                       officialRow?.departure ||
                       officialRow?.arrival ||
                       formatTime(
@@ -1716,6 +1866,7 @@ const TrainDetailPanel = ({
                             {pkpOriginDeparture ||
                               naOriginDeparture ||
                               esOriginDeparture ||
+                              sourceOriginDeparture ||
                               officialRow?.departure ||
                               formatTime(
                                 trip.origin_departure_time ||
@@ -1732,6 +1883,7 @@ const TrainDetailPanel = ({
                             {pkpDestinationArrival ||
                               naDestinationArrival ||
                               esDestinationArrival ||
+                              sourceDestinationArrival ||
                               officialRow?.arrival ||
                               formatTime(
                                 trip.destination_arrival_time ||
@@ -1748,11 +1900,13 @@ const TrainDetailPanel = ({
                         contradicts the two numbers printed right above it —
                         IC Nuit 5789 reads 11h30 against its own 20:57 → 08:24. */}
                     {(esDuration ||
+                      sourceDuration ||
                       officialRow?.durationText ||
                       trip.duration) && (
                       <div className="text-xs text-gray-600">
                         Duration:{" "}
                         {esDuration ||
+                          sourceDuration ||
                           officialRow?.durationText ||
                           formatTime(trip.duration)}
                       </div>
@@ -1855,6 +2009,96 @@ const TrainDetailPanel = ({
                       </div>
                     )}
 
+                    {/* Dated timetable changes: the card above is the usual
+                        timetable, these are the nights it is not. */}
+                    {upcomingChanges.length > 0 && (
+                      <details className="rounded-md bg-amber-50">
+                        <summary className="cursor-pointer list-none px-2 py-1.5 flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-amber-900">
+                            Timetable changes in the next 2 weeks (
+                            {upcomingChangeNights}{" "}
+                            {upcomingChangeNights === 1 ? "night" : "nights"})
+                          </span>
+                          <span
+                            className="inline-flex items-center justify-center h-5 w-5 text-amber-700"
+                            aria-hidden
+                          >
+                            <FiChevronDown className="h-4 w-4" />
+                          </span>
+                        </summary>
+                        <div className="px-2 pb-2 space-y-1.5">
+                          <div className="text-xs text-amber-800">
+                            From the operator&apos;s timetable data, usually
+                            engineering works. Check the night you travel.
+                          </div>
+                          {upcomingChanges.map((change) => (
+                            <div
+                              key={change.dates[0]}
+                              className="rounded bg-white px-2 py-1.5 text-xs space-y-1"
+                            >
+                              <div className="text-gray-800">
+                                <span className="font-medium">
+                                  {change.dates.length > 1
+                                    ? `${formatPlanDate(change.dates[0])} – ${formatPlanDate(change.dates[change.dates.length - 1])}`
+                                    : formatPlanDate(change.dates[0])}
+                                </span>
+                                {" · "}
+                                {change.from} → {change.to} · {change.stops}{" "}
+                                stops
+                              </div>
+                              {change.skipped.length > 0 && (
+                                <div className="text-gray-500">
+                                  Not calling at: {change.skipped.join(", ")}
+                                </div>
+                              )}
+                              {change.added.length > 0 && (
+                                <div className="text-gray-500">
+                                  Also calls at: {change.added.join(", ")}
+                                </div>
+                              )}
+                              <div>
+                                {change.nights.map((night) => {
+                                  const url = changeSearchUrl(change, night);
+                                  const label = formatPlanDate(night.date);
+                                  return (
+                                    <div
+                                      key={night.date}
+                                      className="grid grid-cols-[1fr_auto_auto] items-center gap-2 py-0.5"
+                                    >
+                                      <span className="text-gray-700">
+                                        {label}
+                                      </span>
+                                      <span className="text-gray-600 tabular-nums whitespace-nowrap">
+                                        {night.departure || "--"} →{" "}
+                                        {night.arrival || "--"}
+                                      </span>
+                                      {url ? (
+                                        <a
+                                          href={url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          aria-label={`Check ${label} on the operator's site`}
+                                          title="Check this night on the operator's site"
+                                          className="text-gray-400 hover:text-gray-600"
+                                        >
+                                          <FiExternalLink
+                                            className="h-3 w-3"
+                                            aria-hidden
+                                          />
+                                        </a>
+                                      ) : (
+                                        <span />
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+
                     {/* Accordion: all stations with arrival/departure times */}
                     {schedule?.stops?.length > 0 && (
                       <details className="rounded-md bg-gray-50">
@@ -1951,7 +2195,7 @@ const TrainDetailPanel = ({
                       agencies={agencies}
                       agencyUrl={agencies[bookingAgencyId]?.agency_url}
                       origin={bookingOrigin}
-                      dest={trip.trip_headsign}
+                      dest={bookingDest}
                       pricing={pricing}
                       routeId={trip.route_id}
                       scheduleStops={schedule?.stops}

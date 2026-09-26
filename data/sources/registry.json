@@ -619,6 +619,54 @@
   },
   {
     "v": 1,
+    "id": "trafiklab",
+    "label": "Trafiklab (Sweden)",
+    "description": "Sweden's national GTFS (Trafiklab GTFS Sweden 3, built by Samtrafiken from every operator's timetable), fetched with the TRAFIKLAB_API_KEY scrape secret and falling back to the keyless Mobility Database mirror mdb-2939 when the key is missing or out of quota. Samtrafiken files night trains under GTFS route_type 105 (Sleeper Rail Service) and names each route by its train number, so the allowlist (data/sources/trafiklab-sleepers.json) is a list of numbers and a service day belongs to one train — which is why, unlike SNCF and Entur, this source also writes times, endpoints and service days. Covers SJ 1/2, 70/71, 91/92, 93/94 and Snälltåget 300/301 (Stockholm–Berlin) and 3920/3921 (feed 24/25). The feed is date-expanded and full of engineering-works variants, so each train is its modal stop pattern weighted by dates; stop_times.txt is 698 MB and is streamed out of the zip. Its foreign stops are a Swedish traveller's view (Hamburg is missing from the Berlin train), so stations abroad that fall between two stations both carry are kept from Back-on-Track. Rail shapes are just the stop coordinates, so geometry is the chain through the official stops. Not in the feed, so still Back-on-Track: RDC/SJ EN 345/346 and Snälltåget's seasonal 304/305 (Innsbruck) and 3904/3905 (winter Duved).",
+    "kind": "gtfs",
+    "adapter": "trafiklab-gtfs",
+    "enabled": true,
+    "official": true,
+    "trusted": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.trafiklab.se",
+    "endpoint": "https://opendata.samtrafiken.se/gtfs-sweden/sweden.zip",
+    "docsUrl": "https://www.trafiklab.se/api/gtfs-datasets/gtfs-sweden/",
+    "output": "trafiklab-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "SJ", "operatorName": "SJ" },
+    "synthetic": {
+      "idPrefix": "trafiklab_",
+      "agency": { "from": "data", "fallback": "SJ" },
+      "resolveAliases": true,
+      "withService": true,
+      "excludeBotMatched": true,
+      "botMatchAgencies": ["SJ", "ST", "RDC/SJ"],
+      "dedupStrategy": null
+    },
+    "enrich": {
+      "strategy": "trainsByNumber",
+      "agencyIds": ["SJ", "ST", "RDC/SJ"],
+      "setPolyline": true,
+      "polylineMode": "perDirection",
+      "updateVia": true,
+      "setTimes": true,
+      "updateEndpoints": true,
+      "updateServiceDays": true,
+      "stamp": true
+    },
+    "params": {
+      "feedUrl": "https://opendata.samtrafiken.se/gtfs-sweden/sweden.zip",
+      "apiKeyEnv": "TRAFIKLAB_API_KEY",
+      "fallbackUrls": [
+        "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-2939/latest.zip"
+      ],
+      "configPath": "data/sources/trafiklab-sleepers.json"
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
     "id": "pkp-gtfs",
     "label": "PKP Intercity (Polish GTFS)",
     "description": "Official PKP Intercity timetable data (mkuran.pl is a mechanical daily conversion of the official NAP feed), plus Leo Express sleeper shapes discovered from the same polish_trains.zip (overnight LEO trips of 12h+). Committed as public/data/gtfs/pkpTrainShapes.json; regenerated nightly inside the scrape (npm run parse-pkp-gtfs). Enriches PKP and Leo Express rows with official stop lists and stamps them for trusted auto-approval.",

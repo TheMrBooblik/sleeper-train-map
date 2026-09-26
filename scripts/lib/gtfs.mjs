@@ -16,7 +16,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import https from "node:https";
-import { execSync } from "node:child_process";
+import zlib from "node:zlib";
+import readline from "node:readline";
+import { StringDecoder } from "node:string_decoder";
+import { execSync, spawn } from "node:child_process";
 import polyline from "@mapbox/polyline";
 import {
   DAY_KEYS,
@@ -73,6 +76,64 @@ export function readCsv(filePath) {
 }
 
 /**
+ * readCsv's rows, one at a time, from a file read in fixed-size chunks.
+ *
+ * readCsv holds the whole file as one string, a second copy with the line
+ * endings normalised, an array of every line and then an object per row with
+ * every column in it — several times the file's size in heap before a single
+ * value is kept. The nightly scrape has died on exactly that since 23
+ * September: "JavaScript heap out of memory" at the 2 GB limit while loading
+ * SNCF's export, and because an OOM is not an exception the runner's
+ * per-source try/catch never saw it — every source registered after SNCF, the
+ * canonicalize and the data commit went with it. Reproduced on a 300 MB
+ * stop_times.txt (3.5 M rows, cut from GTFS Sweden 3) under the same 2 GB
+ * heap: readCsv dies the same way, this reader keeps all 3.5 M stop times in
+ * 693 MB. Each row exists only while `onRow` looks at it, so the heap holds
+ * what the caller keeps and nothing else.
+ *
+ * Same parse as readCsv (BOM stripped, CRLF or LF, blank lines skipped,
+ * trimmed headers, "" for a missing value), so the two are interchangeable
+ * row for row. Synchronous, so loadGtfsDir keeps its signature.
+ *
+ * @returns {number} rows handed to onRow
+ */
+export function forEachCsvRow(filePath, onRow, { chunkBytes = 16 * 1024 * 1024 } = {}) {
+  if (!fs.existsSync(filePath)) return 0;
+  const fd = fs.openSync(filePath, "r");
+  const buf = Buffer.alloc(chunkBytes);
+  const decoder = new StringDecoder("utf8");
+  let headers = null;
+  let carry = "";
+  let rows = 0;
+  const handle = (rawLine) => {
+    const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine;
+    if (line.trim().length === 0) return;
+    if (headers === null) {
+      headers = parseCsvLine(line.replace(/^\uFEFF/, "")).map((h) => h.trim());
+      return;
+    }
+    const values = parseCsvLine(line);
+    const row = {};
+    for (let i = 0; i < headers.length; i += 1) row[headers[i]] = values[i] ?? "";
+    rows += 1;
+    onRow(row);
+  };
+  try {
+    let n;
+    while ((n = fs.readSync(fd, buf, 0, chunkBytes, null)) > 0) {
+      const lines = (carry + decoder.write(buf.subarray(0, n))).split("\n");
+      carry = lines.pop();
+      for (const line of lines) handle(line);
+    }
+    const rest = carry + decoder.end();
+    if (rest) handle(rest);
+  } finally {
+    fs.closeSync(fd);
+  }
+  return rows;
+}
+
+/**
  * Per-host request headers, for a feed whose publisher asks for something
  * beyond a bare GET. Keyed by hostname so every other feed is fetched exactly
  * as before — several of them work today and none of them should be risked for
@@ -91,6 +152,12 @@ const HOST_HEADERS = {
   "rata.digitraffic.fi": {
     "Digitraffic-User": "pingwi.com/sleeper-train-map",
     Accept: "application/zip, application/octet-stream, */*",
+  },
+  // Trafiklab's static GTFS (GTFS Sweden 3). Its docs have clients advertise
+  // gzip; downloadFile decodes a gzip-encoded body, so asking costs nothing
+  // even if the zip is served as-is.
+  "opendata.samtrafiken.se": {
+    "Accept-Encoding": "gzip",
   },
 };
 
@@ -124,10 +191,17 @@ export function downloadFile(url, destPath, extraHeaders = null) {
           return;
         }
         if (res.statusCode !== 200) {
+          res.resume();
           reject(new Error(`HTTP ${res.statusCode}`));
           return;
         }
-        res.pipe(file);
+        // Only a host we asked with Accept-Encoding can answer gzip, and
+        // writing the encoded bytes to feed.zip would hand unzip a file it
+        // cannot open — so decode rather than trust the header never appears.
+        const encoding = String(res.headers["content-encoding"] ?? "").toLowerCase();
+        const body = encoding === "gzip" ? res.pipe(zlib.createGunzip()) : res;
+        body.on("error", (err) => fs.unlink(destPath, () => reject(err)));
+        body.pipe(file);
         file.on("finish", () => file.close(resolve));
       })
       .on("error", (err) => {
@@ -144,6 +218,70 @@ export async function downloadGtfs(url, destDir, extraHeaders = null) {
   await downloadFile(url, zipPath, extraHeaders);
   execSync(`unzip -o -q "${zipPath}" -d "${destDir}"`, { stdio: "inherit" });
   return destDir;
+}
+
+/**
+ * Stream one CSV table straight out of a GTFS zip, row by row, without
+ * unpacking it to disk or holding it in memory.
+ *
+ * A national aggregate does not fit through readCsv: GTFS Sweden 3 ships a
+ * 698 MB stop_times.txt (past V8's ~512 MB string limit, so readFileSync
+ * alone throws) and a 2.4 GB shapes.txt, and unzipping the whole archive
+ * writes 3.2 GB for the few dozen trips an allowlist wants. Piping
+ * `unzip -p` through readline keeps memory at one line plus whatever the
+ * caller decides to keep.
+ *
+ * `keep = { column, test }` drops rows whose `column` fails `test` before
+ * onRow sees them. When that column is the first in the header (trip_id in
+ * stop_times, shape_id in shapes — true of every feed we read, but not
+ * required by GTFS) the test runs on the raw text before the first comma, so
+ * the 99% of rows nobody asked for are never split into columns; otherwise it
+ * runs on the parsed row, which is slower and just as correct.
+ *
+ * Resolves with the number of rows handed to `onRow`. A member missing from
+ * the zip resolves 0 rather than throwing — calendar.txt and shapes.txt are
+ * both optional in GTFS.
+ */
+export function streamZipCsv(zipPath, member, onRow, { keep = null } = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("unzip", ["-p", zipPath, member], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    const rl = readline.createInterface({ input: child.stdout, crlfDelay: Infinity });
+    let headers = null;
+    let rawKey = false;
+    let rows = 0;
+    rl.on("line", (rawLine) => {
+      if (headers === null) {
+        headers = parseCsvLine(rawLine.replace(/^\uFEFF/, "")).map((h) => h.trim());
+        rawKey = Boolean(keep) && headers[0] === keep.column;
+        return;
+      }
+      if (!rawLine.trim()) return;
+      if (rawKey) {
+        const comma = rawLine.indexOf(",");
+        const first = (comma === -1 ? rawLine : rawLine.slice(0, comma)).replace(/^"|"$/g, "");
+        if (!keep.test(first)) return;
+      }
+      const values = parseCsvLine(rawLine);
+      const row = {};
+      for (let i = 0; i < headers.length; i += 1) row[headers[i]] = values[i] ?? "";
+      if (keep && !rawKey && !keep.test(row[keep.column] ?? "")) return;
+      rows += 1;
+      onRow(row);
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      // unzip exits 11 for "no matching files": an optional table that is
+      // simply not in this feed.
+      if (code === 0 || code === 11) resolve(rows);
+      else reject(new Error(`unzip -p ${member} exited ${code}: ${stderr.trim()}`));
+    });
+  });
 }
 
 // ─── Parse a GTFS directory into in-memory tables ────────────────────────────
@@ -163,13 +301,16 @@ const toNum = (v) => {
  * @param {string} dir directory containing the unzipped feed
  */
 export function loadGtfsDir(dir, { maxShapesBytes = MAX_SHAPES_BYTES } = {}) {
+  // Every table is streamed (forEachCsvRow), not read whole: stop_times.txt is
+  // where a national export runs past the heap, and only the few fields below
+  // are kept per row.
   const routesById = new Map();
-  for (const r of readCsv(path.join(dir, "routes.txt"))) {
+  forEachCsvRow(path.join(dir, "routes.txt"), (r) => {
     if (r.route_id) routesById.set(r.route_id, r);
-  }
+  });
 
   const stopsById = new Map();
-  for (const s of readCsv(path.join(dir, "stops.txt"))) {
+  forEachCsvRow(path.join(dir, "stops.txt"), (s) => {
     if (s.stop_id) {
       stopsById.set(s.stop_id, {
         name: (s.stop_name || s.stop_id).trim(),
@@ -178,69 +319,86 @@ export function loadGtfsDir(dir, { maxShapesBytes = MAX_SHAPES_BYTES } = {}) {
         parent: s.parent_station || "",
       });
     }
-  }
+  });
 
   // shape_id → [{ seq, lat, lon }] (sorted by sequence)
   //
   // Geometry is the one optional part of a feed, and the heaviest by far: Entur
   // ships 416 MB of shapes for Vy alone against 7.6 MB of stop_times, and 2.6 GB
-  // for the national aggregate. readCsv reads a whole file into one string and
-  // then splits it, so a file that size is several GB of heap before a single
-  // point is stored — which is precisely how the first Entur probe died. Skip it
-  // past a ceiling instead: buildSleeperTrains already falls back to the station
-  // chain per trip when a shape is missing, which is what SNCF runs on anyway.
+  // for the national aggregate. Streaming keeps the parse from costing several
+  // times the file in heap, but every point is still KEPT, and 416 MB of points
+  // is more than a nightly run should hold for a line the station chain draws
+  // nearly as well. Skip it past a ceiling instead: buildSleeperTrains already
+  // falls back to the station chain per trip when a shape is missing, which is
+  // what SNCF runs on anyway.
   const shapesPath = path.join(dir, "shapes.txt");
   const shapesBytes = fs.existsSync(shapesPath) ? fs.statSync(shapesPath).size : 0;
   const shapesSkipped = shapesBytes > maxShapesBytes;
   const shapePoints = new Map();
-  for (const row of shapesSkipped ? [] : readCsv(shapesPath)) {
-    const id = row.shape_id;
-    if (!id) continue;
-    const lat = toNum(row.shape_pt_lat);
-    const lon = toNum(row.shape_pt_lon);
-    if (lat === null || lon === null) continue;
-    if (!shapePoints.has(id)) shapePoints.set(id, []);
-    shapePoints.get(id).push({
-      seq: Number.parseInt(row.shape_pt_sequence || "0", 10),
-      lat,
-      lon,
+  if (!shapesSkipped) {
+    forEachCsvRow(shapesPath, (row) => {
+      const id = row.shape_id;
+      if (!id) return;
+      const lat = toNum(row.shape_pt_lat);
+      const lon = toNum(row.shape_pt_lon);
+      if (lat === null || lon === null) return;
+      if (!shapePoints.has(id)) shapePoints.set(id, []);
+      shapePoints.get(id).push({
+        seq: Number.parseInt(row.shape_pt_sequence || "0", 10),
+        lat,
+        lon,
+      });
     });
   }
   for (const pts of shapePoints.values()) pts.sort((a, b) => a.seq - b.seq);
 
-  const trips = readCsv(path.join(dir, "trips.txt"));
+  const trips = [];
+  forEachCsvRow(path.join(dir, "trips.txt"), (t) => {
+    trips.push(t);
+  });
 
   // trip_id → [{ seq, stop_id, arrival, departure }] (sorted by sequence)
+  //
+  // Interned: a feed repeats the same few thousand stop ids and clock times
+  // millions of times, and each parsed value is a fresh string. One copy each
+  // is what makes a date-expanded national export fit.
+  const pool = new Map();
+  const intern = (v) => {
+    const hit = pool.get(v);
+    if (hit !== undefined) return hit;
+    pool.set(v, v);
+    return v;
+  };
   const tripIds = new Set(trips.map((t) => t.trip_id));
   const stopTimesByTrip = new Map();
-  for (const row of readCsv(path.join(dir, "stop_times.txt"))) {
-    if (!tripIds.has(row.trip_id)) continue;
+  forEachCsvRow(path.join(dir, "stop_times.txt"), (row) => {
+    if (!tripIds.has(row.trip_id)) return;
     if (!stopTimesByTrip.has(row.trip_id)) stopTimesByTrip.set(row.trip_id, []);
     stopTimesByTrip.get(row.trip_id).push({
       seq: Number.parseInt(row.stop_sequence || "0", 10),
-      stop_id: row.stop_id,
-      arrival: row.arrival_time,
-      departure: row.departure_time,
+      stop_id: intern(row.stop_id),
+      arrival: intern(row.arrival_time),
+      departure: intern(row.departure_time),
     });
-  }
+  });
   for (const sts of stopTimesByTrip.values()) sts.sort((a, b) => a.seq - b.seq);
 
   // service_id → calendar.txt row (weekly pattern + date window)
   const calendarById = new Map();
-  for (const row of readCsv(path.join(dir, "calendar.txt"))) {
+  forEachCsvRow(path.join(dir, "calendar.txt"), (row) => {
     if (row.service_id) calendarById.set(row.service_id, row);
-  }
+  });
 
   // service_id → ["YYYYMMDD"] of added dates (exception_type 1), for feeds that
   // ship only calendar_dates.txt.
   const addedDatesByService = new Map();
-  for (const row of readCsv(path.join(dir, "calendar_dates.txt"))) {
-    if (row.exception_type !== "1") continue;
+  forEachCsvRow(path.join(dir, "calendar_dates.txt"), (row) => {
+    if (row.exception_type !== "1") return;
     if (!addedDatesByService.has(row.service_id)) {
       addedDatesByService.set(row.service_id, []);
     }
-    addedDatesByService.get(row.service_id).push(row.date);
-  }
+    addedDatesByService.get(row.service_id).push(intern(row.date));
+  });
 
   return {
     routesById,

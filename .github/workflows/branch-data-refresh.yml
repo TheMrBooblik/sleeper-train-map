@@ -108,6 +108,11 @@ jobs:
         env:
           SCRAPE_ONLY: ${{ steps.pick.outputs.only }}
           PLK_API_KEY: ${{ secrets.PLK_API_KEY }}
+          TRAFIKLAB_API_KEY: ${{ secrets.TRAFIKLAB_API_KEY }}
+          # Headroom over Node's ~2 GB default: the runner has 16 GB, and an
+          # out-of-memory kills the whole scrape rather than one source (it
+          # did, on SNCF, every night from 23 September).
+          NODE_OPTIONS: --max-old-space-size=6144
 
       # Canonicalize is what the preview actually reads: /api/initial-data
       # serves public/data/published/initial-data.json when it is fresh. Its own
