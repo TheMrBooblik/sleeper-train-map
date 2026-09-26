@@ -16,7 +16,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import https from "node:https";
-import { execSync } from "node:child_process";
+import zlib from "node:zlib";
+import readline from "node:readline";
+import { execSync, spawn } from "node:child_process";
 import polyline from "@mapbox/polyline";
 import {
   DAY_KEYS,
@@ -92,6 +94,12 @@ const HOST_HEADERS = {
     "Digitraffic-User": "pingwi.com/sleeper-train-map",
     Accept: "application/zip, application/octet-stream, */*",
   },
+  // Trafiklab's static GTFS (GTFS Sweden 3). Its docs have clients advertise
+  // gzip; downloadFile decodes a gzip-encoded body, so asking costs nothing
+  // even if the zip is served as-is.
+  "opendata.samtrafiken.se": {
+    "Accept-Encoding": "gzip",
+  },
 };
 
 export function headersFor(url, extra) {
@@ -124,10 +132,17 @@ export function downloadFile(url, destPath, extraHeaders = null) {
           return;
         }
         if (res.statusCode !== 200) {
+          res.resume();
           reject(new Error(`HTTP ${res.statusCode}`));
           return;
         }
-        res.pipe(file);
+        // Only a host we asked with Accept-Encoding can answer gzip, and
+        // writing the encoded bytes to feed.zip would hand unzip a file it
+        // cannot open — so decode rather than trust the header never appears.
+        const encoding = String(res.headers["content-encoding"] ?? "").toLowerCase();
+        const body = encoding === "gzip" ? res.pipe(zlib.createGunzip()) : res;
+        body.on("error", (err) => fs.unlink(destPath, () => reject(err)));
+        body.pipe(file);
         file.on("finish", () => file.close(resolve));
       })
       .on("error", (err) => {
@@ -144,6 +159,70 @@ export async function downloadGtfs(url, destDir, extraHeaders = null) {
   await downloadFile(url, zipPath, extraHeaders);
   execSync(`unzip -o -q "${zipPath}" -d "${destDir}"`, { stdio: "inherit" });
   return destDir;
+}
+
+/**
+ * Stream one CSV table straight out of a GTFS zip, row by row, without
+ * unpacking it to disk or holding it in memory.
+ *
+ * A national aggregate does not fit through readCsv: GTFS Sweden 3 ships a
+ * 698 MB stop_times.txt (past V8's ~512 MB string limit, so readFileSync
+ * alone throws) and a 2.4 GB shapes.txt, and unzipping the whole archive
+ * writes 3.2 GB for the few dozen trips an allowlist wants. Piping
+ * `unzip -p` through readline keeps memory at one line plus whatever the
+ * caller decides to keep.
+ *
+ * `keep = { column, test }` drops rows whose `column` fails `test` before
+ * onRow sees them. When that column is the first in the header (trip_id in
+ * stop_times, shape_id in shapes — true of every feed we read, but not
+ * required by GTFS) the test runs on the raw text before the first comma, so
+ * the 99% of rows nobody asked for are never split into columns; otherwise it
+ * runs on the parsed row, which is slower and just as correct.
+ *
+ * Resolves with the number of rows handed to `onRow`. A member missing from
+ * the zip resolves 0 rather than throwing — calendar.txt and shapes.txt are
+ * both optional in GTFS.
+ */
+export function streamZipCsv(zipPath, member, onRow, { keep = null } = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("unzip", ["-p", zipPath, member], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    const rl = readline.createInterface({ input: child.stdout, crlfDelay: Infinity });
+    let headers = null;
+    let rawKey = false;
+    let rows = 0;
+    rl.on("line", (rawLine) => {
+      if (headers === null) {
+        headers = parseCsvLine(rawLine.replace(/^\uFEFF/, "")).map((h) => h.trim());
+        rawKey = Boolean(keep) && headers[0] === keep.column;
+        return;
+      }
+      if (!rawLine.trim()) return;
+      if (rawKey) {
+        const comma = rawLine.indexOf(",");
+        const first = (comma === -1 ? rawLine : rawLine.slice(0, comma)).replace(/^"|"$/g, "");
+        if (!keep.test(first)) return;
+      }
+      const values = parseCsvLine(rawLine);
+      const row = {};
+      for (let i = 0; i < headers.length; i += 1) row[headers[i]] = values[i] ?? "";
+      if (keep && !rawKey && !keep.test(row[keep.column] ?? "")) return;
+      rows += 1;
+      onRow(row);
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      // unzip exits 11 for "no matching files": an optional table that is
+      // simply not in this feed.
+      if (code === 0 || code === 11) resolve(rows);
+      else reject(new Error(`unzip -p ${member} exited ${code}: ${stderr.trim()}`));
+    });
+  });
 }
 
 // ─── Parse a GTFS directory into in-memory tables ────────────────────────────

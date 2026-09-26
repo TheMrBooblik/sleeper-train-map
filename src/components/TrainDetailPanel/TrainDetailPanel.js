@@ -1629,10 +1629,14 @@ const TrainDetailPanel = ({
                         Route
                       </div>
                       <div className="text-sm font-medium text-gray-900">
-                        {abbreviateStationName(esOrigin || trip.trip_origin)}{" "}
+                        {abbreviateStationName(
+                          esOrigin || officialRow?.origin || trip.trip_origin,
+                        )}{" "}
                         {"->"}{" "}
                         {abbreviateStationName(
-                          esDestination || trip.trip_headsign,
+                          esDestination ||
+                            officialRow?.destination ||
+                            trip.trip_headsign,
                         )}
                       </div>
                       {viaSummary && (

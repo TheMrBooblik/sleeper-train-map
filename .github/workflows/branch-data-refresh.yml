@@ -108,6 +108,7 @@ jobs:
         env:
           SCRAPE_ONLY: ${{ steps.pick.outputs.only }}
           PLK_API_KEY: ${{ secrets.PLK_API_KEY }}
+          TRAFIKLAB_API_KEY: ${{ secrets.TRAFIKLAB_API_KEY }}
 
       # Canonicalize is what the preview actually reads: /api/initial-data
       # serves public/data/published/initial-data.json when it is fresh. Its own

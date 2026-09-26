@@ -36,10 +36,14 @@ const ROW = {
   route_id: 107,
   official_sources: ["sncf"],
   trip_short_name_0: "IC Nuit 5789",
+  origin_trip_0: "Paris Austerlitz",
+  destination_trip_0: "Briançon",
   origin_departure_time_0: "20:57",
   destination_arrival_time_0: "08:24",
   via_0: "Crest - Die - Gap",
   service_id_0: "2026: Daily",
+  origin_trip_1: "Briançon",
+  destination_trip_1: "Paris Austerlitz",
   origin_departure_time_1: "19:57",
   destination_arrival_time_1: "07:52",
   via_1: "Gap - Die - Crest",
@@ -54,6 +58,8 @@ check("an unstamped row answers null, so it keeps Back-on-Track's everything", (
 
 check("each direction reads its own suffix", () => {
   assert.equal(officialRowSchedule(ROW, 0).departure, "20:57");
+  assert.equal(officialRowSchedule(ROW, 0).origin, "Paris Austerlitz");
+  assert.equal(officialRowSchedule(ROW, 1).destination, "Paris Austerlitz");
   assert.equal(officialRowSchedule(ROW, 1).departure, "19:57");
   assert.equal(officialRowSchedule(ROW, 0).serviceDays, "2026: Daily");
   assert.equal(officialRowSchedule(ROW, 1).serviceDays, "2026: Mon, Fri");
@@ -138,6 +144,15 @@ check("a stamped row carrying nothing to say still answers null", () => {
 
   check("the via summary prefers the corrected stop list over the trip's", () => {
     assert.match(panel, /esVia \|\| officialRow\?\.via \|\| trip\.via/);
+  });
+
+  // The card's "Route" header. A source with updateEndpoints moves where the
+  // train starts — Trafiklab runs SJ 91 from Umeå, Back-on-Track's trip still
+  // says Luleå — and a header read from the trip sat above the other city's
+  // times and stops.
+  check("the route header prefers the corrected endpoints over the trip's", () => {
+    assert.match(panel, /esOrigin \|\| officialRow\?\.origin \|\| trip\.trip_origin/);
+    assert.match(panel, /esDestination \|\|\s*officialRow\?\.destination \|\|\s*trip\.trip_headsign/);
   });
 }
 

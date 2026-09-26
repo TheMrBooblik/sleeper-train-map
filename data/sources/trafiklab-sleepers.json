@@ -1,0 +1,22 @@
+{
+  "_comment": "Swedish night trains in Trafiklab's GTFS Sweden 3, read by scripts/adapters/trafiklab-gtfs.mjs. `route` is the feed's route_short_name, which Samtrafiken sets to the train number; `name` (default: route) is the label the Back-on-Track row carries, which the trainsByNumber enrichment looks a row up by. Only routes of routeTypes are considered — 105 is GTFS's 'Sleeper Rail Service', and SJ also files a seated twin of train 1 under 100 that must not be picked. Sleeper routes the feed carries that are deliberately NOT listed (the adapter logs them every night): SJ 60070/60071/70070/70071, the Ånge/Östersund portions train 70/71 is split into during engineering works; Snälltåget 20/21, a single Malmö–Narvik return on 23/27 November 2026 — one run each way is a charter, not a timetable.",
+  "operators": {
+    "SJ AB": { "agencyId": "SJ", "operator": "SJ" },
+    "Snälltåget": { "agencyId": "ST", "operator": "Snälltåget" }
+  },
+  "routeTypes": ["105"],
+  "routes": [
+    { "agency": "SJ AB", "route": "1" },
+    { "agency": "SJ AB", "route": "2" },
+    { "agency": "SJ AB", "route": "70" },
+    { "agency": "SJ AB", "route": "71" },
+    { "agency": "SJ AB", "route": "91" },
+    { "agency": "SJ AB", "route": "92" },
+    { "agency": "SJ AB", "route": "93" },
+    { "agency": "SJ AB", "route": "94" },
+    { "agency": "Snälltåget", "route": "300" },
+    { "agency": "Snälltåget", "route": "301" },
+    { "agency": "Snälltåget", "route": "24", "name": "3920" },
+    { "agency": "Snälltåget", "route": "25", "name": "3921" }
+  ]
+}

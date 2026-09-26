@@ -260,42 +260,55 @@
     "SJ": {
       "website": "https://www.sj.se",
       "countries": ["SE"],
-      "integrationStatus": "source-discovered",
+      "integrationStatus": "in-progress",
       "difficulty": "medium",
-      "notes": "Sweden publishes one national GTFS feed covering every operator, via Trafiklab. Free but key-gated, so the adapter needs a scrape secret the way pkp-plk needs PLK_API_KEY.",
+      "notes": "Registry entry `trafiklab` reads Trafiklab's GTFS Sweden 3 nightly (TRAFIKLAB_API_KEY scrape secret, keyless Mobility Database mirror mdb-2939 as the fallback). Samtrafiken files night trains as route_type 105 (Sleeper Rail Service) with the train number as route_short_name, so SJ 1/2, 70/71, 91/92 and 93/94 are addressed by number and their service days belong to one train. Checked against the feed of 2026-09-25: SJ 1/2 run Sunday–Friday (Back-on-Track: daily), 91/92 run Stockholm–Umeå and 93/94 Stockholm–Luleå (Back-on-Track had one row, 91/92, labelled Luleå with 93's times), and 93/94 were missing from the map entirely. The EuroNight 345/346 to Berlin (RDC/SJ) is not in the feed.",
       "sources": [
         {
-          "name": "Trafiklab — GTFS Sweden (national feed)",
-          "url": "https://www.trafiklab.se/api/gtfs-datasets/gtfs-sweden/",
-          "docsUrl": "https://www.trafiklab.se/api/gtfs-datasets/overview/",
+          "name": "Trafiklab — GTFS Sweden 3 (national feed)",
+          "url": "https://opendata.samtrafiken.se/gtfs-sweden/sweden.zip",
+          "docsUrl": "https://www.trafiklab.se/api/gtfs-datasets/gtfs-sweden/",
           "format": "GTFS",
           "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
           "auth": "api-key",
-          "status": "discovered",
-          "lastChecked": null,
+          "status": "integrated",
+          "lastChecked": "2026-09-26",
           "probeWorkflow": null,
-          "notes": "Free registration for the key. The only feed with complete Swedish operator coverage, so one integration serves SJ and Snälltåget together."
+          "notes": "Key passed as ?key=. Bronze tier allows 60 requests per 30 days, so one download a night plus the odd branch refresh fits. 647 MB zip: stop_times.txt is 698 MB and shapes.txt 2.4 GB, so the adapter streams tables out of the zip. Rail shapes are just the stop coordinates (3–17 points per run), so shapes.txt is never read."
+        },
+        {
+          "name": "Mobility Database mirror of GTFS Sweden 3 (mdb-2939)",
+          "url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-2939/latest.zip",
+          "docsUrl": "https://mobilitydatabase.org/feeds/gtfs/mdb-2939",
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "none",
+          "status": "working",
+          "sweep": false,
+          "lastChecked": "2026-09-26",
+          "probeWorkflow": null,
+          "notes": "The same feed, re-hosted daily without a key (checked 2026-09-26: last-modified that morning, feed_version 2026-09-25). The `trafiklab` adapter's fallback. `sweep: false` because the probe sweep would re-download 647 MB to learn what the adapter logs every night."
         }
       ]
     },
     "ST": {
       "website": "https://www.snalltaget.se",
       "countries": ["SE", "DE"],
-      "integrationStatus": "source-discovered",
+      "integrationStatus": "in-progress",
       "difficulty": "medium",
-      "notes": "Snälltåget has no feed of its own; it rides in the Swedish national GTFS. Covered by the same Trafiklab integration as SJ — build once, get both.",
+      "notes": "Snälltåget has no feed of its own; it rides in the Swedish national GTFS, read by the same `trafiklab` registry entry as SJ. The Berlin train IS in the feed, German end included (Berlin Hbf northbound, Berlin Gesundbrunnen southbound, Dresden on Fridays/Sundays), but numbered the other way from Back-on-Track (feed 300 = Berlin→Stockholm) and without Hamburg, which the operator does serve — so the adapter keeps Back-on-Track's stations abroad between two stations both carry. The summer Jämtland train is 24/25 in the feed and 3920/3921 in Back-on-Track; its season runs to 3/4 October, not 27/28 September. Not in the feed: 304/305 (Malmö–Innsbruck, summer) and 3904/3905 (Malmö–Duved, winter).",
       "sources": [
         {
-          "name": "Trafiklab — GTFS Sweden (national feed)",
-          "url": "https://www.trafiklab.se/api/gtfs-datasets/gtfs-sweden/",
-          "docsUrl": "https://www.trafiklab.se/api/gtfs-datasets/overview/",
+          "name": "Trafiklab — GTFS Sweden 3 (national feed)",
+          "url": "https://opendata.samtrafiken.se/gtfs-sweden/sweden.zip",
+          "docsUrl": "https://www.trafiklab.se/api/gtfs-datasets/gtfs-sweden/",
           "format": "GTFS",
           "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
           "auth": "api-key",
-          "status": "discovered",
-          "lastChecked": null,
+          "status": "integrated",
+          "lastChecked": "2026-09-26",
           "probeWorkflow": null,
-          "notes": "Shared with SJ — see that entry. The Berlin leg may or may not be in the Swedish feed; check before relying on it."
+          "notes": "Shared with SJ — see that entry."
         }
       ]
     },

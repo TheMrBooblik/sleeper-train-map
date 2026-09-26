@@ -63,8 +63,9 @@ export function formatDurationShort(minutes) {
  * @param {object|null} route      a viewMap row
  * @param {number|string} direction  the trip's direction_id (anything but 1 reads as 0,
  *   matching how resolveScheduleLink already maps a trip onto the row's suffixes)
- * @returns {{sources: string[], departure: string|null, arrival: string|null,
- *   via: string|null, serviceDays: string|null, durationMinutes: number|null,
+ * @returns {{sources: string[], origin: string|null, destination: string|null,
+ *   departure: string|null, arrival: string|null, via: string|null,
+ *   serviceDays: string|null, durationMinutes: number|null,
  *   durationText: string}|null} null when the row was never corroborated.
  */
 export function officialRowSchedule(route, direction) {
@@ -82,9 +83,18 @@ export function officialRowSchedule(route, direction) {
   const serviceDays = route[`service_id_${d}`] || null;
   if (!departure && !arrival && !via && !serviceDays) return null;
 
+  // Where the train starts and ends, for a source that corrects endpoints
+  // (updateEndpoints). Trafiklab's feed runs SJ 91 from Umeå, where
+  // Back-on-Track's trip still says Luleå — without these the card read
+  // "Luleå C → Stockholm C" above Umeå's 21:23 departure and Umeå's stops.
+  const origin = route[`origin_trip_${d}`] || null;
+  const destination = route[`destination_trip_${d}`] || null;
+
   const durationMinutes = durationMinutesBetween(departure, arrival);
   return {
     sources,
+    origin,
+    destination,
     departure,
     arrival,
     via,
