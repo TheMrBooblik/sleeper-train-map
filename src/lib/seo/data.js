@@ -558,6 +558,10 @@ export function getRouteDetail(routeId) {
     }
   }
   const mapStops = [...mapStopsByName.values()];
+  // The two actual termini, so the map can mark them regardless of where the
+  // merge above happened to place them in the array — merging by insertion
+  // order put Eindhoven Centraal (unique to direction 1's stop list) last,
+  // which flagged it as the route's endpoint instead of Amsterdam Centraal.
 
   // Booking CTA: the same tiered resolution the map's detail panel runs, but
   // at build time against the committed agencies snapshot, so the static HTML
@@ -598,6 +602,8 @@ export function getRouteDetail(routeId) {
       polyline0: route.nj_polyline_0 || null,
       polyline1: route.nj_polyline_1 || null,
       stops: mapStops,
+      originName: primary.origin || summary.origin,
+      destinationName: primary.destination || summary.destination,
     },
   };
 }
