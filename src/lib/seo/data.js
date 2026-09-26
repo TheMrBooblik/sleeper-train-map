@@ -541,12 +541,23 @@ export function getRouteDetail(routeId) {
     classes: (factTrip && factTrip.classes ? String(factTrip.classes) : "").trim(),
   };
 
-  // Map geometry: encoded polylines (preferred) + station markers from the
-  // primary direction's resolved stops (operator coords, else name lookup).
+  // Map geometry: encoded polylines (preferred) + station markers from every
+  // direction's resolved stops (operator coords, else name lookup), merged and
+  // deduped by name. Direction-0-only markers dropped the stations only the
+  // return leg calls at — NJ 403 Amsterdam→Zürich runs via Eindhoven Centraal
+  // while NJ 402 Zürich→Amsterdam runs via Arnhem Centraal, so Eindhoven
+  // printed in direction 1's timetable below with no marker on the map above.
   const primary = directions[0] || {};
-  const mapStops = (primary.stops || [])
-    .filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon))
-    .map((s) => ({ name: s.name, lat: s.lat, lon: s.lon }));
+  const mapStopsByName = new Map();
+  for (const dir of directions) {
+    for (const s of dir.stops || []) {
+      if (!Number.isFinite(s.lat) || !Number.isFinite(s.lon)) continue;
+      if (!mapStopsByName.has(s.name)) {
+        mapStopsByName.set(s.name, { name: s.name, lat: s.lat, lon: s.lon });
+      }
+    }
+  }
+  const mapStops = [...mapStopsByName.values()];
 
   // Booking CTA: the same tiered resolution the map's detail panel runs, but
   // at build time against the committed agencies snapshot, so the static HTML
