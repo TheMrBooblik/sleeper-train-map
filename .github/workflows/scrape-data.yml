@@ -42,6 +42,10 @@ jobs:
         env:
           PLK_API_KEY: ${{ secrets.PLK_API_KEY }}
           TRAFIKLAB_API_KEY: ${{ secrets.TRAFIKLAB_API_KEY }}
+          # Headroom over Node's ~2 GB default: the runner has 16 GB, and an
+          # out-of-memory kills the whole scrape rather than one source (it
+          # did, on SNCF, every night from 23 September).
+          NODE_OPTIONS: --max-old-space-size=6144
 
       # Classify tonight's changes BEFORE canonicalize: new trains/stations
       # file proposals on the `proposals` branch (reviewed in /data) and update
