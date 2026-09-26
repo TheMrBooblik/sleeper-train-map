@@ -39,6 +39,7 @@ import {
   buildTrafiklabTrains,
   alignLabelsWithRows,
 } from "../scripts/adapters/trafiklab-gtfs.mjs";
+import { sourceFeedSchedule, sourceFeedIdForRoute } from "../src/lib/sourceFeedSchedule.mjs";
 
 let checks = 0;
 const check = async (name, fn) => {
@@ -419,6 +420,57 @@ await check("the published payload: Swedish rows stamped, 93/94 on the map, no r
       for (const n of names) assert.ok(stops.has(n.toLowerCase()), `row ${key}: "${n}" has a stop record`);
     }
   }
+});
+
+// ─── 8. The detail panel reads the source's own timetable ──────────────────
+// A synthetic row has no Back-on-Track trips, so the panel showed "No Back on
+// Track trip data" for Stockholm–Luleå; a corroborated row listed its via names
+// with a time only at each end. Both now read the trains file named by the
+// row's timetable_source.
+
+await check("sourceFeedSchedule times every stop from the source's trains file", () => {
+  const trains = {
+    93: {
+      frequency: "2026: Daily",
+      stations: [
+        { name: "Luleå C", code: "144", departure: "21:10" },
+        { name: "Umeå C", arrival: "01:41", departure: "01:44" },
+        { name: "Stockholm C", arrival: "2026-09-27T10:13:00" },
+      ],
+    },
+  };
+  const s = sourceFeedSchedule(trains, { trip_short_name: "93" });
+  assert.deepEqual(s.stops.map((x) => [x.name, x.arrival, x.departure]), [
+    ["Luleå C", null, "21:10"],
+    ["Umeå C", "01:41", "01:44"],
+    ["Stockholm C", "10:13", null],
+  ]);
+  assert.equal(s.days, "2026: Daily");
+  assert.equal(sourceFeedSchedule(trains, { trip_short_name: "94" }), null, "a train the file lacks is no schedule");
+  assert.equal(sourceFeedSchedule(null, { trip_short_name: "93" }), null);
+  assert.equal(sourceFeedIdForRoute({ timetable_source: "trafiklab" }), "trafiklab");
+  assert.equal(sourceFeedIdForRoute({}), null);
+});
+
+await check("every Swedish row names Trafiklab as its timetable, and no bundle source is named", () => {
+  const pub = readData("public/data/published/initial-data.json").data;
+  const registry = readData("data/sources/registry.json");
+  const withTrains = new Set(registry.filter((e) => e.output && e.enrich?.strategy === "trainsByNumber").map((e) => e.id));
+  for (const [key, row] of Object.entries(pub.viewMap)) {
+    if ((row.official_sources ?? []).includes("trafiklab") || key.startsWith("trafiklab_")) {
+      assert.equal(row.timetable_source, "trafiklab", `row ${key}`);
+    }
+    if (row.timetable_source && !key.includes("_")) {
+      assert.ok(withTrains.has(row.timetable_source), `row ${key} names ${row.timetable_source}, which has no trains file`);
+    }
+  }
+});
+
+await check("the panel reads it below every per-operator feed and above the bare via list", () => {
+  const panel = fs.readFileSync(path.join(root, "src/components/TrainDetailPanel/TrainDetailPanel.js"), "utf8");
+  assert.match(panel, /esSchedule \|\|\s*sourceSchedule \|\|\s*viaSchedule;/);
+  // …and admits a synthetic row it cannot place in a hardcoded feed.
+  assert.match(panel, /sourceFeedIdForRoute\(routes\[t\.route_id\]\)/);
 });
 
 console.log(`\n[verify-trafiklab] ${checks} checks passed`);

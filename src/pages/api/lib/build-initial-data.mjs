@@ -291,7 +291,14 @@ function applyStationRenames(trains, renames) {
 function appendSyntheticRoutes(
   viewMap,
   trainList,
-  { idPrefix, agency, resolveName, withService = false, botAgencyByTrain = {} },
+  {
+    idPrefix,
+    agency,
+    resolveName,
+    withService = false,
+    botAgencyByTrain = {},
+    sourceId = null,
+  },
 ) {
   const paired = new Set();
   trainList.forEach(([lineName, data]) => {
@@ -329,6 +336,11 @@ function appendSyntheticRoutes(
       ...(withService ? { service_id_0: data.frequency || null } : {}),
       nj_polyline_0: data.polyline || null,
       is_active: "Y",
+      // Which registry source built this row. A synthetic row has no trips in
+      // the Back-on-Track table, so the detail panel reads its timetable from
+      // that source's own trains file (/api/operator-trains?source=…) instead
+      // of from a per-operator feed it would otherwise have to hardcode.
+      ...(sourceId ? { timetable_source: sourceId } : {}),
     };
     if (reversePair) {
       const [revName, revData] = reversePair;
@@ -376,6 +388,7 @@ function appendSyntheticRoutes(
         ...(withService ? { service_id_0: future.frequency || null } : {}),
         nj_polyline_0: future.polyline || null,
         is_active: "Y",
+        ...(sourceId ? { timetable_source: sourceId } : {}),
         // Tickets are already on sale for the new timetable, so it draws at full
         // opacity with the start date on hover — not as a faded ghost.
         draw_as_active: true,
@@ -591,6 +604,7 @@ export function buildInitialData({
       resolveName: synthetic.resolveAliases ? resolveCanonicalStationName : identity,
       withService: !!synthetic.withService,
       botAgencyByTrain,
+      sourceId: entry.id,
     });
   }
 
@@ -651,6 +665,7 @@ export function buildInitialData({
     futurePreviews,
   );
 
+  stampTimetableSources(filteredViewMap, registry);
   stampEndpointCountries(filteredViewMap, stops);
   stampScheduleOriginCodes(filteredViewMap, operatorTrains, registry);
 
@@ -659,6 +674,33 @@ export function buildInitialData({
     viewMap: filteredViewMap,
     trips: filteredTrips,
   };
+}
+
+/**
+ * Name the trains file that holds a corroborated row's official timetable.
+ *
+ * The enrichment rewrites a Back-on-Track row from an official feed and stamps
+ * `official_sources`, but the detail panel builds its cards from the trips
+ * table and so had only the row's via names to list — Trafiklab's SJ 91 showed
+ * its 13 stops with a time at each end and none between, while the feed it came
+ * from times every one. `timetable_source` is the first stamping source that
+ * enriches by train number (and therefore has a trains file keyed by the row's
+ * labels); the panel reads that file the way it reads a synthetic row's own.
+ * A bundle-based source (PKP) is skipped: it has no trains file, and its
+ * per-stop times already reach the panel through pkp_schedule_*.
+ */
+function stampTimetableSources(viewMap, registry) {
+  const byTrains = new Set(
+    (registry ?? [])
+      .filter((e) => e?.enabled && e.output && e.enrich?.strategy === "trainsByNumber")
+      .map((e) => e.id),
+  );
+  for (const route of Object.values(viewMap)) {
+    if (route.timetable_source) continue;
+    const sources = Array.isArray(route.official_sources) ? route.official_sources : [];
+    const hit = sources.find((id) => byTrains.has(id));
+    if (hit) route.timetable_source = hit;
+  }
 }
 
 /**

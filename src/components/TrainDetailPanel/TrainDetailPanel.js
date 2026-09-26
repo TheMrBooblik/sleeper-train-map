@@ -9,6 +9,10 @@ import { useTrips } from "../../hooks/requests/useTrips";
 import { getRouteFrequencyOverride } from "../../lib/routeFrequencyOverrides";
 import { buildPairSlug } from "../../lib/seo/slugify.mjs";
 import { viaScheduleForTrip } from "../../lib/viaSchedule.mjs";
+import {
+  sourceFeedIdForRoute,
+  sourceFeedSchedule,
+} from "../../lib/sourceFeedSchedule.mjs";
 import { cityForStation } from "../../lib/seo/cities.mjs";
 import {
   checkRegioJetPrahaChop,
@@ -45,7 +49,11 @@ import {
 } from "../../lib/viaDisplay.mjs";
 import { MOBILE_MQ } from "../../hooks/useIsMobile";
 import { splitViaString } from "../../lib/viaSplit.mjs";
-import { officialRowSchedule } from "../../lib/officialRowSchedule.mjs";
+import {
+  officialRowSchedule,
+  durationMinutesBetween,
+  formatDurationShort,
+} from "../../lib/officialRowSchedule.mjs";
 
 /**
  * How much of the viewport the panel occupies, so the map can frame a selected
@@ -147,6 +155,21 @@ function isNorthAmericaRoute(routeId) {
   return id.startsWith("amtrak_") || id.startsWith("via_");
 }
 
+// A trip one of the per-operator feeds below already knows how to time. Only a
+// trip none of them claims reads its row's `timetable_source` instead, so no
+// trains file is fetched twice under two names.
+function isKnownFeedTrip(t) {
+  return (
+    isNightJetOrEuroNightTrainNumber(t.trip_short_name) ||
+    isChinaRailwayTrainNumber(t.trip_short_name) ||
+    isItalianICNTrainNumber(t.trip_short_name) ||
+    isCaucasusTrainNumber(t.trip_short_name) ||
+    isNorthAmericaRoute(t.route_id) ||
+    isEuropeanSleeperRoute(t.route_id) ||
+    String(t.route_id || "").startsWith("curated_")
+  );
+}
+
 /**
  * Journey length between two wall-clock "HH:MM" strings.
  *
@@ -244,6 +267,10 @@ const TrainDetailPanel = ({
   const [esTrainData, setEsTrainData] = useState(null);
   const [esLoadFailed, setEsLoadFailed] = useState(false);
   const [esLoading, setEsLoading] = useState(false);
+  // Synthetic rows built by any other registry source, keyed by source id.
+  const [sourceFeedData, setSourceFeedData] = useState({});
+  const [sourceFeedLoadFailed, setSourceFeedLoadFailed] = useState(false);
+  const [sourceFeedLoading, setSourceFeedLoading] = useState(false);
   const [suggestContext, setSuggestContext] = useState(null);
   const sheetRef = useRef(null);
   // Tracks a drag on the sheet handle: down collapses/dismisses, up expands.
@@ -380,19 +407,18 @@ const TrainDetailPanel = ({
       pushDirection("1");
     });
 
-    // Only keep trains we can recognize as NJ/EN, CR, Italian ICN, Caucasus,
-    // North American (Amtrak/VIA), European Sleeper, or admin-curated routes;
-    // otherwise fall back to empty-state.
-    return next.filter(
-      (t) =>
-        isNightJetOrEuroNightTrainNumber(t.trip_short_name) ||
-        isChinaRailwayTrainNumber(t.trip_short_name) ||
-        isItalianICNTrainNumber(t.trip_short_name) ||
-        isCaucasusTrainNumber(t.trip_short_name) ||
-        isNorthAmericaRoute(t.route_id) ||
-        isEuropeanSleeperRoute(t.route_id) ||
-        String(t.route_id || "").startsWith("curated_"),
-    );
+    // Keep trains we can recognize as NJ/EN, CR, Italian ICN, Caucasus,
+    // North American (Amtrak/VIA), European Sleeper, or admin-curated routes —
+    // and any other synthetic row, whose timetable comes from the registry
+    // source that built it (`source_feed`, see sourceFeedSchedule.mjs). Only a
+    // row none of those can place falls back to the empty state.
+    return next
+      .map((t) => {
+        if (isKnownFeedTrip(t)) return t;
+        const sourceFeed = sourceFeedIdForRoute(routes[t.route_id]);
+        return sourceFeed ? { ...t, source_feed: sourceFeed } : null;
+      })
+      .filter(Boolean);
   }, [selectedRouteIds, routes, relevantTrips.length]);
 
   const tripsToRender =
@@ -546,6 +572,26 @@ const TrainDetailPanel = ({
   // European Sleeper appears both as synthetic rows and as enriched
   // Back-on-Track ones, and only the former go through fallbackTrips.
   const hasESTrips = tripsToRender.some(isEuropeanSleeperTrip);
+  // The trains file each rendered trip is timed from when no per-operator feed
+  // claims it: a synthetic row's own source, or the official source that
+  // corroborated a Back-on-Track row (Trafiklab for SJ 91, whose card otherwise
+  // lists 13 stops with a time only at each end).
+  const sourceFeedIdForTrip = (t) =>
+    t.source_feed ||
+    (!isKnownFeedTrip(t) && !isEuropeanSleeperTrip(t)
+      ? sourceFeedIdForRoute(routes?.[String(t.route_id)])
+      : null);
+  // One key per distinct source, so the effect below refetches only when the
+  // set of sources changes rather than on every render.
+  const sourceFeedIds = [
+    ...new Set(tripsToRender.map(sourceFeedIdForTrip).filter(Boolean)),
+  ]
+    .sort()
+    .join(",");
+  // Only a synthetic row depends on that file for its stop list at all; a
+  // corroborated Back-on-Track row still has its via names, so a failed fetch
+  // there is not worth a warning.
+  const sourceFeedRequired = fallbackTrips.some((t) => t.source_feed);
 
   useEffect(() => {
     if (!isOpen || !hasNJFallback) {
@@ -796,6 +842,43 @@ const TrainDetailPanel = ({
       active = false;
     };
   }, [isOpen, hasESTrips]);
+
+  // Any other registry source's trains file, for its synthetic rows.
+  useEffect(() => {
+    if (!isOpen || !sourceFeedIds) {
+      setSourceFeedData({});
+      setSourceFeedLoadFailed(false);
+      setSourceFeedLoading(false);
+      return;
+    }
+
+    let active = true;
+    const loadSourceFeeds = async () => {
+      setSourceFeedLoading(true);
+      setSourceFeedLoadFailed(false);
+      const ids = sourceFeedIds.split(",");
+      const results = await Promise.all(
+        ids.map((id) =>
+          fetch(`/api/operator-trains?source=${encodeURIComponent(id)}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null),
+        ),
+      );
+      if (!active) return;
+      const next = {};
+      ids.forEach((id, i) => {
+        if (results[i]?.trains) next[id] = results[i].trains;
+      });
+      setSourceFeedData(next);
+      setSourceFeedLoadFailed(Object.keys(next).length < ids.length);
+      setSourceFeedLoading(false);
+    };
+
+    loadSourceFeeds();
+    return () => {
+      active = false;
+    };
+  }, [isOpen, sourceFeedIds]);
 
   const nightjetTrainByNumber = useMemo(() => {
     const trains = nightjetData?.trains || {};
@@ -1151,6 +1234,11 @@ const TrainDetailPanel = ({
                   European Sleeper timetable is currently unavailable.
                 </div>
               )}
+              {sourceFeedLoadFailed && sourceFeedRequired && (
+                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                  Detailed timetable is currently unavailable.
+                </div>
+              )}
 
               {orderedTrips.map((trip, index) => {
                 // Operator brand color for accent styling
@@ -1473,6 +1561,27 @@ const TrainDetailPanel = ({
                   null;
                 const naSchedule =
                   naScheduleByTrainNumber.get(normalizedTrainNumber) || null;
+                // A synthetic row from any other registry source (Trafiklab,
+                // CFR, …): its own trains file, by its own label.
+                const sourceFeedId = sourceFeedIdForTrip(trip);
+                const sourceSchedule = sourceFeedId
+                  ? sourceFeedSchedule(sourceFeedData[sourceFeedId], trip)
+                  : null;
+                const sourceStops = sourceSchedule?.stops || [];
+                const sourceOriginDeparture =
+                  sourceStops[0]?.departure || sourceStops[0]?.arrival || null;
+                const sourceDestinationArrival =
+                  sourceStops[sourceStops.length - 1]?.arrival ||
+                  sourceStops[sourceStops.length - 1]?.departure ||
+                  null;
+                // Same "8h 57m" shape as the corroborated row's own duration,
+                // which this replaces on the same card.
+                const sourceDuration = formatDurationShort(
+                  durationMinutesBetween(
+                    sourceOriginDeparture,
+                    sourceDestinationArrival,
+                  ),
+                );
                 const schedule =
                   // PKP GTFS is the source of truth for Polish trains.
                   pkpSchedule ||
@@ -1485,6 +1594,7 @@ const TrainDetailPanel = ({
                   curatedSchedule ||
                   naSchedule ||
                   esSchedule ||
+                  sourceSchedule ||
                   viaSchedule;
                 const validFrom = formatCalendarDate(schedule?.validFrom);
                 const validUntil = formatCalendarDate(schedule?.validUntil);
@@ -1699,6 +1809,8 @@ const TrainDetailPanel = ({
                       naDestinationArrival ||
                       esOriginDeparture ||
                       esDestinationArrival ||
+                      sourceOriginDeparture ||
+                      sourceDestinationArrival ||
                       officialRow?.departure ||
                       officialRow?.arrival ||
                       formatTime(
@@ -1720,6 +1832,7 @@ const TrainDetailPanel = ({
                             {pkpOriginDeparture ||
                               naOriginDeparture ||
                               esOriginDeparture ||
+                              sourceOriginDeparture ||
                               officialRow?.departure ||
                               formatTime(
                                 trip.origin_departure_time ||
@@ -1736,6 +1849,7 @@ const TrainDetailPanel = ({
                             {pkpDestinationArrival ||
                               naDestinationArrival ||
                               esDestinationArrival ||
+                              sourceDestinationArrival ||
                               officialRow?.arrival ||
                               formatTime(
                                 trip.destination_arrival_time ||
@@ -1752,11 +1866,13 @@ const TrainDetailPanel = ({
                         contradicts the two numbers printed right above it —
                         IC Nuit 5789 reads 11h30 against its own 20:57 → 08:24. */}
                     {(esDuration ||
+                      sourceDuration ||
                       officialRow?.durationText ||
                       trip.duration) && (
                       <div className="text-xs text-gray-600">
                         Duration:{" "}
                         {esDuration ||
+                          sourceDuration ||
                           officialRow?.durationText ||
                           formatTime(trip.duration)}
                       </div>
