@@ -728,9 +728,22 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
   for (const [key, row] of Object.entries(viewMap)) {
     const trains = sources.get(row.timetable_source);
     if (!trains) continue;
-    const fares = [0, 1]
-      .map((dir) => trains[row[`trip_short_name_${dir}`]]?.fare)
-      .filter((f) => Number.isFinite(f?.fromPrice) && f.fromPrice > 0 && f.currency);
+    const fares = [];
+    for (const dir of [0, 1]) {
+      const fare = trains[row[`trip_short_name_${dir}`]]?.fare;
+      if (!Number.isFinite(fare?.fromPrice) || fare.fromPrice <= 0 || !fare.currency) continue;
+      fares.push(fare);
+      // Each direction keeps its own figure and berth classes: a card about
+      // one train shows that train's price (src/lib/fareClasses.mjs).
+      row[`fare_${dir}`] = {
+        fromPrice: fare.fromPrice,
+        currency: fare.currency,
+        seatClass: fare.seatClass ?? null,
+        ...(fare.classes && typeof fare.classes === "object" ? { classes: fare.classes } : {}),
+        source: row.timetable_source,
+        checkedAt: fare.sampledAt ?? null,
+      };
+    }
     if (!fares.length) continue;
     // Never compare across currencies; the first direction's currency decides.
     const sameCurrency = fares.filter((f) => f.currency === fares[0].currency);

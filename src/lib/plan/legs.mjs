@@ -99,7 +99,8 @@ function splitAgencies(value) {
  * @param {(station: string, operatorIds: string[]) => string} [options.countryForStation]
  *   ISO-2 country for a station name. Injected because the published payload
  *   does not carry one (see countryOf below).
- * @param {(route: object) => object|null} [options.pricingFor]
+ * @param {(route: object, direction: number) => object|null} [options.pricingFor]
+ *   The direction matters once a source prices each train on its own (fare_0/fare_1).
  *   The route's pricing record. Injected rather than imported because
  *   operatorPricing.js cannot load in raw node (see pricingResolve.mjs).
  * @param {(leg: {train: string, origin: string, destination: string}) => Map<string, {arrival: string, departure: string}>|null} [options.stopTimesFor]
@@ -244,7 +245,7 @@ export function buildLegs(payload, options = {}) {
         // traveller can act on now ("book early" for a yield-managed sleeper),
         // and the figure renders through the same field the day a price probe
         // produces one.
-        pricing: options.pricingFor?.(route) ?? null,
+        pricing: options.pricingFor?.(route, direction) ?? null,
       });
 
       for (const slug of seenCities) cityIndex.get(slug).legCount++;

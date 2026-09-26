@@ -32,6 +32,7 @@ import { buildPairSlug } from "../src/lib/seo/slugify.mjs";
 import { cityForStation } from "../src/lib/seo/cities.mjs";
 import { getStationTimesForTrain } from "../src/lib/seo/stationTimes.mjs";
 import { resolvePricing } from "../src/lib/pricingResolve.mjs";
+import { pricingForDirection } from "../src/lib/fareClasses.mjs";
 import { normalizeCountryCode, OPERATOR_COUNTRY_FALLBACK } from "../src/lib/seo/countries.js";
 import OPERATOR_PRICING from "../data/overrides/operator-pricing.json" with { type: "json" };
 import { stripDisabledRoutes } from "../src/pages/api/lib/build-initial-data.mjs";
@@ -96,7 +97,9 @@ export function buildPlanIndex(payload, { generatedAt = "" } = {}) {
     return byName.size ? byName : null;
   };
 
-  const pricingFor = (route) => resolvePricing(route, OPERATOR_PRICING);
+  // Per direction: an official source prices each train on its own (fare_0/1).
+  const pricingFor = (route, direction) =>
+    pricingForDirection(route, direction, resolvePricing(route, OPERATOR_PRICING));
 
   // Station → ISO-2. Two sources, because neither covers everything: the raw
   // Back-on-Track stop index knows its own 29k stations, and the rows carry

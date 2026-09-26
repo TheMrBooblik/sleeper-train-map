@@ -34,7 +34,8 @@ import {
   formatCo2,
   formatFutureFrom,
 } from "./format";
-import { getOperatorPricing, formatFromPrice } from "../operatorPricing";
+import { getOperatorPricing, formatFromPrice, formatCheckedAt } from "../operatorPricing";
+import { directionFareSummary } from "../fareClasses.mjs";
 import {
   formatTrainNumber,
   resolveScheduleLink,
@@ -441,6 +442,12 @@ export function getRouteSlugMap() {
  * Full per-train view model for /trains/[slug]. Returns null for unknown ids.
  * @param {string} routeId
  */
+// "Checked September 2026" beside a fare, formatted at build time like the
+// facts tile's, so a static page never claims a price was confirmed today.
+function withCheckedLabel(fare) {
+  return fare ? { ...fare, checkedLabel: formatCheckedAt(fare.checkedAt) } : null;
+}
+
 export function getRouteDetail(routeId) {
   const { viewMap } = getPublished();
   const route = Object.values(viewMap).find((r) => String(r.route_id) === String(routeId));
@@ -529,6 +536,9 @@ export function getRouteDetail(routeId) {
       scheduleUrl: schedule?.url ?? null,
       scheduleLabel: schedule?.label ?? null,
       scheduleAffiliate: Boolean(schedule?.affiliate),
+      // This train's own official fare, per berth class — the facts tile above
+      // shows the cheaper of the two directions, this is the one you'd pay.
+      fare: withCheckedLabel(directionFareSummary(route, dir)),
     });
   }
 

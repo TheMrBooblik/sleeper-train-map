@@ -10,28 +10,13 @@
 import OPERATOR_PRICING from "../../data/overrides/operator-pricing.json";
 import { pricingAdvice, formatCheckedAt } from "./pricingAdvice.mjs";
 import { resolvePricing } from "./pricingResolve.mjs";
+import { CURRENCY_SYMBOLS } from "./fareClasses.mjs";
 
 export { pricingAdvice, formatCheckedAt };
 
 export { OPERATOR_PRICING };
 
-const CURRENCY_SYMBOLS = {
-  EUR: "€",
-  GBP: "£",
-  CHF: "CHF ",
-  SEK: "kr ",
-  CZK: "Kč ",
-  PLN: "zł ",
-  HUF: "Ft ",
-  RON: "lei ",
-  BGN: "лв ",
-  UAH: "₴",
-  TRY: "₺",
-  CNY: "¥",
-  GEL: "₾",
-  AZN: "₼",
-  AMD: "֏",
-};
+
 
 /**
  * Resolve pricing for a route/trip. A route-level `pricing` override wins;

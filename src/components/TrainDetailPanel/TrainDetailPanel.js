@@ -29,7 +29,14 @@ import {
   formatPricingLabel,
   getPricingBadgeStyle,
   pricingAdvice,
+  formatCheckedAt,
 } from "../../lib/operatorPricing";
+import {
+  directionFare,
+  fareClassRows,
+  fareDirectionForTrip,
+  pricingForDirection,
+} from "../../lib/fareClasses.mjs";
 import {
   formatTrainNumber,
   resolveOperatorComponents,
@@ -1642,7 +1649,25 @@ const TrainDetailPanel = ({
                     (Array.isArray(s) && s.length >= 2),
                 );
 
-                const pricing = getOperatorPricing(trip);
+                // A Back-on-Track trip carries the route's stamped pricing; a
+                // synthetic trip (built from the row in fallbackTrips) does
+                // not, so read the row's. Then narrow it to THIS train: an
+                // official source prices each direction and berth class
+                // separately (fare_0/fare_1, see src/lib/fareClasses.mjs).
+                const basePricing = getOperatorPricing(
+                  trip.pricing || !tripRoute?.pricing
+                    ? trip
+                    : { ...trip, pricing: tripRoute.pricing },
+                );
+                const fareDir = fareDirectionForTrip(tripRoute, trip);
+                const pricing =
+                  fareDir == null
+                    ? basePricing
+                    : pricingForDirection(tripRoute, fareDir, basePricing);
+                const fareRows =
+                  fareDir == null
+                    ? []
+                    : fareClassRows(directionFare(tripRoute, fareDir));
                 const pricingLabel = formatPricingLabel(pricing);
                 const pricingBadgeStyle = getPricingBadgeStyle(pricing);
                 // Keyed to the SELLING agency, because a deals page is a
@@ -1763,7 +1788,31 @@ const TrainDetailPanel = ({
                           tone="light"
                           labelClassName="rounded-md px-2 py-0.5 text-xs font-medium"
                           labelStyle={pricingBadgeStyle}
+                          checkedAt={formatCheckedAt(pricing?.checkedAt)}
                         />
+                      </div>
+                    )}
+
+                    {/* Official fare per berth class for this train, when its
+                        source quotes them (12306 does). */}
+                    {fareRows.length > 0 && (
+                      <div className="space-y-1" data-testid="fare-classes">
+                        <div className="text-xs text-gray-500 uppercase">
+                          Fares
+                        </div>
+                        <ul className="flex flex-wrap gap-1.5">
+                          {fareRows.map((f) => (
+                            <li
+                              key={f.key}
+                              className="rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-700"
+                            >
+                              {f.label}{" "}
+                              <span className="font-semibold text-gray-900">
+                                {f.price}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
 
