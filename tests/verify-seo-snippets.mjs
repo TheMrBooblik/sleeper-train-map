@@ -33,6 +33,7 @@ import {
   frequencyPhrase,
   pickPrimaryDirection,
 } from "../src/lib/seo/snippet.mjs";
+import { durationIsImplausible, greatCircleKm } from "../src/lib/durationPlausibility.mjs";
 import { benchmarkCtr, winnableClicks } from "../src/lib/seo/ctrBenchmark.mjs";
 
 const TITLE_MAX = 60;
@@ -195,6 +196,88 @@ check("a duration that contradicts its own clocks is withheld, not published", (
   // … but never below the four hours a sleeper leg takes, because that is the
   // shape every >24h wrap arrives in.
   assert.equal(durationForDirection({ durationText: "", departure: "18:25", arrival: "21:45" }), "");
+});
+
+check("no pair publishes a journey time the ground disproves", () => {
+  // The regression this exists for: 14 of 240 pairs stated a duration a train
+  // cannot achieve, because a >24h journey wrapped and the remainder cleared
+  // the four-hour floor. /connections/chicago-to-emeryville put the California
+  // Zephyr's 2 971 km at 5h 31m — 539 km/h — in its own title.
+  const minutes = (text) => {
+    const m = /^(?:(\d+)h)?\s*(?:(\d+)m)?$/.exec(String(text || "").trim());
+    return m && (m[1] || m[2]) ? Number(m[1] || 0) * 60 + Number(m[2] || 0) : 0;
+  };
+  const guilty = [];
+  for (const p of pairs) {
+    const primary = pickPrimaryDirection(p.cityA, p.directions);
+    const stated = durationForDirection(primary);
+    if (!stated) continue;
+    const km = greatCircleKm(primary.originPos, primary.destinationPos);
+    if (durationIsImplausible(km, minutes(stated))) guilty.push(`${p.slug} (${stated})`);
+  }
+  assert.deepEqual(guilty, [], `implausible durations published: ${guilty.join(", ")}`);
+});
+
+check("the speed gate withholds a wrapped duration a floor would pass", () => {
+  const chicago = [41.878, -87.629];
+  const emeryville = [37.831, -122.287];
+  // 2 907 km in 5h 31m. Well clear of MIN_CLOCK_MINUTES, and impossible.
+  assert.equal(
+    durationForDirection({
+      departure: "11:08",
+      arrival: "16:39",
+      originPos: chicago,
+      destinationPos: emeryville,
+    }),
+    "",
+  );
+  // The same clocks over a distance a sleeper really can cover are kept.
+  assert.equal(
+    durationForDirection({
+      departure: "11:08",
+      arrival: "16:39",
+      originPos: [48.208, 16.372],
+      destinationPos: [47.377, 8.54],
+    }),
+    "5h 31m",
+  );
+  // A stale TRIP duration is checked the same way — it can be a day out too.
+  assert.equal(
+    durationForDirection({ durationText: "5h 31m", originPos: chicago, destinationPos: emeryville }),
+    "",
+  );
+  // With no coordinates there is nothing to disprove it, so it stands.
+  assert.equal(durationForDirection({ durationText: "5h 31m" }), "5h 31m");
+});
+
+check("a corridor with several trains says so, and one train does not", () => {
+  const base = {
+    cityA: "Vienna",
+    cityB: "Zurich",
+    operatorNames: "ÖBB",
+    directions: [
+      {
+        trainLabel: "NJ 466", operator: "ÖBB", origin: "Wien Hbf", destination: "Zürich HB",
+        originCity: "Vienna", destinationCity: "Zurich", departure: "19:39", arrival: "08:20",
+        serviceDays: "2026: Daily", stopCount: 12, durationText: "12h 41m", classes: "",
+      },
+    ],
+  };
+  const one = connectionSnippet({ ...base, trainCount: 1, variant: FACTS }).description;
+  const three = connectionSnippet({ ...base, trainCount: 3, variant: FACTS }).description;
+  assert.ok(!/trains on this route/.test(one), `single-train pair claimed a count: ${one}`);
+  assert.match(three, /3 trains on this route\./);
+  // It is the softest clause, so it is the first one shed when space runs out.
+  const long = connectionSnippet({
+    ...base,
+    cityA: "Bruxelles-Midi/Brussel-Zuid",
+    cityB: "Milano Porta Garibaldi",
+    trainCount: 3,
+    operatorNames: "European Sleeper, Trenitalia, ÖBB Nightjet",
+    directions: [{ ...base.directions[0], classes: "seat, couchette, sleeper", stopCount: 22 }],
+    variant: FACTS,
+  }).description;
+  assert.ok(long.length <= 160, `over budget: ${long.length}`);
 });
 
 check("the described direction is the one the title names", () => {

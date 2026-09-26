@@ -254,6 +254,13 @@ function numericOffer(detail) {
   );
 }
 
+/** [lat, lon] for a resolved stop, or null when it carries no coordinate. */
+function stopPosition(stop) {
+  const lat = Number(stop?.lat);
+  const lon = Number(stop?.lon);
+  return Number.isFinite(lat) && Number.isFinite(lon) ? [lat, lon] : null;
+}
+
 export async function getStaticPaths() {
   return {
     paths: getAllCityPairs().map((p) => ({ params: { pair: p.slug } })),
@@ -369,6 +376,11 @@ export async function getStaticProps({ params }) {
       arrival: d.arrivalTime,
       serviceDays: d.serviceDays,
       stopCount: d.stops.length,
+      // The ground the journey covers, so a stated time that could not have
+      // covered it is withheld rather than printed. A stop with no coordinate
+      // yields no position and the check simply does not fire.
+      originPos: stopPosition(d.stops[0]),
+      destinationPos: stopPosition(d.stops[d.stops.length - 1]),
       durationText: t.facts.durationText,
       classes: t.facts.classes,
     })),

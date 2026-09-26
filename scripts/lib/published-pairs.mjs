@@ -65,6 +65,16 @@ function planClocks() {
  */
 export function getPublishedPairs() {
   const payload = readJson("public/data/published/initial-data.json").data;
+  // Endpoint coordinates, so the duration plausibility gate is exercised here
+  // the same way the build exercises it.
+  const stopPos = new Map();
+  for (const stop of payload.stops || []) {
+    const lat = Number(stop?.stop_lat);
+    const lon = Number(stop?.stop_lon);
+    if (stop?.stop_name && Number.isFinite(lat) && Number.isFinite(lon)) {
+      stopPos.set(String(stop.stop_name), [lat, lon]);
+    }
+  }
   const disabled = new Set(readJson("data/overrides/disabled-routes.json").map(String));
   const clocks = planClocks();
 
@@ -121,6 +131,8 @@ export function getPublishedPairs() {
         arrival: route[`destination_arrival_time_${dir}`] || clock.arrival || "",
         serviceDays: serviceDaysFor(route[`service_id_${dir}`] || factTrip?.service_id || ""),
         stopCount: clock.stopCount || 0,
+        originPos: stopPos.get(origin) || null,
+        destinationPos: stopPos.get(destination) || null,
         durationText,
         classes,
       });

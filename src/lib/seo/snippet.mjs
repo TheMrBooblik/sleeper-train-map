@@ -26,6 +26,8 @@
  * what the Next build computes, or the test pins nothing.
  */
 
+import { durationIsImplausible, greatCircleKm } from "../durationPlausibility.mjs";
+
 /** Variant ids. The pages pass FACTS; CONTROL is the pinned former wording. */
 export const CONTROL = "control";
 export const FACTS = "facts";
@@ -131,36 +133,49 @@ const ONE_DAY_MINUTES = 1440;
 /**
  * How long the journey takes, as the snippet may state it.
  *
+ * Three things can stop it stating one, and the third is the one a duration
+ * floor cannot do on its own.
+ *
  * The trip's own duration wins — it is what RouteFactsGrid prints, so the
  * snippet and the page cannot quote different numbers — but only while it
  * agrees with the clocks printed beside it. UZ 020 states 9h 54m against
  * endpoint times reading 23:10 to 22:45, and a description carrying both says
- * two different things in one sentence; with no way to choose between them,
- * this states neither. A gap of about a day is the clock wrapping on a journey
- * longer than 24h, which is the one case the trip is right and the clock is not.
+ * two different things in one sentence. A gap of about a day is the exception:
+ * that is the clock wrapping on a journey longer than 24h, the one case the
+ * trip is right and the clock is not.
  *
- * A synthetic row has no trip at all (93 of the 240 pairs), and for those the
- * clocks are the only evidence there is; they are read only above
- * MIN_CLOCK_MINUTES.
+ * A synthetic row has no trip at all (93 of the 240 pairs) and the clocks are
+ * the only evidence there is. Those are read above MIN_CLOCK_MINUTES — and
+ * then only while the ground they cover does not disprove them, because the
+ * floor alone is far too weak: a wrapped journey's remainder can be anything
+ * up to 24h, and four hours let the California Zephyr publish 2 971 km in
+ * 5h 31m, 539 km/h, in its own title. `durationIsImplausible` is the test that
+ * scales, and it applies to a stated trip duration too — a stale one can be a
+ * day out in exactly the same way.
  *
- * @param {{durationText?: string, departure?: string, arrival?: string}} direction
+ * @param {{durationText?: string, departure?: string, arrival?: string,
+ *          originPos?: [number, number], destinationPos?: [number, number]}} direction
  * @returns {string}
  */
 export function durationForDirection(direction) {
   if (!direction) return "";
+
+  const km = greatCircleKm(direction.originPos, direction.destinationPos);
   const clock = clockMinutes(direction.departure, direction.arrival);
 
   if (direction.durationText) {
-    if (!clock) return direction.durationText;
     const stated = statedMinutes(direction.durationText);
-    if (!stated) return direction.durationText;
+    if (stated && durationIsImplausible(km, stated)) return "";
+    if (!clock || !stated) return direction.durationText;
     const gap = Math.abs(stated - clock);
     const agrees = gap <= DURATION_AGREEMENT_MINUTES;
     const wrapped = Math.abs(gap - ONE_DAY_MINUTES) <= DURATION_AGREEMENT_MINUTES;
     return agrees || wrapped ? direction.durationText : "";
   }
 
-  return clock >= MIN_CLOCK_MINUTES ? formatMinutes(clock) : "";
+  if (clock < MIN_CLOCK_MINUTES) return "";
+  if (durationIsImplausible(km, clock)) return "";
+  return formatMinutes(clock);
 }
 
 /** Minutes back out of a "12h 47m" / "9h" / "45m" string, or 0. */
@@ -287,17 +302,20 @@ function factsDescription({
   const stops = primary && primary.stopCount >= 3 ? primary.stopCount : 0;
 
   // `drop` is the order clauses are shed in when the description runs long.
-  // The lead is never shed; the berth types go first because the tail carries
-  // the call to action and a price is the highest-intent fact on the page.
+  // The lead is never shed. The train count goes first: it is the softest of
+  // the four, and on a single-train pair it is not emitted at all. Then the
+  // berth types, then the tail — which carries the call to action — and a
+  // price last, being the highest-intent fact on the page.
   const clauses = [
     { text: lead, drop: 0 },
-    { text: fromPrice ? `Tickets ${fromPrice}.` : "", drop: 3 },
-    { text: classes ? `${classes}.` : "", drop: 1 },
-    { text: stops ? `Full timetable, ${stops} stops and where to book.` : "Full timetable and where to book.", drop: 2 },
+    { text: trainCount > 1 ? `${trainCount} trains on this route.` : "", drop: 1 },
+    { text: fromPrice ? `Tickets ${fromPrice}.` : "", drop: 4 },
+    { text: classes ? `${classes}.` : "", drop: 2 },
+    { text: stops ? `Full timetable, ${stops} stops and where to book.` : "Full timetable and where to book.", drop: 3 },
   ].filter((c) => c.text);
 
   let kept = clauses;
-  for (const rank of [1, 2, 3]) {
+  for (const rank of [1, 2, 3, 4]) {
     if (kept.map((c) => c.text).join(" ").length <= DESCRIPTION_MAX) break;
     kept = kept.filter((c) => c.drop !== rank);
   }
