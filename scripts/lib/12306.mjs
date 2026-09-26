@@ -136,6 +136,11 @@ export function parseLeftTicketRow(raw, stationMap = {}) {
     // Soft sleeper / hard sleeper availability codes ("有", "无", digits, or "")
     softSleeper: parts[23]?.trim() || "",
     hardSleeper: parts[28]?.trim() || "",
+    // What queryTicketPrice needs: the queried stations' positions in the
+    // train's own stop list ("01", "12") and the seat classes it sells ("4631").
+    fromStationNo: parts[16]?.trim() || null,
+    toStationNo: parts[17]?.trim() || null,
+    seatTypes: parts[35]?.trim() || null,
   };
 }
 
@@ -267,6 +272,88 @@ export async function queryByTrainNo(
   }
   const json = JSON.parse(text);
   return { stops: parseQueryByTrainNoResponse(json), raw: json };
+}
+
+// ─── Fares ──────────────────────────────────────────────────────────────────
+
+/**
+ * Berth classes a price may be quoted for, keyed the way queryTicketPrice
+ * answers: a numeric seat code comes back "A"-prefixed (3 → A3), a letter code
+ * as itself. Only BERTHS: the same response also prices hard seat (A1) and
+ * standing (WZ), which are cheaper, and "from ¥150" for a sleeper you can only
+ * get at that price sitting up all night would be the wrong number.
+ * Listed cheapest-class first; the from-price is the minimum regardless.
+ */
+export const SLEEPER_FARE_CLASSES = [
+  { key: "A3", cls: "hardSleeper" }, // 硬卧
+  { key: "J", cls: "emuSecondSleeper" }, // 二等卧 (newer D-series sleepers)
+  { key: "F", cls: "emuSleeper" }, // 动卧
+  { key: "A4", cls: "softSleeper" }, // 软卧
+  { key: "I", cls: "emuFirstSleeper" }, // 一等卧
+  { key: "A6", cls: "deluxeSoftSleeper" }, // 高级软卧
+];
+
+/** "¥432.5" / "432.5" / 432.5 → 432.5; anything else → null. */
+export function parseYuan(raw) {
+  if (typeof raw === "number") return Number.isFinite(raw) && raw > 0 ? raw : null;
+  const m = String(raw ?? "").replace(/[,\s]/g, "").match(/(\d+(?:\.\d+)?)/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
+ * Parse a queryTicketPrice response into berth fares.
+ * Shape: { status: true, data: { A1: "¥190.0", A3: "¥335.5", A4: "¥523.5", WZ: "¥190.0", OT: [], train_no } }
+ * Returns null when no berth class is priced — a train with seats only is not
+ * something this map should put a sleeper price on.
+ */
+export function parseTicketPriceResponse(json) {
+  const data = json?.data;
+  if (!data || typeof data !== "object") return null;
+  const classes = {};
+  for (const { key, cls } of SLEEPER_FARE_CLASSES) {
+    const v = parseYuan(data[key]);
+    if (v != null) classes[cls] = v;
+  }
+  const entries = Object.entries(classes);
+  if (!entries.length) return null;
+  const [seatClass, fromPrice] = entries.reduce((a, b) => (b[1] < a[1] ? b : a));
+  return { fromPrice, currency: "CNY", seatClass, classes };
+}
+
+/**
+ * The fare the 12306 web UI shows when you expand a train in search results.
+ * Needs the station positions + seat types from the matching leftTicket row,
+ * so it costs one extra request per train and nothing else. China Railway
+ * fares are a government tariff by distance and class, so a figure read
+ * tonight is the figure on any other date — no sampling window to worry about.
+ */
+export async function queryTicketPrice(
+  { trainNo, fromStationNo, toStationNo, seatTypes, date },
+  { fetchImpl = fetch, jar = createCookieJar() } = {},
+) {
+  const url = ticketPriceUrl({ trainNo, fromStationNo, toStationNo, seatTypes, date });
+  const res = await fetchImpl(url, { headers: withCookies(jar) });
+  jar.store(res);
+  const text = await res.text();
+  if (!res.ok) throw new Error(`queryTicketPrice HTTP ${res.status}`);
+  if (!text || text.trimStart().startsWith("<")) {
+    throw new Error("queryTicketPrice non-JSON body");
+  }
+  const json = JSON.parse(text);
+  return { fare: parseTicketPriceResponse(json), raw: json, url };
+}
+
+export function ticketPriceUrl({ trainNo, fromStationNo, toStationNo, seatTypes, date }) {
+  return (
+    `${KYFW_BASE}/otn/leftTicket/queryTicketPrice` +
+    `?train_no=${encodeURIComponent(trainNo)}` +
+    `&from_station_no=${encodeURIComponent(fromStationNo)}` +
+    `&to_station_no=${encodeURIComponent(toStationNo)}` +
+    `&seat_types=${encodeURIComponent(seatTypes)}` +
+    `&train_date=${encodeURIComponent(date)}`
+  );
 }
 
 /**

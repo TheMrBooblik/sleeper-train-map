@@ -20,6 +20,7 @@ import {
   parseStationNamesJs,
   queryByTrainNo,
   queryLeftTicket,
+  queryTicketPrice,
   USER_AGENT,
 } from "./lib/12306.mjs";
 
@@ -114,6 +115,9 @@ try {
           arriveTime: match.arriveTime,
           softSleeper: match.softSleeper,
           hardSleeper: match.hardSleeper,
+          fromStationNo: match.fromStationNo,
+          toStationNo: match.toStationNo,
+          seatTypes: match.seatTypes,
         }
       : null,
   };
@@ -154,6 +158,32 @@ try {
       summary.errors.push(`queryByTrainNo: ${err.message}`);
       console.log(`\n━━━ queryByTrainNo\n  FAILED: ${err.message}`);
     }
+
+    // 5. queryTicketPrice — the berth fare the nightly scrape stamps on the route.
+    try {
+      const price = await queryTicketPrice(
+        {
+          trainNo: match.trainNo,
+          fromStationNo: match.fromStationNo,
+          toStationNo: match.toStationNo,
+          seatTypes: match.seatTypes,
+          date,
+        },
+        { fetchImpl: fetch, jar },
+      );
+      summary.steps.ticketPrice = { ok: !!price.fare, url: price.url, fare: price.fare, rawData: price.raw?.data ?? null };
+      console.log(`\n━━━ queryTicketPrice\n  url: ${price.url}`);
+      console.log(`  raw: ${JSON.stringify(price.raw?.data ?? price.raw).slice(0, 400)}`);
+      console.log(
+        price.fare
+          ? `  fare: from ¥${price.fare.fromPrice} (${price.fare.seatClass}) — ${JSON.stringify(price.fare.classes)}`
+          : "  fare: NO BERTH CLASS PRICED — check SLEEPER_FARE_CLASSES against the raw keys above",
+      );
+      save("05-queryTicketPrice.json", price.raw);
+    } catch (err) {
+      summary.errors.push(`queryTicketPrice: ${err.message}`);
+      console.log(`\n━━━ queryTicketPrice\n  FAILED: ${err.message}`);
+    }
   } else {
     summary.errors.push("queryByTrainNo skipped — no leftTicket match for Z21");
   }
@@ -166,7 +196,8 @@ summary.ok =
   summary.steps.session?.ok &&
   summary.steps.stationNames?.ok &&
   summary.steps.leftTicket?.ok &&
-  summary.steps.queryByTrainNo?.ok;
+  summary.steps.queryByTrainNo?.ok &&
+  summary.steps.ticketPrice?.ok;
 
 save("00-summary.json", summary);
 console.log(
