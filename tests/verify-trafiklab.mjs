@@ -38,8 +38,14 @@ import {
   fmtTime,
   buildTrafiklabTrains,
   alignLabelsWithRows,
+  upcomingDeviations,
 } from "../scripts/adapters/trafiklab-gtfs.mjs";
-import { sourceFeedSchedule, sourceFeedIdForRoute } from "../src/lib/sourceFeedSchedule.mjs";
+import {
+  sourceFeedSchedule,
+  sourceFeedIdForRoute,
+  groupUpcomingChanges,
+} from "../src/lib/sourceFeedSchedule.mjs";
+import { buildBookingUrl } from "../src/lib/operatorBooking.js";
 
 let checks = 0;
 const check = async (name, fn) => {
@@ -200,6 +206,126 @@ await check("within the pattern, the timing that runs most wins", () => {
   const usual = run("usual", stops, span("2026-09-27", "2026-11-30", ALL), "23:17:00");
   const works = run("works", stops, span("2026-12-01", "2026-12-06", ALL), "22:47:00");
   assert.equal(pickRepresentativeRun([works, usual]).tripId, "usual");
+});
+
+await check("a station the train skips on four nights in ten is not in its timetable", () => {
+  // SJ 2 in the feed of 2026-09-25: Malmö → Stockholm calls at Helsingborg on
+  // some nights only. At a 0.5 share that pattern won on stop count and the
+  // card listed a stop most nights do not make.
+  const nights = span("2026-09-27", "2026-12-11", [0, 1, 2, 3, 6]);
+  const usual = run("usual", ["Malmö", "Lund", "Hässleholm", "Stockholm"], nights.filter((_, i) => i % 5 !== 0));
+  const helsingborg = run(
+    "hbg",
+    ["Malmö", "Helsingborg", "Lund", "Hässleholm", "Stockholm"],
+    nights.filter((_, i) => i % 5 === 0 || i % 3 === 0),
+  );
+  assert.ok(helsingborg.dates.size >= usual.dates.size * 0.5, "the fixture is the case a half share got wrong");
+  assert.equal(pickRepresentativeRun([helsingborg, usual]).tripId, "usual");
+});
+
+await check("the usual clock is the most-run departure/arrival pair, not the most-run fragment", () => {
+  // A works period nudges an intermediate stop by a minute on some nights and
+  // splits the usual timetable into fragments; a later-running timing that
+  // happens to be one piece must not outvote them.
+  const stations = ["Luleå", "Umeå", "Stockholm"];
+  const timed = (id, dates, dep, mid, arr) => ({
+    tripId: id,
+    stops: [
+      { station: stations[0], arrival: dep, departure: dep },
+      { station: stations[1], arrival: mid, departure: mid },
+      { station: stations[2], arrival: arr, departure: arr },
+    ],
+    dates: new Set(dates),
+  });
+  const a = timed("a", span("2026-10-03", "2026-10-20", ALL), "21:10", "01:41", "10:13");
+  const b = timed("b", span("2026-10-21", "2026-11-08", ALL), "21:10", "01:42", "10:13");
+  const late = timed("late", span("2026-11-09", "2026-12-01", ALL), "21:10", "01:41", "12:13");
+  assert.ok(late.dates.size > a.dates.size && late.dates.size > b.dates.size);
+  assert.equal(pickRepresentativeRun([late, a, b]).stops[2].arrival, "10:13");
+});
+
+// ─── 3b. Dated changes ──────────────────────────────────────────────────────
+// SJ 93 runs its usual 17 stops to Stockholm at 10:13, and from 21 September to
+// 2 October the inland diversion: 10 stops, arriving 12:13 on the 27th — what
+// sj.se showed for that night. The card keeps the first and lists the second.
+
+await check("upcomingDeviations lists the nights that differ, with what they skip", () => {
+  const usualStations = ["Luleå", "Boden", "Älvsbyn", "Piteå", "Skellefteå", "Umeå", "Gävle", "Stockholm"];
+  const diverted = ["Luleå", "Boden", "Älvsbyn", "Jörn", "Bastuträsk", "Gävle", "Stockholm"];
+  const timedRun = (id, list, dates, dep, arr) => ({
+    tripId: id,
+    stops: list.map((station, i) => ({
+      station,
+      feed: { name: station },
+      arrival: i === 0 ? null : i === list.length - 1 ? arr : "01:00",
+      departure: i === 0 ? dep : i === list.length - 1 ? null : "01:01",
+    })),
+    dates: new Set(dates),
+  });
+  const usual = timedRun("usual", usualStations, span("2026-10-03", "2026-12-11", ALL), "21:10", "10:13");
+  const works27 = timedRun("w27", diverted, ["20260927"], "21:09", "12:13");
+  const works28 = timedRun("w28", diverted, ["20260928"], "21:09", "13:42");
+  const drift = timedRun("drift", usualStations, ["20260929"], "21:12", "10:16");
+  const out = upcomingDeviations([usual, works27, works28, drift], usual, { today: "2026-09-26" });
+  assert.deepEqual(out.map((d) => [d.date, d.departure, d.arrival, d.stops]), [
+    ["2026-09-27", "21:09", "12:13", 7],
+    ["2026-09-28", "21:09", "13:42", 7],
+  ], "a three-minute drift is not a change worth printing");
+  assert.deepEqual(out[0].skipped, ["Piteå", "Skellefteå", "Umeå"]);
+  assert.deepEqual(out[0].added, ["Jörn", "Bastuträsk"]);
+  assert.equal(out[0].from, "Luleå");
+  assert.deepEqual(upcomingDeviations([usual], usual, { today: "2026-10-05" }), [], "a usual fortnight lists nothing");
+  // Past the window is not "upcoming".
+  assert.deepEqual(upcomingDeviations([usual, works27], usual, { today: "2026-09-28" }), []);
+});
+
+await check("groupUpcomingChanges folds consecutive nights on one routing and drops past ones", () => {
+  const d = (date, arrival, skipped = ["Umeå C"]) => ({
+    date, from: "Luleå C", to: "Stockholm C", departure: "21:09", arrival, stops: 10, skipped, added: [],
+  });
+  const groups = groupUpcomingChanges(
+    [
+      d("2026-09-30", "14:26"), d("2026-09-28", "13:42"), d("2026-09-29", "14:13"),
+      d("2026-10-01", "12:12", []), d("2026-10-03", "12:13"), d("2026-09-25", "10:13"),
+    ],
+    { today: "2026-09-26" },
+  );
+  // One diversion, three nights, three clocks; a different routing breaks the
+  // run, and so does a night the train runs as usual.
+  assert.deepEqual(groups.map((g) => [g.dates, g.nights.map((n) => n.arrival)]), [
+    [["2026-09-28", "2026-09-29", "2026-09-30"], ["13:42", "14:13", "14:26"]],
+    [["2026-10-01"], ["12:12"]],
+    [["2026-10-03"], ["12:13"]],
+  ]);
+  assert.deepEqual(groups[0].skipped, ["Umeå C"]);
+  assert.deepEqual(groupUpcomingChanges(undefined), []);
+  const s = sourceFeedSchedule(
+    { 93: { stations: [{ name: "A", departure: "21:00" }, { name: "B", arrival: "07:00" }], deviations: [d("2099-01-01", "12:13")] } },
+    { trip_short_name: "93" },
+  );
+  assert.equal(s.changes.length, 1, "the panel's schedule carries its changes");
+});
+
+await check("SJ's journey search opens on the night in question", () => {
+  assert.equal(
+    buildBookingUrl({ agencyId: "SJ", origin: "Luleå C", dest: "Stockholm C", isoDate: "2026-09-27" }),
+    "https://www.sj.se/en/search-journey/choose-ticket-type/Lule%C3%A5%20Central/Stockholm%20Central/2026-09-27/outward-journey?travel-details=outward-journey",
+  );
+  assert.equal(
+    buildBookingUrl({ agencyId: "SJ", origin: "Nowhere", dest: "Stockholm C", isoDate: "2026-09-27" }),
+    null,
+    "a station sj.se is not known to spell falls back to the booking page rather than a failed search",
+  );
+  // Without a date it searches tomorrow, in the ISO form sj.se wants.
+  assert.match(
+    buildBookingUrl({ agencyId: "SJ", origin: "Stockholm C", dest: "Malmö C" }),
+    /\/Stockholm%20Central\/Malm%C3%B6%20Central\/\d{4}-\d{2}-\d{2}\/outward-journey/,
+  );
+  // Every other template keeps dd.MM.yyyy.
+  assert.match(
+    buildBookingUrl({ agencyId: "LE", origin: "Leipzig Hbf", dest: "Dresden Hbf", isoDate: "2026-09-27" }),
+    /date=27\.09\.2026&/,
+  );
 });
 
 // ─── 4. Stations abroad ─────────────────────────────────────────────────────
@@ -471,6 +597,20 @@ await check("the panel reads it below every per-operator feed and above the bare
   assert.match(panel, /esSchedule \|\|\s*sourceSchedule \|\|\s*viaSchedule;/);
   // …and admits a synthetic row it cannot place in a hardcoded feed.
   assert.match(panel, /sourceFeedIdForRoute\(routes\[t\.route_id\]\)/);
+  // The dated changes come from the same schedule, each with a dated search.
+  assert.match(panel, /schedule === sourceSchedule \? sourceSchedule\?\.changes/);
+  assert.match(panel, /isoDate: night\.date/);
+});
+
+await check("the committed trains file carries the next fortnight's changes", () => {
+  const trains = readData("public/data/scraped/trafiklab-trains.json").data.trains;
+  for (const [label, t] of Object.entries(trains)) {
+    assert.ok(Array.isArray(t.deviations), `${label} has a deviations list`);
+    for (const d of t.deviations) {
+      assert.match(d.date, /^\d{4}-\d{2}-\d{2}$/, `${label} ${d.date}`);
+      assert.ok(d.from && d.to && d.stops >= 2, `${label} ${d.date}`);
+    }
+  }
 });
 
 console.log(`\n[verify-trafiklab] ${checks} checks passed`);

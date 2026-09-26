@@ -203,6 +203,11 @@ export function applyOverrideMutation(resource, action, payload, current) {
           ...(existing.routePages !== undefined && {
             routePages: existing.routePages,
           }),
+          // Date shape for {date}; the form does not edit it either.
+          ...(existing.dateFormat !== undefined && { dateFormat: existing.dateFormat }),
+          ...(existing.dateOffsetDays !== undefined && {
+            dateOffsetDays: existing.dateOffsetDays,
+          }),
           // Schedule ("official timetable") config is not on the booking form,
           // so a booking-URL edit must carry it through untouched or the
           // helper link silently disappears for that operator.

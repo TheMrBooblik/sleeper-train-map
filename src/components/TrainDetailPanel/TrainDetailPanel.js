@@ -34,8 +34,13 @@ import {
   formatTrainNumber,
   resolveOperatorComponents,
   resolveScheduleLink,
+  splitAgencyIds,
 } from "../../lib/operatorAgencies.mjs";
-import { hasLastMinuteDeals } from "../../lib/operatorBooking";
+import {
+  buildBookingUrl,
+  hasLastMinuteDeals,
+} from "../../lib/operatorBooking";
+import { formatPlanDate } from "../../lib/plan/format.mjs";
 import {
   esScheduleForTrip,
   isEuropeanSleeperRoute,
@@ -1446,10 +1451,15 @@ const TrainDetailPanel = ({
                 // Booking origin: prefer the station the user clicked on the map
                 // (so the deep link starts from where they are), but only when it
                 // isn't the destination. Otherwise use the train's own origin.
+                // The corrected row's endpoints when an official feed moved
+                // them (Trafiklab runs SJ 91 from Umeå; the trip still says
+                // Luleå), so the deep link searches the train the card shows.
+                const bookingDest =
+                  officialRow?.destination || trip.trip_headsign;
                 const bookingOrigin =
-                  selectedStation && selectedStation !== trip.trip_headsign
+                  selectedStation && selectedStation !== bookingDest
                     ? selectedStation
-                    : trip.trip_origin;
+                    : officialRow?.origin || trip.trip_origin;
                 // One entry per operating company ("PKP/ČD" → PKP + ČD), each
                 // carrying its logo plus the best link that operator sells this
                 // ticket through (deep link → booking page → fare portal →
@@ -1596,6 +1606,30 @@ const TrainDetailPanel = ({
                   esSchedule ||
                   sourceSchedule ||
                   viaSchedule;
+                // Nights in the next fortnight on which the train runs a
+                // different timetable (engineering works, an extension), read
+                // from the same source as the timetable they differ from.
+                const upcomingChanges =
+                  schedule === sourceSchedule ? sourceSchedule?.changes || [] : [];
+                const upcomingChangeNights = upcomingChanges.reduce(
+                  (n, c) => n + c.dates.length,
+                  0,
+                );
+                // A search on the operator's own site for that night, when it
+                // has a dated deep link (sj.se); otherwise nothing, since a
+                // homepage cannot show a particular night's timetable.
+                const changeSearchUrl = (change, night) => {
+                  for (const id of splitAgencyIds(bookingAgencyId)) {
+                    const url = buildBookingUrl({
+                      agencyId: id,
+                      origin: change.from,
+                      dest: change.to,
+                      isoDate: night.date,
+                    });
+                    if (url) return url;
+                  }
+                  return null;
+                };
                 const validFrom = formatCalendarDate(schedule?.validFrom);
                 const validUntil = formatCalendarDate(schedule?.validUntil);
 
@@ -1975,6 +2009,96 @@ const TrainDetailPanel = ({
                       </div>
                     )}
 
+                    {/* Dated timetable changes: the card above is the usual
+                        timetable, these are the nights it is not. */}
+                    {upcomingChanges.length > 0 && (
+                      <details className="rounded-md bg-amber-50">
+                        <summary className="cursor-pointer list-none px-2 py-1.5 flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-amber-900">
+                            Timetable changes in the next 2 weeks (
+                            {upcomingChangeNights}{" "}
+                            {upcomingChangeNights === 1 ? "night" : "nights"})
+                          </span>
+                          <span
+                            className="inline-flex items-center justify-center h-5 w-5 text-amber-700"
+                            aria-hidden
+                          >
+                            <FiChevronDown className="h-4 w-4" />
+                          </span>
+                        </summary>
+                        <div className="px-2 pb-2 space-y-1.5">
+                          <div className="text-xs text-amber-800">
+                            From the operator&apos;s timetable data, usually
+                            engineering works. Check the night you travel.
+                          </div>
+                          {upcomingChanges.map((change) => (
+                            <div
+                              key={change.dates[0]}
+                              className="rounded bg-white px-2 py-1.5 text-xs space-y-1"
+                            >
+                              <div className="text-gray-800">
+                                <span className="font-medium">
+                                  {change.dates.length > 1
+                                    ? `${formatPlanDate(change.dates[0])} – ${formatPlanDate(change.dates[change.dates.length - 1])}`
+                                    : formatPlanDate(change.dates[0])}
+                                </span>
+                                {" · "}
+                                {change.from} → {change.to} · {change.stops}{" "}
+                                stops
+                              </div>
+                              {change.skipped.length > 0 && (
+                                <div className="text-gray-500">
+                                  Not calling at: {change.skipped.join(", ")}
+                                </div>
+                              )}
+                              {change.added.length > 0 && (
+                                <div className="text-gray-500">
+                                  Also calls at: {change.added.join(", ")}
+                                </div>
+                              )}
+                              <div>
+                                {change.nights.map((night) => {
+                                  const url = changeSearchUrl(change, night);
+                                  const label = formatPlanDate(night.date);
+                                  return (
+                                    <div
+                                      key={night.date}
+                                      className="grid grid-cols-[1fr_auto_auto] items-center gap-2 py-0.5"
+                                    >
+                                      <span className="text-gray-700">
+                                        {label}
+                                      </span>
+                                      <span className="text-gray-600 tabular-nums whitespace-nowrap">
+                                        {night.departure || "--"} →{" "}
+                                        {night.arrival || "--"}
+                                      </span>
+                                      {url ? (
+                                        <a
+                                          href={url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          aria-label={`Check ${label} on the operator's site`}
+                                          title="Check this night on the operator's site"
+                                          className="text-gray-400 hover:text-gray-600"
+                                        >
+                                          <FiExternalLink
+                                            className="h-3 w-3"
+                                            aria-hidden
+                                          />
+                                        </a>
+                                      ) : (
+                                        <span />
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+
                     {/* Accordion: all stations with arrival/departure times */}
                     {schedule?.stops?.length > 0 && (
                       <details className="rounded-md bg-gray-50">
@@ -2071,7 +2195,7 @@ const TrainDetailPanel = ({
                       agencies={agencies}
                       agencyUrl={agencies[bookingAgencyId]?.agency_url}
                       origin={bookingOrigin}
-                      dest={trip.trip_headsign}
+                      dest={bookingDest}
                       pricing={pricing}
                       routeId={trip.route_id}
                       scheduleStops={schedule?.stops}

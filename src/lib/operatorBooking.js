@@ -9,6 +9,10 @@
  *     Optional extras: {originName}/{destName} (our display names, not the
  *     mapped codes) and {date} (dd.MM.yyyy, default +7 days). Replace the
  *     longer name placeholders first so "{origin}" cannot eat "{originName}".
+ *   - dateFormat: "yyyy-MM-dd" for a site that wants ISO dates in {date}
+ *     (sj.se's journey search: /search-journey/.../Luleå Central/Stockholm
+ *     Central/2026-09-27/...); absent means dd.MM.yyyy.
+ *   - dateOffsetDays: the default {date} when the caller names none (default 7).
  *   - dealsUrl / dealsLabel: optional secondary "last-minute deals" link
  *   - stationNames: map of our station name -> the booking site's expected name
  *
@@ -48,10 +52,22 @@ function formatDayMonthYear(d) {
   return `${dd}.${mm}.${d.getFullYear()}`;
 }
 
-function defaultBookingDate() {
+function formatIsoDate(d) {
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/** A date in the shape the operator's template wants. */
+function formatBookingDate(booking, d) {
+  return booking?.dateFormat === "yyyy-MM-dd" ? formatIsoDate(d) : formatDayMonthYear(d);
+}
+
+function defaultBookingDate(booking) {
   const d = new Date();
-  d.setDate(d.getDate() + 7);
-  return formatDayMonthYear(d);
+  const offset = Number.isFinite(booking?.dateOffsetDays) ? booking.dateOffsetDays : 7;
+  d.setDate(d.getDate() + offset);
+  return formatBookingDate(booking, d);
 }
 
 /**
@@ -67,8 +83,11 @@ function defaultBookingDate() {
  *
  * @param {object} args
  * @param {string} [args.date] - optional dd.MM.yyyy for templates with {date}
+ * @param {string} [args.isoDate] - optional "YYYY-MM-DD", formatted the way the
+ *   operator's template wants — a specific night, such as one on which the
+ *   train runs a different timetable
  */
-export function buildBookingUrl({ agencyId, origin, dest, date }) {
+export function buildBookingUrl({ agencyId, origin, dest, date, isoDate }) {
   const booking = getOperatorBooking(agencyId);
   if (!booking?.urlTemplate) return null;
 
@@ -83,7 +102,13 @@ export function buildBookingUrl({ agencyId, origin, dest, date }) {
     .replaceAll("{destName}", encodeURIComponent(dest || ""))
     .replaceAll("{origin}", encodeURIComponent(o.value))
     .replaceAll("{dest}", encodeURIComponent(d.value))
-    .replaceAll("{date}", date || defaultBookingDate());
+    .replaceAll("{date}", date || isoBookingDate(booking, isoDate) || defaultBookingDate(booking));
+}
+
+function isoBookingDate(booking, isoDate) {
+  const m = String(isoDate ?? "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  return formatBookingDate(booking, new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
 }
 
 /**

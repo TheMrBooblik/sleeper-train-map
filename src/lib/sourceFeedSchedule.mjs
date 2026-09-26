@@ -63,5 +63,76 @@ export function sourceFeedSchedule(trains, trip) {
     validFrom: null,
     validUntil: null,
     source: "source-feed",
+    changes: groupUpcomingChanges(train.deviations),
   };
+}
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function nextIsoDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const next = new Date(Date.UTC(y, m - 1, d + 1));
+  return next.toISOString().slice(0, 10);
+}
+
+/**
+ * The nights a source says the train does not run its usual timetable
+ * (engineering works, a seasonal extension), as runs of consecutive nights on
+ * the same routing — so a fortnight's diversion reads as one block listing
+ * what it skips once, with each night's own clock beneath it. The clock is
+ * per night because works timetables are: SJ 93 on its inland diversion
+ * reaches Stockholm at 12:13, 13:42, 14:13 or 14:26 depending on the night.
+ *
+ * `deviations` is what the adapter wrote for the next fortnight (see
+ * `upcomingDeviations` in trafiklab-gtfs.mjs). The file is rewritten nightly
+ * but a page can be read days later, so nights before `today` are dropped here
+ * rather than trusted to be gone.
+ *
+ * @param {Array<{date: string, from: string, to: string, departure: string|null,
+ *   arrival: string|null, stops: number, skipped?: string[], added?: string[]}>} deviations
+ * @param {{today?: string}} [opts] "YYYY-MM-DD", defaults to the local date
+ * @returns {Array<{dates: string[], nights: Array<{date: string, departure: string|null,
+ *   arrival: string|null}>, from: string, to: string, stops: number,
+ *   skipped: string[], added: string[]}>}
+ */
+export function groupUpcomingChanges(deviations, { today } = {}) {
+  if (!Array.isArray(deviations) || !deviations.length) return [];
+  const floor = ISO_DATE_RE.test(String(today ?? ""))
+    ? today
+    : (() => {
+        const now = new Date();
+        const mm = String(now.getMonth() + 1).padStart(2, "0");
+        const dd = String(now.getDate()).padStart(2, "0");
+        return `${now.getFullYear()}-${mm}-${dd}`;
+      })();
+  const routing = (d) =>
+    [d.from, d.to, d.stops, (d.skipped || []).join("|"), (d.added || []).join("|")].join("~");
+  const groups = [];
+  const sorted = deviations
+    .filter((d) => ISO_DATE_RE.test(String(d?.date ?? "")) && d.date >= floor)
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  for (const d of sorted) {
+    const night = { date: d.date, departure: asClock(d.departure), arrival: asClock(d.arrival) };
+    const last = groups[groups.length - 1];
+    if (
+      last &&
+      last.routing === routing(d) &&
+      nextIsoDate(last.dates[last.dates.length - 1]) === d.date
+    ) {
+      last.dates.push(d.date);
+      last.nights.push(night);
+      continue;
+    }
+    groups.push({
+      routing: routing(d),
+      dates: [d.date],
+      nights: [night],
+      from: d.from,
+      to: d.to,
+      stops: d.stops,
+      skipped: d.skipped || [],
+      added: d.added || [],
+    });
+  }
+  return groups.map(({ routing: _r, ...g }) => g);
 }

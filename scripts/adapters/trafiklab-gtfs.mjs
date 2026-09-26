@@ -315,16 +315,17 @@ export function rowSeasonStart(serviceString) {
  * Pick the run that describes the train.
  *
  * Patterns are weighted by the dates they run on. Among those carrying at
- * least `minShare` of the heaviest one's dates, the one with the most stops
- * wins: Snälltåget 300 lists every night twice, once as the Berlin–Malmö
- * sleeper portion (3 stops) and once as the through train to Stockholm (12),
- * and the two tie on dates. A pattern below the share — the Friday extension
+ * least `minShare` of the heaviest one's dates — a near tie — the one with the
+ * most stops wins: Snälltåget 300 lists every night twice, once as the
+ * Berlin–Malmö sleeper portion (3 stops) and once as the through train to
+ * Stockholm (12), and the two tie on dates. The share is 0.9, not 0.5: at a
+ * half SJ 2 came out calling at Helsingborg, which it skips on most nights. A pattern below the share — the Friday extension
  * to Dresden, a works diversion calling at five stations — never wins however
  * long it is. Within the pattern the most-run timing wins, for the same reason.
  *
  * @param {Array<{tripId: string, stops: Array<{station: string}>, dates: Set<string>}>} runs
  */
-export function pickRepresentativeRun(runs, { minShare = 0.5 } = {}) {
+export function pickRepresentativeRun(runs, { minShare = 0.9 } = {}) {
   const patterns = new Map();
   for (const run of runs) {
     if (!run.dates.size || run.stops.length < 2) continue;
@@ -340,13 +341,90 @@ export function pickRepresentativeRun(runs, { minShare = 0.5 } = {}) {
     .filter((p) => p.dates.size >= heaviest * minShare)
     .sort((a, b) => b.stops - a.stops || b.dates.size - a.dates.size)[0];
 
-  const timings = new Map();
+  // The usual clock is the most-run (departure, arrival) PAIR, not the most-run
+  // full timing: a works period nudges intermediate stops by a minute or two
+  // and splits one timetable into many "timings", and the most-run of those
+  // fragments need not carry the endpoint times most nights actually have.
+  const ends = (run) =>
+    `${run.stops[0]?.departure ?? run.stops[0]?.arrival}>${run.stops[run.stops.length - 1]?.arrival}`;
+  const pairs = new Map();
   for (const run of best.runs) {
-    const key = run.stops.map((s) => `${s.arrival}/${s.departure}`).join("|");
-    if (!timings.has(key)) timings.set(key, { run, dates: new Set() });
-    for (const d of run.dates) timings.get(key).dates.add(d);
+    const key = ends(run);
+    if (!pairs.has(key)) pairs.set(key, { dates: new Set(), runs: [] });
+    const p = pairs.get(key);
+    for (const d of run.dates) p.dates.add(d);
+    p.runs.push(run);
   }
-  return [...timings.values()].sort((a, b) => b.dates.size - a.dates.size)[0].run;
+  const pair = [...pairs.values()].sort((a, b) => b.dates.size - a.dates.size)[0];
+  return pair.runs.sort((a, b) => b.dates.size - a.dates.size)[0];
+}
+
+// ─── Upcoming deviations ────────────────────────────────────────────────────
+
+/**
+ * The nights in the next `days` on which the train does NOT run its usual
+ * timetable, with what it runs instead.
+ *
+ * The card shows the train's usual run — the modal pattern — because that is
+ * what describes it on a map and in a planner. But engineering works are
+ * dated, and they are exactly what a traveller checking a night next week runs
+ * into: SJ 93 normally reaches Stockholm at 10:13, and from 21 September to 2
+ * October it runs via the inland line, calls at 10 stations instead of 17 and
+ * arrives at 12:13, 13:42, 14:13 or 14:26 depending on the night — which is what
+ * sj.se shows for any one of those dates. Listing those nights next to the
+ * usual timetable says both things at once instead of picking one to be wrong.
+ *
+ * A night differs when its fullest run calls at a different set of stations,
+ * or starts or ends more than `toleranceMinutes` off the usual time. A few
+ * minutes' drift is not a deviation worth printing.
+ *
+ * @returns {Array<{date, from, to, departure, arrival, stops, skipped, added}>}
+ */
+export function upcomingDeviations(
+  runs,
+  representative,
+  { today, days = 14, toleranceMinutes = 10, nameOf = (s) => s.feed?.name ?? s.station } = {},
+) {
+  if (!representative) return [];
+  const clock = (t) => {
+    const m = String(t ?? "").match(/^(\d+):(\d{2})/);
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  };
+  const firstTime = (run) => clock(run.stops[0]?.departure ?? run.stops[0]?.arrival);
+  const lastTime = (run) =>
+    clock(run.stops[run.stops.length - 1]?.arrival ?? run.stops[run.stops.length - 1]?.departure);
+  const pattern = (run) => run.stops.map((s) => s.station).join("|");
+  // Beyond this an end time is a different timetable, below it a timing
+  // tweak the usual timetable already describes.
+  const offBy = (a, b) => a === null || b === null || Math.abs(a - b) > toleranceMinutes;
+  const sameAsUsual = (run) =>
+    pattern(run) === pattern(representative) &&
+    !offBy(firstTime(run), firstTime(representative)) &&
+    !offBy(lastTime(run), lastTime(representative));
+  const usualStations = new Set(representative.stops.map((s) => s.station));
+  const start = compactDate(today);
+  const out = [];
+  for (let i = 0; i < days; i += 1) {
+    const date = addDays(start, i);
+    const tonight = runs.filter((r) => r.dates.has(date));
+    if (!tonight.length) continue;
+    const fullest = tonight.sort((a, b) => b.stops.length - a.stops.length || (a === representative ? -1 : 1))[0];
+    if (fullest === representative || sameAsUsual(fullest)) continue;
+    const stations = new Set(fullest.stops.map((s) => s.station));
+    const first = fullest.stops[0];
+    const last = fullest.stops[fullest.stops.length - 1];
+    out.push({
+      date: `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`,
+      from: nameOf(first),
+      to: nameOf(last),
+      departure: fmtTime(first.departure ?? first.arrival),
+      arrival: fmtTime(last.arrival ?? last.departure),
+      stops: fullest.stops.length,
+      skipped: representative.stops.filter((s) => !stations.has(s.station)).map(nameOf),
+      added: fullest.stops.filter((s) => !usualStations.has(s.station)).map(nameOf),
+    });
+  }
+  return out;
 }
 
 // ─── Station names ──────────────────────────────────────────────────────────
@@ -768,6 +846,12 @@ export function buildTrafiklabTrains({
       feedRoute: String(route.route_short_name),
       feedTrip: run.tripId,
       runsInWindow: trainDates.size,
+      // Nights in the next fortnight that differ from the timetable above
+      // (engineering works, a Dresden extension) — shown beside it.
+      deviations: upcomingDeviations(runs, run, {
+        today,
+        nameOf: (s) => namer(s.feed).name,
+      }),
     };
   }
 
