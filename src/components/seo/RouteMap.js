@@ -30,7 +30,14 @@ function FitBounds({ positions }) {
  * direction, else a straight line through the stops) plus a marker at every station.
  * Renders nothing when no geometry is available.
  */
-export default function RouteMap({ polyline0, polyline1, stops, agencyId }) {
+export default function RouteMap({
+  polyline0,
+  polyline1,
+  stops,
+  originName,
+  destinationName,
+  agencyId,
+}) {
   const color = getOperatorBaseColor({ agency_id: agencyId });
 
   const stations = (stops || []).filter(
@@ -47,7 +54,15 @@ export default function RouteMap({ polyline0, polyline1, stops, agencyId }) {
 
   const all = [...lines.flat(), ...stations.map((s) => [s.lat, s.lon])];
   const center = all[Math.floor(all.length / 2)] || [50, 10];
+  // Endpoints are the route's actual origin/destination, matched by name —
+  // not by position in `stations`. That array is a merge of every
+  // direction's stop list (so a return leg's own-only station, e.g.
+  // Eindhoven Centraal on the Amsterdam-Zürich corridor, doesn't end up
+  // sorted last and get mistaken for the route's endpoint).
   const lastStation = stations.length - 1;
+  const hasNamedEndpoints = Boolean(originName || destinationName);
+  const isEndpointName = (name) =>
+    name === originName || name === destinationName;
 
   return (
     <MapContainer
@@ -71,7 +86,9 @@ export default function RouteMap({ polyline0, polyline1, stops, agencyId }) {
         />
       ))}
       {stations.map((s, i) => {
-        const isEnd = i === 0 || i === lastStation;
+        const isEnd = hasNamedEndpoints
+          ? isEndpointName(s.name)
+          : i === 0 || i === lastStation;
         return (
           <CircleMarker
             key={`${s.name}-${i}`}

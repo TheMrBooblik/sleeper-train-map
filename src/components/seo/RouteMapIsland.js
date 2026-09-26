@@ -25,6 +25,8 @@ export default function RouteMapIsland({ map, agencyId }) {
         polyline0={map.polyline0}
         polyline1={map.polyline1}
         stops={map.stops}
+        originName={map.originName}
+        destinationName={map.destinationName}
         agencyId={agencyId}
       />
     </div>
