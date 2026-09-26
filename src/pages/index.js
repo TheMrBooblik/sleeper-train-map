@@ -29,10 +29,6 @@ export default function Home({ seo }) {
       <Head>
         <title>{TITLE}</title>
         <meta name="description" content={DESCRIPTION} />
-        <meta
-          name="keywords"
-          content="sleeper train map, night train map, night trains Europe, European sleeper trains, overnight train routes, sleeper train routes"
-        />
         <link rel="canonical" href={SITE_URL} />
 
         {/* Open Graph */}

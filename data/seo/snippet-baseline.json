@@ -1,0 +1,1212 @@
+{
+  "id": "connection-snippet-facts-v1",
+  "shippedAt": "2026-09-23",
+  "baselineWindow": {
+    "from": "2026-06-21",
+    "to": "2026-09-20"
+  },
+  "baselineSource": "711b680e-Pages.csv",
+  "sitemapBatchFlippedAt": "2026-09-22",
+  "pages": {
+    "aberdeen-to-london": {
+      "clicks": 0,
+      "impressions": 461,
+      "position": 39.71
+    },
+    "albi-to-paris": {
+      "clicks": 0,
+      "impressions": 183,
+      "position": 44.33
+    },
+    "amsterdam-to-innsbruck": {
+      "clicks": 0,
+      "impressions": 116,
+      "position": 17.6
+    },
+    "amsterdam-to-milan": {
+      "clicks": 0,
+      "impressions": 231,
+      "position": 45.3
+    },
+    "amsterdam-to-vienna": {
+      "clicks": 1,
+      "impressions": 244,
+      "position": 39.41
+    },
+    "amsterdam-to-zurich": {
+      "clicks": 0,
+      "impressions": 285,
+      "position": 39.71
+    },
+    "ankara-to-istanbul": {
+      "clicks": 0,
+      "impressions": 143,
+      "position": 36.08
+    },
+    "ankara-to-izmir": {
+      "clicks": 0,
+      "impressions": 27,
+      "position": 63.93
+    },
+    "ankara-to-kars": {
+      "clicks": 0,
+      "impressions": 9,
+      "position": 48.33
+    },
+    "ankara-to-kurtalan": {
+      "clicks": 0,
+      "impressions": 14,
+      "position": 31.79
+    },
+    "ankara-to-malatya": {
+      "clicks": 0,
+      "impressions": 17,
+      "position": 36.41
+    },
+    "ankara-to-tatvan": {
+      "clicks": 0,
+      "impressions": 11,
+      "position": 33.36
+    },
+    "arad-to-bucharest": {
+      "clicks": 1,
+      "impressions": 145,
+      "position": 16.15
+    },
+    "aurillac-to-paris": {
+      "clicks": 0,
+      "impressions": 660,
+      "position": 64.9
+    },
+    "baku-to-tbilisi": {
+      "clicks": 0,
+      "impressions": 62,
+      "position": 43.74
+    },
+    "baoji-to-guangzhou": {
+      "clicks": 0,
+      "impressions": 4,
+      "position": 7.75
+    },
+    "baotou-to-guangzhou": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "baotou-to-hangzhou": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 11
+    },
+    "baotou-to-shenzhen": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "bar-to-belgrade": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 30.33
+    },
+    "batumi-to-tbilisi": {
+      "clicks": 1,
+      "impressions": 24,
+      "position": 41.42
+    },
+    "beijing-to-chengdu": {
+      "clicks": 0,
+      "impressions": 292,
+      "position": 33.86
+    },
+    "beijing-to-ganzhou": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 51.33
+    },
+    "beijing-to-guangzhou": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 62.33
+    },
+    "beijing-to-hangzhou": {
+      "clicks": 0,
+      "impressions": 143,
+      "position": 34.13
+    },
+    "beijing-to-harbin": {
+      "clicks": 1,
+      "impressions": 390,
+      "position": 39.92
+    },
+    "beijing-to-lhasa": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 72.5
+    },
+    "beijing-to-mudanjiang": {
+      "clicks": 0,
+      "impressions": 4,
+      "position": 6.75
+    },
+    "beijing-to-nanning": {
+      "clicks": 0,
+      "impressions": 117,
+      "position": 37.44
+    },
+    "beijing-to-panzhihua": {
+      "clicks": 0,
+      "impressions": 4,
+      "position": 6.5
+    },
+    "beijing-to-qingdao": {
+      "clicks": 0,
+      "impressions": 5,
+      "position": 54.8
+    },
+    "beijing-to-qiqihar": {
+      "clicks": 0,
+      "impressions": 20,
+      "position": 12.25
+    },
+    "beijing-to-sanya": {
+      "clicks": 0,
+      "impressions": 5,
+      "position": 17.4
+    },
+    "beijing-to-shanghai": {
+      "clicks": 0,
+      "impressions": 46,
+      "position": 43.61
+    },
+    "beijing-to-ulaanbaatar": {
+      "clicks": 0,
+      "impressions": 27,
+      "position": 50.93
+    },
+    "beijing-to-urumqi": {
+      "clicks": 0,
+      "impressions": 8,
+      "position": 50
+    },
+    "beijing-to-xiamen": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 16
+    },
+    "beijing-to-xian": {
+      "clicks": 0,
+      "impressions": 199,
+      "position": 55.56
+    },
+    "bergen-to-oslo": {
+      "clicks": 0,
+      "impressions": 8,
+      "position": 27.5
+    },
+    "berlin-to-budapest": {
+      "clicks": 0,
+      "impressions": 14,
+      "position": 10.14
+    },
+    "berlin-to-graz": {
+      "clicks": 0,
+      "impressions": 14,
+      "position": 9.71
+    },
+    "berlin-to-paris": {
+      "clicks": 0,
+      "impressions": 67,
+      "position": 16.75
+    },
+    "berlin-to-stockholm": {
+      "clicks": 0,
+      "impressions": 170,
+      "position": 34.65
+    },
+    "berlin-to-zurich": {
+      "clicks": 0,
+      "impressions": 111,
+      "position": 18.89
+    },
+    "bielsko-biala-to-kolobrzeg": {
+      "clicks": 0,
+      "impressions": 17,
+      "position": 23.06
+    },
+    "bielsko-biala-to-swinoujscie": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 19.67
+    },
+    "bistrita-to-bucharest": {
+      "clicks": 0,
+      "impressions": 1,
+      "position": 8
+    },
+    "bodo-to-trondheim": {
+      "clicks": 0,
+      "impressions": 65,
+      "position": 18.77
+    },
+    "bohumin-to-hel": {
+      "clicks": 0,
+      "impressions": 5,
+      "position": 8
+    },
+    "bohumin-to-leba": {
+      "clicks": 0,
+      "impressions": 1,
+      "position": 10
+    },
+    "bologna-to-munich": {
+      "clicks": 0,
+      "impressions": 93,
+      "position": 16.58
+    },
+    "bologna-to-vienna": {
+      "clicks": 1,
+      "impressions": 229,
+      "position": 8.82
+    },
+    "bolzano-to-rome": {
+      "clicks": 0,
+      "impressions": 4,
+      "position": 8.5
+    },
+    "boston-to-chicago": {
+      "clicks": 0,
+      "impressions": 11,
+      "position": 45.27
+    },
+    "brasov-to-budapest": {
+      "clicks": 0,
+      "impressions": 130,
+      "position": 14.87
+    },
+    "brasov-to-cluj-napoca": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "bratislava-to-humenne": {
+      "clicks": 0,
+      "impressions": 13,
+      "position": 14.38
+    },
+    "bregenz-to-vienna": {
+      "clicks": 0,
+      "impressions": 67,
+      "position": 13.57
+    },
+    "briancon-to-paris": {
+      "clicks": 0,
+      "impressions": 12,
+      "position": 49.58
+    },
+    "brussels-to-milan": {
+      "clicks": 3,
+      "impressions": 486,
+      "position": 18.87
+    },
+    "brussels-to-prague": {
+      "clicks": 0,
+      "impressions": 9,
+      "position": 43.89
+    },
+    "brussels-to-vienna": {
+      "clicks": 0,
+      "impressions": 45,
+      "position": 34.78
+    },
+    "bucharest-to-budapest": {
+      "clicks": 2,
+      "impressions": 483,
+      "position": 13.38
+    },
+    "bucharest-to-chisinau": {
+      "clicks": 0,
+      "impressions": 9,
+      "position": 44.78
+    },
+    "bucharest-to-cluj-napoca": {
+      "clicks": 0,
+      "impressions": 30,
+      "position": 10.8
+    },
+    "bucharest-to-iasi": {
+      "clicks": 0,
+      "impressions": 21,
+      "position": 7.14
+    },
+    "bucharest-to-istanbul": {
+      "clicks": 0,
+      "impressions": 42,
+      "position": 19.05
+    },
+    "bucharest-to-kyiv": {
+      "clicks": 0,
+      "impressions": 15,
+      "position": 6.13
+    },
+    "bucharest-to-oradea": {
+      "clicks": 0,
+      "impressions": 23,
+      "position": 15.17
+    },
+    "bucharest-to-satu-mare": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "bucharest-to-vatra-dornei": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 8
+    },
+    "bucharest-to-vienna": {
+      "clicks": 0,
+      "impressions": 27,
+      "position": 11.33
+    },
+    "budapest-to-koper": {
+      "clicks": 0,
+      "impressions": 9,
+      "position": 8.67
+    },
+    "budapest-to-kyiv": {
+      "clicks": 0,
+      "impressions": 24,
+      "position": 7.62
+    },
+    "budapest-to-rijeka": {
+      "clicks": 0,
+      "impressions": 5,
+      "position": 5
+    },
+    "budapest-to-split": {
+      "clicks": 0,
+      "impressions": 51,
+      "position": 27.8
+    },
+    "budapest-to-stuttgart": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 7.33
+    },
+    "budapest-to-warsaw": {
+      "clicks": 0,
+      "impressions": 33,
+      "position": 18.67
+    },
+    "budapest-to-zurich": {
+      "clicks": 0,
+      "impressions": 52,
+      "position": 18.67
+    },
+    "burgas-to-sofia": {
+      "clicks": 1,
+      "impressions": 48,
+      "position": 25.96
+    },
+    "cerbere-to-paris": {
+      "clicks": 0,
+      "impressions": 9,
+      "position": 7
+    },
+    "chelm-to-kharkiv": {
+      "clicks": 0,
+      "impressions": 21,
+      "position": 7.76
+    },
+    "chelm-to-kyiv": {
+      "clicks": 1,
+      "impressions": 358,
+      "position": 8.73
+    },
+    "chelm-to-swinoujscie": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "chengdu-to-jiamusi": {
+      "clicks": 0,
+      "impressions": 5,
+      "position": 7.8
+    },
+    "chengdu-to-qiqihar": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "chengdu-to-shanghai": {
+      "clicks": 0,
+      "impressions": 282,
+      "position": 42.1
+    },
+    "chengdu-to-yangzhou": {
+      "clicks": 0,
+      "impressions": 1,
+      "position": 70
+    },
+    "cherkasy-to-ivano-frankivsk": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 10
+    },
+    "chernihiv-to-ivano-frankivsk": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "chernivtsi-to-dnipro": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 61.67
+    },
+    "chernivtsi-to-kharkiv": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 9
+    },
+    "chernivtsi-to-kryvyi-rih": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "chernivtsi-to-kyiv": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 7.5
+    },
+    "chernivtsi-to-odesa": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 7.67
+    },
+    "chicago-to-emeryville": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "chicago-to-los-angeles": {
+      "clicks": 0,
+      "impressions": 8,
+      "position": 6.75
+    },
+    "chicago-to-miami": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 10
+    },
+    "chicago-to-new-orleans": {
+      "clicks": 0,
+      "impressions": 10,
+      "position": 40.6
+    },
+    "chicago-to-new-york": {
+      "clicks": 0,
+      "impressions": 5,
+      "position": 37.4
+    },
+    "chicago-to-seattle": {
+      "clicks": 0,
+      "impressions": 17,
+      "position": 43.18
+    },
+    "chisinau-to-kyiv": {
+      "clicks": 0,
+      "impressions": 15,
+      "position": 7.6
+    },
+    "chongqing-to-guangzhou": {
+      "clicks": 0,
+      "impressions": 185,
+      "position": 43.52
+    },
+    "chongqing-to-huizhou": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "chop-to-kyiv": {
+      "clicks": 0,
+      "impressions": 7,
+      "position": 7.57
+    },
+    "chop-to-prague": {
+      "clicks": 0,
+      "impressions": 16,
+      "position": 7.69
+    },
+    "churchill-to-winnipeg": {
+      "clicks": 0,
+      "impressions": 7,
+      "position": 40.71
+    },
+    "cluj-napoca-to-iasi": {
+      "clicks": 0,
+      "impressions": 9,
+      "position": 7.11
+    },
+    "constanta-to-iasi": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "constanta-to-oradea": {
+      "clicks": 0,
+      "impressions": 4,
+      "position": 7.75
+    },
+    "constanta-to-timisoara": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "dazhou-to-guangzhou": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 12
+    },
+    "dnipro-to-kovel": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "dnipro-to-lviv": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 10.5
+    },
+    "dnipro-to-odesa": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "dnipro-to-truskavets": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "dnipro-to-uzhhorod": {
+      "clicks": 0,
+      "impressions": 23,
+      "position": 12.04
+    },
+    "dobrich-to-sofia": {
+      "clicks": 0,
+      "impressions": 17,
+      "position": 10.35
+    },
+    "duved-to-malmo": {
+      "clicks": 0,
+      "impressions": 1,
+      "position": 4
+    },
+    "duved-to-stockholm": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "edinburgh-to-london": {
+      "clicks": 0,
+      "impressions": 22,
+      "position": 50.59
+    },
+    "edirne-to-villach": {
+      "clicks": 0,
+      "impressions": 7,
+      "position": 8.43
+    },
+    "feldkirch-to-zurich": {
+      "clicks": 2,
+      "impressions": 80,
+      "position": 8.05
+    },
+    "fort-william-to-london": {
+      "clicks": 0,
+      "impressions": 39,
+      "position": 49.41
+    },
+    "frankfurt-to-przemysl": {
+      "clicks": 0,
+      "impressions": 33,
+      "position": 7.3
+    },
+    "gdynia-to-prague": {
+      "clicks": 0,
+      "impressions": 19,
+      "position": 11.68
+    },
+    "gdynia-to-zakopane": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 31
+    },
+    "glasgow-to-london": {
+      "clicks": 0,
+      "impressions": 69,
+      "position": 49.29
+    },
+    "graz-to-zurich": {
+      "clicks": 2,
+      "impressions": 280,
+      "position": 8.06
+    },
+    "guangzhou-to-langzhong": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "guangzhou-to-lhasa": {
+      "clicks": 0,
+      "impressions": 5,
+      "position": 60.6
+    },
+    "guangzhou-to-shenyang": {
+      "clicks": 0,
+      "impressions": 1,
+      "position": 3
+    },
+    "haikou-to-harbin": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "haikou-to-shanghai": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 35.5
+    },
+    "halifax-to-montreal": {
+      "clicks": 0,
+      "impressions": 27,
+      "position": 25.96
+    },
+    "hamburg-to-innsbruck": {
+      "clicks": 0,
+      "impressions": 40,
+      "position": 24.4
+    },
+    "hamburg-to-vienna": {
+      "clicks": 0,
+      "impressions": 21,
+      "position": 21.43
+    },
+    "hamburg-to-zurich": {
+      "clicks": 0,
+      "impressions": 65,
+      "position": 36.02
+    },
+    "hel-to-krakow": {
+      "clicks": 0,
+      "impressions": 1,
+      "position": 83
+    },
+    "helsinki-to-kemijarvi": {
+      "clicks": 0,
+      "impressions": 5,
+      "position": 9.2
+    },
+    "helsinki-to-kolari": {
+      "clicks": 0,
+      "impressions": 14,
+      "position": 10.43
+    },
+    "helsinki-to-rovaniemi": {
+      "clicks": 0,
+      "impressions": 158,
+      "position": 57.92
+    },
+    "humenne-to-prague": {
+      "clicks": 0,
+      "impressions": 9,
+      "position": 19.33
+    },
+    "iasi-to-timisoara": {
+      "clicks": 0,
+      "impressions": 10,
+      "position": 16.2
+    },
+    "inverness-to-london": {
+      "clicks": 0,
+      "impressions": 57,
+      "position": 45.07
+    },
+    "istanbul-to-sofia": {
+      "clicks": 1,
+      "impressions": 30,
+      "position": 25.4
+    },
+    "ivano-frankivsk-to-kharkiv": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "ivano-frankivsk-to-kryvyi-rih": {
+      "clicks": 0,
+      "impressions": 1,
+      "position": 10
+    },
+    "ivano-frankivsk-to-kyiv": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "izmir-to-konya": {
+      "clicks": 0,
+      "impressions": 30,
+      "position": 21.97
+    },
+    "kamianets-podilskyi-to-kyiv": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "kharkiv-to-lviv": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 2.5
+    },
+    "kharkiv-to-odesa": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "kharkiv-to-przemysl": {
+      "clicks": 0,
+      "impressions": 14,
+      "position": 7.36
+    },
+    "kharkiv-to-uzhhorod": {
+      "clicks": 0,
+      "impressions": 17,
+      "position": 15.53
+    },
+    "kharkiv-to-vorokhta": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 1.5
+    },
+    "kolobrzeg-to-krakow": {
+      "clicks": 0,
+      "impressions": 46,
+      "position": 34.74
+    },
+    "kovel-to-kyiv": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 9
+    },
+    "kovel-to-odesa": {
+      "clicks": 0,
+      "impressions": 1,
+      "position": 1
+    },
+    "krakow-to-leba": {
+      "clicks": 0,
+      "impressions": 1,
+      "position": 29
+    },
+    "krakow-to-swinoujscie": {
+      "clicks": 0,
+      "impressions": 9,
+      "position": 26.67
+    },
+    "kremenchuk-to-mukacheve": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 33.67
+    },
+    "kremenchuk-to-przemysl": {
+      "clicks": 0,
+      "impressions": 16,
+      "position": 7.19
+    },
+    "kryvyi-rih-to-kyiv": {
+      "clicks": 1,
+      "impressions": 2,
+      "position": 6
+    },
+    "kunming-to-shanghai": {
+      "clicks": 0,
+      "impressions": 79,
+      "position": 48.53
+    },
+    "kyiv-to-lviv": {
+      "clicks": 0,
+      "impressions": 1,
+      "position": 43
+    },
+    "kyiv-to-mykolaiv": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 10.33
+    },
+    "kyiv-to-odesa": {
+      "clicks": 0,
+      "impressions": 83,
+      "position": 21.92
+    },
+    "kyiv-to-przemysl": {
+      "clicks": 0,
+      "impressions": 22,
+      "position": 7.32
+    },
+    "kyiv-to-rakhiv": {
+      "clicks": 0,
+      "impressions": 6,
+      "position": 5
+    },
+    "kyiv-to-solotvyno": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 6.33
+    },
+    "kyiv-to-truskavets": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 8.67
+    },
+    "kyiv-to-uzhhorod": {
+      "clicks": 0,
+      "impressions": 50,
+      "position": 11.22
+    },
+    "kyiv-to-vienna": {
+      "clicks": 0,
+      "impressions": 25,
+      "position": 13.4
+    },
+    "kyiv-to-warsaw": {
+      "clicks": 0,
+      "impressions": 18,
+      "position": 13.28
+    },
+    "kyiv-to-zaporizhzhia": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 42.5
+    },
+    "latour-de-carol-to-paris": {
+      "clicks": 0,
+      "impressions": 11,
+      "position": 13.82
+    },
+    "lecce-to-milan": {
+      "clicks": 0,
+      "impressions": 97,
+      "position": 40.32
+    },
+    "lecce-to-rome": {
+      "clicks": 0,
+      "impressions": 8,
+      "position": 27.62
+    },
+    "lecce-to-turin": {
+      "clicks": 0,
+      "impressions": 46,
+      "position": 8.3
+    },
+    "lhasa-to-shanghai": {
+      "clicks": 0,
+      "impressions": 1,
+      "position": 53
+    },
+    "london-to-penzance": {
+      "clicks": 0,
+      "impressions": 13,
+      "position": 53.62
+    },
+    "lorton-to-sanford": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "los-angeles-to-new-orleans": {
+      "clicks": 0,
+      "impressions": 4,
+      "position": 49.5
+    },
+    "los-angeles-to-seattle": {
+      "clicks": 0,
+      "impressions": 4,
+      "position": 43.25
+    },
+    "lozova-to-lviv": {
+      "clicks": 0,
+      "impressions": 11,
+      "position": 44.36
+    },
+    "lozova-to-mykolaiv": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "lulea-to-stockholm": {
+      "clicks": 0,
+      "impressions": 5,
+      "position": 17.8
+    },
+    "lviv-to-mykolaiv": {
+      "clicks": 0,
+      "impressions": 1,
+      "position": 11
+    },
+    "lviv-to-odesa": {
+      "clicks": 0,
+      "impressions": 4,
+      "position": 8.5
+    },
+    "lviv-to-zaporizhzhia": {
+      "clicks": 0,
+      "impressions": 24,
+      "position": 17.29
+    },
+    "malmo-to-stockholm": {
+      "clicks": 0,
+      "impressions": 38,
+      "position": 46.21
+    },
+    "malmo-to-storlien": {
+      "clicks": 0,
+      "impressions": 24,
+      "position": 7.96
+    },
+    "mangalia-to-satu-mare": {
+      "clicks": 0,
+      "impressions": 5,
+      "position": 21
+    },
+    "mangalia-to-suceava": {
+      "clicks": 0,
+      "impressions": 7,
+      "position": 14.43
+    },
+    "messina-to-palermo": {
+      "clicks": 2,
+      "impressions": 130,
+      "position": 9.21
+    },
+    "miami-to-new-york": {
+      "clicks": 0,
+      "impressions": 21,
+      "position": 39.86
+    },
+    "milan-to-siracusa": {
+      "clicks": 0,
+      "impressions": 4,
+      "position": 34
+    },
+    "munich-to-przemysl": {
+      "clicks": 0,
+      "impressions": 25,
+      "position": 10.16
+    },
+    "munich-to-rome": {
+      "clicks": 0,
+      "impressions": 23,
+      "position": 29.35
+    },
+    "munich-to-venice": {
+      "clicks": 0,
+      "impressions": 4,
+      "position": 48
+    },
+    "munich-to-warsaw": {
+      "clicks": 0,
+      "impressions": 39,
+      "position": 36.23
+    },
+    "new-orleans-to-new-york": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "nice-to-paris": {
+      "clicks": 0,
+      "impressions": 113,
+      "position": 30.63
+    },
+    "odesa-to-przemysl": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 10.33
+    },
+    "odesa-to-uzhhorod": {
+      "clicks": 0,
+      "impressions": 1,
+      "position": 11
+    },
+    "osijek-to-split": {
+      "clicks": 0,
+      "impressions": 19,
+      "position": 14.63
+    },
+    "oslo-to-stavanger": {
+      "clicks": 0,
+      "impressions": 10,
+      "position": 15.1
+    },
+    "oslo-to-trondheim": {
+      "clicks": 0,
+      "impressions": 21,
+      "position": 49.9
+    },
+    "paris-to-rodez": {
+      "clicks": 0,
+      "impressions": 4,
+      "position": 7.25
+    },
+    "paris-to-tarbes": {
+      "clicks": 0,
+      "impressions": 9,
+      "position": 18.11
+    },
+    "paris-to-toulouse": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 30
+    },
+    "prague-to-przemysl": {
+      "clicks": 0,
+      "impressions": 68,
+      "position": 18.9
+    },
+    "prague-to-warsaw": {
+      "clicks": 0,
+      "impressions": 56,
+      "position": 50.57
+    },
+    "prague-to-zurich": {
+      "clicks": 0,
+      "impressions": 15,
+      "position": 42.4
+    },
+    "przemysl-to-swinoujscie": {
+      "clicks": 0,
+      "impressions": 4,
+      "position": 41.75
+    },
+    "przemysl-to-zaporizhzhia": {
+      "clicks": 0,
+      "impressions": 14,
+      "position": 7.36
+    },
+    "rakhiv-to-sumy": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "reggio-calabria-to-turin": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "rijeka-to-warsaw": {
+      "clicks": 0,
+      "impressions": 7,
+      "position": 28.86
+    },
+    "rome-to-siracusa": {
+      "clicks": 0,
+      "impressions": 41,
+      "position": 24.24
+    },
+    "rome-to-trieste": {
+      "clicks": 0,
+      "impressions": 36,
+      "position": 49.86
+    },
+    "rome-to-vienna": {
+      "clicks": 0,
+      "impressions": 30,
+      "position": 10.37
+    },
+    "rovaniemi-to-turku": {
+      "clicks": 0,
+      "impressions": 1,
+      "position": 8
+    },
+    "salerno-to-turin": {
+      "clicks": 0,
+      "impressions": 81,
+      "position": 45.05
+    },
+    "silistra-to-sofia": {
+      "clicks": 0,
+      "impressions": 10,
+      "position": 16.6
+    },
+    "sofia-to-varna": {
+      "clicks": 0,
+      "impressions": 297,
+      "position": 15.74
+    },
+    "solotvyno-to-zaporizhzhia": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "split-to-vienna": {
+      "clicks": 0,
+      "impressions": 36,
+      "position": 17.11
+    },
+    "split-to-zagreb": {
+      "clicks": 0,
+      "impressions": 29,
+      "position": 50.1
+    },
+    "stuttgart-to-venice": {
+      "clicks": 0,
+      "impressions": 125,
+      "position": 20.7
+    },
+    "stuttgart-to-zagreb": {
+      "clicks": 0,
+      "impressions": 32,
+      "position": 30.84
+    },
+    "swinoujscie-to-zakopane": {
+      "clicks": 0,
+      "impressions": 3,
+      "position": 21.67
+    },
+    "szklarska-poreba-to-warsaw": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 10.5
+    },
+    "tbilisi-to-yerevan": {
+      "clicks": 0,
+      "impressions": 44,
+      "position": 44.39
+    },
+    "toronto-to-vancouver": {
+      "clicks": 0,
+      "impressions": 2,
+      "position": 26.5
+    },
+    "venice-to-vienna": {
+      "clicks": 1,
+      "impressions": 690,
+      "position": 10.48
+    },
+    "vienna-to-zurich": {
+      "clicks": 8,
+      "impressions": 973,
+      "position": 11.49
+    },
+    "yasinia-to-zaporizhzhia": {
+      "clicks": 0,
+      "impressions": 0,
+      "position": 0
+    },
+    "zagreb-to-zurich": {
+      "clicks": 1,
+      "impressions": 55,
+      "position": 12.67
+    }
+  }
+}
