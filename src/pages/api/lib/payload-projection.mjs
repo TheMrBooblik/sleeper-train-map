@@ -43,6 +43,14 @@ const SCHEDULE_FIELDS = ["pkp_schedule_0", "pkp_schedule_1"];
 const GEOMETRY_FIELDS = ["nj_polyline_0", "nj_polyline_1", "nj_polyline"];
 
 /**
+ * Row fields only the static connection pages read. A fare calendar is every
+ * night of six weeks per direction — worth a page, not the map's first paint.
+ */
+function isPageOnlyField(field) {
+  return field === "fare_calendar_0" || field === "fare_calendar_1";
+}
+
+/**
  * Trip columns carried over from the upstream Back-on-Track spreadsheet export.
  * Nothing in the app, the SEO layer or the scrape pipeline reads them.
  */
@@ -155,6 +163,26 @@ export function stripDeadTripColumns(payload) {
   }
 
   return { ...payload, trips };
+}
+
+/**
+ * Drop the row fields only the connection pages read (isPageOnlyField).
+ * @param {{viewMap?: Record<string, object>}} payload
+ * @returns {object}
+ */
+export function stripPageOnlyFields(payload) {
+  if (!payload?.viewMap) return payload;
+  const viewMap = {};
+  for (const [routeKey, route] of Object.entries(payload.viewMap)) {
+    if (!route || typeof route !== "object" || !Object.keys(route).some(isPageOnlyField)) {
+      viewMap[routeKey] = route;
+      continue;
+    }
+    viewMap[routeKey] = Object.fromEntries(
+      Object.entries(route).filter(([field]) => !isPageOnlyField(field)),
+    );
+  }
+  return { ...payload, viewMap };
 }
 
 /**

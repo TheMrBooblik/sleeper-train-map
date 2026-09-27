@@ -18,6 +18,7 @@ import { hydratePkpBundle } from "../src/lib/pkpTrainKeyExtract.js";
 import {
   projectStopsToRoutes,
   stripDeadTripColumns,
+  stripPageOnlyFields,
   splitRouteGeometry,
   mergeRouteGeometry,
   routeStationKeys,
@@ -205,8 +206,34 @@ if (bare && restored[bare] !== lightened.viewMap[bare]) {
 console.log("4) first-paint size");
 
 const firstPaint = splitRouteGeometry(
-  stripDeadTripColumns(projectStopsToRoutes(payload, pkpStationNames)),
+  stripPageOnlyFields(
+    stripDeadTripColumns(projectStopsToRoutes(payload, pkpStationNames)),
+  ),
 ).payload;
+
+// A fare calendar is six weeks of nights per direction: the connection pages
+// read it, the map never does. It must not ride along to the first paint —
+// and the route must actually apply the strip, not just this test.
+const withCalendar = Object.values(firstPaint.viewMap).filter(
+  (r) => r && ("fare_calendar_0" in r || "fare_calendar_1" in r),
+);
+if (withCalendar.length) {
+  fail(`${withCalendar.length} row(s) still carry a fare calendar in the first paint`);
+} else {
+  ok("fare calendars stay out of the first paint");
+}
+const sample = { viewMap: { r: { route_id: "r", fare_0: { fromPrice: 1 }, fare_calendar_0: { nights: {} } } } };
+const stripped = stripPageOnlyFields(sample).viewMap.r;
+if ("fare_calendar_0" in stripped || !stripped.fare_0) {
+  fail("stripPageOnlyFields must drop fare_calendar_* and keep fare_*");
+}
+const initialDataSrc = fs.readFileSync(
+  path.join(root, "src", "pages", "api", "initial-data.js"),
+  "utf8",
+);
+if (!/stripPageOnlyFields\(/.test(initialDataSrc)) {
+  fail("/api/initial-data does not apply stripPageOnlyFields");
+}
 
 const before = gz(payload);
 const after = gz(firstPaint);

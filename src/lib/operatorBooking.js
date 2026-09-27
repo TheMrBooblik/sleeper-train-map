@@ -11,7 +11,12 @@
  *     longer name placeholders first so "{origin}" cannot eat "{originName}".
  *   - dateFormat: "yyyy-MM-dd" for a site that wants ISO dates in {date}
  *     (sj.se's journey search: /search-journey/.../Luleå Central/Stockholm
- *     Central/2026-09-27/...); absent means dd.MM.yyyy.
+ *     Central/2026-09-27/...), "dd-MM-yyyy" for lefrecce.it's minisite;
+ *     absent means dd.MM.yyyy.
+ *   - urlDateSuffix: appended to urlTemplate ONLY when the caller names a
+ *     night (e.g. "&departureDate={date}"), for a link that takes an optional
+ *     date: the plain CTA keeps opening the operator's own default, and a
+ *     night picked on the fare calendar opens on that night.
  *   - dateOffsetDays: the default {date} when the caller names none (default 7).
  *   - dealsUrl / dealsLabel: optional secondary "last-minute deals" link
  *   - stationNames: map of our station name -> the booking site's expected name
@@ -52,6 +57,12 @@ function formatDayMonthYear(d) {
   return `${dd}.${mm}.${d.getFullYear()}`;
 }
 
+function formatDashedDayMonthYear(d) {
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}-${mm}-${d.getFullYear()}`;
+}
+
 function formatIsoDate(d) {
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -60,7 +71,9 @@ function formatIsoDate(d) {
 
 /** A date in the shape the operator's template wants. */
 function formatBookingDate(booking, d) {
-  return booking?.dateFormat === "yyyy-MM-dd" ? formatIsoDate(d) : formatDayMonthYear(d);
+  if (booking?.dateFormat === "yyyy-MM-dd") return formatIsoDate(d);
+  if (booking?.dateFormat === "dd-MM-yyyy") return formatDashedDayMonthYear(d);
+  return formatDayMonthYear(d);
 }
 
 function defaultBookingDate(booking) {
@@ -96,13 +109,39 @@ export function buildBookingUrl({ agencyId, origin, dest, date, isoDate }) {
 
   if (booking.requireStationMapping && (!o.mapped || !d.mapped)) return null;
 
+  const named = date || isoBookingDate(booking, isoDate);
+  let template = booking.urlTemplate;
+  if (named && booking.urlDateSuffix && !template.includes("{date}")) {
+    template += booking.urlDateSuffix;
+  }
   // Longer placeholders first: "{origin}" must not consume "{originName}".
-  return booking.urlTemplate
+  return template
     .replaceAll("{originName}", encodeURIComponent(origin || ""))
     .replaceAll("{destName}", encodeURIComponent(dest || ""))
     .replaceAll("{origin}", encodeURIComponent(o.value))
     .replaceAll("{dest}", encodeURIComponent(d.value))
-    .replaceAll("{date}", date || isoBookingDate(booking, isoDate) || defaultBookingDate(booking));
+    .replaceAll("{date}", named || defaultBookingDate(booking));
+}
+
+/**
+ * A booking link that opens on a night of the caller's choosing, for the fare
+ * calendar: { template, dateFor } where `template` is the deep link with a
+ * literal "{date}" left in it and `dateFor(iso)` the night as that link wants
+ * it — so a page carries one URL and a short date per night instead of a full
+ * URL for each of six weeks. Tries each component of a compound agency id in
+ * turn. null when no operator's link takes a date (the caller then links to
+ * the route's ordinary booking page and says the night must be chosen there).
+ */
+export function buildDatedBookingLink({ agencyId, origin, dest }) {
+  for (const id of splitAgencyIds(agencyId)) {
+    const booking = getOperatorBooking(id);
+    const template = booking?.urlTemplate;
+    if (!template || !(template.includes("{date}") || booking.urlDateSuffix)) continue;
+    const url = buildBookingUrl({ agencyId: id, origin, dest, date: "{date}" });
+    if (!url) continue;
+    return { template: url, dateFor: (iso) => isoBookingDate(booking, iso) };
+  }
+  return null;
 }
 
 function isoBookingDate(booking, isoDate) {

@@ -197,7 +197,11 @@ export default function ConnectionPage({
 
                 <div className="mt-6 space-y-5">
                   {t.directions.map((dir, i) => (
-                    <RouteTimetable key={i} direction={dir} />
+                    <RouteTimetable
+                      key={i}
+                      direction={dir}
+                      bookingHref={t.booking?.href ?? null}
+                    />
                   ))}
                 </div>
               </div>

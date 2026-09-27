@@ -748,6 +748,13 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
         // (lefrecce) is one date's price; a fixed tariff (12306) has none.
         ...(fare.travelDate ? { travelDate: fare.travelDate } : {}),
       };
+      // Every night's fare, when the source keeps a calendar (lefrecce does:
+      // scripts/lib/fare-calendar.mjs). Read by the connection pages only —
+      // the map payload drops it (stripPageOnlyFields).
+      const calendar = trains[row[`trip_short_name_${dir}`]]?.fareCalendar;
+      if (calendar?.nights && Object.keys(calendar.nights).length) {
+        row[`fare_calendar_${dir}`] = calendar;
+      }
     }
     if (!fares.length) continue;
     // Never compare across currencies; the first direction's currency decides.

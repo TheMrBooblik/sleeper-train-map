@@ -100,6 +100,8 @@
   },
   "FS": {
     "urlTemplate": "https://www.lefrecce.it/Channels.Website.WEB/#/white-label/MINISITI/?isRoundTrip=false&departureStation={origin}&arrivalStation={dest}&lang=en&minisitiCallBackId=60958&minisitiHeaderImageIt=&minisitiFooterImageIt=&minisitiHeaderImageEn=&minisitiFooterImageEn=&minisitiHeaderImageDe=&minisitiFooterImageDe=&minisitiHeaderImageFr=&minisitiFooterImageFr=",
+    "urlDateSuffix": "&departureDate={date}",
+    "dateFormat": "dd-MM-yyyy",
     "scheduleUrl": "https://www.trenitalia.com/it/intercity-notte.html",
     "scheduleUrlTemplate": "https://www.viaggiatreno.it/infomobilitamobile/pages/cercaTreno/cercaTreno.jsp?treno={train}&origine={originCode}&datapartenza={dateMs}",
     "scheduleTimeZone": "Europe/Rome"

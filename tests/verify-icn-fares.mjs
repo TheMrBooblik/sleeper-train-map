@@ -16,7 +16,17 @@ import {
   searchTimeBefore,
   solutionsRequestBody,
 } from "../scripts/lib/lefrecce.mjs";
-import { fetchIcnFare } from "../scripts/adapters/viaggiatreno.mjs";
+import { fillFareCalendars } from "../scripts/adapters/viaggiatreno.mjs";
+import {
+  calendarWindow,
+  cheapestNight,
+  FARE_CALENDAR_BUDGET,
+  planFareSearches,
+  pruneCalendar,
+} from "../scripts/lib/fare-calendar.mjs";
+import { carryPreviousFares } from "../scripts/lib/fares.mjs";
+import { calendarMonths, fareCalendarDays, formatNight } from "../src/lib/fareCalendarView.mjs";
+import { buildBookingUrl, buildDatedBookingLink } from "../src/lib/operatorBooking.js";
 import { stampOfficialFares } from "../src/pages/api/lib/build-initial-data.mjs";
 import {
   fareClassRows,
@@ -159,36 +169,130 @@ const jsonResponse = (body, status = 200) => ({
   text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
 });
 
+check("fare calendar: window, pruning, and the cheapest night as the headline", () => {
+  const window = calendarWindow("2026-09-27", 42);
+  assert.strictEqual(window.length, 42);
+  assert.strictEqual(window[0], "2026-09-28", "tomorrow first");
+  assert.strictEqual(window[41], "2026-11-08");
+  const pruned = pruneCalendar(
+    {
+      currency: "EUR",
+      nights: {
+        "2026-09-27": { classes: { couchette: 10 }, checkedAt: "2026-09-26" }, // tonight: gone
+        "2026-10-01": { classes: { couchette: 60 }, checkedAt: "2026-09-01" }, // stale check
+        "2026-10-02": { none: true, checkedAt: "2026-09-26" },
+        "2026-10-03": { classes: { couchette: 54.9, sleeperCabin: 117.9 }, checkedAt: "2026-09-25" },
+        "2027-01-01": { classes: { couchette: 5 }, checkedAt: "2026-09-26" }, // beyond the window
+      },
+    },
+    { today: "2026-09-27", days: 42 },
+  );
+  assert.deepStrictEqual(Object.keys(pruned.nights), ["2026-10-02", "2026-10-03"]);
+  pruned.nights["2026-10-04"] = { classes: { couchette: 54.9 }, checkedAt: "2026-09-27" };
+  assert.deepStrictEqual(cheapestNight(pruned), {
+    fromPrice: 54.9,
+    currency: "EUR",
+    seatClass: "couchette",
+    classes: { couchette: 54.9, sleeperCabin: 117.9 },
+    sampledAt: "2026-09-25",
+    travelDate: "2026-10-03",
+  }, "a tie keeps the nearer night");
+  assert.strictEqual(cheapestNight({ currency: "EUR", nights: { "2026-10-02": { none: true, checkedAt: "x" } } }), null);
+});
+
+check("planFareSearches: never-checked nights first, nearest first, trains interleaved; budget holds", () => {
+  const today = "2026-09-27";
+  const plan = planFareSearches(
+    {
+      "ICN 797": { nights: { "2026-09-28": { none: true, checkedAt: "2026-09-20" } } },
+      "ICN 796": { nights: { "2026-09-28": { classes: { couchette: 70 }, checkedAt: today } } },
+    },
+    { today, days: 3, budget: 5 },
+  );
+  assert.deepStrictEqual(plan, [
+    { key: "ICN 796", date: "2026-09-29" },
+    { key: "ICN 797", date: "2026-09-29" },
+    { key: "ICN 796", date: "2026-09-30" },
+    { key: "ICN 797", date: "2026-09-30" },
+    // then the stalest check; ICN 796's night checked today is never redone today
+    { key: "ICN 797", date: "2026-09-28" },
+  ]);
+  assert.strictEqual(planFareSearches({ a: {} }, { today, days: 42, budget: 0 }).length, 0);
+  // The default budget over the default window: ~1 050 nights for 25 trains
+  // cannot all be searched in one night, and the plan says so.
+  const many = Object.fromEntries(Array.from({ length: 25 }, (_, i) => [`ICN ${i}`, {}]));
+  assert.strictEqual(planFareSearches(many, { today }).length, FARE_CALENDAR_BUDGET);
+});
+
 {
-  // First sampled night the train does not run; the second it does.
+  // One run over two trains: 1963 runs every night but the first; 1955's
+  // station is refused and no name resolves it, so it is skipped for the
+  // night after one failure rather than burning the budget.
+  const TRAIN_B = {
+    lineName: "ICN 1955",
+    stations: [
+      { name: "Nowhere", code: "S99999", departure: "2026-09-27T16:10:00.000Z" },
+      { name: "Siracusa", code: "S12349", arrival: "2026-09-28T10:00:00.000Z" },
+    ],
+  };
   const calls = [];
   const fetchImpl = async (url, init) => {
+    if (url.includes("/locations/search")) return jsonResponse([]);
     const body = JSON.parse(init.body);
     calls.push(body);
-    return jsonResponse(calls.length === 1 ? { solutions: [] } : RESPONSE);
+    if (body.departureLocationId === 830099999) return jsonResponse({ error: "bad location" }, 400);
+    return jsonResponse(body.departureTime.startsWith("2026-09-28") ? { solutions: [] } : RESPONSE);
   };
-  const fare = await fetchIcnFare(TRAIN, { today: "2026-09-27", fetchImpl, log: () => {} });
-  assert.strictEqual(calls.length, 2);
-  assert.strictEqual(calls[0].departureTime, "2026-10-18T18:05:00.000", "21 days out, 5 min before Milano's 18:10");
-  assert.strictEqual(calls[1].departureTime, "2026-10-19T18:05:00.000");
-  assert.strictEqual(calls[0].departureLocationId, 830001700);
-  assert.strictEqual(calls[0].arrivalLocationId, 830012349);
-  assert.strictEqual(fare.fromPrice, 59.9);
-  assert.strictEqual(fare.sampledAt, "2026-09-27");
-  assert.strictEqual(fare.travelDate, "2026-10-19");
-
-  // A blocked/HTML answer costs the price, not the scrape, and is not retried.
-  let n = 0;
-  const blocked = await fetchIcnFare(TRAIN, {
+  const trains = { "ICN 1963": structuredClone(TRAIN), "ICN 1955": structuredClone(TRAIN_B) };
+  const previous = {
+    "ICN 1963": {
+      fareCalendar: {
+        currency: "EUR",
+        nights: { "2026-10-05": { classes: { couchette: 44.9 }, checkedAt: "2026-09-26" } },
+      },
+    },
+  };
+  const stats = await fillFareCalendars(trains, previous, {
     today: "2026-09-27",
-    fetchImpl: async () => (n++, jsonResponse("<html>Access denied</html>", 403)),
+    fetchImpl,
     log: () => {},
+    days: 3,
+    budget: 10,
+    spacingMs: 0,
   });
-  assert.strictEqual(blocked, null);
-  assert.strictEqual(n, 1);
+  assert.strictEqual(stats.errors, 1, "1955 fails once and is skipped for the night");
+  assert.strictEqual(calls.filter((b) => b.departureLocationId === 830099999).length, 1);
+  const cal = trains["ICN 1963"].fareCalendar;
+  assert.deepStrictEqual(Object.keys(cal.nights), ["2026-09-28", "2026-09-29", "2026-09-30"],
+    "last run's 5 Oct is outside a 3-night window and pruned");
+  assert.deepStrictEqual(cal.nights["2026-09-28"], { none: true, checkedAt: "2026-09-27" });
+  assert.deepStrictEqual(cal.nights["2026-09-29"], { classes: { couchette: 59.9, sleeperCabin: 169 }, checkedAt: "2026-09-27" });
+  assert.strictEqual(trains["ICN 1963"].fare.fromPrice, 59.9);
+  assert.strictEqual(trains["ICN 1963"].fare.travelDate, "2026-09-29", "the cheapest night, the nearer on a tie");
+  assert.strictEqual(trains["ICN 1955"].fare, undefined);
+  assert.strictEqual(trains["ICN 1955"].fareCalendar, undefined, "no entries, no calendar");
+
+  // The operator turning us away (a block page on every call) stops the pass.
+  let n = 0;
+  const blocked = await fillFareCalendars(
+    Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`ICN ${i}`, { ...structuredClone(TRAIN), lineName: `ICN ${1900 + i}` }])),
+    null,
+    { today: "2026-09-27", fetchImpl: async () => (n++, jsonResponse("<html>Access denied</html>", 403)), log: () => {}, days: 3, spacingMs: 0 },
+  );
+  assert.strictEqual(blocked.stopped, true);
+  assert.strictEqual(n, 5, "five failures in a row and no more requests");
   passed++;
-  console.log("  ✓ fetchIcnFare: samples 3 weeks out, tries the next night, never throws");
+  console.log("  ✓ fillFareCalendars: builds on last run, skips a failing train, stops when blocked, never throws");
 }
+
+check("carryPreviousFares: a dynamic fare for a night already past is not carried", () => {
+  const prev = { A: { fare: { fromPrice: 50, currency: "EUR", sampledAt: "2026-09-20", travelDate: "2026-09-25" } } };
+  const dynamic = { A: {} };
+  assert.strictEqual(carryPreviousFares(dynamic, prev, { today: "2026-09-27", dated: true }), 0);
+  // 12306's search date says nothing about a fixed tariff: still carried.
+  const fixed = { A: {} };
+  assert.strictEqual(carryPreviousFares(fixed, prev, { today: "2026-09-27" }), 1);
+});
 
 {
   // A station id lefrecce refuses (Siracusa): 400, then a lookup by name, then a retry.
@@ -233,7 +337,10 @@ check("stampOfficialFares: an official (not trusted) source prices its own rows"
   };
   const operatorTrains = {
     italian: {
-      "ICN 1962": { fare: { fromPrice: 64.9, currency: "EUR", seatClass: "couchette", classes: { couchette: 64.9 }, sampledAt: "2026-09-27" } },
+      "ICN 1962": {
+        fare: { fromPrice: 64.9, currency: "EUR", seatClass: "couchette", classes: { couchette: 64.9 }, sampledAt: "2026-09-27" },
+        fareCalendar: { currency: "EUR", nights: { "2026-10-18": { classes: { couchette: 64.9 }, checkedAt: "2026-09-27" } } },
+      },
       // An older file may still carry a seat: it must not be listed.
       "ICN 1963": { fare: { fromPrice: 59.9, currency: "EUR", seatClass: "couchette", classes: { seat: 29.9, couchette: 59.9, sleeperCabin: 169 }, sampledAt: "2026-09-27", travelDate: "2026-10-18" } },
     },
@@ -266,6 +373,10 @@ check("stampOfficialFares: an official (not trusted) source prices its own rows"
   assert.strictEqual(fareContext(row.pricing), "Couchette · ICN 1963, for travel on 18 Oct 2026");
   assert.strictEqual(fareContext({ seatClass: "couchette" }), "Couchette");
   assert.strictEqual(fareContext(null), "");
+  // Each direction's calendar rides along for the connection pages — only the
+  // direction whose train keeps one.
+  assert.deepStrictEqual(Object.keys(row.fare_calendar_0.nights), ["2026-10-18"]);
+  assert.strictEqual(row.fare_calendar_1, undefined);
   // A fare quoted with no date states none rather than a guess.
   assert.strictEqual(row.fare_0.travelDate, undefined);
   assert.strictEqual(pricingForDirection(row, 0).travelDate, null);
@@ -278,6 +389,58 @@ check("formatTravelDate: a fixed table, never Intl, and nothing for a bad date",
   for (const bad of [null, undefined, "", "2026-13-01", "18 Oct", "2026-10-18T00:00"]) {
     assert.strictEqual(formatTravelDate(bad), "", String(bad));
   }
+});
+
+check("fareCalendarDays: every night from tomorrow to the last priced, banded by this train's own range", () => {
+  const calendar = {
+    currency: "EUR",
+    nights: {
+      "2026-09-27": { classes: { couchette: 1 }, checkedAt: "2026-09-26" }, // today: left out
+      "2026-09-28": { classes: { couchette: 90, sleeperCabin: 200 }, checkedAt: "2026-09-27" },
+      "2026-09-29": { none: true, checkedAt: "2026-09-27" },
+      // 30 Sep never checked
+      "2026-10-01": { classes: { couchette: 53.6, seat: 20 }, checkedAt: "2026-09-26" },
+      "2026-10-02": { classes: { couchette: 53.6 }, checkedAt: "2026-09-27" },
+      "2026-10-03": { classes: { couchette: 70 }, checkedAt: "2026-09-27" },
+    },
+  };
+  const view = fareCalendarDays(calendar, { today: "2026-09-27", bookingDate: (iso) => `x${iso}` });
+  assert.deepStrictEqual(view.days.map((d) => `${d.date.slice(8)}:${d.state}:${d.tier ?? "-"}`), [
+    "28:priced:high", "29:none:-", "30:unknown:-", "01:priced:low", "02:priced:low", "03:priced:mid",
+  ]);
+  assert.strictEqual(view.cheapestDate, "2026-10-01", "the earlier of two equally cheap nights");
+  const oct1 = view.days[3];
+  assert.deepStrictEqual(oct1.classes, [{ key: "couchette", label: "Couchette", price: "from €53.6" }], "never a seat");
+  assert.strictEqual(oct1.price, "€53.6");
+  assert.strictEqual(oct1.bookingDate, "x2026-10-01");
+  assert.strictEqual(fareCalendarDays({ currency: "EUR", nights: { "2026-10-01": { none: true } } }, { today: "2026-09-27" }), null,
+    "a calendar with no priced night renders nothing");
+  assert.strictEqual(fareCalendarDays(null, { today: "2026-09-27" }), null);
+});
+
+check("calendarMonths: Monday-first grids split at the month, fixed names", () => {
+  const days = ["2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01", "2026-10-05"].map((date) => ({ date }));
+  const months = calendarMonths(days);
+  assert.deepStrictEqual(months.map((m) => m.title), ["September 2026", "October 2026"]);
+  assert.deepStrictEqual(months[0].weeks[0].map((d) => d?.date.slice(8) ?? null), ["28", "29", "30", null, null, null, null]);
+  assert.deepStrictEqual(months[1].weeks.map((w) => w.map((d) => d?.date.slice(8) ?? null)), [
+    [null, null, null, "01", null, null, null],
+    ["05", null, null, null, null, null, null],
+  ]);
+  assert.strictEqual(formatNight("2026-10-04"), "Sun 4 Oct");
+  assert.strictEqual(formatNight("nope"), "");
+});
+
+check("buildDatedBookingLink: Trenitalia opens on the chosen night; the plain CTA stays undated", () => {
+  const link = buildDatedBookingLink({ agencyId: "FS", origin: "Torino Porta Nuova", dest: "Salerno" });
+  assert.ok(link.template.includes("minisitiCallBackId=60958"), "same partner link as the CTA");
+  assert.ok(link.template.endsWith("&departureDate={date}"));
+  assert.strictEqual(link.dateFor("2026-10-04"), "04-10-2026");
+  const plain = buildBookingUrl({ agencyId: "FS", origin: "Torino Porta Nuova", dest: "Salerno" });
+  assert.ok(!plain.includes("departureDate"), "no night chosen, no date in the link");
+  assert.ok(buildBookingUrl({ agencyId: "FS", origin: "A", dest: "B", isoDate: "2026-10-04" }).endsWith("&departureDate=04-10-2026"));
+  // An operator whose link takes no date offers none.
+  assert.strictEqual(buildDatedBookingLink({ agencyId: "PKP", origin: "A", dest: "B" }), null);
 });
 
 console.log(`\n[verify-icn-fares] ${passed} checks passed`);

@@ -208,6 +208,9 @@ export function applyOverrideMutation(resource, action, payload, current) {
           ...(existing.dateOffsetDays !== undefined && {
             dateOffsetDays: existing.dateOffsetDays,
           }),
+          ...(existing.urlDateSuffix !== undefined && {
+            urlDateSuffix: existing.urlDateSuffix,
+          }),
           // Schedule ("official timetable") config is not on the booking form,
           // so a booking-URL edit must carry it through untouched or the
           // helper link silently disappears for that operator.

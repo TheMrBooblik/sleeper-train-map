@@ -8,12 +8,18 @@ import path from "node:path";
 import { fetchWithTimeout, titleCase } from "../lib/scrape-helpers.mjs";
 import { romeClock, searchTimeBefore, searchTrainFare } from "../lib/lefrecce.mjs";
 import { carryPreviousFares, FARE_CARRY_MAX_DAYS } from "../lib/fares.mjs";
+import {
+  cheapestNight,
+  FARE_CALENDAR_BUDGET,
+  FARE_CALENDAR_DAYS,
+  planFareSearches,
+  pruneCalendar,
+} from "../lib/fare-calendar.mjs";
 
-// Fares: sample a night this far ahead (yield-managed, so a date inside the
-// usual booking window is what a traveller would actually see), trying the
-// next few nights when the train does not run on the first.
-const FARE_SAMPLE_DAYS_AHEAD = 21;
-const FARE_SAMPLE_TRIES = 4;
+// Fares are yield-managed, so each night has its own price: the adapter keeps
+// a calendar per train (the next six weeks) and refreshes a budgeted slice of
+// it every run — see scripts/lib/fare-calendar.mjs. Spacing keeps the load on
+// the operator's booking backend at about one search a second.
 const FARE_REQUEST_SPACING_MS = 800;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -152,76 +158,145 @@ async function buildItalianTrains(trainNumbers, concurrency) {
   return trains;
 }
 
-function isoPlusDays(isoDate, days) {
-  const d = new Date(`${isoDate}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 /**
- * One train's fare from lefrecce.it, the operator's own booking backend, for
- * the whole journey (first to last station). Never throws: a failed or empty
- * search costs the price, not the train. Exported for tests.
+ * Search one train on one night on lefrecce.it, the operator's own booking
+ * backend, for the whole journey (first to last station). Resolves
+ * { entry, seen, solutions }: `entry` is the night's calendar entry —
+ * { classes, checkedAt } when a berth is on sale, { none: true, checkedAt }
+ * when the answer holds no berth on our train (it does not run that night, or
+ * its berths are gone). Throws on a transport or shape error, which says
+ * nothing about the night. Exported for tests.
  */
-export async function fetchIcnFare(train, { today, fetchImpl = fetch, log = console.log, ids = new Map() } = {}) {
+export async function searchIcnNight(train, date, { today, fetchImpl = fetch, ids = new Map() } = {}) {
   const trainNumber = String(train.lineName ?? "").replace(/\D/g, "");
   const first = train.stations?.[0];
   const last = train.stations?.[train.stations.length - 1];
   const clock = romeClock(first?.departure);
   if (!trainNumber || !first?.code || !last?.code || !clock) {
-    log(`[icn-fare] ${train.lineName}: no station codes/departure to search with`);
-    return null;
+    throw new Error("no station codes/departure to search with");
   }
-  const time = searchTimeBefore(clock);
-  for (let i = 0; i < FARE_SAMPLE_TRIES; i++) {
-    const date = isoPlusDays(today, FARE_SAMPLE_DAYS_AHEAD + i);
+  const { fare, solutions, seen } = await searchTrainFare(
+    {
+      fromCode: first.code,
+      toCode: last.code,
+      fromName: first.name,
+      toName: last.name,
+      date,
+      time: searchTimeBefore(clock),
+      trainNumber,
+      departureClock: clock,
+    },
+    { fetchImpl, ids },
+  );
+  const entry = fare
+    ? { classes: { ...fare.classes }, checkedAt: today }
+    : { none: true, checkedAt: today };
+  return { entry, seen, solutions, clock, matchedBy: fare?.matchedBy ?? null };
+}
+
+/**
+ * Bring every train's fare calendar up to date within tonight's budget and
+ * set its headline fare to its cheapest night (scripts/lib/fare-calendar.mjs).
+ * Never throws: a train whose search fails is skipped for the rest of the
+ * night (another date will not fix a refused station or a block page), and a
+ * run of failures across trains stops the whole pass — that is the operator
+ * turning us away, and hammering on would only make it worse.
+ * Exported for tests.
+ */
+export async function fillFareCalendars(
+  trains,
+  previousTrains,
+  {
+    today,
+    fetchImpl = fetch,
+    log = console.log,
+    ids = new Map(),
+    days = FARE_CALENDAR_DAYS,
+    budget = FARE_CALENDAR_BUDGET,
+    spacingMs = FARE_REQUEST_SPACING_MS,
+    maxConsecutiveErrors = 5,
+  } = {},
+) {
+  const calendars = {};
+  for (const key of Object.keys(trains)) {
+    const previous = previousTrains?.[key]?.fareCalendar ?? { currency: "EUR", nights: {} };
+    calendars[key] = pruneCalendar(previous, { today, days });
+    calendars[key].currency ??= "EUR";
+  }
+  const plan = planFareSearches(calendars, { today, days, budget });
+  const stats = { planned: plan.length, searched: 0, priced: 0, none: 0, errors: 0, stopped: false };
+  const broken = new Set();
+  const missLogged = new Set();
+  let consecutiveErrors = 0;
+  for (const { key, date } of plan) {
+    if (broken.has(key)) continue;
     try {
-      const { fare, solutions, seen } = await searchTrainFare(
-        {
-          fromCode: first.code,
-          toCode: last.code,
-          fromName: first.name,
-          toName: last.name,
-          date,
-          time,
-          trainNumber,
-          departureClock: clock,
-        },
-        { fetchImpl, ids },
-      );
-      if (fare) {
-        const { matchedBy, ...rest } = fare;
-        log(
-          `[icn-fare] ${train.lineName} ${date}: from €${fare.fromPrice} (${fare.seatClass ?? "no class"}, by ${matchedBy}) ${JSON.stringify(fare.classes)}`,
-        );
-        return { ...rest, sampledAt: today, travelDate: date };
+      const { entry, seen, solutions, clock, matchedBy } = await searchIcnNight(trains[key], date, {
+        today,
+        fetchImpl,
+        ids,
+      });
+      consecutiveErrors = 0;
+      stats.searched++;
+      calendars[key].nights[date] = entry;
+      if (entry.none) {
+        stats.none++;
+        // One miss per train is enough to diagnose it; forty would bury the log.
+        if (!missLogged.has(key)) {
+          missLogged.add(key);
+          log(`[icn-fare] ${key} ${date}: not among ${solutions} solution(s) [${seen.join("; ")}] — ours leaves ${clock}`);
+        }
+      } else {
+        stats.priced++;
+        if (matchedBy !== "number" && !missLogged.has(`${key}:by`)) {
+          missLogged.add(`${key}:by`);
+          log(`[icn-fare] ${key} ${date}: matched by ${matchedBy}`);
+        }
       }
-      log(
-        `[icn-fare] ${train.lineName} ${date}: not among ${solutions} solution(s) [${seen.join("; ")}] — ours leaves ${clock}`,
-      );
     } catch (err) {
-      log(`[icn-fare] ${train.lineName} ${date}: ${err.message}`);
-      return null; // transport/shape error: another date will not fix it
+      stats.errors++;
+      consecutiveErrors++;
+      broken.add(key);
+      log(`[icn-fare] ${key} ${date}: ${err.message} — skipping its other nights tonight`);
+      if (consecutiveErrors >= maxConsecutiveErrors) {
+        stats.stopped = true;
+        log(`[icn-fare] ${consecutiveErrors} failures in a row — stopping tonight's fare searches`);
+        break;
+      }
     } finally {
-      await sleep(FARE_REQUEST_SPACING_MS);
+      if (spacingMs) await sleep(spacingMs);
     }
   }
-  return null;
+
+  for (const [key, train] of Object.entries(trains)) {
+    const cal = calendars[key];
+    cal.nights = Object.fromEntries(Object.entries(cal.nights).sort(([a], [b]) => (a < b ? -1 : 1)));
+    const entries = Object.values(cal.nights);
+    if (entries.length) train.fareCalendar = cal;
+    const fare = cheapestNight(cal);
+    if (fare) train.fare = fare;
+    if (entries.length) {
+      const priced = entries.filter((e) => !e.none).length;
+      log(
+        `[icn-fare] ${key}: ${priced}/${entries.length} night(s) priced` +
+          (fare ? `, cheapest €${fare.fromPrice} (${fare.seatClass}) on ${fare.travelDate}` : ""),
+      );
+    }
+  }
+  return stats;
 }
 
 export async function run(entry, ctx) {
-  const { trainNumbers = [], concurrency = 4 } = entry.params ?? {};
+  const {
+    trainNumbers = [],
+    concurrency = 4,
+    fareCalendarDays = FARE_CALENDAR_DAYS,
+    fareSearchesPerRun = FARE_CALENDAR_BUDGET,
+  } = entry.params ?? {};
   const trains = await buildItalianTrains(trainNumbers, concurrency);
 
-  let fetched = 0;
-  const ids = new Map(); // station ids lefrecce refused by code, resolved by name
-  for (const train of Object.values(trains)) {
-    const fare = await fetchIcnFare(train, { today: ctx.today, fetchImpl: ctx.fetch ?? fetch, ids });
-    if (fare) {
-      train.fare = fare;
-      fetched++;
-    }
-  }
+  // Last night's file: the calendar is built up across runs, and a fare that
+  // failed to refresh may be carried.
   let previous = null;
   try {
     const raw = JSON.parse(
@@ -229,15 +304,24 @@ export async function run(entry, ctx) {
     );
     previous = raw?.data?.trains ?? raw?.trains ?? null;
   } catch {
-    /* first run, or unreadable: nothing to carry */
+    /* first run, or unreadable: nothing to build on */
   }
+
+  const stats = await fillFareCalendars(trains, previous, {
+    today: ctx.today,
+    fetchImpl: ctx.fetch ?? fetch,
+    days: fareCalendarDays,
+    budget: fareSearchesPerRun,
+  });
   const carried = carryPreviousFares(trains, previous, {
     today: ctx.today,
     maxAgeDays: FARE_CARRY_MAX_DAYS,
+    dated: true,
   });
   console.log(
-    `[scrape] italian: fares for ${Object.values(trains).filter((t) => t.fare).length}/${Object.keys(trains).length} trains ` +
-      `(${fetched} fetched tonight, ${carried} carried)`,
+    `[scrape] italian: ${stats.searched}/${stats.planned} fare search(es) tonight ` +
+      `(${stats.priced} priced, ${stats.none} without a berth, ${stats.errors} failed${stats.stopped ? ", stopped early" : ""}); ` +
+      `fares for ${Object.values(trains).filter((t) => t.fare).length}/${Object.keys(trains).length} trains (${carried} carried)`,
   );
 
   ctx.write(entry.output, { uploadedAt: ctx.today, trains });
