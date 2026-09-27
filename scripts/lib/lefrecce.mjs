@@ -66,6 +66,58 @@ function offerIsSaleable(offer) {
   return !status || status === "SALEABLE" || status === "AVAILABLE";
 }
 
+/** "HH:MM" of a lefrecce timestamp as written ("2026-10-18T19:50:00.000+02:00" → "19:50"). */
+function wallClock(ts) {
+  const m = String(ts ?? "").match(/T(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : null;
+}
+
+function clockMinutes(clock) {
+  const m = String(clock ?? "").match(/^(\d{2}):(\d{2})$/);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+// A night train is sold as "ICN"/"Intercity Notte"; a portion can be sold as
+// plain Intercity. A regional or a Frecciarossa leaving the same minute is not ours.
+const NIGHT_CATEGORY = /\bICN\b|notte|night|\bIC\b|intercity/i;
+
+function isNightCategory(train) {
+  return [train?.acronym, train?.denomination, train?.trainCategory, train?.description]
+    .filter((v) => v != null)
+    .some((v) => NIGHT_CATEGORY.test(String(v)));
+}
+
+/**
+ * Which solution is our train. By number first. Failing that, by the minute
+ * it leaves and its category: Trenitalia sells the Palermo–Messina portions of
+ * the Sicilian sleepers under the main train's number, so the portion's own
+ * number is not on the ticket, but the departure it describes is.
+ */
+function findTrainSolution(entries, trainNumber, departureClock) {
+  const byNumber = entries.find((e) => solutionHasTrain(e?.solution ?? e, trainNumber));
+  if (byNumber) return { entry: byNumber, matchedBy: "number" };
+  const want = clockMinutes(departureClock);
+  if (want == null) return null;
+  const byTime = entries.filter((e) => {
+    const sol = e?.solution ?? e;
+    const got = clockMinutes(wallClock(sol?.departureTime));
+    return got != null && Math.abs(got - want) <= 2 && (sol?.trains ?? []).some(isNightCategory);
+  });
+  // Two night trains leaving the same minute cannot be told apart: price neither.
+  return byTime.length === 1 ? { entry: byTime[0], matchedBy: "departure" } : null;
+}
+
+/** "ICN 1956 19:50" per solution — what the search did return, for the log. */
+export function describeSolutions(json) {
+  return (Array.isArray(json?.solutions) ? json.solutions : []).map((e) => {
+    const sol = e?.solution ?? e;
+    const trains = (sol?.trains ?? [])
+      .map((t) => [t?.acronym, t?.name ?? t?.description].filter(Boolean).join(" "))
+      .join("+");
+    return `${trains || "?"} ${wallClock(sol?.departureTime) ?? "?"}`;
+  });
+}
+
 /**
  * Parse a /ticket/solutions response into the fare for one train, or null.
  * Returns { fromPrice, currency: "EUR", seatClass, classes: {seat?, couchette?, sleeperCabin?} }.
@@ -74,11 +126,13 @@ function offerIsSaleable(offer) {
  * offer per class); a solution without a grid still has its own headline
  * price, which is kept as a class-less figure rather than guessed at.
  */
-export function parseSolutionsFare(json, trainNumber) {
+export function parseSolutionsFare(json, trainNumber, { departureClock = null } = {}) {
   const entries = Array.isArray(json?.solutions) ? json.solutions : [];
-  const match = entries.find((e) => solutionHasTrain(e?.solution ?? e, trainNumber));
-  if (!match) return null;
+  const found = findTrainSolution(entries, trainNumber, departureClock);
+  if (!found) return null;
+  const match = found.entry;
   const solution = match.solution ?? match;
+  const matchedBy = found.matchedBy;
 
   const classes = {};
   const grids = Array.isArray(match.grids) ? match.grids : Array.isArray(solution.grids) ? solution.grids : [];
@@ -99,13 +153,15 @@ export function parseSolutionsFare(json, trainNumber) {
   const berths = BERTH_CLASSES.filter((c) => classes[c] != null);
   if (berths.length) {
     const seatClass = berths.reduce((a, b) => (classes[b] < classes[a] ? b : a));
-    return { fromPrice: classes[seatClass], currency: "EUR", seatClass, classes };
+    return { fromPrice: classes[seatClass], currency: "EUR", seatClass, classes, matchedBy };
   }
   if (classes.seat != null) {
-    return { fromPrice: classes.seat, currency: "EUR", seatClass: "seat", classes };
+    return { fromPrice: classes.seat, currency: "EUR", seatClass: "seat", classes, matchedBy };
   }
   const headline = parseAmount(solution?.price?.amount ?? solution?.price);
-  return headline != null ? { fromPrice: headline, currency: "EUR", seatClass: null, classes: {} } : null;
+  return headline != null
+    ? { fromPrice: headline, currency: "EUR", seatClass: null, classes: {}, matchedBy }
+    : null;
 }
 
 /** "2026-10-18", "19:50" → the body lefrecce's search expects. */
@@ -135,30 +191,100 @@ export function solutionsRequestBody({ fromId, toId, date, time }) {
  * null when the train is not among the answers (not running that day) or no
  * price could be read; throws on transport errors and non-JSON answers.
  */
-export async function searchTrainFare(
-  { fromCode, toCode, date, time, trainNumber },
-  { fetchImpl = fetch } = {},
-) {
-  const fromId = lefrecceLocationId(fromCode);
-  const toId = lefrecceLocationId(toCode);
-  if (!fromId || !toId) throw new Error(`no lefrecce id for ${fromCode}/${toCode}`);
+const HEADERS = {
+  "User-Agent": USER_AGENT,
+  Accept: "application/json",
+  "Accept-Language": "en-GB,en;q=0.9,it;q=0.8",
+};
+
+function normName(name) {
+  return String(name ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/**
+ * lefrecce's id for a station, looked up by name — for the station whose
+ * 830-prefixed Viaggiatreno code the search refuses (Siracusa answers 400).
+ * Exact name first, then a name starting with it; never a "(Tutte le
+ * stazioni)" group, which is a city and not a platform.
+ */
+export async function resolveLocationIdByName(name, { fetchImpl = fetch } = {}) {
+  const want = normName(name);
+  if (!want) return null;
+  const res = await fetchImpl(
+    `${LEFRECCE_BASE}/locations/search?name=${encodeURIComponent(name)}&limit=10`,
+    { headers: HEADERS },
+  );
+  if (!res.ok) return null;
+  const text = await res.text();
+  if (!text || text.trimStart().startsWith("<")) return null;
+  let list;
+  try {
+    list = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  const rows = (Array.isArray(list) ? list : []).filter((r) => Number.isFinite(Number(r?.id)) && !r?.multistation);
+  const pick =
+    rows.find((r) => normName(r?.name) === want || normName(r?.displayName) === want) ??
+    rows.find((r) => normName(r?.name).startsWith(want));
+  return pick ? Number(pick.id) : null;
+}
+
+async function postSolutions({ fromId, toId, date, time }, fetchImpl) {
   const res = await fetchImpl(`${LEFRECCE_BASE}/ticket/solutions`, {
     method: "POST",
-    headers: {
-      "User-Agent": USER_AGENT,
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      "Accept-Language": "en-GB,en;q=0.9,it;q=0.8",
-    },
+    headers: { ...HEADERS, "Content-Type": "application/json" },
     body: JSON.stringify(solutionsRequestBody({ fromId, toId, date, time })),
   });
   const text = await res.text();
-  if (!res.ok) throw new Error(`solutions HTTP ${res.status}`);
-  if (!text || text.trimStart().startsWith("<")) throw new Error("solutions non-JSON body");
-  const json = JSON.parse(text);
+  return { status: res.status, ok: res.ok, text };
+}
+
+/**
+ * Search one train on one date. Resolves { fare, solutions, seen, json } —
+ * fare null when the train is not among the answers (not running that day)
+ * or no price could be read; `seen` lists what the search did return. Throws
+ * on transport errors and non-JSON answers.
+ *
+ * `ids` is an optional per-run cache of station ids resolved by name, keyed by
+ * Viaggiatreno code, so a refused code costs one lookup per night, not one
+ * per train.
+ */
+export async function searchTrainFare(
+  { fromCode, toCode, fromName, toName, date, time, trainNumber, departureClock },
+  { fetchImpl = fetch, ids = new Map() } = {},
+) {
+  const idFor = (code) => ids.get(code) ?? lefrecceLocationId(code);
+  let fromId = idFor(fromCode);
+  let toId = idFor(toCode);
+  if (!fromId || !toId) throw new Error(`no lefrecce id for ${fromCode}/${toCode}`);
+  let r = await postSolutions({ fromId, toId, date, time }, fetchImpl);
+  if (r.status === 400 && !ids.has(fromCode) && !ids.has(toCode)) {
+    // A refused station id: look both ends up by name once and retry.
+    const [f, t] = await Promise.all([
+      resolveLocationIdByName(fromName, { fetchImpl }),
+      resolveLocationIdByName(toName, { fetchImpl }),
+    ]);
+    if (f) ids.set(fromCode, f);
+    if (t) ids.set(toCode, t);
+    if ((f && f !== fromId) || (t && t !== toId)) {
+      fromId = f ?? fromId;
+      toId = t ?? toId;
+      r = await postSolutions({ fromId, toId, date, time }, fetchImpl);
+    }
+  }
+  if (!r.ok) throw new Error(`solutions HTTP ${r.status}`);
+  if (!r.text || r.text.trimStart().startsWith("<")) throw new Error("solutions non-JSON body");
+  const json = JSON.parse(r.text);
   return {
-    fare: parseSolutionsFare(json, trainNumber),
+    fare: parseSolutionsFare(json, trainNumber, { departureClock }),
     solutions: Array.isArray(json?.solutions) ? json.solutions.length : 0,
+    seen: describeSolutions(json),
     json,
   };
 }

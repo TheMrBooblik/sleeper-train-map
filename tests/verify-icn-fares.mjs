@@ -6,9 +6,12 @@
 import assert from "node:assert";
 import {
   classifyService,
+  describeSolutions,
   lefrecceLocationId,
   parseAmount,
   parseSolutionsFare,
+  resolveLocationIdByName,
+  searchTrainFare,
   romeClock,
   searchTimeBefore,
   solutionsRequestBody,
@@ -79,6 +82,7 @@ check("parseSolutionsFare: our train only; from-price is the cheapest BERTH, not
     currency: "EUR",
     seatClass: "couchette",
     classes: { seat: 29.9, couchette: 59.9, sleeperCabin: 169 },
+    matchedBy: "number",
   });
 });
 
@@ -88,11 +92,41 @@ check("parseSolutionsFare: seats-only train → seat; no grid → headline price
     currency: "EUR",
     seatClass: "seat",
     classes: { seat: 19.9 },
+    matchedBy: "number",
   });
   const bare = { solutions: [{ solution: { trains: [{ name: "770" }], price: { amount: 44 } } }] };
-  assert.deepStrictEqual(parseSolutionsFare(bare, "770"), { fromPrice: 44, currency: "EUR", seatClass: null, classes: {} });
+  assert.deepStrictEqual(parseSolutionsFare(bare, "770"), { fromPrice: 44, currency: "EUR", seatClass: null, classes: {}, matchedBy: "number" });
   assert.strictEqual(parseSolutionsFare(RESPONSE, "999"), null);
   assert.strictEqual(parseSolutionsFare({}, "1963"), null);
+});
+
+// The Palermo–Messina portions: sold under the main train's number, so ours
+// (1954) is nowhere on the ticket — but the minute it leaves is.
+const PORTION = {
+  solutions: [
+    { solution: { departureTime: "2026-10-18T14:05:00.000+02:00", trains: [{ acronym: "R", name: "5321" }], price: { amount: 12 } } },
+    {
+      solution: { departureTime: "2026-10-18T15:25:00.000+02:00", trains: [{ acronym: "ICN", name: "1956" }] },
+      grids: [{ services: [{ name: "Cuccetta 4 posti", offers: [{ price: { amount: 39.9 } }] }] }],
+    },
+    // A regional leaving the same minute must not be taken for the sleeper.
+    { solution: { departureTime: "2026-10-18T15:25:00.000+02:00", trains: [{ acronym: "R", name: "5323" }], price: { amount: 9 } } },
+  ],
+};
+
+check("parseSolutionsFare: a portion sold under another number matches by departure minute + night category", () => {
+  const fare = parseSolutionsFare(PORTION, "1954", { departureClock: "15:25" });
+  assert.strictEqual(fare.fromPrice, 39.9);
+  assert.strictEqual(fare.matchedBy, "departure");
+  assert.strictEqual(parseSolutionsFare(PORTION, "1954", { departureClock: "16:00" }), null, "wrong minute → no match");
+  assert.strictEqual(parseSolutionsFare(PORTION, "1954"), null, "no clock → number only");
+  const twoNight = { solutions: [...PORTION.solutions, { solution: { departureTime: "2026-10-18T15:26:00", trains: [{ acronym: "ICN", name: "1958" }], price: { amount: 50 } } }] };
+  assert.strictEqual(parseSolutionsFare(twoNight, "1954", { departureClock: "15:25" }), null, "two night trains in the window → price neither");
+});
+
+check("describeSolutions: what the search returned, for the log", () => {
+  assert.deepStrictEqual(describeSolutions(PORTION), ["R 5321 14:05", "ICN 1956 15:25", "R 5323 15:25"]);
+  assert.deepStrictEqual(describeSolutions({}), []);
 });
 
 check("romeClock / searchTimeBefore: Italian wall clock, a few minutes early", () => {
@@ -151,6 +185,42 @@ const jsonResponse = (body, status = 200) => ({
   assert.strictEqual(n, 1);
   passed++;
   console.log("  ✓ fetchIcnFare: samples 3 weeks out, tries the next night, never throws");
+}
+
+{
+  // A station id lefrecce refuses (Siracusa): 400, then a lookup by name, then a retry.
+  const bodies = [];
+  const fetchImpl = async (url, init) => {
+    if (url.includes("/locations/search")) {
+      const name = decodeURIComponent(url.match(/name=([^&]+)/)[1]);
+      const table = {
+        Siracusa: [{ id: 830099999, name: "Siracusa", multistation: false }, { id: 1, name: "Siracusa (Tutte Le Stazioni)", multistation: true }],
+        "Milano Centrale": [{ id: 830001700, name: "Milano Centrale" }],
+      };
+      return jsonResponse(table[name] ?? []);
+    }
+    const body = JSON.parse(init.body);
+    bodies.push(body);
+    if (body.arrivalLocationId === 830012349) return jsonResponse({ error: "bad location" }, 400);
+    return jsonResponse(RESPONSE);
+  };
+  const ids = new Map();
+  const first = await searchTrainFare(
+    { fromCode: "S01700", toCode: "S12349", fromName: "Milano Centrale", toName: "Siracusa", date: "2026-10-18", time: "18:05", trainNumber: "1963" },
+    { fetchImpl, ids },
+  );
+  assert.strictEqual(first.fare.fromPrice, 59.9);
+  assert.deepStrictEqual(bodies.map((b) => b.arrivalLocationId), [830012349, 830099999]);
+  assert.strictEqual(ids.get("S12349"), 830099999, "resolved id is cached for the night");
+  bodies.length = 0;
+  await searchTrainFare(
+    { fromCode: "S01700", toCode: "S12349", fromName: "Milano Centrale", toName: "Siracusa", date: "2026-10-19", time: "18:05", trainNumber: "1963" },
+    { fetchImpl, ids },
+  );
+  assert.deepStrictEqual(bodies.map((b) => b.arrivalLocationId), [830099999], "no second 400 once cached");
+  assert.strictEqual(await resolveLocationIdByName("Nowhere", { fetchImpl }), null);
+  passed++;
+  console.log("  ✓ searchTrainFare: a refused station id is resolved by name, retried, and cached");
 }
 
 check("stampOfficialFares: an official (not trusted) source prices its own rows", () => {

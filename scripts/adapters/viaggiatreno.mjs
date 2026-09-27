@@ -163,7 +163,7 @@ function isoPlusDays(isoDate, days) {
  * the whole journey (first to last station). Never throws: a failed or empty
  * search costs the price, not the train. Exported for tests.
  */
-export async function fetchIcnFare(train, { today, fetchImpl = fetch, log = console.log } = {}) {
+export async function fetchIcnFare(train, { today, fetchImpl = fetch, log = console.log, ids = new Map() } = {}) {
   const trainNumber = String(train.lineName ?? "").replace(/\D/g, "");
   const first = train.stations?.[0];
   const last = train.stations?.[train.stations.length - 1];
@@ -176,17 +176,29 @@ export async function fetchIcnFare(train, { today, fetchImpl = fetch, log = cons
   for (let i = 0; i < FARE_SAMPLE_TRIES; i++) {
     const date = isoPlusDays(today, FARE_SAMPLE_DAYS_AHEAD + i);
     try {
-      const { fare, solutions } = await searchTrainFare(
-        { fromCode: first.code, toCode: last.code, date, time, trainNumber },
-        { fetchImpl },
+      const { fare, solutions, seen } = await searchTrainFare(
+        {
+          fromCode: first.code,
+          toCode: last.code,
+          fromName: first.name,
+          toName: last.name,
+          date,
+          time,
+          trainNumber,
+          departureClock: clock,
+        },
+        { fetchImpl, ids },
       );
       if (fare) {
+        const { matchedBy, ...rest } = fare;
         log(
-          `[icn-fare] ${train.lineName} ${date}: from €${fare.fromPrice} (${fare.seatClass ?? "no class"}) ${JSON.stringify(fare.classes)}`,
+          `[icn-fare] ${train.lineName} ${date}: from €${fare.fromPrice} (${fare.seatClass ?? "no class"}, by ${matchedBy}) ${JSON.stringify(fare.classes)}`,
         );
-        return { ...fare, sampledAt: today, travelDate: date };
+        return { ...rest, sampledAt: today, travelDate: date };
       }
-      log(`[icn-fare] ${train.lineName} ${date}: not among ${solutions} solution(s)`);
+      log(
+        `[icn-fare] ${train.lineName} ${date}: not among ${solutions} solution(s) [${seen.join("; ")}] — ours leaves ${clock}`,
+      );
     } catch (err) {
       log(`[icn-fare] ${train.lineName} ${date}: ${err.message}`);
       return null; // transport/shape error: another date will not fix it
@@ -202,8 +214,9 @@ export async function run(entry, ctx) {
   const trains = await buildItalianTrains(trainNumbers, concurrency);
 
   let fetched = 0;
+  const ids = new Map(); // station ids lefrecce refused by code, resolved by name
   for (const train of Object.values(trains)) {
-    const fare = await fetchIcnFare(train, { today: ctx.today, fetchImpl: ctx.fetch ?? fetch });
+    const fare = await fetchIcnFare(train, { today: ctx.today, fetchImpl: ctx.fetch ?? fetch, ids });
     if (fare) {
       train.fare = fare;
       fetched++;
