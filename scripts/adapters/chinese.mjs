@@ -32,6 +32,7 @@ import {
   normalizeTrainCode,
   queryByTrainNo,
   queryLeftTicket,
+  queryTicketPrice,
   sleep,
 } from "../lib/12306.mjs";
 import {
@@ -62,6 +63,10 @@ const REQUEST_SPACING_MS = 700;
 const GEOCODE_SPACING_MS = 350;
 // Cap Nominatim lookups per scrape so a cold cache can't blow the nightly budget.
 const GEOCODE_MAX_PER_RUN = 120;
+// A fare that failed to refresh tonight keeps last night's figure (it is a
+// government tariff and rarely moves) — but not forever: past this age it is
+// dropped rather than shown with a date nobody reads.
+const FARE_CARRY_MAX_DAYS = 30;
 
 function readJsonSafe(filePath) {
   try {
@@ -205,6 +210,9 @@ export async function buildChineseTrains(legs, {
       polyline: null,
       stations,
       frequency: leg.frequency ?? null,
+      // Official berth fare for this leg from 12306 (see queryTicketPrice).
+      // Absent when the price call failed or the train sells no berths.
+      ...(live?.fare ? { fare: live.fare } : {}),
     };
   }
   return trains;
@@ -271,6 +279,7 @@ export async function run(entry, ctx) {
     return result;
   }
 
+  let faresFetched = 0;
   const trains = await buildChineseTrains(legs, {
     resolveStation,
     today: ctx.today,
@@ -299,15 +308,29 @@ export async function run(entry, ctx) {
         console.warn(`[scrape] [chinese] empty stop list for ${leg.lineName}`);
         return null;
       }
+      const fare = await fetchLegFare(match, { date, fetchImpl, jar, lineName: leg.lineName, today: ctx.today });
+      if (fare) faresFetched++;
       return {
         trainCode: match.trainCode,
         trainNo: match.trainNo,
         stops: sched.stops,
         departTime: match.departTime,
         arriveTime: match.arriveTime,
+        fare,
       };
     },
   });
+
+  const carried = carryPreviousFares(
+    trains,
+    readJsonSafe(path.join(scrapedDir, entry.output))?.data?.trains,
+    { today: ctx.today, maxAgeDays: FARE_CARRY_MAX_DAYS },
+  );
+  const priced = Object.values(trains).filter((t) => t.fare).length;
+  console.log(
+    `[scrape] chinese: fares for ${priced}/${Object.keys(trains).length} trains ` +
+      `(${faresFetched} fetched tonight, ${carried} carried from a previous run)`,
+  );
 
   if (!Object.keys(trains).length) {
     throw new Error(
@@ -418,6 +441,60 @@ export async function run(entry, ctx) {
   ctx.write(GEOMETRY_CACHE_FILE, cache);
   ctx.write(entry.output, { uploadedAt: ctx.today, trains });
   console.log(`[scrape] stored ${Object.keys(trains).length} chinese trains (query date ${date})`);
+}
+
+/**
+ * One leg's official berth fare. Never fatal: a failed price call costs the
+ * price, not the train, and the stop list already fetched is kept.
+ */
+async function fetchLegFare(match, { date, fetchImpl, jar, lineName, today }) {
+  if (!match?.trainNo || !match.fromStationNo || !match.toStationNo || !match.seatTypes) {
+    console.warn(`[scrape] [chinese] no fare lookup for ${lineName}: leftTicket row lacks station_no/seat_types`);
+    return null;
+  }
+  try {
+    const { fare } = await queryTicketPrice(
+      {
+        trainNo: match.trainNo,
+        fromStationNo: match.fromStationNo,
+        toStationNo: match.toStationNo,
+        seatTypes: match.seatTypes,
+        date,
+      },
+      { fetchImpl, jar },
+    );
+    await sleep(REQUEST_SPACING_MS);
+    if (!fare) {
+      console.warn(`[scrape] [chinese] ${lineName}: 12306 priced no berth class (seat_types ${match.seatTypes})`);
+      return null;
+    }
+    return { ...fare, sampledAt: today, travelDate: date };
+  } catch (err) {
+    console.warn(`[scrape] [chinese] fare lookup failed for ${lineName}: ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * Give a train whose price call failed tonight the fare it had last run, when
+ * that fare is recent enough to stand behind. Returns how many were carried.
+ * Pure — exported for tests.
+ */
+export function carryPreviousFares(trains, previousTrains, { today, maxAgeDays = FARE_CARRY_MAX_DAYS } = {}) {
+  if (!previousTrains || typeof previousTrains !== "object") return 0;
+  const todayMs = Date.parse(`${today}T00:00:00Z`);
+  let carried = 0;
+  for (const [key, train] of Object.entries(trains ?? {})) {
+    if (train.fare) continue;
+    const prev = previousTrains[key]?.fare;
+    if (!Number.isFinite(prev?.fromPrice)) continue;
+    const sampledMs = Date.parse(`${prev.sampledAt}T00:00:00Z`);
+    if (!Number.isFinite(sampledMs) || !Number.isFinite(todayMs)) continue;
+    if ((todayMs - sampledMs) / 86_400_000 > maxAgeDays) continue;
+    train.fare = prev;
+    carried++;
+  }
+  return carried;
 }
 
 /** Allowlist outbound↔return keys for shared-corridor alignment. */

@@ -666,6 +666,7 @@ export function buildInitialData({
   );
 
   stampTimetableSources(filteredViewMap, registry);
+  stampOfficialFares(filteredViewMap, filteredTrips, operatorTrains, registry);
   stampEndpointCountries(filteredViewMap, stops);
   stampScheduleOriginCodes(filteredViewMap, operatorTrains, registry);
 
@@ -701,6 +702,68 @@ function stampTimetableSources(viewMap, registry) {
     const hit = sources.find((id) => byTrains.has(id));
     if (hit) route.timetable_source = hit;
   }
+}
+
+/**
+ * Stamp the fare an official, trusted source scraped tonight onto the row that
+ * source built — the price analogue of the trusted-route rule: a figure read
+ * nightly from the operator's own booking system needs no reviewer, and it
+ * outranks a reviewed data/canonical/prices.json entry (stamped above), which
+ * is the fallback for routes no official source prices.
+ *
+ * A train carries `fare: { fromPrice, currency, seatClass, sampledAt }` in its
+ * trains file (the chinese adapter writes it from 12306's queryTicketPrice).
+ * The row takes the cheaper of its two directions, and only rows whose
+ * timetable_source is that source are touched, so a bare number another
+ * operator shares cannot lend its price across.
+ */
+export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
+  const sources = new Map(
+    (registry ?? [])
+      .filter((e) => e?.enabled && e.official && e.trusted && operatorTrains?.[e.id])
+      .map((e) => [e.id, operatorTrains[e.id]]),
+  );
+  if (!sources.size) return 0;
+  let stamped = 0;
+  for (const [key, row] of Object.entries(viewMap)) {
+    const trains = sources.get(row.timetable_source);
+    if (!trains) continue;
+    const fares = [];
+    for (const dir of [0, 1]) {
+      const fare = trains[row[`trip_short_name_${dir}`]]?.fare;
+      if (!Number.isFinite(fare?.fromPrice) || fare.fromPrice <= 0 || !fare.currency) continue;
+      fares.push(fare);
+      // Each direction keeps its own figure and berth classes: a card about
+      // one train shows that train's price (src/lib/fareClasses.mjs).
+      row[`fare_${dir}`] = {
+        fromPrice: fare.fromPrice,
+        currency: fare.currency,
+        seatClass: fare.seatClass ?? null,
+        ...(fare.classes && typeof fare.classes === "object" ? { classes: fare.classes } : {}),
+        source: row.timetable_source,
+        checkedAt: fare.sampledAt ?? null,
+      };
+    }
+    if (!fares.length) continue;
+    // Never compare across currencies; the first direction's currency decides.
+    const sameCurrency = fares.filter((f) => f.currency === fares[0].currency);
+    const cheapest = sameCurrency.reduce((a, b) => (b.fromPrice < a.fromPrice ? b : a));
+    const operatorDefault = OPERATOR_PRICING[(row.agency_id || "").trim()] ?? null;
+    const pricing = {
+      type: operatorDefault?.type ?? null,
+      currency: cheapest.currency,
+      fromPrice: cheapest.fromPrice,
+      source: row.timetable_source,
+      checkedAt: cheapest.sampledAt ?? null,
+      ...(cheapest.seatClass ? { seatClass: cheapest.seatClass } : {}),
+    };
+    row.pricing = pricing;
+    for (const [tripKey, trip] of Object.entries(trips ?? {})) {
+      if (String(trip.route_id) === String(key)) trips[tripKey] = { ...trip, pricing };
+    }
+    stamped++;
+  }
+  return stamped;
 }
 
 /**

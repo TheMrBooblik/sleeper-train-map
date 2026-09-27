@@ -4,6 +4,7 @@ import React from "react";
 import { FiExternalLink } from "react-icons/fi";
 import { resolveRouteBooking } from "../../lib/routeBooking.mjs";
 import { formatFromPrice } from "../../lib/operatorPricing";
+import { fareClassLabel } from "../../lib/fareClasses.mjs";
 import { abbreviateStationName } from "../Map/utils/stationNameUtils";
 
 /**
@@ -50,6 +51,9 @@ export default function BookingActions({
   // Fare to show next to the button: prefer a live price once available,
   // otherwise fall back to the curated fixed "from" price.
   const fareLabel = livePrice || formatFromPrice(pricing);
+  // Which berth that "from" buys — a sleeper's cheapest fare is a specific
+  // bed, and "from ¥335.5" alone reads as the price of any of them.
+  const fareClass = livePrice ? "" : fareClassLabel(pricing?.seatClass);
 
   return (
     <div className="space-y-1.5">
@@ -60,6 +64,11 @@ export default function BookingActions({
           <span className="text-sm font-semibold text-gray-900">
             {fareLabel}
           </span>
+          {fareClass && (
+            <span className="text-xs text-gray-500">
+              · {fareClass.toLowerCase()}
+            </span>
+          )}
         </div>
       )}
 

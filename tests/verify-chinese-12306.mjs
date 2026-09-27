@@ -15,10 +15,24 @@ import {
   parseLeftTicketResponse,
   parseQueryByTrainNoResponse,
   parseStationNamesJs,
+  parseTicketPriceResponse,
+  parseYuan,
+  queryTicketPrice,
+  ticketPriceUrl,
   titleCasePinyin,
 } from "../scripts/lib/12306.mjs";
+import { stampOfficialFares } from "../src/pages/api/lib/build-initial-data.mjs";
+import {
+  directionFare,
+  directionFareSummary,
+  fareClassRows,
+  fareDirectionForTrip,
+  formatMoney,
+  pricingForDirection,
+} from "../src/lib/fareClasses.mjs";
 import {
   buildChineseTrains,
+  carryPreviousFares,
   densifyChinesePolylines,
   expandAllowlistLegs,
 } from "../scripts/adapters/chinese.mjs";
@@ -385,5 +399,231 @@ check("stitchPathThroughStations always keeps official vertices", () => {
     assert.ok(out.some((p) => p[0] === pt[0] && p[1] === pt[1]));
   }
 });
+
+// ─── Fares (queryTicketPrice → trains file → row.pricing) ───────────────────
+
+check("parseLeftTicketRow: station_no + seat_types feed the price call", () => {
+  const parts = new Array(40).fill("");
+  parts[2] = "2400000Z210W";
+  parts[3] = "Z21";
+  parts[16] = "01";
+  parts[17] = "12";
+  parts[35] = "4631";
+  const row = parseLeftTicketRow(parts.join("|"));
+  assert.strictEqual(row.fromStationNo, "01");
+  assert.strictEqual(row.toStationNo, "12");
+  assert.strictEqual(row.seatTypes, "4631");
+});
+
+check("parseYuan: ¥ strings, numbers, junk", () => {
+  assert.strictEqual(parseYuan("¥335.5"), 335.5);
+  assert.strictEqual(parseYuan("1,234.0"), 1234);
+  assert.strictEqual(parseYuan(88), 88);
+  assert.strictEqual(parseYuan("--"), null);
+  assert.strictEqual(parseYuan(""), null);
+  assert.strictEqual(parseYuan([]), null);
+});
+
+check("parseTicketPriceResponse: from-price is the cheapest BERTH, never a seat", () => {
+  const fare = parseTicketPriceResponse({
+    status: true,
+    data: { A1: "¥190.0", WZ: "¥190.0", A3: "¥335.5", A4: "¥523.5", A6: "¥1001.0", OT: [], train_no: "x" },
+  });
+  // Hard seat (A1) and standing (WZ) are cheaper and must not be the sleeper's price.
+  assert.strictEqual(fare.fromPrice, 335.5);
+  assert.strictEqual(fare.seatClass, "hardSleeper");
+  assert.strictEqual(fare.currency, "CNY");
+  assert.deepStrictEqual(fare.classes, { hardSleeper: 335.5, softSleeper: 523.5, deluxeSoftSleeper: 1001 });
+});
+
+check("parseTicketPriceResponse: EMU sleeper codes; seats-only → null", () => {
+  const emu = parseTicketPriceResponse({ data: { O: "¥300", F: "¥612.0", I: "¥900" } });
+  assert.strictEqual(emu.fromPrice, 612);
+  assert.strictEqual(emu.seatClass, "emuSleeper");
+  assert.strictEqual(parseTicketPriceResponse({ data: { A1: "¥90", WZ: "¥90" } }), null);
+  assert.strictEqual(parseTicketPriceResponse({ status: false }), null);
+});
+
+check("ticketPriceUrl: the endpoint the 12306 web UI calls", () => {
+  const url = ticketPriceUrl({ trainNo: "2400000Z210W", fromStationNo: "01", toStationNo: "12", seatTypes: "4631", date: "2026-09-29" });
+  assert.strictEqual(
+    url,
+    "https://kyfw.12306.cn/otn/leftTicket/queryTicketPrice?train_no=2400000Z210W&from_station_no=01&to_station_no=12&seat_types=4631&train_date=2026-09-29",
+  );
+});
+
+{
+  // queryTicketPrice over a mocked fetch: JSON parsed, HTML block page rejected.
+  const mk = (body, ok = true) => async () => ({
+    ok,
+    status: ok ? 200 : 403,
+    headers: { get: () => null, getSetCookie: () => [] },
+    text: async () => body,
+  });
+  const args = { trainNo: "t", fromStationNo: "01", toStationNo: "02", seatTypes: "3", date: "2026-09-29" };
+  const ok = await queryTicketPrice(args, { fetchImpl: mk(JSON.stringify({ data: { A3: "¥200.5" } })) });
+  assert.strictEqual(ok.fare.fromPrice, 200.5);
+  await assert.rejects(queryTicketPrice(args, { fetchImpl: mk("<html>blocked</html>") }), /non-JSON/);
+  await assert.rejects(queryTicketPrice(args, { fetchImpl: mk("", false) }), /HTTP 403/);
+  passed++;
+  console.log("  ✓ queryTicketPrice: parses JSON, rejects block pages and HTTP errors");
+}
+
+{
+  const station = (name) => ({ nameZh: name, arrival: null, departure: "10:00" });
+  const trains = await buildChineseTrains(
+    [{ lineName: "Z 21", fromTelecode: "BXP", toTelecode: "LSO" }, { lineName: "Z 22", fromTelecode: "LSO", toTelecode: "BXP" }],
+    {
+      resolveStation: () => null,
+      today: "2026-09-26",
+      date: "2026-09-29",
+      log: () => {},
+      fetchLeg: async (leg) => ({
+        stops: [station("北京西"), station("拉萨")],
+        fare: leg.lineName === "Z 21" ? { fromPrice: 760.5, currency: "CNY", seatClass: "hardSleeper", sampledAt: "2026-09-26" } : null,
+      }),
+    },
+  );
+  assert.strictEqual(trains["Z 21"].fare.fromPrice, 760.5);
+  assert.ok(!("fare" in trains["Z 22"]), "a failed price call leaves no fare key, not a null one");
+  passed++;
+  console.log("  ✓ buildChineseTrains: carries the leg's fare onto the train");
+}
+
+check("carryPreviousFares: keeps last night's fare, but not a stale one", () => {
+  const trains = { "Z 21": { stations: [] }, "Z 22": { stations: [] }, "K 1": { stations: [], fare: { fromPrice: 5, sampledAt: "2026-09-26" } } };
+  const prev = {
+    "Z 21": { fare: { fromPrice: 760.5, currency: "CNY", sampledAt: "2026-09-20" } },
+    "Z 22": { fare: { fromPrice: 700, currency: "CNY", sampledAt: "2026-07-01" } },
+    "K 1": { fare: { fromPrice: 999, sampledAt: "2026-09-25" } },
+  };
+  const n = carryPreviousFares(trains, prev, { today: "2026-09-26", maxAgeDays: 30 });
+  assert.strictEqual(n, 1);
+  assert.strictEqual(trains["Z 21"].fare.fromPrice, 760.5);
+  assert.strictEqual(trains["Z 21"].fare.sampledAt, "2026-09-20", "carried fare keeps its own date");
+  assert.ok(!trains["Z 22"].fare, "older than maxAgeDays is dropped");
+  assert.strictEqual(trains["K 1"].fare.fromPrice, 5, "tonight's fare is never overwritten");
+});
+
+check("stampOfficialFares: cheaper direction, trusted source only, own rows only", () => {
+  const registry = [
+    { id: "chinese", enabled: true, official: true, trusted: true },
+    { id: "untrusted", enabled: true, official: true, trusted: false },
+  ];
+  const viewMap = {
+    cr_Z_21: { route_id: "cr_Z_21", agency_id: "CR", timetable_source: "chinese", trip_short_name_0: "Z 21", trip_short_name_1: "Z 22" },
+    // Same bare label under another source's row must not borrow CR's fare.
+    other_Z_21: { route_id: "other_Z_21", agency_id: "XX", timetable_source: "untrusted", trip_short_name_0: "Z 21" },
+    bot_row: { route_id: "5", agency_id: "CR", trip_short_name_0: "Z 21" },
+    cr_K_1: { route_id: "cr_K_1", agency_id: "CR", timetable_source: "chinese", trip_short_name_0: "K 1", pricing: { fromPrice: 1, source: "manual" } },
+  };
+  const trips = { t1: { route_id: "cr_Z_21" }, t2: { route_id: "5" } };
+  const operatorTrains = {
+    chinese: {
+      "Z 21": { fare: { fromPrice: 760.5, currency: "CNY", seatClass: "hardSleeper", sampledAt: "2026-09-26" } },
+      "Z 22": { fare: { fromPrice: 758, currency: "CNY", seatClass: "hardSleeper", sampledAt: "2026-09-25" } },
+      "K 1": { fare: { fromPrice: 120, currency: "CNY", sampledAt: "2026-09-26" } },
+    },
+    untrusted: { "Z 21": { fare: { fromPrice: 3, currency: "EUR" } } },
+  };
+  const n = stampOfficialFares(viewMap, trips, operatorTrains, registry);
+  assert.strictEqual(n, 2);
+  assert.deepStrictEqual(viewMap.cr_Z_21.pricing, {
+    type: "fixed",
+    currency: "CNY",
+    fromPrice: 758,
+    source: "chinese",
+    checkedAt: "2026-09-25",
+    seatClass: "hardSleeper",
+  });
+  assert.strictEqual(trips.t1.pricing.fromPrice, 758);
+  assert.ok(!trips.t2.pricing);
+  assert.ok(!viewMap.other_Z_21.pricing, "untrusted source never stamps");
+  assert.ok(!viewMap.bot_row.pricing, "a row the source did not build is left alone");
+  assert.strictEqual(viewMap.cr_K_1.pricing.fromPrice, 120, "official fare outranks a reviewed/manual one");
+});
+
+check("stampOfficialFares: each direction keeps its own fare and berth classes", () => {
+  const registry = [{ id: "chinese", enabled: true, official: true, trusted: true }];
+  const viewMap = {
+    cr_Z_21: { route_id: "cr_Z_21", agency_id: "CR", timetable_source: "chinese", trip_short_name_0: "Z 21", trip_short_name_1: "Z 22" },
+  };
+  const operatorTrains = {
+    chinese: {
+      "Z 21": { fare: { fromPrice: 760.5, currency: "CNY", seatClass: "hardSleeper", classes: { hardSleeper: 760.5, softSleeper: 1186 }, sampledAt: "2026-09-26" } },
+      "Z 22": { fare: { fromPrice: 758, currency: "CNY", seatClass: "hardSleeper", classes: { hardSleeper: 758, softSleeper: 1180.5 }, sampledAt: "2026-09-25" } },
+    },
+  };
+  stampOfficialFares(viewMap, {}, operatorTrains, registry);
+  const row = viewMap.cr_Z_21;
+  assert.deepStrictEqual(row.fare_0, {
+    fromPrice: 760.5,
+    currency: "CNY",
+    seatClass: "hardSleeper",
+    classes: { hardSleeper: 760.5, softSleeper: 1186 },
+    source: "chinese",
+    checkedAt: "2026-09-26",
+  });
+  assert.strictEqual(row.fare_1.fromPrice, 758);
+  assert.strictEqual(row.pricing.fromPrice, 758, "the row-wide figure stays the cheaper direction");
+});
+
+// ─── fareClasses.mjs: the one reading every surface shares ───────────────────
+
+{
+  const row = {
+    agency_id: "CR",
+    trip_short_name_0: "Z 21",
+    trip_short_name_1: "Z 22",
+    pricing: { type: "fixed", currency: "CNY", fromPrice: 758, source: "chinese", checkedAt: "2026-09-25" },
+    fare_0: { fromPrice: 760.5, currency: "CNY", seatClass: "hardSleeper", classes: { softSleeper: 1186, hardSleeper: 760.5, bogus: 1 }, checkedAt: "2026-09-26" },
+    fare_1: { fromPrice: 758, currency: "CNY", seatClass: "hardSleeper", checkedAt: "2026-09-25" },
+  };
+
+  check("formatMoney: symbol + amount; unknown currency spelled out", () => {
+    assert.strictEqual(formatMoney(335.5, "CNY"), "¥335.5");
+    assert.strictEqual(formatMoney(39, "EUR"), "€39");
+    assert.strictEqual(formatMoney(10, "XYZ"), "XYZ 10");
+    assert.strictEqual(formatMoney(NaN, "CNY"), "");
+  });
+
+  check("pricingForDirection: the card shows ITS train's figure, keeping the model", () => {
+    const p0 = pricingForDirection(row, 0);
+    assert.strictEqual(p0.fromPrice, 760.5);
+    assert.strictEqual(p0.type, "fixed", "fare model is inherited from the row's record");
+    assert.strictEqual(p0.checkedAt, "2026-09-26");
+    assert.strictEqual(pricingForDirection(row, 1).fromPrice, 758);
+    // No per-direction fare → the base record, untouched (prices.json, operator default).
+    const bare = { pricing: { type: "dynamic", fromPrice: 39, currency: "EUR" } };
+    assert.strictEqual(pricingForDirection(bare, 0), bare.pricing);
+    assert.strictEqual(pricingForDirection({}, 0, null), null);
+  });
+
+  check("fareClassRows: cheapest first, labelled, unknown classes dropped", () => {
+    const rows = fareClassRows(directionFare(row, 0));
+    assert.deepStrictEqual(rows.map((r) => [r.label, r.price]), [
+      ["Hard sleeper", "¥760.5"],
+      ["Soft sleeper", "¥1186"],
+    ]);
+    assert.deepStrictEqual(fareClassRows(directionFare(row, 1)), [], "a fare without classes lists none");
+  });
+
+  check("fareDirectionForTrip: train number first, then direction_id, else null", () => {
+    assert.strictEqual(fareDirectionForTrip(row, { trip_short_name: "Z 22" }), 1);
+    assert.strictEqual(fareDirectionForTrip(row, { trip_short_name: "Z 21", direction_id: 1 }), 0);
+    assert.strictEqual(fareDirectionForTrip(row, { trip_short_name: "K 9", direction_id: "1" }), 1);
+    assert.strictEqual(fareDirectionForTrip(row, { trip_short_name: "K 9" }), null);
+  });
+
+  check("directionFareSummary: static-page shape, null without a fare", () => {
+    assert.deepStrictEqual(directionFareSummary(row, 0), {
+      from: "¥760.5",
+      fromClass: "Hard sleeper",
+      classes: fareClassRows(directionFare(row, 0)),
+      checkedAt: "2026-09-26",
+    });
+    assert.strictEqual(directionFareSummary({ fare_0: { fromPrice: 0, currency: "CNY" } }, 0), null);
+  });
+}
 
 console.log(`\n[verify-chinese-12306] ${passed} checks passed`);

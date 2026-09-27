@@ -35,6 +35,7 @@ export default function RouteTimetable({ direction }) {
     scheduleUrl,
     scheduleLabel,
     scheduleAffiliate,
+    fare,
   } = direction;
   const lastIdx = stops.length - 1;
 
@@ -54,6 +55,31 @@ export default function RouteTimetable({ direction }) {
         {arrivalTime && <span>Arrives {arrivalTime}</span>}
         {serviceDays && <span>{serviceDays}</span>}
       </div>
+
+      {/* This train's official fares, one per berth class (e.g. 12306's hard
+          and soft sleeper). Cheapest first; the facts tile above carries the
+          route-wide "from". */}
+      {fare?.classes?.length > 0 && (
+        <div className="mt-4" data-testid="route-fares">
+          <div className="text-xs uppercase tracking-wide text-white/40">Fares</div>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {fare.classes.map((c) => (
+              <li
+                key={c.key}
+                className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-white/70"
+              >
+                {c.label}{" "}
+                <span className="font-medium text-white">{c.price}</span>
+              </li>
+            ))}
+          </ul>
+          {fare.checkedLabel && (
+            <p className="mt-2 text-xs text-white/40">
+              Official fare · {fare.checkedLabel}
+            </p>
+          )}
+        </div>
+      )}
 
       <ol className="mt-5 space-y-0">
         {stops.map((stop, i) => {

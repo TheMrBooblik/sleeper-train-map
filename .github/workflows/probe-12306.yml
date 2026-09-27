@@ -7,9 +7,14 @@ name: Probe 12306 source
 
 on:
   workflow_dispatch:
+  # Label a PR `run-probes` to run this probe from the PR head (see CLAUDE.md:
+  # a workflow_dispatch probe cannot run until it is on the default branch).
+  pull_request:
+    types: [labeled]
 
 jobs:
   probe:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'run-probes'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
