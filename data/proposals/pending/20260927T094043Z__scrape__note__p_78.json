@@ -1,0 +1,33 @@
+{
+  "v": 1,
+  "id": "p_78",
+  "createdAt": "2026-09-27T09:40:43.593Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: EN 345 (Stockholm C – Berlin Gesundbrunnen)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Berlin Hbf\" → \"Berlin Gesundbrunnen\"; operating days (outbound): \"2026: Daily\" → \"2026: Tue, Thu, Sat\"; operating days (return): \"2026: Daily\" → \"2026: Mon, Wed, Fri\"; train numbers: \"EN 345|EN 346\" → \"EN 345|EN 344\"",
+  "target": {
+    "routeKey": "78",
+    "agencyId": "RDC/SJ",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Berlin Hbf",
+    "operating days (outbound)": "2026: Daily",
+    "operating days (return)": "2026: Daily",
+    "train numbers": "EN 345|EN 346"
+  },
+  "after": {
+    "destination": "Berlin Gesundbrunnen",
+    "operating days (outbound)": "2026: Tue, Thu, Sat",
+    "operating days (return)": "2026: Mon, Wed, Fri",
+    "train numbers": "EN 345|EN 344"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
