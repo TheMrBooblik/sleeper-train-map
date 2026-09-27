@@ -19,5 +19,6 @@
   "SCR": { "type": "fixed", "currency": "AMD", "fromPrice": null, "source": "draft" },
   "AMTK": { "type": "dynamic", "currency": "USD", "fromPrice": null, "source": "draft", "note": "Amtrak yield-managed sleeper fares (Roomette/Bedroom)" },
   "VIA": { "type": "dynamic", "currency": "CAD", "fromPrice": null, "source": "draft", "note": "VIA Rail cabin/berth fares" },
+  "FS": { "type": "dynamic", "currency": "EUR", "fromPrice": null, "source": "draft", "note": "Trenitalia Intercity Notte — yield-managed couchette/sleeper fares" },
   "SNCF": { "type": "dynamic", "currency": "EUR", "fromPrice": null, "source": "draft", "note": "Intercités de Nuit yield-managed fares" }
 }

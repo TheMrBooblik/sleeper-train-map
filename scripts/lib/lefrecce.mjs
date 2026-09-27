@@ -47,8 +47,8 @@ export function classifyService(name) {
   return null;
 }
 
-// The berth classes, cheapest-kind first. A seat is priced too (every ICN
-// sells them) but is the from-price only when a train sells no berth at all.
+// The berth classes, cheapest-kind first. Seats are recognised only to be
+// left out: the map shows sleeping places and nothing else.
 const BERTH_CLASSES = ["couchette", "sleeperCabin"];
 
 /** Does this solution run this train? Matches the train number on any of its trains. */
@@ -120,11 +120,10 @@ export function describeSolutions(json) {
 
 /**
  * Parse a /ticket/solutions response into the fare for one train, or null.
- * Returns { fromPrice, currency: "EUR", seatClass, classes: {seat?, couchette?, sleeperCabin?} }.
+ * Returns { fromPrice, currency: "EUR", seatClass, classes: {couchette?, sleeperCabin?}, matchedBy }.
  *
- * Reads the per-service grid when the response carries one (cheapest saleable
- * offer per class); a solution without a grid still has its own headline
- * price, which is kept as a class-less figure rather than guessed at.
+ * Reads the per-service grid (cheapest saleable offer per berth class). No
+ * berth priced → null, never a seat or the headline price.
  */
 export function parseSolutionsFare(json, trainNumber, { departureClock = null } = {}) {
   const entries = Array.isArray(json?.solutions) ? json.solutions : [];
@@ -150,18 +149,15 @@ export function parseSolutionsFare(json, trainNumber, { departureClock = null } 
     }
   }
 
+  // Berths only. A seat is classified so it can be skipped: this map prices
+  // sleepers, and a seat fare — or the solution's headline price, which is
+  // the cheapest seat — would put the wrong number on a sleeper card. A train
+  // that sells no berth that night gets no fare at all.
   const berths = BERTH_CLASSES.filter((c) => classes[c] != null);
-  if (berths.length) {
-    const seatClass = berths.reduce((a, b) => (classes[b] < classes[a] ? b : a));
-    return { fromPrice: classes[seatClass], currency: "EUR", seatClass, classes, matchedBy };
-  }
-  if (classes.seat != null) {
-    return { fromPrice: classes.seat, currency: "EUR", seatClass: "seat", classes, matchedBy };
-  }
-  const headline = parseAmount(solution?.price?.amount ?? solution?.price);
-  return headline != null
-    ? { fromPrice: headline, currency: "EUR", seatClass: null, classes: {}, matchedBy }
-    : null;
+  if (!berths.length) return null;
+  const berthClasses = Object.fromEntries(berths.map((c) => [c, classes[c]]));
+  const seatClass = berths.reduce((a, b) => (classes[b] < classes[a] ? b : a));
+  return { fromPrice: classes[seatClass], currency: "EUR", seatClass, classes: berthClasses, matchedBy };
 }
 
 /** "2026-10-18", "19:50" → the body lefrecce's search expects. */

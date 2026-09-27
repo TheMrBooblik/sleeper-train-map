@@ -81,21 +81,15 @@ check("parseSolutionsFare: our train only; from-price is the cheapest BERTH, not
     fromPrice: 59.9,
     currency: "EUR",
     seatClass: "couchette",
-    classes: { seat: 29.9, couchette: 59.9, sleeperCabin: 169 },
+    classes: { couchette: 59.9, sleeperCabin: 169 },
     matchedBy: "number",
   });
 });
 
-check("parseSolutionsFare: seats-only train → seat; no grid → headline price, no class; absent → null", () => {
-  assert.deepStrictEqual(parseSolutionsFare(RESPONSE, "1955"), {
-    fromPrice: 19.9,
-    currency: "EUR",
-    seatClass: "seat",
-    classes: { seat: 19.9 },
-    matchedBy: "number",
-  });
+check("parseSolutionsFare: seats never count — seats-only train or no grid → no fare", () => {
+  assert.strictEqual(parseSolutionsFare(RESPONSE, "1955"), null, "a seats-only train gets no fare");
   const bare = { solutions: [{ solution: { trains: [{ name: "770" }], price: { amount: 44 } } }] };
-  assert.deepStrictEqual(parseSolutionsFare(bare, "770"), { fromPrice: 44, currency: "EUR", seatClass: null, classes: {}, matchedBy: "number" });
+  assert.strictEqual(parseSolutionsFare(bare, "770"), null, "the headline price is a seat, not a berth");
   assert.strictEqual(parseSolutionsFare(RESPONSE, "999"), null);
   assert.strictEqual(parseSolutionsFare({}, "1963"), null);
 });
@@ -230,7 +224,8 @@ check("stampOfficialFares: an official (not trusted) source prices its own rows"
   };
   const operatorTrains = {
     italian: {
-      "ICN 1962": { fare: { fromPrice: 64.9, currency: "EUR", seatClass: "couchette", classes: { seat: 34.9, couchette: 64.9 }, sampledAt: "2026-09-27" } },
+      "ICN 1962": { fare: { fromPrice: 64.9, currency: "EUR", seatClass: "couchette", classes: { couchette: 64.9 }, sampledAt: "2026-09-27" } },
+      // An older file may still carry a seat: it must not be listed.
       "ICN 1963": { fare: { fromPrice: 59.9, currency: "EUR", seatClass: "couchette", classes: { seat: 29.9, couchette: 59.9, sleeperCabin: 169 }, sampledAt: "2026-09-27" } },
     },
   };
@@ -240,9 +235,10 @@ check("stampOfficialFares: an official (not trusted) source prices its own rows"
   assert.strictEqual(row.pricing.currency, "EUR");
   assert.deepStrictEqual(
     fareClassRows(directionFare(row, 1)).map((r) => `${r.label} ${r.price}`),
-    ["Seat €29.9", "Couchette €59.9", "Sleeper cabin €169"],
+    ["Couchette €59.9", "Sleeper cabin €169"],
   );
   assert.strictEqual(fareClassLabel(row.pricing.seatClass), "Couchette");
+  assert.strictEqual(row.pricing.type, "dynamic", "FS has a fare model, so the Price badge renders");
 });
 
 console.log(`\n[verify-icn-fares] ${passed} checks passed`);

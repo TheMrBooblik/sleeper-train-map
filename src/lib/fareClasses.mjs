@@ -46,9 +46,8 @@ export const FARE_CLASS_LABELS = {
   emuSleeper: "High-speed sleeper",
   emuFirstSleeper: "High-speed sleeper, 1st class",
   emuSecondSleeper: "High-speed sleeper, 2nd class",
-  // Trenitalia Intercity Notte (lefrecce.it): a seat is listed too, since
-  // every ICN sells them and some portions sell nothing else.
-  seat: "Seat",
+  // Trenitalia Intercity Notte (lefrecce.it). Deliberately no "seat": this
+  // map shows sleeping places only, and a class without a label is skipped.
   couchette: "Couchette",
   sleeperCabin: "Sleeper cabin",
 };
