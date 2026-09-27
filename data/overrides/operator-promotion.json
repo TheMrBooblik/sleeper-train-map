@@ -1,0 +1,6 @@
+{
+  "_comment": "Operators whose trains are listed first where the map lists a station's routes (the bottom bar). Lower rank = earlier; operators not listed keep the data's own order, after every promoted one. Reason recorded per entry: this is a commercial ordering, not a quality one.",
+  "operators": {
+    "FS": { "rank": 1, "reason": "Trenitalia pays commission on bookings" }
+  }
+}

@@ -6,6 +6,7 @@ import { normalizeStationNameForDisplay, abbreviateStationName } from "../Map/ut
 import { shouldHideRouteDueToFutureDate } from "../Map/utils/routeStyleUtils";
 import { splitViaString } from "../../lib/viaSplit.mjs";
 import { normalizeStationNameForLookup } from "../../lib/stationKey.mjs";
+import { orderByPromotion } from "../../lib/operatorPromotion.mjs";
 
 /**
  * Bottom bar showing routes (Back-on-Track + NightJet/EuroNight) for the selected station.
@@ -39,11 +40,16 @@ const TrainBottomBar = ({
   );
 
   // Guard against undefined viewMapData; hide future "From …" and outside service_id seasons.
+  // Promoted operators' trains first (data/overrides/operator-promotion.json);
+  // ordered before the dedup below, so on a shared corridor the promoted
+  // operator's route is the one the bar keeps.
   const filteredViewMapData = viewMapData
-    ? Object.values(viewMapData).filter((el) => {
-        const routeId = el?.route_id?.toString();
-        return stopRouteIds?.includes(routeId) && !hideRoute(routeId);
-      })
+    ? orderByPromotion(
+        Object.values(viewMapData).filter((el) => {
+          const routeId = el?.route_id?.toString();
+          return stopRouteIds?.includes(routeId) && !hideRoute(routeId);
+        }),
+      )
     : [];
 
   if (sidebarDisabled) return null;

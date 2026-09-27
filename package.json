@@ -73,7 +73,8 @@
     "verify-schedule-links": "node tests/verify-schedule-links.mjs",
     "verify-price-probe": "node tests/verify-price-probe.mjs",
     "verify-gtfs-probe": "node tests/verify-gtfs-probe.mjs",
-    "verify-icn-fares": "node tests/verify-icn-fares.mjs"
+    "verify-icn-fares": "node tests/verify-icn-fares.mjs",
+    "verify-operator-promotion": "node tests/verify-operator-promotion.mjs"
   },
   "packageManager": "npm@10",
   "repository": {
