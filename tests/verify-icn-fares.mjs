@@ -18,7 +18,7 @@ import {
 } from "../scripts/lib/lefrecce.mjs";
 import { fetchIcnFare } from "../scripts/adapters/viaggiatreno.mjs";
 import { stampOfficialFares } from "../src/pages/api/lib/build-initial-data.mjs";
-import { fareClassRows, directionFare, fareClassLabel } from "../src/lib/fareClasses.mjs";
+import { fareClassRows, directionFare, directionFareSummary, fareClassLabel } from "../src/lib/fareClasses.mjs";
 
 let passed = 0;
 function check(name, fn) {
@@ -234,8 +234,13 @@ check("stampOfficialFares: an official (not trusted) source prices its own rows"
   assert.strictEqual(row.pricing.fromPrice, 59.9);
   assert.strictEqual(row.pricing.currency, "EUR");
   assert.deepStrictEqual(
-    fareClassRows(directionFare(row, 1)).map((r) => `${r.label} ${r.price}`),
-    ["Couchette €59.9", "Sleeper cabin €169"],
+    fareClassRows(directionFare(row, 1), { from: true }).map((r) => `${r.label} ${r.price}`),
+    ["Couchette from €59.9", "Sleeper cabin from €169"],
+  );
+  // The connection page decides "from" off the row's own fare model.
+  assert.deepStrictEqual(
+    directionFareSummary(row, 1).classes.map((r) => r.price),
+    ["from €59.9", "from €169"],
   );
   assert.strictEqual(fareClassLabel(row.pricing.seatClass), "Couchette");
   assert.strictEqual(row.pricing.type, "dynamic", "FS has a fare model, so the Price badge renders");

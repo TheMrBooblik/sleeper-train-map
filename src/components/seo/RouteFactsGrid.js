@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   getOperatorPricing,
   formatPricingLabel,
+  formatFromPrice,
   pricingAdvice,
   formatCheckedAt,
 } from "../../lib/operatorPricing";
@@ -57,6 +58,13 @@ export default function RouteFactsGrid({ detail }) {
               labelClassName="text-sm font-medium"
               checkedAt={formatCheckedAt(pricing?.checkedAt)}
             />
+          )}
+          {/* A dynamic fare's badge carries no figure (formatPricingLabel);
+              the figure sits on its own line, always as "from …". */}
+          {pricing?.type === "dynamic" && formatFromPrice(pricing) && (
+            <div className="mt-1 text-sm font-medium text-white">
+              {formatFromPrice(pricing).replace(/^from/, "From")}
+            </div>
           )}
         </Fact>
       </div>

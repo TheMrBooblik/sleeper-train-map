@@ -89,8 +89,12 @@ export function pricingForDirection(row, dir, base = row?.pricing ?? null) {
  * A fare's berth classes, cheapest first, ready to print:
  * [{ key: "hardSleeper", label: "Hard sleeper", amount: 335.5, price: "¥335.5" }, …]
  * Classes with no known label are skipped rather than printed as a code.
+ *
+ * `from`: prefix each price with "from" — for a dynamic (yield-managed) fare,
+ * where the figure is the cheapest seen on one sampled date, not the price.
+ * A fixed tariff's class price is the price, so it prints bare.
  */
-export function fareClassRows(fare) {
+export function fareClassRows(fare, { from = false } = {}) {
   if (!fare?.classes || typeof fare.classes !== "object") return [];
   return Object.entries(fare.classes)
     .filter(([key, amount]) => FARE_CLASS_LABELS[key] && Number.isFinite(amount) && amount > 0)
@@ -99,7 +103,7 @@ export function fareClassRows(fare) {
       key,
       label: FARE_CLASS_LABELS[key],
       amount,
-      price: formatMoney(amount, fare.currency),
+      price: `${from ? "from " : ""}${formatMoney(amount, fare.currency)}`,
     }));
 }
 
@@ -126,13 +130,17 @@ export function fareDirectionForTrip(row, trip) {
  * { from: "¥335.5", fromClass: "Hard sleeper", classes: fareClassRows(), checkedAt: "2026-09-26" }
  * Plain strings and numbers only, so it serialises into static page props.
  */
-export function directionFareSummary(row, dir) {
+export function isDynamicPricing(pricing) {
+  return pricing?.type === "dynamic";
+}
+
+export function directionFareSummary(row, dir, { dynamic = isDynamicPricing(row?.pricing) } = {}) {
   const fare = directionFare(row, dir);
   if (!fare) return null;
   return {
     from: formatMoney(fare.fromPrice, fare.currency),
     fromClass: fareClassLabel(fare.seatClass),
-    classes: fareClassRows(fare),
+    classes: fareClassRows(fare, { from: dynamic }),
     checkedAt: fare.checkedAt ?? null,
   };
 }

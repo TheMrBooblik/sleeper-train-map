@@ -1667,7 +1667,9 @@ const TrainDetailPanel = ({
                 const fareRows =
                   fareDir == null
                     ? []
-                    : fareClassRows(directionFare(tripRoute, fareDir));
+                    : fareClassRows(directionFare(tripRoute, fareDir), {
+                        from: pricing?.type === "dynamic",
+                      });
                 const pricingLabel = formatPricingLabel(pricing);
                 const pricingBadgeStyle = getPricingBadgeStyle(pricing);
                 // Keyed to the SELLING agency, because a deals page is a

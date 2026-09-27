@@ -105,7 +105,8 @@ export default function RideCard({ ride, action = null, compact = false }) {
             same slot the day a probe produces one — see pricingResolve.mjs. */}
         {formatFromPrice(ride.pricing) ? (
           <span className="text-sm font-medium text-primary-green">
-            from {formatFromPrice(ride.pricing)}
+            {/* formatFromPrice already reads "from €39". */}
+            {formatFromPrice(ride.pricing)}
           </span>
         ) : pricingAdvice(ride.pricing)?.guidance ? (
           // .guidance, not the record: pricingAdvice returns an object, and
