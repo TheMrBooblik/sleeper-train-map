@@ -6,7 +6,9 @@
 import assert from "node:assert";
 import {
   classifyService,
+  describeOffers,
   describeSolutions,
+  isStandardAdultOffer,
   lefrecceLocationId,
   parseAmount,
   parseSolutionsFare,
@@ -459,6 +461,7 @@ check("parseSolutionsFare: a departure match never takes another train we track 
       },
     ],
   };
+  // (the version is also what drops a calendar read under the pre-adult rule)
   // The fault: 771 does not run that night, 770 leaves the same minute.
   assert.strictEqual(parseSolutionsFare(twin, "771", { departureClock: "18:47" }).fromPrice, 55.9);
   assert.strictEqual(parseSolutionsFare(twin, "771", { departureClock: "18:47", otherTrains: ["770"] }), null);
@@ -491,7 +494,7 @@ check("parseSolutionsFare: a departure match never takes another train we track 
   };
   const stats = await fillFareCalendars(trains, previous, { today: "2026-09-27", fetchImpl, log: () => {}, days: 3, spacingMs: 0 });
   const nights = trains["ICN 1963"].fareCalendar.nights;
-  assert.strictEqual(trains["ICN 1963"].fareCalendar.version, 2);
+  assert.strictEqual(trains["ICN 1963"].fareCalendar.version, FARE_CALENDAR_VERSION);
   assert.strictEqual(nights["2026-09-28"].classes.couchette, 59.9, "the v1 entry (€1) was dropped and searched again");
   assert.deepStrictEqual(nights["2026-09-29"], { none: true, checkedAt: "2026-09-27" });
   assert.strictEqual(nights["2026-09-30"].classes.couchette, 59.9, "a 400 does not skip the train's later nights");
@@ -499,5 +502,42 @@ check("parseSolutionsFare: a departure match never takes another train we track 
   passed++;
   console.log("  ✓ fillFareCalendars: a 400 is a night without the train; old-rule calendars are dropped");
 }
+
+check("standard adult: Young, Senior, card, group and return offers never set the price", () => {
+  const grid = (offers) => ({
+    solutions: [
+      {
+        solution: { trains: [{ acronym: "NI", name: "797" }] },
+        grids: [{ services: [{ name: "Cuccetta Comfort 4 posti", offers }] }],
+      },
+    ],
+  });
+  const answer = grid([
+    { name: "Young", price: { amount: 29.9 } },
+    { name: "Senior", price: { amount: 31.9 } },
+    { name: "Cartafreccia Special", price: { amount: 33 } },
+    { name: "Speciale 2x1", price: { amount: 35 } },
+    { name: "A/R", price: { amount: 37 } },
+    { name: "Super Economy", price: { amount: 53.6 } },
+    { name: "Base", price: { amount: 79.9 } },
+  ]);
+  const fare = parseSolutionsFare(answer, "797");
+  assert.strictEqual(fare.fromPrice, 53.6, "the cheapest fare any adult can buy, not the Young one");
+  for (const n of ["Young", "Senior", "Giovani", "Over 60", "Carta Verde", "Carta Argento", "Andata e Ritorno", "Famiglia"]) {
+    assert.strictEqual(isStandardAdultOffer({ name: n }), false, n);
+  }
+  for (const n of ["Base", "Economy", "Super Economy", "Standard", ""]) {
+    assert.strictEqual(isStandardAdultOffer({ name: n }), true, n || "(unnamed)");
+  }
+  // Only restricted offers on sale: no price at all, and not the service's
+  // minPrice either — that is the minimum over the restricted ones.
+  const onlyYoung = grid([{ name: "Young", price: { amount: 29.9 } }]);
+  onlyYoung.solutions[0].grids[0].services[0].minPrice = { amount: 29.9 };
+  assert.strictEqual(parseSolutionsFare(onlyYoung, "797"), null);
+  assert.deepStrictEqual(describeOffers(answer), {
+    kept: ["Super Economy", "Base"],
+    dropped: ["Young", "Senior", "Cartafreccia Special", "Speciale 2x1", "A/R"],
+  });
+});
 
 console.log(`\n[verify-icn-fares] ${passed} checks passed`);
