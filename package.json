@@ -72,7 +72,8 @@
     "prepare": "husky && git config merge.ours.driver true || true",
     "verify-schedule-links": "node tests/verify-schedule-links.mjs",
     "verify-price-probe": "node tests/verify-price-probe.mjs",
-    "verify-gtfs-probe": "node tests/verify-gtfs-probe.mjs"
+    "verify-gtfs-probe": "node tests/verify-gtfs-probe.mjs",
+    "verify-icn-fares": "node tests/verify-icn-fares.mjs"
   },
   "packageManager": "npm@10",
   "repository": {

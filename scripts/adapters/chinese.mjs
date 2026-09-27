@@ -35,6 +35,10 @@ import {
   queryTicketPrice,
   sleep,
 } from "../lib/12306.mjs";
+import { carryPreviousFares, FARE_CARRY_MAX_DAYS } from "../lib/fares.mjs";
+
+// Re-exported: tests and earlier callers import it from here.
+export { carryPreviousFares };
 import {
   emptyGeometryCache,
   resolveRouteGeometry,
@@ -63,10 +67,6 @@ const REQUEST_SPACING_MS = 700;
 const GEOCODE_SPACING_MS = 350;
 // Cap Nominatim lookups per scrape so a cold cache can't blow the nightly budget.
 const GEOCODE_MAX_PER_RUN = 120;
-// A fare that failed to refresh tonight keeps last night's figure (it is a
-// government tariff and rarely moves) — but not forever: past this age it is
-// dropped rather than shown with a date nobody reads.
-const FARE_CARRY_MAX_DAYS = 30;
 
 function readJsonSafe(filePath) {
   try {
@@ -473,28 +473,6 @@ async function fetchLegFare(match, { date, fetchImpl, jar, lineName, today }) {
     console.warn(`[scrape] [chinese] fare lookup failed for ${lineName}: ${err.message}`);
     return null;
   }
-}
-
-/**
- * Give a train whose price call failed tonight the fare it had last run, when
- * that fare is recent enough to stand behind. Returns how many were carried.
- * Pure — exported for tests.
- */
-export function carryPreviousFares(trains, previousTrains, { today, maxAgeDays = FARE_CARRY_MAX_DAYS } = {}) {
-  if (!previousTrains || typeof previousTrains !== "object") return 0;
-  const todayMs = Date.parse(`${today}T00:00:00Z`);
-  let carried = 0;
-  for (const [key, train] of Object.entries(trains ?? {})) {
-    if (train.fare) continue;
-    const prev = previousTrains[key]?.fare;
-    if (!Number.isFinite(prev?.fromPrice)) continue;
-    const sampledMs = Date.parse(`${prev.sampledAt}T00:00:00Z`);
-    if (!Number.isFinite(sampledMs) || !Number.isFinite(todayMs)) continue;
-    if ((todayMs - sampledMs) / 86_400_000 > maxAgeDays) continue;
-    train.fare = prev;
-    carried++;
-  }
-  return carried;
 }
 
 /** Allowlist outbound↔return keys for shared-corridor alignment. */

@@ -505,10 +505,10 @@ check("carryPreviousFares: keeps last night's fare, but not a stale one", () => 
   assert.strictEqual(trains["K 1"].fare.fromPrice, 5, "tonight's fare is never overwritten");
 });
 
-check("stampOfficialFares: cheaper direction, trusted source only, own rows only", () => {
+check("stampOfficialFares: cheaper direction, official source only, own rows only", () => {
   const registry = [
     { id: "chinese", enabled: true, official: true, trusted: true },
-    { id: "untrusted", enabled: true, official: true, trusted: false },
+    { id: "untrusted", enabled: true, official: false, trusted: false },
   ];
   const viewMap = {
     cr_Z_21: { route_id: "cr_Z_21", agency_id: "CR", timetable_source: "chinese", trip_short_name_0: "Z 21", trip_short_name_1: "Z 22" },
@@ -538,7 +538,7 @@ check("stampOfficialFares: cheaper direction, trusted source only, own rows only
   });
   assert.strictEqual(trips.t1.pricing.fromPrice, 758);
   assert.ok(!trips.t2.pricing);
-  assert.ok(!viewMap.other_Z_21.pricing, "untrusted source never stamps");
+  assert.ok(!viewMap.other_Z_21.pricing, "a non-official source never stamps");
   assert.ok(!viewMap.bot_row.pricing, "a row the source did not build is left alone");
   assert.strictEqual(viewMap.cr_K_1.pricing.fromPrice, 120, "official fare outranks a reviewed/manual one");
 });

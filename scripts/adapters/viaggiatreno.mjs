@@ -3,7 +3,19 @@
 // numbers to query live in the registry entry params (data, not code).
 
 import polyline from "@mapbox/polyline";
+import fs from "node:fs";
+import path from "node:path";
 import { fetchWithTimeout, titleCase } from "../lib/scrape-helpers.mjs";
+import { romeClock, searchTimeBefore, searchTrainFare } from "../lib/lefrecce.mjs";
+import { carryPreviousFares, FARE_CARRY_MAX_DAYS } from "../lib/fares.mjs";
+
+// Fares: sample a night this far ahead (yield-managed, so a date inside the
+// usual booking window is what a traveller would actually see), trying the
+// next few nights when the train does not run on the first.
+const FARE_SAMPLE_DAYS_AHEAD = 21;
+const FARE_SAMPLE_TRIES = 4;
+const FARE_REQUEST_SPACING_MS = 800;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const VIAGGIATRENO_BASE = "http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno";
 
@@ -140,9 +152,81 @@ async function buildItalianTrains(trainNumbers, concurrency) {
   return trains;
 }
 
+function isoPlusDays(isoDate, days) {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * One train's fare from lefrecce.it, the operator's own booking backend, for
+ * the whole journey (first to last station). Never throws: a failed or empty
+ * search costs the price, not the train. Exported for tests.
+ */
+export async function fetchIcnFare(train, { today, fetchImpl = fetch, log = console.log } = {}) {
+  const trainNumber = String(train.lineName ?? "").replace(/\D/g, "");
+  const first = train.stations?.[0];
+  const last = train.stations?.[train.stations.length - 1];
+  const clock = romeClock(first?.departure);
+  if (!trainNumber || !first?.code || !last?.code || !clock) {
+    log(`[icn-fare] ${train.lineName}: no station codes/departure to search with`);
+    return null;
+  }
+  const time = searchTimeBefore(clock);
+  for (let i = 0; i < FARE_SAMPLE_TRIES; i++) {
+    const date = isoPlusDays(today, FARE_SAMPLE_DAYS_AHEAD + i);
+    try {
+      const { fare, solutions } = await searchTrainFare(
+        { fromCode: first.code, toCode: last.code, date, time, trainNumber },
+        { fetchImpl },
+      );
+      if (fare) {
+        log(
+          `[icn-fare] ${train.lineName} ${date}: from €${fare.fromPrice} (${fare.seatClass ?? "no class"}) ${JSON.stringify(fare.classes)}`,
+        );
+        return { ...fare, sampledAt: today, travelDate: date };
+      }
+      log(`[icn-fare] ${train.lineName} ${date}: not among ${solutions} solution(s)`);
+    } catch (err) {
+      log(`[icn-fare] ${train.lineName} ${date}: ${err.message}`);
+      return null; // transport/shape error: another date will not fix it
+    } finally {
+      await sleep(FARE_REQUEST_SPACING_MS);
+    }
+  }
+  return null;
+}
+
 export async function run(entry, ctx) {
   const { trainNumbers = [], concurrency = 4 } = entry.params ?? {};
   const trains = await buildItalianTrains(trainNumbers, concurrency);
+
+  let fetched = 0;
+  for (const train of Object.values(trains)) {
+    const fare = await fetchIcnFare(train, { today: ctx.today, fetchImpl: ctx.fetch ?? fetch });
+    if (fare) {
+      train.fare = fare;
+      fetched++;
+    }
+  }
+  let previous = null;
+  try {
+    const raw = JSON.parse(
+      fs.readFileSync(path.join(ctx.rootDir, "public", "data", "scraped", entry.output), "utf8"),
+    );
+    previous = raw?.data?.trains ?? raw?.trains ?? null;
+  } catch {
+    /* first run, or unreadable: nothing to carry */
+  }
+  const carried = carryPreviousFares(trains, previous, {
+    today: ctx.today,
+    maxAgeDays: FARE_CARRY_MAX_DAYS,
+  });
+  console.log(
+    `[scrape] italian: fares for ${Object.values(trains).filter((t) => t.fare).length}/${Object.keys(trains).length} trains ` +
+      `(${fetched} fetched tonight, ${carried} carried)`,
+  );
+
   ctx.write(entry.output, { uploadedAt: ctx.today, trains });
   console.log(`[scrape] stored ${Object.keys(trains).length} Italian ICN trains`);
 }

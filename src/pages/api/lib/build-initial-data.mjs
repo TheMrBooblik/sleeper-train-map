@@ -705,11 +705,13 @@ function stampTimetableSources(viewMap, registry) {
 }
 
 /**
- * Stamp the fare an official, trusted source scraped tonight onto the row that
- * source built — the price analogue of the trusted-route rule: a figure read
- * nightly from the operator's own booking system needs no reviewer, and it
- * outranks a reviewed data/canonical/prices.json entry (stamped above), which
- * is the fallback for routes no official source prices.
+ * Stamp the fare an official source scraped tonight onto the row that source
+ * built. A figure read nightly from the operator's own booking system needs
+ * no reviewer, and it outranks a reviewed data/canonical/prices.json entry
+ * (stamped above), which is the fallback for routes no official source
+ * prices. `official` is the bar, not `trusted`: trust is about letting a
+ * source create routes unreviewed, while a fare only ever lands on a row
+ * that already passed the gate.
  *
  * A train carries `fare: { fromPrice, currency, seatClass, sampledAt }` in its
  * trains file (the chinese adapter writes it from 12306's queryTicketPrice).
@@ -720,7 +722,7 @@ function stampTimetableSources(viewMap, registry) {
 export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
   const sources = new Map(
     (registry ?? [])
-      .filter((e) => e?.enabled && e.official && e.trusted && operatorTrains?.[e.id])
+      .filter((e) => e?.enabled && e.official && operatorTrains?.[e.id])
       .map((e) => [e.id, operatorTrains[e.id]]),
   );
   if (!sources.size) return 0;
