@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_270",
+  "createdAt": "2026-09-27T09:40:43.594Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: LE 232 (Przemyśl Gł. – Frankfurt (Main) Flughafen Fernbahnhof)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026: Daily\" → \"2026: Wed, Fri, Sun\"; operating days (return): \"2026: Daily\" → \"2026: Mon, Thu, Sat\"",
+  "target": {
+    "routeKey": "270",
+    "agencyId": "LE",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2026: Daily",
+    "operating days (return)": "2026: Daily"
+  },
+  "after": {
+    "operating days (outbound)": "2026: Wed, Fri, Sun",
+    "operating days (return)": "2026: Mon, Thu, Sat"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
