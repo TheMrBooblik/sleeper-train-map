@@ -14,14 +14,15 @@ function check(name, fn) {
   console.log(`  ✓ ${name}`);
 }
 
-check("Trenitalia (FS) is promoted by the committed table", () => {
-  assert.strictEqual(promotionRank({ agency_id: "FS" }), 1);
+check("European Sleeper, then Trenitalia, by the committed table", () => {
+  assert.strictEqual(promotionRank({ agency_id: "ES" }), 1);
+  assert.strictEqual(promotionRank({ agency_id: "FS" }), 2);
   assert.strictEqual(promotionRank({ agency_id: "ÖBB" }), Infinity);
 });
 
 check("a joint or re-labelled train counts if any of its operators is promoted", () => {
-  assert.strictEqual(promotionRank({ agency_id: "ÖBB/FS" }), 1);
-  assert.strictEqual(promotionRank({ agency_id: "X", bot_agency_id: "FS" }), 1);
+  assert.strictEqual(promotionRank({ agency_id: "ÖBB/FS" }), 2);
+  assert.strictEqual(promotionRank({ agency_id: "X", bot_agency_id: "FS" }), 2);
 });
 
 check("promoted first by rank; everyone else keeps the order it came in", () => {
