@@ -40,6 +40,11 @@ export function formatPricingLabel(pricing) {
   const advice = pricingAdvice(pricing);
   if (!advice) return null;
 
+  // A dynamic fare's figure is one sampled date's cheapest berth, so it never
+  // sits beside the badge as if it were the price: it is printed where prices
+  // are, always as "from …" (formatFromPrice, the per-class fare rows).
+  if (pricing.type === "dynamic") return advice.headline;
+
   if (pricing.fromPrice != null) {
     const symbol =
       CURRENCY_SYMBOLS[pricing.currency] ||

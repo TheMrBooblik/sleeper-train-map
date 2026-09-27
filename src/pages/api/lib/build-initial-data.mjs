@@ -705,13 +705,15 @@ function stampTimetableSources(viewMap, registry) {
 }
 
 /**
- * Stamp the fare an official, trusted source scraped tonight onto the row that
- * source built — the price analogue of the trusted-route rule: a figure read
- * nightly from the operator's own booking system needs no reviewer, and it
- * outranks a reviewed data/canonical/prices.json entry (stamped above), which
- * is the fallback for routes no official source prices.
+ * Stamp the fare an official source scraped tonight onto the row that source
+ * built. A figure read nightly from the operator's own booking system needs
+ * no reviewer, and it outranks a reviewed data/canonical/prices.json entry
+ * (stamped above), which is the fallback for routes no official source
+ * prices. `official` is the bar, not `trusted`: trust is about letting a
+ * source create routes unreviewed, while a fare only ever lands on a row
+ * that already passed the gate.
  *
- * A train carries `fare: { fromPrice, currency, seatClass, sampledAt }` in its
+ * A train carries `fare: { fromPrice, currency, seatClass, sampledAt, travelDate? }` in its
  * trains file (the chinese adapter writes it from 12306's queryTicketPrice).
  * The row takes the cheaper of its two directions, and only rows whose
  * timetable_source is that source are touched, so a bare number another
@@ -720,7 +722,7 @@ function stampTimetableSources(viewMap, registry) {
 export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
   const sources = new Map(
     (registry ?? [])
-      .filter((e) => e?.enabled && e.official && e.trusted && operatorTrains?.[e.id])
+      .filter((e) => e?.enabled && e.official && operatorTrains?.[e.id])
       .map((e) => [e.id, operatorTrains[e.id]]),
   );
   if (!sources.size) return 0;
@@ -732,7 +734,7 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
     for (const dir of [0, 1]) {
       const fare = trains[row[`trip_short_name_${dir}`]]?.fare;
       if (!Number.isFinite(fare?.fromPrice) || fare.fromPrice <= 0 || !fare.currency) continue;
-      fares.push(fare);
+      fares.push({ ...fare, trainName: row[`trip_short_name_${dir}`] });
       // Each direction keeps its own figure and berth classes: a card about
       // one train shows that train's price (src/lib/fareClasses.mjs).
       row[`fare_${dir}`] = {
@@ -742,7 +744,17 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
         ...(fare.classes && typeof fare.classes === "object" ? { classes: fare.classes } : {}),
         source: row.timetable_source,
         checkedAt: fare.sampledAt ?? null,
+        // The night the figure was quoted for. A yield-managed fare
+        // (lefrecce) is one date's price; a fixed tariff (12306) has none.
+        ...(fare.travelDate ? { travelDate: fare.travelDate } : {}),
       };
+      // Every night's fare, when the source keeps a calendar (lefrecce does:
+      // scripts/lib/fare-calendar.mjs). Read by the connection pages only —
+      // the map payload drops it (stripPageOnlyFields).
+      const calendar = trains[row[`trip_short_name_${dir}`]]?.fareCalendar;
+      if (calendar?.nights && Object.keys(calendar.nights).length) {
+        row[`fare_calendar_${dir}`] = calendar;
+      }
     }
     if (!fares.length) continue;
     // Never compare across currencies; the first direction's currency decides.
@@ -755,6 +767,10 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
       fromPrice: cheapest.fromPrice,
       source: row.timetable_source,
       checkedAt: cheapest.sampledAt ?? null,
+      ...(cheapest.travelDate ? { travelDate: cheapest.travelDate } : {}),
+      // Which train the figure is: the row's is the cheaper direction's, and
+      // a tile quoting it beside a timetable of both must say which one.
+      ...(cheapest.trainName ? { trainName: cheapest.trainName } : {}),
       ...(cheapest.seatClass ? { seatClass: cheapest.seatClass } : {}),
     };
     row.pricing = pricing;

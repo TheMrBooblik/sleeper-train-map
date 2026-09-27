@@ -19,6 +19,7 @@ import {
   projectStopsToRoutes,
   splitRouteGeometry,
   stripDeadTripColumns,
+  stripPageOnlyFields,
 } from "./lib/payload-projection.mjs";
 
 export default async function handler(req, res) {
@@ -26,8 +27,8 @@ export default async function handler(req, res) {
     const { data, source } = await resolveInitialPayload();
     console.log(`[initial-data] source: ${source}`);
 
-    const projected = stripDeadTripColumns(
-      projectStopsToRoutes(data, getGtfsBundleStationNames()),
+    const projected = stripPageOnlyFields(
+      stripDeadTripColumns(projectStopsToRoutes(data, getGtfsBundleStationNames())),
     );
     const { payload } = splitRouteGeometry(projected);
 

@@ -35,7 +35,9 @@ import {
   formatFutureFrom,
 } from "./format";
 import { getOperatorPricing, formatFromPrice, formatCheckedAt } from "../operatorPricing";
-import { directionFareSummary } from "../fareClasses.mjs";
+import { directionFareSummary, isDynamicPricing } from "../fareClasses.mjs";
+import { fareCalendarDays } from "../fareCalendarView.mjs";
+import { buildDatedBookingLink } from "../operatorBooking.js";
 import {
   formatTrainNumber,
   resolveScheduleLink,
@@ -448,6 +450,26 @@ function withCheckedLabel(fare) {
   return fare ? { ...fare, checkedLabel: formatCheckedAt(fare.checkedAt) } : null;
 }
 
+/**
+ * One direction's fare for every night it has been priced, for the calendar on
+ * the connection page, plus the booking link that opens on a chosen night
+ * (null when the operator's link takes no date). Nights up to the build date
+ * are left out; the page is rebuilt nightly with the data, and the calendar
+ * greys out anything the visitor's own clock says has passed.
+ */
+function fareCalendarFor(route, dir, { origin, destination, today }) {
+  const calendar = route[`fare_calendar_${dir}`];
+  if (!calendar) return null;
+  const link = buildDatedBookingLink({ agencyId: route.agency_id || "", origin, dest: destination });
+  const view = fareCalendarDays(calendar, {
+    today,
+    dynamic: isDynamicPricing(route.pricing),
+    bookingDate: link ? link.dateFor : () => null,
+  });
+  if (!view) return null;
+  return { ...view, bookingTemplate: link?.template ?? null };
+}
+
 export function getRouteDetail(routeId) {
   const { viewMap } = getPublished();
   const route = Object.values(viewMap).find((r) => String(r.route_id) === String(routeId));
@@ -539,6 +561,12 @@ export function getRouteDetail(routeId) {
       // This train's own official fare, per berth class — the facts tile above
       // shows the cheaper of the two directions, this is the one you'd pay.
       fare: withCheckedLabel(directionFareSummary(route, dir)),
+      // …and every night's, where the source keeps a calendar.
+      fareCalendar: fareCalendarFor(route, dir, {
+        origin,
+        destination,
+        today: new Date().toISOString().slice(0, 10),
+      }),
     });
   }
 
