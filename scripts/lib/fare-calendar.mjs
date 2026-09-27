@@ -22,6 +22,16 @@ export const FARE_CALENDAR_BUDGET = 400;
 /** A night's price older than this is dropped rather than shown. */
 export const FARE_CALENDAR_MAX_AGE_DAYS = 14;
 
+/**
+ * Bumped whenever what a night's entry MEANS changes — a fix to how a search
+ * answer is read. A calendar written under an older version is dropped whole
+ * rather than trusted: its entries were read by the rule the fix replaced,
+ * and would otherwise stay on the page for two weeks.
+ *   2: departure-minute matches no longer take another tracked train
+ *      (771 carried 770's fares), and a 400 reads as "no train that night".
+ */
+export const FARE_CALENDAR_VERSION = 2;
+
 const DAY_MS = 86_400_000;
 
 function isoMs(iso) {
@@ -59,7 +69,8 @@ export function pruneCalendar(
   const window = new Set(calendarWindow(today, days));
   const todayMs = isoMs(today);
   const nights = {};
-  for (const [date, entry] of Object.entries(calendar?.nights ?? {})) {
+  const current = calendar?.version === FARE_CALENDAR_VERSION;
+  for (const [date, entry] of Object.entries(current ? (calendar?.nights ?? {}) : {})) {
     if (!window.has(date) || !entry || typeof entry !== "object") continue;
     const checkedMs = isoMs(entry.checkedAt);
     if (
@@ -69,7 +80,7 @@ export function pruneCalendar(
       continue;
     nights[date] = entry;
   }
-  return { currency: calendar?.currency ?? null, nights };
+  return { version: FARE_CALENDAR_VERSION, currency: calendar?.currency ?? null, nights };
 }
 
 /**

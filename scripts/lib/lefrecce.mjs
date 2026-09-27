@@ -93,7 +93,7 @@ function isNightCategory(train) {
  * the Sicilian sleepers under the main train's number, so the portion's own
  * number is not on the ticket, but the departure it describes is.
  */
-function findTrainSolution(entries, trainNumber, departureClock) {
+function findTrainSolution(entries, trainNumber, departureClock, otherTrains = []) {
   const byNumber = entries.find((e) => solutionHasTrain(e?.solution ?? e, trainNumber));
   if (byNumber) return { entry: byNumber, matchedBy: "number" };
   const want = clockMinutes(departureClock);
@@ -101,7 +101,12 @@ function findTrainSolution(entries, trainNumber, departureClock) {
   const byTime = entries.filter((e) => {
     const sol = e?.solution ?? e;
     const got = clockMinutes(wallClock(sol?.departureTime));
-    return got != null && Math.abs(got - want) <= 2 && (sol?.trains ?? []).some(isNightCategory);
+    if (got == null || Math.abs(got - want) > 2 || !(sol?.trains ?? []).some(isNightCategory)) return false;
+    // A train we track under its own number is that train, never a portion
+    // of ours: ICN 771 is 770's seasonal twin and leaves the same minute, so
+    // on a night 771 does not run the search answers with 770 — which is
+    // 770's fare, not 771's.
+    return !otherTrains.some((n) => solutionHasTrain(sol, n));
   });
   // Two night trains leaving the same minute cannot be told apart: price neither.
   return byTime.length === 1 ? { entry: byTime[0], matchedBy: "departure" } : null;
@@ -125,9 +130,9 @@ export function describeSolutions(json) {
  * Reads the per-service grid (cheapest saleable offer per berth class). No
  * berth priced → null, never a seat or the headline price.
  */
-export function parseSolutionsFare(json, trainNumber, { departureClock = null } = {}) {
+export function parseSolutionsFare(json, trainNumber, { departureClock = null, otherTrains = [] } = {}) {
   const entries = Array.isArray(json?.solutions) ? json.solutions : [];
-  const found = findTrainSolution(entries, trainNumber, departureClock);
+  const found = findTrainSolution(entries, trainNumber, departureClock, otherTrains);
   if (!found) return null;
   const match = found.entry;
   const solution = match.solution ?? match;
@@ -252,7 +257,7 @@ async function postSolutions({ fromId, toId, date, time }, fetchImpl) {
  * per train.
  */
 export async function searchTrainFare(
-  { fromCode, toCode, fromName, toName, date, time, trainNumber, departureClock },
+  { fromCode, toCode, fromName, toName, date, time, trainNumber, departureClock, otherTrains = [] },
   { fetchImpl = fetch, ids = new Map() } = {},
 ) {
   const idFor = (code) => ids.get(code) ?? lefrecceLocationId(code);
@@ -274,11 +279,15 @@ export async function searchTrainFare(
       r = await postSolutions({ fromId, toId, date, time }, fetchImpl);
     }
   }
-  if (!r.ok) throw new Error(`solutions HTTP ${r.status}`);
+  if (!r.ok) {
+    const err = new Error(`solutions HTTP ${r.status}`);
+    err.status = r.status;
+    throw err;
+  }
   if (!r.text || r.text.trimStart().startsWith("<")) throw new Error("solutions non-JSON body");
   const json = JSON.parse(r.text);
   return {
-    fare: parseSolutionsFare(json, trainNumber, { departureClock }),
+    fare: parseSolutionsFare(json, trainNumber, { departureClock, otherTrains }),
     solutions: Array.isArray(json?.solutions) ? json.solutions.length : 0,
     seen: describeSolutions(json),
     json,

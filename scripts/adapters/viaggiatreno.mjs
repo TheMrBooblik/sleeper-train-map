@@ -167,7 +167,7 @@ async function buildItalianTrains(trainNumbers, concurrency) {
  * its berths are gone). Throws on a transport or shape error, which says
  * nothing about the night. Exported for tests.
  */
-export async function searchIcnNight(train, date, { today, fetchImpl = fetch, ids = new Map() } = {}) {
+export async function searchIcnNight(train, date, { today, fetchImpl = fetch, ids = new Map(), otherTrains = [] } = {}) {
   const trainNumber = String(train.lineName ?? "").replace(/\D/g, "");
   const first = train.stations?.[0];
   const last = train.stations?.[train.stations.length - 1];
@@ -185,6 +185,7 @@ export async function searchIcnNight(train, date, { today, fetchImpl = fetch, id
       time: searchTimeBefore(clock),
       trainNumber,
       departureClock: clock,
+      otherTrains,
     },
     { fetchImpl, ids },
   );
@@ -224,19 +225,30 @@ export async function fillFareCalendars(
     calendars[key].currency ??= "EUR";
   }
   const plan = planFareSearches(calendars, { today, days, budget });
-  const stats = { planned: plan.length, searched: 0, priced: 0, none: 0, errors: 0, stopped: false };
+  const stats = { planned: plan.length, searched: 0, priced: 0, none: 0, noTrain: 0, errors: 0, stopped: false };
   const broken = new Set();
   const missLogged = new Set();
+  // Every train number we track: a departure-minute match must never take one
+  // of them for another (lefrecce.mjs findTrainSolution).
+  const numberOf = (t) => String(t?.lineName ?? "").replace(/\D/g, "");
+  const tracked = Object.values(trains).map(numberOf).filter(Boolean);
+  // A train whose stations lefrecce has answered for, tonight or before.
+  const proven = new Set(Object.keys(calendars).filter((k) => Object.keys(calendars[k].nights).length));
+  const refusals = new Map();
   let consecutiveErrors = 0;
   for (const { key, date } of plan) {
     if (broken.has(key)) continue;
     try {
+      const own = numberOf(trains[key]);
       const { entry, seen, solutions, clock, matchedBy } = await searchIcnNight(trains[key], date, {
         today,
         fetchImpl,
         ids,
+        otherTrains: tracked.filter((n) => n !== own),
       });
       consecutiveErrors = 0;
+      refusals.set(key, 0);
+      proven.add(key);
       stats.searched++;
       calendars[key].nights[date] = entry;
       if (entry.none) {
@@ -254,6 +266,24 @@ export async function fillFareCalendars(
         }
       }
     } catch (err) {
+      if (err.status === 400) {
+        // lefrecce answers 400 when there is no direct train at all on the
+        // pair that night — Milano → Siracusa has exactly one, ICN 1963, so a
+        // night it does not run is a 400, not an error. A refused station id
+        // is a 400 too, which is why a train that has never been answered for
+        // is given up on after three in a row (searchTrainFare has already
+        // tried the name lookup by then).
+        const streak = (refusals.get(key) ?? 0) + 1;
+        refusals.set(key, streak);
+        stats.searched++;
+        stats.noTrain++;
+        calendars[key].nights[date] = { none: true, checkedAt: today };
+        if (!proven.has(key) && streak >= 3) {
+          broken.add(key);
+          log(`[icn-fare] ${key} ${date}: HTTP 400 three times and never answered — skipping its other nights tonight`);
+        }
+        continue;
+      }
       stats.errors++;
       consecutiveErrors++;
       broken.add(key);
@@ -320,7 +350,8 @@ export async function run(entry, ctx) {
   });
   console.log(
     `[scrape] italian: ${stats.searched}/${stats.planned} fare search(es) tonight ` +
-      `(${stats.priced} priced, ${stats.none} without a berth, ${stats.errors} failed${stats.stopped ? ", stopped early" : ""}); ` +
+      `(${stats.priced} priced, ${stats.none} without a berth, ${stats.noTrain} with no direct train, ` +
+      `${stats.errors} failed${stats.stopped ? ", stopped early" : ""}); ` +
       `fares for ${Object.values(trains).filter((t) => t.fare).length}/${Object.keys(trains).length} trains (${carried} carried)`,
   );
 
