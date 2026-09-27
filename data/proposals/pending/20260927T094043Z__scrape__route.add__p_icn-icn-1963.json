@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-1963",
+  "createdAt": "2026-09-27T09:40:43.598Z",
+  "source": "scrape",
+  "sourceDetail": "icn",
+  "kind": "route.add",
+  "title": "New train: ICN 1963 (Milano Centrale – Siracusa)",
+  "summary": "Route \"icn_ICN_1963\" appeared in tonight's scrape and is withheld from the map until approved. Via: Piacenza - Fidenza - Parma - Reggio Emilia - Modena - Bologna Centrale - Prato Centrale - Firenze Campo Marte - Salerno - Battipaglia - Agropoli Castellabate - Vallo Della Lucania-Castelnuovo - Ascea - Pisciotta Palinuro - Sapri - Maratea - Scalea S.domenica Talao - Paola - Amantea - Lamezia Terme C",
+  "target": {
+    "routeKey": "icn_ICN_1963",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "ICN 1963",
+    "returnTrain": null,
+    "origin": "Milano Centrale",
+    "destination": "Siracusa",
+    "operator": "FS",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "icn_ICN_1963"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
