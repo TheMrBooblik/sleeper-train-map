@@ -524,8 +524,9 @@ abbr {
  *   999  — TrainDetailPanel / NearbyStations backdrop
  *  1000  — TrainBottomBar, TrainDetailPanel sheet
  *  1001  — WelcomeTour
- *  1002  — Header
- *  1003  — Header popovers / mobile menu
+ *  1002  — Header (also SeoLayout's nav, on /connections etc. — Leaflet's own
+ *          panes/controls reach z-index 1000, so a fixed header must clear that)
+ *  1003  — Header popovers / mobile menu (SeoLayout's included)
  *  1100  — NearbyStations backdrop + MobileSearch (above header chrome)
  *  1101  — NearbyStations sheet
  *  1200  — MobileSearchOverlay (full-screen)

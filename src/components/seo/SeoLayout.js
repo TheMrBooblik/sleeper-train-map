@@ -54,7 +54,10 @@ export default function SeoLayout({ children }) {
   return (
     <div className="h-dvh overflow-y-auto bg-black">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
+      {/* z-[1002] matches the homepage Header (see the z-index stack comment in
+          globals.css) — Leaflet's own controls/panes reach z-index 1000, so a
+          fixed nav below that draws underneath the corridor map on scroll. */}
+      <nav className="fixed top-0 left-0 right-0 z-[1002] bg-black/80 backdrop-blur-md border-b border-white/10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link
@@ -106,7 +109,7 @@ export default function SeoLayout({ children }) {
                     id="seo-menu"
                     role="dialog"
                     aria-label="Menu"
-                    className="fixed right-2 top-[4.5rem] z-[60] w-[min(calc(100vw-1rem),18rem)] rounded-xl border border-white/15 bg-zinc-900 p-2 shadow-2xl"
+                    className="fixed right-2 top-[4.5rem] z-[1003] w-[min(calc(100vw-1rem),18rem)] rounded-xl border border-white/15 bg-zinc-900 p-2 shadow-2xl"
                   >
                     {MENU.map(({ href, label, icon: Icon }) => (
                       <Link
