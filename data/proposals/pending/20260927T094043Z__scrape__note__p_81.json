@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_81",
+  "createdAt": "2026-09-27T09:40:43.593Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: 91 (Umeå C – Stockholm C)",
+  "summary": "Material change on an approved route (already live — FYI): origin: \"Luleå C\" → \"Umeå C\"",
+  "target": {
+    "routeKey": "81",
+    "agencyId": "SJ",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "origin": "Luleå C"
+  },
+  "after": {
+    "origin": "Umeå C"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
