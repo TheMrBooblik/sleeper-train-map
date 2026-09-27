@@ -1,0 +1,31 @@
+{
+  "v": 1,
+  "id": "p_77",
+  "createdAt": "2026-09-27T09:40:43.592Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: 300 (Stockholm C – Berlin Gesundbrunnen)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Berlin Hbf\" → \"Berlin Gesundbrunnen\"; operating days (outbound): \"2026/03/27-11/01: Daily, except Saturday\" → \"2026: Mon, Tue, Wed, Thu, Fri, Sun\"; operating days (return): \"2026/03/27-11/01: Daily, except Saturday\" → \"2026: Mon, Tue, Wed, Thu, Fri, Sun\"",
+  "target": {
+    "routeKey": "77",
+    "agencyId": "ST",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Berlin Hbf",
+    "operating days (outbound)": "2026/03/27-11/01: Daily, except Saturday",
+    "operating days (return)": "2026/03/27-11/01: Daily, except Saturday"
+  },
+  "after": {
+    "destination": "Berlin Gesundbrunnen",
+    "operating days (outbound)": "2026: Mon, Tue, Wed, Thu, Fri, Sun",
+    "operating days (return)": "2026: Mon, Tue, Wed, Thu, Fri, Sun"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
