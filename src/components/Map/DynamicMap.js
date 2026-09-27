@@ -937,6 +937,7 @@ const TrainMap = ({
           viewMapData={viewMapData}
           trips={trips}
           cities={cities}
+          stationCoords={stationCoordsByName}
         />
       </div>
 
