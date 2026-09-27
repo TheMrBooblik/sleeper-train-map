@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-09-27",
+  "createdAt": "2026-09-27T09:40:43.602Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (1 routes, 2 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute amtrak_Southwest_Chief: Southwest Chief (Los Angeles – Chicago Union Station)\nstation Brugg AG (nightjet)\nstation Zhungeer(准格尔) (chinese)",
+  "target": {
+    "routeKey": "trusted-2026-09-27",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
