@@ -2,7 +2,8 @@
 // The map's bottom bar (TrainBottomBar): which trains lead a station's list
 // (src/lib/operatorPromotion.mjs, data/overrides/operator-promotion.json) and
 // how each is named — from the selected station, toward where the train goes
-// (src/lib/bottomBarRoutes.mjs). Run: npm run verify-bottom-bar
+// (src/lib/stationFirst.mjs) — and that the line tooltip, the route chip and
+// the detail panel name a train the same way. Run: npm run verify-bottom-bar
 
 import assert from "node:assert";
 import fs from "node:fs";
@@ -12,8 +13,11 @@ import {
 } from "../src/lib/operatorPromotion.mjs";
 import {
   disambiguateLabels,
+  orderTripsStationFirst,
+  selectedCityMatcher,
   stationFirstEndpoints,
-} from "../src/lib/bottomBarRoutes.mjs";
+  tripDirection,
+} from "../src/lib/stationFirst.mjs";
 
 let passed = 0;
 function check(name, fn) {
@@ -236,16 +240,165 @@ check("chips can never be wider than the screen", () => {
   );
 });
 
-check("the scroll fade sits outside the scrolling element, so it cannot scroll into a chip", () => {
-  const src = fs.readFileSync(new URL("../src/components/TrainBottomBar/TrainBottomBar.js", import.meta.url), "utf8");
-  const css = fs.readFileSync(new URL("../src/styles/globals.css", import.meta.url), "utf8");
-  // The fault: a ::after on the overflow-x-scroll element scrolled with the
-  // chips and, once the bar was scrolled, covered one ("Bruxelles ▯idi").
-  assert.ok(!/bottom-bar-scroll-fade/.test(src + css), "no pseudo-element fade on the scroll container");
-  const scroller = src.indexOf('data-testid="bottom-bar-scroll"');
-  const fade = src.indexOf('data-testid="bottom-bar-fade"');
-  const scrollerClose = src.lastIndexOf("</div>", fade);
-  assert.ok(scroller > 0 && fade > scrollerClose, "the fade is rendered after the scroller closes, as its sibling");
+check(
+  "the scroll fade sits outside the scrolling element, so it cannot scroll into a chip",
+  () => {
+    const src = fs.readFileSync(
+      new URL(
+        "../src/components/TrainBottomBar/TrainBottomBar.js",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const css = fs.readFileSync(
+      new URL("../src/styles/globals.css", import.meta.url),
+      "utf8",
+    );
+    // The fault: a ::after on the overflow-x-scroll element scrolled with the
+    // chips and, once the bar was scrolled, covered one ("Bruxelles ▯idi").
+    assert.ok(
+      !/bottom-bar-scroll-fade/.test(src + css),
+      "no pseudo-element fade on the scroll container",
+    );
+    const scroller = src.indexOf('data-testid="bottom-bar-scroll"');
+    const fade = src.indexOf('data-testid="bottom-bar-fade"');
+    const scrollerClose = src.lastIndexOf("</div>", fade);
+    assert.ok(
+      scroller > 0 && fade > scrollerClose,
+      "the fade is rendered after the scroller closes, as its sibling",
+    );
+  },
+);
+
+// ─── The same name everywhere on the map ────────────────────────────────────
+
+const readSrc = (rel) =>
+  fs.readFileSync(new URL(`../src/${rel}`, import.meta.url), "utf8");
+
+check("the city test: display name equal, or the raw name contains it", () => {
+  const norm = (n) => n.replace(/ (Centrale|Porta Garibaldi)$/, "");
+  const inMilan = selectedCityMatcher("Milano", norm);
+  assert.ok(inMilan("Milano Centrale"));
+  assert.ok(inMilan("Milano Porta Garibaldi"));
+  assert.ok(!inMilan("Bruxelles Midi"));
+  assert.ok(!inMilan(""));
+  assert.ok(
+    !selectedCityMatcher("", norm)("Milano Centrale"),
+    "no selection matches nothing",
+  );
 });
+
+check(
+  "a trip card's direction: direction_id, else a number only one direction has",
+  () => {
+    const row = { trip_short_name_0: "ICN 796", trip_short_name_1: "ICN 797" };
+    assert.strictEqual(tripDirection(row, { trip_short_name: "ICN 797" }), 1);
+    assert.strictEqual(
+      tripDirection(row, { trip_short_name: "ICN 797", direction_id: 0 }),
+      0,
+    );
+    const shared = { trip_short_name_0: "D 346", trip_short_name_1: "D 346" };
+    assert.strictEqual(
+      tripDirection(shared, { trip_short_name: "D 346" }),
+      null,
+    );
+    assert.strictEqual(
+      tripDirection(shared, { trip_short_name: "D 346", direction_id: 1 }),
+      1,
+    );
+  },
+);
+
+check(
+  "the panel's order: the other direction moves back, nothing else does",
+  () => {
+    const trips = [
+      { id: "a0", route_id: "a", direction_id: 0 },
+      { id: "a1", route_id: "a", direction_id: 1 },
+      { id: "x", route_id: "b" },
+    ];
+    const dir = (t) => tripDirection(null, t);
+    assert.deepStrictEqual(
+      orderTripsStationFirst(trips, { a: 1 }, dir).map((t) => t.id),
+      ["a1", "x", "a0"],
+    );
+    assert.strictEqual(
+      orderTripsStationFirst(trips, null, dir),
+      null,
+      "no preference → the caller's own order",
+    );
+    assert.strictEqual(orderTripsStationFirst(trips, { z: 0 }, dir), null);
+  },
+);
+
+check(
+  "from Milano the panel opens on ICN 797, the train the chip named",
+  () => {
+    const r = row("icn_ICN_796");
+    const ends = stationFirstEndpoints(r, {
+      inSelectedCity: city("milano"),
+      coordsOf,
+    });
+    // The panel's own synthetic trips for a tripless row, now carrying direction_id.
+    const trips = [0, 1].map((d) => ({
+      route_id: r.route_id,
+      trip_short_name: r[`trip_short_name_${d}`],
+      direction_id: d,
+    }));
+    const ordered = orderTripsStationFirst(
+      trips,
+      { [r.route_id]: ends.direction },
+      (t) => tripDirection(r, t),
+    );
+    assert.strictEqual(ordered[0].trip_short_name, "ICN 797");
+  },
+);
+
+check(
+  "the line tooltip and the route chip name the train from the selected station",
+  () => {
+    const src = readSrc("components/Map/DynamicMap.js");
+    const uses = src.match(/stationFirstFor\?\.\(route\)/g) ?? [];
+    assert.ok(
+      uses.length >= 2,
+      `tooltip and route chip both ask stationFirstFor (found ${uses.length})`,
+    );
+    assert.ok(
+      /firstDirectionByRoute=\{firstDirectionByRoute\}/.test(src),
+      "the panel is told which train to open on",
+    );
+    assert.ok(
+      /selectedCityMatcher\(/.test(src) && /stationFirstEndpoints\(/.test(src),
+    );
+    const bar = readSrc("components/TrainBottomBar/TrainBottomBar.js");
+    assert.ok(
+      /selectedCityMatcher\(/.test(bar),
+      "the bar uses the same city test",
+    );
+  },
+);
+
+check(
+  "the panel puts the station-first train ahead of its own onward-stops guess",
+  () => {
+    const src = readSrc("components/TrainDetailPanel/TrainDetailPanel.js");
+    const first = src.indexOf("orderTripsStationFirst(");
+    const fallback = src.indexOf("const onwardCount");
+    assert.ok(
+      first > 0 && fallback > first,
+      "station-first order is tried before onwardCount",
+    );
+    // A synthetic card with no direction read as direction 0: ICN 797's
+    // timetable link was built with 796's origin station.
+    const push = src.slice(
+      src.indexOf("const pushDirection"),
+      src.indexOf('pushDirection("0")'),
+    );
+    assert.ok(
+      /direction_id: Number\(suffix\)/.test(push),
+      "synthetic trips carry their direction",
+    );
+  },
+);
 
 console.log(`\n[verify-bottom-bar] ${passed} checks passed`);
