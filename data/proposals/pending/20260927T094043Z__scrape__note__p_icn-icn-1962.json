@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-1962",
+  "createdAt": "2026-09-27T09:40:43.598Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: ICN 1962 (Messina Centrale – Milano Centrale)",
+  "summary": "Material change on an approved route (already live — FYI): origin: \"Siracusa\" → \"Messina Centrale\"; train numbers: \"ICN 1962|ICN 1963\" → \"ICN 1962\"",
+  "target": {
+    "routeKey": "icn_ICN_1962",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "origin": "Siracusa",
+    "train numbers": "ICN 1962|ICN 1963"
+  },
+  "after": {
+    "origin": "Messina Centrale",
+    "train numbers": "ICN 1962"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
