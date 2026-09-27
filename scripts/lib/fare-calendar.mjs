@@ -29,8 +29,10 @@ export const FARE_CALENDAR_MAX_AGE_DAYS = 14;
  * and would otherwise stay on the page for two weeks.
  *   2: departure-minute matches no longer take another tracked train
  *      (771 carried 770's fares), and a 400 reads as "no train that night".
+ *   3: prices are what a standard adult pays — Young, Senior, card, group
+ *      and return offers no longer count (lefrecce.mjs isStandardAdultOffer).
  */
-export const FARE_CALENDAR_VERSION = 2;
+export const FARE_CALENDAR_VERSION = 3;
 
 const DAY_MS = 86_400_000;
 

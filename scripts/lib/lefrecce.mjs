@@ -61,6 +61,27 @@ function solutionHasTrain(solution, trainNumber) {
   );
 }
 
+/**
+ * The price we quote is what a standard adult pays: a fare anyone can buy with
+ * no age, loyalty card, group or return trip behind it. Trenitalia lists those
+ * offers in the same grid as Base / Economy / Super Economy, and a Young or
+ * Senior berth is often the cheapest one there — so, read by price alone, the
+ * calendar quoted a fare most travellers cannot buy. Passenger types are a
+ * later feature; until then they are left out rather than guessed at.
+ * Matched on the offer's name, Italian or English. An unnamed offer is kept:
+ * nothing says it is restricted.
+ */
+const RESTRICTED_OFFER =
+  /young|giovan|junior|ragazz|bimb|bambin|child|kid|minor|senior|anzian|over\s*\d|under\s*\d|argento|carta\s*verde|cartafreccia|x-?go|militar|forze|disab|famig|family|group|grupp|insieme|2\s*x\s*1|a\s*\/\s*r|andata\s*e\s*ritorno|round\s*trip|return|weekend|studen|corporate|aziend|pmr/i;
+
+export function offerName(offer) {
+  return String(offer?.name ?? offer?.offerName ?? offer?.description ?? "").trim();
+}
+
+export function isStandardAdultOffer(offer) {
+  return !RESTRICTED_OFFER.test(offerName(offer));
+}
+
 function offerIsSaleable(offer) {
   const status = String(offer?.status ?? offer?.saleability ?? "").toUpperCase();
   return !status || status === "SALEABLE" || status === "AVAILABLE";
@@ -112,6 +133,29 @@ function findTrainSolution(entries, trainNumber, departureClock, otherTrains = [
   return byTime.length === 1 ? { entry: byTime[0], matchedBy: "departure" } : null;
 }
 
+/**
+ * Every offer name in an answer, split by whether the standard-adult rule kept
+ * it — so the log says what "Young"/"Senior"-like names the grid really uses,
+ * and a new restricted offer shows up as kept before it can go unnoticed.
+ */
+export function describeOffers(json) {
+  const kept = new Set();
+  const dropped = new Set();
+  for (const e of Array.isArray(json?.solutions) ? json.solutions : []) {
+    const sol = e?.solution ?? e;
+    const grids = Array.isArray(e?.grids) ? e.grids : Array.isArray(sol?.grids) ? sol.grids : [];
+    for (const grid of grids) {
+      for (const service of grid?.services ?? []) {
+        for (const o of Array.isArray(service?.offers) ? service.offers : []) {
+          const name = offerName(o);
+          if (name) (isStandardAdultOffer(o) ? kept : dropped).add(name);
+        }
+      }
+    }
+  }
+  return { kept: [...kept], dropped: [...dropped] };
+}
+
 /** "ICN 1956 19:50" per solution — what the search did return, for the log. */
 export function describeSolutions(json) {
   return (Array.isArray(json?.solutions) ? json.solutions : []).map((e) => {
@@ -146,10 +190,16 @@ export function parseSolutionsFare(json, trainNumber, { departureClock = null, o
       if (!cls) continue;
       const offers = Array.isArray(service?.offers) ? service.offers : [];
       const prices = offers
-        .filter(offerIsSaleable)
+        .filter((o) => offerIsSaleable(o) && isStandardAdultOffer(o))
         .map((o) => parseAmount(o?.price?.amount ?? o?.price))
         .filter((v) => v != null);
-      const min = prices.length ? Math.min(...prices) : parseAmount(service?.minPrice?.amount ?? service?.minPrice);
+      // The service's own minPrice is only a fallback when it lists no offers
+      // at all: it is the minimum over every offer, Young and Senior included.
+      const min = prices.length
+        ? Math.min(...prices)
+        : offers.length
+          ? null
+          : parseAmount(service?.minPrice?.amount ?? service?.minPrice);
       if (min != null && (classes[cls] == null || min < classes[cls])) classes[cls] = min;
     }
   }
@@ -290,6 +340,7 @@ export async function searchTrainFare(
     fare: parseSolutionsFare(json, trainNumber, { departureClock, otherTrains }),
     solutions: Array.isArray(json?.solutions) ? json.solutions.length : 0,
     seen: describeSolutions(json),
+    offers: describeOffers(json),
     json,
   };
 }

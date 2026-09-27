@@ -7,7 +7,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { fetchWithTimeout, titleCase } from "../lib/scrape-helpers.mjs";
 import { romeClock, searchTimeBefore, searchTrainFare } from "../lib/lefrecce.mjs";
-import { carryPreviousFares, FARE_CARRY_MAX_DAYS } from "../lib/fares.mjs";
 import {
   cheapestNight,
   FARE_CALENDAR_BUDGET,
@@ -175,7 +174,7 @@ export async function searchIcnNight(train, date, { today, fetchImpl = fetch, id
   if (!trainNumber || !first?.code || !last?.code || !clock) {
     throw new Error("no station codes/departure to search with");
   }
-  const { fare, solutions, seen } = await searchTrainFare(
+  const { fare, solutions, seen, offers } = await searchTrainFare(
     {
       fromCode: first.code,
       toCode: last.code,
@@ -192,7 +191,7 @@ export async function searchIcnNight(train, date, { today, fetchImpl = fetch, id
   const entry = fare
     ? { classes: { ...fare.classes }, checkedAt: today }
     : { none: true, checkedAt: today };
-  return { entry, seen, solutions, clock, matchedBy: fare?.matchedBy ?? null };
+  return { entry, seen, solutions, clock, matchedBy: fare?.matchedBy ?? null, offers };
 }
 
 /**
@@ -235,17 +234,20 @@ export async function fillFareCalendars(
   // A train whose stations lefrecce has answered for, tonight or before.
   const proven = new Set(Object.keys(calendars).filter((k) => Object.keys(calendars[k].nights).length));
   const refusals = new Map();
+  const offerNames = { kept: new Set(), dropped: new Set() };
   let consecutiveErrors = 0;
   for (const { key, date } of plan) {
     if (broken.has(key)) continue;
     try {
       const own = numberOf(trains[key]);
-      const { entry, seen, solutions, clock, matchedBy } = await searchIcnNight(trains[key], date, {
+      const { entry, seen, solutions, clock, matchedBy, offers } = await searchIcnNight(trains[key], date, {
         today,
         fetchImpl,
         ids,
         otherTrains: tracked.filter((n) => n !== own),
       });
+      for (const n of offers?.kept ?? []) offerNames.kept.add(n);
+      for (const n of offers?.dropped ?? []) offerNames.dropped.add(n);
       consecutiveErrors = 0;
       refusals.set(key, 0);
       proven.add(key);
@@ -298,6 +300,12 @@ export async function fillFareCalendars(
     }
   }
 
+  // What the grids really call their offers, and which ones the adult rule
+  // priced: the one place a new Young/Senior-style name would show up.
+  if (offerNames.kept.size || offerNames.dropped.size) {
+    log(`[icn-fare] offers priced (standard adult): ${[...offerNames.kept].sort().join(", ") || "none"}`);
+    log(`[icn-fare] offers left out (restricted): ${[...offerNames.dropped].sort().join(", ") || "none"}`);
+  }
   for (const [key, train] of Object.entries(trains)) {
     const cal = calendars[key];
     cal.nights = Object.fromEntries(Object.entries(cal.nights).sort(([a], [b]) => (a < b ? -1 : 1)));
@@ -325,8 +333,10 @@ export async function run(entry, ctx) {
   } = entry.params ?? {};
   const trains = await buildItalianTrains(trainNumbers, concurrency);
 
-  // Last night's file: the calendar is built up across runs, and a fare that
-  // failed to refresh may be carried.
+  // Last night's file: the calendar is built up across runs. The headline fare
+  // is not carried separately — it is always the cheapest night the (pruned,
+  // current-version) calendar holds, so a price read under an older rule, such
+  // as a Young fare before v3, cannot come back through a side door.
   let previous = null;
   try {
     const raw = JSON.parse(
@@ -343,16 +353,11 @@ export async function run(entry, ctx) {
     days: fareCalendarDays,
     budget: fareSearchesPerRun,
   });
-  const carried = carryPreviousFares(trains, previous, {
-    today: ctx.today,
-    maxAgeDays: FARE_CARRY_MAX_DAYS,
-    dated: true,
-  });
   console.log(
     `[scrape] italian: ${stats.searched}/${stats.planned} fare search(es) tonight ` +
       `(${stats.priced} priced, ${stats.none} without a berth, ${stats.noTrain} with no direct train, ` +
       `${stats.errors} failed${stats.stopped ? ", stopped early" : ""}); ` +
-      `fares for ${Object.values(trains).filter((t) => t.fare).length}/${Object.keys(trains).length} trains (${carried} carried)`,
+      `fares for ${Object.values(trains).filter((t) => t.fare).length}/${Object.keys(trains).length} trains`,
   );
 
   ctx.write(entry.output, { uploadedAt: ctx.today, trains });
