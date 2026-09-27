@@ -30,10 +30,28 @@ export function promotionRank(route, table = PROMOTION.operators) {
 /**
  * Routes with promoted operators first (by rank), everyone else after, each
  * group keeping the order it came in (a stable sort). Returns a new array.
+ *
+ * `isNotRunning(route)` sends a train that does not run yet — "Postponed to
+ * 2027", or next timetable's preview row — behind every train that does,
+ * promoted or not: a partner's train you cannot take tonight is not a better
+ * first answer than one you can. Inside that tail the promotion order holds.
  */
-export function orderByPromotion(routes, table = PROMOTION.operators) {
+export function orderByPromotion(
+  routes,
+  table = PROMOTION.operators,
+  { isNotRunning = () => false } = {},
+) {
   return (routes ?? [])
-    .map((route, i) => ({ route, i, rank: promotionRank(route, table) }))
-    .sort((a, b) => (a.rank === b.rank ? a.i - b.i : a.rank < b.rank ? -1 : 1))
+    .map((route, i) => ({
+      route,
+      i,
+      later: isNotRunning(route) ? 1 : 0,
+      rank: promotionRank(route, table),
+    }))
+    .sort(
+      (a, b) =>
+        a.later - b.later ||
+        (a.rank === b.rank ? a.i - b.i : a.rank < b.rank ? -1 : 1),
+    )
     .map((x) => x.route);
 }
