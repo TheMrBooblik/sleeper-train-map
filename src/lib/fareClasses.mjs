@@ -81,6 +81,7 @@ export function pricingForDirection(row, dir, base = row?.pricing ?? null) {
     fromPrice: fare.fromPrice,
     source: fare.source ?? base?.source ?? null,
     checkedAt: fare.checkedAt ?? base?.checkedAt ?? null,
+    travelDate: fare.travelDate ?? null,
     seatClass: fare.seatClass ?? null,
   };
 }
@@ -125,9 +126,36 @@ export function fareDirectionForTrip(row, trip) {
   return id === 0 || id === 1 ? id : null;
 }
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * "for travel on 18 Oct 2026" — the night a dynamic fare was quoted for, or ""
+ * when the record carries none. Callers show it for dynamic fares only: a
+ * fixed tariff records its search date too, and its price does not depend on it.
+ * A fixed table rather than Intl: Node's ICU and a browser's disagree on
+ * punctuation, and this string is server-rendered on the connection pages.
+ */
+function travelDateParts(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? ""));
+  const month = m && MONTHS[Number(m[2]) - 1];
+  return month ? { day: Number(m[3]), month, year: m[1] } : null;
+}
+
+export function formatTravelDate(iso) {
+  const d = travelDateParts(iso);
+  return d ? `for travel on ${d.day} ${d.month} ${d.year}` : "";
+}
+
+/** "18 Oct" — the same date where a line has room for little else. */
+export function formatTravelDateShort(iso) {
+  const d = travelDateParts(iso);
+  return d ? `${d.day} ${d.month}` : "";
+}
+
 /**
  * Everything a timetable needs to print one direction's fare, or null:
- * { from: "¥335.5", fromClass: "Hard sleeper", classes: fareClassRows(), checkedAt: "2026-09-26" }
+ * { from: "¥335.5", fromClass: "Hard sleeper", classes: fareClassRows(), checkedAt: "2026-09-26",
+ *   travelDate: "2026-10-18" | null, travelLabel: "for travel on 18 Oct 2026" | "" }
  * Plain strings and numbers only, so it serialises into static page props.
  */
 export function isDynamicPricing(pricing) {
@@ -142,5 +170,9 @@ export function directionFareSummary(row, dir, { dynamic = isDynamicPricing(row?
     fromClass: fareClassLabel(fare.seatClass),
     classes: fareClassRows(fare, { from: dynamic }),
     checkedAt: fare.checkedAt ?? null,
+    travelDate: fare.travelDate ?? null,
+    // A fixed tariff (12306) is searched on a date too, but its price does
+    // not depend on it: naming the date would suggest it does.
+    travelLabel: dynamic ? formatTravelDate(fare.travelDate) : "",
   };
 }

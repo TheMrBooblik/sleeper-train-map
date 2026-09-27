@@ -35,6 +35,7 @@ import {
   directionFare,
   fareClassRows,
   fareDirectionForTrip,
+  formatTravelDate,
   pricingForDirection,
 } from "../../lib/fareClasses.mjs";
 import {
@@ -1815,6 +1816,17 @@ const TrainDetailPanel = ({
                             </li>
                           ))}
                         </ul>
+                        {/* A dynamic fare is one night's price: say which. */}
+                        {pricing?.type === "dynamic" &&
+                          formatTravelDate(pricing?.travelDate) && (
+                          <div
+                            className="text-xs text-gray-500"
+                            data-testid="fare-travel-date"
+                          >
+                            Lowest fares{" "}
+                            {formatTravelDate(pricing.travelDate)}
+                          </div>
+                        )}
                       </div>
                     )}
 

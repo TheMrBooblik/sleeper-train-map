@@ -18,7 +18,15 @@ import {
 } from "../scripts/lib/lefrecce.mjs";
 import { fetchIcnFare } from "../scripts/adapters/viaggiatreno.mjs";
 import { stampOfficialFares } from "../src/pages/api/lib/build-initial-data.mjs";
-import { fareClassRows, directionFare, directionFareSummary, fareClassLabel } from "../src/lib/fareClasses.mjs";
+import {
+  fareClassRows,
+  directionFare,
+  directionFareSummary,
+  fareClassLabel,
+  formatTravelDate,
+  formatTravelDateShort,
+  pricingForDirection,
+} from "../src/lib/fareClasses.mjs";
 
 let passed = 0;
 function check(name, fn) {
@@ -226,7 +234,7 @@ check("stampOfficialFares: an official (not trusted) source prices its own rows"
     italian: {
       "ICN 1962": { fare: { fromPrice: 64.9, currency: "EUR", seatClass: "couchette", classes: { couchette: 64.9 }, sampledAt: "2026-09-27" } },
       // An older file may still carry a seat: it must not be listed.
-      "ICN 1963": { fare: { fromPrice: 59.9, currency: "EUR", seatClass: "couchette", classes: { seat: 29.9, couchette: 59.9, sleeperCabin: 169 }, sampledAt: "2026-09-27" } },
+      "ICN 1963": { fare: { fromPrice: 59.9, currency: "EUR", seatClass: "couchette", classes: { seat: 29.9, couchette: 59.9, sleeperCabin: 169 }, sampledAt: "2026-09-27", travelDate: "2026-10-18" } },
     },
   };
   assert.strictEqual(stampOfficialFares(viewMap, {}, operatorTrains, registry), 1);
@@ -244,6 +252,25 @@ check("stampOfficialFares: an official (not trusted) source prices its own rows"
   );
   assert.strictEqual(fareClassLabel(row.pricing.seatClass), "Couchette");
   assert.strictEqual(row.pricing.type, "dynamic", "FS has a fare model, so the Price badge renders");
+  // A dynamic fare is one night's price, and every surface can say which night.
+  assert.strictEqual(row.fare_1.travelDate, "2026-10-18");
+  assert.strictEqual(row.pricing.travelDate, "2026-10-18", "the row's figure is 1963's, so is its date");
+  assert.strictEqual(pricingForDirection(row, 1).travelDate, "2026-10-18");
+  assert.strictEqual(directionFareSummary(row, 1).travelLabel, "for travel on 18 Oct 2026");
+  // The same date on a fixed tariff is not shown: its price does not depend on it.
+  assert.strictEqual(directionFareSummary(row, 1, { dynamic: false }).travelLabel, "");
+  // A fare quoted with no date states none rather than a guess.
+  assert.strictEqual(row.fare_0.travelDate, undefined);
+  assert.strictEqual(pricingForDirection(row, 0).travelDate, null);
+  assert.strictEqual(directionFareSummary(row, 0).travelLabel, "");
+});
+
+check("formatTravelDate: a fixed table, never Intl, and nothing for a bad date", () => {
+  assert.strictEqual(formatTravelDate("2026-01-05"), "for travel on 5 Jan 2026");
+  assert.strictEqual(formatTravelDateShort("2026-12-31"), "31 Dec");
+  for (const bad of [null, undefined, "", "2026-13-01", "18 Oct", "2026-10-18T00:00"]) {
+    assert.strictEqual(formatTravelDate(bad), "", String(bad));
+  }
 });
 
 console.log(`\n[verify-icn-fares] ${passed} checks passed`);

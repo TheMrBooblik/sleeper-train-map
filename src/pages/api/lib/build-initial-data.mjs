@@ -713,7 +713,7 @@ function stampTimetableSources(viewMap, registry) {
  * source create routes unreviewed, while a fare only ever lands on a row
  * that already passed the gate.
  *
- * A train carries `fare: { fromPrice, currency, seatClass, sampledAt }` in its
+ * A train carries `fare: { fromPrice, currency, seatClass, sampledAt, travelDate? }` in its
  * trains file (the chinese adapter writes it from 12306's queryTicketPrice).
  * The row takes the cheaper of its two directions, and only rows whose
  * timetable_source is that source are touched, so a bare number another
@@ -744,6 +744,9 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
         ...(fare.classes && typeof fare.classes === "object" ? { classes: fare.classes } : {}),
         source: row.timetable_source,
         checkedAt: fare.sampledAt ?? null,
+        // The night the figure was quoted for. A yield-managed fare
+        // (lefrecce) is one date's price; a fixed tariff (12306) has none.
+        ...(fare.travelDate ? { travelDate: fare.travelDate } : {}),
       };
     }
     if (!fares.length) continue;
@@ -757,6 +760,7 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
       fromPrice: cheapest.fromPrice,
       source: row.timetable_source,
       checkedAt: cheapest.sampledAt ?? null,
+      ...(cheapest.travelDate ? { travelDate: cheapest.travelDate } : {}),
       ...(cheapest.seatClass ? { seatClass: cheapest.seatClass } : {}),
     };
     row.pricing = pricing;

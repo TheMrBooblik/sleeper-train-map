@@ -621,6 +621,9 @@ check("stampOfficialFares: each direction keeps its own fare and berth classes",
       fromClass: "Hard sleeper",
       classes: fareClassRows(directionFare(row, 0)),
       checkedAt: "2026-09-26",
+      // A fixed tariff does not depend on the date, so it names none.
+      travelDate: null,
+      travelLabel: "",
     });
     assert.strictEqual(directionFareSummary({ fare_0: { fromPrice: 0, currency: "CNY" } }, 0), null);
   });
