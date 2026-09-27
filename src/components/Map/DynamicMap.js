@@ -40,6 +40,11 @@ import {
   checkRegioJetPrahaPrzemysl,
 } from "./utils/routeStyleUtils";
 import { formatTrainNumber } from "../../lib/operatorAgencies.mjs";
+import {
+  selectedCityMatcher,
+  stationFirstEndpoints,
+} from "../../lib/stationFirst.mjs";
+import { splitViaString } from "../../lib/viaSplit.mjs";
 import { useRoutePaths } from "./hooks/useRoutePaths";
 import { useMapMarkers } from "./hooks/useMapMarkers";
 import LoadingOverlay from "./components/LoadingOverlay";
@@ -259,6 +264,40 @@ const TrainMap = ({
     });
     return index;
   }, [stops, normalizeStationNameForLookup]);
+
+  /**
+   * A route as the traveller at the selected station would board it
+   * (src/lib/stationFirst.mjs) — the bottom bar's own answer, from the same
+   * inputs, so the line tooltip, the route chip and the train the detail panel
+   * opens on all say what the chip said: a click on Milan reads "Milano Porta
+   * Garibaldi → Bruxelles Midi" everywhere, not the row's stated direction.
+   * null with no station selected, or when the route does not name one in the
+   * selected city (it reached the station through a city-group match).
+   */
+  const stationFirstFor = useMemo(() => {
+    if (!selected || !selectedNormalizedName) return null;
+    const inSelectedCity = selectedCityMatcher(
+      selectedNormalizedName,
+      normalizeStationNameForDisplay,
+    );
+    const isKnownStation = (name) =>
+      !!cities?.[normalizeStationNameForLookup(String(name ?? ""))];
+    const coordsOf = (name) =>
+      stationCoordsByName.get(
+        normalizeStationNameForLookup(String(name ?? "")),
+      ) ||
+      stationCoordsByName.get(name) ||
+      null;
+    return (route) => {
+      if (!route) return null;
+      const ends = stationFirstEndpoints(route, {
+        inSelectedCity,
+        splitVia: (via) => splitViaString(via, isKnownStation),
+        coordsOf,
+      });
+      return ends.fromIsSelected ? ends : null;
+    };
+  }, [selected, selectedNormalizedName, cities, stationCoordsByName]);
 
   /**
    * A name match only counts when the two stations are in the same place.
@@ -715,14 +754,34 @@ const TrainMap = ({
             )
           : null;
         if (!route) return "Route";
+        // Opened from a station: name the train the traveller boards there.
+        const ends = stationFirstFor?.(route);
         const trainNumber = formatTrainNumber(
-          route.trip_short_name_0 || route.trip_short_name_1 || "",
+          (ends && route[`trip_short_name_${ends.direction}`]) ||
+            route.trip_short_name_0 ||
+            route.trip_short_name_1 ||
+            "",
           route.bot_agency_id || route.agency_id,
         );
-        const segment = `${route.origin_trip_0 || "?"} → ${route.destination_trip_0 || "?"}`;
+        const segment = ends
+          ? `${ends.from} → ${ends.to}`
+          : `${route.origin_trip_0 || "?"} → ${route.destination_trip_0 || "?"}`;
         return trainNumber ? `${trainNumber}: ${segment}` : `Route: ${segment}`;
       })()
     : selectedStationName || stopId;
+
+  // Which train the detail panel lists first, per selected route: the one the
+  // bottom bar's chip named, so the panel opens on the train the user picked.
+  const firstDirectionByRoute = useMemo(() => {
+    if (!stationFirstFor || !selectedTrainRouteIds?.length || !viewMapData)
+      return null;
+    const out = {};
+    selectedTrainRouteIds.forEach((id) => {
+      const ends = stationFirstFor(viewMapData[String(id)]);
+      if (ends) out[String(id)] = ends.direction;
+    });
+    return Object.keys(out).length ? out : null;
+  }, [stationFirstFor, selectedTrainRouteIds, viewMapData]);
 
   const visibleRoutePaths = useMemo(() => {
     if (!hoveredRouteId || routePaths.length === 0) return routePaths;
@@ -880,13 +939,23 @@ const TrainMap = ({
                         : null;
                       if (!route) return `Route ${path.routeId}`;
 
-                      const isDirectionOne = path.key.includes("-1-");
-                      const origin = isDirectionOne
-                        ? route.origin_trip_1 || route.origin_trip_0
-                        : route.origin_trip_0 || route.origin_trip_1;
-                      const destination = isDirectionOne
-                        ? route.destination_trip_1 || route.destination_trip_0
-                        : route.destination_trip_0 || route.destination_trip_1;
+                      // With a station selected, the train as the traveller
+                      // there boards it — the bottom bar's words for the line.
+                      const ends = stationFirstFor?.(route);
+                      const isDirectionOne = ends
+                        ? ends.direction === 1
+                        : path.key.includes("-1-");
+                      const origin = ends
+                        ? ends.from
+                        : isDirectionOne
+                          ? route.origin_trip_1 || route.origin_trip_0
+                          : route.origin_trip_0 || route.origin_trip_1;
+                      const destination = ends
+                        ? ends.to
+                        : isDirectionOne
+                          ? route.destination_trip_1 || route.destination_trip_0
+                          : route.destination_trip_0 ||
+                            route.destination_trip_1;
                       const trainNumber = formatTrainNumber(
                         isDirectionOne
                           ? route.trip_short_name_1 || route.trip_short_name_0
@@ -947,6 +1016,7 @@ const TrainMap = ({
         tripsData={trips}
         viewMapData={viewMapData}
         selectedStation={selectedStationName}
+        firstDirectionByRoute={firstDirectionByRoute}
         selectedRouteIds={
           selectedTrainRouteIds?.filter(
             (id) => !shouldHideRouteDueToFutureDate(id, trips, viewMapData?.[id]),

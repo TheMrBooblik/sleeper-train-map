@@ -1,14 +1,19 @@
 /**
- * How the map's bottom bar (TrainBottomBar) names a route for a selected
- * station: from where the traveller is, to where the train takes them.
+ * How the map names a train once a station is selected: from where the
+ * traveller is, to where the train takes them.
  *
  * A route row states its endpoints in one fixed direction (Bruxelles Midi →
  * Milano), so a click on Milan used to list "Bruxelles Midi – Milano" — the
- * train you would board in Brussels, not in Milan. The bar now always starts
- * at the selected city's own station. When that station is an intermediate
- * stop, the other end is the farther endpoint, the direction with the longer
- * ride: from Brussels, ES 453 Berlin–Paris reads "Bruxelles Midi – Berlin",
- * not "– Paris", since that is the night on the train.
+ * train you would board in Brussels, not in Milan. Every surface that names a
+ * train for a selected station now starts at the selected city's own station:
+ * the bottom bar's chips (TrainBottomBar), the line's hover tooltip and the
+ * route chip at the top of the map (DynamicMap), and which of the two trains
+ * the detail panel lists first (TrainDetailPanel). One function answers all
+ * four, so a chip cannot say "Milano – Bruxelles" above a panel that opens on
+ * the Brussels train. When the station is an intermediate stop, the other end
+ * is the farther endpoint, the direction with the longer ride: from Brussels,
+ * ES 453 Berlin–Paris reads "Bruxelles Midi – Berlin", not "– Paris", since
+ * that is the night on the train.
  *
  * Dependency-free: the city test, the via splitter and the coordinate lookup
  * are injected, so the rule is testable in raw node.
@@ -31,7 +36,28 @@ function distanceKm(a, b) {
 }
 
 /**
- * The bar's two names for a route: { from, to, direction, fromIsSelected }.
+ * "Is this station in the city the user picked?" — the display-normalised
+ * name equals the selected one, or the raw name contains it ("Milano Porta
+ * Garibaldi" for "Milano"). The test the bottom bar has always used, shared so
+ * every surface agrees about "here". No selection matches nothing.
+ * @param {string} selectedName display-normalised name of the selected station
+ * @param {(name: string) => string} normalizeForDisplay
+ */
+export function selectedCityMatcher(selectedName, normalizeForDisplay) {
+  if (!selectedName) return () => false;
+  const lower = String(selectedName).toLowerCase();
+  return (station) => {
+    if (!station) return false;
+    const name = String(station).trim();
+    return (
+      normalizeForDisplay(name) === selectedName ||
+      name.toLowerCase().includes(lower)
+    );
+  };
+}
+
+/**
+ * The two names for a route: { from, to, direction, fromIsSelected }.
  * `direction` is the row direction (0/1) whose train that is, for its number.
  *
  * - The selected city is an endpoint → from that endpoint to the other one
@@ -133,4 +159,54 @@ function defaultSplit(via) {
     .split(" - ")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+/**
+ * Which direction of `row` a trip card describes: its own direction_id — the
+ * key the panel already pairs a trip card with its row by (officialRowSchedule,
+ * the per-direction timetable link) — else the train number when exactly one
+ * direction carries it, else null. A number both directions share settles
+ * nothing: Back-on-Track labels some routes with one number for both trains.
+ */
+export function tripDirection(row, trip) {
+  if (!trip) return null;
+  const id = Number(trip.direction_id);
+  if (
+    trip.direction_id != null &&
+    trip.direction_id !== "" &&
+    (id === 0 || id === 1)
+  )
+    return id;
+  const name = String(trip.trip_short_name ?? "").trim();
+  if (!row || !name) return null;
+  const hits = [0, 1].filter(
+    (dir) => String(row[`trip_short_name_${dir}`] ?? "").trim() === name,
+  );
+  return hits.length === 1 ? hits[0] : null;
+}
+
+/**
+ * Trip cards with the train the traveller boards first: for each route whose
+ * station-first direction is known (`firstDirection[routeId]`), its trip
+ * running the other way moves behind the rest. Stable, and nothing else
+ * moves — a trip whose route or direction is unknown keeps its place.
+ * @param {object[]} trips
+ * @param {Record<string, 0|1>} firstDirection route_id → direction
+ * @param {(trip: object) => 0|1|null} directionOf
+ * @returns {object[] | null} null when no trip's route has a preference
+ */
+export function orderTripsStationFirst(trips, firstDirection, directionOf) {
+  const list = trips ?? [];
+  const rank = (trip) => {
+    const want = firstDirection?.[String(trip?.route_id)];
+    if (want !== 0 && want !== 1) return null;
+    const dir = directionOf(trip);
+    if (dir !== 0 && dir !== 1) return null;
+    return dir === want ? 0 : 1;
+  };
+  const ranked = list.map((trip, i) => ({ trip, i, r: rank(trip) }));
+  if (!ranked.some((x) => x.r != null)) return null;
+  return ranked
+    .sort((a, b) => (a.r ?? 0) - (b.r ?? 0) || a.i - b.i)
+    .map((x) => x.trip);
 }

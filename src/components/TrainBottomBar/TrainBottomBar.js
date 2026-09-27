@@ -19,8 +19,9 @@ import { normalizeStationNameForLookup } from "../../lib/stationKey.mjs";
 import { orderByPromotion } from "../../lib/operatorPromotion.mjs";
 import {
   disambiguateLabels,
+  selectedCityMatcher,
   stationFirstEndpoints,
-} from "../../lib/bottomBarRoutes.mjs";
+} from "../../lib/stationFirst.mjs";
 
 /**
  * Bottom bar showing routes (Back-on-Track + NightJet/EuroNight) for the selected station.
@@ -103,16 +104,10 @@ const TrainBottomBar = ({
 
   // Is this station in the city the user picked? The same test the via hint
   // below has always used, so the two cannot disagree about "here".
-  const inSelectedCity = (station) => {
-    if (!station || !selectedNormalizedName) return false;
-    const normalized = normalizeStationNameForDisplay(String(station).trim());
-    return (
-      normalized === selectedNormalizedName ||
-      String(station)
-        .toLowerCase()
-        .includes(selectedNormalizedName.toLowerCase())
-    );
-  };
+  const inSelectedCity = selectedCityMatcher(
+    selectedNormalizedName,
+    normalizeStationNameForDisplay,
+  );
   const coordsOf = (name) =>
     stationCoords?.get?.(normalizeStationNameForLookup(String(name ?? ""))) ||
     stationCoords?.get?.(name) ||
@@ -147,7 +142,7 @@ const TrainBottomBar = ({
 
     if (!routeMap.has(routeKey)) {
       // From the selected city's own station to where the train takes you
-      // (src/lib/bottomBarRoutes.mjs): a click on Milan reads "Milano – Bruxelles".
+      // (src/lib/stationFirst.mjs): a click on Milan reads "Milano – Bruxelles".
       const ends = stationFirstEndpoints(el, {
         inSelectedCity,
         splitVia: (via) => splitViaString(via, isKnownStation),

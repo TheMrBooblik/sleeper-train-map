@@ -63,6 +63,10 @@ import {
 import { MOBILE_MQ } from "../../hooks/useIsMobile";
 import { splitViaString } from "../../lib/viaSplit.mjs";
 import {
+  orderTripsStationFirst,
+  tripDirection,
+} from "../../lib/stationFirst.mjs";
+import {
   officialRowSchedule,
   durationMinutesBetween,
   formatDurationShort,
@@ -239,6 +243,7 @@ const TrainDetailPanel = ({
   tripsData,
   viewMapData,
   selectedStation,
+  firstDirectionByRoute,
 }) => {
   const { agencies } = useAgencies();
   // Both of these are fallbacks for rendering this panel without the map's own
@@ -404,6 +409,10 @@ const TrainDetailPanel = ({
           route_id: routeId?.toString(),
           agency_id: route.agency_id || "ÖBB",
           trip_short_name: shortName,
+          // The row direction this card describes. Without it every card
+          // read as direction 0, so ICN 797's "Official timetable" link was
+          // built with 796's origin station (Salerno for a train leaving Torino).
+          direction_id: Number(suffix),
           trip_origin: origin,
           trip_headsign: dest,
           via: via || "",
@@ -444,6 +453,16 @@ const TrainDetailPanel = ({
   const orderedTrips = useMemo(() => {
     if (!selectedStation || tripsToRender.length < 2) return tripsToRender;
 
+    // The train the bottom bar's chip named goes first — the same rule, from
+    // DynamicMap (src/lib/stationFirst.mjs), so picking "Milano Porta
+    // Garibaldi – Bruxelles Midi" opens on that train, not on its return.
+    const stationFirst = orderTripsStationFirst(
+      tripsToRender,
+      firstDirectionByRoute,
+      (trip) => tripDirection(routes?.[String(trip.route_id)], trip),
+    );
+    if (stationFirst) return stationFirst;
+
     // Stations remaining toward the destination after the selected station.
     const onwardCount = (trip) => {
       const sequence = [
@@ -467,7 +486,7 @@ const TrainDetailPanel = ({
       .map((trip, i) => ({ trip, i, n: onwardCount(trip) }))
       .sort((a, b) => b.n - a.n || a.i - b.i)
       .map((x) => x.trip);
-  }, [tripsToRender, selectedStation]);
+  }, [tripsToRender, selectedStation, firstDirectionByRoute, routes]);
 
   const gtfsRouteKind = useMemo(() => {
     const fromRoutes = detectGtfsRouteKindFromRoutes(selectedRouteIds, routes);
