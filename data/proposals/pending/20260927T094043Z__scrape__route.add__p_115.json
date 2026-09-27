@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_115",
+  "createdAt": "2026-09-27T09:40:43.593Z",
+  "source": "scrape",
+  "sourceDetail": "backontrack",
+  "kind": "route.add",
+  "title": "New train: EN 1272 (Split – Wien Hbf (Autoreisezuganlage))",
+  "summary": "Route \"115\" appeared in tonight's scrape and is withheld from the map until approved. Via: Knin - Zagreb Zapadni Kolodvor - Maribor - Graz Hbf - Bruck an der Mur - Wiener Neustadt Hbf - Wien Meidling - Wien Hbf",
+  "target": {
+    "routeKey": "115",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "EN 1272",
+    "returnTrain": "EN 1273",
+    "origin": "Split",
+    "destination": "Wien Hbf (Autoreisezuganlage)",
+    "operator": "ÖBB",
+    "operatingDays": "2026/05/30-09/26: Mon, Thu, Sat"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "115"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
