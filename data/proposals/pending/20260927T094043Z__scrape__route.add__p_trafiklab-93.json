@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_trafiklab-93",
+  "createdAt": "2026-09-27T09:40:43.596Z",
+  "source": "scrape",
+  "sourceDetail": "trafiklab",
+  "kind": "route.add",
+  "title": "New train: 93 (Luleå C – Stockholm C)",
+  "summary": "Route \"trafiklab_93\" appeared in tonight's scrape and is withheld from the map until approved. Via: Sunderby - Boden C - Älvsbyn - Jörn - Bastuträsk - Umeå C - Örnsköldsvik C - Kramfors - Härnösands central - Sundsvall C - Hudiksvall - Söderhamn - Gävle C - Uppsala C - Arlanda",
+  "target": {
+    "routeKey": "trafiklab_93",
+    "agencyId": "SJ",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "93",
+    "returnTrain": "94",
+    "origin": "Luleå C",
+    "destination": "Stockholm C",
+    "operator": "SJ",
+    "operatingDays": "2026: Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "trafiklab_93"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
