@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_79",
+  "createdAt": "2026-09-27T09:40:43.593Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: 3920 (Malmö C – Storlien)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"2026/06/25-09/27: Wed, Sat\" → \"2026/06/25-2026/10/03: Wed, Sat\"; operating days (return): \"2026/06/26-09/28: Thu, Sun\" → \"2026/06/26-2026/10/04: Thu, Sun\"",
+  "target": {
+    "routeKey": "79",
+    "agencyId": "ST",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": "2026/06/25-09/27: Wed, Sat",
+    "operating days (return)": "2026/06/26-09/28: Thu, Sun"
+  },
+  "after": {
+    "operating days (outbound)": "2026/06/25-2026/10/03: Wed, Sat",
+    "operating days (return)": "2026/06/26-2026/10/04: Thu, Sun"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
