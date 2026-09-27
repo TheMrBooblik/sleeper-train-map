@@ -153,6 +153,21 @@ export function formatTravelDateShort(iso) {
 }
 
 /**
+ * "Couchette · ICN 797, for travel on 19 Oct 2026" — what a route-wide "from"
+ * figure buys, on which train and which night. A row's `pricing` is the
+ * cheaper of its two directions, so beside a timetable listing both, a bare
+ * figure reads as contradicting the other direction's (or as a seat price).
+ * Parts the record does not carry are left out; "" when it carries none.
+ */
+export function fareContext(pricing) {
+  const cls = fareClassLabel(pricing?.seatClass);
+  const date = formatTravelDate(pricing?.travelDate);
+  const train = String(pricing?.trainName ?? "").trim();
+  const where = [train, date].filter(Boolean).join(", ");
+  return [cls, where].filter(Boolean).join(" · ");
+}
+
+/**
  * Everything a timetable needs to print one direction's fare, or null:
  * { from: "¥335.5", fromClass: "Hard sleeper", classes: fareClassRows(), checkedAt: "2026-09-26",
  *   travelDate: "2026-10-18" | null, travelLabel: "for travel on 18 Oct 2026" | "" }

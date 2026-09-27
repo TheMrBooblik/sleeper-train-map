@@ -25,6 +25,7 @@ import {
   fareClassLabel,
   formatTravelDate,
   formatTravelDateShort,
+  fareContext,
   pricingForDirection,
 } from "../src/lib/fareClasses.mjs";
 
@@ -259,6 +260,12 @@ check("stampOfficialFares: an official (not trusted) source prices its own rows"
   assert.strictEqual(directionFareSummary(row, 1).travelLabel, "for travel on 18 Oct 2026");
   // The same date on a fixed tariff is not shown: its price does not depend on it.
   assert.strictEqual(directionFareSummary(row, 1, { dynamic: false }).travelLabel, "");
+  // The route-wide figure names the berth and train it is, so a tile quoting
+  // the cheaper direction does not read as a seat price or a contradiction.
+  assert.strictEqual(row.pricing.trainName, "ICN 1963");
+  assert.strictEqual(fareContext(row.pricing), "Couchette · ICN 1963, for travel on 18 Oct 2026");
+  assert.strictEqual(fareContext({ seatClass: "couchette" }), "Couchette");
+  assert.strictEqual(fareContext(null), "");
   // A fare quoted with no date states none rather than a guess.
   assert.strictEqual(row.fare_0.travelDate, undefined);
   assert.strictEqual(pricingForDirection(row, 0).travelDate, null);

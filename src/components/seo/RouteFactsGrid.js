@@ -8,7 +8,7 @@ import {
 } from "../../lib/operatorPricing";
 import { getFlagEmoji } from "../../lib/countries";
 import PricingExplainer from "../PricingExplainer";
-import { formatTravelDate } from "../../lib/fareClasses.mjs";
+import { fareContext } from "../../lib/fareClasses.mjs";
 
 function Fact({ label, value, children }) {
   if (!value && !children) return null;
@@ -65,9 +65,9 @@ export default function RouteFactsGrid({ detail }) {
           {pricing?.type === "dynamic" && formatFromPrice(pricing) && (
             <div className="mt-1 text-sm font-medium text-white">
               {formatFromPrice(pricing).replace(/^from/, "From")}
-              {formatTravelDate(pricing.travelDate) && (
+              {fareContext(pricing) && (
                 <div className="text-xs font-normal text-white/50">
-                  {formatTravelDate(pricing.travelDate)}
+                  {fareContext(pricing)}
                 </div>
               )}
             </div>

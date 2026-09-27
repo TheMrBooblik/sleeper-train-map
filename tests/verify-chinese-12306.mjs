@@ -534,6 +534,8 @@ check("stampOfficialFares: cheaper direction, official source only, own rows onl
     fromPrice: 758,
     source: "chinese",
     checkedAt: "2026-09-25",
+    // The row's figure is the cheaper direction's, and it says which train.
+    trainName: "Z 22",
     seatClass: "hardSleeper",
   });
   assert.strictEqual(trips.t1.pricing.fromPrice, 758);

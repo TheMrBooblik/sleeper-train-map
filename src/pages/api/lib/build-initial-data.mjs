@@ -734,7 +734,7 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
     for (const dir of [0, 1]) {
       const fare = trains[row[`trip_short_name_${dir}`]]?.fare;
       if (!Number.isFinite(fare?.fromPrice) || fare.fromPrice <= 0 || !fare.currency) continue;
-      fares.push(fare);
+      fares.push({ ...fare, trainName: row[`trip_short_name_${dir}`] });
       // Each direction keeps its own figure and berth classes: a card about
       // one train shows that train's price (src/lib/fareClasses.mjs).
       row[`fare_${dir}`] = {
@@ -761,6 +761,9 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
       source: row.timetable_source,
       checkedAt: cheapest.sampledAt ?? null,
       ...(cheapest.travelDate ? { travelDate: cheapest.travelDate } : {}),
+      // Which train the figure is: the row's is the cheaper direction's, and
+      // a tile quoting it beside a timetable of both must say which one.
+      ...(cheapest.trainName ? { trainName: cheapest.trainName } : {}),
       ...(cheapest.seatClass ? { seatClass: cheapest.seatClass } : {}),
     };
     row.pricing = pricing;
