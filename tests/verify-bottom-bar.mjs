@@ -236,4 +236,16 @@ check("chips can never be wider than the screen", () => {
   );
 });
 
+check("the scroll fade sits outside the scrolling element, so it cannot scroll into a chip", () => {
+  const src = fs.readFileSync(new URL("../src/components/TrainBottomBar/TrainBottomBar.js", import.meta.url), "utf8");
+  const css = fs.readFileSync(new URL("../src/styles/globals.css", import.meta.url), "utf8");
+  // The fault: a ::after on the overflow-x-scroll element scrolled with the
+  // chips and, once the bar was scrolled, covered one ("Bruxelles ▯idi").
+  assert.ok(!/bottom-bar-scroll-fade/.test(src + css), "no pseudo-element fade on the scroll container");
+  const scroller = src.indexOf('data-testid="bottom-bar-scroll"');
+  const fade = src.indexOf('data-testid="bottom-bar-fade"');
+  const scrollerClose = src.lastIndexOf("</div>", fade);
+  assert.ok(scroller > 0 && fade > scrollerClose, "the fade is rendered after the scroller closes, as its sibling");
+});
+
 console.log(`\n[verify-bottom-bar] ${passed} checks passed`);

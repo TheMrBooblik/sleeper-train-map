@@ -92,18 +92,6 @@ img {
   }
 }
 
-/* Bottom bar scroll fade — gradient hint that more route pills exist to the right */
-.bottom-bar-scroll-fade::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 32px;
-  background: linear-gradient(to left, white 40%, transparent);
-  pointer-events: none;
-  z-index: 1;
-}
 
 /* Header icon toggle styles */
 .icon-toggle-button {
