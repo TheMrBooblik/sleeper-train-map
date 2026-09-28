@@ -254,6 +254,44 @@
   },
   {
     "v": 1,
+    "id": "jr-sunrise",
+    "label": "JR West — Sunrise Izumo / Seto",
+    "description": "Japan's last scheduled sleeper (Tokyo–Izumoshi and Tokyo–Takamatsu, coupled as far as Okayama). Baseline stops, positions and fare tariff in data/sources/jr-sunrise.json; each night the adapter reads JR West's own train timetable pages (timetable.jr-odekake.net, ids found from the Sunrise guide page) and the berth charges from the guide pages, and takes a train's timetable only when the page lists every stop in order with plausible times. Probe workflow: 'Probe JR Sunrise source'.",
+    "kind": "html",
+    "adapter": "jr-sunrise",
+    "enabled": true,
+    "official": true,
+    "trusted": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.westjr.co.jp/global/en/",
+    "endpoint": "https://timetable.jr-odekake.net/train-timetable/{id}?date={date}",
+    "docsUrl": null,
+    "output": "jr-sunrise-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "JRW", "operatorName": "JR West" },
+    "synthetic": {
+      "idPrefix": "jr_",
+      "agency": { "from": "fixed", "value": "JRW" },
+      "resolveAliases": false,
+      "withService": true,
+      "excludeBotMatched": false,
+      "dedupStrategy": null
+    },
+    "params": {
+      "configPath": "data/sources/jr-sunrise.json",
+      "dateOffsetDays": 3,
+      "guidePages": [
+        "https://www.jr-odekake.net/railroad/train/sunriseseto_izumo/",
+        "https://www.jr-odekake.net/goyoyaku/campaign/sunriseseto_izumo/form.html"
+      ],
+      "timetableUrlTemplate": "https://timetable.jr-odekake.net/train-timetable/{id}?date={date}",
+      "seedTimetableIds": [3841, 3751]
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
     "id": "curated",
     "label": "Curated routes",
     "description": "Admin-approved routes from data/canonical/routes/ (added via the review queue) — coverage beyond what any scraper provides",

@@ -35,6 +35,11 @@
       "reason": "VIA Rail — same reason as US.",
       "scope": "global"
     },
+    "JP": {
+      "weight": 0.1,
+      "reason": "JR West's Sunrise Izumo / Seto — same reason as CN: real data, wrong market for a European hub list. Leads the Asia tab on its own merits.",
+      "scope": "global"
+    },
     "GE": {
       "weight": 0.4,
       "reason": "Caucasus: real rail, peripheral to the European corridors this site sells.",

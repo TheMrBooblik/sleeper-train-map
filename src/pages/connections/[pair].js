@@ -9,6 +9,7 @@ import RouteFactsGrid from "@components/seo/RouteFactsGrid";
 import RouteMapIsland from "@components/seo/RouteMapIsland";
 import BookingCta from "@components/seo/BookingCta";
 import FaqSection from "@components/seo/FaqSection";
+import BookingGuide from "@components/BookingGuide";
 import JsonLd from "@components/seo/JsonLd";
 
 import {
@@ -19,6 +20,11 @@ import {
 import { getRouteDetail } from "../../lib/seo/data";
 import { formatTrainNumber } from "../../lib/operatorAgencies.mjs";
 import { buildConnectionFaq } from "../../lib/seo/routeFaq.mjs";
+import {
+  getBookingGuide,
+  guideProps,
+  withBookingGuideFaq,
+} from "../../lib/bookingGuide.mjs";
 import { getFlagEmoji } from "../../lib/countries";
 import { getOperatorPricing, pricingAdvice } from "../../lib/operatorPricing";
 import { offerFromPricing, offerLd } from "../../lib/seo/offers.mjs";
@@ -40,6 +46,7 @@ export default function ConnectionPage({
   related,
   faq,
   fromPrice,
+  bookingGuide,
 }) {
   const canonical = absoluteUrl(`/connections/${slug}`);
   const title = `Night Trains ${cityA} to ${cityB} — Times, Stops & Tickets | Pingwi`;
@@ -208,6 +215,11 @@ export default function ConnectionPage({
             ))}
           </section>
 
+          {/* How buying a ticket works, where the operator's booking has quirks
+              the Book button cannot explain (the Sunrise's one-month, 10:00 JST
+              sale and its "1 adult" twin rooms). */}
+          {bookingGuide && <BookingGuide guide={bookingGuide} className="mt-12" />}
+
           <div className="mt-10">
             <Link
               href="/"
@@ -341,7 +353,11 @@ export async function getStaticProps({ params }) {
       .filter(Boolean),
   );
 
-  const faq = buildConnectionFaq({
+  // A guide belongs to the corridor when any of its trains' operators has one.
+  const guide =
+    trains.map((t) => getBookingGuide({ agencyId: t.agencyId })).find(Boolean) ?? null;
+
+  const faq = withBookingGuideFaq(buildConnectionFaq({
     originCity: pair.cityA,
     destCity: pair.cityB,
     trainCount: pair.routes.length,
@@ -350,7 +366,7 @@ export async function getStaticProps({ params }) {
     fromPrice: cheapest?.fromPrice || "",
     pricingType: pricingTypes.size === 1 ? [...pricingTypes][0] : "",
     hasLastMinuteDeals: trains.some((t) => t.booking?.dealsUrl),
-  });
+  }), guide);
 
   // Drop the map from all but the first train that has one.
   let mapUsed = false;
@@ -373,6 +389,7 @@ export async function getStaticProps({ params }) {
       // uses the same string, so the snippet and the page cannot quote
       // different figures.
       fromPrice: cheapest?.fromPrice || null,
+      bookingGuide: guideProps(guide),
     },
   };
 }

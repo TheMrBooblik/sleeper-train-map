@@ -34,7 +34,7 @@ const CountryCard = ({ code, name, hubCountryCodes = [] }) => (
   </Link>
 );
 
-const ASIA_COUNTRY_CODES = new Set(["CN"]);
+const ASIA_COUNTRY_CODES = new Set(["CN", "JP"]);
 const NORTH_AMERICA_COUNTRY_CODES = new Set(["US", "CA"]);
 
 const StepCard = ({ number, title, description }) => (

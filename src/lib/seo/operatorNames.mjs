@@ -67,6 +67,9 @@ export const OPERATORS = {
   // China
   CR: { name: "China Railway", slug: "china-railway" },
 
+  // Japan
+  JRW: { name: "JR West", slug: "jr-west" },
+
   // Caucasus
   GR: { name: "Georgian Railway", slug: "georgian-railway" },
   ADY: { name: "Azerbaijan Railways", slug: "azerbaijan-railways" },
