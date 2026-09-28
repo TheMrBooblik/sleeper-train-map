@@ -9,6 +9,7 @@ import {
 import { getFlagEmoji } from "../../lib/countries";
 import PricingExplainer from "../PricingExplainer";
 import { fareContext } from "../../lib/fareClasses.mjs";
+import { eurHintFor, eurRateNote } from "../../lib/fx.mjs";
 
 function Fact({ label, value, children }) {
   if (!value && !children) return null;
@@ -60,11 +61,23 @@ export default function RouteFactsGrid({ detail }) {
               checkedAt={formatCheckedAt(pricing?.checkedAt)}
             />
           )}
+          {/* A fixed fare's figure is in the badge; its euro equivalent goes
+              on its own small line rather than into the badge itself. */}
+          {priceLabel && pricing?.type !== "dynamic" && eurHintFor(pricing) && (
+            <div className="mt-0.5 text-xs text-white/50" title={eurRateNote()}>
+              ({eurHintFor(pricing)})
+            </div>
+          )}
           {/* A dynamic fare's badge carries no figure (formatPricingLabel);
               the figure sits on its own line, always as "from …". */}
           {pricing?.type === "dynamic" && formatFromPrice(pricing) && (
             <div className="mt-1 text-sm font-medium text-white">
               {formatFromPrice(pricing).replace(/^from/, "From")}
+              {eurHintFor(pricing) && (
+                <span className="font-normal text-white/50" title={eurRateNote()}>
+                  {" "}({eurHintFor(pricing)})
+                </span>
+              )}
               {fareContext(pricing) && (
                 <div className="text-xs font-normal text-white/50">
                   {fareContext(pricing)}

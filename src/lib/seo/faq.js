@@ -10,6 +10,7 @@
  */
 
 import { formatFromPrice } from "../operatorPricing";
+import { eurHintFor } from "../fx.mjs";
 import { costAnswer } from "./routeFaq.mjs";
 
 /** Join a list of names as "A, B and C". */
@@ -81,7 +82,10 @@ export function buildCountryFaq({
   // agree on a pricing model, the model answers it — and when they disagree the
   // answer is suppressed, because "book early" would then be wrong for half the
   // trains on the page.
-  const priceLabel = formatFromPrice(facts.minFromPrice);
+  const eur = eurHintFor(facts.minFromPrice);
+  const priceLabel = formatFromPrice(facts.minFromPrice)
+    ? `${formatFromPrice(facts.minFromPrice)}${eur ? ` (${eur})` : ""}`
+    : "";
   if (priceLabel) {
     faq.push({
       q: `How much do night trains from ${name} cost?`,

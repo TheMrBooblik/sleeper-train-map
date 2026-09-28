@@ -9,6 +9,7 @@ import {
   formatTravelDateShort,
 } from "../../lib/fareClasses.mjs";
 import { abbreviateStationName } from "../Map/utils/stationNameUtils";
+import { eurHintFor, eurRateNote } from "../../lib/fx.mjs";
 
 /**
  * Booking section shown at the bottom of each trip card.
@@ -71,6 +72,14 @@ export default function BookingActions({
           <span className="text-xs text-gray-500 uppercase">Fare</span>
           <span className="text-sm font-semibold text-gray-900">
             {fareLabel}
+            {!livePrice && eurHintFor(pricing) && (
+              <span
+                className="block text-xs font-normal text-gray-500"
+                title={eurRateNote()}
+              >
+                ({eurHintFor(pricing)})
+              </span>
+            )}
           </span>
           {fareClass && (
             <span className="text-xs text-gray-500">

@@ -363,7 +363,11 @@ export async function getStaticProps({ params }) {
     trainCount: pair.routes.length,
     operators: pair.operators.map((o) => o.name),
     fastestDurationText: fastest?.durationText || "",
-    fromPrice: cheapest?.fromPrice || "",
+    // The answer is prose with room for the euro figure; the meta description
+    // (props.fromPrice below) keeps the bare fare to stay inside a snippet.
+    fromPrice: cheapest?.fromPrice
+      ? `${cheapest.fromPrice}${cheapest.fromPriceEur ? ` (${cheapest.fromPriceEur})` : ""}`
+      : "",
     pricingType: pricingTypes.size === 1 ? [...pricingTypes][0] : "",
     hasLastMinuteDeals: trains.some((t) => t.booking?.dealsUrl),
   }), guide);

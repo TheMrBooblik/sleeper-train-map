@@ -80,6 +80,7 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
                 >
                   {c.label}{" "}
                   <span className="font-medium text-white">{c.price}</span>
+                  {c.eur && <span className="text-white/40"> ({c.eur})</span>}
                 </li>
               ))}
             </ul>

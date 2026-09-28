@@ -780,5 +780,28 @@
     "synthetic": null,
     "params": {},
     "freshness": null
+  },
+  {
+    "v": 1,
+    "id": "ecb-fx",
+    "label": "ECB euro reference rates",
+    "description": "The European Central Bank's daily euro foreign exchange reference rates. Not an operator and feeds no route: used only to print an approximate euro figure beside a fare quoted in another currency (src/lib/fx.mjs). A failed fetch keeps the last committed rates.",
+    "kind": "xml",
+    "adapter": "ecb-fx",
+    "enabled": true,
+    "official": true,
+    "trusted": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html",
+    "endpoint": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
+    "docsUrl": null,
+    "output": "fx-rates.json",
+    "missingResponse": "empty",
+    "params": {
+      "feedUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
+      "requiredCurrencies": ["JPY", "CNY", "USD"]
+    },
+    "freshness": { "ttlHours": 25 }
   }
 ]

@@ -4,6 +4,7 @@ import AvailabilityBadge from "./AvailabilityBadge";
 import { getOperatorMeta } from "../../lib/seo/operators";
 import { formatDurationMinutes } from "../../lib/seo/format";
 import { formatFromPrice, pricingAdvice } from "../../lib/operatorPricing";
+import { eurHintFor, eurRateNote } from "../../lib/fx.mjs";
 
 /**
  * "2026/09/14-12/11: Mon, Wed, Fri" → "Mon, Wed, Fri · until 11 Dec".
@@ -107,6 +108,11 @@ export default function RideCard({ ride, action = null, compact = false }) {
           <span className="text-sm font-medium text-primary-green">
             {/* formatFromPrice already reads "from €39". */}
             {formatFromPrice(ride.pricing)}
+            {eurHintFor(ride.pricing) && (
+              <span className="font-normal text-white/45" title={eurRateNote()}>
+                {" "}({eurHintFor(ride.pricing)})
+              </span>
+            )}
           </span>
         ) : pricingAdvice(ride.pricing)?.guidance ? (
           // .guidance, not the record: pricingAdvice returns an object, and
