@@ -35,6 +35,10 @@ const CountryCard = ({ code, name, hubCountryCodes = [] }) => (
 );
 
 const ASIA_COUNTRY_CODES = new Set(["CN", "JP"]);
+// One count for the page body, the meta tags and the structured data: the
+// grid below renders every entry of COUNTRIES, and a hardcoded "24+" in the
+// head fell behind it as soon as Asia and North America were added.
+const COUNTRY_COUNT_LABEL = `${COUNTRIES.length}+ countries`;
 const NORTH_AMERICA_COUNTRY_CODES = new Set(["US", "CA"]);
 
 const StepCard = ({ number, title, description }) => (
@@ -70,7 +74,7 @@ export default function AboutPage({ hubCountryCodes = [] }) {
         </title>
         <meta
           name="description"
-          content="Discover Europe by night train. Interactive map of all European sleeper train routes - click any station to see departures. Covering 24+ countries from Portugal to Ukraine."
+          content={`Discover Europe by night train. Interactive map of sleeper train routes - click any station to see departures. ${COUNTRY_COUNT_LABEL}, from Portugal to Japan.`}
         />
         <meta
           name="keywords"
@@ -85,7 +89,7 @@ export default function AboutPage({ hubCountryCodes = [] }) {
         />
         <meta
           property="og:description"
-          content="Interactive map of all European sleeper train routes. Click any station to discover overnight connections across 24+ countries."
+          content={`Interactive map of all European sleeper train routes. Click any station to discover overnight connections across ${COUNTRY_COUNT_LABEL}.`}
         />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={absoluteUrl("/about")} />
@@ -97,7 +101,7 @@ export default function AboutPage({ hubCountryCodes = [] }) {
         <meta name="twitter:title" content="Pingwi Sleeper Train Map" />
         <meta
           name="twitter:description"
-          content="Interactive map of all European sleeper train routes. Discover overnight connections across 24+ countries."
+          content={`Interactive map of all European sleeper train routes. Discover overnight connections across ${COUNTRY_COUNT_LABEL}.`}
         />
         <meta name="twitter:image" content={OG_IMAGE} />
       </Head>
@@ -226,7 +230,7 @@ export default function AboutPage({ hubCountryCodes = [] }) {
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-2xl sm:text-3xl font-bold text-white">
-                Covering {COUNTRIES.length}+ countries
+                Covering {COUNTRY_COUNT_LABEL}
               </h2>
               <p className="mt-4 text-white/60 max-w-xl mx-auto">
                 Click any country to jump directly to that region on the map
@@ -344,7 +348,7 @@ export default function AboutPage({ hubCountryCodes = [] }) {
             "@type": "WebApplication",
             name: "Pingwi Sleeper Train Map",
             description:
-              "Interactive map of European sleeper train routes. Click any station to discover overnight train connections across 24+ countries.",
+              `Interactive map of European sleeper train routes. Click any station to discover overnight train connections across ${COUNTRY_COUNT_LABEL}.`,
             url: SITE_URL,
             applicationCategory: "TravelApplication",
             operatingSystem: "Web Browser",
