@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getOperatorBaseColor } from "@components/Map/utils/operatorColors";
+import { joinTrainNumbers } from "../../lib/operatorAgencies.mjs";
 
 /**
  * A link card for a single train route, used in the hub-page lists.
@@ -27,7 +28,7 @@ export default function RouteCardLink({ route }) {
           </h3>
           {route.trainNumbers?.length > 0 && (
             <span className="shrink-0 text-xs font-mono text-white/50">
-              {route.trainNumbers.join(" / ")}
+              {joinTrainNumbers(route.trainNumbers)}
             </span>
           )}
         </div>

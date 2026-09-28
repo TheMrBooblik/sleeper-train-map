@@ -59,6 +59,33 @@ export function formatTrainNumber(trainNumber, agencyId) {
   return raw;
 }
 
+/**
+ * A route's train numbers as one label: "Sunrise Izumo 4031M / 4032M".
+ *
+ * A route is one train each way, so a card lists two numbers — and where the
+ * operator writes a NAME before the number, printing it twice ("Sunrise Izumo
+ * 4031M / Sunrise Izumo 4032M") doubles the label for nothing and ran straight
+ * off the hub cards. So a later number drops a leading name it shares with the
+ * first. Only a multi-word name is dropped ("Sunrise Izumo", "IC Nuit"): a
+ * one-token category code is part of how the number itself is written ("NJ 402
+ * / NJ 403", "Z 21 / Z 22") and stays on every number.
+ *
+ * Display only, like formatTrainNumber: never feed the result into a lookup.
+ *
+ * @param {string[]} numbers  already-formatted labels, first direction first
+ * @returns {string}
+ */
+export function joinTrainNumbers(numbers) {
+  const labels = [...new Set((numbers ?? []).map((n) => String(n ?? "").trim()).filter(Boolean))];
+  if (labels.length < 2) return labels.join(" / ");
+  // Everything before the final token, when that token carries a digit.
+  const name = /^(.+?)\s+(\S*\d\S*)$/.exec(labels[0])?.[1] ?? "";
+  if (!/\s/.test(name)) return labels.join(" / ");
+  return labels
+    .map((label, i) => (i > 0 && label.startsWith(`${name} `) ? label.slice(name.length + 1) : label))
+    .join(" / ");
+}
+
 // Route page first: where an operator publishes a page for this exact corridor
 // it beats a prefilled search, because it is the page they sell the route on.
 // `routePages` is the same key naBooking.mjs reads for Amtrak/VIA — those go

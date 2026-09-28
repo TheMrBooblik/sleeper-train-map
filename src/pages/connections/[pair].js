@@ -18,7 +18,7 @@ import {
   getRelatedConnections,
 } from "../../lib/seo/aggregate";
 import { getRouteDetail } from "../../lib/seo/data";
-import { formatTrainNumber } from "../../lib/operatorAgencies.mjs";
+import { formatTrainNumber, joinTrainNumbers } from "../../lib/operatorAgencies.mjs";
 import { buildConnectionFaq } from "../../lib/seo/routeFaq.mjs";
 import {
   getBookingGuide,
@@ -182,7 +182,7 @@ export default function ConnectionPage({
                   {t.trainNumbers.length > 0 && (
                     <span className="font-semibold text-white/50">
                       {" "}
-                      ({t.trainNumbers.join(" / ")})
+                      ({joinTrainNumbers(t.trainNumbers)})
                     </span>
                   )}
                 </h3>
