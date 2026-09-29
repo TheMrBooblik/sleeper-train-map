@@ -3,115 +3,121 @@
     "How buying a ticket actually works on a train whose booking has quirks a Book button cannot explain.",
     "A guide applies to every route of the operators in `agencyIds` (src/lib/bookingGuide.mjs resolves it, compound ids like \"JRW/JRC\" included). It renders on the connection pages and in the map's detail panel (src/components/BookingGuide.js), and its `faq` joins the page's FAQPage structured data — so every line must be true of every route the guide applies to, and prices must say when they were quoted.",
     "`bookingAnswer` replaces the generic \"compare the trains above and book directly\" answer to the page's own how-to-book question.",
-    "Community reports are welcome as a source (they are often the only record of a booking quirk) but are cited, dated and phrased as what a traveller found, not as operator policy."
+    "Write it in our own words from the operator's own pages and published rules, and cite those in `sources`. A traveller's post is credited and linked under `furtherReading`, never retold: their account, their tips and the way they tell it are theirs, and a link sends readers to them."
   ],
   "guides": {
     "sunrise": {
       "agencyIds": ["JRW"],
       "title": "How to book the Sunrise Izumo and Sunrise Seto",
-      "summary": "Tickets go on sale one month before travel at 10:00 Japan time, and the private rooms — the two-person rooms above all — can sell out within minutes. Two booking quirks catch travellers out: a twin room is booked for \"1 adult\", and the second person needs a basic-fare ticket of their own.",
+      "summary": "Tickets go on sale at 10:00 Japan time one month before travel, and the private rooms can be gone within minutes. Rooms for two follow their own rules: a Sunrise Twin is booked as \"1 adult\" because it is sold per room, and each traveller still needs a basic-fare ticket of their own.",
       "highlights": [
-        "Sales open one month ahead at 10:00 JST (UTC+9); twin rooms can sell out within about three minutes.",
-        "Book a twin room for \"1 adult\" — the price is per room — then buy a second basic-fare ticket for your companion.",
-        "Collect tickets at a green JR ticket machine with the card you paid with and your 4-digit PIN.",
-        "No food on board: buy it before you board. Showers need a card sold on board in limited numbers."
+        "Sales open at 10:00 JST (UTC+9) one month before the travel date; the rooms can sell out within minutes.",
+        "A Sunrise Twin is sold per room, so book it for \"1 adult\" — then buy a second basic-fare ticket for whoever shares it.",
+        "Tickets booked online are printed at a JR ticket machine with the card you paid with and a 4-digit PIN.",
+        "Only the Tokyo-bound train stops at Osaka and Sannomiya (Kobe), and no food is sold on board."
       ],
       "sections": [
         {
           "heading": "When and where to book",
           "points": [
-            "Reservations open one month before the travel date at 10:00 Japan time (JST, UTC+9) — for a train on 18 November, at 10:00 JST on 18 October.",
-            "Book in English on JR West's online reservation site, or at a JR ticket office in Japan. Online you are competing with station staff booking for customers at the same moment.",
-            "The two-person rooms (Sunrise Twin and Single Twin) can be gone within about three minutes. Fill in the search in a couple of browser tabs beforehand, press search at exactly 10:00:00 JST and keep your card at hand. Travelling as two? Both of you try at once.",
-            "Solo and Single rooms and the Nobinobi carpet space are easier to get, but weekends and holidays sell out too."
+            "JR West opens reservations at 10:00 Japan time (JST, UTC+9) on the same date one month ahead: for a train on 18 November, at 10:00 JST on 18 October.",
+            "You can book on JR West's online reservation service, which has an English version, or at a JR ticket office in Japan.",
+            "The private rooms, and the two-person rooms most of all, can sell out within minutes of opening, so have the search set up and a payment card ready before 10:00 JST."
           ]
         },
         {
-          "heading": "Booking a room for two",
+          "heading": "Rooms for two",
           "points": [
-            "Sunrise Twin has two beds side by side and more floor space; Single Twin is a smaller room with bunk beds. On JR West's English site you can pre-select the train and the Twin room type; for a Single Twin, search for the train first and then choose \"Sleeper Car B\".",
-            "Both are priced per room: JR West asks you to select \"1 adult\" as the number of passengers whether one or two people will share it.",
-            "That booking comes with only ONE basic-fare ticket. The second traveller needs their own basic fare for the same journey — buy it at a ticket machine or office before boarding, or from the conductor on board in cash at the same price.",
-            "What one traveller paid, Osaka to Tokyo in May 2024: ¥21,320 for the Sunrise Twin room and ¥8,910 for the one basic fare the booking included, then another ¥8,910 on board for the second person.",
-            "If only a smoking room is left: the same traveller took a smoking Twin and found no smell of smoke. That is one report, not a promise."
+            "Two room types take two people. The Sunrise Twin is a two-person room with two beds. The Single Twin is a one-person room with an upper and a lower bed.",
+            "A Sunrise Twin is charged as a whole room, the same whether one or two people use it. For that reason JR West's reservation page asks you to enter \"1 adult\" even when booking for two.",
+            "The basic fare is charged per traveller, and a booking for \"1 adult\" carries one. The second traveller buys their own basic-fare ticket for the same journey before going through the gate, or pays the conductor on board.",
+            "A second person can use a Single Twin's upper bed for an extra-bed charge (¥5,500 in 2026) on top of their own fare. Ask at a JR ticket office how to add them."
           ]
         },
         {
           "heading": "Collecting your tickets",
           "points": [
-            "When you book you set a 4-digit PIN. Keep it, and pay with a card you will have with you in Japan.",
-            "Collect the tickets from a green JR ticket machine (or a ticket office) by inserting that card and entering the PIN. You can do this any time after booking, not only on the day — but machines and offices close at night, so do not leave it until just before a late departure.",
-            "For two people in a twin room you should end up with one room ticket and two basic-fare tickets (the machine also prints receipts)."
+            "An online booking asks you to choose a 4-digit PIN. Print the tickets at a JR ticket machine or a ticket office in Japan with the card you paid with and that PIN.",
+            "You can collect them any time after booking, not only on the day. Machines and offices keep opening hours, though, so check your station's before a late-evening departure."
           ]
         },
         {
-          "heading": "On the day",
+          "heading": "Which stations each direction serves",
           "points": [
-            "Arrive 30–45 minutes early, follow the JR signs and check the departure boards (they alternate Japanese and English) for the platform. Markings on the platform floor show where each car stops.",
-            "The corridors are narrow: board at your own car's door if you have a suitcase.",
-            "Stops differ by direction. Only the Tokyo-bound train calls at Sannomiya (Kobe) and Osaka; only the westbound one calls at Hamamatsu. Osaka → Tokyo works, Tokyo → Osaka does not.",
-            "Keep your basic-fare ticket after the gate: the conductor checks it and the exit gate at your destination takes it. A ticket issued on board is shown to the gate staff instead.",
-            "Get ready 5–10 minutes before your stop. Stations are announced in Japanese and English, and the doors are only open briefly."
+            "The two directions stop at different stations. Only the Tokyo-bound train calls at Sannomiya (Kobe) and Osaka, and only the westbound train calls at Hamamatsu. You can ride from Osaka to Tokyo, but not from Tokyo to Osaka.",
+            "The Sunrise Izumo and the Sunrise Seto run coupled between Tokyo and Okayama. Your ticket names the train and the car, so board the one it names."
           ]
         },
         {
           "heading": "On board",
           "points": [
-            "No food is sold and the vending machines only sell drinks — bring dinner and breakfast.",
-            "Showers need a shower card, sold on board in limited numbers; they can be gone by the time passengers boarding mid-route look for one. Bring your own towel, toothbrush and some wet wipes.",
-            "Rooms have a single power socket: a multi-port charger or power strip helps.",
-            "The ride can be noisy and bumpy — earplugs and an eye mask help, and motion-sickness tablets if you need them."
+            "Nothing to eat is sold on board, and the vending machines sell drinks only.",
+            "The showers take a paid shower card, sold on board in limited numbers. Single Deluxe tickets include one."
           ]
         },
         {
           "heading": "Japan Rail Pass",
           "points": [
-            "The nationwide Japan Rail Pass covers the Nobinobi carpet space (reserve it like a seat). For a private room, pass holders pay the limited express and berth charges on top of the pass."
+            "The nationwide Japan Rail Pass covers the Nobinobi carpet space, which you reserve like a seat. Pass holders who want a private room pay the limited express and berth charges on top of the pass."
           ]
         }
       ],
-      "bookingAnswer": "Book with JR West — online on its English reservation site or at a JR ticket office in Japan — from 10:00 Japan time exactly one month before travel; the private rooms can sell out within minutes. Then collect the tickets at a green JR ticket machine with the credit card you paid with and the 4-digit PIN you chose when booking.",
+      "bookingAnswer": "Book with JR West, either on its online reservation service (which has an English version) or at a JR ticket office in Japan. Sales open at 10:00 Japan time one month before travel, and the private rooms can sell out within minutes. Then print the tickets at a JR ticket machine with the card you paid with and the 4-digit PIN you chose when booking.",
       "faq": [
         {
           "q": "When do Sunrise Izumo and Sunrise Seto tickets go on sale?",
-          "a": "One month before the travel date, at 10:00 Japan time (JST). The private rooms — especially the two-person Sunrise Twin and Single Twin — can sell out within minutes, so be ready to book the moment sales open."
+          "a": "At 10:00 Japan time (JST) one month before the travel date. The private rooms, especially the two-person ones, can sell out within minutes, so be ready to book the moment sales open."
         },
         {
           "q": "How do I book a room for two on the Sunrise Izumo or Sunrise Seto?",
-          "a": "Twin rooms are priced per room, so JR West asks you to book them for \"1 adult\" even when two people will share. The booking includes only one basic-fare ticket: the second traveller buys their own basic fare for the same journey, at the station before boarding or from the conductor on board."
+          "a": "A Sunrise Twin is sold per room, so JR West asks you to book it for \"1 adult\" even when two people will share it. The basic fare is charged per traveller, and that booking includes only one, so the second traveller buys their own basic-fare ticket for the same journey, at the station or from the conductor on board."
         },
         {
           "q": "Does the Sunrise Izumo or Sunrise Seto stop in Osaka?",
-          "a": "Only the Tokyo-bound train, which also calls at Sannomiya (Kobe). The westbound train from Tokyo passes Osaka without stopping, so the train can take you from Osaka to Tokyo but not the other way."
+          "a": "Only the Tokyo-bound train, which also calls at Sannomiya (Kobe). The westbound train from Tokyo passes Osaka without stopping, so you can take the train from Osaka to Tokyo but not the other way."
         },
         {
           "q": "Is there food on the Sunrise Izumo and Sunrise Seto?",
-          "a": "No. There is no food service and the vending machines on board sell only drinks, so buy dinner and breakfast before you board."
+          "a": "No. Nothing to eat is sold on board, and the vending machines sell drinks only, so bring your own dinner and breakfast."
         }
       ],
       "sources": [
         {
-          "label": "r/JapanTravel — Sunrise Express Twin Room Guide, Osaka to Tokyo (May 2024)",
-          "url": "https://www.reddit.com/r/JapanTravel/comments/1d62gqb/sunrise_express_twin_room_guide_osaka_to_tokyo/"
+          "label": "JR West — Sunrise Seto / Izumo: rooms and facilities (Japanese)",
+          "url": "https://www.jr-odekake.net/railroad/train/sunriseseto_izumo/"
         },
         {
-          "label": "r/JapanTravelTips — booking the Sunrise room types on JR West's English site",
-          "url": "https://www.reddit.com/r/JapanTravelTips/comments/197pzxk/sunrise_express_reservation_via_jr_west_english/"
-        },
-        {
-          "label": "JR West — booking the Sunrise Seto / Izumo (Japanese)",
+          "label": "JR West — reserving the Sunrise Seto / Izumo online (Japanese)",
           "url": "https://www.jr-odekake.net/goyoyaku/campaign/sunriseseto_izumo/form.html"
         },
         {
-          "label": "JR West — collecting reserved tickets at a ticket machine",
+          "label": "JR West — ticket rules, March 2026 (Japanese)",
+          "url": "https://www.jr-odekake.net/ticket/guide/ebook/pages_2603/pageindices/index55.html"
+        },
+        {
+          "label": "JR West — reservation conditions",
+          "url": "https://www.westjr.co.jp/global/en/howto/train-reservation/condition/"
+        },
+        {
+          "label": "JR West — collecting reserved tickets",
           "url": "https://www.westjr.co.jp/global/en/howto/train-reservation/receive/"
         },
         {
           "label": "JR West — where and when tickets can be collected",
           "url": "https://www.jr-odekake.net/eki/global/en/howto/train-reservation/receive/station"
+        },
+        {
+          "label": "Wikipedia — Japan Rail Pass",
+          "url": "https://en.wikipedia.org/wiki/Japan_Rail_Pass"
         }
       ],
-      "checkedAt": "2026-09-28"
+      "furtherReading": [
+        {
+          "label": "A traveller's own account of booking and riding a Sunrise Twin, Osaka to Tokyo (r/JapanTravel, May 2024)",
+          "url": "https://www.reddit.com/r/JapanTravel/comments/1d62gqb/sunrise_express_twin_room_guide_osaka_to_tokyo/"
+        }
+      ],
+      "checkedAt": "2026-09-29"
     }
   }
 }

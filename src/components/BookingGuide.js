@@ -15,7 +15,9 @@
  * the same reasons PricingExplainer uses it.
  *
  * Sources are ordinary links (rel="noopener"), never sponsored: they are
- * citations, not places to buy.
+ * citations, not places to buy. "Further reading" is a separate line because
+ * it is a different claim — a traveller's own account we credit and send
+ * readers to, not a page the guide's statements rest on.
  */
 
 const TONES = {
@@ -56,21 +58,33 @@ function Bullets({ items, textClass, bulletClass }) {
   );
 }
 
-function Sources({ sources, checkedAt, t }) {
-  if (!sources?.length) return null;
+function LinkList({ links, t }) {
+  return links.map((s, i) => (
+    <span key={s.url}>
+      {i > 0 && " · "}
+      <a href={s.url} target="_blank" rel="noopener noreferrer" className={t.link}>
+        {s.label}
+      </a>
+    </span>
+  ));
+}
+
+function Sources({ sources, furtherReading, checkedAt, t }) {
+  if (!sources?.length && !furtherReading?.length) return null;
   return (
-    <p className={`mt-4 ${t.sources}`}>
-      Sources:{" "}
-      {sources.map((s, i) => (
-        <span key={s.url}>
-          {i > 0 && " · "}
-          <a href={s.url} target="_blank" rel="noopener noreferrer" className={t.link}>
-            {s.label}
-          </a>
-        </span>
-      ))}
-      {checkedAt ? ` · Checked ${checkedAt.slice(0, 7)}` : ""}
-    </p>
+    <div className={`mt-4 space-y-1 ${t.sources}`}>
+      {sources?.length > 0 && (
+        <p>
+          Sources: <LinkList links={sources} t={t} />
+          {checkedAt ? ` · Checked ${checkedAt.slice(0, 7)}` : ""}
+        </p>
+      )}
+      {furtherReading?.length > 0 && (
+        <p>
+          Further reading: <LinkList links={furtherReading} t={t} />
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -107,7 +121,12 @@ export default function BookingGuide({ guide, tone = "dark", compact = false, cl
               The full guide
             </summary>
             <Sections sections={guide.sections} t={t} />
-            <Sources sources={guide.sources} checkedAt={guide.checkedAt} t={t} />
+            <Sources
+              sources={guide.sources}
+              furtherReading={guide.furtherReading}
+              checkedAt={guide.checkedAt}
+              t={t}
+            />
           </details>
         </div>
       </details>
@@ -124,7 +143,12 @@ export default function BookingGuide({ guide, tone = "dark", compact = false, cl
         <Bullets items={guide.highlights} textClass={`${t.highlight} font-medium`} bulletClass={t.bullet} />
       )}
       <Sections sections={guide.sections} t={t} />
-      <Sources sources={guide.sources} checkedAt={guide.checkedAt} t={t} />
+      <Sources
+        sources={guide.sources}
+        furtherReading={guide.furtherReading}
+        checkedAt={guide.checkedAt}
+        t={t}
+      />
     </section>
   );
 }

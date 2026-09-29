@@ -435,9 +435,28 @@ await check("the guide carries the purchase quirks it exists for", () => {
   assert.match(text, /4-digit PIN/);
   assert.match(text, /Osaka/, "which direction stops in Osaka");
   assert.ok(guide.highlights.length >= 3 && guide.sections.length >= 4);
-  for (const s of guide.sources) assert.match(s.url, /^https:\/\//, `${s.label} is a real link`);
-  assert.ok(guide.sources.some((s) => s.url.includes("reddit.com/r/JapanTravel/comments/1d62gqb")));
+  for (const s of [...guide.sources, ...guide.furtherReading]) {
+    assert.match(s.url, /^https:\/\//, `${s.label} is a real link`);
+  }
   assert.match(guide.checkedAt, /^\d{4}-\d{2}-\d{2}$/);
+});
+
+await check("the guide rests on JR's own pages and credits the traveller's post without retelling it", () => {
+  const guide = guideProps(getBookingGuide({ agencyId: "JRW" }));
+  const host = (url) => new URL(url).hostname;
+  // What the guide states is sourced from the operator (and one reference page
+  // for the rail pass); a forum post is linked for readers, never used as a source.
+  assert.ok(guide.sources.some((s) => /(^|\.)(jr-odekake\.net|westjr\.co\.jp)$/.test(host(s.url))));
+  for (const s of guide.sources) {
+    assert.ok(!/reddit\.com$/.test(host(s.url)), `${s.label} is a forum post listed as a source`);
+  }
+  assert.ok(
+    guide.furtherReading.some((s) => s.url.includes("reddit.com/r/JapanTravel/comments/1d62gqb")),
+    "the traveller's guide the booking section was prompted by is credited and linked",
+  );
+  // The retelling this replaced: that traveller's own prices and anecdotes.
+  const text = JSON.stringify({ ...guide, sources: [], furtherReading: [] });
+  assert.doesNotMatch(text, /21,320|8,910|smoking/i, "one traveller's own story stays theirs");
 });
 
 await check("the guide folds into a page's FAQ without duplicating a question", () => {

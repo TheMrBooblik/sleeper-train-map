@@ -80,6 +80,7 @@ export function guideProps(guide) {
     highlights: guide.highlights ?? [],
     sections: (guide.sections ?? []).filter((s) => s?.heading && s.points?.length),
     sources: (guide.sources ?? []).filter((s) => s?.url && s?.label),
+    furtherReading: (guide.furtherReading ?? []).filter((s) => s?.url && s?.label),
     checkedAt: guide.checkedAt ?? null,
   };
 }
