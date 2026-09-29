@@ -335,7 +335,7 @@
   "/trains/roma-termini-to-trieste-centrale-icn-775": "/connections/rome-to-trieste",
   "/trains/roma-tiburtina-to-munchen-hbf-nj-294": "/connections",
   "/trains/roma-tiburtina-to-siracusa-icn-1959": "/connections/rome-to-siracusa",
-  "/trains/roma-tiburtina-to-wien-hbf-nj-40294": "/connections",
+  "/trains/roma-tiburtina-to-wien-hbf-nj-40294": "/connections/rome-to-vienna",
   "/trains/rovaniemi-to-helsinki-helsingfors-ic-264": "/connections/helsinki-to-rovaniemi",
   "/trains/rovaniemi-to-helsinki-helsingfors-ic-266-h": "/connections/helsinki-to-rovaniemi",
   "/trains/rovaniemi-to-turku-satama-abo-hamn-ic-266-t": "/connections/rovaniemi-to-turku",
