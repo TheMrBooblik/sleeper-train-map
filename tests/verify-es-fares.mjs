@@ -770,6 +770,16 @@ await check("parseLastMinutePage: a date past the horizon drops its deal, never 
   assert.deepStrictEqual(narrow.deals.map((d) => [d.id, d.date]), [["1194", "2026-11-30"], ["1187", "2026-11-13"]]);
   assert.deepStrictEqual(narrow.outside, ["1197", "1200", "1219"]);
   assert.deepStrictEqual(narrow.undated, []);
+  // A deal whose label does not read is never sold on the sale's deadline:
+  // "Offer ends 6 October" sits right above every list.
+  const garbled = FLASH_PAGE.replace("<span>Mon 30 Nov 26</span>", "<span>Mon 30 Nvb 26</span>");
+  const g = parseLastMinutePage(garbled, { today: TODAY, horizonDays: 92 });
+  assert.ok(!g.deals.some((d) => d.date === "2026-10-06"), "a deadline is not a deal date");
+  assert.deepStrictEqual(g.undated, ["1194"]);
+  assert.strictEqual(
+    parseLastMinutePage(`<p>Book by Tuesday 6 October.</p><button name="price" value="5">&euro;49 p.p.</button>`, { today: TODAY }).deals.length,
+    0,
+  );
   // A date in the deal's own text that is out of range drops it too.
   const own = parseLastMinutePage(`<h3>Fri 02 Oct 26</h3><button name="price" value="77">Sun 06 Dec 26 &euro;49 p.p.</button>`, {
     today: TODAY, horizonDays: 30,

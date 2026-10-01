@@ -123,6 +123,10 @@ export function parseEuroAmount(text) {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+// Words that make the date after them a deadline rather than a travel date.
+const DEADLINE_CUE =
+  /\b(?:ends?|ending|until|till|book (?:by|before)|valid (?:until|through)|deadline|t\/m|tot en met|bis(?: zum)?|jusqu'?(?:au)?)\s*(?:on\s+)?(?:[a-z]+day,?\s+)?$/i;
+
 const PRIVATE_CUE = /privat|prive|whole compartment|entire compartment|hele coupe|eigen coupe|ganzes abteil|compartiment entier|compartiment prive/i;
 const SHARED_CUE = /shared|gedeeld|geteilt|partage|per person|per persoon|pro person|par personne|per bed|1 bed|one bed|\bp\.\s?p\.|\bpp\b/i;
 
@@ -227,8 +231,15 @@ export function parseLastMinutePage(html, { today, horizonDays = 92, trainNumber
   });
   // Every date, in or out of the window: the nearest one before a deal is its
   // date whichever it is, and an out-of-window one drops the deal rather than
-  // handing it the in-window date before that.
-  const pageDates = findDates(blanked, { today });
+  // handing it the in-window date before that. A deadline is not a heading,
+  // though: every offer page opens "Offer ends 6 October" right above its
+  // list, and a deal whose own label did not read would otherwise be sold on
+  // the sale's last day — which is what the first flash scrape did to the
+  // Milan → Brussels page's 14 December.
+  const decoded = decodeText(blanked).toLowerCase();
+  const pageDates = findDates(blanked, { today }).filter(
+    (d) => !DEADLINE_CUE.test(decoded.slice(Math.max(0, d.index - 40), d.index)),
+  );
   const wanted = new Set(trainNumbers.map(String));
   const trainIn = (text) => {
     const m = decodeText(text).match(/\b(?:es|train|trein|zug|nachtzug)\s*(\d{3})\b/i);
