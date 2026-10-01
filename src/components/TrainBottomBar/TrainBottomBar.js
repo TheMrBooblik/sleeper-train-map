@@ -130,17 +130,24 @@ const TrainBottomBar = ({
   });
   const routeColorMap = buildRouteColorMap(routeIds, routeDataMap);
 
-  // Group routes by origin-destination to avoid duplicates
-  // Store route_id to determine color
+  // One chip per route. This used to group routes by origin–destination "to
+  // avoid duplicates", but rows are already unique by route_id — the merge
+  // drops a Back-on-Track row an official source replaces — so the grouping
+  // only ever merged DIFFERENT trains, and a chip opens just its first route.
+  // Clicking Wien offered one "Hamburg – Wien" chip for NJ 491 (via Passau) and
+  // NJ 493 (via München), one "Bruxelles – Wien" for NJ 469 and NJ 449, and
+  // Snälltåget's 300 hid SJ's EN 345 on Berlin–Stockholm: 44 routes, 12 of them
+  // Nightjets, could not be reached from the bar at all. Chips that would read
+  // the same get their train numbers from disambiguateLabels below.
   const routeMap = new Map();
 
   filteredViewMapData?.forEach((el) => {
     let stationArr = [el?.origin_trip_0, el?.destination_trip_0];
     stationArr.sort();
 
-    const routeKey = `${stationArr[0]}-${stationArr[1]}`;
+    const routeKey = el?.route_id?.toString();
 
-    if (!routeMap.has(routeKey)) {
+    if (routeKey && !routeMap.has(routeKey)) {
       // From the selected city's own station to where the train takes you
       // (src/lib/stationFirst.mjs): a click on Milan reads "Milano – Bruxelles".
       const ends = stationFirstEndpoints(el, {

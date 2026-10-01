@@ -76,7 +76,8 @@
     "params": {
       "countryCodes": [80, 81, 83, 84, 85, 88],
       "concurrency": 6,
-      "maxPartnerTrains": 25
+      "maxPartnerTrains": 100,
+      "discoveryDays": 7
     },
     "enrich": { "strategy": "trainsByNumber", "setPolyline": true },
     "probe": { "pricing": { "adapter": "nightjet-offers", "sampleRoutes": 4 } },

@@ -125,8 +125,31 @@ check(
       /isNotRunning/.test(src) && /hasUnknownStart\(/.test(src),
       "the bar passes a not-running test",
     );
+    // One chip per route, never per pair of endpoints: grouping by
+    // origin–destination hid NJ 493 behind NJ 491 (Hamburg–Wien by two
+    // different corridors), and a chip opens only its first route.
+    assert.ok(
+      /const routeKey = el\?\.route_id\?\.toString\(\);/.test(src),
+      "the bar keys a chip by route_id",
+    );
   },
 );
+
+check("routes sharing both endpoints are different trains, so each gets its own chip", () => {
+  // The measurement behind keying by route_id: routes sharing both endpoints
+  // are different trains, so the bar must show each of them.
+  const byEnds = new Map();
+  for (const r of Object.values(viewMap)) {
+    const k = [r.origin_trip_0, r.destination_trip_0].sort().join(" | ");
+    byEnds.set(k, [...(byEnds.get(k) ?? []), r]);
+  }
+  const hamburg = byEnds.get("Hamburg Altona | Wien Hbf") ?? [];
+  assert.ok(
+    hamburg.length >= 2 &&
+      new Set(hamburg.map((r) => r.via_0)).size === hamburg.length,
+    "Hamburg–Wien is several trains on different corridors, each needing a chip",
+  );
+});
 
 // ─── Names: from the selected station ───────────────────────────────────────
 
@@ -193,6 +216,19 @@ check(
     assert.strictEqual(r[`trip_short_name_${ends.direction}`], "ICN 797");
   },
 );
+
+check("a one-way train ending in the selected city keeps its real direction", () => {
+  // NJ 13487 runs Zürich → Wien Hbf only, calling at Wien Meidling on the way
+  // in. Hidden behind NJ 13467 while the bar grouped chips by endpoints; once
+  // shown, a click on Vienna named it "Wien Meidling – Wien Hbf".
+  const r = row("nj_standalone_NJ_13487");
+  assert.ok(/Wien Meidling/.test(r.via_0 || ""), "it calls at Wien Meidling");
+  const ends = stationFirstEndpoints(r, {
+    inSelectedCity: city("wien"),
+    coordsOf,
+  });
+  assert.deepStrictEqual([ends.from, ends.to], ["Zürich HB", "Wien Hbf"]);
+});
 
 check("a one-way row never points against its only train", () => {
   const r = row("icn_ICN_752"); // Lecce → Milano Centrale, no return row of its own
