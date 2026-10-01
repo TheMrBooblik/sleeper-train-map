@@ -198,16 +198,21 @@ export function findDealIds(html) {
 
 /**
  * The deals a landing page offers, dated: { deals: [{ id, date, amount,
- * kind, trainNumber }], undated: [id], ids }.
+ * kind, trainNumber }], undated: [id], outside: [id], ids }.
  *
  * A deal's date comes from its own option/label text first, then the nearest
- * date the page names BEFORE it (a "Friday 10 October" heading over a list of
- * radio buttons) within a few kilobytes. Dates before today or more than
- * `horizonDays` out are not deal dates (a footer copyright, a season notice)
- * and are skipped. `amount` is the page's own figure where its label states
- * one; the caller confirms it against /receipt/price.
+ * date the page names BEFORE it (a "Mon 07 Dec 26" label over its button)
+ * within a few kilobytes. A deal whose date is before today or more than
+ * `horizonDays` out is `outside`, and dropped — never moved onto an earlier
+ * date the page also names. That is the failure this rule exists for: the
+ * flash-sale pages (2026-10-01) list Mondays from 2 November to 14 December,
+ * and with the nearest date picked among the in-window ones only, the two
+ * December Mondays past a 60-day horizon both read as Monday 30 November.
+ * `undated` is a deal no date sits near at all. `amount` is the page's own
+ * figure where its label states one; the caller confirms it against
+ * /receipt/price.
  */
-export function parseLastMinutePage(html, { today, horizonDays = 60, trainNumbers = [] } = {}) {
+export function parseLastMinutePage(html, { today, horizonDays = 92, trainNumbers = [] } = {}) {
   const src = String(html ?? "");
   const visible = src.replace(/<script\b[\s\S]*?<\/script>/gi, (s) => " ".repeat(s.length))
     .replace(/<style\b[\s\S]*?<\/style>/gi, (s) => " ".repeat(s.length));
@@ -220,7 +225,10 @@ export function parseLastMinutePage(html, { today, horizonDays = 60, trainNumber
     const value = attr(s, "data-date") ?? attr(s, "datetime");
     return value ? ` ${value} `.padEnd(s.length, " ").slice(0, s.length) : " ".repeat(s.length);
   });
-  const pageDates = findDates(blanked, { today }).filter((d) => inWindow(d.iso));
+  // Every date, in or out of the window: the nearest one before a deal is its
+  // date whichever it is, and an out-of-window one drops the deal rather than
+  // handing it the in-window date before that.
+  const pageDates = findDates(blanked, { today });
   const wanted = new Set(trainNumbers.map(String));
   const trainIn = (text) => {
     const m = decodeText(text).match(/\b(?:es|train|trein|zug|nachtzug)\s*(\d{3})\b/i);
@@ -229,19 +237,33 @@ export function parseLastMinutePage(html, { today, horizonDays = 60, trainNumber
 
   const deals = [];
   const undated = [];
+  const outside = [];
   const ids = findDealIds(src);
-  const ownDate = (own) => findDates(own, { today }).map((d) => d.iso).find(inWindow) ?? null;
+  const ownDates = (own) => findDates(own, { today }).map((d) => d.iso);
   // Deals whose own text dates them. A date sitting in such a deal's own
   // element belongs to that deal, not to the next one along — a heading is
   // inherited, a sibling's date is not.
-  const selfDated = ids.filter((d) => ownDate(d.own)).map((d) => d.index);
+  const selfDated = ids.filter((d) => ownDates(d.own).length).map((d) => d.index);
   for (const { id, index, own } of ids) {
-    let date = ownDate(own);
-    if (!date) {
+    const mine = ownDates(own);
+    let date = null;
+    if (mine.length) {
+      date = mine.find(inWindow) ?? null;
+      if (!date) {
+        outside.push(id);
+        continue;
+      }
+    } else {
       const before = pageDates.filter((d) => d.index < index && index - d.index < 4000);
       const nearest = before[before.length - 1];
       const owned = nearest && selfDated.some((i) => i >= nearest.index - 300 && i < index);
-      date = nearest && !owned ? nearest.iso : null;
+      if (nearest && !owned) {
+        if (!inWindow(nearest.iso)) {
+          outside.push(id);
+          continue;
+        }
+        date = nearest.iso;
+      }
     }
     if (!date) {
       undated.push(id);
@@ -259,7 +281,7 @@ export function parseLastMinutePage(html, { today, horizonDays = 60, trainNumber
       trainNumber: trainIn(own) ?? trainIn(stripTags(context).slice(-400)),
     });
   }
-  return { deals, undated, ids: ids.length };
+  return { deals, undated, outside, ids: ids.length };
 }
 
 /** Every /last-minutes-… landing page an index page links to, as site paths. */
@@ -313,14 +335,24 @@ export function findOfferLinks(html, { pathPattern = /last-minutes?-|flash/i, in
   while ((m = re.exec(String(html ?? "")))) {
     const href = m[1].replace(/^https?:\/\/(?:www\.)?europeansleeper\.eu/i, "").replace(/\/$/, "").toLowerCase();
     if (!/^\/[a-z0-9/_-]+$/.test(href) || href === indexPath.toLowerCase()) continue;
+    // A translation (/de/flash-sale, /nl/…) is the same offers again, and the
+    // live index links all four languages' copies of itself.
+    if (/^\/[a-z]{2}\//.test(href)) continue;
     const text = stripTags(m[2]);
     if (!pathPattern.test(href) && !/\boffer from .+ to /i.test(text)) continue;
-    if (!out.has(href) || (!out.get(href).text && text)) out.set(href, { path: href, text });
+    // Of two anchors to one page, the one naming a route says the most.
+    const prev = out.get(href);
+    const better = !prev || (!prev.text && text) || (!ROUTE_TEXT.test(prev.text) && ROUTE_TEXT.test(text));
+    if (better) out.set(href, { path: href, text });
   }
   return [...out.values()].sort((a, b) => (a.path < b.path ? -1 : 1));
 }
 
+const ROUTE_TEXT = /\bfrom\s+.+\s+to\s+/i;
 const foldCity = (s) => decodeText(s).toLowerCase().replace(/[^a-z]+/g, " ").trim();
+const slugCity = (s) => foldCity(s).replace(/ /g, "-");
+const placeList = (s) =>
+  s.split(/\s*(?:,|&|\band\b|\bund\b|\ben\b|\bet\b)\s*/i).map(foldCity).filter(Boolean);
 
 /**
  * The train an offer's own words describe — "… from Brussels and Cologne to
@@ -331,13 +363,37 @@ const foldCity = (s) => decodeText(s).toLowerCase().replace(/[^a-z]+/g, " ").tri
 export function trainForOfferText(text, trainCities) {
   const m = decodeText(text).match(/\bfrom\s+(.+?)\s+to\s+(.+?)[.!]?\s*$/i);
   if (!m) return null;
-  const list = (s) => s.split(/\s*(?:,|&|\band\b|\bund\b|\ben\b|\bet\b)\s*/i).map(foldCity).filter(Boolean);
-  const from = list(m[1]);
-  const to = list(m[2]);
+  const from = placeList(m[1]);
+  const to = placeList(m[2]);
   const hits = Object.entries(trainCities ?? {}).filter(
     ([, [a, b]]) => from.includes(foldCity(a)) && to.includes(foldCity(b)),
   );
   return hits.length === 1 ? hits[0][0] : null;
+}
+
+/**
+ * The train an offer page's own address names, for when its link text does
+ * not: the live flash-sale index (2026-10-01) links /flash-berlin-paris with
+ * the words "to Brussels and Paris" and nothing else, so the route is in the
+ * slug. A slug is read as "{first city}-{last city}" and matches the one
+ * train that starts in the first and ends in the second — an exact endpoint
+ * pair, because the last-minute pages slug a stretch of the route instead
+ * (/last-minutes-hamburg-berlin sells Paris → Berlin), which must read as no
+ * train rather than a wrong one. Where the link text says where the offer
+ * goes ("to Brussels and Paris"), the train has to end there too.
+ */
+export function trainForOfferPath(path, trainCities, { text = "" } = {}) {
+  const slug = String(path ?? "")
+    .toLowerCase()
+    .replace(/^\/(?:[a-z]{2}\/)?/, "")
+    .replace(/^(?:flash(?:-sale)?|last-minutes?)-/, "");
+  const hits = Object.entries(trainCities ?? {}).filter(
+    ([, [a, b]]) => a && b && slug === `${slugCity(a)}-${slugCity(b)}`,
+  );
+  if (hits.length !== 1) return null;
+  const to = decodeText(text).match(/\bto\s+(.+?)[.!]?\s*$/i);
+  if (to && !placeList(to[1]).includes(foldCity(hits[0][1][1]))) return null;
+  return hits[0][0];
 }
 
 /** "ends 6 October" / "Book by 6 October" on a sale page → "2026-10-06", or null. */
@@ -358,7 +414,10 @@ export function saleEndDate(html, { today } = {}) {
  * [{ path, trains }] }]. A programme's index page is read for the offer pages
  * it links to; a page's train is the registry's word for it where it has one,
  * else what the link text names ("offer from Paris and Brussels to Hamburg and
- * Berlin"), else a train number in the deal's own text. Each deal's price is
+ * Berlin"), else what its address names (/flash-paris-berlin), else a train
+ * number in the deal's own text. `horizonDays` is how far ahead a deal date
+ * may lie — the calendar's own window, since a flash sale sells nights months
+ * out. Each deal's price is
  * read from /receipt/price/1/{id}: the operator's own figure, and an empty
  * answer means the deal is gone, whatever the page still says. `ok` is false
  * only when no page could be read at all — the caller then keeps yesterday's
@@ -374,6 +433,7 @@ export async function fetchDeals({
   log = console.log,
   spacingMs = 300,
   maxPriceChecks = 200,
+  horizonDays = 92,
 } = {}) {
   const tracked = new Set(Object.keys(trains).map(String));
   const cities = trainCities ?? {};
@@ -420,7 +480,9 @@ export async function fetchDeals({
   const report = [];
   const raw = [];
   for (const page of toRead.values()) {
-    const entry = { path: page.path, programme: page.programme, status: null, ids: 0, dated: 0, undated: 0, used: 0, train: null };
+    const entry = {
+      path: page.path, programme: page.programme, status: null, ids: 0, dated: 0, undated: 0, outside: 0, used: 0, train: null,
+    };
     report.push(entry);
     try {
       const res = await getText(`${site}${page.path}`, fetchImpl);
@@ -430,13 +492,15 @@ export async function fetchDeals({
       const pageTrain =
         (page.trains ?? []).map(String).find((t) => tracked.has(t)) ??
         trainForOfferText(page.text, cities) ??
+        trainForOfferPath(page.path, cities, { text: page.text }) ??
         null;
       entry.train = pageTrain;
       const until = page.until ?? (page.programme === "flashSale" ? saleEndDate(res.body, { today }) : null);
-      const parsed = parseLastMinutePage(res.body, { today, trainNumbers: [...tracked] });
+      const parsed = parseLastMinutePage(res.body, { today, horizonDays, trainNumbers: [...tracked] });
       entry.ids = parsed.ids;
       entry.dated = parsed.deals.length;
       entry.undated = parsed.undated.length;
+      entry.outside = parsed.outside.length;
       for (const d of parsed.deals) {
         const train = d.trainNumber && tracked.has(d.trainNumber) ? d.trainNumber : pageTrain;
         if (!train) continue;
@@ -489,8 +553,9 @@ export async function fetchDeals({
   for (const e of report) {
     log(
       `[es-deals] ${e.path}: ${e.status ?? "no answer"}${e.error ? ` (${e.error})` : ""} — ` +
-        `${e.ids} deal id(s), ${e.dated} dated, ${e.undated} undated, ${e.used} used` +
-        (e.train ? ` (ES ${e.train})` : e.ids ? " (no train: neither the registry nor the link text names one)" : ""),
+        `${e.ids} deal id(s), ${e.dated} dated, ${e.undated} undated` +
+        `${e.outside ? `, ${e.outside} outside the ${horizonDays}-night window` : ""}, ${e.used} used` +
+        (e.train ? ` (ES ${e.train})` : e.ids ? " (no train: neither the registry, the link text nor the address names one)" : ""),
     );
   }
   if (expired) log(`[es-deals] ${expired} deal(s) the page lists have expired (empty /receipt/price answer)`);

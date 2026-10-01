@@ -33,6 +33,7 @@ import {
   parseEuroAmount,
   parseLastMinutePage,
   saleEndDate,
+  trainForOfferPath,
   trainForOfferText,
 } from "../scripts/lib/es-last-minute.mjs";
 import {
@@ -281,10 +282,11 @@ await check("parseLastMinutePage: data attributes, receipt links and script JSON
   assert.strictEqual(findDealIds("<select name='departure-station'><option value='8800104'>B</option></select>").length, 0);
 });
 
-// The live page's shape, as the first probe run (2026-10-01) printed it: its
-// form fields verbatim (from the probe's form digest) and the visible text in
-// order. The button's inner markup is reconstructed from that text — the
-// date and price are the only text between each tooltip and the next deal.
+// The live page's shape, as the probe runs (2026-10-01) printed it: its form
+// fields verbatim (from the probe's form digest) and the visible text in
+// order. A button's own text is its price alone ("€40 p.p." — the probe
+// prints it), so the date is the label just before it; the wrapping markup
+// is reconstructed.
 const PAGE_LIVE = `
 <h1>Last minute deals to Berlin and Prague</h1>
 <form id="form-receipt">
@@ -297,21 +299,24 @@ const PAGE_LIVE = `
 <div><span>Friday Evening Departures</span>
   <button class="text-xm tooltip" id="tt-2" type="button">info</button>
   <span>Depart Friday evening, arrive Saturday morning.</span>
+  <span>Fri 02 Oct 26</span>
   <button class="bg-shock-orange button duration-150 ease-in hover:bg-darker-shock-orange rounded text-white" name="price" type="button" value="1062">
-    <span>Fri 02 Oct 26</span> <span>&euro;40 p.p.</span>
+    <span>&euro;40 p.p.</span>
   </button></div>
 <p>No hidden costs! Fares include train tickets, reservation of a private Classic compartment for up to five persons, bed linen, and luggage.</p>
 <div><span>Monday Evening Departures</span>
   <button class="text-xm tooltip" id="tt-3" type="button">info</button>
   <span>Leave Monday evening, arrive Tuesday morning.</span>
+  <span>Mon 05 Oct 26</span>
   <button class="bg-shock-orange button duration-150 ease-in hover:bg-darker-shock-orange rounded text-white" name="price" type="button" value="1067">
-    <span>Mon 05 Oct 26</span> <span>&euro;160</span>
+    <span>&euro;160</span>
   </button></div>
 <div><span>Friday Evening Departures</span>
   <button class="text-xm tooltip" id="tt-4" type="button">info</button>
   <span>Depart Friday evening, arrive Saturday morning.</span>
+  <span>Fri 02 Oct 26</span>
   <button class="bg-shock-orange button duration-150 ease-in hover:bg-darker-shock-orange rounded text-white" name="price" type="button" value="1066">
-    <span>Fri 02 Oct 26</span> <span>&euro;160</span>
+    <span>&euro;160</span>
   </button></div>
 <input name="landingpage" type="hidden" value="41">
 <input name="price" type="hidden" value="">
@@ -649,30 +654,56 @@ await check("fareCalendarDays: deal nights carry the deal, the summary names the
 });
 
 // The flash-sale index as the probe read it on 2026-10-01: a sale banner
-// ("ends 6 October", "Book by 6 October") and six per-direction offer pages
-// named only in link text. The hrefs are reconstructed — the probe printed
-// the text, not the anchors — and the offer pages reuse the last-minute form.
+// ("ends 6 October", "Book by 6 October"), links to its own translations, and
+// six per-direction offer pages whose link text names only where they go —
+// "to Brussels and Paris" — while the address names the route
+// (/flash-berlin-paris). The hrefs and texts are the probe's; the markup
+// around them is reconstructed.
 const FLASH_INDEX = `
 <div class="announcement">Good Morning Flash Sale - ends 6 October <a href="/flash-sale">Book for &euro;49</a></div>
+<nav><a href="/de/flash-sale"><img alt="" src="/de.svg"></a><a href="/fr/flash-sale"></a><a href="/it/flash-sale"></a><a href="/nl/flash-sale"></a></nav>
 <h1>Good Morning Flash Sale</h1>
 <p>Shared Classic for &euro;49 one-way. Limited availability on selected November and December departures. Once it’s gone, it’s gone. Book by 6 October.</p>
-<h2>Brussels-Milan Flash Sale</h2>
-<a href="/flash-sale-brussels-milan">Flash Sale offer from Brussels and Cologne to Switzerland and Milan</a>
-<a href="/flash-sale-milan-brussels">Flash Sale offer from Milan and Switzerland to Cologne and Brussels</a>
-<h2>Paris-Berlin Flash Sale</h2>
-<a href="/flash-sale-paris-berlin">Flash Sale offer from Paris and Brussels to Hamburg and Berlin</a>
-<a href="/flash-sale-berlin-paris">Flash Sale offer from Berlin and Hamburg to Brussels and Paris</a>
-<h2>Brussels-Prague Flash Sale</h2>
-<a href="/flash-sale-prague-brussels">Flash Sale offer from Prague and Berlin to Amsterdam and Brussels</a>
-<a href="/flash-sale-brussels-prague">Flash Sale offer from Brussels and Amsterdam to Berlin and Prague</a>
+<h2>Brussels-Milan Route</h2>
+<a href="/flash-brussels-milan">to Switzerland and Milan</a>
+<a href="/flash-milan-brussels">to Cologne and Brussels</a>
+<h2>Berlin-Paris Route</h2>
+<a href="/flash-paris-berlin">to Hamburg and Berlin</a>
+<a href="/flash-berlin-paris">to Brussels and Paris</a>
+<h2>Brussels-Prague Route</h2>
+<a href="/flash-prague-brussels">to Amsterdam and Brussels</a>
+<a href="/flash-brussels-prague">to Berlin and Prague</a>
 <a href="/timetable">Timetable</a> <a href="/last-minute">Last minute deals</a>`;
 
+// An offer page as the probe read /flash-brussels-prague: Mondays listed
+// from November into December, each date a label before its button, a
+// CLASSIC PRIVATE tab at €199 a compartment, and season notices below. Ids,
+// dates and prices are the probe's; the markup is reconstructed.
 const FLASH_PAGE = `
-<h1>Flash Sale: Brussels and Amsterdam to Berlin and Prague</h1>
+<h1>Good Morning Flash Sale to Berlin and Prague</h1>
+<div class="tab">CLASSIC</div><div class="tab">CLASSIC PRIVATE</div>
+<p>Offer ends 6 October. Book fast – gone is gone.</p>
+<p>No hidden costs! Fares include train ticket, reservation of a bed in a 5-person compartment, bed linen, and luggage.</p>
+<p>1. Select date</p>
+<div><span>Monday Evening Departures</span>
+  <button class="text-xm tooltip" id="tt-2" type="button">info</button>
+  <span>Leave Monday evening, arrive Tuesday morning.</span>
+  <span>Mon 30 Nov 26</span><button class="bg-shock-orange button" name="price" type="button" value="1194"><span>&euro;49 p.p.</span></button>
+  <span>Mon 07 Dec 26</span><button class="bg-shock-orange button" name="price" type="button" value="1197"><span>&euro;49 p.p.</span></button>
+  <span>Mon 14 Dec 26</span><button class="bg-shock-orange button" name="price" type="button" value="1200"><span>&euro;49 p.p.</span></button>
+</div>
 <div><span>Friday Evening Departures</span>
-  <button class="bg-shock-orange button" name="price" type="button" value="1201"><span>Fri 13 Nov 26</span> <span>&euro;49 p.p.</span></button></div>
-<div><span>Sunday Evening Departures</span>
-  <button class="bg-shock-orange button" name="price" type="button" value="1202"><span>Sun 06 Dec 26</span> <span>&euro;49 p.p.</span></button></div>`;
+  <button class="text-xm tooltip" id="tt-4" type="button">info</button>
+  <span>Fri 13 Nov 26</span><button class="bg-shock-orange button" name="price" type="button" value="1187"><span>&euro;49 p.p.</span></button>
+</div>
+<p>Offer ends 6 October. Book fast – gone is gone.</p>
+<p>No hidden costs! Fares include train ticket, reservation of a private compartment for up to five persons, bed linen, and luggage.</p>
+<div><span>Monday Evening Departures</span>
+  <button class="text-xm tooltip" id="tt-5" type="button">info</button>
+  <span>Mon 07 Dec 26</span><button class="bg-shock-orange button" name="price" type="button" value="1219"><span>&euro;199</span></button>
+</div>
+<input name="landingpage" type="hidden" value="80"><input name="price" type="hidden" value="">
+<p>Sorry, this journey cannot be booked. Note that Breda/Eindhoven trains start 13 December, and Li&egrave;ge/Verviers/Aachen&ndash;Milan is only bookable until 13 December.</p>`;
 
 const TRAIN_CITIES = {
   "400": ["Milan", "Brussels"], "401": ["Brussels", "Milan"],
@@ -680,32 +711,81 @@ const TRAIN_CITIES = {
   "474": ["Berlin", "Paris"], "475": ["Paris", "Berlin"],
 };
 
-await check("flash sale: the index's offer pages, each tied to its train by the route its link names", () => {
+await check("flash sale: the index's offer pages, each tied to its train by the route its address names", () => {
   const links = findOfferLinks(FLASH_INDEX, { pathPattern: /flash/i, indexPath: "/flash-sale" });
   assert.deepStrictEqual(links.map((l) => l.path), [
-    "/flash-sale-berlin-paris", "/flash-sale-brussels-milan", "/flash-sale-brussels-prague",
-    "/flash-sale-milan-brussels", "/flash-sale-paris-berlin", "/flash-sale-prague-brussels",
-  ], "the index itself, the timetable and the last-minute link are not offers");
-  const trainOf = Object.fromEntries(links.map((l) => [l.path, trainForOfferText(l.text, TRAIN_CITIES)]));
+    "/flash-berlin-paris", "/flash-brussels-milan", "/flash-brussels-prague",
+    "/flash-milan-brussels", "/flash-paris-berlin", "/flash-prague-brussels",
+  ], "the index, its translations, the timetable and the last-minute link are not offers");
+  const trainOf = Object.fromEntries(
+    links.map((l) => [l.path, trainForOfferText(l.text, TRAIN_CITIES) ?? trainForOfferPath(l.path, TRAIN_CITIES, { text: l.text })]),
+  );
   assert.deepStrictEqual(trainOf, {
-    "/flash-sale-berlin-paris": "474", "/flash-sale-brussels-milan": "401", "/flash-sale-brussels-prague": "453",
-    "/flash-sale-milan-brussels": "400", "/flash-sale-paris-berlin": "475", "/flash-sale-prague-brussels": "452",
+    "/flash-berlin-paris": "474", "/flash-brussels-milan": "401", "/flash-brussels-prague": "453",
+    "/flash-milan-brussels": "400", "/flash-paris-berlin": "475", "/flash-prague-brussels": "452",
   });
+  // The text alone names no train — "to Brussels and Paris" has no origin.
+  assert.strictEqual(trainForOfferText("to Brussels and Paris", TRAIN_CITIES), null);
+  // The offer pages' own "more routes" links do carry the whole route.
+  assert.strictEqual(trainForOfferText("Flash Sale offer from Brussels and Cologne to Switzerland and Milan", TRAIN_CITIES), "401");
   // A route no train runs, or one two trains share, names nothing.
   assert.strictEqual(trainForOfferText("offer from Vienna to Rome", TRAIN_CITIES), null);
   assert.strictEqual(trainForOfferText("offer from Brussels to Prague and Milan", TRAIN_CITIES), null);
+  // An address is read as an exact endpoint pair. The last-minute pages slug
+  // a stretch of the route — /last-minutes-hamburg-berlin sells Paris → Berlin
+  // — and must read as no train, not a wrong one (the registry names theirs).
+  for (const p of ["/last-minutes-hamburg-berlin", "/last-minutes-brussels-paris", "/last-minutes-amsterdam-brussels", "/last-minute-switzerland-milan"]) {
+    assert.strictEqual(trainForOfferPath(p, TRAIN_CITIES), null, p);
+  }
+  // Where the link says where the offer goes, the train has to end there.
+  assert.strictEqual(trainForOfferPath("/flash-berlin-paris", TRAIN_CITIES, { text: "to Hamburg and Berlin" }), null);
+  assert.strictEqual(trainForOfferPath("/flash-sale-berlin-paris", TRAIN_CITIES), "474", "the longer prefix reads the same");
+  // Of two anchors to one page, the one naming a route wins.
+  const twice = findOfferLinks(
+    `<a href="/flash-x-y">to Y</a><a href="/flash-x-y">Flash Sale offer from X to Y</a>`,
+    { pathPattern: /flash/i },
+  );
+  assert.deepStrictEqual(twice, [{ path: "/flash-x-y", text: "Flash Sale offer from X to Y" }]);
   assert.strictEqual(saleEndDate(FLASH_INDEX, { today: TODAY }), "2026-10-06");
   assert.strictEqual(saleEndDate(FLASH_INDEX, { today: "2026-10-07" }), null, "a sale that has ended has no end date ahead");
+});
+
+await check("parseLastMinutePage: a date past the horizon drops its deal, never moves it onto an earlier date", () => {
+  // The first flash-sale scrape read this page with a 60-day horizon: the two
+  // December Mondays fell outside it, and the nearest date left in range was
+  // Monday 30 November — so all three deals were dated the 30th.
+  const wide = parseLastMinutePage(FLASH_PAGE, { today: TODAY, horizonDays: 92 });
+  assert.deepStrictEqual(
+    wide.deals.map((d) => [d.id, d.date, d.amount, dealKind(d)]),
+    [
+      ["1194", "2026-11-30", 49, "couchette"],
+      ["1197", "2026-12-07", 49, "couchette"],
+      ["1200", "2026-12-14", 49, "couchette"],
+      ["1187", "2026-11-13", 49, "couchette"],
+      ["1219", "2026-12-07", 199, "private"],
+    ],
+  );
+  assert.deepStrictEqual([wide.undated, wide.outside], [[], []]);
+  const narrow = parseLastMinutePage(FLASH_PAGE, { today: TODAY, horizonDays: 60 });
+  assert.deepStrictEqual(narrow.deals.map((d) => [d.id, d.date]), [["1194", "2026-11-30"], ["1187", "2026-11-13"]]);
+  assert.deepStrictEqual(narrow.outside, ["1197", "1200", "1219"]);
+  assert.deepStrictEqual(narrow.undated, []);
+  // A date in the deal's own text that is out of range drops it too.
+  const own = parseLastMinutePage(`<h3>Fri 02 Oct 26</h3><button name="price" value="77">Sun 06 Dec 26 &euro;49 p.p.</button>`, {
+    today: TODAY, horizonDays: 30,
+  });
+  assert.deepStrictEqual([own.deals, own.outside], [[], ["77"]]);
 });
 
 await check("fetchDeals: flash-sale deals carry their programme, train and last booking day", async () => {
   const fetchImpl = fakeSite([
     [/\/flash-sale$/, () => ({ body: FLASH_INDEX })],
-    [/\/flash-sale-brussels-prague$/, () => ({ body: FLASH_PAGE })],
-    [/\/flash-sale-/, () => ({ body: "<p>No dates left.</p>" })],
+    [/\/flash-brussels-prague$/, () => ({ body: FLASH_PAGE })],
+    [/\/flash-/, () => ({ body: "<p>No dates left.</p>" })],
     [/\/last-minute$/, () => ({ body: "" })],
-    [/receipt\/price\/1\/1201$/, () => ({ body: "&euro;49" })],
-    [/receipt\/price\/1\/1202$/, () => ({ body: "" })], // sold out since the page was built
+    [/receipt\/price\/1\/1200$/, () => ({ body: "" })], // sold out since the page was built
+    [/receipt\/price\/1\/1219$/, () => ({ body: "&euro;199" })],
+    [/receipt\/price\/1\/\d+$/, () => ({ body: "&euro;49" })],
   ]);
   const result = await fetchDeals({
     programmes: [{ id: "lastMinute", indexPath: "/last-minute", pages: [] }, { id: "flashSale", indexPath: "/flash-sale", pages: [] }],
@@ -714,10 +794,28 @@ await check("fetchDeals: flash-sale deals carry their programme, train and last 
     today: TODAY, fetchImpl, log: () => {}, spacingMs: 0,
   });
   assert.strictEqual(result.ok, true);
-  assert.deepStrictEqual(result.deals, [
-    { train: "453", date: "2026-11-13", kind: "couchette", amount: 49, landing: "/flash-sale-brussels-prague", id: "1201", programme: "flashSale", until: "2026-10-06" },
-  ]);
-  assert.strictEqual(result.pages.find((p) => p.path === "/flash-sale-brussels-prague").train, "453");
+  const flash = { kind: "couchette", amount: 49, landing: "/flash-brussels-prague", programme: "flashSale", until: "2026-10-06", train: "453" };
+  assert.deepStrictEqual(
+    result.deals.map(({ train, date, kind, amount, landing, id, programme, until }) => ({ train, date, kind, amount, landing, id, programme, until })),
+    [
+      { ...flash, date: "2026-11-30", id: "1194" },
+      { ...flash, date: "2026-12-07", id: "1197" },
+      // 1200 (14 December) sold out: its receipt answers nothing.
+      { ...flash, date: "2026-11-13", id: "1187" },
+      { ...flash, date: "2026-12-07", id: "1219", kind: "private", amount: 199 },
+    ],
+  );
+  const page = result.pages.find((p) => p.path === "/flash-brussels-prague");
+  assert.deepStrictEqual([page.train, page.ids, page.dated, page.outside], ["453", 5, 5, 0]);
+  assert.deepStrictEqual(
+    result.pages.filter((p) => p.programme === "flashSale").map((p) => p.train).sort(),
+    ["400", "401", "452", "453", "474", "475"],
+    "every offer page is tied to its train by its address",
+  );
+  assert.ok(
+    !fetchImpl.calls.some((c) => /\/(?:de|fr|it|nl)\/flash-sale/.test(c.url)),
+    "a translation of the index is not read as an offer page",
+  );
 });
 
 await check("applyDeals / stripDeals: a flash sale lands in its own class and goes when the sale ends", () => {

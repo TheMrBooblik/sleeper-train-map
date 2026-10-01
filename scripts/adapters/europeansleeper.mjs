@@ -559,8 +559,9 @@ async function priceTrains(trains, entry, ctx, log) {
     cfg.flashSale && { id: "flashSale", indexPath: "/flash-sale", ...cfg.flashSale },
   ].filter(Boolean);
   // A page that names no train in the registry is attributed by the route its
-  // link text names ("offer from Paris and Brussels to Hamburg and Berlin"),
-  // matched on the cities each train starts and ends in.
+  // link text names ("offer from Paris and Brussels to Hamburg and Berlin") or
+  // its address does (/flash-paris-berlin), matched on the cities each train
+  // starts and ends in.
   const trainCities = Object.fromEntries(
     Object.entries(trains).map(([key, t]) => [
       key,
@@ -584,9 +585,12 @@ async function priceTrains(trains, entry, ctx, log) {
               trainCities,
               today: ctx.today,
               fetchImpl: ctx.fetch ?? fetch,
+              // As far ahead as the calendar reaches: a flash sale sells
+              // nights two and a half months out.
+              ...(cfg.days ? { horizonDays: cfg.days } : {}),
             });
-            dealPages = result.pages.map(({ path: p, programme, status, ids, dated, used, train }) => ({
-              path: p, programme, status, ids, dated, used, train,
+            dealPages = result.pages.map(({ path: p, programme, status, ids, dated, outside, used, train }) => ({
+              path: p, programme, status, ids, dated, ...(outside ? { outside } : {}), used, train,
             }));
             return result;
           }

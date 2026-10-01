@@ -31,6 +31,7 @@ import {
   parseEuroAmount,
   parseLastMinutePage,
   saleEndDate,
+  trainForOfferPath,
   trainForOfferText,
 } from "./lib/es-last-minute.mjs";
 import { cityForStation } from "../src/lib/seo/cities.mjs";
@@ -170,7 +171,8 @@ const flashLinks = findOfferLinks(flashIndex.body, { pathPattern: /flash/i, inde
 console.log(
   `flash index: HTTP ${flashIndex.status} ${flashIndex.error ?? ""} (${flashIndex.body.length} bytes); sale ends ${saleEndDate(flashIndex.body, { today }) ?? "?"}`,
 );
-for (const l of flashLinks) console.log(`  ${l.path}  "${l.text}" → ES ${trainForOfferText(l.text, trainCities) ?? "?"}`);
+const offerTrain = (l) => trainForOfferText(l.text, trainCities) ?? trainForOfferPath(l.path, trainCities, { text: l.text });
+for (const l of flashLinks) console.log(`  ${l.path}  "${l.text}" → ES ${offerTrain(l) ?? "?"}`);
 const paths = [
   ...new Set([
     ...flashLinks.map((l) => l.path),
@@ -183,8 +185,11 @@ for (const p of paths) {
   const page = await get(`${SITE}${p}`);
   save(`page${p.replace(/\//g, "_")}.html`, page.body);
   console.log(`\n--- ${p}: HTTP ${page.status} ${page.error ?? ""} ${page.url && page.url !== `${SITE}${p}` ? `(→ ${page.url})` : ""} ${page.body.length} bytes ---`);
-  const parsed = parseLastMinutePage(page.body, { today, trainNumbers: Object.keys(trains) });
-  console.log(`parser: ${parsed.ids} id(s), ${parsed.deals.length} dated, undated: ${parsed.undated.join(", ") || "none"}`);
+  const parsed = parseLastMinutePage(page.body, { today, horizonDays: cfg.days ?? 92, trainNumbers: Object.keys(trains) });
+  console.log(
+    `parser: ${parsed.ids} id(s), ${parsed.deals.length} dated, undated: ${parsed.undated.join(", ") || "none"}, ` +
+      `outside the window: ${parsed.outside.join(", ") || "none"}`,
+  );
   for (const d of parsed.deals) console.log(`  deal ${d.id}: ${d.date} ${d.amount ?? "?"} ${d.kind ?? "?"} train=${d.trainNumber ?? "?"}`);
   const ids = findDealIds(page.body).slice(0, 5);
   for (const { id, own } of ids) {
@@ -194,7 +199,7 @@ for (const p of paths) {
   // The markup around each deal button, raw: which tab/section/route heading
   // a deal sits under is what attributes it to a train, and the visible text
   // alone does not show the nesting.
-  if (/flash/.test(p) && p === paths[0]) {
+  if (p === flashLinks[0]?.path) {
     for (const m of [...page.body.matchAll(/<button\b[^>]*name=["']price["'][^>]*>/gi)].slice(0, 12)) {
       const at = m.index;
       console.log(`  --- raw around price button @${at} ---`);
