@@ -7,6 +7,7 @@ import {
 } from "../lib/seo/aggregate";
 import { SITE_URL } from "../lib/seo/site";
 import { lastmodFor } from "../lib/seo/lastmod.mjs";
+import { FACTS, snippetVariantFor } from "../lib/seo/snippet.mjs";
 
 /**
  * Staged indexation. At ~25 crawls/month Google samples and rations, so shipping
@@ -102,7 +103,15 @@ function generateSiteMap() {
     const pairs = [...getAllCityPairs()].sort(
       (a, b) => b.routeCount - a.routeCount || a.slug.localeCompare(b.slug),
     );
-    const shipped = SITEMAP_BATCH >= 2 ? pairs : pairs.slice(0, BATCH_1_CONNECTIONS);
+    // …plus every page in the snippet rollout (src/lib/seo/snippet.mjs), so a
+    // page being measured is never one Google has to stumble on. European
+    // Sleeper's Brussels–Prague, its main line, ranked 88th by the alphabetical
+    // tie-break among one-train corridors and was in no sitemap at all.
+    const inRollout = (pair) => snippetVariantFor(pair.operatorIds || []) === FACTS;
+    const shipped =
+      SITEMAP_BATCH >= 2
+        ? pairs
+        : pairs.filter((pair, i) => i < BATCH_1_CONNECTIONS || inRollout(pair));
     for (const pair of shipped) {
       entries.push(
         urlEntry(

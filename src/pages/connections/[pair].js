@@ -18,7 +18,13 @@ import {
   getRelatedConnections,
 } from "../../lib/seo/aggregate";
 import { getRouteDetail } from "../../lib/seo/data";
-import { formatTrainNumber, joinTrainNumbers } from "../../lib/operatorAgencies.mjs";
+import { cityForStation } from "../../lib/seo/cities.mjs";
+import { connectionSnippet, snippetVariantFor } from "../../lib/seo/snippet.mjs";
+import {
+  formatTrainNumber,
+  joinTrainNumbers,
+  splitAgencyIds,
+} from "../../lib/operatorAgencies.mjs";
 import { buildConnectionFaq } from "../../lib/seo/routeFaq.mjs";
 import {
   getBookingGuide,
@@ -44,23 +50,14 @@ export default function ConnectionPage({
   operators,
   countries,
   related,
+  title,
+  description,
+  intro,
   faq,
-  fromPrice,
   bookingGuide,
 }) {
   const canonical = absoluteUrl(`/connections/${slug}`);
-  const title = `Night Trains ${cityA} to ${cityB} — Times, Stops & Tickets | Pingwi`;
   const operatorNames = operators.map((o) => o.name).join(", ");
-  // "What does it cost" is the question searchers ask and the one a snippet can
-  // answer in four words, so the price displaces the generic "Compare…" tail
-  // rather than being appended past where the description gets truncated. It is
-  // only ever a real sampled fare — no price, no sentence.
-  const description =
-    `${trains.length} night ${trains.length === 1 ? "train connects" : "trains connect"} ${cityA} and ${cityB}` +
-    (operatorNames ? `, run by ${operatorNames}.` : ".") +
-    (fromPrice
-      ? ` Tickets ${fromPrice}. Timetables, stops, journey time and where to book.`
-      : " Compare timetables, stops, journey time and where to book.");
 
   const itemListLd = {
     "@context": "https://schema.org",
@@ -130,8 +127,13 @@ export default function ConnectionPage({
             <h1 className="mt-2 text-3xl sm:text-4xl font-bold text-white tracking-tight text-balance">
               Night Trains from {cityA} to {cityB}
             </h1>
+            {/* `intro` and not `description`: on a page that renders the
+                FACTS snippet the meta description leads with the train and its
+                clock, which is a snippet and not an opening sentence. `intro`
+                is the prose the page has always opened with, and on every other
+                page the two are the same string. See src/lib/seo/snippet.mjs. */}
             <p className="mt-4 text-white/70 leading-relaxed text-pretty">
-              {description} Trains run in both directions — {cityA} to {cityB} and{" "}
+              {intro} Trains run in both directions — {cityA} to {cityB} and{" "}
               {cityB} to {cityA}.
             </p>
           </header>
@@ -262,6 +264,15 @@ export default function ConnectionPage({
   );
 }
 
+/** [lat, lon] for a resolved stop, or null when it carries no coordinate. */
+function stopPosition(stop) {
+  const lat = Number(stop?.lat);
+  const lon = Number(stop?.lon);
+  return stop?.lat != null && stop?.lon != null && Number.isFinite(lat) && Number.isFinite(lon)
+    ? [lat, lon]
+    : null;
+}
+
 /**
  * The route's cheapest known fare as { lowPrice, currency }, or null.
  * Route-level price first, operator default second — getOperatorPricing()'s own
@@ -364,7 +375,7 @@ export async function getStaticProps({ params }) {
     operators: pair.operators.map((o) => o.name),
     fastestDurationText: fastest?.durationText || "",
     // The answer is prose with room for the euro figure; the meta description
-    // (props.fromPrice below) keeps the bare fare to stay inside a snippet.
+    // (the snippet below) keeps the bare fare to stay inside a snippet.
     fromPrice: cheapest?.fromPrice
       ? `${cheapest.fromPrice}${cheapest.fromPriceEur ? ` (${cheapest.fromPriceEur})` : ""}`
       : "",
@@ -379,6 +390,56 @@ export async function getStaticProps({ params }) {
     else t.map = null;
   }
 
+  // Every direction of every train on the corridor, flattened, so the snippet
+  // builder can pick the one it describes. Cities as well as stations, because
+  // the sentence has to name the places the title names — a page headed
+  // "Vienna to Zurich" whose description leaves "Wien Hbf" reads as a
+  // different page, and it is the city the searcher typed.
+  const snippetDirections = trains.flatMap((t) =>
+    t.directions.map((d) => ({
+      trainLabel: d.trainNumber,
+      operator: t.operators[0]?.name || "",
+      origin: d.origin,
+      destination: d.destination,
+      originCity: cityForStation(d.origin),
+      destinationCity: cityForStation(d.destination),
+      departure: d.departureTime,
+      arrival: d.arrivalTime,
+      serviceDays: d.serviceDays,
+      stopCount: d.stops.length,
+      // The ground the journey covers, so a stated time that could not have
+      // covered it is withheld rather than printed. A stop with no coordinate
+      // yields no position and the check simply does not fire.
+      originPos: stopPosition(d.stops[0]),
+      destinationPos: stopPosition(d.stops[d.stops.length - 1]),
+      durationText: t.facts.durationText,
+      classes: t.facts.classes,
+    })),
+  );
+
+  // The fact-bearing snippet renders only on the corridors snippetVariantFor()
+  // names (European Sleeper's, to start); every other page keeps its wording
+  // byte for byte.
+  const snippet = connectionSnippet({
+    cityA: pair.cityA,
+    cityB: pair.cityB,
+    // `trains`, not `pair.routes`: a route whose detail cannot be built is
+    // dropped above and never rendered, and the description has to count
+    // what the page actually shows.
+    trainCount: trains.length,
+    operatorNames: pair.operators.map((o) => o.name).join(", "),
+    // Already formatted ("from €39") by buildSummary; the FAQ answer above
+    // uses the same figure, so the snippet and the page cannot quote
+    // different prices. It is only ever a real sampled fare — no price, no
+    // sentence.
+    fromPrice: cheapest?.fromPrice || "",
+    directions: snippetDirections,
+    variant: snippetVariantFor(trains.flatMap((t) => splitAgencyIds(t.agencyId))),
+    // The build date: a timetable that has not started yet (the December
+    // preview rows) is not the one the snippet describes.
+    today: new Date().toISOString().slice(0, 10),
+  });
+
   return {
     props: {
       slug: pair.slug,
@@ -388,11 +449,12 @@ export async function getStaticProps({ params }) {
       operators: pair.operators,
       countries: pair.countries,
       related: getRelatedConnections(pair.slug, 8),
+      title: snippet.title,
+      description: snippet.description,
+      // The page's visible opening paragraph, which on a FACTS page is
+      // deliberately not the meta description.
+      intro: snippet.intro,
       faq,
-      // Already formatted ("from €39") by buildSummary; the FAQ answer above
-      // uses the same string, so the snippet and the page cannot quote
-      // different figures.
-      fromPrice: cheapest?.fromPrice || null,
       bookingGuide: guideProps(guide),
     },
   };
