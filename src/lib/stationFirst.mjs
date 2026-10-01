@@ -94,12 +94,6 @@ export function stationFirstEndpoints(
   if (!twoWay) {
     if (a && inSelectedCity(a))
       return { from: a, to: b, direction: 0, fromIsSelected: true };
-    // Ending here wins over passing through here: NJ 13487 calls at Wien
-    // Meidling on its way into Wien Hbf, and a click on Vienna named it
-    // "Wien Meidling – Wien Hbf", a ride across town, rather than the train
-    // arriving from Zürich.
-    if (b && inSelectedCity(b))
-      return { from: a, to: b, direction: 0, fromIsSelected: false };
     const vias = route?.via_0 ? splitVia(route.via_0) || [] : [];
     const stop = vias.find((s) => inSelectedCity(s));
     if (stop) return { from: stop, to: b, direction: 0, fromIsSelected: true };
