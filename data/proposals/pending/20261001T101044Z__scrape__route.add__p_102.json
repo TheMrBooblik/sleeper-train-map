@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_102",
+  "createdAt": "2026-10-01T10:10:44.053Z",
+  "source": "scrape",
+  "sourceDetail": "backontrack",
+  "kind": "route.add",
+  "title": "New train: IC Notte 1958 (Palermo Centrale – Roma Termini)",
+  "summary": "Route \"102\" appeared in tonight's scrape and is withheld from the map until approved. Via: Termini Imerese - Barcellona Castroreale - Messina Centrale - Salerno - Napoli Centrale",
+  "target": {
+    "routeKey": "102",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "IC Notte 1958",
+    "returnTrain": "IC Notte 1959 (P)",
+    "origin": "Palermo Centrale",
+    "destination": "Roma Termini",
+    "operator": "FS",
+    "operatingDays": "2026: Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "102"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
