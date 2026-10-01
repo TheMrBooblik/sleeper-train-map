@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-10-01",
+  "createdAt": "2026-10-01T10:10:44.059Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (2 routes, 0 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute cr_Z_6: Z 6 (Nanning(南宁) – Beijing West(北京西))\nroute cr_Z_286: Z 286 (Nanning(南宁) – Beijing West(北京西))",
+  "target": {
+    "routeKey": "trusted-2026-10-01",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
