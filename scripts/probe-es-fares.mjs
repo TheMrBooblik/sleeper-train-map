@@ -145,7 +145,16 @@ const index = await get(`${SITE}${cfg.lastMinute?.indexPath ?? "/last-minute"}`)
 save("last-minute-index.html", index.body);
 const discovered = findLandingPaths(index.body);
 console.log(`index: HTTP ${index.status} ${index.error ?? ""} (${index.body.length} bytes) → ${discovered.join(", ") || "no landing links found"}`);
-const paths = [...new Set([...(cfg.lastMinute?.pages ?? []).map((p) => p.path), ...discovered])];
+// The flash sale is a separate page (/flash-sale) with its own form; it is
+// read here whether or not the registry lists it yet, so its markup can be
+// seen before a parser rule is written for it.
+const paths = [
+  ...new Set([
+    "/flash-sale",
+    ...(cfg.lastMinute?.pages ?? []).map((p) => p.path),
+    ...discovered,
+  ]),
+];
 const texts = [];
 for (const p of paths) {
   const page = await get(`${SITE}${p}`);
@@ -158,6 +167,19 @@ for (const p of paths) {
   for (const { id, own } of ids) {
     const r = await get(`${SITE}/receipt/price/1/${id}`);
     console.log(`  /receipt/price/1/${id}: HTTP ${r.status} "${cap(r.body.trim(), 80)}" → ${parseEuroAmount(r.body)} | own text: "${cap(own, 120)}"`);
+  }
+  // The markup around each deal button, raw: which tab/section/route heading
+  // a deal sits under is what attributes it to a train, and the visible text
+  // alone does not show the nesting.
+  if (/flash/.test(p)) {
+    for (const m of [...page.body.matchAll(/<button\b[^>]*name=["']price["'][^>]*>/gi)].slice(0, 12)) {
+      const at = m.index;
+      console.log(`  --- raw around price button @${at} ---`);
+      console.log(cap(page.body.slice(Math.max(0, at - 1500), at + 400).replace(/\s+/g, " "), 2200));
+    }
+    for (const m of [...page.body.matchAll(/<(?:div|section|button|a|li)\b[^>]*(?:tab|route|panel)[^>]*>/gi)].slice(0, 40)) {
+      console.log(`  tabish: ${cap(m[0], 240)}`);
+    }
   }
   console.log("form digest:");
   for (const line of formDigest(page.body).slice(0, 150)) console.log(`  ${cap(line, 300)}`);
