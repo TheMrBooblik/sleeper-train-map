@@ -2,16 +2,18 @@
 // The nightjet adapter must find every train nightjet.com lists — in any
 // country, on any night — without being told which to look for.
 //
-// It used to ask about one date (tonight) and six hard-coded countries, and the
-// scrape runner drops a train the moment a healthy fetch omits it. So a train
-// not running tonight left the map, a train calling only outside DE/AT/IT/NL/
-// CH/BE was never found, partner EuroNights the country search listed were
-// thrown away for the partner list, and that list was cut at 25.
+// It used to search six hard-coded countries, throw away the partner
+// EuroNights the country search listed (keeping only the partner list, cut at
+// 25), and ask about tonight alone. The live API answers each listing with a
+// train's NEXT run (tests/fixtures/nightjet/: EN 40465 is listed for 15 October
+// in the answers for 1 October), which is what kept the one-date search whole;
+// the adapter now reads that date instead of relying on it by accident, and
+// walks a window only if the API ever stops looking ahead.
 //
-// Two live answers captured in a browser (tests/fixtures/nightjet/) pin the
-// API's shape; the rest runs the real adapter against a stubbed nightjet.com
-// that answers a country pair the way the live one does — every train calling
-// in the first country and later in the second. Raw node, no network.
+// Three live answers captured in a browser pin the API's shape; the rest runs
+// the real adapter against a stubbed nightjet.com that answers a country pair
+// the way the live one does — every train calling in the first country and
+// later in the second. Raw node, no network.
 // Run: npm run verify-nightjet-discovery
 import assert from "node:assert";
 import fs from "node:fs";
@@ -161,6 +163,26 @@ await check("a country pair outside the six answers, partner trains included", (
   const entries = fixture("country-54-81-2026-10-01.json").map((e) => readListingEntry(e, TONIGHT));
   assert.deepStrictEqual(entries.map((e) => e.trainNumber), ["EN 40417", "EN 40407", "NJ 457"]);
   assert.deepStrictEqual(entries.map((e) => e.partnerTrain), [true, true, false]);
+});
+
+await check("the live country search lists each train's next run, so one date suffices", async () => {
+  // GET …/country/85/country/78/2026-10-01 answered with EN 40465 for 15 October.
+  const live = fixture("country-85-78-2026-10-01.json");
+  assert.strictEqual(readListingEntry(live[0], TONIGHT).date, OCT15);
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    calls.push(u);
+    const ok = (body) => ({ ok: true, status: 200, json: async () => body });
+    if (u.endsWith(`/country/85/country/78/${TONIGHT}`)) return ok(live);
+    if (/\/destinations\/(country|partner)\//.test(u)) return ok([]);
+    return ok({ route: { stops: [] } });
+  };
+  const { lookAhead, perDate } = await quiet(() =>
+    discoverTrains({ seedCodes: ["85", "78"], dates: discoveryDates(TONIGHT, 7), fetchRoutes: false }),
+  );
+  assert.strictEqual(lookAhead, true);
+  assert.strictEqual(perDate.length, 1, "the window stops after tonight");
 });
 
 await check("a route stop's country is the first two digits of its EVA number", () => {

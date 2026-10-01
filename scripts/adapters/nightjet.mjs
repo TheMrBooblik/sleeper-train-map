@@ -164,13 +164,12 @@ const MAX_ROUNDS = 8;
  * EuroNight's countries before the first round.
  *
  * Dates: the scrape runner drops a train the moment a healthy fetch omits it,
- * so a train must be found on any night, not only the nights it runs. The
- * listings answer with each train's NEXT run (the partner list for 1 October
- * carries EN 40465 as 15 October), and a country search that does the same
- * makes tonight enough; one that only lists tonight's trains needs the whole
- * window. So the window is walked until the country search is seen answering
- * with a later date than the one asked — then it stops, since every train the
- * window would add is already listed.
+ * so a train must be found on any night, not only the nights it runs. The live
+ * listings answer with each train's NEXT run — the partner list and the
+ * country search for 1 October both carry EN 40465 as 15 October — which makes
+ * tonight enough; an API that only listed tonight's trains would need the
+ * whole window. So the window is walked until the country search is seen
+ * answering with a later date than the one asked, which today is the first.
  *
  * Routes are fetched on each train's own next date, the night it runs.
  *
