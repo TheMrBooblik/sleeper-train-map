@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { getOperatorBaseColor } from "@components/Map/utils/operatorColors";
+import { joinTrainNumbers } from "../../lib/operatorAgencies.mjs";
+import { eurRateNote } from "../../lib/fx.mjs";
 
 /**
  * A link card for a single train route, used in the hub-page lists.
@@ -27,7 +29,7 @@ export default function RouteCardLink({ route }) {
           </h3>
           {route.trainNumbers?.length > 0 && (
             <span className="shrink-0 text-xs font-mono text-white/50">
-              {route.trainNumbers.join(" / ")}
+              {joinTrainNumbers(route.trainNumbers)}
             </span>
           )}
         </div>
@@ -49,7 +51,14 @@ export default function RouteCardLink({ route }) {
               <span aria-hidden="true">·</span>
             )}
             {route.fromPrice && (
-              <span className="text-primary-green/80">{route.fromPrice}</span>
+              <span className="text-primary-green/80">
+                {route.fromPrice}
+                {route.fromPriceEur && (
+                  <span className="text-white/40" title={eurRateNote()}>
+                    {" "}({route.fromPriceEur})
+                  </span>
+                )}
+              </span>
             )}
             {route.futureFrom && (
               <span className="rounded-full bg-amber-400/10 px-2 py-0.5 text-amber-300/90">

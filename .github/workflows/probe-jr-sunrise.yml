@@ -1,0 +1,41 @@
+name: Probe JR Sunrise source
+
+# What the jr-sunrise adapter makes of JR West's live pages. The dev sandbox has
+# no egress to JR's hosts, so the timetable and berth-charge parsers in
+# scripts/lib/jr-sunrise.mjs were written without seeing the markup; this prints
+# per page the stop records it extracted and whether each train validates, then
+# the page text itself (last, so the log tail carries it).
+#
+# Label a PR `run-probes` to run it from the PR head — a workflow_dispatch probe
+# cannot run until its file is on the default branch (see CLAUDE.md).
+#
+# Read-only: GET requests, nothing committed.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  probe:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'run-probes'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: node scripts/probe-jr-sunrise.mjs probe-output
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jr-sunrise-probe-output
+          path: probe-output/
+          retention-days: 7

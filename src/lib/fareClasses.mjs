@@ -26,16 +26,26 @@ export const CURRENCY_SYMBOLS = {
   UAH: "₴",
   TRY: "₺",
   CNY: "¥",
+  JPY: "¥",
   GEL: "₾",
   AZN: "₼",
   AMD: "֏",
 };
 
+// Currencies whose fares run to five digits, where "¥23210" is hard to read.
+// Grouped with a fixed comma rather than Intl, because this string is
+// server-rendered on the connection pages and Node's ICU and a browser's do not
+// always agree on separators. Everything else prints exactly as before.
+const GROUPED_CURRENCIES = new Set(["JPY"]);
+
 /** "¥335.5" — the amount as the operator quotes it, with the currency's symbol. */
 export function formatMoney(amount, currency) {
   if (!Number.isFinite(amount)) return "";
   const symbol = CURRENCY_SYMBOLS[currency] || (currency ? `${currency} ` : "");
-  return `${symbol}${amount}`;
+  const figure = GROUPED_CURRENCIES.has(currency)
+    ? String(Math.round(amount)).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+    : amount;
+  return `${symbol}${figure}`;
 }
 
 /** Traveller-facing names for the berth classes a fare may carry. */
@@ -50,6 +60,16 @@ export const FARE_CLASS_LABELS = {
   // map shows sleeping places only, and a class without a label is skipped.
   couchette: "Couchette",
   sleeperCabin: "Sleeper cabin",
+  // JR West's Sunrise Izumo / Seto (scripts/lib/jr-sunrise.mjs). Every figure
+  // is per traveller for the whole route. Nobinobi is a numbered, carpeted
+  // space on the floor — a place to lie down with no cabin, and the cheapest
+  // way to sleep on the train, so it is listed rather than left out as a seat.
+  nobinobi: "Nobinobi carpet space",
+  soloCabin: "Solo cabin",
+  singleCabin: "Single cabin",
+  singleTwinCabin: "Single Twin cabin",
+  twinCabinPerPerson: "Sunrise Twin, per person (2 sharing)",
+  deluxeSingleCabin: "Single Deluxe cabin",
 };
 
 export function fareClassLabel(key) {

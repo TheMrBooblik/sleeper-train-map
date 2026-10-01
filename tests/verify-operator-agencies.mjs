@@ -7,6 +7,7 @@ import {
   resolveOperatorComponents,
   resolveBookingHref,
   formatTrainNumber,
+  joinTrainNumbers,
 } from "../src/lib/operatorAgencies.mjs";
 import OPERATOR_BOOKING from "../data/overrides/operator-booking.json" with { type: "json" };
 
@@ -343,6 +344,24 @@ check(formatTrainNumber("400", null) === "400", "null agency → unchanged");
 }
 
 check(formatTrainNumber(" 400 ", "ES") === "ES 400", "surrounding whitespace is trimmed");
+
+// ── joinTrainNumbers ────────────────────────────────────────────────────────
+// A shared multi-word name is written once; a one-token category code stays on
+// every number, since it is part of how the number is written.
+check(
+  joinTrainNumbers(["Sunrise Izumo 4031M", "Sunrise Izumo 4032M"]) === "Sunrise Izumo 4031M / 4032M",
+  'the Sunrise pair reads "Sunrise Izumo 4031M / 4032M", not the name twice',
+);
+check(joinTrainNumbers(["IC Nuit 3750", "IC Nuit 3751"]) === "IC Nuit 3750 / 3751", "IC Nuit is a name too");
+check(joinTrainNumbers(["NJ 402", "NJ 403"]) === "NJ 402 / NJ 403", "a category code stays on each number");
+check(joinTrainNumbers(["Z 21", "Z 22"]) === "Z 21 / Z 22", "China Railway's letters stay");
+check(
+  joinTrainNumbers(["Sunrise Izumo 4031M", "Sunrise Seto 5032M"]) === "Sunrise Izumo 4031M / Sunrise Seto 5032M",
+  "a different name is kept whole",
+);
+check(joinTrainNumbers(["ICN 752"]) === "ICN 752", "one number is just that number");
+check(joinTrainNumbers(["NJ 402", "NJ 402", ""]) === "NJ 402", "duplicates and blanks drop out");
+check(joinTrainNumbers(undefined) === "", "no numbers, no label");
 
 check(OPERATORS.LE?.name === "Leo Express", 'LE curated name is "Leo Express"');
 check(OPERATORS.LE?.slug === "leo-express", 'LE curated slug is "leo-express"');

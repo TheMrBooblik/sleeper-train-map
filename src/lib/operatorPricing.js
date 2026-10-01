@@ -10,7 +10,7 @@
 import OPERATOR_PRICING from "../../data/overrides/operator-pricing.json";
 import { pricingAdvice, formatCheckedAt } from "./pricingAdvice.mjs";
 import { resolvePricing } from "./pricingResolve.mjs";
-import { CURRENCY_SYMBOLS } from "./fareClasses.mjs";
+import { CURRENCY_SYMBOLS, formatMoney } from "./fareClasses.mjs";
 
 export { pricingAdvice, formatCheckedAt };
 
@@ -46,10 +46,7 @@ export function formatPricingLabel(pricing) {
   if (pricing.type === "dynamic") return advice.headline;
 
   if (pricing.fromPrice != null) {
-    const symbol =
-      CURRENCY_SYMBOLS[pricing.currency] ||
-      (pricing.currency ? `${pricing.currency} ` : "");
-    return `${advice.headline} · from ${symbol}${pricing.fromPrice}`;
+    return `${advice.headline} · from ${priceText(pricing)}`;
   }
   return advice.headline;
 }
@@ -61,10 +58,21 @@ export function formatPricingLabel(pricing) {
  */
 export function formatFromPrice(pricing) {
   if (!pricing || pricing.fromPrice == null) return null;
+  return `from ${priceText(pricing)}`;
+}
+
+// The figure with its currency symbol. A numeric price goes through
+// formatMoney so a yen fare reads "¥16,040" everywhere it appears; anything
+// else (a hand-entered string) prints as it always has.
+function priceText(pricing) {
+  const amount = pricing.fromPrice;
+  if (typeof amount === "number" && Number.isFinite(amount)) {
+    return formatMoney(amount, pricing.currency);
+  }
   const symbol =
     CURRENCY_SYMBOLS[pricing.currency] ||
     (pricing.currency ? `${pricing.currency} ` : "");
-  return `from ${symbol}${pricing.fromPrice}`;
+  return `${symbol}${amount}`;
 }
 
 /**

@@ -35,7 +35,8 @@ import {
   formatFutureFrom,
 } from "./format";
 import { getOperatorPricing, formatFromPrice, formatCheckedAt } from "../operatorPricing";
-import { directionFareSummary, isDynamicPricing } from "../fareClasses.mjs";
+import { directionFare, directionFareSummary, isDynamicPricing } from "../fareClasses.mjs";
+import { eurHintFor, formatEurApprox } from "../fx.mjs";
 import { fareCalendarDays } from "../fareCalendarView.mjs";
 import { buildDatedBookingLink } from "../operatorBooking.js";
 import {
@@ -394,6 +395,8 @@ function buildSummary(route) {
     durationText: formatDurationMinutes(durationMinutes),
     pricing,
     fromPrice: formatFromPrice(pricing),
+    // "≈ €87" beside a fare in another currency, or "" (src/lib/fx.mjs).
+    fromPriceEur: eurHintFor(pricing),
     // "YYYY-MM-DD" or "" — every hub page's lastmod is the max over its routes.
     lastChanged: getRouteHistory()[String(routeId)]?.lastChanged || "",
     futureStartDate,
@@ -420,6 +423,7 @@ export function toCardRoute(s) {
     operators: s.operators,
     durationText: s.durationText || "",
     fromPrice: s.fromPrice || null,
+    fromPriceEur: s.fromPriceEur || "",
     futureFrom: s.futureFrom || "",
   };
 }
@@ -446,8 +450,14 @@ export function getRouteSlugMap() {
  */
 // "Checked September 2026" beside a fare, formatted at build time like the
 // facts tile's, so a static page never claims a price was confirmed today.
-function withCheckedLabel(fare) {
-  return fare ? { ...fare, checkedLabel: formatCheckedAt(fare.checkedAt) } : null;
+function withCheckedLabel(fare, currency = null) {
+  if (!fare) return null;
+  return {
+    ...fare,
+    checkedLabel: formatCheckedAt(fare.checkedAt),
+    // Each berth class's euro equivalent — the connection page has the room.
+    classes: (fare.classes ?? []).map((c) => ({ ...c, eur: formatEurApprox(c.amount, currency) })),
+  };
 }
 
 /**
@@ -560,7 +570,7 @@ export function getRouteDetail(routeId) {
       scheduleAffiliate: Boolean(schedule?.affiliate),
       // This train's own official fare, per berth class — the facts tile above
       // shows the cheaper of the two directions, this is the one you'd pay.
-      fare: withCheckedLabel(directionFareSummary(route, dir)),
+      fare: withCheckedLabel(directionFareSummary(route, dir), directionFare(route, dir)?.currency),
       // …and every night's, where the source keeps a calendar.
       fareCalendar: fareCalendarFor(route, dir, {
         origin,
@@ -615,7 +625,7 @@ export function getRouteDetail(routeId) {
     scheduleStops: primary.stops || [],
   });
   const booking = resolvedBooking
-    ? { ...resolvedBooking, fromPrice: summary.fromPrice || null }
+    ? { ...resolvedBooking, fromPrice: summary.fromPrice || null, fromPriceEur: summary.fromPriceEur || "" }
     : null;
 
   return {

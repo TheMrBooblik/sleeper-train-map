@@ -57,6 +57,9 @@ export const OPERATOR_BRAND_COLORS = {
   // China
   CR: "#C8102E", // China Railway – China red
 
+  // Japan
+  JRW: "#0072BC", // JR West – JR West blue
+
   // Caucasus
   GR: "#D4380D", // Georgian Railway – Georgian red-orange
   ADY: "#0080C8", // ADY (Azerbaijan Railways) – ADY blue

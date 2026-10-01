@@ -9,6 +9,7 @@ import RouteFactsGrid from "@components/seo/RouteFactsGrid";
 import RouteMapIsland from "@components/seo/RouteMapIsland";
 import BookingCta from "@components/seo/BookingCta";
 import FaqSection from "@components/seo/FaqSection";
+import BookingGuide from "@components/BookingGuide";
 import JsonLd from "@components/seo/JsonLd";
 
 import {
@@ -17,8 +18,13 @@ import {
   getRelatedConnections,
 } from "../../lib/seo/aggregate";
 import { getRouteDetail } from "../../lib/seo/data";
-import { formatTrainNumber } from "../../lib/operatorAgencies.mjs";
+import { formatTrainNumber, joinTrainNumbers } from "../../lib/operatorAgencies.mjs";
 import { buildConnectionFaq } from "../../lib/seo/routeFaq.mjs";
+import {
+  getBookingGuide,
+  guideProps,
+  withBookingGuideFaq,
+} from "../../lib/bookingGuide.mjs";
 import { getFlagEmoji } from "../../lib/countries";
 import { getOperatorPricing, pricingAdvice } from "../../lib/operatorPricing";
 import { offerFromPricing, offerLd } from "../../lib/seo/offers.mjs";
@@ -40,6 +46,7 @@ export default function ConnectionPage({
   related,
   faq,
   fromPrice,
+  bookingGuide,
 }) {
   const canonical = absoluteUrl(`/connections/${slug}`);
   const title = `Night Trains ${cityA} to ${cityB} — Times, Stops & Tickets | Pingwi`;
@@ -175,7 +182,7 @@ export default function ConnectionPage({
                   {t.trainNumbers.length > 0 && (
                     <span className="font-semibold text-white/50">
                       {" "}
-                      ({t.trainNumbers.join(" / ")})
+                      ({joinTrainNumbers(t.trainNumbers)})
                     </span>
                   )}
                 </h3>
@@ -207,6 +214,11 @@ export default function ConnectionPage({
               </div>
             ))}
           </section>
+
+          {/* How buying a ticket works, where the operator's booking has quirks
+              the Book button cannot explain (the Sunrise's one-month, 10:00 JST
+              sale and its "1 adult" twin rooms). */}
+          {bookingGuide && <BookingGuide guide={bookingGuide} className="mt-12" />}
 
           <div className="mt-10">
             <Link
@@ -341,16 +353,24 @@ export async function getStaticProps({ params }) {
       .filter(Boolean),
   );
 
-  const faq = buildConnectionFaq({
+  // A guide belongs to the corridor when any of its trains' operators has one.
+  const guide =
+    trains.map((t) => getBookingGuide({ agencyId: t.agencyId })).find(Boolean) ?? null;
+
+  const faq = withBookingGuideFaq(buildConnectionFaq({
     originCity: pair.cityA,
     destCity: pair.cityB,
     trainCount: pair.routes.length,
     operators: pair.operators.map((o) => o.name),
     fastestDurationText: fastest?.durationText || "",
-    fromPrice: cheapest?.fromPrice || "",
+    // The answer is prose with room for the euro figure; the meta description
+    // (props.fromPrice below) keeps the bare fare to stay inside a snippet.
+    fromPrice: cheapest?.fromPrice
+      ? `${cheapest.fromPrice}${cheapest.fromPriceEur ? ` (${cheapest.fromPriceEur})` : ""}`
+      : "",
     pricingType: pricingTypes.size === 1 ? [...pricingTypes][0] : "",
     hasLastMinuteDeals: trains.some((t) => t.booking?.dealsUrl),
-  });
+  }), guide);
 
   // Drop the map from all but the first train that has one.
   let mapUsed = false;
@@ -373,6 +393,7 @@ export async function getStaticProps({ params }) {
       // uses the same string, so the snippet and the page cannot quote
       // different figures.
       fromPrice: cheapest?.fromPrice || null,
+      bookingGuide: guideProps(guide),
     },
   };
 }

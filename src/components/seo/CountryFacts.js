@@ -1,12 +1,18 @@
 import { formatFromPrice } from "../../lib/operatorPricing";
+import { eurHintFor, eurRateNote } from "../../lib/fx.mjs";
 
 /** A single labelled stat tile. Renders nothing when it has no value. */
-function Fact({ label, value }) {
+function Fact({ label, value, sub = "", subTitle = undefined }) {
   if (!value) return null;
   return (
     <div className="rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3">
       <div className="text-xs uppercase tracking-wide text-white/40">{label}</div>
       <div className="mt-1 text-sm font-medium text-white">{value}</div>
+      {sub && (
+        <div className="text-xs text-white/40" title={subTitle}>
+          {sub}
+        </div>
+      )}
     </div>
   );
 }
@@ -32,6 +38,8 @@ export default function CountryFacts({ facts, stationCount }) {
       <Fact
         label="Tickets"
         value={fromLabel ? fromLabel.replace(/^from/, "From") : null}
+        sub={eurHintFor(facts.minFromPrice) ? `(${eurHintFor(facts.minFromPrice)})` : ""}
+        subTitle={eurRateNote()}
       />
     </div>
   );

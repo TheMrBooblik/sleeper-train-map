@@ -25,7 +25,11 @@ export default function BookingCta({
   if (!booking || (!booking.href && !booking.dealsUrl)) return null;
 
   const captionParts = [];
-  if (booking.fromPrice) captionParts.push(booking.fromPrice);
+  if (booking.fromPrice) {
+    captionParts.push(
+      booking.fromPriceEur ? `${booking.fromPrice} (${booking.fromPriceEur})` : booking.fromPrice,
+    );
+  }
   if (booking.preselects && origin && destination) {
     captionParts.push(
       `preselects ${abbreviateStationName(origin)} → ${abbreviateStationName(destination)}`,

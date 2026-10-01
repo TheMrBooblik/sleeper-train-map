@@ -55,6 +55,8 @@ import {
   isEuropeanSleeperTrip,
 } from "../../lib/europeanSleeper.mjs";
 import BookingActions from "./BookingActions";
+import BookingGuide from "../BookingGuide";
+import { getBookingGuide, guideProps } from "../../lib/bookingGuide.mjs";
 import SuggestEditModal from "../SuggestEdit/SuggestEditModal";
 import {
   buildMajorViaContext,
@@ -2281,6 +2283,19 @@ const TrainDetailPanel = ({
                       pricing={pricing}
                       routeId={trip.route_id}
                       scheduleStops={schedule?.stops}
+                    />
+
+                    {/* How buying works where it has quirks the Book button
+                        cannot explain (booking-guides.json) — closed by
+                        default so the card does not grow a page of prose. */}
+                    <BookingGuide
+                      guide={guideProps(
+                        getBookingGuide({
+                          agencyIds: [bookingAgencyId, tripRoute?.bot_agency_id].filter(Boolean),
+                        }),
+                      )}
+                      tone="light"
+                      compact
                     />
 
                     {/* Community corrections feed the admin review queue */}

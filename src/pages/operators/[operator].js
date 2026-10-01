@@ -5,6 +5,7 @@ import SeoLayout from "@components/seo/SeoLayout";
 import Breadcrumbs from "@components/seo/Breadcrumbs";
 import RouteCardLink from "@components/seo/RouteCardLink";
 import JsonLd from "@components/seo/JsonLd";
+import BookingGuide from "@components/BookingGuide";
 
 import {
   getAllOperatorHubs,
@@ -15,9 +16,17 @@ import { toCardRoute } from "../../lib/seo/data";
 import { getFlagEmoji } from "../../lib/countries";
 import { getOperatorPricing, pricingAdvice } from "../../lib/operatorPricing";
 import { hasLastMinuteDeals } from "../../lib/operatorBooking";
+import { getBookingGuide, guideProps } from "../../lib/bookingGuide.mjs";
 import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
 
-export default function OperatorHub({ operator, routes, countries, connections, advice }) {
+export default function OperatorHub({
+  operator,
+  routes,
+  countries,
+  connections,
+  advice,
+  bookingGuide = null,
+}) {
   const canonical = absoluteUrl(`/operators/${operator.slug}`);
   const title = `${operator.name} Night Train Routes & Destinations | Pingwi`;
   const countryNames = countries.map((c) => c.name).join(", ");
@@ -91,6 +100,8 @@ export default function OperatorHub({ operator, routes, countries, connections, 
               </p>
             </section>
           )}
+
+          {bookingGuide && <BookingGuide guide={bookingGuide} className="mt-8 max-w-3xl" />}
 
           {countries.length > 0 && (
             <section className="mt-10">
@@ -172,6 +183,7 @@ export async function getStaticProps({ params }) {
         pricingAdvice(getOperatorPricing({ agency_id: hub.operator.id }), {
           hasLastMinuteDeals: hasLastMinuteDeals(hub.operator.id),
         }) ?? null,
+      bookingGuide: guideProps(getBookingGuide({ agencyId: hub.operator.id })),
     },
   };
 }

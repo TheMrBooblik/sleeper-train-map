@@ -150,6 +150,10 @@
   "CR": {
     "bookingPageUrl": "https://www.12306.cn/en/"
   },
+  "JRW": {
+    "bookingPageUrl": "https://www.westjr.co.jp/global/en/ticket/route_search/",
+    "scheduleUrl": "https://www.jr-odekake.net/railroad/train/sunriseseto_izumo/"
+  },
   "GR": {
     "bookingPageUrl": "https://tre.ge/en",
     "scheduleUrl": "https://www.railway.ge/en/passenger-traffic/"

@@ -787,6 +787,51 @@
         }
       ]
     },
+    "JRW": {
+      "website": "https://www.westjr.co.jp/global/en/",
+      "countries": ["JP"],
+      "integrationStatus": "in-progress",
+      "difficulty": "hard",
+      "notes": "Sunrise Izumo / Sunrise Seto, Japan's only scheduled sleeper, run jointly by JR West and JR Central and sold by JR West. JR publishes no GTFS or API for it, so registry id `jr-sunrise` keeps a curated baseline (stops, positions, fare tariff) in data/sources/jr-sunrise.json and refreshes times and berth charges nightly from JR West's own HTML pages. Parsers written without sight of the live markup (JR's hosts are unreachable from a dev sandbox) — confirm with the probe workflow before trusting the refresh.",
+      "sources": [
+        {
+          "name": "JR West train timetable pages (JRおでかけネット)",
+          "url": "https://timetable.jr-odekake.net/train-timetable/3751",
+          "docsUrl": null,
+          "format": "HTML (per train, ?date=YYYYMMDD)",
+          "provides": ["stops", "times"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": "2026-09-28",
+          "probeWorkflow": "probe-jr-sunrise.yml",
+          "notes": "One page per train portion; ids are JR's own and are re-discovered nightly from the links on the Sunrise guide page."
+        },
+        {
+          "name": "JR West Sunrise Seto / Izumo guide page",
+          "url": "https://www.jr-odekake.net/railroad/train/sunriseseto_izumo/",
+          "docsUrl": null,
+          "format": "HTML",
+          "provides": ["fares", "stops"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": "2026-09-28",
+          "probeWorkflow": "probe-jr-sunrise.yml",
+          "notes": "Berth charge per room type and links to the timetable pages and the official timetable PDF (…/pdf/jikokuhyo.pdf)."
+        },
+        {
+          "name": "JR East timetable, list of stations (English)",
+          "url": "https://timetables.jreast.co.jp/en/2607/train/010/011191.html",
+          "docsUrl": null,
+          "format": "HTML (monthly editions; the page id changes between editions)",
+          "provides": ["stops", "times"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": "2026-09-28",
+          "probeWorkflow": null,
+          "notes": "Not read by the adapter: both the edition (YYMM) and the train page id change month to month, so a fixed address rots within weeks."
+        }
+      ]
+    },
     "AMTK": {
       "website": "https://www.amtrak.com",
       "countries": ["US"],

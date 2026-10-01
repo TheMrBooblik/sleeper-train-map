@@ -1,0 +1,241 @@
+{
+  "_comment": [
+    "Sunrise Izumo / Sunrise Seto — Japan's last scheduled sleeper, read by scripts/adapters/jr-sunrise.mjs.",
+    "This file is the BASELINE the nightly scrape falls back to and checks itself against: stop patterns, positions, the drawn line, and the fare tariff. The adapter refreshes the times of every stop and the berth charges from JR West's own pages each night; a page that does not validate costs tonight's refresh, never the train.",
+    "Times left null are ones no source this file was written from states reliably. They stay blank until a scrape reads them from JR's timetable (a blank beats an invented time).",
+    "Stop patterns are asymmetric on purpose: the westbound train serves Hamamatsu and does NOT stop at Osaka or Sannomiya for passengers; the Tokyo-bound train serves Sannomiya and Osaka and does NOT stop at Hamamatsu. Neither direction serves Neu. The two trains run coupled between Tokyo and Okayama.",
+    "Not modelled: Sunrise Seto's extension to Kotohira on selected dates, and the seasonal Sunrise Izumo 91/92 extras."
+  ],
+  "baseline": {
+    "checkedAt": "2026-09-28",
+    "timetableValidFrom": "2026-03-14",
+    "sources": [
+      "https://www.jr-odekake.net/railroad/train/sunriseseto_izumo/",
+      "https://timetables.jreast.co.jp/en/2607/train/010/011191.html",
+      "https://raillab.jp/news/article/34045",
+      "https://trafficnews.jp/post/615398"
+    ]
+  },
+  "operator": {
+    "agencyId": "JRW",
+    "name": "JR West",
+    "note": "Operated jointly by JR West and JR Central (JR East and JR Shikoku own sections of the line). Sold by JR West online and at any JR ticket office."
+  },
+  "stations": [
+    { "id": "tokyo", "name": "Tokyo", "aliases": ["東京"], "lat": 35.6812, "lon": 139.7671 },
+    { "id": "yokohama", "name": "Yokohama", "aliases": ["横浜"], "lat": 35.4658, "lon": 139.6223 },
+    { "id": "atami", "name": "Atami", "aliases": ["熱海"], "lat": 35.1039, "lon": 139.0778 },
+    { "id": "numazu", "name": "Numazu", "aliases": ["沼津"], "lat": 35.1028, "lon": 138.8596 },
+    { "id": "fuji", "name": "Fuji", "aliases": ["富士"], "lat": 35.1608, "lon": 138.6769 },
+    { "id": "shizuoka", "name": "Shizuoka", "aliases": ["静岡"], "lat": 34.9716, "lon": 138.3889 },
+    { "id": "hamamatsu", "name": "Hamamatsu", "aliases": ["浜松"], "lat": 34.7038, "lon": 137.7351 },
+    { "id": "osaka", "name": "Osaka", "aliases": ["大阪"], "lat": 34.7024, "lon": 135.4959 },
+    { "id": "sannomiya", "name": "Sannomiya", "aliases": ["三ノ宮", "三ノ宮(JR)", "Sannomiya (Kobe)"], "lat": 34.6946, "lon": 135.1954 },
+    { "id": "himeji", "name": "Himeji", "aliases": ["姫路"], "lat": 34.8267, "lon": 134.6906 },
+    { "id": "okayama", "name": "Okayama", "aliases": ["岡山"], "lat": 34.6663, "lon": 133.9177 },
+    { "id": "kurashiki", "name": "Kurashiki", "aliases": ["倉敷"], "lat": 34.6015, "lon": 133.7663 },
+    { "id": "bitchu-takahashi", "name": "Bitchu-Takahashi", "aliases": ["備中高梁", "Bicchu-Takahashi", "Bitchu Takahashi"], "lat": 34.7917, "lon": 133.62 },
+    { "id": "niimi", "name": "Niimi", "aliases": ["新見"], "lat": 34.9753, "lon": 133.4694 },
+    { "id": "yonago", "name": "Yonago", "aliases": ["米子"], "lat": 35.4239, "lon": 133.3375 },
+    { "id": "yasugi", "name": "Yasugi", "aliases": ["安来"], "lat": 35.4315, "lon": 133.2522 },
+    { "id": "matsue", "name": "Matsue", "aliases": ["松江"], "lat": 35.4644, "lon": 133.0631 },
+    { "id": "shinji", "name": "Shinji", "aliases": ["宍道"], "lat": 35.4079, "lon": 132.9001 },
+    { "id": "izumoshi", "name": "Izumoshi", "aliases": ["出雲市", "Izumo-Shi", "Izumo-shi", "Izumo City"], "lat": 35.3607, "lon": 132.7573 },
+    { "id": "kojima", "name": "Kojima", "aliases": ["児島"], "lat": 34.4618, "lon": 133.8069 },
+    { "id": "sakaide", "name": "Sakaide", "aliases": ["坂出"], "lat": 34.3107, "lon": 133.8595 },
+    { "id": "takamatsu", "name": "Takamatsu", "aliases": ["高松", "Takamatsu (Kagawa)"], "lat": 34.351, "lon": 134.0467 }
+  ],
+  "corridors": {
+    "_comment": "The line each train is drawn along: station ids in running order with path-only waypoints [lat, lon] between them (never map markers). Approximate to a few hundred metres, which is what a line on a map needs; the westbound train runs through Nagoya, Kyoto and Osaka without a passenger stop.",
+    "tokaido-sanyo": [
+      "tokyo",
+      [35.6663, 139.7583], [35.6285, 139.7387], [35.5313, 139.6969],
+      "yokohama",
+      [35.4009, 139.5343], [35.354, 139.5313], [35.3389, 139.4875], [35.3307, 139.4067], [35.328, 139.3499],
+      [35.3107, 139.3111], [35.2773, 139.2136], [35.2562, 139.1554], [35.199, 139.1368], [35.1586, 139.1355],
+      [35.1459, 139.108],
+      "atami",
+      [35.088, 138.9535], [35.1263, 138.9108],
+      "numazu",
+      [35.1287, 138.7942], [35.14, 138.728], [35.1527, 138.6993],
+      "fuji",
+      [35.1445, 138.6186], [35.118, 138.598], [35.103, 138.56], [35.047, 138.519], [35.0146, 138.4885],
+      [34.9923, 138.4467],
+      "shizuoka",
+      [34.946, 138.369], [34.93, 138.324], [34.8683, 138.3163], [34.8668, 138.2581], [34.838, 138.1772],
+      [34.8184, 138.1265], [34.7693, 138.0141], [34.744, 137.929], [34.7187, 137.8513],
+      "hamamatsu",
+      [34.6865, 137.6121], [34.68, 137.598], [34.7163, 137.5433], [34.7285, 137.458], [34.7627, 137.3818],
+      [34.8264, 137.2218], [34.9275, 137.1697], [34.9588, 137.0874], [34.9888, 137.0], [35.0122, 136.9635],
+      [35.1432, 136.9003], [35.1709, 136.8815], [35.3041, 136.7982], [35.4097, 136.7564], [35.3668, 136.618],
+      [35.37, 136.532], [35.3647, 136.4678], [35.3144, 136.29], [35.276, 136.26], [35.176, 136.16],
+      [35.1285, 136.099], [35.066, 136.028], [35.0228, 135.9612], [35.0033, 135.8651], [34.993, 135.815],
+      [34.9858, 135.7588], [34.95, 135.701], [34.9253, 135.695], [34.8513, 135.6179], [34.8183, 135.5709],
+      [34.7629, 135.5243], [34.7335, 135.5002],
+      "osaka",
+      [34.7188, 135.4228], [34.7307, 135.3068], [34.7215, 135.264],
+      "sannomiya",
+      [34.6794, 135.1781], [34.6436, 135.115], [34.63, 135.034], [34.6487, 134.992], [34.6665, 134.9601],
+      [34.761, 134.839], [34.768, 134.78],
+      "himeji",
+      [34.8053, 134.5494], [34.8203, 134.473], [34.8704, 134.3563], [34.8006, 134.2726], [34.79, 134.208],
+      [34.7935, 134.1631], [34.7488, 134.0593], [34.6927, 133.979],
+      "okayama"
+    ],
+    "hakubi-sanin": [
+      "okayama",
+      [34.6522, 133.8421], [34.6147, 133.8062],
+      "kurashiki",
+      [34.64, 133.748], [34.672, 133.745], [34.717, 133.694], [34.746, 133.657],
+      "bitchu-takahashi",
+      [34.836, 133.603], [34.882, 133.568], [34.938, 133.503],
+      "niimi",
+      [35.0, 133.44], [35.052, 133.411], [35.13, 133.42], [35.2138, 133.4196], [35.3, 133.41],
+      [35.377, 133.4097], [35.41, 133.4063],
+      "yonago",
+      "yasugi",
+      [35.441, 133.1655], [35.446, 133.104],
+      "matsue",
+      [35.446, 133.03], [35.4182, 133.0063], [35.415, 132.956],
+      "shinji",
+      [35.3843, 132.8575], [35.3722, 132.805],
+      "izumoshi"
+    ],
+    "seto-ohashi": [
+      "okayama",
+      [34.6523, 133.9137], [34.6353, 133.9116], [34.5905, 133.8738], [34.555, 133.842], [34.505, 133.825],
+      "kojima",
+      [34.415, 133.812], [34.38, 133.818], [34.345, 133.83], [34.318, 133.842],
+      "sakaide",
+      [34.306, 133.893], [34.304, 133.91], [34.298, 133.956], [34.308, 133.996], [34.329, 134.0165],
+      [34.338, 134.033],
+      "takamatsu"
+    ]
+  },
+  "trains": [
+    {
+      "lineName": "Sunrise Izumo 4031M",
+      "service": "Sunrise Izumo",
+      "direction": "westbound",
+      "frequency": "Daily",
+      "corridors": ["tokaido-sanyo", "hakubi-sanin"],
+      "stops": [
+        { "station": "tokyo", "departure": "21:26" },
+        { "station": "yokohama", "departure": "21:52" },
+        { "station": "atami", "departure": "22:57" },
+        { "station": "numazu", "departure": "23:16" },
+        { "station": "fuji", "departure": "23:32" },
+        { "station": "shizuoka", "departure": "23:59" },
+        { "station": "hamamatsu", "departure": "00:54" },
+        { "station": "himeji", "departure": null },
+        { "station": "okayama", "arrival": "06:27", "departure": null },
+        { "station": "kurashiki", "departure": "06:46" },
+        { "station": "bitchu-takahashi", "departure": null },
+        { "station": "niimi", "departure": null },
+        { "station": "yonago", "departure": "09:05" },
+        { "station": "yasugi", "departure": null },
+        { "station": "matsue", "departure": "09:33" },
+        { "station": "shinji", "departure": null },
+        { "station": "izumoshi", "arrival": "10:00" }
+      ]
+    },
+    {
+      "lineName": "Sunrise Izumo 4032M",
+      "service": "Sunrise Izumo",
+      "direction": "eastbound",
+      "frequency": "Daily",
+      "corridors": ["tokaido-sanyo", "hakubi-sanin"],
+      "stops": [
+        { "station": "izumoshi", "departure": "18:57" },
+        { "station": "shinji", "departure": null },
+        { "station": "matsue", "departure": null },
+        { "station": "yasugi", "departure": null },
+        { "station": "yonago", "departure": null },
+        { "station": "niimi", "departure": null },
+        { "station": "bitchu-takahashi", "departure": null },
+        { "station": "kurashiki", "departure": null },
+        { "station": "okayama", "arrival": null, "departure": "22:34" },
+        { "station": "himeji", "departure": null },
+        { "station": "sannomiya", "departure": null },
+        { "station": "osaka", "arrival": "00:31", "departure": "00:33" },
+        { "station": "shizuoka", "departure": null },
+        { "station": "fuji", "departure": null },
+        { "station": "numazu", "departure": "05:25" },
+        { "station": "atami", "departure": "05:43" },
+        { "station": "yokohama", "arrival": "06:44" },
+        { "station": "tokyo", "arrival": "07:08" }
+      ]
+    },
+    {
+      "lineName": "Sunrise Seto 5031M",
+      "service": "Sunrise Seto",
+      "direction": "westbound",
+      "frequency": "Daily",
+      "corridors": ["tokaido-sanyo", "seto-ohashi"],
+      "stops": [
+        { "station": "tokyo", "departure": "21:26" },
+        { "station": "yokohama", "departure": "21:52" },
+        { "station": "atami", "departure": "22:57" },
+        { "station": "numazu", "departure": "23:16" },
+        { "station": "fuji", "departure": "23:32" },
+        { "station": "shizuoka", "departure": "23:59" },
+        { "station": "hamamatsu", "departure": "00:54" },
+        { "station": "himeji", "departure": null },
+        { "station": "okayama", "arrival": "06:27", "departure": null },
+        { "station": "kojima", "departure": null },
+        { "station": "sakaide", "departure": null },
+        { "station": "takamatsu", "arrival": "07:27" }
+      ]
+    },
+    {
+      "lineName": "Sunrise Seto 5032M",
+      "service": "Sunrise Seto",
+      "direction": "eastbound",
+      "frequency": "Daily",
+      "corridors": ["tokaido-sanyo", "seto-ohashi"],
+      "stops": [
+        { "station": "takamatsu", "departure": "21:26" },
+        { "station": "sakaide", "departure": null },
+        { "station": "kojima", "departure": null },
+        { "station": "okayama", "arrival": "22:23", "departure": "22:34" },
+        { "station": "himeji", "departure": null },
+        { "station": "sannomiya", "departure": null },
+        { "station": "osaka", "arrival": "00:31", "departure": "00:33" },
+        { "station": "shizuoka", "departure": null },
+        { "station": "fuji", "departure": null },
+        { "station": "numazu", "departure": "05:25" },
+        { "station": "atami", "departure": "05:43" },
+        { "station": "yokohama", "arrival": "06:44" },
+        { "station": "tokyo", "arrival": "07:08" }
+      ]
+    }
+  ],
+  "fares": {
+    "_comment": [
+      "Per traveller, whole route, one way. A class price = basic fare + limited express charge + berth charge.",
+      "`ticketAndSleeperExpress` is the basic fare plus the limited express charge a sleeper passenger pays (the same all year). It is JR's distance tariff, so it changes only at a fare revision — which is why it is curated here rather than scraped. Figures as quoted for 2026: Tokyo–Izumoshi Single 23,210 yen and Tokyo–Takamatsu Single 22,650 yen, each less the 7,700 yen Single charge. JR East's 14 March 2026 revision added a JR East supplement to through fares that start or end on its lines; if JR's own fare search disagrees, correct these two numbers.",
+      "The Nobinobi carpet space needs no berth charge but pays the reserved-seat limited express charge instead, which is the sleeper one plus `seatExpressPremium` in the regular season (200 yen less off-peak, 200-400 yen more at peak).",
+      "`roomCharges` are refreshed nightly from JR West's pages by the adapter. Sunrise Twin is per ROOM; its per-person price assumes two people share it."
+    ],
+    "currency": "JPY",
+    "checkedAt": "2026-09-28",
+    "routes": {
+      "izumoshi|tokyo": { "ticketAndSleeperExpress": 15510 },
+      "takamatsu|tokyo": { "ticketAndSleeperExpress": 14950 }
+    },
+    "seatExpressPremium": 530,
+    "roomCharges": {
+      "solo": 6600,
+      "single": 7700,
+      "singleTwin": 9600,
+      "singleDeluxe": 13980,
+      "sunriseTwin": 15400
+    },
+    "singleTwinSecondPerson": 5500,
+    "sources": [
+      "https://tourist-train.info/special/sunrise-izumo-fare/",
+      "https://railway-toku.jp/sunrise-seto-izumo-tokyo-takamatsu/",
+      "https://www.reddit.com/r/JapanTravel/comments/1d62gqb/sunrise_express_twin_room_guide_osaka_to_tokyo/"
+    ]
+  }
+}

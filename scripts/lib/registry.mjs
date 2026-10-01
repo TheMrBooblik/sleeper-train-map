@@ -29,6 +29,7 @@ const KNOWN_KINDS = new Set([
   "static-config",
   "osm",
   "canonical-routes",
+  "xml",
 ]);
 
 const KNOWN_DEDUP_STRATEGIES = new Set(["exact", "icn"]);

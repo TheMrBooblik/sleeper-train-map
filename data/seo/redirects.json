@@ -386,6 +386,8 @@
   "/trains/tarbes-to-paris-austerlitz-ic-nuit-3740": "/connections/paris-to-tarbes",
   "/trains/tbilisi-centraluri-to-batumi-centraluri-gr-1": "/connections/batumi-to-tbilisi",
   "/trains/tbilisi-to-yerevan-gr-371": "/connections/tbilisi-to-yerevan",
+  "/trains/tokyo-to-izumoshi-sunrise-izumo-4031m": "/connections/izumo-to-tokyo",
+  "/trains/tokyo-to-takamatsu-sunrise-seto-5031m": "/connections/takamatsu-to-tokyo",
   "/trains/torino-porta-nuova-to-reggio-di-calabria-centrale-icn-795": "/connections/reggio-calabria-to-turin",
   "/trains/torino-porta-nuova-to-salerno-icn-797": "/connections/salerno-to-turin",
   "/trains/torino-porta-nuova-to-salerno-icn-799": "/connections/salerno-to-turin",
