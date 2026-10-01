@@ -71,15 +71,16 @@ export const FARE_CLASS_LABELS = {
   twinCabinPerPerson: "Sunrise Twin, per person (2 sharing)",
   deluxeSingleCabin: "Single Deluxe cabin",
   // European Sleeper (scripts/lib/es-fares.mjs). Every figure is what one
-  // adult pays, except the private compartment: one booking for the whole
-  // couchette compartment, up to 5 people. Women-only compartments and seats
-  // are left out at the source.
+  // adult pays — one bed — except the private compartment: one booking for
+  // the whole couchette compartment, up to 5 people. So a 2- or 3-bed cabin
+  // is labelled as the bed it prices, or "3-bed cabin €109.99" reads as the
+  // cabin's price. Women-only compartments and seats are left out at the source.
   privateCouchette: "Private compartment",
-  sleeperTriple: "Sleeper, 3-bed cabin",
-  sleeperDouble: "Sleeper, 2-bed cabin",
+  sleeperTriple: "Sleeper, bed in 3-bed cabin",
+  sleeperDouble: "Sleeper, bed in 2-bed cabin",
   sleeperSingle: "Sleeper, single cabin",
-  comfortTriple: "Comfort sleeper, 3-bed cabin",
-  comfortDouble: "Comfort sleeper, 2-bed cabin",
+  comfortTriple: "Comfort sleeper, bed in 3-bed cabin",
+  comfortDouble: "Comfort sleeper, bed in 2-bed cabin",
   comfortSingle: "Comfort sleeper, single cabin",
   // Its last-minute deals (scripts/lib/es-last-minute.mjs): sold from the
   // operator's promo pages, not its fare finder — see src/lib/lastMinuteDeals.mjs.
@@ -177,8 +178,10 @@ export function fareClassRows(fare, { from = false, deals = "include" } = {}) {
  */
 const PANEL_FARE_GROUPS = [
   { key: "couchette", label: "Couchette", classes: ["couchette"] },
-  { key: "cabin3", label: "3-bed cabin", classes: ["sleeperTriple", "comfortTriple"] },
-  { key: "cabin2", label: "2-bed cabin", classes: ["sleeperDouble", "comfortDouble"] },
+  // A cabin row prices one bed, and says so; the private compartment's price
+  // is the whole compartment's, which its name already says.
+  { key: "cabin3", label: "Bed in 3-bed cabin", classes: ["sleeperTriple", "comfortTriple"] },
+  { key: "cabin2", label: "Bed in 2-bed cabin", classes: ["sleeperDouble", "comfortDouble"] },
   { key: "privateCouchette", label: "Private compartment", classes: ["privateCouchette"] },
 ];
 const CABIN_CLASSES = new Set([

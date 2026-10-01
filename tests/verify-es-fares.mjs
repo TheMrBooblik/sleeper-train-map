@@ -907,17 +907,22 @@ await check("the map panel lists four kinds of place, each the cheapest of its g
     [
       ["Couchette", "from €79.99", "2026-11-09", "couchette"],
       // Comfort's 3-bed cabin undercuts the standard one that week.
-      ["3-bed cabin", "from €109.99", "2026-11-11", "comfortTriple"],
-      ["2-bed cabin", "from €139.99", "2026-11-11", "comfortDouble"],
+      ["Bed in 3-bed cabin", "from €109.99", "2026-11-11", "comfortTriple"],
+      ["Bed in 2-bed cabin", "from €139.99", "2026-11-11", "comfortDouble"],
       ["Private compartment", "from €279.99", "2026-11-09", "privateCouchette"],
     ],
   );
+  // A cabin's figure is one bed's (the API prices one adult), so the label
+  // says so, in the panel and in the calendar alike; the compartment's is
+  // the whole compartment's.
+  assert.strictEqual(fareClassLabel("comfortTriple"), "Comfort sleeper, bed in 3-bed cabin");
+  assert.strictEqual(fareClassLabel("sleeperDouble"), "Sleeper, bed in 2-bed cabin");
   // A group with nothing on sale is left out; on a price tie the nearer night wins.
   assert.deepStrictEqual(
     panelFareRows({ currency: "EUR", classes: { couchette: 59.99, sleeperTriple: 99, comfortTriple: 99 },
       classDates: { couchette: "2026-11-03", sleeperTriple: "2026-11-20", comfortTriple: "2026-11-05" } })
       .map((r) => [r.label, r.price, r.date]),
-    [["Couchette", "€59.99", "2026-11-03"], ["3-bed cabin", "€99", "2026-11-05"]],
+    [["Couchette", "€59.99", "2026-11-03"], ["Bed in 3-bed cabin", "€99", "2026-11-05"]],
   );
   // A fare without European Sleeper's cabins lists as it always did.
   const icn = { currency: "EUR", classes: { couchette: 53.6, sleeperCabin: 120.9 }, travelDate: "2026-10-19" };
