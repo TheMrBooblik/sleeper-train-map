@@ -14,39 +14,56 @@
  * Dependency-free `.mjs`, fixed strings, no Intl: the connection page is
  * server-rendered and hydrated (see fareCalendarView.mjs).
  */
-import { formatMoney } from "./fareClasses.mjs";
+import { formatMoney, isDealClass } from "./fareClasses.mjs";
 
 /** Each deal class and the regular class it undercuts. */
 export const DEAL_REGULAR = {
   lastMinuteCouchette: "couchette",
   lastMinutePrivate: "privateCouchette",
+  flashSaleCouchette: "couchette",
+  flashSalePrivate: "privateCouchette",
 };
 
-export const isDealClass = (key) => Object.hasOwn(DEAL_REGULAR, key);
+/** Which programme a deal class belongs to. */
+export const programmeOfClass = (key) => (String(key).startsWith("flashSale") ? "flashSale" : "lastMinute");
+
+export { isDealClass };
 
 /**
- * The operator's own terms for its deals, per agency id. Stated, not
- * inferred: European Sleeper publishes these on its last-minute pages and
- * in the booking a deal creates (non-refundable "easy-night" fare, a place
+ * The operator's own terms for its deals, per agency id and programme.
+ * Stated, not inferred: each line is on the operator's own offer pages
+ * (europeansleeper.eu/last-minute… and /flash-sale…, read 2026-10-01) or in
+ * the booking a last-minute deal creates (a non-refundable "easy-night" fare
  * in a 5-berth Classic couchette compartment).
  */
-export const LAST_MINUTE_PROGRAMMES = {
+export const DEAL_PROGRAMMES = {
   ES: {
-    name: "Last-minute deal",
     compartmentSize: 5,
-    terms: [
-      "A bed in a 5-berth Classic couchette compartment",
-      "Bed linen and luggage included",
-      "Non-refundable, no child or Interrail reductions",
-      "Limited places on each train — they sell out",
-    ],
     note: "European Sleeper's own fare finder does not show these prices.",
+    lastMinute: {
+      name: "Last-minute deal",
+      terms: [
+        "A bed in a 5-berth Classic couchette compartment",
+        "Bed linen and luggage included",
+        "Non-refundable, no child or Interrail reductions",
+        "Limited places on each train — they sell out",
+      ],
+    },
+    flashSale: {
+      name: "Flash sale",
+      terms: [
+        "A bed in a shared Classic couchette compartment",
+        "Selected departures only",
+        "Limited places — once they are gone, they are gone",
+      ],
+    },
   },
 };
 
+/** The agency's deal programmes, or null (a compound id is tried part by part). */
 export function lastMinuteProgramme(agencyId) {
   const ids = String(agencyId ?? "").split(/[/,+]/).map((s) => s.trim());
-  for (const id of ids) if (LAST_MINUTE_PROGRAMMES[id]) return LAST_MINUTE_PROGRAMMES[id];
+  for (const id of ids) if (DEAL_PROGRAMMES[id]) return DEAL_PROGRAMMES[id];
   return null;
 }
 
@@ -66,20 +83,22 @@ const round2 = (n) => Math.round(n * 100) / 100;
 export function nightDeal(entry, { currency = "EUR", compartmentSize = 5 } = {}) {
   const classes = entry?.classes;
   if (!classes || typeof classes !== "object") return null;
-  const key = ["lastMinuteCouchette", "lastMinutePrivate"].find(
-    (k) => Number.isFinite(classes[k]) && classes[k] > 0,
-  );
-  if (!key) return null;
+  const priced = Object.keys(DEAL_REGULAR).filter((k) => Number.isFinite(classes[k]) && classes[k] > 0);
+  if (!priced.length) return null;
+  // A bed leads (it is what a single traveller buys), then the cheaper deal.
+  const byKind = (k) => (DEAL_REGULAR[k] === "couchette" ? 0 : 1);
+  const key = priced.sort((a, b) => byKind(a) - byKind(b) || classes[a] - classes[b])[0];
   const amount = classes[key];
   const regularAmount = Number.isFinite(classes[DEAL_REGULAR[key]]) ? classes[DEAL_REGULAR[key]] : null;
   const regulars = Object.entries(classes)
     .filter(([k, v]) => !isDealClass(k) && Number.isFinite(v) && v > 0)
     .map(([, v]) => v);
   const saving = regularAmount != null && regularAmount > amount ? round2(regularAmount - amount) : null;
-  const kind = key === "lastMinutePrivate" ? "private" : "couchette";
+  const kind = DEAL_REGULAR[key] === "privateCouchette" ? "private" : "couchette";
   return {
     kind,
     key,
+    programme: entry.deal?.programme ?? programmeOfClass(key),
     amount,
     price: formatMoney(amount, currency),
     regularAmount,
@@ -92,6 +111,8 @@ export function nightDeal(entry, { currency = "EUR", compartmentSize = 5 } = {})
         ? formatMoney(round2(amount / compartmentSize), currency)
         : null,
     landing: entry.deal?.landing ?? null,
+    // A flash sale's last booking day, where its page states one.
+    until: entry.deal?.until ?? null,
     checkedAt: entry.deal?.checkedAt ?? entry.checkedAt ?? null,
   };
 }
@@ -112,5 +133,8 @@ export function dealsSummary(days) {
     fromAmount: cheapest.deal.amount,
     fromDate: cheapest.date,
     maxSavingsPct: pcts.length ? Math.max(...pcts) : null,
+    // Which programmes the nights carry, in a fixed order, so the banner can
+    // name them ("Last-minute and flash-sale deals").
+    programmes: ["lastMinute", "flashSale"].filter((p) => withDeal.some((d) => d.deal.programme === p)),
   };
 }

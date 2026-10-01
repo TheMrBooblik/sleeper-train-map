@@ -300,66 +300,147 @@ async function getText(url, fetchImpl, timeoutMs = 20_000) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * Tonight's deals across every landing page, as
- * { ok, deals: [{ train, date, kind, amount, landing, id }], pages: [...] }.
- *
- * `pages` is the registry's [{ path, trains: ["453"] }] — which train a
- * landing page sells, since the page itself may not print a number. A
- * page the index links to that the registry does not know is read too, and
- * used only for deals whose own text names a train we carry. Each deal's
- * price is read from /receipt/price/1/{id}: it is the operator's own figure,
- * and an empty answer means the deal is gone, whatever the page still says.
- * `ok` is false only when no page could be read at all — the caller then
- * keeps yesterday's deals rather than wiping them on a network blip.
+ * Every offer page an index page links to, as [{ path, text }]: the anchors
+ * whose href is a page on the site and whose text or path says it is an offer.
+ * The flash-sale index (2026-10-01) names its six per-direction pages only in
+ * link text — "Flash Sale offer from Brussels and Cologne to Switzerland and
+ * Milan" — so the text is kept: it is what says which train a page sells.
  */
-export async function fetchLastMinuteDeals({
-  pages = [],
-  indexPath = "/last-minute",
+export function findOfferLinks(html, { pathPattern = /last-minutes?-|flash/i, indexPath = "" } = {}) {
+  const out = new Map();
+  const re = /<a\b[^>]*\bhref\s*=\s*["']([^"'#?]+)[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let m;
+  while ((m = re.exec(String(html ?? "")))) {
+    const href = m[1].replace(/^https?:\/\/(?:www\.)?europeansleeper\.eu/i, "").replace(/\/$/, "").toLowerCase();
+    if (!/^\/[a-z0-9/_-]+$/.test(href) || href === indexPath.toLowerCase()) continue;
+    const text = stripTags(m[2]);
+    if (!pathPattern.test(href) && !/\boffer from .+ to /i.test(text)) continue;
+    if (!out.has(href) || (!out.get(href).text && text)) out.set(href, { path: href, text });
+  }
+  return [...out.values()].sort((a, b) => (a.path < b.path ? -1 : 1));
+}
+
+const foldCity = (s) => decodeText(s).toLowerCase().replace(/[^a-z]+/g, " ").trim();
+
+/**
+ * The train an offer's own words describe — "… from Brussels and Cologne to
+ * Switzerland and Milan" — among `trainCities` ({ key: [fromCity, toCity] }):
+ * the one whose first city is among the "from" places and whose last city is
+ * among the "to" places. Unique or nothing.
+ */
+export function trainForOfferText(text, trainCities) {
+  const m = decodeText(text).match(/\bfrom\s+(.+?)\s+to\s+(.+?)[.!]?\s*$/i);
+  if (!m) return null;
+  const list = (s) => s.split(/\s*(?:,|&|\band\b|\bund\b|\ben\b|\bet\b)\s*/i).map(foldCity).filter(Boolean);
+  const from = list(m[1]);
+  const to = list(m[2]);
+  const hits = Object.entries(trainCities ?? {}).filter(
+    ([, [a, b]]) => from.includes(foldCity(a)) && to.includes(foldCity(b)),
+  );
+  return hits.length === 1 ? hits[0][0] : null;
+}
+
+/** "ends 6 October" / "Book by 6 October" on a sale page → "2026-10-06", or null. */
+export function saleEndDate(html, { today } = {}) {
+  const text = stripTags(String(html ?? "").replace(/<script\b[\s\S]*?<\/script>/gi, " "));
+  const m = text.match(/\b(?:ends?|book (?:by|before)|until|valid until|t\/m)\s+([^.!|]{3,40})/i);
+  if (!m) return null;
+  const d = findDates(m[1], { today })[0];
+  return d && (!today || d.iso >= today) ? d.iso : null;
+}
+
+/**
+ * Tonight's deals across every promotional programme's pages, as
+ * { ok, deals: [{ train, date, kind, amount, landing, id, programme, until }],
+ *   pages: [...] }.
+ *
+ * `programmes`: [{ id: "lastMinute" | "flashSale", indexPath, pages:
+ * [{ path, trains }] }]. A programme's index page is read for the offer pages
+ * it links to; a page's train is the registry's word for it where it has one,
+ * else what the link text names ("offer from Paris and Brussels to Hamburg and
+ * Berlin"), else a train number in the deal's own text. Each deal's price is
+ * read from /receipt/price/1/{id}: the operator's own figure, and an empty
+ * answer means the deal is gone, whatever the page still says. `ok` is false
+ * only when no page could be read at all — the caller then keeps yesterday's
+ * deals rather than wiping them on a network blip.
+ */
+export async function fetchDeals({
+  programmes = [],
   site = SITE,
-  trainKeys = [],
+  trains = {},
+  trainCities = null,
   today,
   fetchImpl = fetch,
   log = console.log,
   spacingMs = 300,
-  maxPriceChecks = 150,
+  maxPriceChecks = 200,
 } = {}) {
-  const tracked = new Set(trainKeys.map(String));
-  const configured = new Map(pages.map((p) => [String(p.path).toLowerCase(), p]));
-  const toRead = new Map(configured);
-  try {
-    const index = await getText(`${site}${indexPath}`, fetchImpl);
-    if (index.ok) {
-      const found = findLandingPaths(index.body);
-      const unknown = found.filter((p) => !configured.has(p));
-      for (const p of unknown) toRead.set(p, { path: p, trains: [] });
-      log(`[es-deals] ${indexPath} links ${found.length} landing page(s)${unknown.length ? `, ${unknown.length} not in the registry: ${unknown.join(", ")}` : ""}`);
-    } else {
-      log(`[es-deals] ${indexPath} answered HTTP ${index.status}`);
+  const tracked = new Set(Object.keys(trains).map(String));
+  const cities = trainCities ?? {};
+  const toRead = new Map(); // path → { path, trains, text, programme, until }
+  let readable = 0;
+  for (const prog of programmes) {
+    const configured = (prog.pages ?? []).map((p) => ({ ...p, path: String(p.path).toLowerCase() }));
+    for (const p of configured) toRead.set(p.path, { ...p, programme: prog.id, until: null });
+    if (!prog.indexPath) continue;
+    try {
+      const index = await getText(`${site}${prog.indexPath}`, fetchImpl);
+      if (index.ok) {
+        readable++;
+        const until = prog.id === "flashSale" ? saleEndDate(index.body, { today }) : null;
+        const links = findOfferLinks(index.body, {
+          pathPattern: prog.id === "flashSale" ? /flash/i : /last-minutes?-/i,
+          indexPath: prog.indexPath,
+        });
+        const fresh = links.filter((l) => !toRead.has(l.path));
+        for (const l of links) {
+          const known = toRead.get(l.path);
+          toRead.set(l.path, {
+            path: l.path,
+            trains: known?.trains ?? [],
+            text: l.text,
+            programme: prog.id,
+            until: until ?? known?.until ?? null,
+          });
+        }
+        log(
+          `[es-deals] ${prog.indexPath} links ${links.length} offer page(s)` +
+            (fresh.length ? `, ${fresh.length} not in the registry: ${fresh.map((l) => l.path).join(", ")}` : "") +
+            (until ? `; sale ends ${until}` : ""),
+        );
+      } else {
+        log(`[es-deals] ${prog.indexPath} answered HTTP ${index.status}`);
+      }
+    } catch (err) {
+      log(`[es-deals] ${prog.indexPath} failed: ${err.message}`);
     }
-  } catch (err) {
-    log(`[es-deals] ${indexPath} failed: ${err.message}`);
+    if (spacingMs) await sleep(spacingMs);
   }
 
   const report = [];
   const raw = [];
-  let readable = 0;
   for (const page of toRead.values()) {
-    const entry = { path: page.path, status: null, ids: 0, dated: 0, undated: 0, used: 0 };
+    const entry = { path: page.path, programme: page.programme, status: null, ids: 0, dated: 0, undated: 0, used: 0, train: null };
     report.push(entry);
     try {
       const res = await getText(`${site}${page.path}`, fetchImpl);
       entry.status = res.status;
       if (!res.ok) continue;
       readable++;
-      const pageTrains = (page.trains ?? []).map(String).filter((t) => tracked.has(t));
+      const pageTrain =
+        (page.trains ?? []).map(String).find((t) => tracked.has(t)) ??
+        trainForOfferText(page.text, cities) ??
+        null;
+      entry.train = pageTrain;
+      const until = page.until ?? (page.programme === "flashSale" ? saleEndDate(res.body, { today }) : null);
       const parsed = parseLastMinutePage(res.body, { today, trainNumbers: [...tracked] });
       entry.ids = parsed.ids;
       entry.dated = parsed.deals.length;
       entry.undated = parsed.undated.length;
       for (const d of parsed.deals) {
-        const train = d.trainNumber && tracked.has(d.trainNumber) ? d.trainNumber : pageTrains[0];
+        const train = d.trainNumber && tracked.has(d.trainNumber) ? d.trainNumber : pageTrain;
         if (!train) continue;
-        raw.push({ ...d, train, landing: page.path });
+        raw.push({ ...d, train, landing: page.path, programme: page.programme, until });
       }
     } catch (err) {
       entry.error = err.message;
@@ -393,15 +474,37 @@ export async function fetchLastMinuteDeals({
     }
     const kind = dealKind({ ...d, amount });
     if (!Number.isFinite(amount) || !kind) continue;
-    deals.push({ train: d.train, date: d.date, kind, amount, landing: d.landing, id: d.id });
+    deals.push({
+      train: d.train,
+      date: d.date,
+      kind,
+      amount,
+      landing: d.landing,
+      id: d.id,
+      programme: d.programme ?? "lastMinute",
+      ...(d.until ? { until: d.until } : {}),
+    });
   }
   for (const entry of report) entry.used = deals.filter((d) => d.landing === entry.path).length;
   for (const e of report) {
     log(
       `[es-deals] ${e.path}: ${e.status ?? "no answer"}${e.error ? ` (${e.error})` : ""} — ` +
-        `${e.ids} deal id(s), ${e.dated} dated, ${e.undated} undated, ${e.used} used`,
+        `${e.ids} deal id(s), ${e.dated} dated, ${e.undated} undated, ${e.used} used` +
+        (e.train ? ` (ES ${e.train})` : e.ids ? " (no train: neither the registry nor the link text names one)" : ""),
     );
   }
   if (expired) log(`[es-deals] ${expired} deal(s) the page lists have expired (empty /receipt/price answer)`);
   return { ok: readable > 0, deals, pages: report };
+}
+
+/**
+ * The last-minute programme alone — the original entry point, kept for the
+ * tests and callers that name one index and its pages.
+ */
+export function fetchLastMinuteDeals({ pages = [], indexPath = "/last-minute", trainKeys = [], ...rest } = {}) {
+  return fetchDeals({
+    ...rest,
+    programmes: [{ id: "lastMinute", indexPath, pages }],
+    trains: Object.fromEntries(trainKeys.map((k) => [String(k), {}])),
+  });
 }

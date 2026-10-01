@@ -74,7 +74,7 @@ export const FARE_CLASS_LABELS = {
   // adult pays, except the private compartment: one booking for the whole
   // couchette compartment, up to 5 people. Women-only compartments and seats
   // are left out at the source.
-  privateCouchette: "Private couchette compartment",
+  privateCouchette: "Private compartment",
   sleeperTriple: "Sleeper, 3-bed cabin",
   sleeperDouble: "Sleeper, 2-bed cabin",
   sleeperSingle: "Sleeper, single cabin",
@@ -85,7 +85,23 @@ export const FARE_CLASS_LABELS = {
   // operator's promo pages, not its fare finder — see src/lib/lastMinuteDeals.mjs.
   lastMinuteCouchette: "Last-minute couchette",
   lastMinutePrivate: "Last-minute private compartment",
+  // …and its flash sales (the same mechanism, on selected dates further out).
+  flashSaleCouchette: "Flash-sale couchette",
+  flashSalePrivate: "Flash-sale private compartment",
 };
+
+/**
+ * Classes that are promotional deals sold outside the operator's ordinary
+ * search (European Sleeper's last-minute and flash-sale pages). The map panel
+ * lists them apart from the regular fares, beside the link that sells them.
+ */
+export const DEAL_CLASS_KEYS = new Set([
+  "lastMinuteCouchette",
+  "lastMinutePrivate",
+  "flashSaleCouchette",
+  "flashSalePrivate",
+]);
+export const isDealClass = (key) => DEAL_CLASS_KEYS.has(key);
 
 export function fareClassLabel(key) {
   return (key && FARE_CLASS_LABELS[key]) || "";
@@ -130,17 +146,52 @@ export function pricingForDirection(row, dir, base = row?.pricing ?? null) {
  * where the figure is the cheapest seen on one sampled date, not the price.
  * A fixed tariff's class price is the price, so it prints bare.
  */
-export function fareClassRows(fare, { from = false } = {}) {
+export function fareClassRows(fare, { from = false, deals = "include" } = {}) {
   if (!fare?.classes || typeof fare.classes !== "object") return [];
   return Object.entries(fare.classes)
     .filter(([key, amount]) => FARE_CLASS_LABELS[key] && Number.isFinite(amount) && amount > 0)
+    .filter(([key]) => (deals === "exclude" ? !isDealClass(key) : deals === "only" ? isDealClass(key) : true))
     .sort((a, b) => a[1] - b[1])
     .map(([key, amount]) => ({
       key,
       label: FARE_CLASS_LABELS[key],
       amount,
       price: `${from ? "from " : ""}${formatMoney(amount, fare.currency)}`,
+      // The night this class's figure is for, where the source keeps a
+      // calendar (each class's own cheapest night, see cheapestNight).
+      date: fare.classDates?.[key] ?? null,
     }));
+}
+
+/**
+ * A direction's fare split into what the ordinary booking search sells and
+ * the cheapest promotional deal, each as { fromPrice, seatClass, travelDate }
+ * (the deal also { label, price, landing }), or null for a part it lacks.
+ * Without per-class dates (12306, an older file) the record's own travelDate
+ * stands in.
+ */
+export function splitDealFare(fare) {
+  const rows = fareClassRows(fare);
+  const pick = (row) =>
+    row
+      ? {
+          fromPrice: row.amount,
+          seatClass: row.key,
+          travelDate: row.date ?? fare?.travelDate ?? null,
+        }
+      : null;
+  const regular = pick(rows.find((r) => !isDealClass(r.key)));
+  const dealRow = rows.find((r) => isDealClass(r.key));
+  const deal = dealRow
+    ? {
+        ...pick(dealRow),
+        label: dealRow.label,
+        price: formatMoney(dealRow.amount, fare.currency),
+        landing: fare?.dealLanding ?? null,
+        programme: String(dealRow.key).startsWith("flashSale") ? "flashSale" : "lastMinute",
+      }
+    : null;
+  return { regular, deal };
 }
 
 /**

@@ -198,9 +198,18 @@ check("fare calendar: window, pruning, and the cheapest night as the headline", 
     currency: "EUR",
     seatClass: "couchette",
     classes: { couchette: 54.9, sleeperCabin: 117.9 },
+    classDates: { couchette: "2026-10-03", sleeperCabin: "2026-10-03" },
     sampledAt: "2026-09-25",
     travelDate: "2026-10-03",
   }, "a tie keeps the nearer night");
+  // Each class is its own cheapest night, dated: the night that wins overall
+  // must not lend its other classes' prices to the "from" (ES: a €40 deal for
+  // tomorrow sat beside that night's €159.99 couchette).
+  pruned.nights["2026-10-05"] = { classes: { couchette: 70, sleeperCabin: 99 }, checkedAt: "2026-09-27" };
+  const perClass = cheapestNight(pruned);
+  assert.deepStrictEqual(perClass.classes, { couchette: 54.9, sleeperCabin: 99 });
+  assert.deepStrictEqual(perClass.classDates, { couchette: "2026-10-03", sleeperCabin: "2026-10-05" });
+  assert.strictEqual(perClass.travelDate, "2026-10-03");
   assert.strictEqual(cheapestNight({ currency: "EUR", nights: { "2026-10-02": { none: true, checkedAt: "x" } } }), null);
 });
 

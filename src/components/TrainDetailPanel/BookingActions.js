@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { FiExternalLink } from "react-icons/fi";
+import { FiExternalLink, FiZap } from "react-icons/fi";
 import { resolveRouteBooking } from "../../lib/routeBooking.mjs";
 import { formatFromPrice } from "../../lib/operatorPricing";
 import {
@@ -34,6 +34,11 @@ export default function BookingActions({
   origin,
   dest,
   pricing,
+  // The train's cheapest promotional deal, sold from the operator's own
+  // deals page rather than its booking search (European Sleeper's last-minute
+  // pages): { label, price, date, href, best }. Shown here, beside that link,
+  // and kept out of the fare chips above — see TrainDetailPanel.
+  deal = null,
   livePrice, // reserved for future live-price fetching; unused for now
   routeId,
   scheduleStops,
@@ -124,8 +129,41 @@ export default function BookingActions({
         </div>
       )}
 
+      {/* The deal itself, where the source found one: what it is, when, and
+          how it compares, linking to the page that sells it. */}
+      {deal && (deal.href || dealsUrl) && (
+        <a
+          href={deal.href || dealsUrl}
+          target="_blank"
+          rel="sponsored nofollow noopener noreferrer"
+          className="group block rounded-md border border-amber-300 bg-amber-50 px-3 py-2 hover:border-amber-400 hover:bg-amber-100 transition-colors"
+          data-testid="panel-deal"
+        >
+          <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-700">
+            <FiZap className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <span className="whitespace-nowrap">
+              {deal.programme === "flashSale" ? "Flash sale" : "Last-minute deal"}
+            </span>
+            {deal.best && (
+              <span className="whitespace-nowrap rounded-full bg-amber-400 px-1.5 py-px text-[10px] text-black">
+                Cheapest
+              </span>
+            )}
+          </span>
+          <span className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-sm text-gray-800">
+            <span>{deal.label}</span>
+            <span className="font-semibold text-gray-900">{deal.price}</span>
+            {deal.date && <span className="text-xs text-gray-500">· {deal.date}</span>}
+          </span>
+          <span className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-amber-800 group-hover:underline">
+            Not in the regular booking search — get it here
+            <FiExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+          </span>
+        </a>
+      )}
+
       {/* Secondary: flexible / last-minute deals */}
-      {dealsUrl && (
+      {dealsUrl && !deal && (
         <a
           href={dealsUrl}
           target="_blank"

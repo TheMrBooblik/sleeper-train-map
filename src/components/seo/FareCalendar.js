@@ -115,7 +115,7 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
                 const isDeal = Boolean(day.deal) && selectable;
                 const label =
                   day.state === "priced"
-                    ? `${formatNight(day.date)}, ${day.classes[0]?.label.toLowerCase()} ${day.classes[0]?.price}${isDeal ? " (last-minute deal)" : ""}`
+                    ? `${formatNight(day.date)}, ${day.classes[0]?.label.toLowerCase()} ${day.classes[0]?.price}${isDeal ? ` (${day.deal.programme === "flashSale" ? "flash sale" : "last-minute deal"})` : ""}`
                     : day.state === "none"
                       ? `${formatNight(day.date)}, no berth on sale`
                       : `${formatNight(day.date)}, not checked yet`;
@@ -184,7 +184,11 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
           <span className="inline-flex items-center gap-1">
             <FiZap className="h-3 w-3 text-amber-300" aria-hidden />
             <span className="font-semibold text-amber-300">amber</span>{" "}
-            last-minute deal
+            {deals.programmes?.includes("flashSale")
+              ? deals.programmes.includes("lastMinute")
+                ? "last-minute or flash-sale deal"
+                : "flash-sale deal"
+              : "last-minute deal"}
           </span>
         )}
         <span>— no berth on sale</span>
@@ -205,7 +209,8 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
           {night.deal && !isPast(night.date) && (
             <DealDetail
               deal={night.deal}
-              programme={lastMinute}
+              programme={lastMinute?.[night.deal.programme] ?? lastMinute?.lastMinute}
+              compartmentSize={lastMinute?.compartmentSize}
               trainNumber={trainNumber}
             />
           )}
@@ -265,6 +270,14 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
   );
 }
 
+/** "Last-minute deals" / "Flash-sale deals" / both, for the banner. */
+function dealsTitle(programmes = []) {
+  const lm = programmes.includes("lastMinute");
+  const fs = programmes.includes("flashSale");
+  if (lm && fs) return "Last-minute and flash-sale deals";
+  return fs ? "Flash-sale deals" : "Last-minute deals";
+}
+
 /**
  * The calendar's last-minute deals in one card above the grids: how many
  * nights, from how much, how far under the regular fare — and a button that
@@ -281,7 +294,7 @@ function LastMinuteBanner({ deals, programme, onShow, showing, past }) {
         <FiZap className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" aria-hidden />
         <div className="min-w-0 text-sm text-white/80">
           <span className="font-semibold text-white">
-            Last-minute deals from {deals.from}
+            {dealsTitle(deals.programmes)} from {deals.from}
           </span>{" "}
           on {deals.count} {deals.count === 1 ? "night" : "nights"}
           {Number.isFinite(deals.maxSavingsPct) && deals.maxSavingsPct > 0
@@ -305,9 +318,9 @@ function LastMinuteBanner({ deals, programme, onShow, showing, past }) {
 }
 
 /** One night's deal: the price, what it saves, the catch, and where to buy it. */
-function DealDetail({ deal, programme, trainNumber }) {
+function DealDetail({ deal, programme, compartmentSize, trainNumber }) {
   const what =
-    deal.kind === "private" ? "Private couchette compartment" : "Couchette bed";
+    deal.kind === "private" ? "Private compartment" : "Couchette bed";
   return (
     <div
       className="mt-3 rounded-lg border border-amber-300/50 bg-amber-400/10 p-3"
@@ -315,7 +328,8 @@ function DealDetail({ deal, programme, trainNumber }) {
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold uppercase tracking-wide text-amber-300">
         <FiZap className="h-3.5 w-3.5" aria-hidden />
-        {programme?.name ?? "Last-minute deal"}
+        {programme?.name ??
+          (deal.programme === "flashSale" ? "Flash sale" : "Last-minute deal")}
         {deal.best && (
           <span className="rounded-full bg-amber-300 px-2 py-0.5 text-[10px] text-black">
             Cheapest fare this night
@@ -347,8 +361,13 @@ function DealDetail({ deal, programme, trainNumber }) {
       {deal.perPerson && (
         <p className="mt-1 text-xs text-white/60">
           One price for the whole compartment, up to{" "}
-          {programme?.compartmentSize ?? 5} people — {deal.perPerson} each when
+          {compartmentSize ?? 5} people — {deal.perPerson} each when
           it is full.
+        </p>
+      )}
+      {deal.until && (
+        <p className="mt-1 text-xs font-medium text-amber-200">
+          Sale ends {formatNight(deal.until)} — book by then.
         </p>
       )}
       {programme?.terms?.length > 0 && (

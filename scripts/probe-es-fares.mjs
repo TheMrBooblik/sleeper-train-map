@@ -24,7 +24,16 @@ import {
   searchAvailability,
   searchTrains,
 } from "./lib/es-fares.mjs";
-import { findDealIds, findLandingPaths, parseEuroAmount, parseLastMinutePage } from "./lib/es-last-minute.mjs";
+import {
+  findDealIds,
+  findLandingPaths,
+  findOfferLinks,
+  parseEuroAmount,
+  parseLastMinutePage,
+  saleEndDate,
+  trainForOfferText,
+} from "./lib/es-last-minute.mjs";
+import { cityForStation } from "../src/lib/seo/cities.mjs";
 import { constantsRoutes, endpointsFor } from "./lib/es-fare-calendar.mjs";
 
 const SITE = "https://www.europeansleeper.eu";
@@ -145,12 +154,26 @@ const index = await get(`${SITE}${cfg.lastMinute?.indexPath ?? "/last-minute"}`)
 save("last-minute-index.html", index.body);
 const discovered = findLandingPaths(index.body);
 console.log(`index: HTTP ${index.status} ${index.error ?? ""} (${index.body.length} bytes) → ${discovered.join(", ") || "no landing links found"}`);
-// The flash sale is a separate page (/flash-sale) with its own form; it is
-// read here whether or not the registry lists it yet, so its markup can be
-// seen before a parser rule is written for it.
+// The flash sale is an index of per-direction offer pages, like /last-minute
+// (2026-10-01): read the index, then every page it links, with the train each
+// link's text names — the same attribution the nightly pass makes.
+const flashIndexPath = cfg.flashSale?.indexPath ?? "/flash-sale";
+const flashIndex = await get(`${SITE}${flashIndexPath}`);
+save("flash-sale-index.html", flashIndex.body);
+const trainCities = Object.fromEntries(
+  Object.entries(trains).map(([k, t]) => [
+    k,
+    [t.stations?.[0]?.name, t.stations?.[t.stations.length - 1]?.name].map((n) => cityForStation(n ?? "") || n || ""),
+  ]),
+);
+const flashLinks = findOfferLinks(flashIndex.body, { pathPattern: /flash/i, indexPath: flashIndexPath });
+console.log(
+  `flash index: HTTP ${flashIndex.status} ${flashIndex.error ?? ""} (${flashIndex.body.length} bytes); sale ends ${saleEndDate(flashIndex.body, { today }) ?? "?"}`,
+);
+for (const l of flashLinks) console.log(`  ${l.path}  "${l.text}" → ES ${trainForOfferText(l.text, trainCities) ?? "?"}`);
 const paths = [
   ...new Set([
-    "/flash-sale",
+    ...flashLinks.map((l) => l.path),
     ...(cfg.lastMinute?.pages ?? []).map((p) => p.path),
     ...discovered,
   ]),
@@ -171,7 +194,7 @@ for (const p of paths) {
   // The markup around each deal button, raw: which tab/section/route heading
   // a deal sits under is what attributes it to a train, and the visible text
   // alone does not show the nesting.
-  if (/flash/.test(p)) {
+  if (/flash/.test(p) && p === paths[0]) {
     for (const m of [...page.body.matchAll(/<button\b[^>]*name=["']price["'][^>]*>/gi)].slice(0, 12)) {
       const at = m.index;
       console.log(`  --- raw around price button @${at} ---`);

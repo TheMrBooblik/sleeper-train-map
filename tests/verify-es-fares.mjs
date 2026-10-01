@@ -27,9 +27,13 @@ import {
   fetchLastMinuteDeals,
   findDates,
   findDealIds,
+  fetchDeals,
   findLandingPaths,
+  findOfferLinks,
   parseEuroAmount,
   parseLastMinutePage,
+  saleEndDate,
+  trainForOfferText,
 } from "../scripts/lib/es-last-minute.mjs";
 import {
   applyDeals,
@@ -39,7 +43,8 @@ import {
 import { FARE_CALENDAR_VERSION } from "../scripts/lib/fare-calendar.mjs";
 import { fareCalendarDays } from "../src/lib/fareCalendarView.mjs";
 import { dealsSummary, lastMinuteProgramme, nightDeal } from "../src/lib/lastMinuteDeals.mjs";
-import { fareClassLabel, FARE_CLASS_LABELS } from "../src/lib/fareClasses.mjs";
+import { fareClassLabel, fareClassRows, FARE_CLASS_LABELS, splitDealFare } from "../src/lib/fareClasses.mjs";
+import { cheapestNight } from "../scripts/lib/fare-calendar.mjs";
 import { buildDatedBookingLink, buildDealsLandingUrl } from "../src/lib/operatorBooking.js";
 import { stampOfficialFares } from "../src/pages/api/lib/build-initial-data.mjs";
 import fs from "node:fs";
@@ -534,7 +539,7 @@ await check("fillEsFareCalendars: a deal becomes the night's cheapest fare and t
   const nights = trains["453"].fareCalendar.nights;
   assert.strictEqual(nights["2026-10-02"].classes.lastMinuteCouchette, 40);
   assert.strictEqual(nights["2026-10-02"].classes.couchette, 79.99);
-  assert.deepStrictEqual(nights["2026-10-02"].deal, { landing: "/last-minutes-berlin-prague", checkedAt: TODAY });
+  assert.deepStrictEqual(nights["2026-10-02"].deal, { landing: "/last-minutes-berlin-prague", checkedAt: TODAY, programme: "lastMinute" });
   // Regular search said nothing on sale; the promo quota is separate and still counts.
   assert.strictEqual(nights["2026-10-05"].none, undefined);
   assert.strictEqual(nights["2026-10-05"].classes.lastMinuteCouchette, 40);
@@ -633,13 +638,144 @@ await check("fareCalendarDays: deal nights carry the deal, the summary names the
     ["lastMinuteCouchette", "€40", true],
     ["couchette", "from €79.99", false],
   ]);
-  assert.deepStrictEqual(view.deals, { count: 2, from: "€40", fromAmount: 40, fromDate: "2026-10-02", maxSavingsPct: 50 });
+  assert.deepStrictEqual(view.deals, { count: 2, from: "€40", fromAmount: 40, fromDate: "2026-10-02", maxSavingsPct: 50, programmes: ["lastMinute"] });
   assert.strictEqual(dealsSummary([]), null);
   assert.strictEqual(fareCalendarDays({ currency: "EUR", nights: { "2026-10-03": { classes: { couchette: 89 } } } }, { today: TODAY }).deals, null);
-  assert.ok(lastMinuteProgramme("ES").terms.length);
+  assert.ok(lastMinuteProgramme("ES").lastMinute.terms.length);
+  assert.ok(lastMinuteProgramme("ES").flashSale.terms.length);
   assert.ok(lastMinuteProgramme("ES/NS"));
   assert.strictEqual(lastMinuteProgramme("FS"), null);
   assert.strictEqual(fareClassLabel("lastMinuteCouchette"), "Last-minute couchette");
+});
+
+// The flash-sale index as the probe read it on 2026-10-01: a sale banner
+// ("ends 6 October", "Book by 6 October") and six per-direction offer pages
+// named only in link text. The hrefs are reconstructed — the probe printed
+// the text, not the anchors — and the offer pages reuse the last-minute form.
+const FLASH_INDEX = `
+<div class="announcement">Good Morning Flash Sale - ends 6 October <a href="/flash-sale">Book for &euro;49</a></div>
+<h1>Good Morning Flash Sale</h1>
+<p>Shared Classic for &euro;49 one-way. Limited availability on selected November and December departures. Once it’s gone, it’s gone. Book by 6 October.</p>
+<h2>Brussels-Milan Flash Sale</h2>
+<a href="/flash-sale-brussels-milan">Flash Sale offer from Brussels and Cologne to Switzerland and Milan</a>
+<a href="/flash-sale-milan-brussels">Flash Sale offer from Milan and Switzerland to Cologne and Brussels</a>
+<h2>Paris-Berlin Flash Sale</h2>
+<a href="/flash-sale-paris-berlin">Flash Sale offer from Paris and Brussels to Hamburg and Berlin</a>
+<a href="/flash-sale-berlin-paris">Flash Sale offer from Berlin and Hamburg to Brussels and Paris</a>
+<h2>Brussels-Prague Flash Sale</h2>
+<a href="/flash-sale-prague-brussels">Flash Sale offer from Prague and Berlin to Amsterdam and Brussels</a>
+<a href="/flash-sale-brussels-prague">Flash Sale offer from Brussels and Amsterdam to Berlin and Prague</a>
+<a href="/timetable">Timetable</a> <a href="/last-minute">Last minute deals</a>`;
+
+const FLASH_PAGE = `
+<h1>Flash Sale: Brussels and Amsterdam to Berlin and Prague</h1>
+<div><span>Friday Evening Departures</span>
+  <button class="bg-shock-orange button" name="price" type="button" value="1201"><span>Fri 13 Nov 26</span> <span>&euro;49 p.p.</span></button></div>
+<div><span>Sunday Evening Departures</span>
+  <button class="bg-shock-orange button" name="price" type="button" value="1202"><span>Sun 06 Dec 26</span> <span>&euro;49 p.p.</span></button></div>`;
+
+const TRAIN_CITIES = {
+  "400": ["Milan", "Brussels"], "401": ["Brussels", "Milan"],
+  "452": ["Prague", "Brussels"], "453": ["Brussels", "Prague"],
+  "474": ["Berlin", "Paris"], "475": ["Paris", "Berlin"],
+};
+
+await check("flash sale: the index's offer pages, each tied to its train by the route its link names", () => {
+  const links = findOfferLinks(FLASH_INDEX, { pathPattern: /flash/i, indexPath: "/flash-sale" });
+  assert.deepStrictEqual(links.map((l) => l.path), [
+    "/flash-sale-berlin-paris", "/flash-sale-brussels-milan", "/flash-sale-brussels-prague",
+    "/flash-sale-milan-brussels", "/flash-sale-paris-berlin", "/flash-sale-prague-brussels",
+  ], "the index itself, the timetable and the last-minute link are not offers");
+  const trainOf = Object.fromEntries(links.map((l) => [l.path, trainForOfferText(l.text, TRAIN_CITIES)]));
+  assert.deepStrictEqual(trainOf, {
+    "/flash-sale-berlin-paris": "474", "/flash-sale-brussels-milan": "401", "/flash-sale-brussels-prague": "453",
+    "/flash-sale-milan-brussels": "400", "/flash-sale-paris-berlin": "475", "/flash-sale-prague-brussels": "452",
+  });
+  // A route no train runs, or one two trains share, names nothing.
+  assert.strictEqual(trainForOfferText("offer from Vienna to Rome", TRAIN_CITIES), null);
+  assert.strictEqual(trainForOfferText("offer from Brussels to Prague and Milan", TRAIN_CITIES), null);
+  assert.strictEqual(saleEndDate(FLASH_INDEX, { today: TODAY }), "2026-10-06");
+  assert.strictEqual(saleEndDate(FLASH_INDEX, { today: "2026-10-07" }), null, "a sale that has ended has no end date ahead");
+});
+
+await check("fetchDeals: flash-sale deals carry their programme, train and last booking day", async () => {
+  const fetchImpl = fakeSite([
+    [/\/flash-sale$/, () => ({ body: FLASH_INDEX })],
+    [/\/flash-sale-brussels-prague$/, () => ({ body: FLASH_PAGE })],
+    [/\/flash-sale-/, () => ({ body: "<p>No dates left.</p>" })],
+    [/\/last-minute$/, () => ({ body: "" })],
+    [/receipt\/price\/1\/1201$/, () => ({ body: "&euro;49" })],
+    [/receipt\/price\/1\/1202$/, () => ({ body: "" })], // sold out since the page was built
+  ]);
+  const result = await fetchDeals({
+    programmes: [{ id: "lastMinute", indexPath: "/last-minute", pages: [] }, { id: "flashSale", indexPath: "/flash-sale", pages: [] }],
+    trains: Object.fromEntries(Object.keys(TRAIN_CITIES).map((k) => [k, {}])),
+    trainCities: TRAIN_CITIES,
+    today: TODAY, fetchImpl, log: () => {}, spacingMs: 0,
+  });
+  assert.strictEqual(result.ok, true);
+  assert.deepStrictEqual(result.deals, [
+    { train: "453", date: "2026-11-13", kind: "couchette", amount: 49, landing: "/flash-sale-brussels-prague", id: "1201", programme: "flashSale", until: "2026-10-06" },
+  ]);
+  assert.strictEqual(result.pages.find((p) => p.path === "/flash-sale-brussels-prague").train, "453");
+});
+
+await check("applyDeals / stripDeals: a flash sale lands in its own class and goes when the sale ends", () => {
+  const cals = { "453": { nights: { "2026-11-13": { classes: { couchette: 89.99 }, checkedAt: TODAY } } } };
+  applyDeals(cals, [
+    { train: "453", date: "2026-11-13", kind: "couchette", amount: 49, landing: "/flash-sale-brussels-prague", programme: "flashSale", until: "2026-10-06" },
+    { train: "453", date: "2026-11-14", kind: "couchette", amount: 49, landing: "/x", programme: "flashSale", until: "2026-09-30" }, // ended
+  ], { today: TODAY, days: 92 });
+  const night = cals["453"].nights["2026-11-13"];
+  assert.deepStrictEqual(night.classes, { couchette: 89.99, flashSaleCouchette: 49 });
+  assert.deepStrictEqual(night.deal, { landing: "/flash-sale-brussels-prague", checkedAt: TODAY, programme: "flashSale", until: "2026-10-06" });
+  assert.strictEqual(cals["453"].nights["2026-11-14"], undefined, "a sale past its last day adds nothing");
+  const removed = stripDeals(cals["453"], "453");
+  assert.deepStrictEqual(removed.map((d) => [d.programme, d.kind, d.amount, d.until]), [["flashSale", "couchette", 49, "2026-10-06"]]);
+  assert.deepStrictEqual(cals["453"].nights["2026-11-13"].classes, { couchette: 89.99 });
+  const d = nightDeal({ classes: { couchette: 89.99, flashSaleCouchette: 49 }, deal: { programme: "flashSale", until: "2026-10-06", landing: "/f" } });
+  assert.strictEqual(d.programme, "flashSale");
+  assert.strictEqual(d.until, "2026-10-06");
+  assert.strictEqual(d.savingsPct, 46);
+  assert.strictEqual(fareClassLabel("flashSaleCouchette"), "Flash-sale couchette");
+});
+
+await check("the map panel: each class its own cheapest night, the deal apart from the regular fares", () => {
+  // As on 2026-10-01: the €40 deal was tomorrow, when the regular couchette
+  // cost €159.99 — and the panel printed "Couchette from €159.99" for a train
+  // whose couchettes start at €59.99 on other nights.
+  const calendar = { currency: "EUR", nights: {
+    "2026-10-02": { classes: { couchette: 159.99, privateCouchette: 599.99, lastMinuteCouchette: 40, lastMinutePrivate: 160 }, checkedAt: TODAY, deal: { landing: "/last-minutes-berlin-prague", checkedAt: TODAY, programme: "lastMinute" } },
+    "2026-10-08": { classes: { couchette: 59.99, privateCouchette: 249.99 }, checkedAt: TODAY },
+  } };
+  const fare = cheapestNight(calendar);
+  assert.strictEqual(fare.fromPrice, 40);
+  assert.strictEqual(fare.seatClass, "lastMinuteCouchette");
+  assert.deepStrictEqual(fare.classes, { couchette: 59.99, privateCouchette: 249.99, lastMinuteCouchette: 40, lastMinutePrivate: 160 });
+  assert.strictEqual(fare.classDates.couchette, "2026-10-08");
+  assert.strictEqual(fare.dealLanding, "/last-minutes-berlin-prague");
+  const regularRows = fareClassRows(fare, { from: true, deals: "exclude" });
+  assert.deepStrictEqual(regularRows.map((r) => [r.label, r.price, r.date]), [
+    ["Couchette", "from €59.99", "2026-10-08"],
+    ["Private compartment", "from €249.99", "2026-10-08"],
+  ]);
+  const { regular, deal } = splitDealFare(fare);
+  assert.deepStrictEqual(regular, { fromPrice: 59.99, seatClass: "couchette", travelDate: "2026-10-08" });
+  assert.deepStrictEqual(deal, {
+    fromPrice: 40, seatClass: "lastMinuteCouchette", travelDate: "2026-10-02",
+    label: "Last-minute couchette", price: "€40", landing: "/last-minutes-berlin-prague", programme: "lastMinute",
+  });
+  // A 12306-style record (no calendar, no deals) splits into its regular part only.
+  assert.deepStrictEqual(splitDealFare({ currency: "CNY", classes: { hardSleeper: 335.5 }, travelDate: "2026-10-05" }), {
+    regular: { fromPrice: 335.5, seatClass: "hardSleeper", travelDate: "2026-10-05" }, deal: null,
+  });
+  // The panel's source: deals kept out of the chips, the Fare line on the
+  // regular fare, the deal handed to the booking block.
+  const panel = fs.readFileSync("src/components/TrainDetailPanel/TrainDetailPanel.js", "utf8");
+  assert.match(panel, /deals: "exclude"/);
+  assert.match(panel, /pricing=\{bookingPricing\}/);
+  assert.match(panel, /deal=\{dealForBooking\}/);
+  assert.strictEqual(fareClassLabel("privateCouchette"), "Private compartment");
 });
 
 await check("booking links: a deal opens its landing page, a night opens the dated search", () => {

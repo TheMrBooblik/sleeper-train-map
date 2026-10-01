@@ -129,7 +129,8 @@
       "timetableUrl": "https://www.europeansleeper.eu/timetable",
       "fares": {
         "enabled": true,
-        "searchesPerRun": 300,
+        "days": 92,
+        "searchesPerRun": 600,
         "lastMinute": {
           "indexPath": "/last-minute",
           "pages": [
@@ -140,6 +141,10 @@
             { "path": "/last-minute-switzerland-milan", "trains": ["401"] },
             { "path": "/last-minute-cologne-brussels", "trains": ["400"] }
           ]
+        },
+        "flashSale": {
+          "indexPath": "/flash-sale",
+          "pages": []
         }
       }
     },

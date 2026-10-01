@@ -40,8 +40,22 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** A deal is shown for the night it was read and the next, never longer. */
 export const DEAL_MAX_AGE_DAYS = 1;
 
-export const DEAL_CLASS = { couchette: "lastMinuteCouchette", private: "lastMinutePrivate" };
-const DEAL_CLASSES = new Set(Object.values(DEAL_CLASS));
+/**
+ * The class a deal lands in, per programme and kind: European Sleeper's
+ * last-minute pages (trains 1–3 weeks out, often days) and its flash sales
+ * (selected dates further out, sold for a few days). Kept apart because the
+ * terms differ and the page names the one it is.
+ */
+export const DEAL_CLASSES_BY_PROGRAMME = {
+  lastMinute: { couchette: "lastMinuteCouchette", private: "lastMinutePrivate" },
+  flashSale: { couchette: "flashSaleCouchette", private: "flashSalePrivate" },
+};
+export const DEAL_CLASS = DEAL_CLASSES_BY_PROGRAMME.lastMinute;
+const DEAL_CLASSES = new Map(
+  Object.entries(DEAL_CLASSES_BY_PROGRAMME).flatMap(([programme, byKind]) =>
+    Object.entries(byKind).map(([kind, cls]) => [cls, { programme, kind }]),
+  ),
+);
 
 const DAY_MS = 86_400_000;
 const isoMs = (iso) => Date.parse(`${iso}T00:00:00Z`);
@@ -58,13 +72,16 @@ export function stripDeals(calendar, train) {
   for (const [date, entry] of Object.entries(calendar?.nights ?? {})) {
     if (!entry?.classes) continue;
     for (const [cls, amount] of Object.entries(entry.classes)) {
-      if (!DEAL_CLASSES.has(cls)) continue;
+      const meta = DEAL_CLASSES.get(cls);
+      if (!meta) continue;
       removed.push({
         train,
         date,
-        kind: cls === DEAL_CLASS.private ? "private" : "couchette",
+        kind: meta.kind,
+        programme: meta.programme,
         amount,
         landing: entry.deal?.landing ?? null,
+        ...(entry.deal?.until ? { until: entry.deal.until } : {}),
         checkedAt: entry.deal?.checkedAt ?? entry.checkedAt,
       });
       delete entry.classes[cls];
@@ -85,31 +102,44 @@ export function stripDeals(calendar, train) {
 
 /**
  * Lay deals onto the calendars: [{ train, date, kind, amount, landing,
- * checkedAt }]. Two deals of one kind on one night keep the cheaper. A deal
- * on a night the regular search found nothing on sale still counts — the
- * promo quota is sold separately — and replaces the `none`.
+ * programme, until, checkedAt }]. Two deals in one class on one night keep the
+ * cheaper. A deal on a night the regular search found nothing on sale still
+ * counts — the promo quota is sold separately — and replaces the `none`. The
+ * night's `deal` names the cheapest deal it carries: where it is sold, under
+ * which programme, and until when (a flash sale's last booking day).
  */
 export function applyDeals(calendars, deals, { today, days = FARE_CALENDAR_DAYS } = {}) {
   let applied = 0;
   const last = isoMs(today) + days * DAY_MS;
   for (const d of deals ?? []) {
     const cal = calendars[d.train];
-    const cls = DEAL_CLASS[d.kind];
+    const programme = DEAL_CLASSES_BY_PROGRAMME[d.programme ?? "lastMinute"] ? d.programme ?? "lastMinute" : null;
+    const cls = programme ? DEAL_CLASSES_BY_PROGRAMME[programme][d.kind] : null;
     if (!cal || !cls || !Number.isFinite(d.amount) || d.amount <= 0) continue;
     if (!(d.date > today) || isoMs(d.date) > last) continue;
-    const entry = cal.nights[d.date];
+    if (d.until && d.until < today) continue;
     const checkedAt = d.checkedAt ?? today;
+    const meta = {
+      landing: d.landing ?? null,
+      checkedAt,
+      programme,
+      ...(d.until ? { until: d.until } : {}),
+    };
+    const entry = cal.nights[d.date];
     if (!entry || entry.none) {
       cal.nights[d.date] = {
         classes: { [cls]: d.amount },
         checkedAt: entry?.checkedAt ?? checkedAt,
         ...(entry ? {} : { dealOnly: true }),
-        deal: { landing: d.landing ?? null, checkedAt },
+        deal: meta,
       };
     } else {
       entry.classes ??= {};
       if (entry.classes[cls] == null || d.amount < entry.classes[cls]) entry.classes[cls] = d.amount;
-      entry.deal = { landing: entry.deal?.landing ?? d.landing ?? null, checkedAt };
+      const cheapestDeal = Math.min(
+        ...[...DEAL_CLASSES.keys()].map((k) => entry.classes[k]).filter(Number.isFinite),
+      );
+      if (!entry.deal || d.amount <= cheapestDeal) entry.deal = meta;
     }
     applied++;
   }
@@ -194,7 +224,7 @@ export function endpointsFor(trains, { curated, stations, routes = [], log = () 
  * @param {object} opts
  * @param {Record<string,string>} opts.curated  operator-booking.json stationNames
  * @param {() => Promise<object>} [opts.loadDeals] tonight's deals
- *   (fetchLastMinuteDeals); omitted = no deal pass
+ *   (fetchDeals: last-minute and flash sale); omitted = no deal pass
  */
 export async function fillEsFareCalendars(
   trains,

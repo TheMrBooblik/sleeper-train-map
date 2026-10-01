@@ -44,7 +44,7 @@ import { distanceKm } from "../../src/components/Map/utils/returnGeometryBranche
 import { cityForStation } from "../../src/lib/seo/cities.mjs";
 import { parseTimetableHtml } from "../lib/es-timetable.mjs";
 import { fillEsFareCalendars, ES_FARE_BUDGET } from "../lib/es-fare-calendar.mjs";
-import { fetchLastMinuteDeals } from "../lib/es-last-minute.mjs";
+import { fetchDeals } from "../lib/es-last-minute.mjs";
 
 function readJsonSafe(filePath) {
   try {
@@ -552,23 +552,41 @@ async function priceTrains(trains, entry, ctx, log) {
     readJsonSafe(path.join(ctx.rootDir, "data", "overrides", "operator-booking.json")) ?? {};
   const curated = booking?.[entry.agencyDefaults?.agencyId ?? "ES"]?.stationNames ?? {};
   let dealPages = null;
+  // Promotional programmes, each an index page of per-direction offer pages:
+  // last-minute (1–3 weeks out) and flash sales (selected dates further out).
+  const programmes = [
+    cfg.lastMinute && { id: "lastMinute", indexPath: "/last-minute", ...cfg.lastMinute },
+    cfg.flashSale && { id: "flashSale", indexPath: "/flash-sale", ...cfg.flashSale },
+  ].filter(Boolean);
+  // A page that names no train in the registry is attributed by the route its
+  // link text names ("offer from Paris and Brussels to Hamburg and Berlin"),
+  // matched on the cities each train starts and ends in.
+  const trainCities = Object.fromEntries(
+    Object.entries(trains).map(([key, t]) => [
+      key,
+      [t.stations?.[0]?.name, t.stations?.[t.stations.length - 1]?.name].map(
+        (n) => cityForStation(n ?? "") || n || "",
+      ),
+    ]),
+  );
   try {
     const stats = await fillEsFareCalendars(trains, previousTrains, {
       today: ctx.today,
       fetchImpl: ctx.fetch ?? fetch,
       curated,
+      days: cfg.days ?? undefined,
       budget: cfg.searchesPerRun ?? ES_FARE_BUDGET,
-      loadDeals: cfg.lastMinute
+      loadDeals: programmes.length
         ? async () => {
-            const result = await fetchLastMinuteDeals({
-              pages: cfg.lastMinute.pages ?? [],
-              indexPath: cfg.lastMinute.indexPath ?? "/last-minute",
-              trainKeys: Object.keys(trains),
+            const result = await fetchDeals({
+              programmes,
+              trains,
+              trainCities,
               today: ctx.today,
               fetchImpl: ctx.fetch ?? fetch,
             });
-            dealPages = result.pages.map(({ path: p, status, ids, dated, used }) => ({
-              path: p, status, ids, dated, used,
+            dealPages = result.pages.map(({ path: p, programme, status, ids, dated, used, train }) => ({
+              path: p, programme, status, ids, dated, used, train,
             }));
             return result;
           }
@@ -577,7 +595,7 @@ async function priceTrains(trains, entry, ctx, log) {
     log(
       `${stats.searched}/${stats.planned} night(s) searched in ${stats.requests} request(s) ` +
         `(${stats.priced} priced, ${stats.none} with no berth on sale, ${stats.errors} failed, ${stats.retries} retried` +
-        `${stats.stopped ? ", stopped early" : ""}); ${stats.deals} last-minute deal(s)` +
+        `${stats.stopped ? ", stopped early" : ""}); ${stats.deals} promotional deal(s)` +
         `${stats.dealsFrom != null ? ` from €${stats.dealsFrom}` : ""}; fares for ` +
         `${Object.values(trains).filter((t) => t.fare).length}/${Object.keys(trains).length} trains` +
         `${stats.unpriced.length ? ` (no station ids: ${stats.unpriced.join(", ")})` : ""}`,
