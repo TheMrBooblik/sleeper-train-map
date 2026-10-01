@@ -1,8 +1,9 @@
 // scripts/adapters/nightjet.mjs
 // NightJet / EuroNight via the official nightjet.com booking API.
-// Discovers train numbers from country-pair queries (codes in registry params)
-// plus the partner (EuroNight) list, over `params.discoveryDays` dates starting
-// tonight, then fetches each train's full route on the first date it runs.
+// Discovers every listed train from country-pair queries and the partner
+// (EuroNight) list — the registry's country codes are only a seed, the rest are
+// learned from the API's own answers (see discoverTrains) — and fetches each
+// train's full route on the date it next runs.
 // Stores the result on ctx.shared.njTrains so the runner's post-step can merge
 // polylines into view_ontd_map and build synthetic standalone routes.
 
@@ -61,56 +62,67 @@ export async function fetchSingleTrain(trainNumber, date) {
 }
 
 /**
- * Every train the country-pair search lists for one date, partner EuroNights
- * included. They used to be dropped here and taken only from the partner list,
- * which the adapter cut at 25 — so a partner train the country search had
- * found could still go missing.
+ * A station's UIC country code: the API's own `country` field where it sends
+ * one ("80"), else the first two digits of its seven-digit EVA number, which is
+ * how UIC numbers stations (8011160 Berlin Hbf → 80, 5500003 Budapest-Keleti →
+ * 55). Route stops carry only the EVA number.
  */
-export async function fetchCountryTrains(date, countryCodes) {
-  const pairs = [];
-  for (const from of countryCodes)
-    for (const to of countryCodes) pairs.push([from, to]);
+export function stationCountry(station) {
+  const own = station?.country;
+  if (own != null && /^\d{2}$/.test(String(own))) return String(own);
+  const eva = String(station?.eva || station?.evaMeta || station?.id || "");
+  return /^\d{7}$/.test(eva) ? eva.slice(0, 2) : null;
+}
 
-  const numbers = new Set();
-  let failed = 0;
-  await Promise.all(
-    pairs.map(async ([from, to]) => {
-      const url = `https://www.nightjet.com/nj-booking-ocp/destinations/country/${from}/country/${to}/${date}`;
-      try {
-        const res = await fetchWithTimeout(url, { headers: { accept: "application/json" } });
-        if (!res.ok) {
-          failed++;
-          return;
-        }
-        const trains = await res.json();
-        if (!Array.isArray(trains)) return;
-        trains.forEach((t) => {
-          if (t?.trainNumber) numbers.add(t.trainNumber);
-        });
-      } catch (e) {
-        failed++;
-        console.warn(`[nj] country ${from}/${to} on ${date} failed: ${e.message}`);
-      }
-    }),
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * One entry of a listing (country search or partner list). `date` is the
+ * train's next run on or after the date asked about, not that date: the
+ * partner list for 1 October carries EN 40465 as "2026-10-15".
+ */
+export function readListingEntry(entry, queryDate) {
+  return {
+    trainNumber: entry?.trainNumber || null,
+    date: ISO_DATE.test(entry?.date ?? "") ? entry.date : queryDate,
+    countries: [stationCountry(entry?.stationFrom), stationCountry(entry?.stationTo)].filter(Boolean),
+    partnerTrain: !!entry?.partnerTrain,
+  };
+}
+
+async function fetchListing(url, queryDate) {
+  try {
+    const res = await fetchWithTimeout(url, { headers: { accept: "application/json" } });
+    if (!res.ok) return { ok: false, entries: [] };
+    const body = await res.json();
+    return {
+      ok: true,
+      entries: (Array.isArray(body) ? body : [])
+        .map((e) => readListingEntry(e, queryDate))
+        .filter((e) => e.trainNumber),
+    };
+  } catch (e) {
+    console.warn(`[nj] ${url} failed: ${e.message}`);
+    return { ok: false, entries: [] };
+  }
+}
+
+/**
+ * Trains running from one country into another (or within one): every train
+ * calling in `from` and later in `to`, partner EuroNights included. A pair
+ * outside the registry's six answers too — 54 (Czechia) → 81 (Austria) lists
+ * EN 40417 Przemyśl → München and NJ 457 Berlin → Graz.
+ */
+export function fetchCountryPair(from, to, date) {
+  return fetchListing(
+    `https://www.nightjet.com/nj-booking-ocp/destinations/country/${from}/country/${to}/${date}`,
+    date,
   );
-  return { numbers: Array.from(numbers), failed, pairs: pairs.length };
 }
 
 /** The partner (EuroNight) list for one date, uncut. */
-export async function fetchPartnerTrains(date) {
-  const url = `https://www.nightjet.com/nj-booking-ocp/destinations/partner/${date}`;
-  try {
-    const res = await fetchWithTimeout(url, { headers: { accept: "application/json" } });
-    if (!res.ok) return { numbers: [], ok: false };
-    const data = await res.json();
-    const numbers = [
-      ...new Set((Array.isArray(data) ? data : []).map((t) => t?.trainNumber).filter(Boolean)),
-    ];
-    return { numbers, ok: true };
-  } catch (e) {
-    console.warn(`[nj] partner fetch on ${date} failed: ${e.message}`);
-    return { numbers: [], ok: false };
-  }
+export function fetchPartnerTrains(date) {
+  return fetchListing(`https://www.nightjet.com/nj-booking-ocp/destinations/partner/${date}`, date);
 }
 
 /** `days` consecutive ISO dates starting at `today` ("YYYY-MM-DD"). */
@@ -123,126 +135,220 @@ export function discoveryDates(today, days = 1) {
   return out;
 }
 
-/**
- * Which trains the API lists over a window of dates, and on which of them.
- *
- * One date was never enough. The adapter asked only for tonight, and the
- * scrape runner trusts a healthy fetch completely — a train missing from it is
- * dropped the same night — so a train that does not run tonight left the map
- * until the night it ran again. ÖBB also gives every diversion its own number
- * (NJ 498/499 for Hamburg–Wien over the summer works, NJ 11446, 13465, 13487…),
- * each listed only on the dates it runs. A week covers every weekday pattern.
- *
- * @returns {Promise<{ datesByTrain: Map<string, string[]>, perDate: object[],
- *   partnerTruncated: { date: string, listed: number }[] }>}
- */
-export async function discoverTrains({ dates, countryCodes, maxPartnerTrains = Infinity }) {
-  const datesByTrain = new Map();
-  const perDate = [];
-  const partnerTruncated = [];
-  for (const date of dates) {
-    const [country, partner] = await Promise.all([
-      fetchCountryTrains(date, countryCodes),
-      fetchPartnerTrains(date),
-    ]);
-    // A cap that cuts silently is how a train goes missing without a trace:
-    // keep it as a guard against a runaway response, but say when it bites.
-    const partnerKept = partner.numbers.slice(0, maxPartnerTrains);
-    if (partner.numbers.length > partnerKept.length) {
-      partnerTruncated.push({ date, listed: partner.numbers.length });
+async function pool(items, size, fn) {
+  const out = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i], i);
     }
-    const listed = new Set([...country.numbers, ...partnerKept]);
-    for (const n of listed) {
-      if (!datesByTrain.has(n)) datesByTrain.set(n, []);
-      datesByTrain.get(n).push(date);
-    }
-    perDate.push({
-      date,
-      country: country.numbers.length,
-      countryFailed: country.failed,
-      partner: partner.numbers.length,
-      partnerOk: partner.ok,
-      listed: listed.size,
-    });
-  }
-  return { datesByTrain, perDate, partnerTruncated };
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(size, items.length)) }, worker));
+  return out;
 }
 
-// A train's route on the first listed date that returns one: the earliest
-// date wins, so a train running tonight is drawn with tonight's routing.
-async function fetchFirstRunning(trainNumber, dates, maxTries = 3) {
-  for (const date of dates.slice(0, maxTries)) {
-    const train = await fetchSingleTrain(trainNumber, date);
-    if (train) return train;
+// Rounds of "query the new country pairs, fetch the new trains' routes" per
+// date. Each round can only add countries, and there are a few dozen of them.
+const MAX_ROUNDS = 8;
+
+/**
+ * Every train nightjet.com lists, with its route — found without being told
+ * which countries or which trains to look for.
+ *
+ * Countries: the registry's codes are only a seed. Every listing entry names
+ * the countries of its two ends, every route names the country of each stop
+ * (EVA prefix), and each country seen adds its pairs to the search, until no
+ * new one appears. A train into a country nothing else serves is found as long
+ * as anything ÖBB lists touches that country; the partner list adds every
+ * EuroNight's countries before the first round.
+ *
+ * Dates: the scrape runner drops a train the moment a healthy fetch omits it,
+ * so a train must be found on any night, not only the nights it runs. The
+ * listings answer with each train's NEXT run (the partner list for 1 October
+ * carries EN 40465 as 15 October), and a country search that does the same
+ * makes tonight enough; one that only lists tonight's trains needs the whole
+ * window. So the window is walked until the country search is seen answering
+ * with a later date than the one asked — then it stops, since every train the
+ * window would add is already listed.
+ *
+ * Routes are fetched on each train's own next date, the night it runs.
+ *
+ * @returns {Promise<{ trains: Map<string, { nextDate: string, listedOn: string[],
+ *   partnerTrain: boolean, route: object|null }>, countries: string[],
+ *   perDate: object[], partnerTruncated: object[], lookAhead: boolean }>}
+ */
+export async function discoverTrains({
+  seedCodes = [],
+  dates,
+  maxPartnerTrains = Infinity,
+  concurrency = 12,
+  stopOnLookAhead = true,
+  fetchRoutes = true,
+}) {
+  const known = new Set(seedCodes.map(String));
+  const trains = new Map();
+  const queried = new Set();
+  const perDate = [];
+  const partnerTruncated = [];
+  let lookAhead = false;
+
+  const note = (entry, queryDate, fromCountrySearch) => {
+    entry.countries.forEach((c) => known.add(c));
+    if (fromCountrySearch && entry.date > queryDate) lookAhead = true;
+    const t = trains.get(entry.trainNumber);
+    if (!t) {
+      trains.set(entry.trainNumber, {
+        nextDate: entry.date,
+        listedOn: [queryDate],
+        partnerTrain: entry.partnerTrain,
+        route: null,
+        tried: false,
+      });
+      return;
+    }
+    if (entry.date < t.nextDate) t.nextDate = entry.date;
+    if (!t.listedOn.includes(queryDate)) t.listedOn.push(queryDate);
+    t.partnerTrain ||= entry.partnerTrain;
+  };
+
+  const fetchNewRoutes = async () => {
+    if (!fetchRoutes) return;
+    const pending = [...trains].filter(([, t]) => !t.tried);
+    await pool(pending, concurrency, async ([n, t]) => {
+      t.tried = true;
+      for (const d of [...new Set([t.nextDate, ...t.listedOn])].slice(0, 3)) {
+        t.route = await fetchSingleTrain(n, d);
+        if (t.route) break;
+      }
+      for (const s of t.route?.stations ?? []) {
+        const c = stationCountry(s);
+        if (c) known.add(c);
+      }
+    });
+  };
+
+  for (const [i, date] of dates.entries()) {
+    if (i > 0 && stopOnLookAhead && lookAhead) break;
+    const before = trains.size;
+
+    const partner = await fetchPartnerTrains(date);
+    const partnerKept = partner.entries.slice(0, maxPartnerTrains);
+    if (partner.entries.length > partnerKept.length) {
+      partnerTruncated.push({ date, listed: partner.entries.length });
+    }
+    partnerKept.forEach((e) => note(e, date, false));
+
+    let requests = 0;
+    let failed = 0;
+    for (let round = 0; round < MAX_ROUNDS; round++) {
+      const pairs = [];
+      for (const from of known)
+        for (const to of known) {
+          const key = `${date}|${from}>${to}`;
+          if (!queried.has(key)) {
+            queried.add(key);
+            pairs.push([from, to]);
+          }
+        }
+      if (!pairs.length) break;
+      const answers = await pool(pairs, concurrency, ([from, to]) => fetchCountryPair(from, to, date));
+      for (const a of answers) {
+        requests++;
+        if (!a.ok) failed++;
+        a.entries.forEach((e) => note(e, date, true));
+      }
+      await fetchNewRoutes();
+    }
+    // Partner trains on a date with no new country pair still need routes.
+    await fetchNewRoutes();
+
+    perDate.push({
+      date,
+      newTrains: trains.size - before,
+      countries: known.size,
+      countryRequests: requests,
+      countryFailed: failed,
+      partner: partner.entries.length,
+      partnerOk: partner.ok,
+    });
   }
-  return null;
+
+  return {
+    trains,
+    countries: [...known].sort(),
+    perDate,
+    partnerTruncated,
+    lookAhead,
+  };
 }
 
 export async function run(entry, ctx) {
   const {
     countryCodes = [],
-    concurrency = 6,
+    concurrency = 12,
     maxPartnerTrains = Infinity,
     discoveryDays = 7,
   } = entry.params ?? {};
   const results = {};
 
   const dates = discoveryDates(ctx.today, discoveryDays);
-  const { datesByTrain, perDate, partnerTruncated } = await discoverTrains({
+  const { trains, countries, perDate, partnerTruncated, lookAhead } = await discoverTrains({
+    seedCodes: countryCodes,
     dates,
-    countryCodes,
     maxPartnerTrains,
+    concurrency,
   });
   for (const d of perDate) {
     console.log(
-      `[nj] ${d.date}: ${d.listed} train(s) listed — country search ${d.country}` +
-        `${d.countryFailed ? ` (${d.countryFailed} pair request(s) failed)` : ""}, ` +
+      `[nj] ${d.date}: +${d.newTrains} train(s); ${d.countryRequests} country-pair request(s)` +
+        `${d.countryFailed ? ` (${d.countryFailed} failed)` : ""} over ${d.countries} countries; ` +
         `partner list ${d.partnerOk ? d.partner : "unavailable"}`,
     );
   }
+  const seed = new Set(countryCodes.map(String));
+  const learned = countries.filter((c) => !seed.has(c));
+  console.log(
+    `[nj] countries searched: ${countries.join(", ")}` +
+      (learned.length ? ` (${learned.join(", ")} learned from the API, beyond the registry's seed)` : ""),
+  );
+  console.log(
+    lookAhead
+      ? `[nj] the country search lists each train's next run, so ${perDate.length} date(s) sufficed`
+      : `[nj] the country search lists only the date asked, so ${perDate.length} date(s) were walked`,
+  );
   for (const t of partnerTruncated) {
     console.warn(
       `[nj] ${t.date}: partner list has ${t.listed} trains, only the first ${maxPartnerTrains} kept — raise params.maxPartnerTrains`,
     );
   }
-  const notTonight = [...datesByTrain]
-    .filter(([, listed]) => listed[0] !== dates[0])
-    .map(([n, listed]) => `${n} (${listed[0]})`);
+  const notTonight = [...trains]
+    .filter(([, t]) => t.nextDate !== dates[0])
+    .map(([n, t]) => `${n} (${t.nextDate})`);
   if (notTonight.length) {
-    console.log(`[nj] listed later this week but not tonight: ${notTonight.join(", ")}`);
+    console.log(`[nj] not running tonight, kept from their next run: ${notTonight.join(", ")}`);
   }
-
-  const allNumbers = [...datesByTrain.keys()];
-  console.log(`[scrape] fetching ${allNumbers.length} NJ/EN trains over ${dates.length} day(s)`);
+  console.log(`[scrape] ${trains.size} NJ/EN trains listed`);
 
   const missingRoute = [];
-  for (let i = 0; i < allNumbers.length; i += concurrency) {
-    const batch = allNumbers.slice(i, i + concurrency);
-    const fetched = await Promise.all(
-      batch.map((n) => fetchFirstRunning(n, datesByTrain.get(n))),
-    );
-    fetched.forEach((train, j) => {
-      if (!train) {
-        missingRoute.push(batch[j]);
-        return;
-      }
-      const fallbackPositions = train.stations
-        .filter((s) => s.location?.latitude && s.location?.longitude)
-        .map((s) => [s.location.latitude, s.location.longitude]);
-      const encodedPolyline =
-        train.polyline ||
-        (fallbackPositions.length >= 2 ? polyline.encode(fallbackPositions) : null);
-      if (!encodedPolyline) {
-        missingRoute.push(batch[j]);
-        return;
-      }
-      results[train.lineName] = {
-        lineName: train.lineName,
-        operator: train.operator,
-        polyline: encodedPolyline,
-        stations: train.stations,
-      };
-    });
+  for (const [number, t] of trains) {
+    const train = t.route;
+    const fallbackPositions = (train?.stations ?? [])
+      .filter((s) => s.location?.latitude && s.location?.longitude)
+      .map((s) => [s.location.latitude, s.location.longitude]);
+    const encodedPolyline =
+      train?.polyline ||
+      (fallbackPositions.length >= 2 ? polyline.encode(fallbackPositions) : null);
+    if (!train || !encodedPolyline) {
+      missingRoute.push(number);
+      continue;
+    }
+    results[train.lineName || number] = {
+      lineName: train.lineName || number,
+      operator: train.operator,
+      polyline: encodedPolyline,
+      stations: train.stations,
+    };
   }
   if (missingRoute.length) {
     console.warn(
