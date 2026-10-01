@@ -19,6 +19,8 @@
  *     night picked on the fare calendar opens on that night.
  *   - dateOffsetDays: the default {date} when the caller names none (default 7).
  *   - dealsUrl / dealsLabel: optional secondary "last-minute deals" link
+ *   - dealsUrlTemplate: a deals landing page by path ({path}), for the fare
+ *     calendar's per-night last-minute deals (buildDealsLandingUrl)
  *   - stationNames: map of our station name -> the booking site's expected name
  *
  * This mirrors operatorPricing.js: the JSON is bundled at build time (no API),
@@ -161,6 +163,24 @@ export function getDealsLink(agencyId) {
     url: booking.dealsUrl,
     label: booking.dealsLabel || "View deals",
   };
+}
+
+/**
+ * The link to one of the operator's last-minute landing pages, by site path
+ * ("/last-minutes-berlin-prague") — the page a fare-calendar deal is sold
+ * from. `dealsUrlTemplate` carries {path}, substituted URL-encoded (European
+ * Sleeper's affiliate redirect takes a site-relative path, the same shape as
+ * its `dealsUrl`). Tries each component of a compound id; null when no
+ * operator declares a template or the path is not a site path.
+ */
+export function buildDealsLandingUrl(agencyId, landingPath) {
+  const p = String(landingPath ?? "");
+  if (!/^\/[a-z0-9/_-]+$/i.test(p)) return null;
+  for (const id of splitAgencyIds(agencyId)) {
+    const template = getOperatorBooking(id)?.dealsUrlTemplate;
+    if (template) return template.replaceAll("{path}", encodeURIComponent(p));
+  }
+  return null;
 }
 
 /**

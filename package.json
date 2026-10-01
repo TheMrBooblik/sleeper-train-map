@@ -77,6 +77,8 @@
     "verify-price-probe": "node tests/verify-price-probe.mjs",
     "verify-gtfs-probe": "node tests/verify-gtfs-probe.mjs",
     "verify-icn-fares": "node tests/verify-icn-fares.mjs",
+    "verify-es-fares": "node tests/verify-es-fares.mjs",
+    "probe-es-fares": "node scripts/probe-es-fares.mjs",
     "verify-bottom-bar": "node tests/verify-bottom-bar.mjs"
   },
   "packageManager": "npm@10",

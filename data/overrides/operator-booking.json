@@ -215,6 +215,9 @@
     "bookingPageUrl": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=view&u=",
     "dealsUrl": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=deals&u=%2Flast-minutes-berlin-prague",
     "dealsLabel": "Last-minute deals",
+    "dealsUrlTemplate": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=deals&u={path}",
+    "urlDateSuffix": "%26departureDate%3D{date}",
+    "dateFormat": "yyyy-MM-dd",
     "requireStationMapping": true,
     "stationNames": {
       "Amsterdam Centraal": "8400058",
@@ -232,6 +235,7 @@
       "Bruxelles-Midi": "8800104",
       "Berlin Hbf": "8010100",
       "Berlin Ostbahnhof": "8010110",
+      "Berlin Gesundbrunnen": "8011102",
       "Dresden Hbf": "8001305",
       "Bad Schandau": "8001311",
       "Děčín hl.n.": "5455659",

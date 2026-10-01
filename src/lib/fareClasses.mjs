@@ -70,6 +70,21 @@ export const FARE_CLASS_LABELS = {
   singleTwinCabin: "Single Twin cabin",
   twinCabinPerPerson: "Sunrise Twin, per person (2 sharing)",
   deluxeSingleCabin: "Single Deluxe cabin",
+  // European Sleeper (scripts/lib/es-fares.mjs). Every figure is what one
+  // adult pays, except the private compartment: one booking for the whole
+  // couchette compartment, up to 5 people. Women-only compartments and seats
+  // are left out at the source.
+  privateCouchette: "Private couchette compartment",
+  sleeperTriple: "Sleeper, 3-bed cabin",
+  sleeperDouble: "Sleeper, 2-bed cabin",
+  sleeperSingle: "Sleeper, single cabin",
+  comfortTriple: "Comfort sleeper, 3-bed cabin",
+  comfortDouble: "Comfort sleeper, 2-bed cabin",
+  comfortSingle: "Comfort sleeper, single cabin",
+  // Its last-minute deals (scripts/lib/es-last-minute.mjs): sold from the
+  // operator's promo pages, not its fare finder — see src/lib/lastMinuteDeals.mjs.
+  lastMinuteCouchette: "Last-minute couchette",
+  lastMinutePrivate: "Last-minute private compartment",
 };
 
 export function fareClassLabel(key) {

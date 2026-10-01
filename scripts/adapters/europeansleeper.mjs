@@ -43,6 +43,8 @@ import { resolveCanonicalStationName } from "../../src/pages/api/lib/primitives.
 import { distanceKm } from "../../src/components/Map/utils/returnGeometryBranches.js";
 import { cityForStation } from "../../src/lib/seo/cities.mjs";
 import { parseTimetableHtml } from "../lib/es-timetable.mjs";
+import { fillEsFareCalendars, ES_FARE_BUDGET } from "../lib/es-fare-calendar.mjs";
+import { fetchLastMinuteDeals } from "../lib/es-last-minute.mjs";
 
 function readJsonSafe(filePath) {
   try {
@@ -534,6 +536,59 @@ async function fetchTimetableJourneys(url, log) {
   }
 }
 
+/**
+ * Fares for every train, night by night, from the operator's booking API plus
+ * the last-minute deals its fare finder leaves out (scripts/lib/es-fare-
+ * calendar.mjs). Never fatal: a timetable without prices is still the
+ * timetable, so any failure here costs the fares, not the trains.
+ */
+async function priceTrains(trains, entry, ctx, log) {
+  const cfg = entry.params?.fares;
+  if (!cfg || cfg.enabled === false) return null;
+  const previous =
+    readJsonSafe(path.join(ctx.rootDir, "public", "data", "scraped", entry.output)) ?? null;
+  const previousTrains = previous?.data?.trains ?? previous?.trains ?? null;
+  const booking =
+    readJsonSafe(path.join(ctx.rootDir, "data", "overrides", "operator-booking.json")) ?? {};
+  const curated = booking?.[entry.agencyDefaults?.agencyId ?? "ES"]?.stationNames ?? {};
+  let dealPages = null;
+  try {
+    const stats = await fillEsFareCalendars(trains, previousTrains, {
+      today: ctx.today,
+      fetchImpl: ctx.fetch ?? fetch,
+      curated,
+      budget: cfg.searchesPerRun ?? ES_FARE_BUDGET,
+      loadDeals: cfg.lastMinute
+        ? async () => {
+            const result = await fetchLastMinuteDeals({
+              pages: cfg.lastMinute.pages ?? [],
+              indexPath: cfg.lastMinute.indexPath ?? "/last-minute",
+              trainKeys: Object.keys(trains),
+              today: ctx.today,
+              fetchImpl: ctx.fetch ?? fetch,
+            });
+            dealPages = result.pages.map(({ path: p, status, ids, dated, used }) => ({
+              path: p, status, ids, dated, used,
+            }));
+            return result;
+          }
+        : null,
+    });
+    log(
+      `${stats.searched}/${stats.planned} night(s) searched in ${stats.requests} request(s) ` +
+        `(${stats.priced} priced, ${stats.none} with no berth on sale, ${stats.errors} failed` +
+        `${stats.stopped ? ", stopped early" : ""}); ${stats.deals} last-minute deal(s)` +
+        `${stats.dealsFrom != null ? ` from €${stats.dealsFrom}` : ""}; fares for ` +
+        `${Object.values(trains).filter((t) => t.fare).length}/${Object.keys(trains).length} trains` +
+        `${stats.unpriced.length ? ` (no station ids: ${stats.unpriced.join(", ")})` : ""}`,
+    );
+    return { checkedAt: ctx.today, dealPages };
+  } catch (err) {
+    log(`fare pass failed (${err.message}) — trains published without fares`);
+    return null;
+  }
+}
+
 export async function run(entry, ctx) {
   const { feedUrl, fallbackUrls = [], configPath } = entry.params ?? {};
   if (!feedUrl || !configPath) {
@@ -615,6 +670,8 @@ export async function run(entry, ctx) {
     );
   }
 
+  const fares = await priceTrains(trains, entry, ctx, log);
+
   ctx.write(entry.output, {
     uploadedAt: ctx.today,
     trains,
@@ -624,6 +681,9 @@ export async function run(entry, ctx) {
       url: entry.params?.timetableUrl ?? null,
       trainsFromPage: fromPage,
     },
+    // Which landing pages yielded last-minute deals tonight, so a page whose
+    // markup moved shows up in the committed diff as a page that went quiet.
+    ...(fares ? { fares } : {}),
   });
   log(`stored ${built} trains`);
 }

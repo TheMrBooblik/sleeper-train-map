@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiExternalLink } from "react-icons/fi";
+import { FiExternalLink, FiZap } from "react-icons/fi";
 import {
   calendarMonths,
   formatNight,
@@ -35,7 +35,8 @@ const TIER_CLASS = {
  *           bookingHref?: string|null }} props
  */
 export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
-  const { days, cheapestDate, bookingTemplate, currency } = calendar;
+  const { days, cheapestDate, bookingTemplate, currency, deals, lastMinute } =
+    calendar;
   const [selected, setSelected] = useState(cheapestDate);
   const [today, setToday] = useState(null);
 
@@ -69,9 +70,19 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
         </div>
         <div className="text-xs text-white/40">
           Cheapest berth per night
-          {currency === "EUR" ? ", in €" : ` (${currency})`}
+          {currency === "EUR" ? ", in € (rounded)" : ` (${currency}, rounded)`}
         </div>
       </div>
+
+      {deals && lastMinute && (
+        <LastMinuteBanner
+          deals={deals}
+          programme={lastMinute}
+          onShow={() => setSelected(deals.fromDate)}
+          showing={selected === deals.fromDate}
+          past={isPast(deals.fromDate)}
+        />
+      )}
 
       <div className="mt-2 grid gap-4 sm:grid-cols-2">
         {months.map((month) => (
@@ -99,9 +110,10 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
                 const past = isPast(day.date);
                 const selectable = day.state === "priced" && !past;
                 const isSelected = selectable && day.date === selected;
+                const isDeal = Boolean(day.deal) && selectable;
                 const label =
                   day.state === "priced"
-                    ? `${formatNight(day.date)}, ${day.classes[0]?.label.toLowerCase()} ${day.classes[0]?.price}`
+                    ? `${formatNight(day.date)}, ${day.classes[0]?.label.toLowerCase()} ${day.classes[0]?.price}${isDeal ? " (last-minute deal)" : ""}`
                     : day.state === "none"
                       ? `${formatNight(day.date)}, no berth on sale`
                       : `${formatNight(day.date)}, not checked yet`;
@@ -113,16 +125,26 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
                     aria-pressed={isSelected}
                     aria-label={label}
                     onClick={() => setSelected(day.date)}
-                    className={`flex min-h-[2.75rem] min-w-0 flex-col items-center justify-center rounded-md px-0.5 py-1 leading-tight transition-colors ${
+                    className={`relative flex min-h-[2.75rem] min-w-0 flex-col items-center justify-center rounded-md px-0.5 py-1 leading-tight transition-colors ${
                       isSelected
-                        ? "bg-primary-green/15 ring-2 ring-primary-green"
-                        : selectable
-                          ? day.tier === "low"
-                            ? "bg-primary-green/10 hover:bg-primary-green/20"
-                            : "bg-white/[0.04] hover:bg-white/[0.08]"
-                          : ""
+                        ? isDeal
+                          ? "bg-amber-400/20 ring-2 ring-amber-300"
+                          : "bg-primary-green/15 ring-2 ring-primary-green"
+                        : isDeal
+                          ? "bg-amber-400/15 ring-1 ring-amber-300/50 hover:bg-amber-400/25"
+                          : selectable
+                            ? day.tier === "low"
+                              ? "bg-primary-green/10 hover:bg-primary-green/20"
+                              : "bg-white/[0.04] hover:bg-white/[0.08]"
+                            : ""
                     } ${past ? "opacity-30" : ""}`}
                   >
+                    {isDeal && (
+                      <FiZap
+                        className="absolute right-0.5 top-0.5 h-2.5 w-2.5 text-amber-300"
+                        aria-hidden
+                      />
+                    )}
                     <span
                       className={`text-xs ${selectable ? "text-white/70" : "text-white/30"}`}
                     >
@@ -130,13 +152,15 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
                     </span>
                     <span
                       className={`text-[10px] tabular-nums tracking-tight ${
-                        day.state === "priced"
-                          ? (TIER_CLASS[day.tier] ?? TIER_CLASS.mid)
-                          : "text-white/25"
+                        isDeal
+                          ? "font-semibold text-amber-300"
+                          : day.state === "priced"
+                            ? (TIER_CLASS[day.tier] ?? TIER_CLASS.mid)
+                            : "text-white/25"
                       }`}
                     >
                       {day.state === "priced"
-                        ? day.price.replace(/^[^\d]+/, "")
+                        ? day.cellPrice
                         : day.state === "none"
                           ? "—"
                           : "·"}
@@ -154,6 +178,13 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
           <span className="text-primary-green font-semibold">green</span>{" "}
           cheapest nights
         </span>
+        {deals && (
+          <span className="inline-flex items-center gap-1">
+            <FiZap className="h-3 w-3 text-amber-300" aria-hidden />
+            <span className="font-semibold text-amber-300">amber</span>{" "}
+            last-minute deal
+          </span>
+        )}
         <span>— no berth on sale</span>
         <span>· not checked yet</span>
       </div>
@@ -169,8 +200,25 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
               <span className="text-white/50"> · {trainNumber}</span>
             ) : null}
           </div>
+          {night.deal && !isPast(night.date) && (
+            <DealDetail
+              deal={night.deal}
+              programme={lastMinute}
+              trainNumber={trainNumber}
+            />
+          )}
+          {night.deal && (
+            <div className="mt-3 text-xs uppercase tracking-wide text-white/40">
+              Regular fares this night
+            </div>
+          )}
           <ul className="mt-2 flex flex-wrap gap-2">
-            {night.classes.map((c) => (
+            {night.classes.filter((c) => !c.deal).length === 0 && (
+              <li className="text-sm text-white/50">
+                No regular berth on sale.
+              </li>
+            )}
+            {night.classes.filter((c) => !c.deal).map((c) => (
               <li
                 key={c.key}
                 className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-sm text-white/70"
@@ -192,10 +240,14 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
                 href={href}
                 target="_blank"
                 rel="sponsored nofollow noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-primary-green px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-primary-green-light"
+                className={
+                  night.deal
+                    ? "inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-white/80 transition-colors hover:border-white/40 hover:text-white"
+                    : "inline-flex items-center gap-2 rounded-full bg-primary-green px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-primary-green-light"
+                }
                 data-testid="fare-calendar-book"
               >
-                Book {formatNight(night.date)}
+                {night.deal ? "Book a regular fare" : `Book ${formatNight(night.date)}`}
                 <FiExternalLink className="h-4 w-4" aria-hidden />
               </a>
               {!datedHref && (
@@ -206,6 +258,120 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
             </div>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The calendar's last-minute deals in one card above the grids: how many
+ * nights, from how much, how far under the regular fare — and a button that
+ * jumps to the cheapest. The point is that these prices are not in the
+ * operator's own fare finder, so a visitor comparing there would miss them.
+ */
+function LastMinuteBanner({ deals, programme, onShow, showing, past }) {
+  return (
+    <div
+      className="mt-3 rounded-lg border border-amber-300/40 bg-amber-400/[0.08] p-3"
+      data-testid="fare-calendar-deals"
+    >
+      <div className="flex items-start gap-2">
+        <FiZap className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" aria-hidden />
+        <div className="min-w-0 text-sm text-white/80">
+          <span className="font-semibold text-white">
+            Last-minute deals from {deals.from}
+          </span>{" "}
+          on {deals.count} {deals.count === 1 ? "night" : "nights"}
+          {Number.isFinite(deals.maxSavingsPct) && deals.maxSavingsPct > 0
+            ? ` — up to ${deals.maxSavingsPct}% below the regular fare for the same place`
+            : ""}
+          .{" "}
+          <span className="text-white/50">{programme.note}</span>
+        </div>
+      </div>
+      {!past && !showing && (
+        <button
+          type="button"
+          onClick={onShow}
+          className="mt-2 rounded-full border border-amber-300/50 px-3 py-1 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-400/15"
+        >
+          Show the cheapest deal
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** One night's deal: the price, what it saves, the catch, and where to buy it. */
+function DealDetail({ deal, programme, trainNumber }) {
+  const what =
+    deal.kind === "private" ? "Private couchette compartment" : "Couchette bed";
+  return (
+    <div
+      className="mt-3 rounded-lg border border-amber-300/50 bg-amber-400/10 p-3"
+      data-testid="fare-calendar-deal"
+    >
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold uppercase tracking-wide text-amber-300">
+        <FiZap className="h-3.5 w-3.5" aria-hidden />
+        {programme?.name ?? "Last-minute deal"}
+        {deal.best && (
+          <span className="rounded-full bg-amber-300 px-2 py-0.5 text-[10px] text-black">
+            Cheapest fare this night
+          </span>
+        )}
+      </div>
+      <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="text-sm text-white/70">{what}</span>
+        <span className="text-2xl font-semibold text-white">{deal.price}</span>
+        {deal.regularPrice && deal.savings && (
+          <span className="text-sm text-white/40 line-through">
+            {deal.regularPrice}
+          </span>
+        )}
+        {deal.savings && (
+          <span className="rounded-full bg-primary-green/15 px-2 py-0.5 text-xs font-semibold text-primary-green">
+            Save {deal.savings}
+            {Number.isFinite(deal.savingsPct) ? ` (${deal.savingsPct}%)` : ""}
+          </span>
+        )}
+      </div>
+      {deal.regularPrice && deal.savings && (
+        <p className="mt-1 text-xs text-white/50">
+          against the cheapest regular{" "}
+          {deal.kind === "private" ? "private compartment" : "couchette"} on{" "}
+          {trainNumber ? `${trainNumber} ` : ""}that night
+        </p>
+      )}
+      {deal.perPerson && (
+        <p className="mt-1 text-xs text-white/60">
+          One price for the whole compartment, up to{" "}
+          {programme?.compartmentSize ?? 5} people — {deal.perPerson} each when
+          it is full.
+        </p>
+      )}
+      {programme?.terms?.length > 0 && (
+        <ul className="mt-2 space-y-0.5 text-xs text-white/60">
+          {programme.terms.map((t) => (
+            <li key={t}>· {t}</li>
+          ))}
+        </ul>
+      )}
+      {deal.href && (
+        <a
+          href={deal.href}
+          target="_blank"
+          rel="sponsored nofollow noopener noreferrer"
+          className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-300 px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-amber-200"
+          data-testid="fare-calendar-deal-book"
+        >
+          Get this deal
+          <FiExternalLink className="h-4 w-4" aria-hidden />
+        </a>
+      )}
+      {deal.checkedAt && (
+        <p className="mt-2 text-[11px] text-white/40">
+          Deal seen on the operator&apos;s site {formatNight(deal.checkedAt)} — places are limited and go fast.
+        </p>
       )}
     </div>
   );
