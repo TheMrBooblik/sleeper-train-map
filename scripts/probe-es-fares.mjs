@@ -21,11 +21,11 @@ import {
   constantsStations,
   fetchConstants,
   nightsFromTrainSearch,
-  resolveStationId,
   searchAvailability,
   searchTrains,
 } from "./lib/es-fares.mjs";
 import { findDealIds, findLandingPaths, parseEuroAmount, parseLastMinutePage } from "./lib/es-last-minute.mjs";
+import { constantsRoutes, endpointsFor } from "./lib/es-fare-calendar.mjs";
 
 const SITE = "https://www.europeansleeper.eu";
 const USER_AGENT =
@@ -60,8 +60,10 @@ const curated = readJson("data/overrides/operator-booking.json")?.ES?.stationNam
 
 console.log(`\n=== 1. /constants (${today}) ===`);
 let stations = [];
+let routes = [];
 try {
   const constants = await fetchConstants();
+  routes = constantsRoutes(constants);
   save("constants.json", json(constants));
   stations = constantsStations(constants);
   console.log(`settings: ${json(constants?.settings ?? null)}`);
@@ -75,13 +77,14 @@ try {
 }
 
 console.log(`\n=== 2. per-train search + availability ===`);
+// The same endpoint rule the nightly pass uses (same-city operator terminus
+// where an end is not sold), so the probe searches what the scrape searches.
+const endpoints = endpointsFor(trains, { curated, stations, routes, log: (m) => console.log(m) });
 for (const [key, train] of Object.entries(trains)) {
-  const from = train.stations?.[0]?.name;
-  const to = train.stations?.[train.stations.length - 1]?.name;
-  const fromId = resolveStationId(from, { curated, stations });
-  const toId = resolveStationId(to, { curated, stations });
-  console.log(`\n--- ${key}: ${from} (${fromId}) → ${to} (${toId}) ---`);
-  if (!fromId || !toId) continue;
+  const ep = endpoints[key];
+  console.log(`\n--- ${key}: ${train.stations?.[0]?.name} → ${train.stations?.[train.stations.length - 1]?.name}: ${ep ? `${ep.from} (${ep.fromId}) → ${ep.to} (${ep.toId})` : "not priced"} ---`);
+  if (!ep) continue;
+  const { fromId, toId } = ep;
   for (const offset of [10, 25]) {
     const date = plus(offset);
     try {

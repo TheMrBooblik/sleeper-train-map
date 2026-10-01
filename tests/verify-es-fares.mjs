@@ -446,21 +446,34 @@ await check("fillEsFareCalendars: every night in one run, three nights per train
   assert.strictEqual(trains["999"].fare, undefined);
 });
 
-await check("endpointsFor: an end the operator does not sell moves to the nearest stop it does", async () => {
+await check("endpointsFor: an end the operator does not sell becomes its same-city terminus, never a stop further in", async () => {
   const { endpointsFor } = await import("../scripts/lib/es-fare-calendar.mjs");
-  // As /constants answered on 2026-10-01: Berlin Hbf and Ostbahnhof, no Gesundbrunnen.
+  // As /constants answered on 2026-10-01: Berlin Hbf and Ostbahnhof, no
+  // Gesundbrunnen, and the Paris route listed Paris-Nord … Berlin Hbf.
   const stations = constantsStations(CONSTANTS).filter((st) => st.id !== "8011102");
+  const routes = [["8700015", "8800104", "8020401", "8010110", "8010100"], ["8800104", "8010100", "8010110", "5457076"]];
+  // Our timetable's own stop list for 475: no Berlin Hbf anywhere in it.
+  const stops = ["Paris Gare du Nord", "Bruxelles Midi", "Hamburg Harburg", "Berlin Gesundbrunnen"];
   const logs = [];
   const out = endpointsFor(
     {
-      "475": { stations: [{ name: "Paris Gare du Nord" }, { name: "Bruxelles Midi" }, { name: "Berlin Hbf" }, { name: "Berlin Gesundbrunnen" }] },
+      "475": { stations: stops.map((name) => ({ name })) },
+      "474": { stations: [...stops].reverse().map((name) => ({ name })) },
       "999": { stations: [{ name: "Nowhere" }, { name: "Elsewhere" }] },
     },
-    { curated: { "Berlin Gesundbrunnen": "8011102" }, stations, log: (m) => logs.push(m) },
+    { curated: { "Berlin Gesundbrunnen": "8011102" }, stations, routes, log: (m) => logs.push(m) },
   );
   assert.deepStrictEqual(out["475"], { fromId: "8700015", toId: "8010100", from: "Paris Gare du Nord", to: "Berlin Hbf" });
+  assert.deepStrictEqual(out["474"], { fromId: "8010100", toId: "8700015", from: "Berlin Hbf", to: "Paris Gare du Nord" });
   assert.strictEqual(out["999"], undefined);
   assert.ok(logs.some((l) => /475: priced Paris Gare du Nord → Berlin Hbf/.test(l)), logs.join("\n"));
+  // Two same-city termini and nothing to choose between them: not priced,
+  // rather than a guess (and never Hamburg-Harburg, the next stop inward).
+  const ambiguous = endpointsFor(
+    { "475": { stations: stops.map((name) => ({ name })) } },
+    { curated: {}, stations, routes: [["8700015", "8010100"], ["8700015", "8010110"]], log: () => {} },
+  );
+  assert.strictEqual(ambiguous["475"], undefined);
 });
 
 await check("fillEsFareCalendars: a failing train costs its own nights, never the run", async () => {

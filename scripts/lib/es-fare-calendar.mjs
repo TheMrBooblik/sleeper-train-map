@@ -24,6 +24,7 @@ import {
 import {
   classesFromAvailability,
   constantsStations,
+  foldName,
   fetchConstants,
   nightsFromTrainSearch,
   resolveStationId,
@@ -116,31 +117,68 @@ export function applyDeals(calendars, deals, { today, days = FARE_CALENDAR_DAYS 
 }
 
 /**
- * The longest journey the operator sells on each train, as station ids:
- * { "453": { fromId, toId, from, to } }. Normally the train's own two ends;
- * where an end is a station the booking system does not list, the nearest
- * stop inward that it does. The first live probe found exactly that: the
- * timetable runs ES 474/475 to Berlin Gesundbrunnen, while /constants knows
- * only Berlin Hbf and Ostbahnhof — so 475 is priced Paris → Berlin Hbf, the
- * same train and the same berth, rather than not at all.
+ * The operator's routes from /constants as [[stationId, …], …], in the order
+ * the operator lists them (first and last are the route's termini).
  */
-export function endpointsFor(trains, { curated, stations, log = () => {} }) {
+export function constantsRoutes(constants) {
+  return (Array.isArray(constants?.routes) ? constants.routes : [])
+    .map((r) => (Array.isArray(r?.stations) ? r.stations.map((s) => String(s?.id ?? "")).filter(Boolean) : []))
+    .filter((ids) => ids.length >= 2);
+}
+
+const cityOf = (name) => foldName(name).split(" ")[0] ?? "";
+
+/**
+ * The whole journey the operator sells on each train, as station ids:
+ * { "453": { fromId, toId, from, to } }.
+ *
+ * Normally the train's own two ends. Where an end is a station the booking
+ * system does not list, it is replaced by the operator's own terminus IN THE
+ * SAME CITY on a route that also serves the other end — never by a stop
+ * further in, which would price a shorter journey. The first live probe found
+ * exactly that case: the timetable runs ES 474/475 to Berlin Gesundbrunnen,
+ * /constants lists only Berlin Hbf and Ostbahnhof, and the operator's
+ * Paris route ends at Berlin Hbf — while the next stop inward on our list is
+ * Hamburg-Harburg. No unique same-city terminus means the train is not
+ * priced: no fare beats a fare for a different journey.
+ */
+export function endpointsFor(trains, { curated, stations, routes = [], log = () => {} }) {
+  const nameOf = new Map(stations.map((s) => [s.id, s.name]));
+  const resolveEnd = (name, otherId) => {
+    const direct = resolveStationId(name, { curated, stations });
+    if (direct) return { id: direct, substituted: false };
+    const city = cityOf(name);
+    if (!city || !otherId) return null;
+    const termini = new Set();
+    for (const ids of routes) {
+      if (!ids.includes(otherId)) continue;
+      for (const id of [ids[0], ids[ids.length - 1]]) {
+        if (id !== otherId && cityOf(nameOf.get(id)) === city) termini.add(id);
+      }
+    }
+    return termini.size === 1 ? { id: [...termini][0], substituted: true } : null;
+  };
   const out = {};
   for (const [key, train] of Object.entries(trains)) {
     const names = (train.stations ?? []).map((s) => s?.name).filter(Boolean);
-    const ids = names.map((n) => resolveStationId(n, { curated, stations }));
-    const i = ids.findIndex(Boolean);
-    const j = ids.length - 1 - [...ids].reverse().findIndex(Boolean);
-    if (i < 0 || j <= i) {
-      log(`[es-fare] ${key}: the operator lists none of its stations — not priced`);
+    const first = names[0];
+    const last = names[names.length - 1];
+    const fromDirect = resolveStationId(first, { curated, stations });
+    const toDirect = resolveStationId(last, { curated, stations });
+    const from = fromDirect ? { id: fromDirect, substituted: false } : resolveEnd(first, toDirect);
+    const to = toDirect ? { id: toDirect, substituted: false } : resolveEnd(last, from?.id);
+    if (!from || !to || from.id === to.id) {
+      log(`[es-fare] ${key}: the operator sells no station for ${!from ? first : last} — not priced`);
       continue;
     }
-    out[key] = { fromId: ids[i], toId: ids[j], from: names[i], to: names[j] };
-    if (i > 0 || j < names.length - 1) {
-      log(
-        `[es-fare] ${key}: priced ${names[i]} → ${names[j]} ` +
-          `(the operator does not sell ${[i > 0 ? names[0] : null, j < names.length - 1 ? names[names.length - 1] : null].filter(Boolean).join(" / ")})`,
-      );
+    out[key] = {
+      fromId: from.id,
+      toId: to.id,
+      from: from.substituted ? nameOf.get(from.id) : first,
+      to: to.substituted ? nameOf.get(to.id) : last,
+    };
+    if (from.substituted || to.substituted) {
+      log(`[es-fare] ${key}: priced ${out[key].from} → ${out[key].to} (the operator does not list ${from.substituted ? first : last})`);
     }
   }
   return out;
@@ -195,7 +233,7 @@ export async function fillEsFareCalendars(
   }
   const stations = constantsStations(constants);
   const maxDate = String(constants?.settings?.maxReservationDate ?? "").slice(0, 10) || null;
-  const endpoints = endpointsFor(trains, { curated, stations, log });
+  const endpoints = endpointsFor(trains, { curated, stations, routes: constantsRoutes(constants), log });
   stats.unpriced = Object.keys(trains).filter((k) => !endpoints[k]);
 
   const searchable = Object.fromEntries(Object.keys(endpoints).map((k) => [k, calendars[k]]));
