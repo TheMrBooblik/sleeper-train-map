@@ -18,11 +18,22 @@ const SEO_ONLY_COUNTRIES = [
 /** All countries eligible for a hub page: the 24 map regions + GB. */
 export const SEO_COUNTRIES = [...COUNTRIES, ...SEO_ONLY_COUNTRIES];
 
+// A word that keeps "All N night train routes serving X" true where X also has
+// sleeper trains this site does not list. Japan's luxury cruise trains (Seven
+// Stars in Kyushu, Train Suite Shiki-shima, Twilight Express Mizukaze) sleep
+// their passengers but run as multi-day tours, not timetabled services, so
+// Japan's two routes are its two *regular* ones.
+const ROUTE_QUALIFIERS = { JP: "regular" };
+
 // code → { code, name, slug, ... }
 const BY_CODE = new Map();
 const BY_SLUG = new Map();
 for (const c of SEO_COUNTRIES) {
-  const entry = { ...c, slug: slugify(c.name) };
+  const entry = {
+    ...c,
+    slug: slugify(c.name),
+    ...(ROUTE_QUALIFIERS[c.code] ? { routeQualifier: ROUTE_QUALIFIERS[c.code] } : {}),
+  };
   BY_CODE.set(c.code, entry);
   BY_SLUG.set(entry.slug, entry);
 }

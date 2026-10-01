@@ -8,7 +8,7 @@ import {
 } from "../../lib/operatorPricing";
 import { getFlagEmoji } from "../../lib/countries";
 import PricingExplainer from "../PricingExplainer";
-import { fareContext } from "../../lib/fareClasses.mjs";
+import { fareClassLabel, fareContext } from "../../lib/fareClasses.mjs";
 import { eurHintFor, eurRateNote } from "../../lib/fx.mjs";
 
 function Fact({ label, value, children }) {
@@ -41,12 +41,15 @@ export default function RouteFactsGrid({ detail }) {
   // button disagree on the same page. Falling back keeps the component usable
   // on its own.
   const advice = detail.advice ?? pricingAdvice(pricing);
-  const operatorNames = detail.operators.map((o) => o.name).join(" · ");
+  // The railway companies that run the train where the data lists them; the
+  // seller is named by the Book button below. Else the operators.
+  const runBy = detail.railways?.length ? detail.railways : detail.operators.map((o) => o.name);
+  const operatorNames = runBy.join(" · ");
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <Fact label="Operator" value={operatorNames} />
+        <Fact label={runBy.length > 1 && detail.railways?.length ? "Run by" : "Operator"} value={operatorNames} />
         <Fact label="Duration" value={detail.facts.durationText} />
         <Fact label="Distance" value={detail.facts.distanceText} />
         <Fact label="CO₂" value={detail.facts.co2Text} />
@@ -67,6 +70,11 @@ export default function RouteFactsGrid({ detail }) {
             <div className="mt-0.5 text-xs text-white/50" title={eurRateNote()}>
               ({eurHintFor(pricing)})
             </div>
+          )}
+          {/* What a fixed fare's "from" figure buys — the Sunrise's cheapest
+              is the Nobinobi carpet space, not a room. */}
+          {priceLabel && pricing?.type !== "dynamic" && fareClassLabel(pricing?.seatClass) && (
+            <div className="mt-0.5 text-xs text-white/50">{fareClassLabel(pricing.seatClass)}</div>
           )}
           {/* A dynamic fare's badge carries no figure (formatPricingLabel);
               the figure sits on its own line, always as "from …". */}

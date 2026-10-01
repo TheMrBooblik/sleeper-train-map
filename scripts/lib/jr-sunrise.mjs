@@ -560,6 +560,9 @@ export function buildSunriseTrains(config, { timetables = {}, roomCharges, fares
       service: train.service ?? null,
       operator: operator.name ?? "JR West",
       agency_id: operator.agencyId ?? "JRW",
+      // The JR companies that run this train, in journey order. JR West sells
+      // it, which is what agency_id names; it does not run it alone.
+      ...(train.railways?.length ? { railways: [...train.railways] } : {}),
       frequency: train.frequency ?? null,
       polyline: polyline.encode(trainPath(config, train)),
       stations,

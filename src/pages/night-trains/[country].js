@@ -18,6 +18,7 @@ import {
 } from "../../lib/seo/aggregate";
 import { buildCountryFaq } from "../../lib/seo/faq";
 import { toCardRoute } from "../../lib/seo/data";
+import { operatedByNames } from "../../lib/seo/operatedBy.mjs";
 import { getFlagEmoji } from "../../lib/countries";
 import { getOperatorPricing } from "../../lib/operatorPricing";
 import { SITE_URL, OG_IMAGE, absoluteUrl } from "../../lib/seo/site";
@@ -34,9 +35,12 @@ export default function CountryHub({
 }) {
   const canonical = absoluteUrl(`/night-trains/${country.slug}`);
   const title = `Night Trains in ${country.name} - Routes & Sleeper Connections | Pingwi`;
-  const operatorNames = operators.map((o) => o.name).join(", ");
+  // Who runs the trains, which is not always who sells them: JR West sells
+  // both Sunrise trains, and four JR companies run them over their own lines.
+  const operatorNames = operatedByNames(routes).join(", ");
   const description =
-    `All ${routes.length} night and sleeper train routes serving ${country.name}` +
+    `All ${routes.length} ${country.routeQualifier ? `${country.routeQualifier} ` : ""}` +
+    `night and sleeper train routes serving ${country.name}` +
     (operatorNames ? `, operated by ${operatorNames}.` : ".") +
     " Timetables, stops and connections on an interactive map.";
 
@@ -127,7 +131,13 @@ export default function CountryHub({
 
           {operators.length > 0 && (
             <section className="mt-10">
-              <h2 className="text-lg font-semibold text-white">Operators</h2>
+              {/* These link to operator pages, which exist for the company
+                  that sells a route. Where the routes name the railways that
+                  run them (Japan: four JR companies, one seller), the list is
+                  the seller, and says so. */}
+              <h2 className="text-lg font-semibold text-white">
+                {routes.some((r) => r.railways?.length) ? "Tickets sold by" : "Operators"}
+              </h2>
               <div className="mt-3 flex flex-wrap gap-2">
                 {operators.map((o) => (
                   <Link
@@ -269,6 +279,7 @@ export async function getStaticProps({ params }) {
     facts: hub.facts,
     connectedCountries,
     pricingType: pricingTypes.size === 1 ? [...pricingTypes][0] : "",
+    operatedBy: operatedByNames(hub.routes),
   });
   return {
     props: {

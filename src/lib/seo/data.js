@@ -389,6 +389,10 @@ function buildSummary(route) {
     // back to agency_name when an id is missing from the curated table.
     operators: operatorIds.map((id) => getOperatorMeta(id, getAgencies())),
     operatorIds,
+    // The railway companies that run the train, in journey order, when they
+    // are not just the seller in agency_id (the Sunrise: JR West sells it,
+    // JR East, JR Central, JR West and JR Shikoku run it). [] otherwise.
+    railways: Array.isArray(route.railways) ? route.railways.filter(Boolean) : [],
     countries,
     cityPairs,
     durationMinutes,
@@ -421,6 +425,7 @@ export function toCardRoute(s) {
     trainNumbers: s.trainNumbers,
     operatorIds: s.operatorIds,
     operators: s.operators,
+    railways: s.railways || [],
     durationText: s.durationText || "",
     fromPrice: s.fromPrice || null,
     fromPriceEur: s.fromPriceEur || "",
@@ -640,6 +645,7 @@ export function getRouteDetail(routeId) {
     longName: (route.route_long_name || "").trim(),
     agencyId: route.agency_id || "",
     operators: summary.operators,
+    railways: summary.railways,
     pricing: route.pricing || null,
     booking,
     countryCodes: summary.countries,

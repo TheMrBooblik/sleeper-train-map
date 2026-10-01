@@ -18,8 +18,11 @@ import {
   getRelatedConnections,
 } from "../../lib/seo/aggregate";
 import { getRouteDetail } from "../../lib/seo/data";
+import { operatedByNames } from "../../lib/seo/operatedBy.mjs";
 import { formatTrainNumber, joinTrainNumbers } from "../../lib/operatorAgencies.mjs";
 import { buildConnectionFaq } from "../../lib/seo/routeFaq.mjs";
+import { cityForStation } from "../../lib/seo/cities.mjs";
+import { leadWithCity } from "../../lib/seo/leadDirection.mjs";
 import {
   getBookingGuide,
   guideProps,
@@ -42,6 +45,7 @@ export default function ConnectionPage({
   cityB,
   trains,
   operators,
+  runBy = [],
   countries,
   related,
   faq,
@@ -50,7 +54,9 @@ export default function ConnectionPage({
 }) {
   const canonical = absoluteUrl(`/connections/${slug}`);
   const title = `Night Trains ${cityA} to ${cityB} — Times, Stops & Tickets | Pingwi`;
-  const operatorNames = operators.map((o) => o.name).join(", ");
+  // Who runs the trains, which is not always who sells them (JR West sells
+  // the Sunrise; four JR companies run it).
+  const operatorNames = (runBy?.length ? runBy : operators.map((o) => o.name)).join(", ");
   // "What does it cost" is the question searchers ask and the one a snippet can
   // answer in four words, so the price displaces the generic "Compare…" tail
   // rather than being appended past where the description gets truncated. It is
@@ -195,8 +201,8 @@ export default function ConnectionPage({
                   <div className="mt-6">
                     <BookingCta
                       booking={t.booking}
-                      origin={t.origin}
-                      destination={t.destination}
+                      origin={t.bookingOrigin}
+                      destination={t.bookingDestination}
                       advice={t.advice}
                     />
                   </div>
@@ -294,6 +300,8 @@ export async function getStaticProps({ params }) {
       title: d.title,
       origin: d.origin,
       destination: d.destination,
+      bookingOrigin: d.origin,
+      bookingDestination: d.destination,
       // Already labelled by buildSummary.
       primaryTrainNumber: d.primaryTrainNumber,
       // The directions keep the RAW number, because that is what the timetable
@@ -303,6 +311,7 @@ export async function getStaticProps({ params }) {
         .filter(Boolean),
       agencyId: d.agencyId,
       operators: d.operators,
+      railways: d.railways ?? [],
       pricing: d.pricing,
       booking: d.booking,
       countries: d.countries,
@@ -333,6 +342,10 @@ export async function getStaticProps({ params }) {
           : null,
     }));
 
+  // Each train lists the direction leaving cityA first, matching the heading
+  // (leadDirection.mjs). The booking CTA keeps bookingOrigin/…Destination.
+  for (const [i, t] of trains.entries()) trains[i] = leadWithCity(t, pair.cityA, cityForStation);
+
   // Fastest journey + cheapest known "from" price across the pair's trains.
   const timed = pair.routes.filter((r) => r.durationMinutes > 0);
   const fastest = timed.length
@@ -362,6 +375,7 @@ export async function getStaticProps({ params }) {
     destCity: pair.cityB,
     trainCount: pair.routes.length,
     operators: pair.operators.map((o) => o.name),
+    runBy: operatedByNames(pair.routes),
     fastestDurationText: fastest?.durationText || "",
     // The answer is prose with room for the euro figure; the meta description
     // (props.fromPrice below) keeps the bare fare to stay inside a snippet.
@@ -386,6 +400,7 @@ export async function getStaticProps({ params }) {
       cityB: pair.cityB,
       trains,
       operators: pair.operators,
+      runBy: operatedByNames(pair.routes),
       countries: pair.countries,
       related: getRelatedConnections(pair.slug, 8),
       faq,

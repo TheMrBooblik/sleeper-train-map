@@ -178,6 +178,9 @@ export function buildRouteFaq(input = {}) {
  * @param {string} input.destCity
  * @param {number} input.trainCount              number of trains on the pair
  * @param {string[]} [input.operators]           operator names
+ * @param {string[]} [input.runBy]               who runs the trains, when not just
+ *   their sellers (the Sunrise: four JR companies, sold by JR West); defaults
+ *   to the operators. Price answers keep naming the operators.
  * @param {string} [input.fastestDurationText]   e.g. "9h 10m"
  * @param {string} [input.fromPrice]             already formatted, e.g. "from €29"
  * @param {string} [input.pricingType]           "dynamic" | "fixed", from the operator record
@@ -190,6 +193,7 @@ export function buildConnectionFaq(input = {}) {
     destCity,
     trainCount = 0,
     operators = [],
+    runBy = [],
     fastestDurationText = "",
     fromPrice = "",
     pricingType = "",
@@ -200,6 +204,7 @@ export function buildConnectionFaq(input = {}) {
 
   const pair = `${originCity} to ${destCity}`;
   const operatorNames = humanJoin(operators);
+  const runByNames = runBy.length ? humanJoin(runBy) : operatorNames;
   const faq = [];
 
   // How many + who.
@@ -208,7 +213,7 @@ export function buildConnectionFaq(input = {}) {
       q: `How many night trains run between ${originCity} and ${destCity}?`,
       a:
         `${trainCount} night ${trainCount === 1 ? "train connects" : "trains connect"} ${originCity} and ${destCity}` +
-        (operatorNames ? `, run by ${operatorNames}.` : "."),
+        (runByNames ? `, run by ${runByNames}.` : "."),
     });
   }
 

@@ -173,14 +173,29 @@ function countryFacts(routes, operators) {
       if (!minFromPrice || p.fromPrice < minFromPrice.fromPrice) {
         // currency defaults to null (never undefined) so the object stays
         // JSON-serializable for getStaticProps.
-        minFromPrice = { fromPrice: p.fromPrice, currency: p.currency || null };
+        minFromPrice = {
+          fromPrice: p.fromPrice,
+          currency: p.currency || null,
+          // What the figure buys ("nobinobi", "hard_sleeper"), so the tile can
+          // say it is a carpet space and not a room. null, never undefined.
+          seatClass: p.seatClass || null,
+        };
       }
     }
   }
 
   return {
     routeCount: routes.length,
-    operatorCount: operators.length,
+    // Who runs the trains: a route's railway companies where the data lists
+    // them (four JR companies for Japan's two Sunrise routes, not just JR West,
+    // which sells them), else its operators — the same set the copy names.
+    operatorCount: routes.some((r) => r.railways?.length)
+      ? new Set(
+          routes.flatMap((r) =>
+            r.railways?.length ? r.railways : (r.operators ?? []).map((o) => o.name),
+          ),
+        ).size
+      : operators.length,
     fastest: brief(fastest),
     longest: brief(longest),
     minFromPrice,

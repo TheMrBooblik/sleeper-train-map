@@ -13,7 +13,11 @@ import { eurRateNote } from "../../lib/fx.mjs";
  */
 export default function RouteCardLink({ route }) {
   const color = getOperatorBaseColor({ agency_id: route.operatorIds?.[0] });
-  const operatorNames = route.operators.map((o) => o.name).join(", ");
+  // Who runs the train: its railway companies where the data lists them (the
+  // Sunrise is not a "JR West train" — JR West sells it), else its operators.
+  const operatorNames = route.railways?.length
+    ? route.railways.join(" · ")
+    : route.operators.map((o) => o.name).join(", ");
   if (!route.pairSlug) return null;
 
   return (
