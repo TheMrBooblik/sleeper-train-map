@@ -164,6 +164,59 @@ export function fareClassRows(fare, { from = false, deals = "include" } = {}) {
 }
 
 /**
+ * The map panel's short list: one row per kind of place, in a fixed order.
+ * European Sleeper prices up to eight regular classes a night — standard and
+ * Comfort sleepers in single, 2- and 3-bed cabins beside the couchette and
+ * the private compartment — and a card listing all eight said less than four
+ * would. So its cabins fold by beds, each row the cheapest of its group on
+ * that group's own cheapest night, and single cabins are left to the
+ * connection page's calendar. A fare without those cabin classes (12306,
+ * Intercity Notte, JR) is listed as it always was.
+ * Each row: { key, label, amount, price, date, classKey } — `classKey` is the
+ * class that won the group.
+ */
+const PANEL_FARE_GROUPS = [
+  { key: "couchette", label: "Couchette", classes: ["couchette"] },
+  { key: "cabin3", label: "3-bed cabin", classes: ["sleeperTriple", "comfortTriple"] },
+  { key: "cabin2", label: "2-bed cabin", classes: ["sleeperDouble", "comfortDouble"] },
+  { key: "privateCouchette", label: "Private compartment", classes: ["privateCouchette"] },
+];
+const CABIN_CLASSES = new Set([
+  "sleeperTriple", "sleeperDouble", "sleeperSingle",
+  "comfortTriple", "comfortDouble", "comfortSingle",
+]);
+
+export function panelFareRows(fare, { from = false } = {}) {
+  const classes = fare?.classes;
+  if (!classes || typeof classes !== "object") return [];
+  if (!Object.keys(classes).some((k) => CABIN_CLASSES.has(k))) {
+    return fareClassRows(fare, { from, deals: "exclude" });
+  }
+  const dateOf = (k) => fare.classDates?.[k] ?? null;
+  const rows = [];
+  for (const group of PANEL_FARE_GROUPS) {
+    let best = null;
+    for (const k of group.classes) {
+      const amount = classes[k];
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+      // The cheaper class wins; on a tie, the nearer night.
+      const nearer = best && amount === best.amount && (dateOf(k) ?? "9") < (dateOf(best.k) ?? "9");
+      if (!best || amount < best.amount || nearer) best = { k, amount };
+    }
+    if (!best) continue;
+    rows.push({
+      key: group.key,
+      label: group.label,
+      amount: best.amount,
+      price: `${from ? "from " : ""}${formatMoney(best.amount, fare.currency)}`,
+      date: dateOf(best.k),
+      classKey: best.k,
+    });
+  }
+  return rows;
+}
+
+/**
  * A direction's fare split into what the ordinary booking search sells and
  * the cheapest promotional deal, each as { fromPrice, seatClass, travelDate }
  * (the deal also { label, price, landing }), or null for a part it lacks.

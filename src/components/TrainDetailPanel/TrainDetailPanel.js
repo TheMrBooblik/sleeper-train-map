@@ -33,7 +33,7 @@ import {
 } from "../../lib/operatorPricing";
 import {
   directionFare,
-  fareClassRows,
+  panelFareRows,
   fareDirectionForTrip,
   formatTravelDate,
   formatTravelDateShort,
@@ -1694,10 +1694,11 @@ const TrainDetailPanel = ({
                 // the link that sells it, in BookingActions below.
                 const dirFare =
                   fareDir == null ? null : directionFare(tripRoute, fareDir);
+                // One row per kind of place (panelFareRows folds European
+                // Sleeper's cabins by beds); deals are never among them.
                 const fareRows = dirFare
-                  ? fareClassRows(dirFare, {
+                  ? panelFareRows(dirFare, {
                       from: pricing?.type === "dynamic",
-                      deals: "exclude",
                     })
                   : [];
                 const { regular: regularFare, deal: dealFare } =
@@ -1869,11 +1870,11 @@ const TrainDetailPanel = ({
                         <div className="text-xs text-gray-500 uppercase">
                           Fares
                         </div>
-                        <ul className="flex flex-wrap gap-1.5">
+                        <ul className="space-y-0.5">
                           {fareRows.map((f) => (
                             <li
                               key={f.key}
-                              className="rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-700"
+                              className="text-xs text-gray-700"
                             >
                               {f.label}{" "}
                               <span className="font-semibold text-gray-900">
@@ -1888,15 +1889,10 @@ const TrainDetailPanel = ({
                             </li>
                           ))}
                         </ul>
-                        {/* A dynamic fare is one night's price: say which. */}
-                        {chipDates ? (
-                          <div
-                            className="text-xs text-gray-500"
-                            data-testid="fare-travel-date"
-                          >
-                            Lowest fare per class, with the night it is for
-                          </div>
-                        ) : pricing?.type === "dynamic" &&
+                        {/* A dynamic fare is one night's price: say which —
+                            on each row when the nights differ, else once. */}
+                        {!chipDates &&
+                          pricing?.type === "dynamic" &&
                           formatTravelDate(sharedFareDate) && (
                           <div
                             className="text-xs text-gray-500"

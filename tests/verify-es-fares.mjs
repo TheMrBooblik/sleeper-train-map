@@ -44,7 +44,7 @@ import {
 import { FARE_CALENDAR_VERSION } from "../scripts/lib/fare-calendar.mjs";
 import { fareCalendarDays } from "../src/lib/fareCalendarView.mjs";
 import { dealsSummary, lastMinuteProgramme, nightDeal } from "../src/lib/lastMinuteDeals.mjs";
-import { fareClassLabel, fareClassRows, FARE_CLASS_LABELS, splitDealFare } from "../src/lib/fareClasses.mjs";
+import { fareClassLabel, fareClassRows, FARE_CLASS_LABELS, panelFareRows, splitDealFare } from "../src/lib/fareClasses.mjs";
 import { cheapestNight } from "../scripts/lib/fare-calendar.mjs";
 import { buildDatedBookingLink, buildDealsLandingUrl } from "../src/lib/operatorBooking.js";
 import { stampOfficialFares } from "../src/pages/api/lib/build-initial-data.mjs";
@@ -877,13 +877,53 @@ await check("the map panel: each class its own cheapest night, the deal apart fr
   assert.deepStrictEqual(splitDealFare({ currency: "CNY", classes: { hardSleeper: 335.5 }, travelDate: "2026-10-05" }), {
     regular: { fromPrice: 335.5, seatClass: "hardSleeper", travelDate: "2026-10-05" }, deal: null,
   });
-  // The panel's source: deals kept out of the chips, the Fare line on the
+  // The panel's source: its short list (no deals), the Fare line on the
   // regular fare, the deal handed to the booking block.
   const panel = fs.readFileSync("src/components/TrainDetailPanel/TrainDetailPanel.js", "utf8");
-  assert.match(panel, /deals: "exclude"/);
+  assert.match(panel, /panelFareRows\(dirFare/);
   assert.match(panel, /pricing=\{bookingPricing\}/);
   assert.match(panel, /deal=\{dealForBooking\}/);
   assert.strictEqual(fareClassLabel("privateCouchette"), "Private compartment");
+});
+
+await check("the map panel lists four kinds of place, each the cheapest of its group on its own night", () => {
+  // ES 453's fare as the refresh of 2026-10-01 wrote it: eight regular
+  // classes plus four deal classes. The panel reads four rows.
+  const fare = {
+    currency: "EUR",
+    classes: {
+      couchette: 79.99, privateCouchette: 279.99, comfortTriple: 109.99, lastMinuteCouchette: 40, lastMinutePrivate: 160,
+      sleeperSingle: 339.99, comfortSingle: 269.99, sleeperDouble: 169.99, comfortDouble: 139.99, sleeperTriple: 139.99,
+      flashSaleCouchette: 49, flashSalePrivate: 199,
+    },
+    classDates: {
+      couchette: "2026-11-09", privateCouchette: "2026-11-09", comfortTriple: "2026-11-11", lastMinuteCouchette: "2026-10-02",
+      lastMinutePrivate: "2026-10-02", sleeperSingle: "2026-11-09", comfortSingle: "2026-11-11", sleeperDouble: "2026-11-09",
+      comfortDouble: "2026-11-11", sleeperTriple: "2026-11-09", flashSaleCouchette: "2026-10-28", flashSalePrivate: "2026-10-28",
+    },
+  };
+  assert.deepStrictEqual(
+    panelFareRows(fare, { from: true }).map((r) => [r.label, r.price, r.date, r.classKey]),
+    [
+      ["Couchette", "from €79.99", "2026-11-09", "couchette"],
+      // Comfort's 3-bed cabin undercuts the standard one that week.
+      ["3-bed cabin", "from €109.99", "2026-11-11", "comfortTriple"],
+      ["2-bed cabin", "from €139.99", "2026-11-11", "comfortDouble"],
+      ["Private compartment", "from €279.99", "2026-11-09", "privateCouchette"],
+    ],
+  );
+  // A group with nothing on sale is left out; on a price tie the nearer night wins.
+  assert.deepStrictEqual(
+    panelFareRows({ currency: "EUR", classes: { couchette: 59.99, sleeperTriple: 99, comfortTriple: 99 },
+      classDates: { couchette: "2026-11-03", sleeperTriple: "2026-11-20", comfortTriple: "2026-11-05" } })
+      .map((r) => [r.label, r.price, r.date]),
+    [["Couchette", "€59.99", "2026-11-03"], ["3-bed cabin", "€99", "2026-11-05"]],
+  );
+  // A fare without European Sleeper's cabins lists as it always did.
+  const icn = { currency: "EUR", classes: { couchette: 53.6, sleeperCabin: 120.9 }, travelDate: "2026-10-19" };
+  assert.deepStrictEqual(panelFareRows(icn, { from: true }), fareClassRows(icn, { from: true, deals: "exclude" }));
+  const cny = { currency: "CNY", classes: { hardSleeper: 335.5, softSleeper: 520 } };
+  assert.deepStrictEqual(panelFareRows(cny).map((r) => r.label), fareClassRows(cny).map((r) => r.label));
 });
 
 await check("booking links: a deal opens its landing page, a night opens the dated search", () => {
