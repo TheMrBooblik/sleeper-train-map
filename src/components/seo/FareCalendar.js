@@ -17,7 +17,9 @@ function localToday() {
 const TIER_CLASS = {
   low: "text-primary-green font-semibold",
   mid: "text-white/80",
-  high: "text-amber-300/90",
+  // Not amber: amber is the last-minute deal's colour, and a dear night
+  // printed in it read as a deal on the first real calendar.
+  high: "text-rose-300/80",
 };
 
 /**

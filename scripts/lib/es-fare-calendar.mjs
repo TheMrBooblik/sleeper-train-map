@@ -208,11 +208,12 @@ export async function fillEsFareCalendars(
     budget = ES_FARE_BUDGET,
     spacingMs = SPACING_MS,
     maxConsecutiveErrors = 5,
+    retryDelayMs = 3000,
     loadDeals = null,
   } = {},
 ) {
   const stats = {
-    planned: 0, searched: 0, requests: 0, priced: 0, none: 0, errors: 0, stopped: false,
+    planned: 0, searched: 0, requests: 0, priced: 0, none: 0, errors: 0, retries: 0, stopped: false,
     deals: 0, dealsFrom: null, unpriced: [],
   };
   const calendars = {};
@@ -247,6 +248,22 @@ export async function fillEsFareCalendars(
   const broken = new Set();
   let consecutiveErrors = 0;
   const pause = () => (spacingMs ? sleep(spacingMs) : null);
+  // The first live refresh met three isolated 504 Gateway Timeouts from
+  // /search/availability among ~150 good answers. Such an error says nothing
+  // about the train, so it gets one retry and then costs only its own night
+  // (which keeps last run's entry); a 4xx is about the request and still
+  // skips the train for the night.
+  const transient = (err) => !err?.status || err.status >= 500 || err.status === 429;
+  const attempt = async (fn) => {
+    try {
+      return await fn();
+    } catch (err) {
+      if (!transient(err) || !retryDelayMs) throw err;
+      stats.retries++;
+      await sleep(retryDelayMs);
+      return fn();
+    }
+  };
 
   for (const { key, date } of plan) {
     if (broken.has(key)) continue;
@@ -254,7 +271,7 @@ export async function fillEsFareCalendars(
     try {
       let hit = known.get(`${key}|${date}`);
       if (hit === undefined) {
-        const body = await searchTrains({ fromId: ep.fromId, toId: ep.toId, date }, { fetchImpl });
+        const body = await attempt(() => searchTrains({ fromId: ep.fromId, toId: ep.toId, date }, { fetchImpl }));
         stats.requests++;
         await pause();
         const nights = nightsFromTrainSearch(body, key);
@@ -268,9 +285,11 @@ export async function fillEsFareCalendars(
         stats.none++;
         continue;
       }
-      const availability = await searchAvailability(
-        { routeId: hit.routeId, fromId: ep.fromId, toId: ep.toId, trainNumber: key, date },
-        { fetchImpl },
+      const availability = await attempt(() =>
+        searchAvailability(
+          { routeId: hit.routeId, fromId: ep.fromId, toId: ep.toId, trainNumber: key, date },
+          { fetchImpl },
+        ),
       );
       stats.requests++;
       await pause();
@@ -293,8 +312,12 @@ export async function fillEsFareCalendars(
     } catch (err) {
       stats.errors++;
       consecutiveErrors++;
-      broken.add(key);
-      log(`[es-fare] ${key} ${date}: ${err.message}${err.body ? ` — ${err.body}` : ""} — skipping its other nights tonight`);
+      const night = transient(err);
+      if (!night) broken.add(key);
+      log(
+        `[es-fare] ${key} ${date}: ${err.message}${err.body ? ` — ${err.body.slice(0, 120)}` : ""} — ` +
+          (night ? "skipping this night (last run's entry kept)" : "skipping its other nights tonight"),
+      );
       if (consecutiveErrors >= maxConsecutiveErrors) {
         stats.stopped = true;
         log(`[es-fare] ${consecutiveErrors} failures in a row — stopping tonight's fare searches`);

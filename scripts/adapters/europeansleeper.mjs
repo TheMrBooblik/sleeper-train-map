@@ -576,7 +576,7 @@ async function priceTrains(trains, entry, ctx, log) {
     });
     log(
       `${stats.searched}/${stats.planned} night(s) searched in ${stats.requests} request(s) ` +
-        `(${stats.priced} priced, ${stats.none} with no berth on sale, ${stats.errors} failed` +
+        `(${stats.priced} priced, ${stats.none} with no berth on sale, ${stats.errors} failed, ${stats.retries} retried` +
         `${stats.stopped ? ", stopped early" : ""}); ${stats.deals} last-minute deal(s)` +
         `${stats.dealsFrom != null ? ` from €${stats.dealsFrom}` : ""}; fares for ` +
         `${Object.values(trains).filter((t) => t.fare).length}/${Object.keys(trains).length} trains` +

@@ -392,13 +392,13 @@ const TRAINS = () => ({
   "999": { lineName: "ES 999", stations: [{ name: "Nowhere" }, { name: "Praha hl.n." }] },
 });
 
-function apiFake({ runs = () => true, failTrains = new Set(), deals = null } = {}) {
+function apiFake({ runs = () => true, failTrains = new Set(), failStatus = 503, deals = null } = {}) {
   return fakeSite([
     [/\/constants$/, () => ({ body: CONSTANTS })],
     [/\/search\/trains$/, (url, init) => {
       const b = JSON.parse(init.body);
       const train = b.fromLocationId === "8800104" ? "453" : "474";
-      if (failTrains.has(train)) return { status: 503, body: "down" };
+      if (failTrains.has(train)) return { status: failStatus, body: "refused" };
       const out = [];
       for (let i = 0; i < 3; i++) {
         const date = new Date(Date.parse(`${b.departureDate}T00:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10);
@@ -476,14 +476,48 @@ await check("endpointsFor: an end the operator does not sell becomes its same-ci
   assert.strictEqual(ambiguous["475"], undefined);
 });
 
-await check("fillEsFareCalendars: a failing train costs its own nights, never the run", async () => {
+await check("fillEsFareCalendars: a train the API refuses costs its own nights, never the run", async () => {
   const trains = TRAINS();
   const stats = await fillEsFareCalendars(trains, null, {
-    today: TODAY, fetchImpl: apiFake({ failTrains: new Set(["474"]) }), log: () => {}, days: 6, spacingMs: 0,
+    today: TODAY, fetchImpl: apiFake({ failTrains: new Set(["474"]), failStatus: 400 }), log: () => {}, days: 6, spacingMs: 0,
   });
   assert.strictEqual(stats.errors, 1);
   assert.strictEqual(trains["474"].fareCalendar, undefined);
   assert.strictEqual(Object.keys(trains["453"].fareCalendar.nights).length, 6);
+});
+
+await check("fillEsFareCalendars: a 504 is retried once and then costs one night, not the train's calendar", async () => {
+  // The first live refresh: three lone 504s from /search/availability cut
+  // ES 453 to 17 of 42 nights, because any error skipped the train's rest.
+  const failures = new Map([["2026-10-03", 2], ["2026-10-04", 1]]); // 10-03 fails twice, 10-04 once
+  const base = apiFake();
+  const fetchImpl = async (url, init) => {
+    if (/search\/availability/.test(url)) {
+      const b = JSON.parse(init.body);
+      const date = b.travelDate.slice(0, 10);
+      const left = failures.get(date) ?? 0;
+      if (b.trainNumber === "453" && left > 0) {
+        failures.set(date, left - 1);
+        return { ok: false, status: 504, text: async () => '{"title":"Gateway Timeout"}' };
+      }
+    }
+    return base(url, init);
+  };
+  const previous = { "453": { fareCalendar: { version: FARE_CALENDAR_VERSION, currency: "EUR", nights: {
+    "2026-10-03": { classes: { couchette: 70 }, checkedAt: "2026-09-30" },
+  } } } };
+  const trains = TRAINS();
+  const logs = [];
+  const stats = await fillEsFareCalendars(trains, previous, {
+    today: TODAY, fetchImpl, log: (m) => logs.push(m), days: 6, spacingMs: 0, retryDelayMs: 1,
+  });
+  const nights = trains["453"].fareCalendar.nights;
+  assert.strictEqual(Object.keys(nights).length, 6, logs.join("\n"));
+  assert.strictEqual(nights["2026-10-04"].classes.couchette, 79.99, "a single 504 is retried and priced");
+  assert.deepStrictEqual(nights["2026-10-03"], { classes: { couchette: 70 }, checkedAt: "2026-09-30" }, "a night that fails twice keeps last run's entry");
+  assert.strictEqual(nights["2026-10-05"].classes.couchette, 79.99, "the nights after it are still searched");
+  assert.strictEqual(stats.errors, 1);
+  assert.strictEqual(stats.retries, 2);
 });
 
 await check("fillEsFareCalendars: a deal becomes the night's cheapest fare and the headline", async () => {
