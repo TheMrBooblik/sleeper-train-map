@@ -4,6 +4,7 @@ import { FaTrain, FaMapMarkerAlt, FaMoon, FaArrowRight } from "react-icons/fa";
 import { COUNTRIES, getFlagEmoji } from "../lib/countries";
 import { slugify } from "../lib/seo/slugify.mjs";
 import { OG_IMAGE, SITE_URL, absoluteUrl } from "../lib/seo/site";
+import PriceDisclaimer from "../components/PriceDisclaimer";
 
 const FeatureCard = ({ icon: Icon, title, description }) => (
   <div className="flex flex-col items-start gap-4 p-6 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
@@ -336,6 +337,7 @@ export default function AboutPage({ hubCountryCodes = [] }) {
               </Link>
             </nav>
           </div>
+          <PriceDisclaimer className="max-w-6xl mx-auto mt-6 text-center sm:text-left" />
         </footer>
       </div>
 
