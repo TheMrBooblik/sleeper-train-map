@@ -23,6 +23,7 @@ const {
   parseBoTServiceIdDateRange,
   isRouteOutsideServiceIdSeason,
   upcomingPreviewRouteIds,
+  selectedRoutesWithLines,
 } = mod;
 
 function assert(cond, msg) {
@@ -315,6 +316,64 @@ assert(
   assert(
     tooShort.length === 0,
     `service windows too short to be a season: ${tooShort.slice(0, 3).join("; ")}`,
+  );
+}
+
+// ─── A station selection keeps only the stops of routes it draws ────────────
+// Clicking a station selects every route calling there, closed seasons too,
+// and useRoutePaths skips a closed one when it draws. Its stops used to stay as
+// dots anyway whenever any other route called there: a click on Wien Hbf put
+// Split, Knin, Maribor, Celje and Tychy on the map with no line through them
+// (EN 1272 Split–Wien, whose summer ended on 26 September). Dates here are far
+// enough from today that the fixture cannot age into a different answer.
+{
+  const selTrips = {
+    closed: { route_id: "closed", service_id: "2020/06/01-2020/08/30: Daily" },
+    running: { route_id: "running", service_id: "2026: Daily" },
+    upcoming: { route_id: "upcoming", service_id: "2099/06/01-2099/08/30: Daily" },
+  };
+  const selViewMap = {
+    closed: { route_id: "closed" },
+    running: { route_id: "running" },
+    upcoming: { route_id: "upcoming" },
+    // A synthetic row carries its season on the row and has no trips.
+    rowClosed: { route_id: "rowClosed", service_id_0: "2020/06/01-2020/08/30: Daily" },
+    7: { route_id: 7 },
+  };
+  const live = selectedRoutesWithLines(
+    ["closed", "running", "upcoming", "rowClosed", 7, " "],
+    selTrips,
+    selViewMap,
+  );
+  assert(!live.has("closed"), "a selected route whose season closed draws no line");
+  assert(!live.has("rowClosed"), "nor does one whose row says its season closed");
+  assert(live.has("running"), "a running route keeps its stops");
+  assert(live.has("upcoming"), "a season still to come draws, so it keeps its stops");
+  assert(live.has("7"), "ids are compared as strings, as stop_route_ids stores them");
+  assert(live.size === 3, `exactly the drawn routes: ${[...live].join(", ")}`);
+  for (const id of ["closed", "running", "upcoming", "rowClosed", "7"]) {
+    assert(
+      live.has(id) === !isRouteOutsideServiceIdSeason(id, selTrips, selViewMap[id]),
+      `${id}: markers and lines answer from the same predicate`,
+    );
+  }
+
+  // The hook is JSX with extensionless imports and cannot load in raw node,
+  // and the defect was where the filter sat, so assert that.
+  const hook = fs.readFileSync(
+    path.join(root, "src", "components", "Map", "hooks", "useMapMarkers.js"),
+    "utf8",
+  );
+  const filterAt = hook.indexOf("selectedRoutesWithLines(stopRouteIds");
+  const groupAt = hook.indexOf("groupCityMarkers(");
+  assert(filterAt > 0, "useMapMarkers narrows the selection to routes with lines");
+  assert(
+    filterAt < groupAt,
+    "and does so before grouping, so no grouped marker anchors on a closed route's stop",
+  );
+  assert(
+    !/stopRouteIds\.includes\(/.test(hook),
+    "no marker check reads the raw selection, closed routes included",
   );
 }
 

@@ -8,6 +8,7 @@ import { StationTooltipContent } from "../utils/stationTooltip";
 import {
   shouldHideRouteDueToFutureDate,
   upcomingPreviewRouteIds,
+  selectedRoutesWithLines,
 } from "../utils/routeStyleUtils";
 import { createMapIcons, stationHitSize } from "../utils/mapIcons";
 import { thinStationsByViewport } from "../utils/thinStationsByViewport";
@@ -127,6 +128,25 @@ export function useMapMarkers({
       return !skipSet.has(stop.stop_id) && !skipSet.has(n);
     });
 
+    // With a station selected, a stop belongs on the map only if one of the
+    // selected routes that DRAWS a line calls there. The season filter above
+    // asks whether any route at the stop still runs, selected or not, so a
+    // closed selected route kept its stops as dots with no line through them.
+    // Filtered before grouping, so a grouped marker cannot anchor on one.
+    const liveSelectedRouteIds =
+      selected && stopRouteIds?.length > 0
+        ? selectedRoutesWithLines(stopRouteIds, trips, viewMapData)
+        : null;
+    if (!routeFilteredMode && liveSelectedRouteIds) {
+      stopsToShow = stopsToShow.filter((stop) => {
+        const n = normalizeStationNameForLookup(stop.stop_id);
+        const cityInfo = cities[n] || cities[stop.stop_id];
+        return (cityInfo?.stop_route_ids || "")
+          .split(",")
+          .some((id) => liveSelectedRouteIds.has(id.trim()));
+      });
+    }
+
     // Keep zoom-thinning narrowly scoped:
     // - only in normal station mode
     // - only when intermediate stations are not already hidden
@@ -240,24 +260,25 @@ export function useMapMarkers({
 
         // This filter is Back-on-Track specific (requires city.stop_route_ids).
         // In routeFilteredMode we may render GTFS-only stations without this field.
-        if (!routeFilteredMode && selected && stopRouteIds?.length > 0) {
+        if (!routeFilteredMode && liveSelectedRouteIds) {
           const stationRouteIds = (stop_route_ids || "")
             .split(",")
             .map((id) => id.trim())
             .filter(Boolean);
           const isPartOfSelectedRoutes = stationRouteIds.some((id) =>
-            stopRouteIds.includes(id),
+            liveSelectedRouteIds.has(id),
           );
           if (!isPartOfSelectedRoutes) return null;
         }
 
         let isViaStationForFilteredRoutes = !!cityInfo?.isViaStation;
-        if (selected && stopRouteIds?.length > 0 && !isSelected) {
+        if (liveSelectedRouteIds && !isSelected) {
           const stationsToCheck =
             filteredStop.isGrouped && filteredStop.groupedStations
               ? filteredStop.groupedStations.map((s) => s.stop_id)
               : [stop_id];
-          const isOriginOrDestination = stopRouteIds.some((routeId) => {
+          // Only a drawn route can make this stop an endpoint on screen.
+          const isOriginOrDestination = [...liveSelectedRouteIds].some((routeId) => {
             const route = routeIdMap.get(routeId);
             if (!route) return false;
             const routeStations = [
