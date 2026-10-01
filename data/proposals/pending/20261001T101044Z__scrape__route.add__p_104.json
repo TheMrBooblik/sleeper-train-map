@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_104",
+  "createdAt": "2026-10-01T10:10:44.053Z",
+  "source": "scrape",
+  "sourceDetail": "backontrack",
+  "kind": "route.add",
+  "title": "New train: IC Notte 1959 (S) (Roma Termini – Siracusa)",
+  "summary": "Route \"104\" appeared in tonight's scrape and is withheld from the map until approved. Via: Lamezia Terme Centrale - Messina Centrale - Taormina Giardini - Catania Centrale",
+  "target": {
+    "routeKey": "104",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "IC Notte 1959 (S)",
+    "returnTrain": "IC Notte 1960",
+    "origin": "Roma Termini",
+    "destination": "Siracusa",
+    "operator": "FS",
+    "operatingDays": "2026: Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "104"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
