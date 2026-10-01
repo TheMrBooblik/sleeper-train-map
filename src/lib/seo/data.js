@@ -38,7 +38,8 @@ import { getOperatorPricing, formatFromPrice, formatCheckedAt } from "../operato
 import { directionFare, directionFareSummary, isDynamicPricing } from "../fareClasses.mjs";
 import { eurHintFor, formatEurApprox } from "../fx.mjs";
 import { fareCalendarDays } from "../fareCalendarView.mjs";
-import { buildDatedBookingLink } from "../operatorBooking.js";
+import { buildDatedBookingLink, buildDealsLandingUrl } from "../operatorBooking.js";
+import { lastMinuteProgramme } from "../lastMinuteDeals.mjs";
 import {
   formatTrainNumber,
   resolveScheduleLink,
@@ -471,13 +472,24 @@ function fareCalendarFor(route, dir, { origin, destination, today }) {
   const calendar = route[`fare_calendar_${dir}`];
   if (!calendar) return null;
   const link = buildDatedBookingLink({ agencyId: route.agency_id || "", origin, dest: destination });
+  const programme = lastMinuteProgramme(route.agency_id);
   const view = fareCalendarDays(calendar, {
     today,
     dynamic: isDynamicPricing(route.pricing),
     bookingDate: link ? link.dateFor : () => null,
+    compartmentSize: programme?.compartmentSize ?? 5,
   });
   if (!view) return null;
-  return { ...view, bookingTemplate: link?.template ?? null };
+  // A last-minute deal is sold from the operator's promo page, not through
+  // the ordinary search, so each deal night carries its own link there.
+  for (const day of view.days) {
+    if (day.deal) day.deal.href = buildDealsLandingUrl(route.agency_id, day.deal.landing);
+  }
+  return {
+    ...view,
+    bookingTemplate: link?.template ?? null,
+    lastMinute: view.deals && programme ? programme : null,
+  };
 }
 
 export function getRouteDetail(routeId) {

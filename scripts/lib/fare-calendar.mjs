@@ -135,11 +135,33 @@ export function cheapestClass(classes) {
  * every other surface already reads ({ fromPrice, currency, seatClass,
  * classes, sampledAt, travelDate }). A tie keeps the earlier night — the
  * nearer date is the more useful one to name. null when no night is priced.
+ *
+ * `classes` is each class's OWN cheapest night across the calendar, with the
+ * night it is for in `classDates` — not the classes of the night that won.
+ * The first European Sleeper calendar is why: the cheapest night was a €40
+ * last-minute deal for tomorrow, and that night's regular couchette was
+ * €159.99, so the map panel printed "Couchette from €159.99" for a train whose
+ * couchettes start at €59.99 on other nights. A class's "from" is that class's
+ * minimum, and the date travels with it so the figure stays one night's price.
+ * `dealLanding` names the page the cheapest last-minute deal is sold from
+ * (scripts/lib/es-fare-calendar.mjs), where the calendar carries one.
  */
 export function cheapestNight(calendar) {
   let best = null;
+  const classes = {};
+  const classDates = {};
+  const dealLandings = {};
   for (const date of Object.keys(calendar?.nights ?? {}).sort()) {
     const entry = calendar.nights[date];
+    for (const [cls, amount] of Object.entries(entry?.classes ?? {})) {
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+      if (classes[cls] == null || amount < classes[cls]) {
+        classes[cls] = amount;
+        classDates[cls] = date;
+        if (entry.deal?.landing) dealLandings[cls] = entry.deal.landing;
+        else delete dealLandings[cls];
+      }
+    }
     const c = cheapestClass(entry?.classes);
     if (!c) continue;
     if (!best || c[1] < best.fromPrice) {
@@ -147,11 +169,15 @@ export function cheapestNight(calendar) {
         fromPrice: c[1],
         currency: calendar.currency,
         seatClass: c[0],
-        classes: { ...entry.classes },
         sampledAt: entry.checkedAt,
         travelDate: date,
       };
     }
   }
-  return best && best.currency ? best : null;
+  if (!best || !best.currency) return null;
+  const out = { ...best, classes, classDates };
+  // The deal class with the lowest price, if any carries a landing page.
+  const deal = Object.keys(dealLandings).sort((a, b) => classes[a] - classes[b])[0];
+  if (deal) out.dealLanding = dealLandings[deal];
+  return out;
 }

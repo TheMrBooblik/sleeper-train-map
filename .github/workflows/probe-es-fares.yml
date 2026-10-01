@@ -1,0 +1,43 @@
+name: Probe European Sleeper fares
+
+# What the European Sleeper fare pass sees: the booking API's /constants,
+# /search/trains and /search/availability answers for each train, and every
+# last-minute landing page — what scripts/lib/es-last-minute.mjs dated on it,
+# its form fields, a few /receipt/price answers, and its text (last, so the
+# log tail carries it). The dev sandbox has no egress to either host, so both
+# readers were written without seeing a live answer; this is how they are
+# checked.
+#
+# Label a PR `run-probes` to run it from the PR head — a workflow_dispatch probe
+# cannot run until its file is on the default branch (see CLAUDE.md).
+#
+# Read-only: searches and GETs, no booking is created, nothing committed.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  probe:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'run-probes'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: node scripts/probe-es-fares.mjs probe-output
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: es-fares-probe-output
+          path: probe-output/
+          retention-days: 7

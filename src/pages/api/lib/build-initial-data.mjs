@@ -742,6 +742,10 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
         currency: fare.currency,
         seatClass: fare.seatClass ?? null,
         ...(fare.classes && typeof fare.classes === "object" ? { classes: fare.classes } : {}),
+        // Each class's own cheapest night (scripts/lib/fare-calendar.mjs
+        // cheapestNight), and where the cheapest last-minute deal is sold.
+        ...(fare.classDates && typeof fare.classDates === "object" ? { classDates: fare.classDates } : {}),
+        ...(fare.dealLanding ? { dealLanding: fare.dealLanding } : {}),
         source: row.timetable_source,
         checkedAt: fare.sampledAt ?? null,
         // The night the figure was quoted for. A yield-managed fare

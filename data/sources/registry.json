@@ -126,7 +126,27 @@
         "https://files.mobilitydatabase.org/mdb-3107/latest.zip"
       ],
       "configPath": "data/sources/europeansleeper-sleepers.json",
-      "timetableUrl": "https://www.europeansleeper.eu/timetable"
+      "timetableUrl": "https://www.europeansleeper.eu/timetable",
+      "fares": {
+        "enabled": true,
+        "days": 92,
+        "searchesPerRun": 600,
+        "lastMinute": {
+          "indexPath": "/last-minute",
+          "pages": [
+            { "path": "/last-minutes-berlin-prague", "trains": ["453"] },
+            { "path": "/last-minutes-amsterdam-brussels", "trains": ["452", "454"] },
+            { "path": "/last-minutes-hamburg-berlin", "trains": ["475"] },
+            { "path": "/last-minutes-brussels-paris", "trains": ["474"] },
+            { "path": "/last-minute-switzerland-milan", "trains": ["401"] },
+            { "path": "/last-minute-cologne-brussels", "trains": ["400"] }
+          ]
+        },
+        "flashSale": {
+          "indexPath": "/flash-sale",
+          "pages": []
+        }
+      }
     },
     "freshness": { "ttlHours": 25 }
   },

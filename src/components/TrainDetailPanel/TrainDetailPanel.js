@@ -33,10 +33,12 @@ import {
 } from "../../lib/operatorPricing";
 import {
   directionFare,
-  fareClassRows,
+  panelFareRows,
   fareDirectionForTrip,
   formatTravelDate,
+  formatTravelDateShort,
   pricingForDirection,
+  splitDealFare,
 } from "../../lib/fareClasses.mjs";
 import {
   formatTrainNumber,
@@ -47,6 +49,7 @@ import {
 import {
   buildBookingUrl,
   hasLastMinuteDeals,
+  buildDealsLandingUrl,
 } from "../../lib/operatorBooking";
 import { formatPlanDate } from "../../lib/plan/format.mjs";
 import {
@@ -1686,12 +1689,55 @@ const TrainDetailPanel = ({
                   fareDir == null
                     ? basePricing
                     : pricingForDirection(tripRoute, fareDir, basePricing);
-                const fareRows =
-                  fareDir == null
-                    ? []
-                    : fareClassRows(directionFare(tripRoute, fareDir), {
-                        from: pricing?.type === "dynamic",
-                      });
+                // Regular fares only: a promotional deal (European Sleeper's
+                // last-minute pages) is sold elsewhere, so it is shown beside
+                // the link that sells it, in BookingActions below.
+                const dirFare =
+                  fareDir == null ? null : directionFare(tripRoute, fareDir);
+                // One row per kind of place (panelFareRows folds European
+                // Sleeper's cabins by beds); deals are never among them.
+                const fareRows = dirFare
+                  ? panelFareRows(dirFare, {
+                      from: pricing?.type === "dynamic",
+                    })
+                  : [];
+                const { regular: regularFare, deal: dealFare } =
+                  splitDealFare(dirFare);
+                // Each chip carries its own night when the source keeps a
+                // calendar; one shared line only for a single-date record.
+                const rowDates = [
+                  ...new Set(fareRows.map((f) => f.date).filter(Boolean)),
+                ];
+                const chipDates =
+                  pricing?.type === "dynamic" && rowDates.length > 1;
+                // One night for every class: say it once, under the chips.
+                const sharedFareDate =
+                  rowDates.length === 1 ? rowDates[0] : pricing?.travelDate;
+                // The Fare line under the Book button quotes what that button
+                // sells — the regular fare — when a deal is listed apart.
+                const bookingPricing =
+                  dealFare && pricing
+                    ? {
+                        ...pricing,
+                        fromPrice: regularFare?.fromPrice ?? null,
+                        seatClass: regularFare?.seatClass ?? null,
+                        travelDate: regularFare?.travelDate ?? null,
+                      }
+                    : pricing;
+                const dealForBooking = dealFare
+                  ? {
+                      ...dealFare,
+                      date: formatTravelDateShort(dealFare.travelDate),
+                      href: buildDealsLandingUrl(
+                        bookingAgencyId,
+                        dealFare.landing,
+                      ),
+                      // Cheaper than every regular berth on this train.
+                      best:
+                        !regularFare ||
+                        dealFare.fromPrice < regularFare.fromPrice,
+                    }
+                  : null;
                 const pricingLabel = formatPricingLabel(pricing);
                 const pricingBadgeStyle = getPricingBadgeStyle(pricing);
                 // Keyed to the SELLING agency, because a deals page is a
@@ -1824,28 +1870,36 @@ const TrainDetailPanel = ({
                         <div className="text-xs text-gray-500 uppercase">
                           Fares
                         </div>
-                        <ul className="flex flex-wrap gap-1.5">
+                        <ul className="space-y-0.5">
                           {fareRows.map((f) => (
                             <li
                               key={f.key}
-                              className="rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs text-gray-700"
+                              className="text-xs text-gray-700"
                             >
                               {f.label}{" "}
                               <span className="font-semibold text-gray-900">
                                 {f.price}
                               </span>
+                              {chipDates && f.date && (
+                                <span className="text-gray-500">
+                                  {" "}
+                                  · {formatTravelDateShort(f.date)}
+                                </span>
+                              )}
                             </li>
                           ))}
                         </ul>
-                        {/* A dynamic fare is one night's price: say which. */}
-                        {pricing?.type === "dynamic" &&
-                          formatTravelDate(pricing?.travelDate) && (
+                        {/* A dynamic fare is one night's price: say which —
+                            on each row when the nights differ, else once. */}
+                        {!chipDates &&
+                          pricing?.type === "dynamic" &&
+                          formatTravelDate(sharedFareDate) && (
                           <div
                             className="text-xs text-gray-500"
                             data-testid="fare-travel-date"
                           >
                             Lowest fares{" "}
-                            {formatTravelDate(pricing.travelDate)}
+                            {formatTravelDate(sharedFareDate)}
                           </div>
                         )}
                       </div>
@@ -2280,7 +2334,8 @@ const TrainDetailPanel = ({
                       agencyUrl={agencies[bookingAgencyId]?.agency_url}
                       origin={bookingOrigin}
                       dest={bookingDest}
-                      pricing={pricing}
+                      pricing={bookingPricing}
+                      deal={dealForBooking}
                       routeId={trip.route_id}
                       scheduleStops={schedule?.stops}
                     />

@@ -215,6 +215,9 @@
     "bookingPageUrl": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=view&u=",
     "dealsUrl": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=deals&u=%2Flast-minutes-berlin-prague",
     "dealsLabel": "Last-minute deals",
+    "dealsUrlTemplate": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=deals&u={path}",
+    "urlDateSuffix": "%26departureDate%3D{date}",
+    "dateFormat": "yyyy-MM-dd",
     "requireStationMapping": true,
     "stationNames": {
       "Amsterdam Centraal": "8400058",

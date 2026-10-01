@@ -14,6 +14,7 @@
  * src/lib/plan/format.mjs).
  */
 import { fareClassRows, formatMoney } from "./fareClasses.mjs";
+import { dealsSummary, isDealClass, nightDeal } from "./lastMinuteDeals.mjs";
 
 const DAY_MS = 86_400_000;
 const MONTHS = [
@@ -68,12 +69,13 @@ export function formatNight(iso) {
  * @param {boolean} [opts.dynamic=true]  prefix class prices with "from"
  * @param {(iso: string) => string|null} [opts.bookingDate] the date as the
  *   operator's booking link wants it, or null when the link takes none
- * @returns {{ currency: string, days: object[], cheapestDate: string|null } | null}
+ * @returns {{ currency: string, days: object[], cheapestDate: string|null,
+ *   deals: object|null } | null}
  *   null when the calendar prices no night at all
  */
 export function fareCalendarDays(
   calendar,
-  { today, dynamic = true, bookingDate = () => null } = {},
+  { today, dynamic = true, bookingDate = () => null, compartmentSize = 5 } = {},
 ) {
   const nights = calendar?.nights;
   const currency = calendar?.currency;
@@ -101,8 +103,20 @@ export function fareCalendarDays(
       state: amount != null ? "priced" : entry ? "none" : "unknown",
       amount,
       price: amount != null ? formatMoney(amount, currency) : "",
+      // What fits in a month-grid cell on a 320 px phone (~35 px): whole
+      // units, no symbol. "119.99" ran into the next cell; the exact price
+      // is on the selected night's card below the grid.
+      cellPrice: amount != null ? String(Math.round(amount)) : "",
       tier: null,
-      classes: classes.map(({ key, label, price }) => ({ key, label, price })),
+      // A deal's figure is the promo price itself, never "from".
+      classes: classes.map(({ key, label, price, amount: a }) => ({
+        key,
+        label,
+        price: isDealClass(key) ? formatMoney(a, currency) : price,
+        ...(isDealClass(key) ? { deal: true } : {}),
+      })),
+      // The night's last-minute deal against its regular fares (src/lib/lastMinuteDeals.mjs).
+      deal: entry && !entry.none ? nightDeal(entry, { currency, compartmentSize }) : null,
       checkedAt: entry?.checkedAt ?? null,
       bookingDate: bookingDate(d) ?? null,
     });
@@ -126,7 +140,7 @@ export function fareCalendarDays(
   }
   // The earliest of the cheapest nights: the nearer date is the more useful to offer.
   const cheapestDate = priced.find((d) => d.amount === min).date;
-  return { currency, days, cheapestDate };
+  return { currency, days, cheapestDate, deals: dealsSummary(days) };
 }
 
 /**
