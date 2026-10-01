@@ -128,6 +128,9 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
                     aria-label={label}
                     onClick={() => setSelected(day.date)}
                     className={`relative flex min-h-[2.75rem] min-w-0 flex-col items-center justify-center rounded-md px-0.5 py-1 leading-tight transition-colors ${
+                      // Tailwind 4 no longer gives a button the pointer.
+                      selectable ? "cursor-pointer" : "cursor-default"
+                    } ${
                       isSelected
                         ? isDeal
                           ? "bg-amber-400/20 ring-2 ring-amber-300"
@@ -308,7 +311,7 @@ function LastMinuteBanner({ deals, programme, onShow, showing, past }) {
         <button
           type="button"
           onClick={onShow}
-          className="mt-2 rounded-full border border-amber-300/50 px-3 py-1 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-400/15"
+          className="mt-2 cursor-pointer rounded-full border border-amber-300/50 px-3 py-1 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-400/15"
         >
           Show the cheapest deal
         </button>

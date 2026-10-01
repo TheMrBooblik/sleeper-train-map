@@ -72,27 +72,34 @@ export default function BookingActions({
   return (
     <div className="space-y-1.5">
       {/* Fare line (only when we have a concrete price) */}
+      {/* One line of text, not a flex row: as flex items each piece shrank
+          into its own column and wrapped inside itself ("from / €69.99"). As
+          inline text a narrow panel wraps between whole pieces instead. */}
       {fareLabel && (
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-xs text-gray-500 uppercase">Fare</span>
-          <span className="text-sm font-semibold text-gray-900">
+        <div data-testid="fare-line">
+          <span className="mr-1.5 text-xs text-gray-500 uppercase">Fare</span>
+          <span className="whitespace-nowrap text-sm font-semibold text-gray-900">
             {fareLabel}
-            {!livePrice && eurHintFor(pricing) && (
-              <span
-                className="block text-xs font-normal text-gray-500"
-                title={eurRateNote()}
-              >
-                ({eurHintFor(pricing)})
-              </span>
-            )}
           </span>
           {fareClass && (
-            <span className="text-xs text-gray-500">
+            <span className="whitespace-nowrap text-xs text-gray-500">
+              {" "}
               · {fareClass.toLowerCase()}
             </span>
           )}
           {fareDate && (
-            <span className="text-xs text-gray-500">· on {fareDate}</span>
+            <span className="whitespace-nowrap text-xs text-gray-500">
+              {" "}
+              · {fareDate}
+            </span>
+          )}
+          {!livePrice && eurHintFor(pricing) && (
+            <span
+              className="block text-xs text-gray-500"
+              title={eurRateNote()}
+            >
+              ({eurHintFor(pricing)})
+            </span>
           )}
         </div>
       )}
