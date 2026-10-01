@@ -276,9 +276,65 @@ await check("parseLastMinutePage: data attributes, receipt links and script JSON
   assert.strictEqual(findDealIds("<select name='departure-station'><option value='8800104'>B</option></select>").length, 0);
 });
 
+// The live page's shape, as the first probe run (2026-10-01) printed it: its
+// form fields verbatim (from the probe's form digest) and the visible text in
+// order. The button's inner markup is reconstructed from that text — the
+// date and price are the only text between each tooltip and the next deal.
+const PAGE_LIVE = `
+<h1>Last minute deals to Berlin and Prague</h1>
+<form id="form-receipt">
+<select class="input" id="departure-station" name="departure-station" required>
+  <option value>Choose a station</option><option value="8400058"> Amsterdam Centraal </option>
+</select>
+<div class="tab">CLASSIC</div><div class="tab">CLASSIC PRIVATE</div>
+<p>No hidden costs! Fares include train ticket, reservation of a bed in a 5-person Classic compartment, bed linen, and luggage. Tickets are non-refundable.</p>
+<p>1. Select date</p>
+<div><span>Friday Evening Departures</span>
+  <button class="text-xm tooltip" id="tt-2" type="button">info</button>
+  <span>Depart Friday evening, arrive Saturday morning.</span>
+  <button class="bg-shock-orange button duration-150 ease-in hover:bg-darker-shock-orange rounded text-white" name="price" type="button" value="1062">
+    <span>Fri 02 Oct 26</span> <span>&euro;40 p.p.</span>
+  </button></div>
+<p>No hidden costs! Fares include train tickets, reservation of a private Classic compartment for up to five persons, bed linen, and luggage.</p>
+<div><span>Monday Evening Departures</span>
+  <button class="text-xm tooltip" id="tt-3" type="button">info</button>
+  <span>Leave Monday evening, arrive Tuesday morning.</span>
+  <button class="bg-shock-orange button duration-150 ease-in hover:bg-darker-shock-orange rounded text-white" name="price" type="button" value="1067">
+    <span>Mon 05 Oct 26</span> <span>&euro;160</span>
+  </button></div>
+<div><span>Friday Evening Departures</span>
+  <button class="text-xm tooltip" id="tt-4" type="button">info</button>
+  <span>Depart Friday evening, arrive Saturday morning.</span>
+  <button class="bg-shock-orange button duration-150 ease-in hover:bg-darker-shock-orange rounded text-white" name="price" type="button" value="1066">
+    <span>Fri 02 Oct 26</span> <span>&euro;160</span>
+  </button></div>
+<input name="landingpage" type="hidden" value="41">
+<input name="price" type="hidden" value="">
+<select class="required text-xl" id="receipt-group" name="group" required><option selected value="1">1</option></select>
+</form>
+<footer>&copy; 2026 — European Sleeper Exploitatie B.V.</footer>`;
+
+await check("parseLastMinutePage: the live page — one <button name=price> per deal, '02 Oct 26' dates", () => {
+  const { deals, undated, ids } = parseLastMinutePage(PAGE_LIVE, { today: TODAY });
+  assert.strictEqual(ids, 3, "the empty hidden price input is not a deal");
+  assert.deepStrictEqual(
+    deals.map((d) => [d.id, d.date, d.amount, dealKind(d)]),
+    [
+      ["1062", "2026-10-02", 40, "couchette"],
+      ["1067", "2026-10-05", 160, "private"],
+      ["1066", "2026-10-02", 160, "private"],
+    ],
+  );
+  assert.deepStrictEqual(undated, []);
+  // "26" after the month is the year, never the 26th.
+  assert.deepStrictEqual(findDates("Fri 02 Oct 26", { today: TODAY }).map((d) => d.iso), ["2026-10-02"]);
+  assert.deepStrictEqual(findDates("5 October 18:00", { today: TODAY }).map((d) => d.iso), ["2026-10-05"]);
+});
+
 await check("findLandingPaths: the index page's links to per-direction landing pages", () => {
-  const html = `<a href="/last-minutes-berlin-prague">x</a><a href="https://www.europeansleeper.eu/last-minutes-milan-brussels/">y</a><a href="/last-minute">z</a>`;
-  assert.deepStrictEqual(findLandingPaths(html), ["/last-minutes-berlin-prague", "/last-minutes-milan-brussels"]);
+  // The live index links both spellings: /last-minutes-… and /last-minute-….
+  const html = `<a href="/last-minutes-berlin-prague">x</a><a href="https://www.europeansleeper.eu/last-minute-switzerland-milan/">y</a><a href="/last-minute">z</a>`;
+  assert.deepStrictEqual(findLandingPaths(html), ["/last-minute-switzerland-milan", "/last-minutes-berlin-prague"]);
 });
 
 function fakeSite(routes) {
@@ -388,6 +444,23 @@ await check("fillEsFareCalendars: every night in one run, three nights per train
   assert.strictEqual(trains["453"].fare.seatClass, "couchette");
   assert.strictEqual(trains["453"].fare.travelDate, "2026-10-02");
   assert.strictEqual(trains["999"].fare, undefined);
+});
+
+await check("endpointsFor: an end the operator does not sell moves to the nearest stop it does", async () => {
+  const { endpointsFor } = await import("../scripts/lib/es-fare-calendar.mjs");
+  // As /constants answered on 2026-10-01: Berlin Hbf and Ostbahnhof, no Gesundbrunnen.
+  const stations = constantsStations(CONSTANTS).filter((st) => st.id !== "8011102");
+  const logs = [];
+  const out = endpointsFor(
+    {
+      "475": { stations: [{ name: "Paris Gare du Nord" }, { name: "Bruxelles Midi" }, { name: "Berlin Hbf" }, { name: "Berlin Gesundbrunnen" }] },
+      "999": { stations: [{ name: "Nowhere" }, { name: "Elsewhere" }] },
+    },
+    { curated: { "Berlin Gesundbrunnen": "8011102" }, stations, log: (m) => logs.push(m) },
+  );
+  assert.deepStrictEqual(out["475"], { fromId: "8700015", toId: "8010100", from: "Paris Gare du Nord", to: "Berlin Hbf" });
+  assert.strictEqual(out["999"], undefined);
+  assert.ok(logs.some((l) => /475: priced Paris Gare du Nord → Berlin Hbf/.test(l)), logs.join("\n"));
 });
 
 await check("fillEsFareCalendars: a failing train costs its own nights, never the run", async () => {
@@ -534,8 +607,10 @@ await check("booking links: a deal opens its landing page, a night opens the dat
   assert.strictEqual(link.dateFor("2026-10-12"), "2026-10-12");
   assert.ok(link.template.endsWith("%26departureDate%3D{date}"), link.template);
   assert.ok(link.template.includes("departureStation%3D8800104"), link.template);
-  // 474 starts in Berlin Gesundbrunnen: mapped, so its nights get dated links too.
-  assert.ok(buildDatedBookingLink({ agencyId: "ES", origin: "Berlin Gesundbrunnen", dest: "Paris Gare du Nord" }));
+  // The booking engine does not list Berlin Gesundbrunnen (the probe's
+  // /constants), so no deep link is built to it: the card falls back to the
+  // route page rather than preselecting a station that does not exist there.
+  assert.strictEqual(buildDatedBookingLink({ agencyId: "ES", origin: "Berlin Gesundbrunnen", dest: "Paris Gare du Nord" }), null);
 });
 
 await check("stampOfficialFares: an ES row takes its trains' fares and calendars", () => {
@@ -561,7 +636,7 @@ await check("registry: the fare pass and every landing page name trains the adap
   const allow = JSON.parse(fs.readFileSync(es.params.configPath, "utf8"));
   const list = (Array.isArray(allow) ? allow : allow.routes).map((r) => String(r.route_short_name ?? r).replace(/\D/g, ""));
   for (const page of fares.lastMinute.pages) {
-    assert.match(page.path, /^\/last-minutes-[a-z-]+$/);
+    assert.match(page.path, /^\/last-minutes?-[a-z-]+$/);
     assert.ok(page.trains.some((t) => list.includes(t)), `${page.path} sells a train the adapter builds`);
   }
 });

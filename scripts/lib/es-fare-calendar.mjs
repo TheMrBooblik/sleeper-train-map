@@ -115,16 +115,33 @@ export function applyDeals(calendars, deals, { today, days = FARE_CALENDAR_DAYS 
   return applied;
 }
 
-/** Whole-journey station ids per train: { "453": { fromId, toId, from, to } }. */
+/**
+ * The longest journey the operator sells on each train, as station ids:
+ * { "453": { fromId, toId, from, to } }. Normally the train's own two ends;
+ * where an end is a station the booking system does not list, the nearest
+ * stop inward that it does. The first live probe found exactly that: the
+ * timetable runs ES 474/475 to Berlin Gesundbrunnen, while /constants knows
+ * only Berlin Hbf and Ostbahnhof — so 475 is priced Paris → Berlin Hbf, the
+ * same train and the same berth, rather than not at all.
+ */
 export function endpointsFor(trains, { curated, stations, log = () => {} }) {
   const out = {};
   for (const [key, train] of Object.entries(trains)) {
-    const first = train.stations?.[0]?.name;
-    const last = train.stations?.[train.stations.length - 1]?.name;
-    const fromId = resolveStationId(first, { curated, stations });
-    const toId = resolveStationId(last, { curated, stations });
-    if (fromId && toId) out[key] = { fromId, toId, from: first, to: last };
-    else log(`[es-fare] ${key}: no operator station id for ${fromId ? last : first} — not priced`);
+    const names = (train.stations ?? []).map((s) => s?.name).filter(Boolean);
+    const ids = names.map((n) => resolveStationId(n, { curated, stations }));
+    const i = ids.findIndex(Boolean);
+    const j = ids.length - 1 - [...ids].reverse().findIndex(Boolean);
+    if (i < 0 || j <= i) {
+      log(`[es-fare] ${key}: the operator lists none of its stations — not priced`);
+      continue;
+    }
+    out[key] = { fromId: ids[i], toId: ids[j], from: names[i], to: names[j] };
+    if (i > 0 || j < names.length - 1) {
+      log(
+        `[es-fare] ${key}: priced ${names[i]} → ${names[j]} ` +
+          `(the operator does not sell ${[i > 0 ? names[0] : null, j < names.length - 1 ? names[names.length - 1] : null].filter(Boolean).join(" / ")})`,
+      );
+    }
   }
   return out;
 }

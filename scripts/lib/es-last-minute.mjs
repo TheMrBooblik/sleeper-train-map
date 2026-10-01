@@ -100,7 +100,7 @@ export function findDates(text, { today } = {}) {
   const numeric = /\b(\d{1,2})[./-](\d{1,2})[./-](\d{4}|\d{2})\b/g;
   while ((m = numeric.exec(s))) push(m.index, m[0].length, +m[3], +m[2], +m[1]);
   const dayMonth = new RegExp(
-    `\\b(\\d{1,2})(?:st|nd|rd|th|e|er|\\.)?\\s+(${MONTH_RE})\\.?(?:\\s+(\\d{4}))?\\b`,
+    `\\b(\\d{1,2})(?:st|nd|rd|th|e|er|\\.)?\\s+(${MONTH_RE})\\.?(?:\\s+(\\d{4}|\\d{2}(?![\\d:.,])))?\\b`,
     "g",
   );
   while ((m = dayMonth.exec(s))) push(m.index, m[0].length, m[3] ? +m[3] : null, MONTH_INDEX.get(m[2]), +m[1]);
@@ -124,7 +124,7 @@ export function parseEuroAmount(text) {
 }
 
 const PRIVATE_CUE = /privat|prive|whole compartment|entire compartment|hele coupe|eigen coupe|ganzes abteil|compartiment entier|compartiment prive/i;
-const SHARED_CUE = /shared|gedeeld|geteilt|partage|per person|per persoon|pro person|par personne|per bed|1 bed|one bed/i;
+const SHARED_CUE = /shared|gedeeld|geteilt|partage|per person|per persoon|pro person|par personne|per bed|1 bed|one bed|\bp\.\s?p\.|\bpp\b/i;
 
 function cueAt(text) {
   const s = decodeText(text);
@@ -167,6 +167,14 @@ export function findDealIds(html) {
     while ((o = options.exec(m[1]))) {
       add(attr(`<x ${o[1]}>`, "value"), m.index + m[0].indexOf(m[1]) + o.index, stripTags(o[2]));
     }
+  }
+  // The live pages (2026-10): one <button name="price" value="1062"> per
+  // deal, its own text the date and price — "Fri 02 Oct 26 €40 p.p.".
+  const buttons = /<button\b([^>]*)>([\s\S]{0,600}?)<\/button>/gi;
+  while ((m = buttons.exec(src))) {
+    const tag = `<button ${m[1]}>`;
+    if (!/^price$|^deal|price.?id/i.test(attr(tag, "name") ?? "")) continue;
+    add(attr(tag, "value"), m.index, stripTags(m[2]));
   }
   const inputs = /<input\b[^>]*>/gi;
   while ((m = inputs.exec(src))) {
