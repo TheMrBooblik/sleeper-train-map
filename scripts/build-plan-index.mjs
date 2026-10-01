@@ -24,6 +24,7 @@ import path from "node:path";
 
 import { buildLegs, segmentOf } from "../src/lib/plan/legs.mjs";
 import { distanceKm } from "../src/components/Map/utils/returnGeometryBranches.js";
+import { MAX_PLAUSIBLE_KMH } from "../src/lib/durationPlausibility.mjs";
 import { hydratePlanIndex, packPlanIndex } from "../src/lib/plan/index-codec.mjs";
 import { prominenceLookup, scoreCities } from "../src/lib/plan/prominence.mjs";
 import { CITY_COUNTRY_OVERRIDES, REGIONS, regionForCity } from "../src/lib/plan/regions.mjs";
@@ -42,12 +43,6 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const PUBLISHED = path.join(ROOT, "public/data/published/initial-data.json");
 const RAW_STOPS = path.join(ROOT, "public/data/scraped/backontrack-stops.json");
 
-/**
- * Faster than any sleeper runs, straight-line. Night trains average 60–90 km/h
- * over the ground; the fastest legitimate leg in the payload implies 134. At
- * 160 the only thing above the line is a journey time that lost a day.
- */
-const MAX_PLAUSIBLE_KMH = 160;
 const OUT = path.join(ROOT, "public/data/published/plan-index.json");
 
 /** Read the published payload in either of the two shapes it is written in. */
