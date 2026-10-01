@@ -7,6 +7,7 @@
 
 import polyline from "@mapbox/polyline";
 import { fetchWithTimeout } from "../lib/scrape-helpers.mjs";
+import { repairPolylinesThroughStops } from "../lib/polyline-repair.mjs";
 
 function normalizeNJTrain(data, date, operator = "Nightjet") {
   const stops = Array.isArray(data?.route?.stops) ? data.route.stops : [];
@@ -128,8 +129,20 @@ export async function run(entry, ctx) {
     });
   }
 
-  ctx.write(entry.output, { uploadedAt: ctx.today, trains: results });
-  console.log(`[scrape] stored ${Object.keys(results).length} NJ/EN trains`);
+  // The API can hand a diverted train its regular routing's polyline (NJ 11446
+  // arrived with NJ 446's, 55 km from its own Schwarzach stop) — rebuild any
+  // train whose line misses one of its stops. See polyline-repair.mjs.
+  const { trains: checked, repaired } = repairPolylinesThroughStops(results);
+  for (const r of repaired) {
+    console.warn(
+      `[nj] ${r.key}: API polyline misses its own stops by up to ${r.beforeKm.toFixed(0)} km ` +
+        `(${r.missed.join(", ")}) — rebuilt through them ` +
+        `(${r.borrowed} leg(s) from other trains, ${r.straight} straight)`,
+    );
+  }
+
+  ctx.write(entry.output, { uploadedAt: ctx.today, trains: checked });
+  console.log(`[scrape] stored ${Object.keys(checked).length} NJ/EN trains`);
   // Use what was actually persisted (sticky merge may retain extra trains).
-  ctx.shared.njTrains = ctx.writtenTrains?.[entry.output] ?? results;
+  ctx.shared.njTrains = ctx.writtenTrains?.[entry.output] ?? checked;
 }
