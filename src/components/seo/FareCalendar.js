@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { FiExternalLink, FiZap } from "react-icons/fi";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FiChevronLeft, FiChevronRight, FiExternalLink, FiZap } from "react-icons/fi";
 import {
   calendarMonths,
   formatNight,
+  monthWindowStart,
+  VISIBLE_MONTHS,
   WEEKDAYS,
 } from "../../lib/fareCalendarView.mjs";
 
@@ -24,7 +26,10 @@ const TIER_CLASS = {
 
 /**
  * One train's fare for each night, as month grids: pick a night, see its
- * berth prices, book that night. Cells show the cheapest berth without the
+ * berth prices, book that night. The months sit in a row that scrolls to the
+ * right — swipe, trackpad, or the month buttons above it — with two on screen
+ * from `sm` and one (the next one peeking in) on a phone, whose cells could
+ * not hold a price at half the width. Cells show the cheapest berth without the
  * currency symbol (a 320 px phone gives a cell ~35 px); the selected night
  * below carries the exact prices with it.
  *
@@ -39,14 +44,102 @@ const TIER_CLASS = {
 export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
   const { days, cheapestDate, bookingTemplate, currency, deals, lastMinute } =
     calendar;
+  const months = useMemo(() => calendarMonths(days), [days]);
   const [selected, setSelected] = useState(cheapestDate);
   const [today, setToday] = useState(null);
+  const stripRef = useRef(null);
+  // What the strip shows: the first month in view and how many fit. Before
+  // mount this is the server's picture (the start of the row, two months);
+  // after it, it is read off the strip, since only the browser knows its width.
+  const [view, setView] = useState({
+    first: 0,
+    count: VISIBLE_MONTHS,
+    atStart: true,
+    atEnd: months.length <= VISIBLE_MONTHS,
+  });
 
   useEffect(() => setToday(localToday()), []);
 
   const isPast = (date) => Boolean(today) && date <= today;
   const byDate = useMemo(() => new Map(days.map((d) => [d.date, d])), [days]);
-  const months = useMemo(() => calendarMonths(days), [days]);
+
+  /** The strip's geometry: one month's pitch, which is in view, how many fit. */
+  const geometry = useCallback(() => {
+    const strip = stripRef.current;
+    const [a, b] = strip?.children ?? [];
+    if (!strip || !a) return null;
+    const step = b ? b.offsetLeft - a.offsetLeft : a.offsetWidth;
+    if (!step) return null;
+    const gap = step - a.offsetWidth;
+    return {
+      strip,
+      step,
+      first: Math.round(strip.scrollLeft / step),
+      count: Math.max(1, Math.floor((strip.clientWidth + gap) / step + 0.01)),
+      atStart: strip.scrollLeft <= 1,
+      atEnd: strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 1,
+    };
+  }, []);
+
+  const readView = useCallback(() => {
+    const g = geometry();
+    if (!g) return;
+    setView((v) =>
+      v.first === g.first &&
+      v.count === g.count &&
+      v.atStart === g.atStart &&
+      v.atEnd === g.atEnd
+        ? v
+        : { first: g.first, count: g.count, atStart: g.atStart, atEnd: g.atEnd },
+    );
+  }, [geometry]);
+
+  const scrollToMonth = useCallback(
+    (index, behavior = "smooth") => {
+      const g = geometry();
+      if (g) g.strip.scrollTo({ left: Math.max(0, index) * g.step, behavior });
+    },
+    [geometry],
+  );
+
+  /** Bring a night's month into view, moving the strip as little as it must. */
+  const reveal = useCallback(
+    (date, behavior = "smooth") => {
+      const g = geometry();
+      if (!g) return;
+      const target = monthWindowStart(months, date, g.first, g.count);
+      if (target !== g.first) scrollToMonth(target, behavior);
+    },
+    [geometry, months, scrollToMonth],
+  );
+
+  // Open on the cheapest night's month (it is selected), then keep the
+  // buttons in step with however the strip is scrolled.
+  useEffect(() => {
+    const strip = stripRef.current;
+    if (!strip) return undefined;
+    reveal(cheapestDate, "auto");
+    readView();
+    let frame = 0;
+    const onChange = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(readView);
+    };
+    strip.addEventListener("scroll", onChange, { passive: true });
+    window.addEventListener("resize", onChange);
+    return () => {
+      cancelAnimationFrame(frame);
+      strip.removeEventListener("scroll", onChange);
+      window.removeEventListener("resize", onChange);
+    };
+  }, [cheapestDate, reveal, readView]);
+
+  // Selecting a night from outside the grid (the deals banner) brings its
+  // month into view.
+  const select = (date) => {
+    setSelected(date);
+    reveal(date);
+  };
 
   // A page built before the cheapest night passed: move to the cheapest one left.
   useEffect(() => {
@@ -55,7 +148,18 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
       .filter((d) => d.state === "priced" && d.date > today)
       .sort((a, b) => a.amount - b.amount || (a.date < b.date ? -1 : 1))[0];
     setSelected(next?.date ?? null);
-  }, [today, selected, days]);
+    if (next) reveal(next.date);
+  }, [today, selected, days, reveal]);
+
+  const inView = (date) => {
+    const at = months.findIndex((m) => m.key === String(date ?? "").slice(0, 7));
+    return at >= view.first && at < view.first + view.count;
+  };
+  const prevMonth = view.atStart ? null : (months[view.first - 1] ?? null);
+  const nextMonth = view.atEnd ? null : (months[view.first + view.count] ?? null);
+  // A deal off screen is worth a hint on the button that reaches it.
+  const hasLiveDeal = (list) =>
+    list.some((m) => m.weeks.some((w) => w.some((d) => d?.deal && !isPast(d.date))));
 
   const night = selected ? byDate.get(selected) : null;
   const datedHref =
@@ -80,15 +184,47 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
         <LastMinuteBanner
           deals={deals}
           programme={lastMinute}
-          onShow={() => setSelected(deals.fromDate)}
-          showing={selected === deals.fromDate}
+          onShow={() => select(deals.fromDate)}
+          // Selected but scrolled out of view still needs the way back.
+          showing={selected === deals.fromDate && inView(deals.fromDate)}
           past={isPast(deals.fromDate)}
         />
       )}
 
-      <div className="mt-2 grid gap-4 sm:grid-cols-2">
+      {/* Nothing to scroll to (every month fits): no buttons. */}
+      {!(view.atStart && view.atEnd) && (
+        <div
+          className="mt-3 flex items-center justify-between gap-2"
+          data-testid="fare-calendar-nav"
+        >
+          <MonthButton
+            direction="prev"
+            month={prevMonth}
+            deal={!view.atStart && hasLiveDeal(months.slice(0, view.first))}
+            onClick={() => scrollToMonth(view.first - 1)}
+          />
+          <MonthButton
+            direction="next"
+            month={nextMonth}
+            deal={!view.atEnd && hasLiveDeal(months.slice(view.first + view.count))}
+            onClick={() => scrollToMonth(view.first + 1)}
+          />
+        </div>
+      )}
+
+      {/* gap-4 is 1rem: two months at 50% − 0.5rem fill the row exactly, and
+          a phone's month leaves 1rem of the next one showing, which says
+          "swipe" better than any arrow. */}
+      <div
+        ref={stripRef}
+        className="mt-2 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        data-testid="fare-calendar-months"
+      >
         {months.map((month) => (
-          <div key={month.key} className="min-w-0">
+          <div
+            key={month.key}
+            className="w-[calc(100%-2rem)] shrink-0 snap-start sm:w-[calc(50%-0.5rem)]"
+          >
             <div className="mb-1 text-sm font-medium text-white/80">
               {month.title}
             </div>
@@ -270,6 +406,40 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * "‹ September 2026" / "January 2027 ›": names the month it scrolls in, so
+ * paging is not a guess. Disabled at either end rather than hidden, so the
+ * other button does not jump across the row. A ⚡ marks a side holding a deal.
+ */
+function MonthButton({ direction, month, deal, onClick }) {
+  const prev = direction === "prev";
+  const Chevron = prev ? FiChevronLeft : FiChevronRight;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!month}
+      aria-label={
+        month
+          ? `Show ${month.title}${deal ? " (has deals)" : ""}`
+          : prev
+            ? "No earlier nights"
+            : "No later nights"
+      }
+      className={`inline-flex min-w-0 items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+        month
+          ? "cursor-pointer border-white/20 text-white/80 hover:border-white/40 hover:text-white"
+          : "cursor-default border-white/10 text-white/25"
+      }`}
+    >
+      {prev && <Chevron className="h-3.5 w-3.5 shrink-0" aria-hidden />}
+      {month && <span className="truncate">{month.title}</span>}
+      {deal && <FiZap className="h-3 w-3 shrink-0 text-amber-300" aria-hidden />}
+      {!prev && <Chevron className="h-3.5 w-3.5 shrink-0" aria-hidden />}
+    </button>
   );
 }
 

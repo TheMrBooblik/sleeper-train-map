@@ -169,3 +169,35 @@ export function calendarMonths(days) {
   }
   return months;
 }
+
+/**
+ * How many month grids the calendar shows side by side from `sm` up (a phone
+ * shows one). European Sleeper's runs 92 nights, so four months stacked made
+ * the page mostly calendar; the rest are a scroll to the right away.
+ */
+export const VISIBLE_MONTHS = 2;
+
+/**
+ * The first month to show so that `date` is on screen, moving as little as
+ * possible from `current`: a night already in view keeps the view, a later
+ * one brings its month in on the right, an earlier one on the left. Clamped
+ * so the view is always full where there are enough months.
+ *
+ * Starting from 0 this is also where the calendar opens: the months nearest
+ * today, unless the night selected for it (the cheapest) lies further out.
+ * `size` is how many months fit, which only the browser can measure.
+ *
+ * @param {{ key: string }[]} months  calendarMonths() output
+ * @param {string|null} date          "YYYY-MM-DD"
+ * @param {number} [current=0]
+ * @param {number} [size=VISIBLE_MONTHS]
+ */
+export function monthWindowStart(months, date, current = 0, size = VISIBLE_MONTHS) {
+  const last = Math.max(0, (months?.length ?? 0) - size);
+  const clamp = (i) => Math.min(Math.max(i, 0), last);
+  const at = (months ?? []).findIndex((m) => m.key === String(date ?? "").slice(0, 7));
+  if (at < 0) return clamp(current);
+  if (at < current) return clamp(at);
+  if (at >= current + size) return clamp(at - size + 1);
+  return clamp(current);
+}
