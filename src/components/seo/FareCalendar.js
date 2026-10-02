@@ -429,7 +429,7 @@ function MonthButton({ direction, month, deal, onClick }) {
             ? "No earlier nights"
             : "No later nights"
       }
-      className={`inline-flex min-w-0 items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+      className={`inline-flex h-8 min-w-0 items-center gap-1 rounded-full border px-3 text-xs font-medium transition-colors ${
         month
           ? "cursor-pointer border-white/20 text-white/80 hover:border-white/40 hover:text-white"
           : "cursor-default border-white/10 text-white/25"
@@ -477,13 +477,22 @@ function LastMinuteBanner({ deals, programme, onShow, showing, past }) {
           <span className="text-white/50">{programme.note}</span>
         </div>
       </div>
-      {!past && !showing && (
+      {/* Always in the layout, only its label changes. It sits above the
+          month buttons, so a button that appeared once the deal's month
+          scrolled out of view pushed them down under the pointer that had
+          just clicked one. */}
+      {!past && (
         <button
           type="button"
           onClick={onShow}
-          className="mt-2 cursor-pointer rounded-full border border-amber-300/50 px-3 py-1 text-xs font-semibold text-amber-200 transition-colors hover:bg-amber-400/15"
+          disabled={showing}
+          className={`mt-2 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+            showing
+              ? "cursor-default border-amber-300/20 text-amber-200/50"
+              : "cursor-pointer border-amber-300/50 text-amber-200 hover:bg-amber-400/15"
+          }`}
         >
-          Show the cheapest deal
+          {showing ? "Cheapest deal selected below" : "Show the cheapest deal"}
         </button>
       )}
     </div>
