@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_jr-sunrise-izumo-4031m",
+  "createdAt": "2026-10-02T09:57:20.918Z",
+  "source": "scrape",
+  "sourceDetail": "jr",
+  "kind": "route.add",
+  "title": "New train: Sunrise Izumo 4031M (Tokyo – Izumoshi)",
+  "summary": "Route \"jr_Sunrise_Izumo_4031M\" appeared in tonight's scrape and is withheld from the map until approved. Via: Yokohama - Atami - Numazu - Fuji - Shizuoka - Hamamatsu - Himeji - Okayama - Kurashiki - Bitchu-Takahashi - Niimi - Yonago - Yasugi - Matsue - Shinji",
+  "target": {
+    "routeKey": "jr_Sunrise_Izumo_4031M",
+    "agencyId": "JRW",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "Sunrise Izumo 4031M",
+    "returnTrain": "Sunrise Izumo 4032M",
+    "origin": "Tokyo",
+    "destination": "Izumoshi",
+    "operator": "JRW",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "jr_Sunrise_Izumo_4031M"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
