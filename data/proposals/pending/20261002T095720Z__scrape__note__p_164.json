@@ -1,0 +1,33 @@
+{
+  "v": 1,
+  "id": "p_164",
+  "createdAt": "2026-10-02T09:57:20.917Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: 001 O (Kharkiv – Rakhiv)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Ivano-Frankivsk\" → \"Rakhiv\"; operating days (outbound): \"2026: Every 2nd day\" → \"2026: Daily\"; operating days (return): \"2026: Every 2nd day\" → \"2026: Daily\"; train numbers: \"001 D|001 L\" → \"001 O|002 Š\"",
+  "target": {
+    "routeKey": "164",
+    "agencyId": "UZ",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Ivano-Frankivsk",
+    "operating days (outbound)": "2026: Every 2nd day",
+    "operating days (return)": "2026: Every 2nd day",
+    "train numbers": "001 D|001 L"
+  },
+  "after": {
+    "destination": "Rakhiv",
+    "operating days (outbound)": "2026: Daily",
+    "operating days (return)": "2026: Daily",
+    "train numbers": "001 O|002 Š"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
