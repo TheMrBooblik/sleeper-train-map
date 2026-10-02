@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_jr-sunrise-seto-5031m",
+  "createdAt": "2026-10-02T09:57:20.918Z",
+  "source": "scrape",
+  "sourceDetail": "jr",
+  "kind": "route.add",
+  "title": "New train: Sunrise Seto 5031M (Tokyo – Takamatsu)",
+  "summary": "Route \"jr_Sunrise_Seto_5031M\" appeared in tonight's scrape and is withheld from the map until approved. Via: Yokohama - Atami - Numazu - Fuji - Shizuoka - Hamamatsu - Himeji - Okayama - Kojima - Sakaide",
+  "target": {
+    "routeKey": "jr_Sunrise_Seto_5031M",
+    "agencyId": "JRW",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "Sunrise Seto 5031M",
+    "returnTrain": "Sunrise Seto 5032M",
+    "origin": "Tokyo",
+    "destination": "Takamatsu",
+    "operator": "JRW",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "jr_Sunrise_Seto_5031M"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
