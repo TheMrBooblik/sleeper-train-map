@@ -335,16 +335,20 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
       </div>
 
       {night && (
+        <NightActionBar
+          night={night}
+          deal={night.deal && !isPast(night.date) ? night.deal : null}
+          href={href}
+          dated={Boolean(datedHref)}
+          trainNumber={trainNumber}
+        />
+      )}
+
+      {night && (
         <div
-          className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] p-3"
+          className="rounded-lg border border-white/10 bg-white/[0.03] p-3 pt-1"
           data-testid="fare-calendar-selected"
         >
-          <div className="text-sm font-medium text-white">
-            {formatNight(night.date)}
-            {trainNumber ? (
-              <span className="text-white/50"> · {trainNumber}</span>
-            ) : null}
-          </div>
           {night.deal && !isPast(night.date) && (
             <DealDetail
               deal={night.deal}
@@ -380,31 +384,91 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
               as berths sell.
             </p>
           )}
-          {href && (
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-              <a
-                href={href}
-                target="_blank"
-                rel="sponsored nofollow noopener noreferrer"
-                className={
-                  night.deal
-                    ? "inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-2.5 text-sm font-semibold text-white/80 transition-colors hover:border-white/40 hover:text-white"
-                    : "inline-flex items-center gap-2 rounded-full bg-primary-green px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-primary-green-light"
-                }
-                data-testid="fare-calendar-book"
-              >
-                {night.deal ? "Book a regular fare" : `Book ${formatNight(night.date)}`}
-                <FiExternalLink className="h-4 w-4" aria-hidden />
-              </a>
-              {!datedHref && (
-                <span className="text-xs text-white/40">
-                  Choose {formatNight(night.date)} on the operator&apos;s site.
-                </span>
-              )}
-            </div>
-          )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * The selected night's heading and buttons, in a bar that stays on screen for
+ * as long as the calendar does: pick a night, press Book. The buttons used to
+ * sit at the foot of the night's card, below the grid and — on a deal night —
+ * below the deal's terms, so choosing a night meant scrolling to find what to
+ * press.
+ *
+ * It sits between the grid and the night's details and is sticky at both
+ * ends: below the grid it holds to the bottom of the screen while the months
+ * fill it, and over the details it holds to the top (under the fixed nav,
+ * h-16) while the deal's terms are read. Sticky never leaves its containing
+ * block, so past the calendar it scrolls away with it.
+ */
+function NightActionBar({ night, deal, href, dated, trainNumber }) {
+  const regular = night.classes.find((c) => !c.deal);
+  return (
+    // The wrapper's padding is transparent: it must not swallow taps on the
+    // nights underneath it, only the bar inside may.
+    <div
+      className="pointer-events-none sticky top-[4.5rem] bottom-0 z-10 mt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+      data-testid="fare-calendar-actions"
+    >
+      <div className="pointer-events-auto flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-white/15 bg-zinc-900/95 px-3 py-2.5 shadow-[0_-8px_24px_rgba(0,0,0,0.6)] backdrop-blur">
+        <div className="min-w-0 flex-1 leading-tight">
+          <div className="text-sm font-medium text-white">
+            {formatNight(night.date)}
+            {trainNumber ? (
+              <span className="text-white/50"> · {trainNumber}</span>
+            ) : null}
+          </div>
+          <div className="mt-0.5 text-xs text-white/60">
+            {deal ? (
+              <span className="inline-flex items-center gap-1 font-semibold text-amber-200">
+                <FiZap className="h-3 w-3" aria-hidden />
+                {deal.price}{" "}
+                {deal.kind === "private" ? "private compartment" : "couchette bed"}
+              </span>
+            ) : regular ? (
+              <>
+                {regular.label}{" "}
+                <span className="font-medium text-white">{regular.price}</span>
+              </>
+            ) : (
+              "No regular berth on sale"
+            )}
+            {href && !dated ? " · pick the night on the operator's site" : ""}
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {deal?.href && (
+            <a
+              href={deal.href}
+              target="_blank"
+              rel="sponsored nofollow noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full bg-amber-300 px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-amber-200"
+              data-testid="fare-calendar-deal-book"
+            >
+              Get this deal
+              <FiExternalLink className="h-4 w-4" aria-hidden />
+            </a>
+          )}
+          {href && (
+            <a
+              href={href}
+              target="_blank"
+              rel="sponsored nofollow noopener noreferrer"
+              className={
+                deal
+                  ? "inline-flex items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white/80 transition-colors hover:border-white/40 hover:text-white"
+                  : "inline-flex items-center gap-2 rounded-full bg-primary-green px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-primary-green-light"
+              }
+              data-testid="fare-calendar-book"
+            >
+              {deal ? "Regular fare" : "Book"}
+              <FiExternalLink className="h-4 w-4" aria-hidden />
+            </a>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -558,18 +622,6 @@ function DealDetail({ deal, programme, compartmentSize, trainNumber }) {
             <li key={t}>· {t}</li>
           ))}
         </ul>
-      )}
-      {deal.href && (
-        <a
-          href={deal.href}
-          target="_blank"
-          rel="sponsored nofollow noopener noreferrer"
-          className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-300 px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-amber-200"
-          data-testid="fare-calendar-deal-book"
-        >
-          Get this deal
-          <FiExternalLink className="h-4 w-4" aria-hidden />
-        </a>
       )}
       {deal.checkedAt && (
         <p className="mt-2 text-[11px] text-white/40">
