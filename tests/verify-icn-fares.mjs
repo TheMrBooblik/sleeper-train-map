@@ -28,7 +28,7 @@ import {
   pruneCalendar,
 } from "../scripts/lib/fare-calendar.mjs";
 import { carryPreviousFares } from "../scripts/lib/fares.mjs";
-import { calendarMonths, fareCalendarDays, formatNight } from "../src/lib/fareCalendarView.mjs";
+import { calendarMonths, fareCalendarDays, formatNight, monthWindowStart, VISIBLE_MONTHS } from "../src/lib/fareCalendarView.mjs";
 import { buildBookingUrl, buildDatedBookingLink } from "../src/lib/operatorBooking.js";
 import { stampOfficialFares } from "../src/pages/api/lib/build-initial-data.mjs";
 import {
@@ -447,6 +447,29 @@ check("calendarMonths: Monday-first grids split at the month, fixed names", () =
   ]);
   assert.strictEqual(formatNight("2026-10-04"), "Sun 4 Oct");
   assert.strictEqual(formatNight("nope"), "");
+});
+
+check("monthWindowStart: two months on screen (one on a phone), scrolling only as far as it must", () => {
+  assert.strictEqual(VISIBLE_MONTHS, 2);
+  const months = ["2026-10", "2026-11", "2026-12", "2027-01"].map((key) => ({ key }));
+  // First paint: the months nearest today, unless the cheapest night is further out.
+  assert.strictEqual(monthWindowStart(months, "2026-10-20"), 0);
+  assert.strictEqual(monthWindowStart(months, "2026-11-03"), 0, "November is already on screen beside October");
+  assert.strictEqual(monthWindowStart(months, "2026-12-14"), 1, "December comes in on the right, beside November");
+  assert.strictEqual(monthWindowStart(months, "2027-01-05"), 2, "never past the last full view");
+  // From a later view: a night already shown keeps it, an earlier one comes in on the left.
+  assert.strictEqual(monthWindowStart(months, "2026-12-01", 2), 2);
+  assert.strictEqual(monthWindowStart(months, "2026-10-02", 2), 0);
+  assert.strictEqual(monthWindowStart(months, "2026-11-02", 2), 1);
+  // A date the calendar does not hold, or none at all, leaves the view where it was.
+  assert.strictEqual(monthWindowStart(months, "2027-05-01", 1), 1);
+  assert.strictEqual(monthWindowStart(months, null, 1), 1);
+  // A phone fits one: November is a scroll away from October.
+  assert.strictEqual(monthWindowStart(months, "2026-11-03", 0, 1), 1);
+  assert.strictEqual(monthWindowStart(months, "2027-01-02", 0, 1), 3, "one month fits, so the last month is reachable");
+  // Fewer months than fit: always the first.
+  assert.strictEqual(monthWindowStart(months.slice(0, 1), "2026-10-20", 3), 0);
+  assert.strictEqual(monthWindowStart([], null), 0);
 });
 
 check("buildDatedBookingLink: Trenitalia opens on the chosen night; the plain CTA stays undated", () => {
