@@ -8,10 +8,12 @@
 //   tarifs-intercites  — "Tarifs Intercités": the full-fare (tarif plein) range,
 //     a minimum and a maximum, per origin–destination and fare class, for day
 //     AND night Intercités. SNCF revises it with each tariff change (the
-//     current one took effect on 2 January 2026). Columns as SNCF names them:
-//     Transporteur, Gare origine, Gare origine - code UIC, Gare destination,
-//     Gare destination - code UIC, Classe, Profil tarifaire, Prix minimum,
-//     Prix maximum.
+//     current one took effect on 2 January 2026). The live export (first
+//     probe, 2026-10-04: 2 559 records) carries transporteur, origine,
+//     origine_uic8, destination, destination_uic8, classe ("1"/"2"),
+//     profil_tarifaire (only "Tarif Normal"), type_place ("assise" for a
+//     seat), prix_min, prix_max. A night pair has three rows: class 2 from
+//     €19 (seat), class 2 from €29 (couchette), class 1 from €39 (couchette).
 //   regularite-mensuelle-intercites — "Régularité mensuelle Intercités": per
 //     month and per origin–destination the AQST selects, trains scheduled,
 //     run, cancelled and late at the terminus (a journey over 3h is late from
@@ -32,11 +34,11 @@
 //
 // Two refusals carry the design:
 //
-// * Only BERTHS are priced. Paris–Toulouse is served by day Intercités as well,
-//   and a seat range on that pair is the day trains' as much as the night
-//   train's — so a class is priced only when its label says couchette (or a
-//   sleeping place), which no day train sells. A bare "2" or "1ère" class is
-//   ambiguous on a corridor with day trains and is reported, not priced.
+// * Only BERTHS are priced, and a berth is what `type_place` (or a label)
+//   says, never the bare class: a night pair lists a seat AND a couchette
+//   under class "2". Paris–Toulouse is served by day Intercités as well, so
+//   where `transporteur` names the night service only its rows are read. A
+//   row whose class and place type say nothing is reported, not priced.
 // * Punctuality is attributed only where no daytime Intercités runs the same
 //   pair. The AQST counts every selected train between two stations, day and
 //   night alike, so a Paris–Toulouse rate is mostly the day trains'. The GTFS
@@ -233,6 +235,10 @@ export function tariffColumns(records) {
     profile:
       findColumn(records, (k) => k.includes("profil")) ??
       findColumn(records, (k) => k.includes("tarif") && !k.includes("prix") && !k.startsWith("classe")),
+    // What the class sells: the live export's `type_place` ("assise" for a
+    // seat). It, not the bare class, is what tells a night train's couchette
+    // range from its seat range — both are "2" (first probe, 2026-10-04).
+    placeType: findColumn(records, (k) => k.includes("typeplace") || (k.includes("place") && !k.includes("prix"))),
     min: findColumn(records, (k) => k.includes("prix") && k.includes("min")),
     max: findColumn(records, (k) => k.includes("prix") && k.includes("max")),
   };
@@ -258,6 +264,7 @@ export function readTariffRows(records) {
       destUic: uicKey(r[cols.destUic]),
       classLabel: String(r[cols.classLabel] ?? "").trim(),
       profile: String(r[cols.profile] ?? "").trim(),
+      placeType: String(r[cols.placeType] ?? "").trim(),
       min: min ?? max,
       max: max ?? min,
     };
@@ -296,14 +303,14 @@ export function isStandardAdultProfile(profile) {
  * Only couchettes are priced (see the header); "seat" is classified so it can
  * be left out on purpose rather than by accident.
  */
-export function classifyTariffClass(classLabel, profile = "") {
+export function classifyTariffClass(classLabel, profile = "", placeType = "") {
   const label = fold(classLabel);
-  const both = `${label} ${fold(profile)}`;
+  const both = `${label} ${fold(profile)} ${fold(placeType)}`;
   const first = /(^|[^0-9])1(ere|re|er|st)?($|[^0-9])|premiere|first|1classe|classe1/.test(label);
   const second = /(^|[^0-9])2(nde|nd|de|e|eme)?($|[^0-9])|seconde|second|2classe|classe2/.test(label);
   // Folded text has no word breaks, so a bare "lit" would match inside other
   // words; only the whole label "lit" or "voiture-lit" counts.
-  if (/couchette|couchage|voiturelit|sleeper|berth/.test(both) || label === "lit") {
+  if (/couch|allonge|voiturelit|sleeper|berth/.test(both) || label === "lit" || fold(placeType) === "lit") {
     if (/4places|4couchettes|quatre/.test(both)) return "couchetteFirst";
     if (/6places|6couchettes|six/.test(both)) return "couchetteSecond";
     if (first && !second) return "couchetteFirst";
@@ -364,8 +371,14 @@ export function tariffRowsForTrain(train, rows) {
  * Returns { fare | null, why } — `why` names the refusal for the log.
  */
 export function fareFromTariffs(train, rows, { today = null, modified = null } = {}) {
-  const { rows: matched, reversed } = tariffRowsForTrain(train, rows);
-  if (!matched.length) return { fare: null, why: "no tariff row for this origin–destination" };
+  const { rows: pairRows, reversed } = tariffRowsForTrain(train, rows);
+  if (!pairRows.length) return { fare: null, why: "no tariff row for this origin–destination" };
+  // The live export files each row under its service ("Intercités de nuit à
+  // réservation obligatoire" / "… de jour …"): where it says, keep the night
+  // train's. Paris–Toulouse carries both, and a day train's 1st class is not
+  // a couchette whatever else a row says.
+  const night = pairRows.filter((r) => /nuit|night/.test(fold(r.carrier)));
+  const matched = night.length ? night : pairRows;
   const classes = {};
   const classMax = {};
   const skipped = { restricted: 0, seat: 0, ambiguous: [] };
@@ -374,13 +387,13 @@ export function fareFromTariffs(train, rows, { today = null, modified = null } =
       skipped.restricted++;
       continue;
     }
-    const key = classifyTariffClass(r.classLabel, r.profile);
+    const key = classifyTariffClass(r.classLabel, r.profile, r.placeType);
     if (key === "seat") {
       skipped.seat++;
       continue;
     }
     if (!key) {
-      skipped.ambiguous.push(r.classLabel || "(no class)");
+      skipped.ambiguous.push([r.classLabel || "(no class)", r.placeType].filter(Boolean).join(" "));
       continue;
     }
     classes[key] = Math.min(classes[key] ?? Infinity, r.min);
@@ -486,8 +499,30 @@ export function pairKey(a, b) {
 
 /** Months covered by the trailing figure. */
 export const TRAILING_MONTHS = 12;
-/** A month's figure is not quoted beyond this age: a 2024 rate is history. */
-export const MAX_MONTH_AGE = 6;
+/**
+ * A train's latest month may trail the dataset's own latest by this much and
+ * no more: a line the AQST stopped reporting (Paris–Latour-de-Carol's last
+ * month was February when the rest reached May) is not quoted as current.
+ */
+export const MAX_LAG_BEHIND_DATASET = 1;
+/** …and never older than this, however late SNCF publishes (it runs ~5 months behind). */
+export const MAX_MONTH_AGE = 12;
+
+/** The latest month any row carries — the dataset's own "now". */
+export function latestMonth(rows) {
+  return (rows || []).reduce((m, r) => (r.month > m ? r.month : m), "");
+}
+
+/**
+ * Does an AQST end name this station? SNCF writes a joined train as both its
+ * ends ("ALBI/RODEZ", "PARIS-AUSTERLITZ → RODEZ/ALBI"): the Rodez and Albi
+ * portions run as one train, so either half names it.
+ */
+function aqstEndMatches(stationName, aqstName) {
+  return String(aqstName ?? "")
+    .split("/")
+    .some((part) => namesMatch(stationName, part));
+}
 
 const monthIndex = (key) => {
   const m = /^(\d{4})-(\d{2})$/.exec(key ?? "");
@@ -501,20 +536,32 @@ const round1 = (n) => Math.round(n * 10) / 10;
  * The AQST row is matched to the train's own two ends, in the train's
  * direction (the AQST counts arrivals, so Paris→Briançon and Briançon→Paris
  * are different figures). A pair a daytime Intercités also runs is refused
- * outright — see the header. The latest month must be recent
+ * outright — see the header. The latest month must be recent, both against
+ * the dataset's own latest month (MAX_LAG_BEHIND_DATASET) and against today
  * (MAX_MONTH_AGE), and the trailing figure is summed from the counts rather
  * than averaged from the rates, so a month with three trains does not weigh
  * as much as one with thirty.
  */
-export function punctualityForTrain(train, rows, { dayServedPairs = new Set(), today = null } = {}) {
+export function punctualityForTrain(
+  train,
+  rows,
+  { dayServedPairs = new Set(), today = null, datasetLatest = latestMonth(rows) } = {},
+) {
   const ends = trainEnds(train);
   if (!ends) return { value: null, why: "no endpoints" };
   if (ends.origin.uic && ends.destination.uic && dayServedPairs.has(pairKey(ends.origin.uic, ends.destination.uic))) {
     return { value: null, why: "a daytime Intercités runs the same pair" };
   }
-  const matched = rows.filter(
+  // A row naming exactly this pair beats one naming a joined train: Cerbère
+  // has its own row now and a "TOULOUSE-MATABIAU/CERBERE" one from before 2022.
+  const exact = rows.filter(
     (r) => namesMatch(ends.origin.name, r.departure) && namesMatch(ends.destination.name, r.arrival),
   );
+  const matched = exact.length
+    ? exact
+    : rows.filter(
+        (r) => aqstEndMatches(ends.origin.name, r.departure) && aqstEndMatches(ends.destination.name, r.arrival),
+      );
   if (!matched.length) return { value: null, why: "no AQST row for this origin–destination" };
 
   // One row per month (sum duplicates: an axis split in two the same month).
@@ -532,6 +579,9 @@ export function punctualityForTrain(train, rows, { dayServedPairs = new Set(), t
   const todayMonth = today ? monthIndex(String(today).slice(0, 7)) : null;
   if (todayMonth != null && todayMonth - monthIndex(latest.month) > MAX_MONTH_AGE) {
     return { value: null, why: `latest month ${latest.month} is too old` };
+  }
+  if (datasetLatest && monthIndex(datasetLatest) - monthIndex(latest.month) > MAX_LAG_BEHIND_DATASET) {
+    return { value: null, why: `last reported ${latest.month}, while the dataset runs to ${datasetLatest}` };
   }
   const window = months.filter((m) => monthIndex(latest.month) - monthIndex(m.month) < TRAILING_MONTHS);
   const ran = window.reduce((s, m) => s + m.ran, 0);

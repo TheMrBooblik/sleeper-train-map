@@ -3,10 +3,11 @@
  * SNCF's open data beside its timetable: the Intercités de Nuit fare ranges
  * (tarifs-intercites) and punctuality (regularite-mensuelle-intercites).
  *
- * The fixtures below are SYNTHETIC — written from SNCF's documented column
- * labels, because ressources.data.sncf.com is unreachable from a dev sandbox.
- * Replace them with real records once `npm run probe-sncf-open-data` (the
- * "Probe SNCF open data" workflow, or the `run-probes` label) has fetched some.
+ * The fixtures below follow the live datasets as the first probe run printed
+ * them (2026-10-04, "Probe SNCF open data" / `run-probes`): the same column
+ * names, the same rows and prices for Paris–Briançon and Paris–Toulouse, the
+ * same AQST station spellings. What is not from the probe is marked as such
+ * where it appears; ressources.data.sncf.com is unreachable from a sandbox.
  * The train ends are not synthetic: they are read off the committed
  * sncf-trains.json, so a train whose UIC code stopped coming through fails here.
  *
@@ -70,35 +71,53 @@ const BRIANCON_BACK = { lineName: "IC Nuit 5790", stations: [stop("Briançon", "
 const TOULOUSE = { lineName: "IC Nuit 3751", stations: [stop("Paris Austerlitz", "87547000"), stop("Toulouse Matabiau", "87611004")] };
 const LATOUR = { lineName: "IC Nuit 3971", stations: [stop("Paris Austerlitz", "87547000"), stop("Latour-de-Carol / La Tor de Querol", "87611483")] };
 
-// SYNTHETIC tariff records in the v2.1 export's shape (field names as
-// Opendatasoft derives them from SNCF's labels).
-const tariffRecord = (o, ou, d, du, classe, profil, min, max) => ({
-  transporteur: "Intercités",
-  gare_origine: o, gare_origine_code_uic: ou,
-  gare_destination: d, gare_destination_code_uic: du,
-  classe, profil_tarifaire: profil, prix_minimum: min, prix_maximum: max,
+// Tariff records in the live v2.1 export's shape: columns, carriers, classes
+// and prices as the first probe printed them. NOT from the probe: the
+// `type_place` of a berth row (the probe printed it only for a seat,
+// "assise"; "couchette" is assumed — another live value is reported in the
+// scrape log, not priced), the Avantage row, and the Aurillac row's blank one.
+const NIGHT = "Intercités de nuit à réservation obligatoire";
+const DAY_OPEN = "Intercités de jour sans réservation obligatoire";
+const tariff = (transporteur, origine, origine_uic8, destination, destination_uic8, classe, type_place, prix_min, prix_max, profil_tarifaire = "Tarif Normal") => ({
+  transporteur, origine, origine_uic8, destination, destination_uic8, classe, profil_tarifaire, type_place, prix_min, prix_max,
 });
 const TARIFFS = [
-  tariffRecord("PARIS AUSTERLITZ", "87547000", "BRIANCON", "87763607", "Couchette 2nde classe", "Tarif Normal", 39, 79),
-  tariffRecord("PARIS AUSTERLITZ", "87547000", "BRIANCON", "87763607", "Couchette 1ère classe", "Tarif Normal", 59, 109),
-  tariffRecord("PARIS AUSTERLITZ", "87547000", "BRIANCON", "87763607", "Couchette 2nde classe", "Tarif Avantage", 29, 59),
-  tariffRecord("PARIS AUSTERLITZ", "87547000", "BRIANCON", "87763607", "Place assise 2nde", "Tarif Normal", 19, 49),
-  // Paris–Toulouse: day Intercités too, so the bare class is ambiguous.
-  tariffRecord("PARIS AUSTERLITZ", "87547000", "TOULOUSE MATABIAU", "87611004", "2", "Tarif Normal", 15, 89),
-  tariffRecord("PARIS AUSTERLITZ", "87547000", "TOULOUSE MATABIAU", "87611004", "1", "Tarif Normal", 25, 119),
-  // Latour-de-Carol listed only the other way round.
-  tariffRecord("LATOUR DE CAROL ENVEITG", "87611483", "PARIS AUSTERLITZ", "87547000", "Couchette 2nde classe", "Plein tarif", "45,00", "85,00"),
+  tariff(NIGHT, "PARIS AUSTERLITZ", "87547000", "BRIANCON", "87763607", "2", "couchette", 29, 160),
+  tariff(NIGHT, "PARIS AUSTERLITZ", "87547000", "BRIANCON", "87763607", "2", "assise", 19, 122),
+  tariff(NIGHT, "PARIS AUSTERLITZ", "87547000", "BRIANCON", "87763607", "1", "couchette", 39, 220),
+  tariff(NIGHT, "PARIS AUSTERLITZ", "87547000", "BRIANCON", "87763607", "2", "couchette", 19, 59, "Tarif Avantage"),
+  // Paris–Toulouse: the night train's three rows and a day train's two.
+  tariff(NIGHT, "PARIS AUSTERLITZ", "87547000", "TOULOUSE MATABIAU", "87611004", "2", "couchette", 29, 142),
+  tariff(DAY_OPEN, "PARIS AUSTERLITZ", "87547000", "TOULOUSE MATABIAU", "87611004", "2", "assise", 15, 91),
+  tariff(NIGHT, "PARIS AUSTERLITZ", "87547000", "TOULOUSE MATABIAU", "87611004", "2", "assise", 19, 101),
+  tariff(NIGHT, "PARIS AUSTERLITZ", "87547000", "TOULOUSE MATABIAU", "87611004", "1", "couchette", 39, 212),
+  tariff(DAY_OPEN, "PARIS AUSTERLITZ", "87547000", "TOULOUSE MATABIAU", "87611004", "1", "", 20, 134),
+  // Listed only the other way round, with comma decimals.
+  tariff(NIGHT, "LATOUR DE CAROL ENVEITG", "87611483", "PARIS AUSTERLITZ", "87547000", "2", "couchette", "29,00", "163,00"),
+  // A row whose class and place type say nothing.
+  tariff(NIGHT, "PARIS AUSTERLITZ", "87547000", "AURILLAC", "87645002", "2", "", 29, 136),
 ];
+const AURILLAC = { lineName: "IC Nuit 3789", stations: [stop("Paris Austerlitz", "87547000"), stop("Aurillac", "87645002")] };
+const RODEZ_BACK = { lineName: "IC Nuit 3754", stations: [stop("Rodez", "87613422"), stop("Paris Austerlitz", "87547000")] };
+const CERBERE = { lineName: "IC Nuit 5737", stations: [stop("Paris Austerlitz", "87547000"), stop("Cerbère", "87785006")] };
 
-// SYNTHETIC punctuality records, CSV as the classic download writes it.
+// Punctuality records, CSV as the classic download writes it, with the live
+// dataset's columns and station spellings ("PARIS-AUSTERLITZ", "ALBI/RODEZ").
+// The counts are made up.
 const PUNCT_CSV = [
-  "Date;Axe;Départ;Arrivée;Nombre de trains programmés;Nombre de trains ayant circulé;Nombre de trains annulés;Nombre de trains en retard à l'arrivée;Taux de régularité;Nombre de trains à l'heure pour un train en retard à l'arrivée",
-  "2026-08;Paris - Briançon;PARIS AUSTERLITZ;BRIANCON;31;30;1;6;80;4",
-  "2026-07;Paris - Briançon;PARIS AUSTERLITZ;BRIANCON;31;31;0;3;90,3;9",
-  "2025-08;Paris - Briançon;PARIS AUSTERLITZ;BRIANCON;31;31;0;10;67,7;2",
-  "2026-08;Paris - Briançon;BRIANCON;PARIS AUSTERLITZ;31;29;2;2;93,1;13",
-  "2026-08;POLT;PARIS AUSTERLITZ;TOULOUSE MATABIAU;120;118;2;30;74,6;3",
-  "2024-03;Paris - Latour;PARIS AUSTERLITZ;LATOUR DE CAROL;30;30;0;3;90;9",
+  "Date;Départ;Arrivée;Nombre de trains programmés;Nombre de trains ayant circulé;Nombre de trains annulés;Nombre de trains en retard à l'arrivée;Taux de régularité;Nombre de trains à l'heure pour un train en retard à l'arrivée",
+  "2026-05;PARIS-AUSTERLITZ;BRIANÇON;31;30;1;6;80;4",
+  "2026-04;PARIS-AUSTERLITZ;BRIANÇON;31;31;0;3;90,3;9",
+  "2025-05;PARIS-AUSTERLITZ;BRIANÇON;31;31;0;10;67,7;2",
+  "2026-05;BRIANÇON;PARIS-AUSTERLITZ;31;29;2;2;93,1;13",
+  "2026-05;PARIS-AUSTERLITZ;TOULOUSE-MATABIAU;120;118;2;30;74,6;3",
+  // The AQST stopped reporting this line three months before the rest.
+  "2026-02;PARIS-AUSTERLITZ;LATOUR-DE-CAROL;30;30;0;3;90;9",
+  // A joined train, named by both its ends.
+  "2026-05;ALBI/RODEZ;PARIS-AUSTERLITZ;31;30;0;3;90;9",
+  // Cerbère has its own row now, and a joined one from before 2022.
+  "2026-05;PARIS-AUSTERLITZ;CERBERE;14;12;0;1;91,7;11",
+  "2021-12;PARIS-AUSTERLITZ;TOULOUSE-MATABIAU/CERBERE;31;31;0;20;35,5;0",
 ].join("\n");
 
 console.log("\nsncf open data\n");
@@ -112,8 +131,8 @@ await check("records read in every shape the portal answers with", () => {
   assert.deepEqual(recordsFromPayload({ records: TARIFFS.map((fields) => ({ record: { fields } })) }), flat);
   assert.deepEqual(recordsFromPayload(JSON.stringify(TARIFFS)), flat);
   const csv = recordsFromPayload(PUNCT_CSV);
-  assert.equal(csv.length, 6);
-  assert.equal(csv[0]["Arrivée"], "BRIANCON");
+  assert.equal(csv.length, 9);
+  assert.equal(csv[0]["Arrivée"], "BRIANÇON");
   assert.equal(recordsFromPayload('"a";"b"\n"x;y";"z"')[0].a, "x;y", "a quoted separator stays in its cell");
   assert.deepEqual(recordsFromPayload("not json"), []);
   assert.deepEqual(recordsFromPayload(null), []);
@@ -123,8 +142,9 @@ await check("records read in every shape the portal answers with", () => {
 await check("columns are found by what their labels say, in either spelling", () => {
   const ods = tariffColumns(TARIFFS);
   assert.deepEqual(
-    [ods.originName, ods.originUic, ods.destName, ods.destUic, ods.classLabel, ods.profile, ods.min, ods.max],
-    ["gare_origine", "gare_origine_code_uic", "gare_destination", "gare_destination_code_uic", "classe", "profil_tarifaire", "prix_minimum", "prix_maximum"],
+    [ods.carrier, ods.originName, ods.originUic, ods.destName, ods.destUic, ods.classLabel, ods.profile, ods.placeType, ods.min, ods.max],
+    ["transporteur", "origine", "origine_uic8", "destination", "destination_uic8", "classe", "profil_tarifaire", "type_place", "prix_min", "prix_max"],
+    "the live export's columns",
   );
   const csvLabels = [{
     Transporteur: "Intercités", "Gare origine": "A", "Gare origine - code UIC": "87547000",
@@ -178,6 +198,7 @@ await check("a class is priced only when it says it sells a bed", () => {
     ["Couchettes - 6 places", "couchetteSecond"],
     ["Compartiment 4 couchettes", "couchetteFirst"],
     ["Couchette", "couchette"],
+    // The live export's way of saying it: a bare class beside a place type.
     ["Place assise 2nde", "seat"],
     ["Siège inclinable", "seat"],
     // A bare class is a day train's as much as a night train's.
@@ -189,6 +210,11 @@ await check("a class is priced only when it says it sells a bed", () => {
   for (const [label, want] of cases) assert.equal(classifyTariffClass(label), want, `classify(${JSON.stringify(label)})`);
   assert.equal(classifyTariffClass("2", "Tarif Liberté"), null, "\"lit\" inside a word is not a bed");
   assert.equal(classifyTariffClass("2nde", "Couchette"), "couchetteSecond", "the profile may carry the berth");
+  assert.equal(classifyTariffClass("2", "Tarif Normal", "couchette"), "couchetteSecond");
+  assert.equal(classifyTariffClass("1", "Tarif Normal", "couchette"), "couchetteFirst");
+  assert.equal(classifyTariffClass("1", "Tarif Normal", "couchée"), "couchetteFirst");
+  assert.equal(classifyTariffClass("2", "Tarif Normal", "assise"), "seat", "the live seat value");
+  assert.equal(classifyTariffClass("2", "Tarif Normal", ""), null);
 });
 
 await check("restricted profiles never set the floor", () => {
@@ -201,26 +227,31 @@ await check("restricted profiles never set the floor", () => {
 await check("a train's fare is its couchettes' standard range, never a seat or a card fare", () => {
   const { rows } = readTariffRows(TARIFFS);
   const { fare } = fareFromTariffs(BRIANCON, rows, { today: TODAY, modified: "2025-12-26" });
+  // The live rows: seat 19–122 (left out), 2nd-class couchette 29–160, 1st 39–220.
   assert.deepEqual(fare, {
-    fromPrice: 39,
+    fromPrice: 29,
     currency: "EUR",
     seatClass: "couchetteSecond",
-    classes: { couchetteSecond: 39, couchetteFirst: 59 },
-    classMax: { couchetteSecond: 79, couchetteFirst: 109 },
+    classes: { couchetteSecond: 29, couchetteFirst: 39 },
+    classMax: { couchetteSecond: 160, couchetteFirst: 220 },
     basis: "tariff",
     sampledAt: TODAY,
     tariffModified: "2025-12-26",
   });
   // The reverse pair is the same tariff.
   const back = fareFromTariffs(BRIANCON_BACK, rows, { today: TODAY });
-  assert.equal(back.fare.fromPrice, 39);
+  assert.equal(back.fare.fromPrice, 29);
   assert.match(back.why, /reverse/);
   // Latour-de-Carol: listed only the other way, a bilingual name, comma decimals.
-  assert.equal(fareFromTariffs(LATOUR, rows, { today: TODAY }).fare.classes.couchetteSecond, 45);
-  // Paris–Toulouse: only bare classes, which day trains share — no fare.
-  const tls = fareFromTariffs(TOULOUSE, rows, { today: TODAY });
-  assert.equal(tls.fare, null);
-  assert.match(tls.why, /classes that do not say: 2, 1/);
+  assert.equal(fareFromTariffs(LATOUR, rows, { today: TODAY }).fare.classMax.couchetteSecond, 163);
+  // Paris–Toulouse: the day train's rows are not read, its €15 seat least of all.
+  const tls = fareFromTariffs(TOULOUSE, rows, { today: TODAY }).fare;
+  assert.deepEqual(tls.classes, { couchetteSecond: 29, couchetteFirst: 39 });
+  assert.deepEqual(tls.classMax, { couchetteSecond: 142, couchetteFirst: 212 });
+  // A class "2" that names no place is a seat or a couchette: not priced.
+  const aur = fareFromTariffs(AURILLAC, rows, { today: TODAY });
+  assert.equal(aur.fare, null);
+  assert.match(aur.why, /classes that do not say: 2/);
   assert.match(fareFromTariffs({ stations: [stop("Nowhere", "87000000"), stop("Else", "87000011")] }, rows).why, /no tariff row/);
 });
 
@@ -236,13 +267,13 @@ await check("station names match on words, not substrings", () => {
 await check("punctuality is the train's own direction, summed from counts", () => {
   const { rows } = readPunctualityRows(recordsFromPayload(PUNCT_CSV));
   const { value } = punctualityForTrain(BRIANCON, rows, { today: TODAY });
-  assert.equal(value.month, "2026-08");
+  assert.equal(value.month, "2026-05");
   assert.equal(value.onTimeRate, 80, "(30 − 6) / 30");
   assert.equal(value.cancelled, 1);
-  // 2025-08 is 12 months back from 2026-08 and falls outside a 12-month window.
+  // 2025-05 is 12 months back from 2026-05 and falls outside a 12-month window.
   assert.deepEqual(
     [value.trailing.months, value.trailing.from, value.trailing.ran, value.trailing.late],
-    [2, "2026-07", 61, 9],
+    [2, "2026-04", 61, 9],
   );
   assert.equal(value.trailing.onTimeRate, 85.2, "summed counts, not averaged rates");
   const back = punctualityForTrain(BRIANCON_BACK, rows, { today: TODAY }).value;
@@ -257,9 +288,25 @@ await check("punctuality is refused on a pair a day train runs, and when it is s
   assert.match(tls.why, /daytime Intercités/);
   // The same rows without the gate would have printed the day trains' 74.6%.
   assert.ok(punctualityForTrain(TOULOUSE, rows, { today: TODAY }).value, "the gate is what refuses it");
-  const old = punctualityForTrain(LATOUR, rows, { today: TODAY });
-  assert.equal(old.value, null);
-  assert.match(old.why, /too old/);
+  // A line the AQST stopped reporting is not current, though February is
+  // only eight months ago: the dataset itself runs to May.
+  const latour = punctualityForTrain(LATOUR, rows, { today: TODAY });
+  assert.equal(latour.value, null);
+  assert.match(latour.why, /last reported 2026-02, while the dataset runs to 2026-05/);
+  // SNCF publishes months late, so the rest still read in October…
+  assert.ok(punctualityForTrain(BRIANCON, rows, { today: TODAY }).value);
+  // …but not a year on.
+  assert.match(punctualityForTrain(BRIANCON, rows, { today: "2027-08-01" }).why, /too old/);
+});
+
+await check("a joined train's row names it by either end, and an exact row wins", () => {
+  const { rows } = readPunctualityRows(recordsFromPayload(PUNCT_CSV));
+  // "ALBI/RODEZ → PARIS-AUSTERLITZ" is the Rodez train, joined with Albi's.
+  assert.equal(punctualityForTrain(RODEZ_BACK, rows, { today: TODAY }).value.onTimeRate, 90);
+  // Cerbère: its own 2026 row, not the 2021 joined one summed in.
+  const cer = punctualityForTrain(CERBERE, rows, { today: TODAY }).value;
+  assert.equal(cer.trailing.ran, 12);
+  assert.equal(cer.onTimeRate, 91.7);
 });
 
 await check("the day-service gate reads the feed's own trips", () => {
@@ -300,19 +347,24 @@ await check("the nightly pass writes both facts, and a failed night carries last
   const logs = [];
   const log = (m) => logs.push(m);
 
-  const trains = { "IC Nuit 5789": structuredClone(BRIANCON), "IC Nuit 3751": structuredClone(TOULOUSE) };
+  const trains = {
+    "IC Nuit 5789": structuredClone(BRIANCON),
+    "IC Nuit 3751": structuredClone(TOULOUSE),
+    "IC Nuit 3789": structuredClone(AURILLAC),
+  };
   const ok = fakeFetch({
     "datasets/tarifs-intercites/exports": TARIFFS,
     "datasets/regularite-mensuelle-intercites/exports": PUNCT_CSV,
     "catalog/datasets/tarifs-intercites": { metas: { default: { modified: "2025-12-26T09:00:00+00:00" } } },
   });
   const summary = await runSncfOpenDataPass(trains, { entry, ctx, gtfs, log, fetchImpl: ok });
-  assert.equal(summary.priced, 1);
+  assert.equal(summary.priced, 2);
   assert.equal(trains["IC Nuit 5789"].fare.tariffModified, "2025-12-26");
   assert.equal(trains["IC Nuit 5789"].punctuality.onTimeRate, 80);
-  assert.ok(!trains["IC Nuit 3751"].fare, "Paris–Toulouse states no berth class");
+  assert.equal(trains["IC Nuit 3751"].fare.fromPrice, 29, "the night train's own rows on a shared pair");
   assert.ok(!trains["IC Nuit 3751"].punctuality, "Paris–Toulouse is the day trains' figure");
-  assert.ok(logs.some((l) => /IC Nuit 3751 not priced/.test(l)), "a miss says why in the log");
+  assert.ok(!trains["IC Nuit 3789"].fare);
+  assert.ok(logs.some((l) => /IC Nuit 3789 not priced/.test(l)), "a miss says why in the log");
 
   // Tonight both hosts fail: the trains survive, last night's facts carry.
   fs.writeFileSync(path.join(scraped, "sncf-trains.json"), JSON.stringify({ data: { trains } }));
@@ -320,9 +372,9 @@ await check("the nightly pass writes both facts, and a failed night carries last
   const down = fakeFetch({ "data.sncf.com": new Error("connect ETIMEDOUT") });
   const failed = await runSncfOpenDataPass(tonight, { entry, ctx: { ...ctx, today: "2026-10-10" }, gtfs, log, fetchImpl: down });
   assert.equal(failed.priced, 0);
-  assert.equal(failed.carriedFares, 1);
+  assert.equal(failed.carriedFares, 2);
   assert.equal(failed.carriedPunctuality, 1);
-  assert.equal(tonight["IC Nuit 5789"].fare.fromPrice, 39);
+  assert.equal(tonight["IC Nuit 5789"].fare.fromPrice, 29);
   assert.equal(tonight["IC Nuit 5789"].punctuality.sampledAt, TODAY, "a carried figure keeps its own date");
   // …but not forever.
   const stale = { "IC Nuit 5789": structuredClone(BRIANCON) };
@@ -341,9 +393,9 @@ await check("the range and the punctuality reach the row, and stay off the map's
   };
   const operatorTrains = { sncf: { "IC Nuit 5789": { fare, punctuality } } };
   stampOfficialFares(viewMap, {}, operatorTrains, [sncfEntry]);
-  assert.deepEqual(viewMap[107].fare_0.classMax, { couchetteSecond: 79, couchetteFirst: 109 });
+  assert.deepEqual(viewMap[107].fare_0.classMax, { couchetteSecond: 160, couchetteFirst: 220 });
   assert.equal(viewMap[107].fare_0.basis, "tariff");
-  assert.equal(viewMap[107].pricing.fromPrice, 39);
+  assert.equal(viewMap[107].pricing.fromPrice, 29);
   assert.equal(viewMap[107].pricing.type, "dynamic", "SNCF's operator record");
   assert.equal(stampPunctuality(viewMap, operatorTrains, [sncfEntry]), 1);
   assert.equal(viewMap[107].punctuality_0.onTimeRate, 80);

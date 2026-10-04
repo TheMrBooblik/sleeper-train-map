@@ -73,6 +73,8 @@ if (tariffs.records.length) {
   for (const [v, n] of distinct(rows, "classLabel")) console.log(`  ${n}\t${JSON.stringify(v)} → ${classifyTariffClass(v)}`);
   console.log("\nprofiles (count · standard adult?):");
   for (const [v, n] of distinct(rows, "profile")) console.log(`  ${n}\t${JSON.stringify(v)} → ${isStandardAdultProfile(v)}`);
+  console.log("\nplace types (count · classifier verdict for class 2):");
+  for (const [v, n] of distinct(rows, "placeType")) console.log(`  ${n}\t${JSON.stringify(v)} → ${classifyTariffClass("2", "", v)}`);
   console.log("\ncarriers:");
   for (const [v, n] of distinct(rows, "carrier")) console.log(`  ${n}\t${JSON.stringify(v)}`);
 
@@ -83,7 +85,7 @@ if (tariffs.records.length) {
     console.log(`\n  ${key}: ${ends?.origin.name} (${ends?.origin.uic}) → ${ends?.destination.name} (${ends?.destination.uic})` +
       `, ${matched.length} row(s)${reversed ? " [reverse pair]" : ""}`);
     for (const r of matched) {
-      console.log(`    ${r.classLabel} | ${r.profile} | ${r.min}–${r.max} → ${classifyTariffClass(r.classLabel, r.profile)}${isStandardAdultProfile(r.profile) ? "" : " (restricted)"}`);
+      console.log(`    ${r.classLabel} | ${r.placeType} | ${r.carrier} | ${r.profile} | ${r.min}–${r.max} → ${classifyTariffClass(r.classLabel, r.profile, r.placeType)}${isStandardAdultProfile(r.profile) ? "" : " (restricted)"}`);
     }
     const { fare, why } = fareFromTariffs(train, rows, { today, modified: tariffs.modified });
     console.log(`    → ${fare ? json(fare).replace(/\s+/g, " ") : `no fare: ${why}`}`);
