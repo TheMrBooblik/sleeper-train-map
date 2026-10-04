@@ -667,6 +667,7 @@ export function buildInitialData({
 
   stampTimetableSources(filteredViewMap, registry);
   stampOfficialFares(filteredViewMap, filteredTrips, operatorTrains, registry);
+  stampPunctuality(filteredViewMap, operatorTrains, registry);
   stampEndpointCountries(filteredViewMap, stops);
   stampScheduleOriginCodes(filteredViewMap, operatorTrains, registry);
 
@@ -746,6 +747,12 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
         // cheapestNight), and where the cheapest last-minute deal is sold.
         ...(fare.classDates && typeof fare.classDates === "object" ? { classDates: fare.classDates } : {}),
         ...(fare.dealLanding ? { dealLanding: fare.dealLanding } : {}),
+        // A published tariff's range (SNCF's tarifs-intercites): each class's
+        // maximum beside its minimum in `classes`, and what kind of figure it
+        // is, so the pages can print "€39–€75" and say whose range it is.
+        ...(fare.classMax && typeof fare.classMax === "object" ? { classMax: fare.classMax } : {}),
+        ...(fare.basis ? { basis: fare.basis } : {}),
+        ...(fare.tariffModified ? { tariffModified: fare.tariffModified } : {}),
         source: row.timetable_source,
         checkedAt: fare.sampledAt ?? null,
         // The night the figure was quoted for. A yield-managed fare
@@ -776,12 +783,40 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
       // a tile quoting it beside a timetable of both must say which one.
       ...(cheapest.trainName ? { trainName: cheapest.trainName } : {}),
       ...(cheapest.seatClass ? { seatClass: cheapest.seatClass } : {}),
+      ...(cheapest.basis ? { basis: cheapest.basis } : {}),
     };
     row.pricing = pricing;
     for (const [tripKey, trip] of Object.entries(trips ?? {})) {
       if (String(trip.route_id) === String(key)) trips[tripKey] = { ...trip, pricing };
     }
     stamped++;
+  }
+  return stamped;
+}
+
+/**
+ * Copy each direction's punctuality from the official trains file that times
+ * the row (`timetable_source`) onto `punctuality_{dir}`. Today only SNCF
+ * writes it (scripts/lib/sncf-open-data.mjs), from SNCF's monthly AQST
+ * regularity figures, and only for a train whose origin–destination no
+ * daytime Intercités shares. Keyed by the row's own train label like the fare,
+ * so a bare number another operator shares cannot lend its figure across.
+ * Read by the connection pages only — the map payload drops it
+ * (stripPageOnlyFields).
+ */
+export function stampPunctuality(viewMap, operatorTrains, registry) {
+  const official = new Set((registry ?? []).filter((e) => e?.enabled && e.official).map((e) => e.id));
+  let stamped = 0;
+  for (const row of Object.values(viewMap ?? {})) {
+    if (!official.has(row.timetable_source)) continue;
+    const trains = operatorTrains?.[row.timetable_source];
+    if (!trains) continue;
+    for (const dir of [0, 1]) {
+      const value = trains[row[`trip_short_name_${dir}`]]?.punctuality;
+      if (!value || !Number.isFinite(value.onTimeRate)) continue;
+      row[`punctuality_${dir}`] = value;
+      stamped++;
+    }
   }
   return stamped;
 }

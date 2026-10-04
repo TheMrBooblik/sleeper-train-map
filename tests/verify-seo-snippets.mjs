@@ -35,8 +35,10 @@ import {
   FACTS_AGENCIES,
   classesPhrase,
   connectionSnippet,
+  directionFrequency,
   durationForDirection,
   frequencyPhrase,
+  labelDays,
   pickPrimaryDirection,
   snippetVariantFor,
 } from "../src/lib/seo/snippet.mjs";
@@ -71,6 +73,12 @@ const baseline = JSON.parse(fs.readFileSync("data/seo/snippet-baseline.json", "u
 const TODAY = "2026-10-01";
 /** The European Sleeper corridors in the published payload: the first rollout. */
 const ES_PAIRS = ["amsterdam-to-milan", "berlin-to-paris", "brussels-to-milan", "brussels-to-prague"];
+/** SNCF's Intercités de Nuit corridors: the second stage (October 2026). */
+const SNCF_PAIRS = [
+  "albi-to-paris", "aurillac-to-paris", "briancon-to-paris", "cerbere-to-paris", "latour-de-carol-to-paris",
+  "nice-to-paris", "paris-to-rodez", "paris-to-tarbes", "paris-to-toulouse",
+];
+const TREATED_PAIRS = [...ES_PAIRS, ...SNCF_PAIRS].sort();
 
 console.log(`\nseo snippets — ${pairs.length} published pairs\n`);
 
@@ -133,10 +141,10 @@ check("the sitemap ships every page in the rollout, through the same gate", () =
   assert.match(sitemap, /i < BATCH_1_CONNECTIONS \|\| inRollout\(pair\)/, "batch 1 must keep the rollout's pages");
 });
 
-check("FACTS renders on exactly the European Sleeper corridors", () => {
-  assert.deepEqual([...FACTS_AGENCIES], ["ES"]);
+check("FACTS renders on exactly the European Sleeper and SNCF corridors", () => {
+  assert.deepEqual([...FACTS_AGENCIES], ["ES", "SNCF"]);
   const treated = pairs.filter((p) => snippetVariantFor(p.agencyIds) === FACTS).map((p) => p.slug);
-  assert.deepEqual(treated, ES_PAIRS);
+  assert.deepEqual(treated, TREATED_PAIRS);
   // A compound id counts by its parts, as everywhere else in the repo.
   assert.equal(snippetVariantFor(["MÁV", "ES"]), FACTS);
   assert.equal(snippetVariantFor(["ÖBB"]), CONTROL);
@@ -152,7 +160,7 @@ check("every other page renders its old wording, byte for byte", () => {
     assert.equal(got.description, legacyDescription(p), `description changed on ${p.slug}`);
     untouched += 1;
   }
-  assert.equal(untouched, pairs.length - ES_PAIRS.length);
+  assert.equal(untouched, pairs.length - TREATED_PAIRS.length);
 });
 
 check("each European Sleeper page names its train and clock, and none invents one", () => {
@@ -167,6 +175,53 @@ check("each European Sleeper page names its train and clock, and none invents on
     assert.ok(!/\b24h\b/.test(`${title} ${description}`), `${slug}: a 24h journey — ${title} / ${description}`);
     const timed = p.directions.some((d) => d.departure && d.arrival && d.departure !== d.arrival);
     if (timed) assert.match(description, /^European Sleeper ES \d+ leaves /, `${slug}: ${description}`);
+  }
+});
+
+check("each SNCF page names its Intercités de Nuit and its clock", () => {
+  for (const slug of SNCF_PAIRS) {
+    const p = pairs.find((x) => x.slug === slug);
+    assert.ok(p, `${slug} is not a published pair`);
+    const { title, description } = connectionSnippet({ ...p, variant: FACTS, today: TODAY });
+    assert.ok(title !== legacyTitle(p.cityA, p.cityB), `${slug} still carries the old title`);
+    assert.match(description, /^SNCF IC Nuit \d+/, `${slug}: ${description}`);
+    assert.match(description, / leaves .+ \d{2}:\d{2} and reaches .+ \d{2}:\d{2}/, `${slug}: ${description}`);
+  }
+});
+
+check("a label naming its own days never sits beside a contradicting frequency", () => {
+  // Back-on-Track labels SNCF's Albi portion "IC Nuit 3754 (Sun)" while the
+  // row's service string says "Daily"; the first SNCF preview printed
+  // "IC Nuit 3754 (Sun) … nightly".
+  assert.deepEqual(labelDays("IC Nuit 3754 (Sun)"), ["Sun"]);
+  assert.deepEqual(labelDays("IC Nuit 3789 (Fri, Sat)"), ["Fri", "Sat"]);
+  assert.equal(labelDays("IC Nuit 3754"), null);
+  assert.equal(labelDays("1003 (G)"), null);
+  assert.equal(directionFrequency({ trainLabel: "IC Nuit 3754 (Sun)", serviceDays: "2026: Daily" }), "");
+  assert.equal(directionFrequency({ trainLabel: "IC Nuit 3754 (Sun)", serviceDays: "2026: Sun" }), "1× a week");
+  assert.equal(directionFrequency({ trainLabel: "NJ 466", serviceDays: "2026: Daily" }), "nightly");
+  for (const p of pairs) {
+    const { title, description } = connectionSnippet({ ...p, variant: FACTS, today: TODAY });
+    const m = /^\S+ (.+?) leaves /.exec(description);
+    const days = m && labelDays(m[1]);
+    if (!days) continue;
+    const said = frequencyPhrase(days.join(", "));
+    for (const phrase of ["nightly", "× a week"]) {
+      if (said.includes(phrase)) continue;
+      assert.ok(!`${title} ${description}`.includes(phrase), `${p.slug}: "${m[1]}" beside "${phrase}" — ${description}`);
+    }
+  }
+});
+
+check("a punctuality figure stays on the page, not in the snippet", () => {
+  // SNCF's AQST figure runs ~5 months behind and is often low; the page and
+  // the FAQ carry it with its month, the meta description does not.
+  const page = fs.readFileSync("src/pages/connections/[pair].js", "utf8");
+  const snippetInput = page.slice(page.indexOf("const snippetDirections"), page.indexOf("const snippet = connectionSnippet"));
+  assert.ok(!/punctuality/.test(snippetInput), "the snippet directions must not carry punctuality");
+  for (const p of pairs) {
+    const { description } = connectionSnippet({ ...p, variant: FACTS, today: TODAY });
+    assert.ok(!/on time/.test(description), `${p.slug}: ${description}`);
   }
 });
 
@@ -398,7 +453,7 @@ check("the described direction is the one the title names", () => {
 
 check("the baseline has a 'before' for every treated page, and for most of the rest", () => {
   // A treated page with no row would silently drop out of the readout.
-  for (const slug of ES_PAIRS) assert.ok(baseline.pages[slug], `${slug} is treated but absent from the baseline`);
+  for (const slug of TREATED_PAIRS) assert.ok(baseline.pages[slug], `${slug} is treated but absent from the baseline`);
   // Pairs newer than the baseline (routes added since 2026-09-20) sit out of
   // the control group; the report says how many. Far fewer than half, or the
   // control stops describing the site.
@@ -438,7 +493,7 @@ check("the report reads its own baseline as no change, on both arms", () => {
     const run = spawnSync(process.execPath, ["scripts/seo-snippet-report.mjs", csv], { encoding: "utf8" });
     assert.equal(run.status, 0, run.stderr);
     assert.match(run.stdout, /treatment 1\.00×, control 1\.00× → net 1\.00×/, run.stdout);
-    for (const slug of ES_PAIRS) assert.ok(run.stdout.includes(slug), `${slug} missing from the treatment table`);
+    for (const slug of TREATED_PAIRS) assert.ok(run.stdout.includes(slug), `${slug} missing from the treatment table`);
   } finally {
     fs.rmSync(csv, { force: true });
   }

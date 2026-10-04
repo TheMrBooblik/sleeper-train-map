@@ -20,6 +20,7 @@ import {
 import { getRouteDetail } from "../../lib/seo/data";
 import { cityForStation } from "../../lib/seo/cities.mjs";
 import { connectionSnippet, snippetVariantFor } from "../../lib/seo/snippet.mjs";
+import { punctualityAnswer } from "../../lib/punctuality.mjs";
 import {
   formatTrainNumber,
   joinTrainNumbers,
@@ -381,7 +382,14 @@ export async function getStaticProps({ params }) {
       : "",
     pricingType: pricingTypes.size === 1 ? [...pricingTypes][0] : "",
     hasLastMinuteDeals: trains.some((t) => t.booking?.dealsUrl),
+    punctualityText: punctualityAnswer(
+      trains.flatMap((t) =>
+        t.directions.map((d) => ({ origin: d.origin, destination: d.destination, punctuality: d.punctualityRecord })),
+      ),
+    ),
   }), guide);
+  // The raw record served the answer above; the timetable prints the summary.
+  for (const t of trains) for (const d of t.directions) delete d.punctualityRecord;
 
   // Drop the map from all but the first train that has one.
   let mapUsed = false;

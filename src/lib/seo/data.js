@@ -38,6 +38,7 @@ import { getOperatorPricing, formatFromPrice, formatCheckedAt } from "../operato
 import { directionFare, directionFareSummary, isDynamicPricing } from "../fareClasses.mjs";
 import { eurHintFor, formatEurApprox } from "../fx.mjs";
 import { fareCalendarDays } from "../fareCalendarView.mjs";
+import { punctualitySummary } from "../punctuality.mjs";
 import { buildDatedBookingLink, buildDealsLandingUrl } from "../operatorBooking.js";
 import { lastMinuteProgramme } from "../lastMinuteDeals.mjs";
 import {
@@ -583,6 +584,11 @@ export function getRouteDetail(routeId) {
       // This train's own official fare, per berth class — the facts tile above
       // shows the cheaper of the two directions, this is the one you'd pay.
       fare: withCheckedLabel(directionFareSummary(route, dir), directionFare(route, dir)?.currency),
+      // How often this train arrived on time, where the operator publishes it
+      // for this train alone (SNCF: punctuality_{dir}, src/lib/punctuality.mjs).
+      // The raw record too, for the FAQ answer.
+      punctuality: punctualitySummary(route[`punctuality_${dir}`]),
+      punctualityRecord: route[`punctuality_${dir}`] ?? null,
       // …and every night's, where the source keeps a calendar.
       fareCalendar: fareCalendarFor(route, dir, {
         origin,

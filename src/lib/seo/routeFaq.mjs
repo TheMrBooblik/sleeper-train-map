@@ -182,6 +182,8 @@ export function buildRouteFaq(input = {}) {
  * @param {string} [input.fromPrice]             already formatted, e.g. "from €29"
  * @param {string} [input.pricingType]           "dynamic" | "fixed", from the operator record
  * @param {boolean} [input.hasLastMinuteDeals]   an operator here publishes a deals page
+ * @param {string} [input.punctualityText]       the operator's own on-time figures, already
+ *                                               worded (src/lib/punctuality.mjs punctualityAnswer)
  * @returns {{q:string,a:string}[]}
  */
 export function buildConnectionFaq(input = {}) {
@@ -194,6 +196,7 @@ export function buildConnectionFaq(input = {}) {
     fromPrice = "",
     pricingType = "",
     hasLastMinuteDeals = false,
+    punctualityText = "",
   } = input;
 
   if (!originCity || !destCity) return [];
@@ -217,6 +220,15 @@ export function buildConnectionFaq(input = {}) {
     faq.push({
       q: `How long does the ${pair} night train take?`,
       a: `The fastest overnight journey is about ${fastestDurationText}.`,
+    });
+  }
+
+  // Whether it runs on time — only where the operator publishes a figure that
+  // is the night train's alone; no figure, no question.
+  if (punctualityText) {
+    faq.push({
+      q: `Is the ${pair} night train on time?`,
+      a: punctualityText,
     });
   }
 

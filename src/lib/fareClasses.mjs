@@ -60,6 +60,10 @@ export const FARE_CLASS_LABELS = {
   // map shows sleeping places only, and a class without a label is skipped.
   couchette: "Couchette",
   sleeperCabin: "Sleeper cabin",
+  // SNCF Intercités de Nuit (scripts/lib/sncf-open-data.mjs), from SNCF's
+  // published tariff: a standard adult's range per class, never a seat.
+  couchetteSecond: "Couchette, 2nd class",
+  couchetteFirst: "Couchette, 1st class",
   // JR West's Sunrise Izumo / Seto (scripts/lib/jr-sunrise.mjs). Every figure
   // is per traveller for the whole route. Nobinobi is a numbered, carpeted
   // space on the floor — a place to lie down with no cabin, and the cheapest
@@ -157,11 +161,33 @@ export function fareClassRows(fare, { from = false, deals = "include" } = {}) {
       key,
       label: FARE_CLASS_LABELS[key],
       amount,
-      price: `${from ? "from " : ""}${formatMoney(amount, fare.currency)}`,
+      // A published tariff states its range (SNCF: "€39–€75", the standard
+      // fare as it moves with demand); that says more than "from €39".
+      max: classMaxOf(fare, key, amount),
+      price: classMaxOf(fare, key, amount)
+        ? `${formatMoney(amount, fare.currency)}–${formatMoney(classMaxOf(fare, key, amount), fare.currency)}`
+        : `${from ? "from " : ""}${formatMoney(amount, fare.currency)}`,
       // The night this class's figure is for, where the source keeps a
       // calendar (each class's own cheapest night, see cheapestNight).
       date: fare.classDates?.[key] ?? null,
     }));
+}
+
+/** A class's published maximum when it is above its minimum, else null. */
+function classMaxOf(fare, key, amount) {
+  const max = fare?.classMax?.[key];
+  return Number.isFinite(max) && max > amount ? max : null;
+}
+
+/**
+ * What kind of figure a fare is, in words, or "" for a fare quoted from a
+ * search (the default). A published tariff's range is not a price somebody
+ * was quoted for a night, and the page says so.
+ */
+export function fareBasisLabel(fare) {
+  return fare?.basis === "tariff"
+    ? "Standard adult fare as published by the operator; it moves with demand within this range"
+    : "";
 }
 
 /**
@@ -331,5 +357,6 @@ export function directionFareSummary(row, dir, { dynamic = isDynamicPricing(row?
     // A fixed tariff (12306) is searched on a date too, but its price does
     // not depend on it: naming the date would suggest it does.
     travelLabel: dynamic ? formatTravelDate(fare.travelDate) : "",
+    basisLabel: fareBasisLabel(fare),
   };
 }

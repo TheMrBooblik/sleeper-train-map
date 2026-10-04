@@ -32,6 +32,7 @@ import {
   stationNameCanonicalizer,
 } from "../lib/gtfs.mjs";
 import { resolveCanonicalStationName } from "../../src/pages/api/lib/primitives.mjs";
+import { runSncfOpenDataPass } from "../lib/sncf-open-data-pass.mjs";
 
 function loadAllowlist(configPath) {
   const parsed = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -89,6 +90,12 @@ export async function run(entry, ctx) {
     throw new Error(
       `${entry.id}: 0 of ${stats.feedRouteCount} feed routes matched the allowlist — feed naming may have changed (unmatched: ${(stats.unmatched || []).join(", ")})`,
     );
+  }
+
+  // SNCF's own open data beside its timetable: fare ranges and punctuality
+  // (scripts/lib/sncf-open-data-pass.mjs). Opt-in per entry, never fatal.
+  if (entry.params?.openData) {
+    await runSncfOpenDataPass(trains, { entry, ctx, gtfs, log });
   }
 
   ctx.write(entry.output, { uploadedAt: ctx.today, trains });
