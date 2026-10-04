@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_100",
+  "createdAt": "2026-10-04T09:47:09.040Z",
+  "source": "scrape",
+  "sourceDetail": "backontrack",
+  "kind": "route.add",
+  "title": "New train: IC Notte 794 (Reggio Calabria Centrale – Torino Porta Nuova)",
+  "summary": "Route \"100\" appeared in tonight's scrape and is withheld from the map until approved. Via: Tropea - Lamezia Terme Centrale - Roma Ostiense - Civitavecchia - Grosseto - Livorno Centrale - Pisa Centrale - La Spezia Centrale - Genova Piazza Principe",
+  "target": {
+    "routeKey": "100",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "IC Notte 794",
+    "returnTrain": "IC Notte 795",
+    "origin": "Reggio Calabria Centrale",
+    "destination": "Torino Porta Nuova",
+    "operator": "FS",
+    "operatingDays": "2026: Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "100"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
