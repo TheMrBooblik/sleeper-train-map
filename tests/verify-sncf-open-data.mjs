@@ -47,7 +47,7 @@ import { carryPreviousPunctuality, runSncfOpenDataPass } from "../scripts/lib/sn
 import { dayServedStationPairs } from "../scripts/lib/gtfs.mjs";
 import { stampOfficialFares, stampPunctuality } from "../src/pages/api/lib/build-initial-data.mjs";
 import { stripPageOnlyFields } from "../src/pages/api/lib/payload-projection.mjs";
-import { directionFareSummary, fareBasisLabel, fareClassRows, panelFareRows } from "../src/lib/fareClasses.mjs";
+import { fareClassRows, panelFareRows } from "../src/lib/fareClasses.mjs";
 import { formatMonth, punctualityAnswer, punctualitySummary } from "../src/lib/punctuality.mjs";
 import { buildConnectionFaq } from "../src/lib/seo/routeFaq.mjs";
 
@@ -405,7 +405,7 @@ await check("the range and the punctuality reach the row, and stay off the map's
   assert.ok("fare_0" in projected.viewMap[107], "the fare is not");
 });
 
-await check("pages print the published range and say whose it is", () => {
+await check("pages print the published range", () => {
   const fare = {
     fromPrice: 39, currency: "EUR", seatClass: "couchetteSecond",
     classes: { couchetteSecond: 39, couchetteFirst: 59 }, classMax: { couchetteSecond: 79, couchetteFirst: 109 }, basis: "tariff",
@@ -417,12 +417,7 @@ await check("pages print the published range and say whose it is", () => {
   assert.deepEqual(panelFareRows(fare, { from: true }).map((r) => r.price), ["€39–€79", "€59–€109"]);
   // A fare without a range prints exactly as before.
   assert.deepEqual(fareClassRows({ currency: "EUR", classes: { couchette: 40 } }, { from: true }).map((r) => r.price), ["from €40"]);
-  assert.match(fareBasisLabel(fare), /published by the operator/);
-  assert.equal(fareBasisLabel({ classes: {} }), "");
-  const summary = directionFareSummary({ fare_0: { ...fare, checkedAt: TODAY }, pricing: { type: "dynamic" } }, 0);
-  assert.match(summary.basisLabel, /moves with demand/);
   const timetable = fs.readFileSync("src/components/seo/RouteTimetable.js", "utf8");
-  assert.match(timetable, /fare\.basisLabel \|\| "Official fare"/);
   assert.match(timetable, /data-testid="route-punctuality"/);
 });
 

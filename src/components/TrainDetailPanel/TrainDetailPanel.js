@@ -33,7 +33,6 @@ import {
 } from "../../lib/operatorPricing";
 import {
   directionFare,
-  fareBasisLabel,
   panelFareRows,
   fareDirectionForTrip,
   formatTravelDate,
@@ -1901,16 +1900,6 @@ const TrainDetailPanel = ({
                           >
                             Lowest fares{" "}
                             {formatTravelDate(sharedFareDate)}
-                          </div>
-                        )}
-                        {/* A published tariff's range (SNCF), not a
-                            night's quote: say whose range it is. */}
-                        {fareBasisLabel(dirFare) && (
-                          <div
-                            className="text-xs text-gray-500"
-                            data-testid="fare-basis"
-                          >
-                            {fareBasisLabel(dirFare)}
                           </div>
                         )}
                       </div>

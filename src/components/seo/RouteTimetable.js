@@ -87,7 +87,7 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
             </ul>
             {fare.checkedLabel && (
               <p className="mt-2 text-xs text-white/40">
-                {fare.basisLabel || "Official fare"}
+                Official fare
                 {fare.travelLabel ? ` ${fare.travelLabel}` : ""} ·{" "}
                 {fare.checkedLabel}
               </p>

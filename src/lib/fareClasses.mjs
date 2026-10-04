@@ -180,17 +180,6 @@ function classMaxOf(fare, key, amount) {
 }
 
 /**
- * What kind of figure a fare is, in words, or "" for a fare quoted from a
- * search (the default). A published tariff's range is not a price somebody
- * was quoted for a night, and the page says so.
- */
-export function fareBasisLabel(fare) {
-  return fare?.basis === "tariff"
-    ? "Standard adult fare as published by the operator; it moves with demand within this range"
-    : "";
-}
-
-/**
  * The map panel's short list: one row per kind of place, in a fixed order.
  * European Sleeper prices up to eight regular classes a night — standard and
  * Comfort sleepers in single, 2- and 3-bed cabins beside the couchette and
@@ -357,6 +346,5 @@ export function directionFareSummary(row, dir, { dynamic = isDynamicPricing(row?
     // A fixed tariff (12306) is searched on a date too, but its price does
     // not depend on it: naming the date would suggest it does.
     travelLabel: dynamic ? formatTravelDate(fare.travelDate) : "",
-    basisLabel: fareBasisLabel(fare),
   };
 }

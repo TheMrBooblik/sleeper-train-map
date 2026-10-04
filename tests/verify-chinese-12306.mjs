@@ -626,8 +626,6 @@ check("stampOfficialFares: each direction keeps its own fare and berth classes",
       // A fixed tariff does not depend on the date, so it names none.
       travelDate: null,
       travelLabel: "",
-      // Only a published tariff's range says whose range it is.
-      basisLabel: "",
     });
     assert.strictEqual(directionFareSummary({ fare_0: { fromPrice: 0, currency: "CNY" } }, 0), null);
   });
