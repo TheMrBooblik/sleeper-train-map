@@ -26,7 +26,6 @@ import { OPERATORS } from "../../src/lib/seo/operatorNames.mjs";
 import { formatDurationMinutes, routeDurationMinutes } from "../../src/lib/seo/format.js";
 import { formatMoney } from "../../src/lib/fareClasses.mjs";
 import { resolvePricing } from "../../src/lib/pricingResolve.mjs";
-import { punctualitySummary } from "../../src/lib/punctuality.mjs";
 import { parseBotServiceString, renderCalendar } from "../../src/pages/api/lib/calendar.mjs";
 
 const ROOT = path.resolve(new URL("../..", import.meta.url).pathname);
@@ -81,11 +80,6 @@ function planClocks() {
  * @returns {{slug:string, cityA:string, cityB:string, trainCount:number,
  *            operatorNames:string, fromPrice:string, directions:object[]}[]}
  */
-function punctualityPhrase(record) {
-  const p = punctualitySummary(record);
-  return p ? `${p.headline} in ${p.monthLabel}` : "";
-}
-
 export function getPublishedPairs() {
   const payload = readJson("public/data/published/initial-data.json").data;
   // Endpoint coordinates, so the duration plausibility gate is exercised here
@@ -166,8 +160,6 @@ export function getPublishedPairs() {
         destinationPos: stopPos.get(destination) || null,
         durationText,
         classes,
-        // As [pair].js words it from punctualitySummary().
-        punctuality: punctualityPhrase(route[`punctuality_${dir}`]),
       });
     }
   }

@@ -407,28 +407,28 @@ function factsDescription({
         (operatorNames ? `, run by ${operatorNames}.` : ".");
 
   const classes = primary ? classesPhrase(primary.classes) : "";
-  // The operator's own on-time figure for this train, already worded
-  // ("84% on time in August 2026"), where it publishes one (SNCF).
-  const punctuality = primary ? String(primary.punctuality || "").trim() : "";
   const stops = primary && primary.stopCount >= 3 ? primary.stopCount : 0;
 
   // `drop` is the order clauses are shed in when the description runs long.
   // The lead is never shed. The train count goes first: it is the softest of
   // them, and on a single-train pair it is not emitted at all. Then the
-  // berth types, then the tail — which carries the call to action, and says
-  // nothing a searcher could not guess — then the operator's own punctuality
-  // figure, and a price last, being the highest-intent fact on the page.
+  // berth types, then the tail — which carries the call to action — and a
+  // price last, being the highest-intent fact on the page.
+  //
+  // Punctuality is deliberately not a clause, though SNCF's corridors carry
+  // it: the AQST figure runs about five months behind ("in May 2026" in an
+  // October snippet) and is as often 52% as 96%. It is on the page and in the
+  // FAQ, where it can be read with its month and its 12-month figure.
   const clauses = [
     { text: lead, drop: 0 },
     { text: trainCount > 1 ? `${trainCount} trains on this route.` : "", drop: 1 },
-    { text: fromPrice ? `Tickets ${fromPrice}.` : "", drop: 5 },
-    { text: punctuality ? `${punctuality}.` : "", drop: 4 },
+    { text: fromPrice ? `Tickets ${fromPrice}.` : "", drop: 4 },
     { text: classes ? `${classes}.` : "", drop: 2 },
     { text: stops ? `Full timetable, ${stops} stops and where to book.` : "Full timetable and where to book.", drop: 3 },
   ].filter((c) => c.text);
 
   let kept = clauses;
-  for (const rank of [1, 2, 3, 4, 5]) {
+  for (const rank of [1, 2, 3, 4]) {
     if (kept.map((c) => c.text).join(" ").length <= DESCRIPTION_MAX) break;
     kept = kept.filter((c) => c.drop !== rank);
   }

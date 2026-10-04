@@ -422,9 +422,6 @@ export async function getStaticProps({ params }) {
       destinationPos: stopPosition(d.stops[d.stops.length - 1]),
       durationText: t.facts.durationText,
       classes: t.facts.classes,
-      // "84% on time in August 2026", where the operator publishes a figure
-      // for this train alone (SNCF).
-      punctuality: d.punctuality ? `${d.punctuality.headline} in ${d.punctuality.monthLabel}` : "",
     })),
   );
 

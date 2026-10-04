@@ -213,29 +213,16 @@ check("a label naming its own days never sits beside a contradicting frequency",
   }
 });
 
-check("a punctuality figure is said, and outlives the generic call to action", () => {
-  const base = { cityA: "Briançon", cityB: "Paris", trainCount: 1, operatorNames: "SNCF" };
-  const direction = {
-    trainLabel: "IC Nuit 5790", operator: "SNCF", origin: "Briançon", destination: "Paris Austerlitz",
-    originCity: "Briançon", destinationCity: "Paris", departure: "19:57", arrival: "07:52",
-    serviceDays: "2026: Daily", stopCount: 11, durationText: "11h 55m", classes: "seat, couchette",
-    punctuality: "84% on time in August 2026",
-  };
-  const { description } = connectionSnippet({ ...base, directions: [direction], variant: FACTS, today: TODAY });
-  assert.match(description, /84% on time in August 2026\./, description);
-  assert.ok(description.length <= DESCRIPTION_MAX, description);
-  // Without one, nothing about punctuality is said.
-  const without = connectionSnippet({ ...base, directions: [{ ...direction, punctuality: "" }], variant: FACTS, today: TODAY });
-  assert.ok(!/on time/.test(without.description), without.description);
-  // Long enough to shed: it goes before the tail and the price.
-  const long = connectionSnippet({
-    ...base, fromPrice: "from €39",
-    directions: [{ ...direction, trainLabel: "IC Nuit 5790 Intercités de Nuit Briançon–Paris", origin: "Briançon", originCity: "Briançon-les-Hautes-Alpes" }],
-    variant: FACTS, today: TODAY,
-  }).description;
-  assert.ok(long.length <= DESCRIPTION_MAX, long);
-  assert.match(long, /Tickets from €39\./, `the price is the last clause shed — ${long}`);
-  assert.ok(long.includes("on time") || !long.includes("Full timetable"), `the tail outlived punctuality — ${long}`);
+check("a punctuality figure stays on the page, not in the snippet", () => {
+  // SNCF's AQST figure runs ~5 months behind and is often low; the page and
+  // the FAQ carry it with its month, the meta description does not.
+  const page = fs.readFileSync("src/pages/connections/[pair].js", "utf8");
+  const snippetInput = page.slice(page.indexOf("const snippetDirections"), page.indexOf("const snippet = connectionSnippet"));
+  assert.ok(!/punctuality/.test(snippetInput), "the snippet directions must not carry punctuality");
+  for (const p of pairs) {
+    const { description } = connectionSnippet({ ...p, variant: FACTS, today: TODAY });
+    assert.ok(!/on time/.test(description), `${p.slug}: ${description}`);
+  }
 });
 
 // --- 3. length --------------------------------------------------------------
