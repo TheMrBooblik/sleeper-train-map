@@ -38,6 +38,7 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
     scheduleAffiliate,
     fare,
     fareCalendar,
+    punctuality,
   } = direction;
   const lastIdx = stops.length - 1;
 
@@ -86,13 +87,44 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
             </ul>
             {fare.checkedLabel && (
               <p className="mt-2 text-xs text-white/40">
-                Official fare
+                {fare.basisLabel || "Official fare"}
                 {fare.travelLabel ? ` ${fare.travelLabel}` : ""} ·{" "}
                 {fare.checkedLabel}
               </p>
             )}
           </div>
         )
+      )}
+
+      {/* The operator's own monthly punctuality for this train, where it
+          publishes one that is this train's alone (SNCF's AQST figures). */}
+      {punctuality && (
+        <div className="mt-4" data-testid="route-punctuality">
+          <div className="text-xs uppercase tracking-wide text-white/40">Punctuality</div>
+          <p className="mt-1 text-sm text-white/70">
+            <span className="font-medium text-white">{punctuality.headline}</span>
+            {" — "}
+            {punctuality.detail}
+            {punctuality.cancelled ? `, ${punctuality.cancelled}` : ""}.
+            {punctuality.trailing ? ` ${punctuality.trailing}.` : ""}
+          </p>
+          {punctuality.sourceLabel && (
+            <p className="mt-1 text-xs text-white/40">
+              {punctuality.sourceUrl ? (
+                <a
+                  href={punctuality.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white/70 hover:underline"
+                >
+                  {punctuality.sourceLabel}
+                </a>
+              ) : (
+                punctuality.sourceLabel
+              )}
+            </p>
+          )}
+        </div>
       )}
 
       <ol className="mt-5 space-y-0">

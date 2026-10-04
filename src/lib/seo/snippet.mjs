@@ -40,12 +40,15 @@ export const FACTS = "facts";
  * Staged rather than site-wide (PR #88 shipped FACTS to all 240 pairs at once).
  * European Sleeper goes first because its four pages are the ones with the
  * least to lose — little Search Console traffic before this change — and the
- * most new to say, since this branch gives them a nightly fare. Widening the
- * rollout is adding an operator id here; reverting it is emptying the set.
+ * most new to say, since this branch gives them a nightly fare. SNCF's nine
+ * Intercités de Nuit corridors are the second stage (October 2026), on the
+ * same footing: a published fare range and official stop lists and clocks
+ * from SNCF's own feed. Widening the rollout is adding an operator id here;
+ * reverting it is emptying the set.
  * `npm run seo-snippet-report` reads the same set, so what it calls the
  * treatment is what the build rendered.
  */
-export const FACTS_AGENCIES = new Set(["ES"]);
+export const FACTS_AGENCIES = new Set(["ES", "SNCF"]);
 
 /**
  * The variant a pair page renders, from the operators of its trains.
@@ -95,6 +98,33 @@ export function frequencyPhrase(serviceDays) {
     return listed.length === 7 ? "nightly" : `${listed.length}× a week`;
   }
   return "";
+}
+
+/**
+ * The days a train's own label names, e.g. "IC Nuit 3754 (Sun)" → ["Sun"], or
+ * null when it names none. Back-on-Track writes a weekday qualifier into the
+ * label of a train that runs on fewer days than its route, and the row's
+ * service string can still say "Daily" — SNCF's Albi portion read "IC Nuit
+ * 3754 (Sun) … nightly" in the first SNCF preview of this snippet.
+ */
+export function labelDays(trainLabel) {
+  const m = /\(([^)]*)\)\s*$/.exec(String(trainLabel || ""));
+  if (!m) return null;
+  const days = m[1].split(/[,/&]|\band\b/).map((d) => d.trim()).filter(Boolean);
+  return days.length && days.every((d) => DAY_LABELS.includes(d)) ? days : null;
+}
+
+/**
+ * The frequency phrase for a direction, withheld when its label names days
+ * the service string contradicts: two sources disagreeing about when a train
+ * runs is not something a snippet should pick a side in.
+ */
+export function directionFrequency(direction) {
+  const phrase = frequencyPhrase(direction?.serviceDays);
+  const named = labelDays(direction?.trainLabel);
+  if (!named || !phrase) return phrase;
+  const fromLabel = frequencyPhrase(named.join(", "));
+  return fromLabel === phrase ? phrase : "";
 }
 
 /**
@@ -377,23 +407,28 @@ function factsDescription({
         (operatorNames ? `, run by ${operatorNames}.` : ".");
 
   const classes = primary ? classesPhrase(primary.classes) : "";
+  // The operator's own on-time figure for this train, already worded
+  // ("84% on time in August 2026"), where it publishes one (SNCF).
+  const punctuality = primary ? String(primary.punctuality || "").trim() : "";
   const stops = primary && primary.stopCount >= 3 ? primary.stopCount : 0;
 
   // `drop` is the order clauses are shed in when the description runs long.
   // The lead is never shed. The train count goes first: it is the softest of
-  // the four, and on a single-train pair it is not emitted at all. Then the
-  // berth types, then the tail — which carries the call to action — and a
-  // price last, being the highest-intent fact on the page.
+  // them, and on a single-train pair it is not emitted at all. Then the
+  // berth types, then the tail — which carries the call to action, and says
+  // nothing a searcher could not guess — then the operator's own punctuality
+  // figure, and a price last, being the highest-intent fact on the page.
   const clauses = [
     { text: lead, drop: 0 },
     { text: trainCount > 1 ? `${trainCount} trains on this route.` : "", drop: 1 },
-    { text: fromPrice ? `Tickets ${fromPrice}.` : "", drop: 4 },
+    { text: fromPrice ? `Tickets ${fromPrice}.` : "", drop: 5 },
+    { text: punctuality ? `${punctuality}.` : "", drop: 4 },
     { text: classes ? `${classes}.` : "", drop: 2 },
     { text: stops ? `Full timetable, ${stops} stops and where to book.` : "Full timetable and where to book.", drop: 3 },
   ].filter((c) => c.text);
 
   let kept = clauses;
-  for (const rank of [1, 2, 3, 4]) {
+  for (const rank of [1, 2, 3, 4, 5]) {
     if (kept.map((c) => c.text).join(" ").length <= DESCRIPTION_MAX) break;
     kept = kept.filter((c) => c.drop !== rank);
   }
@@ -437,7 +472,7 @@ export function connectionSnippet({
   if (variant !== FACTS) return { title: controlTitle, description: intro, intro };
 
   const primary = pickPrimaryDirection(cityA, directions, { today });
-  const frequency = primary ? frequencyPhrase(primary.serviceDays) : "";
+  const frequency = primary ? directionFrequency(primary) : "";
   // The primary train's own duration, not the pair's fastest: the description
   // names that train, and it is the figure RouteFactsGrid prints for it, so the
   // snippet and the page cannot quote different numbers for the same journey.

@@ -137,6 +137,30 @@
           "lastChecked": null,
           "probeWorkflow": null,
           "notes": "Same content as the GTFS export in the European standard format. Only worth it if the GTFS export turns out to be missing something — the one known gap is shapes.txt, so check whether NeTEx carries track geometry before reaching for OSM."
+        },
+        {
+          "name": "SNCF Open Data — Tarifs Intercités",
+          "url": "https://ressources.data.sncf.com/api/explore/v2.1/catalog/datasets/tarifs-intercites/exports/json",
+          "docsUrl": "https://ressources.data.sncf.com/explore/dataset/tarifs-intercites/",
+          "format": "JSON",
+          "provides": ["fares"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": "2026-10-04",
+          "probeWorkflow": "probe-sncf-open-data.yml",
+          "notes": "Standard-fare (tarif plein) range, minimum and maximum, per origin–destination and class for day and night Intercités, ODbL, revised with each tariff change (current one from 2 January 2026). Read nightly by the sncf entry's params.openData (scripts/lib/sncf-open-data.mjs) — couchette classes only, since day trains share some pairs. Written blind (the host is unreachable from a dev sandbox); confirm the class labels with the probe."
+        },
+        {
+          "name": "SNCF Open Data — Régularité mensuelle Intercités",
+          "url": "https://ressources.data.sncf.com/api/explore/v2.1/catalog/datasets/regularite-mensuelle-intercites/exports/json",
+          "docsUrl": "https://ressources.data.sncf.com/explore/dataset/regularite-mensuelle-intercites/",
+          "format": "JSON",
+          "provides": ["punctuality"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": "2026-10-04",
+          "probeWorkflow": "probe-sncf-open-data.yml",
+          "notes": "AQST monthly counts per selected origin–destination: trains scheduled, run, cancelled and late at the terminus. Per pair, not per train, so it is attributed to a night train only where no daytime Intercités runs the same pair (dayServedStationPairs in gtfs.mjs). Whether the AQST selection includes the night pairs at all is what the probe answers."
         }
       ]
     },

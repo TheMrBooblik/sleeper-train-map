@@ -1,0 +1,49 @@
+name: Probe SNCF open data
+
+# What the SNCF open-data pass sees: the "Tarifs Intercités" and "Régularité
+# mensuelle Intercités" datasets on ressources.data.sncf.com — the columns
+# scripts/lib/sncf-open-data.mjs resolved, every class and profile value with
+# the classifier's verdict, the rows on our trains' pairs, and the fare and
+# punctuality figure the nightly pass would write for each Intercités de Nuit.
+# The dev sandbox has no egress to that host, so the reader was written from
+# SNCF's documented column labels; this is how it is checked.
+#
+# Label a PR `run-probes` to run it from the PR head — a workflow_dispatch probe
+# cannot run until its file is on the default branch (see CLAUDE.md).
+#
+# Read-only: GETs only, nothing committed.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  probe:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'run-probes'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Probe
+        run: |
+          set -o pipefail
+          node scripts/probe-sncf-open-data.mjs probe-output | tee probe-output.log
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sncf-open-data-probe-output
+          path: |
+            probe-output/
+            probe-output.log
+          retention-days: 7
+          if-no-files-found: warn

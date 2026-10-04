@@ -500,7 +500,7 @@
     "v": 1,
     "id": "sncf",
     "label": "SNCF",
-    "description": "Official SNCF Open Data GTFS (TGV / Intercit\u00e9s / TER), filtered to the Intercit\u00e9s de Nuit (data/sources/sncf-sleepers.json). The feed's routes are not addresses \u2014 route_long_name is \"-\" for six of these eleven trains and files two of the named ones under another corridor \u2014 so the allowlist selects them as oriented endpoint pairs and keys each by Back-on-Track's own \"IC Nuit NNNN\" label, which is what the trainsByNumber enrichment looks a view-map row up by. Enrichment is deliberately via-only: the feed has no shapes.txt, and one route_id there carries both directions plus the portions that split at Toulouse and Brive, so the fullest trip for a pair can be a through-portion whose endpoint times are not the train's. The first live run confirmed that from two angles \u2014 endpoint times disagreed with Back-on-Track by over an hour on four of ten runs, and service days came out per-trip (\"Sun\" for a daily train), because a date-expanded feed gives each trip its own service_id and only one trip is picked. Stop lists survive all of that (8\u201316 stations against Back-on-Track's 2\u20135, and every stop between two fixed endpoints is on the corridor whichever trip was chosen), so updateVia is on with viaOnlyIfRicher, and setTimes/updateEndpoints/updateServiceDays/stamp stay off. Probe workflow: 'Probe GTFS feed'.",
+    "description": "Official SNCF Open Data GTFS (TGV / Intercit\u00e9s / TER), filtered to the Intercit\u00e9s de Nuit (data/sources/sncf-sleepers.json). The feed's routes are not addresses \u2014 route_long_name is \"-\" for six of these eleven trains and files two of the named ones under another corridor \u2014 so the allowlist selects them as oriented endpoint pairs and keys each by Back-on-Track's own \"IC Nuit NNNN\" label, which is what the trainsByNumber enrichment looks a view-map row up by. Enrichment is deliberately via-only: the feed has no shapes.txt, and one route_id there carries both directions plus the portions that split at Toulouse and Brive, so the fullest trip for a pair can be a through-portion whose endpoint times are not the train's. The first live run confirmed that from two angles \u2014 endpoint times disagreed with Back-on-Track by over an hour on four of ten runs, and service days came out per-trip (\"Sun\" for a daily train), because a date-expanded feed gives each trip its own service_id and only one trip is picked. Stop lists survive all of that (8\u201316 stations against Back-on-Track's 2\u20135, and every stop between two fixed endpoints is on the corridor whichever trip was chosen), so updateVia is on with viaOnlyIfRicher, and setTimes/updateEndpoints/updateServiceDays/stamp stay off. Beside the timetable the adapter reads two of SNCF's own open datasets nightly (params.openData, scripts/lib/sncf-open-data.mjs): \"Tarifs Intercit\u00e9s\" for each train's standard-fare range per couchette class (berths only \u2014 a seat range on a pair that day Intercit\u00e9s also run is the day trains' as much as the night train's), and \"R\u00e9gularit\u00e9 mensuelle Intercit\u00e9s\" for its punctuality, attributed only where no daytime Intercit\u00e9s runs the same pair. Probe workflows: 'Probe GTFS feed', 'Probe SNCF open data'.",
     "kind": "gtfs",
     "adapter": "gtfs-sleeper",
     "enabled": true,
@@ -536,7 +536,12 @@
       "configPath": "data/sources/sncf-sleepers.json",
       "agency": "SNCF",
       "operator": "SNCF",
-      "canonicalizeStationNames": true
+      "canonicalizeStationNames": true,
+      "openData": {
+        "base": "https://ressources.data.sncf.com",
+        "tariffs": "tarifs-intercites",
+        "punctuality": "regularite-mensuelle-intercites"
+      }
     },
     "freshness": { "ttlHours": 25 }
   },
