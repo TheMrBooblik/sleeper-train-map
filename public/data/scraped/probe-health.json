@@ -1,18 +1,18 @@
 {
-  "uploadedAt": "2026-09-28T10:30:54.621Z",
+  "uploadedAt": "2026-10-05T10:59:32.569Z",
   "data": {
-    "runStartedAt": "2026-09-28T10:30:49.768Z",
-    "runFinishedAt": "2026-09-28T10:30:54.621Z",
+    "runStartedAt": "2026-10-05T10:59:27.788Z",
+    "runFinishedAt": "2026-10-05T10:59:32.569Z",
     "probes": {
       "nightjet": {
         "adapter": "nightjet-offers",
-        "lastRunAt": "2026-09-28T10:30:54.621Z",
+        "lastRunAt": "2026-10-05T10:59:32.569Z",
         "lastSuccessAt": null,
-        "lastFailureAt": "2026-09-28T10:30:54.621Z",
-        "lastError": "EN 50237: HTTP 400",
+        "lastFailureAt": "2026-10-05T10:59:32.569Z",
+        "lastError": "NJ 1236: HTTP 400",
         "attempted": 4,
         "found": 0,
-        "consecutiveEmptyRuns": 3
+        "consecutiveEmptyRuns": 4
       }
     }
   }
