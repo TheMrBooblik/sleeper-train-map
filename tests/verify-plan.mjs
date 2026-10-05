@@ -20,6 +20,7 @@ import {
   hopDates,
   isPlanDate,
   parsePlanPath,
+  planPartsFromPath,
   splitCorridor,
 } from "../src/lib/plan/url.mjs";
 import { availabilityFor, isOfferable, weekdayOf } from "../src/lib/plan/availability.mjs";
@@ -98,6 +99,47 @@ check("a plan round-trips through its URL", () => {
   assert.equal(buildPlanPath({ cities: [] }), "/plan");
   // A date with no cities is not a plan, so it does not reach the path.
   assert.equal(buildPlanPath({ cities: [], date: "2026-09-18" }), "/plan");
+});
+
+check("a plan reads back off the browser URL the rewrite serves it under", () => {
+  // /plan/* is one static page; the plan comes off asPath, never a route param.
+  for (const plan of [
+    { cities: [], date: null, stays: [] },
+    { cities: ["amsterdam"], date: "2026-09-18", stays: [] },
+    { cities: ["amsterdam", "berlin", "prague", "vienna"], date: "2026-09-18", stays: [2, 1] },
+  ]) {
+    const { slug, stay } = planPartsFromPath(`${buildPlanHref(plan)}#results`);
+    const back = parsePlanPath(slug);
+    assert.deepEqual(back.cities, plan.cities, JSON.stringify(plan));
+    assert.equal(back.date, plan.date, JSON.stringify(plan));
+    assert.deepEqual(decodeStays(stay), plan.stays, JSON.stringify(plan));
+  }
+  assert.deepEqual(planPartsFromPath("/plan/"), { slug: [], stay: null });
+  // Only the /plan prefix is stripped — "/planet/x" is not a plan.
+  assert.deepEqual(planPartsFromPath("/planet/x").slug, []);
+});
+
+check("NO page is an ISR route", () => {
+  // Vercel Hobby pauses the project when ISR Writes pass 200 000 a month, and
+  // a revalidating or fallback page over an unbounded URL space (the planner
+  // was one) writes a cache entry per distinct URL a crawler invents. Every
+  // page here is built once per deploy; data freshness comes from the nightly
+  // deploy, not from revalidation.
+  const offenders = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name !== "api") walk(full);
+      } else if (/\.(js|jsx|ts|tsx|mjs)$/.test(entry.name)) {
+        const src = fs.readFileSync(full, "utf8");
+        if (/^\s*revalidate\s*:/m.test(src)) offenders.push(`${full}: revalidate`);
+        if (/fallback\s*:\s*(true|["']blocking["'])/.test(src)) offenders.push(`${full}: fallback`);
+      }
+    }
+  };
+  walk(path.join(ROOT, "src/pages"));
+  assert.deepEqual(offenders, []);
 });
 
 check("NO city slug contains the corridor separator", () => {
