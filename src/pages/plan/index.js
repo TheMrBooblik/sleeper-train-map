@@ -23,6 +23,7 @@ import {
   decodeStays,
   isPlanDate,
   parsePlanPath,
+  planPartsFromPath,
 } from "../../lib/plan/url.mjs";
 import { formatPlanDate } from "../../lib/plan/format.mjs";
 import { byStartCityScore, prominenceLookup } from "../../lib/plan/prominence.mjs";
@@ -107,21 +108,23 @@ export default function PlanPage({ seoCities, initialPlan }) {
     [region, regionTabs],
   );
 
-  // The plan starts as whatever getStaticProps read off the path, NOT as
-  // whatever router.query holds: on the first client render the router has not
-  // populated its params yet, so reading it here renders a different tree than
-  // the server sent and React throws the whole subtree away and re-renders it.
-  // After mount the router is the source of truth, which is what makes shallow
-  // navigation and the browser Back button work.
+  // The plan starts empty, exactly as the static HTML was rendered: every
+  // /plan/* URL is the one prebuilt /plan page served through a rewrite, so the
+  // server never knows which plan was asked for. Reading the URL during the
+  // first client render would produce a different tree than the server sent
+  // and React would throw the whole subtree away. After mount the URL is the
+  // source of truth, which is what makes shallow navigation and the browser
+  // Back button work.
   const [parsed, setParsed] = useState(initialPlan);
   const [stays, setStays] = useState(initialPlan.stays);
 
   useEffect(() => {
     if (!router.isReady) return;
-    const next = parsePlanPath(router.query.slug, knownSlugs);
+    const { slug, stay } = planPartsFromPath(router.asPath);
+    const next = parsePlanPath(slug, knownSlugs);
     setParsed({ cities: next.cities, date: next.date });
-    setStays(decodeStays(router.query.stay));
-  }, [router.isReady, router.asPath, router.query.slug, router.query.stay, knownSlugs]);
+    setStays(decodeStays(stay));
+  }, [router.isReady, router.asPath, knownSlugs]);
 
   const cities = parsed.cities;
   const date = isPlanDate(parsed.date) ? parsed.date : today;
@@ -574,28 +577,24 @@ function DataHonesty() {
 }
 
 /**
- * Only the landing page is pre-rendered with data. Every plan under it is
- * client-rendered from the static index, which is what keeps an unbounded URL
- * space (every city pair × every date) from becoming an unbounded number of
- * cached server renders.
+ * One static page, built once per deployment, serves every plan.
+ *
+ * /plan/{cities}/{date} is an unbounded URL space — every city pair × every
+ * date — and it used to be an ISR route (a blocking fallback plus revalidation),
+ * which rendered and wrote a cache entry for each distinct URL a visitor or a
+ * crawler asked for. That is the one Vercel Hobby quota this site could
+ * exhaust (ISR Writes, 200 000/month), and exceeding it pauses the project.
+ * next.config.js now rewrites /plan/:path+ onto this page and marks those URLs
+ * noindex by header; the plan itself is read off the URL after mount and
+ * rendered from the static plan index, which is where its content always came
+ * from anyway. No serverless hop, no cache write, whatever the URL.
  */
-export async function getStaticPaths() {
-  return { paths: [{ params: { slug: [] } }], fallback: "blocking" };
-}
-
-export async function getStaticProps({ params }) {
-  const { getPlanIndex, getTopStartCities } = await import("../../lib/plan/published.mjs");
-  const index = getPlanIndex();
-  const knownSlugs = index ? new Set(index.cities.map((c) => c.slug)) : undefined;
-  const { cities, date } = parsePlanPath(params?.slug, knownSlugs);
-
+export async function getStaticProps() {
+  const { getTopStartCities } = await import("../../lib/plan/published.mjs");
   return {
     props: {
       seoCities: getTopStartCities(),
-      // Parsed with the same function the client uses, so the two can never
-      // read one URL as two different plans.
-      initialPlan: { cities, date, stays: [] },
+      initialPlan: { cities: [], date: null, stays: [] },
     },
-    revalidate: 86400,
   };
 }

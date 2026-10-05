@@ -120,6 +120,15 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // Parameterised plans are an unbounded URL space and their content
+        // lives on the /connections pages they link to. They are served the
+        // static /plan HTML (see rewrites below), whose <head> is the indexable
+        // landing page's until the client takes over — so the noindex is sent
+        // as a header, where it holds before any JavaScript runs.
+        source: "/plan/:path+",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, follow" }],
+      },
+      {
         // The committed data assets: GTFS bundles and the pre-computed route
         // polylines, together several MB. Vercel serves public/ with
         // `max-age=0, must-revalidate`, so each one cost a revalidation round
@@ -139,6 +148,14 @@ const nextConfig = {
         ],
       },
     ];
+  },
+  // Every plan URL is the one static /plan page; the plan is read off the URL
+  // in the browser. This used to be an ISR route, which wrote a cache entry
+  // per distinct URL and put the project on course to exhaust Vercel Hobby's
+  // ISR Writes quota (a hard pause, not a bill). A rewrite to a static page
+  // costs no function invocation and no cache write, whatever the URL.
+  async rewrites() {
+    return [{ source: "/plan/:path+", destination: "/plan" }];
   },
   async redirects() {
     return [
