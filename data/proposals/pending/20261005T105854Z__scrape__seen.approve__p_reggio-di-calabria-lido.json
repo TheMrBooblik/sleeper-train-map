@@ -1,0 +1,28 @@
+{
+  "v": 1,
+  "id": "p_reggio-di-calabria-lido",
+  "createdAt": "2026-10-05T10:58:54.970Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "seen.approve",
+  "title": "New station: Reggio Di Calabria Lido",
+  "summary": "Station \"Reggio Di Calabria Lido\" was injected by an operator source for the first time. Its marker is hidden until approved (routes through it still render).",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "Reggio Di Calabria Lido"
+  },
+  "before": null,
+  "after": null,
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "stationName": "Reggio Di Calabria Lido"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
