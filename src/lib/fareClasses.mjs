@@ -86,6 +86,11 @@ export const FARE_CLASS_LABELS = {
   comfortTriple: "Comfort sleeper, bed in 3-bed cabin",
   comfortDouble: "Comfort sleeper, bed in 2-bed cabin",
   comfortSingle: "Comfort sleeper, single cabin",
+  // ÖBB Nightjet / EuroNight (scripts/lib/nj-fares.mjs): nightjet.com's
+  // cheapest offer per comfort class for one adult — "couchette" above for a
+  // couchette place, and one bed in the sleeping car, whichever cabin is
+  // cheapest that night. Seats are left out at the source.
+  sleeperBed: "Sleeper, one bed",
   // Its last-minute deals (scripts/lib/es-last-minute.mjs): sold from the
   // operator's promo pages, not its fare finder — see src/lib/lastMinuteDeals.mjs.
   lastMinuteCouchette: "Last-minute couchette",
