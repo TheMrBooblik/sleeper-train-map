@@ -110,10 +110,20 @@ export function viennaMidnightMs(isoDate) {
  * The calendar date a departure falls on in Vienna ("2026-10-20"), from an ISO
  * string with or without an offset, epoch ms, or a { utc, local } pair (the
  * shape nightjet.com's /connection answers use). null when unreadable.
+ *
+ * Only ISO date-times are parsed, never whatever Date.parse will take: it reads
+ * "08.10.2026" as 10 August, so a departure format nightjet.com changed to the
+ * European order would price the wrong nights instead of failing.
  */
+const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 export function viennaDate(value) {
   if (value && typeof value === "object") value = value.utc ?? value.local ?? null;
-  const ms = typeof value === "number" ? value : typeof value === "string" ? Date.parse(value) : NaN;
+  const ms =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && ISO_DATE_TIME.test(value)
+        ? Date.parse(value)
+        : NaN;
   if (!Number.isFinite(ms)) return null;
   const f = viennaFields(ms);
   return `${f.year}-${f.month}-${f.day}`;
@@ -359,7 +369,6 @@ export async function fillNjFareCalendars(
   const reasons = new Map();
   const offerKeys = new Set();
   const offerNames = new Set();
-  let unreadable = 0;
   let consecutiveErrors = 0;
   const windowEnd = calendarWindow(today, days).at(-1);
   // A server error or a dropped connection says nothing about the train: one
@@ -393,6 +402,15 @@ export async function fillNjFareCalendars(
         await sleep(retryDelayMs);
         answer = await ask();
       }
+      // A journey whose departure cannot be read is not "no journey": with one
+      // journey per answer it would read exactly like an empty one, and
+      // nightsProven would blank the rest of the window. A changed departure
+      // format must cost a night's fares, loudly, not the calendar.
+      if (answer.unreadable) {
+        const err = new Error(`${answer.unreadable} of ${answer.rows} journey(s) without a readable departure`);
+        err.shape = true;
+        throw err;
+      }
       // Journeys, but all before the night asked about: the search did not
       // read the moment as assumed. Not "nothing on sale" — inferring that
       // would blank the rest of the calendar — so the train waits a night.
@@ -404,7 +422,6 @@ export async function fillNjFareCalendars(
       consecutiveErrors = 0;
       for (const k of answer.seen) offerKeys.add(k);
       for (const name of answer.offerNames) offerNames.add(name);
-      unreadable += answer.unreadable;
       const proven = nightsProven(answer, { from: date, today, days });
       const why = reasons.get(key) ?? { noBerth: 0, noJourney: 0 };
       reasons.set(key, why);
@@ -459,7 +476,6 @@ export async function fillNjFareCalendars(
     log(`[nj-fare] comfort classes priced: ${kept.join(", ") || "none"}; left out: ${dropped.join(", ") || "none"}`);
   }
   if (offerNames.size) log(`[nj-fare] berth offers quoted: ${[...offerNames].join(", ")}`);
-  if (unreadable) log(`[nj-fare] ${unreadable} journey(s) without a readable departure were skipped`);
 
   for (const [key, train] of Object.entries(trains ?? {})) {
     const cal = calendars[key];
