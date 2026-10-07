@@ -13,8 +13,10 @@
 // The source is the "Train Price Search" behind nightjet.com's own destination
 // pages: GET /nj-booking-ocp/destinations/offers/{train}/{from}/{to}/{ms}
 // ?forward=true&max=3 answers, for one train between two stations, its next
-// (up to) three journeys from a moment on, each with the cheapest offer per
-// comfort class — bestOffers.le (couchette), .be (sleeping car), .se (seat).
+// journey from a moment on with the cheapest offer per comfort class —
+// bestOffers.le (couchette), .be (sleeping car), .se (seat). The notes promise
+// up to three journeys per call; the first live run (2026-10-07, 360 calls)
+// got one every time, so the budget assumes one and the reader takes any.
 // It is the same /destinations family the nightly timetable scrape already
 // reads, and it needs no token. The booking flow's /connection search is NOT
 // used: it now sits behind a proof-of-work captcha (which is why the weekly
@@ -44,20 +46,25 @@ import {
 
 export const NJ_BOOKING_BASE = "https://www.nightjet.com/nj-booking-ocp";
 
-/** The endpoint answers at most three journeys per call (`max` 1–3). */
+/**
+ * What `max` asks for: the notes allow 1–3. On the first live run every
+ * answer to max=3 held one journey (`npm run probe-nj-fares` prints what each
+ * value returns), so this is a ceiling the reader never relies on.
+ */
 export const NJ_OFFERS_PER_REQUEST = 3;
 
 /**
- * Requests per run. A daily train needs ~14 for six weeks (three nights each),
- * a train not running in the window one, so the ~73 trains take ~750 for a
- * full calendar: it fills over two nights and stays fresh after. At the
- * spacing below that is about seven minutes a night.
+ * Requests per run. One answer is one night (see above), so a daily train
+ * needs ~42 for six weeks and a train not running in the window one: the ~73
+ * trains take ~2 100 for a full calendar, filled over three nights and
+ * refreshed every three after — inside the fourteen days a night's price is
+ * kept. At the spacing below that is twelve minutes a night.
  */
-export const NJ_FARE_REQUESTS_PER_RUN = 360;
+export const NJ_FARE_REQUESTS_PER_RUN = 720;
 
-// Courtesy spacing between calls to an API that owes us nothing — the same
-// figure the weekly probe used.
-const SPACING_MS = 1200;
+// Courtesy spacing between calls to an API that owes us nothing. Each call is
+// one page view's worth of nightjet.com's own price search.
+const SPACING_MS = 1000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Every Nightjet/EuroNight origin keeps Central European time, as Vienna does. */
@@ -344,6 +351,12 @@ export async function fillNjFareCalendars(
 
   const broken = new Set();
   const noted = new Set();
+  // Why tonight's nights without a fare have none, per train: a journey on
+  // sale without a berth (seats only, or nothing left), or no journey that
+  // night at all. The calendar keeps one `none` for both; the log keeps them
+  // apart, since the first is a train whose berths are gone (or not sold this
+  // way) and the second a train that does not run.
+  const reasons = new Map();
   const offerKeys = new Set();
   const offerNames = new Set();
   let unreadable = 0;
@@ -393,17 +406,32 @@ export async function fillNjFareCalendars(
       for (const name of answer.offerNames) offerNames.add(name);
       unreadable += answer.unreadable;
       const proven = nightsProven(answer, { from: date, today, days });
+      const why = reasons.get(key) ?? { noBerth: 0, noJourney: 0 };
+      reasons.set(key, why);
       for (const [d, entry] of Object.entries(proven)) {
         calendars[key].nights[d] = entry;
-        if (entry.none) stats.none++;
-        else stats.priced++;
+        if (!entry.none) {
+          stats.priced++;
+          continue;
+        }
+        stats.none++;
+        if (answer.nights[d]) why.noBerth++;
+        else why.noJourney++;
       }
       // Once per train: the answers that turn a whole stretch into "no train".
       const returned = answer.dates.filter((d) => d >= date);
       if (!returned.length && !noted.has(key)) {
         noted.add(key);
         log(`[nj-fare] ${key}: nothing on sale from ${date} on — its nights to ${windowEnd} have no fare`);
-      } else if (returned.length && returned[0] > windowEnd && !noted.has(key)) {
+      } else if (
+        returned.length &&
+        returned[0] > windowEnd &&
+        !noted.has(key) &&
+        // A train with nothing in the window at all (NJ 235 starts with the
+        // December timetable), not a running one whose last request asked
+        // about the window's final night and was answered with the next.
+        !Object.values(calendars[key].nights).some((e) => !e.none)
+      ) {
         noted.add(key);
         log(`[nj-fare] ${key}: next journey on sale is ${returned[0]}, past the calendar's ${windowEnd}`);
       }
@@ -442,9 +470,14 @@ export async function fillNjFareCalendars(
     if (fare) train.fare = fare;
     if (entries.length) {
       const priced = entries.filter((e) => !e.none).length;
+      const why = reasons.get(key);
+      const tonight = why && why.noBerth + why.noJourney
+        ? ` (tonight: ${why.noBerth} on sale without a berth, ${why.noJourney} without a journey)`
+        : "";
       log(
         `[nj-fare] ${key}: ${priced}/${entries.length} night(s) priced` +
-          (fare ? `, cheapest €${fare.fromPrice} (${fare.seatClass}) on ${fare.travelDate}` : ""),
+          (fare ? `, cheapest €${fare.fromPrice} (${fare.seatClass}) on ${fare.travelDate}` : "") +
+          tonight,
       );
     }
   }

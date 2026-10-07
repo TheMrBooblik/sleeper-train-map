@@ -77,7 +77,7 @@
       "countryCodes": [80, 81, 83, 84, 85, 88],
       "concurrency": 6,
       "maxPartnerTrains": 25,
-      "fares": { "enabled": true, "days": 42, "requestsPerRun": 360 }
+      "fares": { "enabled": true, "days": 42, "requestsPerRun": 720 }
     },
     "enrich": { "strategy": "trainsByNumber", "setPolyline": true },
     "probe": { "pricing": { "adapter": "nightjet-offers", "sampleRoutes": 4 } },
