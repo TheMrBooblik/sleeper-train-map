@@ -1,0 +1,47 @@
+name: Probe Nightjet fares
+
+# What the Nightjet fare pass sees: how many journeys one nightjet.com "Train
+# Price Search" answer holds under each `max`, and the raw answers for the
+# trains whose calendars came back without a berth beside a sibling that
+# priced. The dev sandbox has no egress to nightjet.com, so
+# scripts/lib/nj-fares.mjs was written from the endpoint's OpenAPI notes; this
+# is how it is checked.
+#
+# Label a PR `run-probes` to run it from the PR head — a workflow_dispatch probe
+# cannot run until its file is on the default branch (see CLAUDE.md).
+#
+# Read-only: about thirty GETs, nothing booked, nothing committed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      trains:
+        description: "Comma-separated train names (blank = the probe's own list)"
+        required: false
+        default: ""
+  pull_request:
+    types: [labeled]
+
+jobs:
+  probe:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'run-probes'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: node scripts/probe-nj-fares.mjs probe-output "${{ inputs.trains || '' }}"
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nj-fares-probe-output
+          path: probe-output/
+          retention-days: 7

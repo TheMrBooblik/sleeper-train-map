@@ -205,8 +205,12 @@ await check("nightsProven: nothing from that night on, or the next journey past 
   assert.ok(Object.values(later).every((e) => e.none));
 });
 
-/** A fake nightjet.com: per train, the dates it runs and their fares. */
-function fakeNightjet(timetable, { status = {}, log = [] } = {}) {
+/**
+ * A fake nightjet.com: per train, the dates it runs and their fares. `perAnswer`
+ * caps the journeys one answer holds whatever `max` asks — 1 is what the live
+ * endpoint did on its first run (2026-10-07), the notes' 3 the ceiling.
+ */
+function fakeNightjet(timetable, { status = {}, log = [], perAnswer = 3 } = {}) {
   return async (url) => {
     const m = url.match(/\/destinations\/offers\/([^/]+)\/(\d{7})\/(\d{7})\/(\d+)\?forward=true&max=(\d)/);
     assert.ok(m, `unexpected URL ${url}`);
@@ -217,7 +221,7 @@ function fakeNightjet(timetable, { status = {}, log = [] } = {}) {
     if (forced) {
       return { ok: false, status: forced, text: async () => (forced === 200 ? "" : `{"message":"refused ${forced}"}`) };
     }
-    const runs = (timetable[train] ?? []).filter(([d]) => d >= from).slice(0, Number(m[5]));
+    const runs = (timetable[train] ?? []).filter(([d]) => d >= from).slice(0, Math.min(Number(m[5]), perAnswer));
     return {
       ok: true,
       status: 200,
@@ -262,6 +266,36 @@ await check("fillNjFareCalendars: a daily train's six weeks in a third as many r
   // Every request names the train's own ends, from Vienna midnight of the night asked.
   assert.ok(log.every((r) => r.train === "NJ 40491" && r.fromId === "8002553" && r.toId === "8100108"));
   assert.deepStrictEqual(log.slice(0, 3).map((r) => r.from), ["2026-10-08", "2026-10-11", "2026-10-14"]);
+});
+
+await check("fillNjFareCalendars: one journey per answer, as live — a night a request, reasons logged", async () => {
+  const runs = everyNight("2026-10-08", 60).map(([d], i) => [d, i % 5 === 1 ? { le: null, be: null } : {}]);
+  const trains = { "NJ 40491": structuredClone(TRAIN), "NJ 402": { stations: [{ id: "8503000", name: "Zürich HB" }, { id: "8400058", name: "Amsterdam Centraal" }] } };
+  const lines = [];
+  const stats = await fillNjFareCalendars(trains, null, {
+    today: TODAY,
+    fetchImpl: fakeNightjet(
+      { "NJ 40491": runs, "NJ 402": runs.filter((_, i) => i % 2 === 0) },
+      { perAnswer: 1 },
+    ),
+    spacingMs: 0,
+    log: (l) => lines.push(l),
+  });
+  // A daily train: every night its own request. Every other night: the skipped
+  // night is settled by the answer for the next, so about half as many — 22,
+  // the last asking about 18 Nov and answered with the 19th, past the window.
+  assert.strictEqual(Object.keys(trains["NJ 40491"].fareCalendar.nights).length, 42);
+  assert.strictEqual(Object.keys(trains["NJ 402"].fareCalendar.nights).length, 42);
+  assert.strictEqual(stats.requests, 42 + 22);
+  // Seats-only nights (every fifth from the second: 9 of 42) are on sale but have no berth.
+  assert.deepStrictEqual(trains["NJ 40491"].fareCalendar.nights["2026-10-09"], { none: true, checkedAt: TODAY });
+  const nj40491 = lines.find((l) => l.startsWith("[nj-fare] NJ 40491:") && l.includes("priced"));
+  assert.ok(/ 33\/42 night\(s\) priced/.test(nj40491), nj40491);
+  assert.ok(nj40491.includes("tonight: 9 on sale without a berth, 0 without a journey"), nj40491);
+  const nj402 = lines.find((l) => l.startsWith("[nj-fare] NJ 402:") && l.includes("priced"));
+  // A running train asked about the window's last night is not "past the calendar".
+  assert.ok(!lines.some((l) => l.startsWith("[nj-fare] NJ 402: next journey")), lines.join("\n"));
+  assert.ok(nj402.includes("(tonight: 4 on sale without a berth, 21 without a journey)"), nj402);
 });
 
 await check("fillNjFareCalendars: a 3×/week train, a train not yet running, and the budget", async () => {
