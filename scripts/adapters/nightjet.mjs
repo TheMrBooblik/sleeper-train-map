@@ -4,9 +4,15 @@
 // plus the partner (EuroNight) list, then fetches each train's full route.
 // Stores the result on ctx.shared.njTrains so the runner's post-step can merge
 // polylines into view_ontd_map and build synthetic standalone routes.
+// Each train also carries its fares for every night of the next six weeks,
+// read from the same API's price search (scripts/lib/nj-fares.mjs).
 
+import fs from "node:fs";
+import path from "node:path";
 import polyline from "@mapbox/polyline";
 import { fetchWithTimeout } from "../lib/scrape-helpers.mjs";
+import { FARE_CALENDAR_DAYS } from "../lib/fare-calendar.mjs";
+import { fillNjFareCalendars, NJ_FARE_REQUESTS_PER_RUN } from "../lib/nj-fares.mjs";
 
 function normalizeNJTrain(data, date, operator = "Nightjet") {
   const stops = Array.isArray(data?.route?.stops) ? data.route.stops : [];
@@ -96,6 +102,42 @@ async function fetchPartnerTrainNumbers(date, max = 25) {
   }
 }
 
+/**
+ * Price tonight's trains night by night, building on last night's calendars.
+ * Never fatal: a fare failure costs the fares, not the trains.
+ */
+async function priceTrains(results, entry, ctx) {
+  const { enabled = true, days = FARE_CALENDAR_DAYS, requestsPerRun = NJ_FARE_REQUESTS_PER_RUN } =
+    entry.params?.fares ?? {};
+  if (!enabled) return;
+  let previous = null;
+  try {
+    const raw = JSON.parse(
+      fs.readFileSync(path.join(ctx.rootDir, "public", "data", "scraped", entry.output), "utf8"),
+    );
+    previous = raw?.data?.trains ?? raw?.trains ?? null;
+  } catch {
+    /* first run, or unreadable: nothing to build on */
+  }
+  try {
+    const stats = await fillNjFareCalendars(results, previous, {
+      today: ctx.today,
+      fetchImpl: ctx.fetch ?? fetchWithTimeout,
+      days,
+      requests: requestsPerRun,
+    });
+    console.log(
+      `[scrape] nightjet fares: ${stats.requests} request(s) tonight` +
+        `${stats.retries ? ` (${stats.retries} retried)` : ""}, ${stats.priced} night(s) priced, ` +
+        `${stats.none} without a berth or a train, ${stats.errors} failed` +
+        `${stats.capped ? ", budget spent" : ""}${stats.stopped ? ", stopped early" : ""}; ` +
+        `fares for ${Object.values(results).filter((t) => t.fare).length}/${Object.keys(results).length} trains`,
+    );
+  } catch (err) {
+    console.warn(`[scrape] nightjet fares failed: ${err.message} — trains kept without fares`);
+  }
+}
+
 export async function run(entry, ctx) {
   const { countryCodes = [], concurrency = 6, maxPartnerTrains = 25 } = entry.params ?? {};
   const results = {};
@@ -127,6 +169,8 @@ export async function run(entry, ctx) {
       };
     });
   }
+
+  await priceTrains(results, entry, ctx);
 
   ctx.write(entry.output, { uploadedAt: ctx.today, trains: results });
   console.log(`[scrape] stored ${Object.keys(results).length} NJ/EN trains`);
