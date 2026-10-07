@@ -180,6 +180,10 @@ export function getPublishedPairs() {
         // rollout gates on (snippetVariantFor in src/lib/seo/snippet.mjs).
         agencyIds: [...p.agencyIds],
         fromPrice: formatFromPrice(cheapest),
+        // Who prices the corridor's trains (pricing.source: a registry id for
+        // a nightly official fare). The snippet report reads a page that
+        // gained a price apart from its control group.
+        priceSources: [...new Set(p.prices.map((x) => x.source).filter(Boolean))].sort(),
         directions: p.directions,
       };
     })

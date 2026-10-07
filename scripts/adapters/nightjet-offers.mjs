@@ -51,7 +51,11 @@ export function probeCandidates(entry, ctx) {
       if (!seenRoutes.has(routeKey)) return null;
       const ends = pricingEnds(train);
       if (!ends) return null;
-      return { routeKey, lineName, from: ends.fromId, to: ends.toId };
+      // `priced`: the nightly calendar already prices this train, and its
+      // figure outranks a prices.json entry, so a proposal for it would
+      // change nothing once approved. Kept as a candidate for the debug
+      // script, which shows what the endpoint answers either way.
+      return { routeKey, lineName, from: ends.fromId, to: ends.toId, priced: Boolean(train.fare) };
     })
     .filter(Boolean);
 }
@@ -68,6 +72,14 @@ export async function probePrices(entry, ctx) {
     // No trains file is a real failure, not an empty night: say so, or the
     // health record reads "ran, found nothing" and hides a missing scrape.
     return { prices: [], attempted: 0, errors: [`${entry.output} unreadable: ${err.message}`] };
+  }
+
+  // Only what the nightly fare calendar does not price: a proposal for a train
+  // it prices would be overwritten by stampOfficialFares the night it lands.
+  const calendarPriced = candidates.filter((c) => c.priced).length;
+  candidates = candidates.filter((c) => !c.priced);
+  if (calendarPriced) {
+    console.log(`[probe:nj] ${calendarPriced} route(s) left out: the nightly fare calendar prices them`);
   }
 
   const targets = selectProbeTargets(candidates, ctx.prices ?? {}, {

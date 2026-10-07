@@ -493,6 +493,18 @@ check("the report reads its own baseline as no change, on both arms", () => {
     const run = spawnSync(process.execPath, ["scripts/seo-snippet-report.mjs", csv], { encoding: "utf8" });
     assert.equal(run.status, 0, run.stderr);
     assert.match(run.stdout, /treatment 1\.00×, control 1\.00× → net 1\.00×/, run.stdout);
+    // A control page that gained a price is not a control: it is read apart,
+    // and the control row holds only unpriced pages.
+    const priced = pairs.filter(
+      (p) => baseline.pages[p.slug] && p.fromPrice && snippetVariantFor(p.agencyIds) !== FACTS,
+    );
+    assert.ok(priced.length > 0, "the published pairs carry priced control-variant pages");
+    assert.match(run.stdout, new RegExp(`${priced.length} control page\\(s\\) gained a price`), run.stdout);
+    assert.match(run.stdout, new RegExp(`priced\\s+before\\s+${priced.length}\\s`), run.stdout);
+    const unpriced = pairs.filter(
+      (p) => baseline.pages[p.slug] && !p.fromPrice && snippetVariantFor(p.agencyIds) !== FACTS,
+    );
+    assert.match(run.stdout, new RegExp(`control\\s+before\\s+${unpriced.length}\\s`), run.stdout);
     for (const slug of TREATED_PAIRS) assert.ok(run.stdout.includes(slug), `${slug} missing from the treatment table`);
   } finally {
     fs.rmSync(csv, { force: true });

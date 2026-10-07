@@ -7,6 +7,33 @@
 
 import { getTrainsBySource, isFresh } from "./file-store.mjs";
 
+/**
+ * The trains file as the browser needs it: without each train's fareCalendar.
+ * Six to thirteen weeks of nights a train is for the connection pages, which
+ * read it off the published rows (fare_calendar_{dir}); no client reads it
+ * from here, and the panel fetches this file whole — Nightjet's calendars
+ * alone are ~87 KB of it. The cached blob is never mutated: the copy is
+ * memoised per blob, so a warm lambda strips once.
+ */
+const served = new WeakMap();
+export function servedTrainsData(data) {
+  const trains = data?.trains;
+  if (!trains || !Object.values(trains).some((t) => t?.fareCalendar)) return data;
+  if (served.has(data)) return served.get(data);
+  const out = {
+    ...data,
+    trains: Object.fromEntries(
+      Object.entries(trains).map(([key, train]) => {
+        if (!train?.fareCalendar) return [key, train];
+        const { fareCalendar: _calendar, ...rest } = train;
+        return [key, rest];
+      }),
+    ),
+  };
+  served.set(data, out);
+  return out;
+}
+
 export function createTrainsFileHandler({ file, label, missing = "empty" }) {
   return async function handler(_req, res) {
     try {
@@ -33,7 +60,7 @@ export function createTrainsFileHandler({ file, label, missing = "empty" }) {
       );
       res.setHeader("Content-Type", "application/json");
 
-      return res.status(200).json(blob.data);
+      return res.status(200).json(servedTrainsData(blob.data));
     } catch (error) {
       console.error(`[${label}] Error:`, error);
       return res.status(500).json({ error: `Failed to load ${label} data` });

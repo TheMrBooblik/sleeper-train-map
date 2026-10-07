@@ -26,7 +26,7 @@ import {
   viennaDate,
   viennaMidnightMs,
 } from "../scripts/lib/nj-fares.mjs";
-import { buildProbeUrl, probeCandidates } from "../scripts/adapters/nightjet-offers.mjs";
+import { buildProbeUrl, probeCandidates, probePrices } from "../scripts/adapters/nightjet-offers.mjs";
 import { calendarWindow, FARE_CALENDAR_VERSION } from "../scripts/lib/fare-calendar.mjs";
 import { fareCalendarDays } from "../src/lib/fareCalendarView.mjs";
 import { fareClassLabel, fareClassRows } from "../src/lib/fareClasses.mjs";
@@ -81,6 +81,7 @@ await check("viennaMidnightMs / viennaDate: Vienna's calendar, across both clock
   assert.strictEqual(viennaDate(viennaMidnightMs("2026-11-02") - 1), "2026-11-01");
   assert.strictEqual(viennaDate({ utc: 1760461680000, local: "2025-10-14T19:08:00" }), "2025-10-14");
   assert.strictEqual(viennaDate("tomorrow"), null);
+  assert.strictEqual(viennaDate("08.10.2026 19:08"), null, "not 10 August: only ISO date-times are read");
   assert.strictEqual(viennaDate(null), null);
 });
 
@@ -421,6 +422,28 @@ await check("fillNjFareCalendars: an answer that ignores the night asked blanks 
   assert.ok(lines.some((l) => l.includes("answered only journeys before 2026-10-08")));
 });
 
+await check("fillNjFareCalendars: a departure it cannot read is an error, not an empty answer", async () => {
+  const trains = { "NJ 40491": structuredClone(TRAIN) };
+  const lines = [];
+  // One journey per answer, its departure in a format the reader does not know:
+  // read as "no journey" it would blank all 42 nights in one request.
+  const stats = await fillNjFareCalendars(trains, null, {
+    today: TODAY,
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify([{ ...journey("2026-10-08"), departure: "08.10.2026 19:08" }]),
+    }),
+    spacingMs: 0,
+    log: (l) => lines.push(l),
+  });
+  assert.strictEqual(stats.errors, 1);
+  assert.strictEqual(stats.none, 0, "no night marked as having no train");
+  assert.strictEqual(stats.retries, 0, "a shape error is not retried");
+  assert.strictEqual(trains["NJ 40491"].fareCalendar, undefined);
+  assert.ok(lines.some((l) => l.includes("1 of 1 journey(s) without a readable departure")), lines.join("\n"));
+});
+
 await check("fetchNjOffers: HTTP errors carry status and body; HTML is a shape error", async () => {
   await assert.rejects(
     fetchNjOffers({ trainName: "NJ 1", fromId: "8100002", toId: "8103000", date: "2026-10-20" }, {
@@ -443,6 +466,23 @@ await check("probeCandidates: live nj_standalone_ routes with priceable ends", (
   const byLine = Object.fromEntries(candidates.map((c) => [c.lineName, c]));
   assert.deepStrictEqual(Object.keys(byLine).sort(), ["NJ 19946", "NJ 40491"]);
   assert.strictEqual(byLine["NJ 19946"].from, "8103000", "Wien Hbf, not the car-train terminal");
+});
+
+await check("probePrices: a train the calendar prices is never sampled (its proposal would change nothing)", async () => {
+  const entry = { output: "nightjet-trains.json", probe: { pricing: { sampleRoutes: 4 } } };
+  const file = JSON.parse(fs.readFileSync(path.join(ROOT, "public/data/scraped/nightjet-trains.json"), "utf8"));
+  const all = file.data?.trains ?? file.trains;
+  const key = (name) => `nj_standalone_${name.replace(/\s+/g, "_")}`;
+  const priced = Object.keys(all).filter((name) => all[name].fare && pricingEnds(all[name]));
+  assert.ok(priced.length > 0, "the committed trains file carries calendar-priced trains");
+  const seen = new Set(priced.map(key));
+  const candidates = probeCandidates(entry, { rootDir: ROOT, seenRoutes: seen });
+  assert.strictEqual(candidates.length, priced.length);
+  assert.ok(candidates.every((c) => c.priced));
+  // Every live route is priced, so nothing is left to sample, and no request
+  // is made (there is no network here: one would throw).
+  const out = await probePrices(entry, { rootDir: ROOT, seenRoutes: seen, prices: {} });
+  assert.deepStrictEqual(out, { prices: [], attempted: 0, errors: [] });
 });
 
 await check("stampOfficialFares: an nj_standalone_ row takes each direction's fare and calendar", async () => {

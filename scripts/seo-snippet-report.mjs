@@ -12,6 +12,15 @@
  * so the treatment's change is read NET of theirs. A before/after on the
  * treatment alone would credit the wording with whatever the whole site did.
  *
+ * A control page has to have kept everything but its wording, and a priced
+ * one has not: no published page carried a fare before the baseline closed
+ * (the first nightly official fare, 12306's, landed on 2026-09-26), and a
+ * fare calendar, a "From" tile, a price question in the FAQ and a price in
+ * the description are a different page. So control-variant pages with a
+ * price are read apart, as their own row, and kept out of the net figure —
+ * 63 of them in October 2026, ÖBB's 24 Nightjet corridors among them, about
+ * half the control group's baseline impressions.
+ *
  * Read it with three things in mind, which it prints:
  *
  *   - Volume. The four European Sleeper pages took 3 clicks from 793
@@ -89,8 +98,10 @@ function main() {
   }
 
   // Arms from the pages as the build renders them today; only pages with a
-  // "before" can be compared, so a pair newer than the baseline sits out.
-  const arms = { treatment: [], control: [] };
+  // "before" can be compared, so a pair newer than the baseline sits out. A
+  // control page that gained a price since is its own row (see the header).
+  const arms = { treatment: [], control: [], priced: [] };
+  const pricedSources = new Set();
   let unbaselined = 0;
   for (const pair of getPublishedPairs()) {
     const before = BASELINE.pages[pair.slug];
@@ -98,7 +109,9 @@ function main() {
       unbaselined += 1;
       continue;
     }
-    const arm = snippetVariantFor(pair.agencyIds) === FACTS ? "treatment" : "control";
+    const arm =
+      snippetVariantFor(pair.agencyIds) === FACTS ? "treatment" : pair.fromPrice ? "priced" : "control";
+    if (arm === "priced") for (const s of pair.priceSources ?? []) pricedSources.add(s);
     arms[arm].push({
       slug: pair.slug,
       before,
@@ -111,11 +124,18 @@ function main() {
     `baseline ${BASELINE.baselineWindow.from} → ${BASELINE.baselineWindow.to} (${BASELINE.baselineSource}); after: ${csvPath}`,
   );
   if (unbaselined) console.log(`${unbaselined} published pair(s) are newer than the baseline and sit out.`);
+  if (arms.priced.length) {
+    console.log(
+      `${arms.priced.length} control page(s) gained a price after the baseline (${[...pricedSources].sort().join(", ") || "prices.json"}):\n` +
+        "  read apart as \"priced\" and left out of the net, since they changed more than their wording.",
+    );
+  }
 
   console.log(`\n${"=".repeat(68)}`);
   console.log("                      pages    impr  clicks      CTR     pos");
   const sums = {};
-  for (const arm of ["treatment", "control"]) {
+  for (const arm of ["treatment", "control", "priced"]) {
+    if (arm === "priced" && !arms.priced.length) continue;
     sums[arm] = {
       before: totals(arms[arm].map((r) => r.before)),
       after: totals(arms[arm].map((r) => r.after)),
