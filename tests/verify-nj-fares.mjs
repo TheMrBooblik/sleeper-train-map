@@ -25,6 +25,7 @@ import {
   pricedJourney,
   pricingEnds,
   viennaDate,
+  viennaDateTime,
   viennaMidnightMs,
 } from "../scripts/lib/nj-fares.mjs";
 import { buildProbeUrl, probeCandidates, probePrices } from "../scripts/adapters/nightjet-offers.mjs";
@@ -187,10 +188,21 @@ await check("nightsProven: returned nights priced, skipped nights before the las
   ]);
   const out = nightsProven(answer, { from: "2026-10-19", today: TODAY });
   assert.deepStrictEqual(out["2026-10-19"], { none: true, checkedAt: TODAY });
-  assert.deepStrictEqual(out["2026-10-20"], { classes: { couchette: 59.9, sleeperBed: 99.9 }, checkedAt: TODAY });
+  assert.deepStrictEqual(out["2026-10-20"], {
+    classes: { couchette: 59.9, sleeperBed: 99.9 },
+    checkedAt: TODAY,
+    // That night's own clocks, for the Book link.
+    dep: "2026-10-20T19:08",
+    arr: "2026-10-20T23:59",
+  });
   assert.deepStrictEqual(out["2026-10-21"], { none: true, checkedAt: TODAY });
   assert.deepStrictEqual(out["2026-10-22"], { none: true, checkedAt: TODAY });
-  assert.deepStrictEqual(out["2026-10-24"], { classes: { couchette: 59.9 }, checkedAt: TODAY });
+  assert.deepStrictEqual(out["2026-10-24"], {
+    classes: { couchette: 59.9 },
+    checkedAt: TODAY,
+    dep: "2026-10-24T19:08",
+    arr: "2026-10-24T23:59",
+  });
   // After the last journey returned, nothing is known: the next request starts there.
   assert.strictEqual(out["2026-10-25"], undefined);
   assert.strictEqual(out["2026-10-18"], undefined, "before the night asked about");
@@ -554,55 +566,69 @@ const OEBB_CLICKOUT =
   "&connectionDatetimeArrival=2026-12-08T06:46&connectionOrigEva=8400058&connectionDestEva=8100002" +
   "&stationOrigName=Amsterdam%20Centraal&stationDestName=Salzburg%20Hbf";
 
-await check("pricedJourney: the priced ends by id and ÖBB's name, Vienna clocks, the arrival's day", () => {
-  // 16:01 UTC in October is 18:01 in Vienna (summer time), 04:46 UTC 06:46.
+/** A journey as nightjet.com answers it, departing and arriving when told. */
+function journeyAt(departure, arrival, fares = {}) {
+  return { ...journey(departure.slice(0, 10), fares), departure, arrival };
+}
+
+await check("viennaDateTime: an answer's instant as Vienna wall-clock time, the shop's shape", () => {
+  assert.strictEqual(viennaDateTime("2026-10-07T16:01:00.000Z"), "2026-10-07T18:01");
+  assert.strictEqual(viennaDateTime("2026-12-07T18:01:00+01:00"), "2026-12-07T18:01");
+  assert.strictEqual(viennaDateTime({ utc: Date.parse("2026-12-08T05:46:00Z") }), "2026-12-08T06:46");
+  // The night the clocks go back: 01:30 UTC is 02:30 CET, after the change.
+  assert.strictEqual(viennaDateTime("2026-10-25T01:30:00Z"), "2026-10-25T02:30");
+  assert.strictEqual(viennaDateTime("08.10.2026 19:08"), null);
+});
+
+await check("journeysFromOffers / nightsProven: each priced night keeps its own departure and arrival", () => {
+  const answer = journeysFromOffers([
+    journeyAt("2026-10-08T18:01:00+02:00", "2026-10-09T06:46:00+02:00"),
+    // Works: the same train leaves 25 minutes later two nights on.
+    journeyAt("2026-10-10T18:26:00+02:00", "2026-10-11T07:20:00+02:00"),
+    journeyAt("2026-10-11T18:01:00+02:00", "2026-10-12T06:46:00+02:00", { le: null, be: null }),
+  ]);
+  assert.deepStrictEqual(
+    [answer.nights["2026-10-08"].dep, answer.nights["2026-10-08"].arr],
+    ["2026-10-08T18:01", "2026-10-09T06:46"],
+  );
+  const proven = nightsProven(answer, { from: "2026-10-08", today: TODAY });
+  assert.strictEqual(proven["2026-10-08"].dep, "2026-10-08T18:01");
+  assert.strictEqual(proven["2026-10-10"].dep, "2026-10-10T18:26", "a works night keeps its own clock");
+  assert.strictEqual(proven["2026-10-10"].arr, "2026-10-11T07:20");
+  // A night with no train, and one with no berth, carry no clocks (nothing to book).
+  assert.deepStrictEqual(proven["2026-10-09"], { none: true, checkedAt: TODAY });
+  assert.deepStrictEqual(proven["2026-10-11"], { none: true, checkedAt: TODAY });
+  // An arrival that cannot be read, or one before the departure, leaves the night unclocked.
+  const odd = journeysFromOffers([{ ...journey("2026-10-08"), arrival: "tomorrow" }]);
+  assert.strictEqual(odd.nights["2026-10-08"].dep, undefined);
+});
+
+await check("pricedJourney: the priced ends by id and ÖBB's own name, the car-train terminal swapped", () => {
   assert.deepStrictEqual(pricedJourney(AMS_SBG), {
     fromId: "8400058",
     toId: "8100002",
     from: "Amsterdam Centraal",
     to: "Salzburg Hbf",
-    departure: "18:01",
-    arrival: "06:46",
-    days: 1,
   });
-  // The same train read off a winter run keeps its local clock.
-  const winter = structuredClone(AMS_SBG);
-  winter.stations[0].departure = "2026-12-07T17:01:00.000Z";
-  winter.stations[2].arrival = "2026-12-08T05:46:00.000Z";
-  assert.deepStrictEqual(
-    [pricedJourney(winter).departure, pricedJourney(winter).arrival],
-    ["18:01", "06:46"],
-  );
-  // The car-train terminal is booked from the station beside it, at that
-  // station's own departure — the journey the calendar priced.
   const carTrain = {
     stations: [
-      { id: "8100004", name: "Wien Hbf (Autoreisezuganlage)", departure: "2026-10-07T20:34:00.000Z" },
-      { id: "8103000", name: "Wien Hbf", arrival: "2026-10-07T20:36:00.000Z", departure: "2026-10-07T20:44:00.000Z" },
-      { id: "8100090", name: "Bregenz Bahnhof", arrival: "2026-10-08T06:57:00.000Z" },
+      { id: "8100004", name: "Wien Hbf (Autoreisezuganlage)" },
+      { id: "8103000", name: "Wien Hbf" },
+      { id: "8100090", name: "Bregenz Bahnhof" },
     ],
   };
-  assert.deepStrictEqual(
-    [pricedJourney(carTrain).fromId, pricedJourney(carTrain).departure],
-    ["8103000", "22:44"],
-  );
-  // No times, or an arrival before the departure: no journey to book.
-  assert.strictEqual(pricedJourney(TRAIN), null);
-  const backwards = structuredClone(AMS_SBG);
-  backwards.stations[2].arrival = "2026-10-07T04:46:00.000Z";
-  assert.strictEqual(pricedJourney(backwards), null);
+  assert.strictEqual(pricedJourney(carTrain).fromId, "8103000", "booked where it is priced");
+  assert.strictEqual(pricedJourney({ stations: [{ id: "8400058", name: "Amsterdam Centraal" }] }), null);
 });
 
-await check("pricedJourney: every committed NJ/EN train with a calendar has one, and the page carries it", () => {
+await check("pricedJourney: every committed NJ/EN calendar records its ends, and the page carries them", () => {
   const file = JSON.parse(fs.readFileSync(path.join(ROOT, "public/data/scraped/nightjet-trains.json"), "utf8"));
   const trains = file.data?.trains ?? file.trains;
   const calendared = Object.entries(trains).filter(([, t]) => t.fareCalendar);
   assert.ok(calendared.length > 40);
   for (const [key, train] of calendared) {
     assert.deepStrictEqual(train.fareCalendar.journey, pricedJourney(train), `${key}'s recorded journey`);
-    assert.ok([0, 1].includes(train.fareCalendar.journey.days), `${key} arrives ${train.fareCalendar.journey.days} days on`);
   }
-  // The published rows carry it with the calendar (stampOfficialFares).
   const published = JSON.parse(fs.readFileSync(path.join(ROOT, "public/data/published/initial-data.json"), "utf8"));
   const rows = Object.values(published.data.viewMap).filter((r) => r.timetable_source === "nightjet");
   let calendars = 0;
@@ -618,17 +644,20 @@ await check("pricedJourney: every committed NJ/EN train with a calendar has one,
 });
 
 await check("buildDatedBookingLink: ÖBB opens the priced train on the night picked, as ÖBB's own timetable does", () => {
-  const journey = pricedJourney(AMS_SBG);
+  const nights = { "2026-12-07": { classes: { couchette: 59.9 }, dep: "2026-12-07T18:01", arr: "2026-12-08T06:46" } };
   const link = buildDatedBookingLink({
     agencyId: "ÖBB",
     origin: "Amsterdam Centraal",
     dest: "Salzburg Hbf",
-    journey,
+    journey: pricedJourney(AMS_SBG),
+    nightTimes: (iso) => nights[iso] ?? null,
   });
   assert.ok(link, "ÖBB has a journey link");
+  const times = link.timesFor("2026-12-07");
   const href = datedBookingHref(link.template, {
     bookingDate: link.dateFor("2026-12-07"),
-    bookingArrivalDate: link.arrivalDateFor("2026-12-07"),
+    bookingDeparture: times.departure,
+    bookingArrival: times.arrival,
   });
   const ours = new URL(href);
   const theirs = new URL(OEBB_CLICKOUT);
@@ -641,28 +670,32 @@ await check("buildDatedBookingLink: ÖBB opens the priced train on the night pic
   // Byte for byte where it matters: a literal colon, %20 in the names.
   assert.ok(href.includes("connectionDatetimeDeparture=2026-12-07T18:01&"), href);
   assert.ok(href.includes("stationOrigName=Amsterdam%20Centraal&"), href);
-  // The arrival moves with the night, across a month and a year.
-  assert.strictEqual(link.arrivalDateFor("2026-10-31"), "2026-11-01");
-  assert.strictEqual(link.arrivalDateFor("2026-12-31"), "2027-01-01");
-  assert.strictEqual(link.dateFor("2026-10-31"), "2026-10-31");
 });
 
-await check("buildDatedBookingLink: no journey, or one short of anything the link needs, stays undated", () => {
-  const journey = pricedJourney(AMS_SBG);
+await check("buildDatedBookingLink: a night without its own clocks, or a journey short of an end, gets no dated link", () => {
+  const journeyEnds = pricedJourney(AMS_SBG);
   const args = { agencyId: "ÖBB", origin: "Amsterdam Centraal", dest: "Salzburg Hbf" };
-  // The plain ÖBB search has no date, so no journey means no dated link …
+  const nights = {
+    "2026-12-07": { dep: "2026-12-07T18:01", arr: "2026-12-08T06:46" },
+    "2026-12-08": { classes: { couchette: 59.9 } }, // priced before nights kept their clocks
+    "2026-12-09": { dep: "2026-12-10T18:01", arr: "2026-12-11T06:46" }, // another night's
+    "2026-12-10": { dep: "2026-12-10T18:01", arr: "2026-12-10T17:00" }, // arrives before it leaves
+    "2026-12-11": { dep: "2026-12-11T18:1", arr: "2026-12-12T06:46" },
+  };
+  const link = buildDatedBookingLink({ ...args, journey: journeyEnds, nightTimes: (iso) => nights[iso] ?? null });
+  assert.deepStrictEqual(link.timesFor("2026-12-07"), { departure: "2026-12-07T18:01", arrival: "2026-12-08T06:46" });
+  for (const iso of ["2026-12-08", "2026-12-09", "2026-12-10", "2026-12-11", "2026-12-12"]) {
+    assert.strictEqual(link.timesFor(iso), null, iso);
+  }
+  // No journey (or no way to read the nights): the plain ÖBB search has no date.
   assert.strictEqual(buildDatedBookingLink(args), null);
-  // … and so does a journey a wrong train could be booked from.
+  assert.strictEqual(buildDatedBookingLink({ ...args, journey: journeyEnds }), null);
   for (const broken of [
-    { ...journey, departure: "18:1" },
-    { ...journey, arrival: "25:00" },
-    { ...journey, fromId: "008400058" },
-    { ...journey, toId: undefined },
-    { ...journey, to: "" },
-    { ...journey, days: -1 },
-    { ...journey, days: 1.5 },
+    { ...journeyEnds, fromId: "008400058" },
+    { ...journeyEnds, toId: undefined },
+    { ...journeyEnds, to: "" },
   ]) {
-    assert.strictEqual(buildDatedBookingLink({ ...args, journey: broken }), null, JSON.stringify(broken));
+    assert.strictEqual(buildDatedBookingLink({ ...args, journey: broken, nightTimes: () => null }), null);
   }
   // The route's ordinary CTA is untouched: station names, no date.
   assert.strictEqual(
@@ -670,73 +703,79 @@ await check("buildDatedBookingLink: no journey, or one short of anything the lin
     "https://shop.oebbtickets.at/en/ticket?stationOrigName=Amsterdam&stationDestName=Salzburg%20Hbf&cref=pingwi",
   );
   // An operator without a journey link ignores one (Trenitalia keeps its own dated link).
-  const trenitalia = buildDatedBookingLink({ agencyId: "FS", origin: "Milano Centrale", dest: "Siracusa", journey });
+  const trenitalia = buildDatedBookingLink({ agencyId: "FS", origin: "Milano Centrale", dest: "Siracusa", journey: journeyEnds, nightTimes: () => null });
   assert.ok(trenitalia.template.endsWith("&departureDate={date}"));
-  assert.strictEqual(trenitalia.arrivalDateFor, undefined);
+  assert.strictEqual(trenitalia.timesFor("2026-12-07"), null);
 });
 
-await check("datedBookingHref: a night fills its date, and a journey link its arrival too", () => {
-  const template = "https://x/?d={date}&a={arrivalDate}";
-  assert.strictEqual(
-    datedBookingHref(template, { bookingDate: "2026-10-20", bookingArrivalDate: "2026-10-21" }),
-    "https://x/?d=2026-10-20&a=2026-10-21",
-  );
-  // No arrival for a link that names one: no link, never one ending before it starts.
-  assert.strictEqual(datedBookingHref(template, { bookingDate: "2026-10-20", bookingArrivalDate: null }), null);
-  // A date-only template (European Sleeper, Trenitalia) needs no arrival.
+await check("datedBookingHref: a night fills its date, and a connection link its own clocks", () => {
+  const template = "https://x/?d={departure}&a={arrival}";
+  const night = { bookingDate: "2026-10-20", bookingDeparture: "2026-10-20T18:01", bookingArrival: "2026-10-21T06:46" };
+  assert.strictEqual(datedBookingHref(template, night), "https://x/?d=2026-10-20T18:01&a=2026-10-21T06:46");
+  // No clocks for a link that names a connection: no link, never another night's.
+  assert.strictEqual(datedBookingHref(template, { ...night, bookingDeparture: null }), null);
+  assert.strictEqual(datedBookingHref(template, { ...night, bookingArrival: null }), null);
+  // A date-only template (European Sleeper, Trenitalia) needs no clocks.
   assert.strictEqual(datedBookingHref("https://y/?d={date}", { bookingDate: "20-10-2026" }), "https://y/?d=20-10-2026");
-  assert.strictEqual(datedBookingHref(null, { bookingDate: "2026-10-20" }), null);
+  assert.strictEqual(datedBookingHref(null, night), null);
   assert.strictEqual(datedBookingHref(template, null), null);
-  assert.strictEqual(datedBookingHref(template, { bookingDate: null }), null);
+  assert.strictEqual(datedBookingHref(template, { ...night, bookingDate: null }), null);
 });
 
-await check("the connection page: every Nightjet calendar's nights carry a dated ÖBB link", () => {
+await check("the connection page: a Nightjet night links its own departure, or falls back to the route search", () => {
   const published = JSON.parse(fs.readFileSync(path.join(ROOT, "public/data/published/initial-data.json"), "utf8"));
   const rows = Object.values(published.data.viewMap).filter((r) => r.timetable_source === "nightjet");
-  let checked = 0;
+  let calendars = 0;
+  let dated = 0;
+  let undated = 0;
   for (const row of rows) {
     for (const dir of [0, 1]) {
       const calendar = row[`fare_calendar_${dir}`];
       if (!calendar) continue;
+      calendars++;
       // What src/lib/seo/data.js fareCalendarFor does for this direction.
       const link = buildDatedBookingLink({
         agencyId: row.agency_id,
         origin: row[`origin_trip_${dir}`],
         dest: row[`destination_trip_${dir}`],
         journey: calendar.journey,
+        nightTimes: (iso) => calendar.nights?.[iso] ?? null,
       });
-      assert.ok(link, `${row.route_id} dir ${dir} has a dated link`);
-      const view = fareCalendarDays(calendar, {
-        today: TODAY,
-        bookingDate: link.dateFor,
-        bookingArrivalDate: link.arrivalDateFor,
-      });
-      if (!view) continue;
-      for (const night of view.days) {
-        const url = new URL(datedBookingHref(link.template, night));
-        const dep = url.searchParams.get("connectionDatetimeDeparture");
-        const arr = url.searchParams.get("connectionDatetimeArrival");
-        assert.ok(dep.startsWith(`${night.date}T`), `${row.route_id} ${night.date}: ${dep}`);
-        assert.ok(arr > dep, `${row.route_id} ${night.date}: arrives ${arr} after ${dep}`);
+      assert.ok(link, `${row.route_id} dir ${dir} has a journey link`);
+      const view = fareCalendarDays(calendar, { today: TODAY, bookingDate: link.dateFor, bookingTimes: link.timesFor });
+      for (const night of view?.days ?? []) {
+        const href = datedBookingHref(link.template, night);
+        const own = calendar.nights[night.date];
+        if (!own?.dep) {
+          assert.strictEqual(href, null, `${row.route_id} ${night.date} has no clock of its own, so no dated link`);
+          undated++;
+          continue;
+        }
+        const url = new URL(href);
+        assert.strictEqual(url.searchParams.get("connectionDatetimeDeparture"), own.dep);
+        assert.strictEqual(url.searchParams.get("connectionDatetimeArrival"), own.arr);
+        assert.ok(own.dep.startsWith(`${night.date}T`));
         assert.strictEqual(url.searchParams.get("connectionOrigEva"), calendar.journey.fromId);
         assert.strictEqual(url.searchParams.get("connectionDestEva"), calendar.journey.toId);
+        dated++;
       }
-      checked++;
     }
   }
-  assert.ok(checked > 40, `${checked} calendars checked`);
-  // The page wires it: the journey into the link, the arrival into each night,
-  // the component filling both, and each calendar's own direction as fallback.
+  assert.ok(calendars > 40, `${calendars} calendars`);
+  console.log(`      (${dated} night(s) dated from their own clocks, ${undated} waiting for a re-check)`);
+  // The page wires it: the journey and each night's clocks into the link, the
+  // component filling them, and each calendar's own direction as fallback.
   const dataSrc = fs.readFileSync(path.join(ROOT, "src/lib/seo/data.js"), "utf8");
   assert.ok(/journey:\s*calendar\.journey/.test(dataSrc), "fareCalendarFor passes the priced journey");
-  assert.ok(/bookingArrivalDate:\s*link\?\.arrivalDateFor/.test(dataSrc), "…and each night's arrival");
+  assert.ok(/nightTimes:\s*\(iso\)\s*=>\s*calendar\.nights/.test(dataSrc), "…and each night's own clocks");
+  assert.ok(/bookingTimes:\s*link \? link\.timesFor/.test(dataSrc), "…into the calendar's nights");
   assert.ok(/dir\.fareCalendar\.bookingHref\s*=/.test(dataSrc), "each calendar gets its own direction's fallback");
   const pageSrc = fs.readFileSync(path.join(ROOT, "src/components/seo/FareCalendar.js"), "utf8");
   assert.ok(/datedBookingHref\(bookingTemplate, night\)/.test(pageSrc), "FareCalendar fills the night through datedBookingHref");
   assert.ok(/calendar\.bookingHref \|\| bookingHref/.test(pageSrc), "…and prefers its own direction's fallback");
 });
 
-await check("fillNjFareCalendars: the calendar records the journey it priced", async () => {
+await check("fillNjFareCalendars: the calendar records the journey it priced, each night its own clocks", async () => {
   const trains = { "NJ 40421": structuredClone(AMS_SBG) };
   await fillNjFareCalendars(trains, null, {
     today: TODAY,
@@ -744,7 +783,11 @@ await check("fillNjFareCalendars: the calendar records the journey it priced", a
     spacingMs: 0,
     log: () => {},
   });
-  assert.deepStrictEqual(trains["NJ 40421"].fareCalendar.journey, pricedJourney(AMS_SBG));
+  const cal = trains["NJ 40421"].fareCalendar;
+  assert.deepStrictEqual(cal.journey, pricedJourney(AMS_SBG));
+  // fakeNightjet's journeys leave 19:08 and arrive 23:59 the same evening.
+  assert.deepStrictEqual([cal.nights["2026-10-08"].dep, cal.nights["2026-10-08"].arr], ["2026-10-08T19:08", "2026-10-08T23:59"]);
+  assert.ok(Object.values(cal.nights).filter((n) => !n.none).every((n) => n.dep && n.arr));
 });
 
 console.log(`\nverify-nj-fares: ${passed} checks passed`);
