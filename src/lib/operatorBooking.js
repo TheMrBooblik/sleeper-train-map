@@ -23,9 +23,9 @@
  *     shop takes the departure and arrival date-time and both ends' 7-digit
  *     station ids, the exact link ÖBB's own timetable hands off with. It is
  *     filled from the journey a fare calendar priced ({originId}, {destId},
- *     {originName}, {destName}: the operator's own ids and names;
- *     {departureTime}, {arrivalTime}: HH:mm local clock) and leaves {date} and
- *     {arrivalDate} for the night picked (buildDatedBookingLink).
+ *     {originName}, {destName}: the operator's own ids and names) and leaves
+ *     {departure} and {arrival} — that night's own local date-times,
+ *     "2026-12-07T18:01" — for the night picked (buildDatedBookingLink).
  *   - dealsUrl / dealsLabel: optional secondary "last-minute deals" link
  *   - dealsUrlTemplate: a deals landing page by path ({path}), for the fare
  *     calendar's per-night last-minute deals (buildDealsLandingUrl)
@@ -135,65 +135,66 @@ export function buildBookingUrl({ agencyId, origin, dest, date, isoDate }) {
 
 /**
  * A booking link that opens on a night of the caller's choosing, for the fare
- * calendar: { template, dateFor, arrivalDateFor } where `template` is the deep
- * link with a literal "{date}" (and, for a journey link, "{arrivalDate}") left
- * in it, `dateFor(iso)` the night as that link wants it and
- * `arrivalDateFor(iso)` the morning the train arrives — so a page carries one
- * URL and a short date per night instead of a full URL for each of six weeks.
+ * calendar: { template, dateFor, timesFor } where `template` is the deep link
+ * with its per-night placeholders left in — "{date}", or for a journey link
+ * "{departure}" and "{arrival}" — and `dateFor(iso)` / `timesFor(iso)` give one
+ * night's values, so a page carries one URL and a short string per night
+ * instead of a full URL for each of six weeks.
+ *
  * `journey` is the one the calendar priced (scripts/lib/nj-fares.mjs
- * pricedJourney); an operator with a journeyUrlTemplate opens that train
- * itself. Tries each component of a compound agency id in turn. null when no
+ * pricedJourney) and `nightTimes(iso)` that night's own { dep, arr } — an
+ * operator with a journeyUrlTemplate opens that train itself, and a night
+ * without its own clocks gets no dated link rather than another night's (one
+ * train number runs at different times across works and timetable periods).
+ * Tries each component of a compound agency id in turn. null when no
  * operator's link takes a date (the caller then links to the route's ordinary
  * booking page and says the night must be chosen there).
  */
-export function buildDatedBookingLink({ agencyId, origin, dest, journey = null }) {
+export function buildDatedBookingLink({ agencyId, origin, dest, journey = null, nightTimes = null }) {
   for (const id of splitAgencyIds(agencyId)) {
     const booking = getOperatorBooking(id);
-    const byJourney = buildJourneyLink(booking, journey);
+    const byJourney = buildJourneyLink(booking, journey, nightTimes);
     if (byJourney) return byJourney;
     const template = booking?.urlTemplate;
     if (!template || !(template.includes("{date}") || booking.urlDateSuffix)) continue;
     const url = buildBookingUrl({ agencyId: id, origin, dest, date: "{date}" });
     if (!url) continue;
-    return { template: url, dateFor: (iso) => isoBookingDate(booking, iso) };
+    return { template: url, dateFor: (iso) => isoBookingDate(booking, iso), timesFor: () => null };
   }
   return null;
 }
 
-const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/;
+const LOCAL_DATE_TIME = /^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d$/;
 const STATION_ID = /^\d{7}$/;
 
 /**
  * The journey link for one priced train, or null when the operator has none or
- * the journey is short of anything the link needs — a link missing its clock
- * or an id would open the shop on the wrong train, which is worse than the
- * plain route search the caller falls back to.
+ * the journey is short of an id or a name — a link to the wrong train is worse
+ * than the plain route search the caller falls back to. `timesFor(iso)` answers
+ * only for a night whose own clocks are well formed and start on that night.
  */
-function buildJourneyLink(booking, journey) {
+function buildJourneyLink(booking, journey, nightTimes) {
   const template = booking?.journeyUrlTemplate;
-  if (!template || !journey) return null;
-  const { fromId, toId, from, to, departure, arrival, days } = journey;
+  if (!template || !journey || typeof nightTimes !== "function") return null;
+  const { fromId, toId, from, to } = journey;
   if (!STATION_ID.test(String(fromId ?? "")) || !STATION_ID.test(String(toId ?? ""))) return null;
-  if (!CLOCK.test(String(departure ?? "")) || !CLOCK.test(String(arrival ?? ""))) return null;
-  if (!from || !to || !Number.isInteger(days) || days < 0 || days > 3) return null;
+  if (!from || !to) return null;
   return {
     template: template
       .replaceAll("{originId}", fromId)
       .replaceAll("{destId}", toId)
       .replaceAll("{originName}", encodeURIComponent(from))
-      .replaceAll("{destName}", encodeURIComponent(to))
-      // ÖBB writes the clock's colon literally; it is a legal query character.
-      .replaceAll("{departureTime}", departure)
-      .replaceAll("{arrivalTime}", arrival),
+      .replaceAll("{destName}", encodeURIComponent(to)),
     dateFor: (iso) => isoBookingDate(booking, iso),
-    arrivalDateFor: (iso) => isoBookingDate(booking, addIsoDays(iso, days)),
+    timesFor: (iso) => {
+      const night = nightTimes(iso);
+      const departure = String(night?.dep ?? "");
+      const arrival = String(night?.arr ?? "");
+      if (!LOCAL_DATE_TIME.test(departure) || !LOCAL_DATE_TIME.test(arrival)) return null;
+      if (!departure.startsWith(`${iso}T`) || arrival <= departure) return null;
+      return { departure, arrival };
+    },
   };
-}
-
-function addIsoDays(isoDate, days) {
-  const m = String(isoDate ?? "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!m) return null;
-  return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + days)).toISOString().slice(0, 10);
 }
 
 function isoBookingDate(booking, isoDate) {

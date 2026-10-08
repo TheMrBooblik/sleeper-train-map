@@ -57,7 +57,7 @@ export function formatNight(iso) {
  * The calendar's nights as a flat list from the day after `today` through the
  * last night the calendar holds, each one
  * { date, state: "priced" | "none" | "unknown", amount, price, tier, classes,
- *   checkedAt, bookingDate, bookingArrivalDate }.
+ *   checkedAt, bookingDate, bookingDeparture, bookingArrival }.
  * `unknown` is a night not searched yet; `none` one whose search found no
  * berth on sale. `tier` bands priced nights low / mid / high by where they
  * sit in this train's own price range, so a cheap night stands out without
@@ -69,9 +69,9 @@ export function formatNight(iso) {
  * @param {boolean} [opts.dynamic=true]  prefix class prices with "from"
  * @param {(iso: string) => string|null} [opts.bookingDate] the date as the
  *   operator's booking link wants it, or null when the link takes none
- * @param {(iso: string) => string|null} [opts.bookingArrivalDate] the morning
- *   that night's train arrives, for a link that names the whole journey
- *   (ÖBB's), or null
+ * @param {(iso: string) => {departure: string, arrival: string}|null} [opts.bookingTimes]
+ *   that night's own departure and arrival, for a link that names the whole
+ *   journey (ÖBB's), or null
  * @returns {{ currency: string, days: object[], cheapestDate: string|null,
  *   deals: object|null } | null}
  *   null when the calendar prices no night at all
@@ -82,7 +82,7 @@ export function fareCalendarDays(
     today,
     dynamic = true,
     bookingDate = () => null,
-    bookingArrivalDate = () => null,
+    bookingTimes = () => null,
     compartmentSize = 5,
   } = {},
 ) {
@@ -128,7 +128,7 @@ export function fareCalendarDays(
       deal: entry && !entry.none ? nightDeal(entry, { currency, compartmentSize }) : null,
       checkedAt: entry?.checkedAt ?? null,
       bookingDate: bookingDate(d) ?? null,
-      bookingArrivalDate: bookingArrivalDate(d) ?? null,
+      ...nightBookingTimes(bookingTimes(d)),
     });
   }
 
@@ -159,19 +159,28 @@ export function fareCalendarDays(
  * Cells outside the list are null (padding before the first night of the
  * month and after its last).
  */
+function nightBookingTimes(times) {
+  return {
+    bookingDeparture: times?.departure ?? null,
+    bookingArrival: times?.arrival ?? null,
+  };
+}
+
 /**
  * The Book link for one night: the calendar's dated template with that night
- * filled in, or null when either is missing (the page then links to the
- * route's own booking page and says to pick the night there). A template
- * that names the arrival ({arrivalDate}) needs that night's arrival date too —
- * without it the link would book a journey ending before it starts.
+ * filled in, or null when anything it names is missing (the page then links to
+ * the direction's own booking search and says to pick the night there). A
+ * template naming a connection ({departure}, {arrival}) needs that night's own
+ * clocks — another night's would open a train that does not run then.
  */
 export function datedBookingHref(template, night) {
   if (!template || !night?.bookingDate) return null;
-  if (template.includes("{arrivalDate}") && !night.bookingArrivalDate) return null;
+  const connection = template.includes("{departure}") || template.includes("{arrival}");
+  if (connection && !(night.bookingDeparture && night.bookingArrival)) return null;
   return template
     .replaceAll("{date}", night.bookingDate)
-    .replaceAll("{arrivalDate}", night.bookingArrivalDate ?? "");
+    .replaceAll("{departure}", night.bookingDeparture ?? "")
+    .replaceAll("{arrival}", night.bookingArrival ?? "");
 }
 
 export function calendarMonths(days) {

@@ -472,20 +472,22 @@ function withCheckedLabel(fare, currency = null) {
 function fareCalendarFor(route, dir, { origin, destination, today }) {
   const calendar = route[`fare_calendar_${dir}`];
   if (!calendar) return null;
-  // `journey` is the train and ends the calendar priced (Nightjet's carry it):
-  // an operator that books one connection (ÖBB) opens exactly that train.
+  // `journey` is the train and ends the calendar priced (Nightjet's carry it),
+  // each night its own clocks: an operator that books one connection (ÖBB)
+  // opens exactly that train on that night.
   const link = buildDatedBookingLink({
     agencyId: route.agency_id || "",
     origin,
     dest: destination,
     journey: calendar.journey ?? null,
+    nightTimes: (iso) => calendar.nights?.[iso] ?? null,
   });
   const programme = lastMinuteProgramme(route.agency_id);
   const view = fareCalendarDays(calendar, {
     today,
     dynamic: isDynamicPricing(route.pricing),
     bookingDate: link ? link.dateFor : () => null,
-    bookingArrivalDate: link?.arrivalDateFor ?? (() => null),
+    bookingTimes: link ? link.timesFor : () => null,
     compartmentSize: programme?.compartmentSize ?? 5,
   });
   if (!view) return null;
