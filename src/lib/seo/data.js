@@ -472,12 +472,20 @@ function withCheckedLabel(fare, currency = null) {
 function fareCalendarFor(route, dir, { origin, destination, today }) {
   const calendar = route[`fare_calendar_${dir}`];
   if (!calendar) return null;
-  const link = buildDatedBookingLink({ agencyId: route.agency_id || "", origin, dest: destination });
+  // `journey` is the train and ends the calendar priced (Nightjet's carry it):
+  // an operator that books one connection (ÖBB) opens exactly that train.
+  const link = buildDatedBookingLink({
+    agencyId: route.agency_id || "",
+    origin,
+    dest: destination,
+    journey: calendar.journey ?? null,
+  });
   const programme = lastMinuteProgramme(route.agency_id);
   const view = fareCalendarDays(calendar, {
     today,
     dynamic: isDynamicPricing(route.pricing),
     bookingDate: link ? link.dateFor : () => null,
+    bookingArrivalDate: link?.arrivalDateFor ?? (() => null),
     compartmentSize: programme?.compartmentSize ?? 5,
   });
   if (!view) return null;
@@ -645,6 +653,22 @@ export function getRouteDetail(routeId) {
   const booking = resolvedBooking
     ? { ...resolvedBooking, fromPrice: summary.fromPrice || null, fromPriceEur: summary.fromPriceEur || "" }
     : null;
+  // A fare calendar's undated Book link (a night its operator's link cannot
+  // name) searches that direction's own ends: the route's CTA above is built
+  // from direction 0, which sent every return calendar to the reverse trip.
+  for (const dir of directions) {
+    if (!dir.fareCalendar) continue;
+    const own = resolveRouteBooking({
+      agencyId: route.agency_id || "",
+      agencies,
+      agencyUrl: agencies[route.agency_id]?.agency_url ?? null,
+      origin: dir.origin,
+      dest: dir.destination,
+      routeId: String(routeId),
+      scheduleStops: dir.stops || [],
+    });
+    dir.fareCalendar.bookingHref = own?.href ?? null;
+  }
 
   return {
     routeId: String(routeId),

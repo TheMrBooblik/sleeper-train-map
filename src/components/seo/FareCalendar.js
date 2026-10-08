@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiChevronLeft, FiChevronRight, FiExternalLink, FiZap } from "react-icons/fi";
 import {
   calendarMonths,
+  datedBookingHref,
   formatNight,
   monthWindowStart,
   VISIBLE_MONTHS,
@@ -162,11 +163,9 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
     list.some((m) => m.weeks.some((w) => w.some((d) => d?.deal && !isPast(d.date))));
 
   const night = selected ? byDate.get(selected) : null;
-  const datedHref =
-    night && bookingTemplate && night.bookingDate
-      ? bookingTemplate.replace("{date}", night.bookingDate)
-      : null;
-  const href = datedHref || bookingHref || null;
+  const datedHref = datedBookingHref(bookingTemplate, night);
+  // The calendar's own direction first (data.js), then the route's CTA.
+  const href = datedHref || calendar.bookingHref || bookingHref || null;
 
   return (
     <div className="mt-4" data-testid="fare-calendar">

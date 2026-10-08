@@ -22,13 +22,15 @@ import {
   journeysFromOffers,
   nightsProven,
   NJ_CLASS_BY_OFFER,
+  pricedJourney,
   pricingEnds,
   viennaDate,
   viennaMidnightMs,
 } from "../scripts/lib/nj-fares.mjs";
 import { buildProbeUrl, probeCandidates, probePrices } from "../scripts/adapters/nightjet-offers.mjs";
 import { calendarWindow, FARE_CALENDAR_VERSION } from "../scripts/lib/fare-calendar.mjs";
-import { fareCalendarDays } from "../src/lib/fareCalendarView.mjs";
+import { datedBookingHref, fareCalendarDays } from "../src/lib/fareCalendarView.mjs";
+import { buildBookingUrl, buildDatedBookingLink } from "../src/lib/operatorBooking.js";
 import { fareClassLabel, fareClassRows } from "../src/lib/fareClasses.mjs";
 import { stampOfficialFares } from "../src/pages/api/lib/build-initial-data.mjs";
 
@@ -526,6 +528,223 @@ await check("stampOfficialFares: an nj_standalone_ row takes each direction's fa
   assert.strictEqual(view.days.length, 42);
   assert.deepStrictEqual(view.days[0].classes.map((c) => c.label), ["Couchette", "Sleeper, one bed"]);
   assert.strictEqual(view.cheapestDate, "2026-10-08");
+});
+
+// --- The calendar's Book button: ÖBB's shop, on the night picked ------------
+
+/** A train as the timetable scrape stores it: 7-digit ids, UTC ISO times. */
+const AMS_SBG = {
+  lineName: "NJ 40421",
+  stations: [
+    { id: "8400058", name: "Amsterdam Centraal", departure: "2026-10-07T16:01:00.000Z" },
+    { id: "8000105", name: "Frankfurt(Main)Hbf", arrival: "2026-10-07T21:00:00.000Z", departure: "2026-10-07T21:05:00.000Z" },
+    { id: "8100002", name: "Salzburg Hbf", arrival: "2026-10-08T04:46:00.000Z" },
+  ],
+};
+
+/**
+ * ÖBB's own link for this journey: the "Tickets" clickout its Scotty/HAFAS
+ * timetable answered with for NJ 40421 on 7 December 2026 (a recorded
+ * TripSearch response, henemm/oebb-nightjet-monitor
+ * testdata/tripsearch_ams_sbg_2026-12-07.json, 2026-10-02). Ours differs in
+ * the language path and the referrer only.
+ */
+const OEBB_CLICKOUT =
+  "https://shop.oebbtickets.at/de/ticket?cref=scotty&connectionDatetimeDeparture=2026-12-07T18:01" +
+  "&connectionDatetimeArrival=2026-12-08T06:46&connectionOrigEva=8400058&connectionDestEva=8100002" +
+  "&stationOrigName=Amsterdam%20Centraal&stationDestName=Salzburg%20Hbf";
+
+await check("pricedJourney: the priced ends by id and ÖBB's name, Vienna clocks, the arrival's day", () => {
+  // 16:01 UTC in October is 18:01 in Vienna (summer time), 04:46 UTC 06:46.
+  assert.deepStrictEqual(pricedJourney(AMS_SBG), {
+    fromId: "8400058",
+    toId: "8100002",
+    from: "Amsterdam Centraal",
+    to: "Salzburg Hbf",
+    departure: "18:01",
+    arrival: "06:46",
+    days: 1,
+  });
+  // The same train read off a winter run keeps its local clock.
+  const winter = structuredClone(AMS_SBG);
+  winter.stations[0].departure = "2026-12-07T17:01:00.000Z";
+  winter.stations[2].arrival = "2026-12-08T05:46:00.000Z";
+  assert.deepStrictEqual(
+    [pricedJourney(winter).departure, pricedJourney(winter).arrival],
+    ["18:01", "06:46"],
+  );
+  // The car-train terminal is booked from the station beside it, at that
+  // station's own departure — the journey the calendar priced.
+  const carTrain = {
+    stations: [
+      { id: "8100004", name: "Wien Hbf (Autoreisezuganlage)", departure: "2026-10-07T20:34:00.000Z" },
+      { id: "8103000", name: "Wien Hbf", arrival: "2026-10-07T20:36:00.000Z", departure: "2026-10-07T20:44:00.000Z" },
+      { id: "8100090", name: "Bregenz Bahnhof", arrival: "2026-10-08T06:57:00.000Z" },
+    ],
+  };
+  assert.deepStrictEqual(
+    [pricedJourney(carTrain).fromId, pricedJourney(carTrain).departure],
+    ["8103000", "22:44"],
+  );
+  // No times, or an arrival before the departure: no journey to book.
+  assert.strictEqual(pricedJourney(TRAIN), null);
+  const backwards = structuredClone(AMS_SBG);
+  backwards.stations[2].arrival = "2026-10-07T04:46:00.000Z";
+  assert.strictEqual(pricedJourney(backwards), null);
+});
+
+await check("pricedJourney: every committed NJ/EN train with a calendar has one, and the page carries it", () => {
+  const file = JSON.parse(fs.readFileSync(path.join(ROOT, "public/data/scraped/nightjet-trains.json"), "utf8"));
+  const trains = file.data?.trains ?? file.trains;
+  const calendared = Object.entries(trains).filter(([, t]) => t.fareCalendar);
+  assert.ok(calendared.length > 40);
+  for (const [key, train] of calendared) {
+    assert.deepStrictEqual(train.fareCalendar.journey, pricedJourney(train), `${key}'s recorded journey`);
+    assert.ok([0, 1].includes(train.fareCalendar.journey.days), `${key} arrives ${train.fareCalendar.journey.days} days on`);
+  }
+  // The published rows carry it with the calendar (stampOfficialFares).
+  const published = JSON.parse(fs.readFileSync(path.join(ROOT, "public/data/published/initial-data.json"), "utf8"));
+  const rows = Object.values(published.data.viewMap).filter((r) => r.timetable_source === "nightjet");
+  let calendars = 0;
+  for (const row of rows) {
+    for (const dir of [0, 1]) {
+      const cal = row[`fare_calendar_${dir}`];
+      if (!cal) continue;
+      calendars++;
+      assert.deepStrictEqual(cal.journey, trains[row[`trip_short_name_${dir}`]].fareCalendar.journey);
+    }
+  }
+  assert.ok(calendars > 40, `${calendars} published Nightjet calendars`);
+});
+
+await check("buildDatedBookingLink: ÖBB opens the priced train on the night picked, as ÖBB's own timetable does", () => {
+  const journey = pricedJourney(AMS_SBG);
+  const link = buildDatedBookingLink({
+    agencyId: "ÖBB",
+    origin: "Amsterdam Centraal",
+    dest: "Salzburg Hbf",
+    journey,
+  });
+  assert.ok(link, "ÖBB has a journey link");
+  const href = datedBookingHref(link.template, {
+    bookingDate: link.dateFor("2026-12-07"),
+    bookingArrivalDate: link.arrivalDateFor("2026-12-07"),
+  });
+  const ours = new URL(href);
+  const theirs = new URL(OEBB_CLICKOUT);
+  assert.strictEqual(ours.host, theirs.host);
+  assert.strictEqual(ours.pathname, "/en/ticket");
+  // Every parameter ÖBB sends, with ÖBB's value — the referrer aside.
+  const params = (u) => [...u.searchParams].filter(([k]) => k !== "cref");
+  assert.deepStrictEqual(params(ours), params(theirs));
+  assert.strictEqual(ours.searchParams.get("cref"), "pingwi");
+  // Byte for byte where it matters: a literal colon, %20 in the names.
+  assert.ok(href.includes("connectionDatetimeDeparture=2026-12-07T18:01&"), href);
+  assert.ok(href.includes("stationOrigName=Amsterdam%20Centraal&"), href);
+  // The arrival moves with the night, across a month and a year.
+  assert.strictEqual(link.arrivalDateFor("2026-10-31"), "2026-11-01");
+  assert.strictEqual(link.arrivalDateFor("2026-12-31"), "2027-01-01");
+  assert.strictEqual(link.dateFor("2026-10-31"), "2026-10-31");
+});
+
+await check("buildDatedBookingLink: no journey, or one short of anything the link needs, stays undated", () => {
+  const journey = pricedJourney(AMS_SBG);
+  const args = { agencyId: "ÖBB", origin: "Amsterdam Centraal", dest: "Salzburg Hbf" };
+  // The plain ÖBB search has no date, so no journey means no dated link …
+  assert.strictEqual(buildDatedBookingLink(args), null);
+  // … and so does a journey a wrong train could be booked from.
+  for (const broken of [
+    { ...journey, departure: "18:1" },
+    { ...journey, arrival: "25:00" },
+    { ...journey, fromId: "008400058" },
+    { ...journey, toId: undefined },
+    { ...journey, to: "" },
+    { ...journey, days: -1 },
+    { ...journey, days: 1.5 },
+  ]) {
+    assert.strictEqual(buildDatedBookingLink({ ...args, journey: broken }), null, JSON.stringify(broken));
+  }
+  // The route's ordinary CTA is untouched: station names, no date.
+  assert.strictEqual(
+    buildBookingUrl(args),
+    "https://shop.oebbtickets.at/en/ticket?stationOrigName=Amsterdam&stationDestName=Salzburg%20Hbf&cref=pingwi",
+  );
+  // An operator without a journey link ignores one (Trenitalia keeps its own dated link).
+  const trenitalia = buildDatedBookingLink({ agencyId: "FS", origin: "Milano Centrale", dest: "Siracusa", journey });
+  assert.ok(trenitalia.template.endsWith("&departureDate={date}"));
+  assert.strictEqual(trenitalia.arrivalDateFor, undefined);
+});
+
+await check("datedBookingHref: a night fills its date, and a journey link its arrival too", () => {
+  const template = "https://x/?d={date}&a={arrivalDate}";
+  assert.strictEqual(
+    datedBookingHref(template, { bookingDate: "2026-10-20", bookingArrivalDate: "2026-10-21" }),
+    "https://x/?d=2026-10-20&a=2026-10-21",
+  );
+  // No arrival for a link that names one: no link, never one ending before it starts.
+  assert.strictEqual(datedBookingHref(template, { bookingDate: "2026-10-20", bookingArrivalDate: null }), null);
+  // A date-only template (European Sleeper, Trenitalia) needs no arrival.
+  assert.strictEqual(datedBookingHref("https://y/?d={date}", { bookingDate: "20-10-2026" }), "https://y/?d=20-10-2026");
+  assert.strictEqual(datedBookingHref(null, { bookingDate: "2026-10-20" }), null);
+  assert.strictEqual(datedBookingHref(template, null), null);
+  assert.strictEqual(datedBookingHref(template, { bookingDate: null }), null);
+});
+
+await check("the connection page: every Nightjet calendar's nights carry a dated ÖBB link", () => {
+  const published = JSON.parse(fs.readFileSync(path.join(ROOT, "public/data/published/initial-data.json"), "utf8"));
+  const rows = Object.values(published.data.viewMap).filter((r) => r.timetable_source === "nightjet");
+  let checked = 0;
+  for (const row of rows) {
+    for (const dir of [0, 1]) {
+      const calendar = row[`fare_calendar_${dir}`];
+      if (!calendar) continue;
+      // What src/lib/seo/data.js fareCalendarFor does for this direction.
+      const link = buildDatedBookingLink({
+        agencyId: row.agency_id,
+        origin: row[`origin_trip_${dir}`],
+        dest: row[`destination_trip_${dir}`],
+        journey: calendar.journey,
+      });
+      assert.ok(link, `${row.route_id} dir ${dir} has a dated link`);
+      const view = fareCalendarDays(calendar, {
+        today: TODAY,
+        bookingDate: link.dateFor,
+        bookingArrivalDate: link.arrivalDateFor,
+      });
+      if (!view) continue;
+      for (const night of view.days) {
+        const url = new URL(datedBookingHref(link.template, night));
+        const dep = url.searchParams.get("connectionDatetimeDeparture");
+        const arr = url.searchParams.get("connectionDatetimeArrival");
+        assert.ok(dep.startsWith(`${night.date}T`), `${row.route_id} ${night.date}: ${dep}`);
+        assert.ok(arr > dep, `${row.route_id} ${night.date}: arrives ${arr} after ${dep}`);
+        assert.strictEqual(url.searchParams.get("connectionOrigEva"), calendar.journey.fromId);
+        assert.strictEqual(url.searchParams.get("connectionDestEva"), calendar.journey.toId);
+      }
+      checked++;
+    }
+  }
+  assert.ok(checked > 40, `${checked} calendars checked`);
+  // The page wires it: the journey into the link, the arrival into each night,
+  // the component filling both, and each calendar's own direction as fallback.
+  const dataSrc = fs.readFileSync(path.join(ROOT, "src/lib/seo/data.js"), "utf8");
+  assert.ok(/journey:\s*calendar\.journey/.test(dataSrc), "fareCalendarFor passes the priced journey");
+  assert.ok(/bookingArrivalDate:\s*link\?\.arrivalDateFor/.test(dataSrc), "…and each night's arrival");
+  assert.ok(/dir\.fareCalendar\.bookingHref\s*=/.test(dataSrc), "each calendar gets its own direction's fallback");
+  const pageSrc = fs.readFileSync(path.join(ROOT, "src/components/seo/FareCalendar.js"), "utf8");
+  assert.ok(/datedBookingHref\(bookingTemplate, night\)/.test(pageSrc), "FareCalendar fills the night through datedBookingHref");
+  assert.ok(/calendar\.bookingHref \|\| bookingHref/.test(pageSrc), "…and prefers its own direction's fallback");
+});
+
+await check("fillNjFareCalendars: the calendar records the journey it priced", async () => {
+  const trains = { "NJ 40421": structuredClone(AMS_SBG) };
+  await fillNjFareCalendars(trains, null, {
+    today: TODAY,
+    fetchImpl: fakeNightjet({ "NJ 40421": everyNight("2026-10-08", 60) }),
+    spacingMs: 0,
+    log: () => {},
+  });
+  assert.deepStrictEqual(trains["NJ 40421"].fareCalendar.journey, pricedJourney(AMS_SBG));
 });
 
 console.log(`\nverify-nj-fares: ${passed} checks passed`);
