@@ -180,6 +180,19 @@ check("booking set preserves bookingPageUrl/requireStationMapping/routePages", (
     amtrak_Cardinal: "https://www.amtrak.com/routes/cardinal-train.html",
   });
 });
+check("booking set carries the journey link and its date format through a URL edit", () => {
+  const journeyUrlTemplate =
+    "https://shop.oebbtickets.at/en/ticket?connectionDatetimeDeparture={date}T{departureTime}";
+  const out = applyOverrideMutation(
+    "operator-booking",
+    "set",
+    { agencyId: "ÖBB", urlTemplate: "https://new" },
+    { "ÖBB": { urlTemplate: "old", journeyUrlTemplate, dateFormat: "yyyy-MM-dd", stationNames: {} } },
+  );
+  assert.strictEqual(out["ÖBB"].urlTemplate, "https://new");
+  assert.strictEqual(out["ÖBB"].journeyUrlTemplate, journeyUrlTemplate);
+  assert.strictEqual(out["ÖBB"].dateFormat, "yyyy-MM-dd");
+});
 check("booking set can update and clear bookingPageUrl explicitly", () => {
   const updated = applyOverrideMutation(
     "operator-booking",

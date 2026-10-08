@@ -163,6 +163,46 @@ export function pricingEnds(train) {
   };
 }
 
+/**
+ * The journey a calendar prices, the way ÖBB's ticket shop addresses one train
+ * on one night: both ends by id and by ÖBB's own name (the trains file keeps
+ * nightjet.com's spellings — "Brüssel Midi", "Przemysl Gl." — where the rows
+ * carry Back-on-Track's), the departure and arrival clock in Vienna wall-clock
+ * time, and how many days after the night it arrives. Every NJ/EN origin keeps
+ * Central European time, and a train keeps its local clock across a DST
+ * change, so a clock read off any one run holds for every night. The ends are
+ * pricingEnds' (the car-train terminal swapped for the station beside it), so
+ * the Book link opens exactly the journey the calendar's prices are for. null
+ * when an end has no id or no readable time.
+ *
+ * ÖBB's own timetable (Scotty / HAFAS, "Tickets") hands off to the shop with
+ * these fields — connectionDatetimeDeparture, connectionDatetimeArrival,
+ * connectionOrigEva, connectionDestEva — which is what operator-booking.json's
+ * ÖBB journeyUrlTemplate fills (src/lib/operatorBooking.js).
+ */
+export function pricedJourney(train) {
+  const ends = pricingEnds(train);
+  if (!ends) return null;
+  const stations = (train?.stations ?? []).filter((s) => s?.name);
+  const from = stations.find((s) => String(s.id ?? "") === ends.fromId);
+  const to = stations.findLast((s) => String(s.id ?? "") === ends.toId);
+  const departure = Date.parse(from?.departure ?? from?.arrival ?? "");
+  const arrival = Date.parse(to?.arrival ?? to?.departure ?? "");
+  if (!Number.isFinite(departure) || !Number.isFinite(arrival) || arrival <= departure) return null;
+  const dep = viennaFields(departure);
+  const arr = viennaFields(arrival);
+  const dayMs = (f) => Date.UTC(+f.year, +f.month - 1, +f.day);
+  return {
+    fromId: ends.fromId,
+    toId: ends.toId,
+    from: ends.from,
+    to: ends.to,
+    departure: `${dep.hour}:${dep.minute}`,
+    arrival: `${arr.hour}:${arr.minute}`,
+    days: Math.round((dayMs(arr) - dayMs(dep)) / 86_400_000),
+  };
+}
+
 /** The URL for one train's next journeys from the start of `date` (Vienna). */
 export function buildOffersUrl({ trainName, fromId, toId, date, max = NJ_OFFERS_PER_REQUEST }) {
   const ms = viennaMidnightMs(date);
@@ -481,6 +521,11 @@ export async function fillNjFareCalendars(
     const cal = calendars[key];
     cal.nights = Object.fromEntries(Object.entries(cal.nights).sort(([a], [b]) => (a < b ? -1 : 1)));
     const entries = Object.values(cal.nights);
+    // What the prices are for, so the calendar's Book button can open this
+    // train on the night picked (pricedJourney). Recomputed every run — the
+    // timetable scrape may have moved a clock — and dropped by pruneCalendar.
+    const journey = pricedJourney(train);
+    if (journey) cal.journey = journey;
     if (entries.length) train.fareCalendar = cal;
     const fare = cheapestNight(cal);
     if (fare) train.fare = fare;
