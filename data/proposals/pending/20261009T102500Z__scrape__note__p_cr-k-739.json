@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_cr-k-739",
+  "createdAt": "2026-10-09T10:25:00.940Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: K 739 (Shanghai Songjiang(上海松江) – Kunming(昆明))",
+  "summary": "Material change on an approved route (already live — FYI): operating days (return): \"Daily\" → \"null\"; train numbers: \"K 739|K 740\" → \"K 739\"",
+  "target": {
+    "routeKey": "cr_K_739",
+    "agencyId": "CR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (return)": "Daily",
+    "train numbers": "K 739|K 740"
+  },
+  "after": {
+    "operating days (return)": null,
+    "train numbers": "K 739"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
