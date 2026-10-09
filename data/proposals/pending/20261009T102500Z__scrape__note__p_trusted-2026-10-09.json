@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-10-09",
+  "createdAt": "2026-10-09T10:25:00.941Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (1 routes, 1 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_EN_415: EN 415 (Salzburg Hbf – Jesenice(SL))\nstation Jesenice(SL) (nightjet)",
+  "target": {
+    "routeKey": "trusted-2026-10-09",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
