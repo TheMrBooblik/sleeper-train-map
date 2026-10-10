@@ -5,14 +5,21 @@
 // Stores the result on ctx.shared.njTrains so the runner's post-step can merge
 // polylines into view_ontd_map and build synthetic standalone routes.
 // Each train also carries its fares for every night of the next six weeks,
-// read from the same API's price search (scripts/lib/nj-fares.mjs).
+// read from the same API's price search (scripts/lib/nj-fares.mjs). A fare
+// search the host refuses costs tonight's fares, never the trains: run()
+// returns it to the runner as a warning for source-health.json.
 
 import fs from "node:fs";
 import path from "node:path";
 import polyline from "@mapbox/polyline";
 import { fetchWithTimeout } from "../lib/scrape-helpers.mjs";
 import { FARE_CALENDAR_DAYS } from "../lib/fare-calendar.mjs";
-import { fillNjFareCalendars, NJ_FARE_REQUESTS_PER_RUN } from "../lib/nj-fares.mjs";
+import { describeBlock } from "../lib/http-block.mjs";
+import {
+  fillNjFareCalendars,
+  NJ_FARE_NEAR_DAYS,
+  NJ_FARE_REQUESTS_PER_RUN,
+} from "../lib/nj-fares.mjs";
 
 function normalizeNJTrain(data, date, operator = "Nightjet") {
   const stops = Array.isArray(data?.route?.stops) ? data.route.stops : [];
@@ -104,12 +111,18 @@ async function fetchPartnerTrainNumbers(date, max = 25) {
 
 /**
  * Price tonight's trains night by night, building on last night's calendars.
- * Never fatal: a fare failure costs the fares, not the trains.
+ * Never fatal: a fare failure costs the fares, not the trains. Resolves the
+ * pass's stats, `{ failed }` when the pass itself threw, null when fares are
+ * off. Exported for tests (tests/verify-nj-fares.mjs).
  */
-async function priceTrains(results, entry, ctx) {
-  const { enabled = true, days = FARE_CALENDAR_DAYS, requestsPerRun = NJ_FARE_REQUESTS_PER_RUN } =
-    entry.params?.fares ?? {};
-  if (!enabled) return;
+export async function priceTrains(results, entry, ctx) {
+  const {
+    enabled = true,
+    days = FARE_CALENDAR_DAYS,
+    requestsPerRun = NJ_FARE_REQUESTS_PER_RUN,
+    nearDays = NJ_FARE_NEAR_DAYS,
+  } = entry.params?.fares ?? {};
+  if (!enabled) return null;
   let previous = null;
   try {
     const raw = JSON.parse(
@@ -125,17 +138,48 @@ async function priceTrains(results, entry, ctx) {
       fetchImpl: ctx.fetch ?? fetchWithTimeout,
       days,
       requests: requestsPerRun,
+      nearDays,
     });
+    const ending = stats.blocked
+      ? `, ${describeBlock(stats.blocked)} and stopped`
+      : stats.stopped
+        ? ", stopped early"
+        : "";
     console.log(
       `[scrape] nightjet fares: ${stats.requests} request(s) tonight` +
         `${stats.retries ? ` (${stats.retries} retried)` : ""}, ${stats.priced} night(s) priced, ` +
         `${stats.none} without a berth or a train, ${stats.errors} failed` +
-        `${stats.capped ? ", budget spent" : ""}${stats.stopped ? ", stopped early" : ""}; ` +
+        `${stats.capped ? ", budget spent" : ""}${ending}; ` +
+        `${stats.suspect} of ${stats.seatCompared} seat-checked night(s) at or below the seat price; ` +
         `fares for ${Object.values(results).filter((t) => t.fare).length}/${Object.keys(results).length} trains`,
     );
+    return stats;
   } catch (err) {
     console.warn(`[scrape] nightjet fares failed: ${err.message} — trains kept without fares`);
+    return { failed: err.message };
   }
+}
+
+/**
+ * What tonight's fare pass leaves in source-health.json, or null on a night
+ * that went as planned. A refused or abandoned fare search is worth a line
+ * there and is not a failed source: the trains, their timetables and last
+ * run's calendars are all written. The runner records it as a warning beside
+ * the success (scripts/scrape-data.mjs sourceHealthRecord).
+ */
+export function fareWarning(stats) {
+  if (!stats) return null;
+  if (stats.failed) return `fare pass failed: ${stats.failed}`;
+  if (stats.blocked) {
+    return (
+      `fare search ${describeBlock(stats.blocked)} at request ${stats.requests} — ` +
+      "stopped for the night; calendars keep last run's nights"
+    );
+  }
+  if (stats.stopped) {
+    return `fare search stopped after ${stats.errors} failed request(s) of ${stats.requests}`;
+  }
+  return null;
 }
 
 export async function run(entry, ctx) {
@@ -170,10 +214,16 @@ export async function run(entry, ctx) {
     });
   }
 
-  await priceTrains(results, entry, ctx);
+  const fareStats = await priceTrains(results, entry, ctx);
 
   ctx.write(entry.output, { uploadedAt: ctx.today, trains: results });
   console.log(`[scrape] stored ${Object.keys(results).length} NJ/EN trains`);
   // Use what was actually persisted (sticky merge may retain extra trains).
   ctx.shared.njTrains = ctx.writtenTrains?.[entry.output] ?? results;
+
+  // Returned, not thrown: a throw would record the source as failed, and the
+  // trains it exists for were fetched and written above.
+  const warning = fareWarning(fareStats);
+  if (warning) console.warn(`[scrape] nightjet: ${warning}`);
+  return warning ? { warning } : null;
 }

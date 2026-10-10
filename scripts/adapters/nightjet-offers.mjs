@@ -97,7 +97,10 @@ export async function probePrices(entry, ctx) {
     if (i > 0) await sleep(REQUEST_SPACING_MS);
     const url = buildProbeUrl({ ...c, date });
     try {
-      const answer = await fetchNjOffers({ trainName: c.lineName, fromId: c.from, toId: c.to, date });
+      const answer = await fetchNjOffers(
+        { trainName: c.lineName, fromId: c.from, toId: c.to, date },
+        { fetchImpl: ctx.fetch },
+      );
       // The first journey on or after the sample date that sells a berth.
       const night = answer.dates.find((d) => d >= date && cheapestClass(answer.nights[d].classes));
       if (!night) {
@@ -117,6 +120,12 @@ export async function probePrices(entry, ctx) {
     } catch (err) {
       errors.push(`${c.lineName}: ${err.message}`);
       console.warn(`[probe:nj] ${c.lineName}: ${err.message}`);
+      // A refusal is final for the run (scripts/lib/http-block.mjs): the
+      // routes after this one are not asked.
+      if (err.blocked) {
+        console.warn(`[probe:nj] stopping after ${i + 1} of ${targets.length}: nightjet.com refused automated requests`);
+        break;
+      }
     }
   }
   return { prices, attempted: targets.length, errors };
