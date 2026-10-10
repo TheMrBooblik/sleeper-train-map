@@ -187,26 +187,46 @@ function writeSourceHealth(registry, results, runStartedAt) {
   const nowIso = new Date().toISOString();
   const sources = { ...previous };
   for (const entry of registry) {
-    const result = results[entry.id];
-    const prior = previous[entry.id] ?? {};
-    if (!result) {
-      // Not run tonight (disabled, or not scheduled) — carry the record forward
-      // untouched rather than inventing a success or a failure.
-      sources[entry.id] = { ...prior, enabled: !!entry.enabled };
-      continue;
-    }
-    sources[entry.id] = {
-      enabled: !!entry.enabled,
-      lastRunAt: nowIso,
-      lastSuccessAt: result.ok ? nowIso : (prior.lastSuccessAt ?? null),
-      lastFailureAt: result.ok ? (prior.lastFailureAt ?? null) : nowIso,
-      lastError: result.ok ? (prior.lastError ?? null) : result.error,
-      trainCount: result.trainCount ?? prior.trainCount ?? null,
-      consecutiveFailures: result.ok ? 0 : (prior.consecutiveFailures ?? 0) + 1,
-    };
+    sources[entry.id] = sourceHealthRecord(entry, results[entry.id], previous[entry.id], nowIso);
   }
 
   write("source-health.json", { runStartedAt, runFinishedAt: nowIso, sources });
+}
+
+/**
+ * One source's record after tonight's run, merged with its previous one.
+ *
+ * `result.warning` is what an adapter's run() returns when it succeeded with
+ * part of its job undone — nightjet's fare search refused by the host, say,
+ * while the trains it exists for were fetched and written. It is kept beside
+ * the success (`lastWarning`, `lastWarningAt`, carried forward like
+ * `lastError`) rather than recorded as a failure, which would tell the
+ * integration dashboard the source's routes had gone stale when they had not.
+ * The two keys appear only once a source has warned, so the file does not
+ * grow a pair of nulls for every source that never will.
+ */
+export function sourceHealthRecord(entry, result, prior, nowIso) {
+  prior ??= {};
+  if (!result) {
+    // Not run tonight (disabled, or not scheduled) — carry the record forward
+    // untouched rather than inventing a success or a failure.
+    return { ...prior, enabled: !!entry.enabled };
+  }
+  const warned = result.warning
+    ? { lastWarning: result.warning, lastWarningAt: nowIso }
+    : prior.lastWarningAt
+      ? { lastWarning: prior.lastWarning ?? null, lastWarningAt: prior.lastWarningAt }
+      : {};
+  return {
+    enabled: !!entry.enabled,
+    lastRunAt: nowIso,
+    lastSuccessAt: result.ok ? nowIso : (prior.lastSuccessAt ?? null),
+    lastFailureAt: result.ok ? (prior.lastFailureAt ?? null) : nowIso,
+    lastError: result.ok ? (prior.lastError ?? null) : result.error,
+    trainCount: result.trainCount ?? prior.trainCount ?? null,
+    consecutiveFailures: result.ok ? 0 : (prior.consecutiveFailures ?? 0) + 1,
+    ...warned,
+  };
 }
 
 /**
@@ -346,8 +366,13 @@ async function main() {
     if (entry.adapter) {
       try {
         const mod = await import(`./adapters/${entry.adapter}.mjs`);
-        await mod.run(entry, ctx);
-        results[entry.id] = { ok: true, trainCount: trainCountFor(entry) };
+        const outcome = await mod.run(entry, ctx);
+        results[entry.id] = {
+          ok: true,
+          trainCount: trainCountFor(entry),
+          // A success with part of the job undone (see sourceHealthRecord).
+          warning: typeof outcome?.warning === "string" ? outcome.warning : null,
+        };
       } catch (err) {
         results[entry.id] = { ok: false, error: err.message };
         if (entry.critical) {

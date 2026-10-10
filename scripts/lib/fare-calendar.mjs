@@ -59,6 +59,11 @@ export function calendarWindow(today, days = FARE_CALENDAR_DAYS) {
  * checkedAt: "2026-09-27" } | { none: true, checkedAt } } }. `none` is a night
  * the search answered without our train or without a berth on sale — the train
  * does not run, or its berths are gone; either way there is nothing to book.
+ * A source may keep more beside `classes` (Nightjet: each night's clocks, its
+ * seat price and the product each figure is, and why a `none` night has no
+ * fare — scripts/lib/nj-fares.mjs). Every reader of a price reads `classes`
+ * alone, which is what keeps a seat price kept for checking from ever being
+ * quoted as a fare.
  */
 export function pruneCalendar(
   calendar,
@@ -91,12 +96,22 @@ export function pruneCalendar(
  * its next weeks before any train gets its far ones), then the stalest checks.
  * A night checked today is never searched again the same day.
  *
+ * `nearDays` (opt-in, default 0) puts the nights a traveller is most likely to
+ * book ahead of everything else. Without it a near night checked yesterday
+ * waits behind every never-checked far one and then behind every older check,
+ * so a budget that goes round a full Nightjet calendar in about 2.6 nights
+ * leaves tomorrow's fare as old as the one six weeks out — up to three days.
+ * With it the order is: (0) never-checked nights within `nearDays`, (1)
+ * nights within `nearDays` checked before today, stalest first, (2) never-
+ * checked farther nights, nearest first, (3) the rest, stalest first. At 0
+ * the first two tiers are empty and the order is exactly the one above.
+ *
  * @param {Record<string, object>} calendars trainKey → pruned calendar
  * @returns {{ key: string, date: string }[]}
  */
 export function planFareSearches(
   calendars,
-  { today, days = FARE_CALENDAR_DAYS, budget = FARE_CALENDAR_BUDGET } = {},
+  { today, days = FARE_CALENDAR_DAYS, budget = FARE_CALENDAR_BUDGET, nearDays = 0 } = {},
 ) {
   const dates = calendarWindow(today, days);
   const candidates = [];
@@ -108,8 +123,13 @@ export function planFareSearches(
       candidates.push({ key, date, i, checkedAt });
     });
   }
+  // `i` is 0 for tomorrow, so "within nearDays" is i < nearDays.
+  const tier = (c) => (c.i < nearDays ? 0 : 2) + (c.checkedAt ? 1 : 0);
   candidates.sort((a, b) => {
-    if (!a.checkedAt !== !b.checkedAt) return a.checkedAt ? 1 : -1;
+    const ta = tier(a);
+    const tb = tier(b);
+    if (ta !== tb) return ta - tb;
+    // Within a tier both nights were checked or neither was.
     if (a.checkedAt && a.checkedAt !== b.checkedAt)
       return a.checkedAt < b.checkedAt ? -1 : 1;
     if (a.i !== b.i) return a.i - b.i;

@@ -3,12 +3,24 @@
 // weeks for each train, in the calendar shape the Intercity Notte and European
 // Sleeper calendars already use (./fare-calendar.mjs), so stampOfficialFares,
 // the map panel and the connection page's FareCalendar read it unchanged:
-//   { version, currency: "EUR", nights: { "2026-10-20": {
-//       classes: { couchette: 59.9, sleeperBed: 99.9 }, checkedAt }
-//     | { none: true, checkedAt } } }
-// The offer each figure is (Sparschiene, Komfortticket…) goes to the scrape
-// log, not the file: the browser fetches this file whole for the map panel,
-// and 73 trains × 42 nights of repeated offer names would be most of it.
+//   { version, currency: "EUR", journey, nights: {
+//       "2026-10-20": { classes: { couchette: 59.9, sleeperBed: 99.9 },
+//         checkedAt, dep, arr, seat: 29.9,
+//         offers: { couchette: "Sparschiene", sleeperBed: "Komfortticket" } }
+//     | { none: true, checkedAt, reason: "noBerth" | "noJourney", seat } } }
+// Beside the prices each night keeps what a reader needs to check them:
+// `seat`, that night's cheapest seated-coach fare, so "is this couchette
+// really a seat price?" is answered by the file (a berth is a ticket plus a
+// berth supplement, so it should cost more than the seat); `offers`, the ÖBB
+// product each figure is ("Sparschiene", without the "inkl. Reservierung"
+// every berth offer carries), which is the row to compare in ÖBB's shop; and,
+// on a night without a fare, whether a journey ran without a berth on sale
+// (`noBerth`) or there was no journey at all (`noJourney`). `seat` sits
+// outside `classes` on purpose: every reader of a price (cheapestClass,
+// cheapestNight, fareClassRows, stampOfficialFares) reads `classes` alone, so
+// the seat is never quoted as a fare. None of it reaches the map panel's
+// fetch, which serves the trains file without its calendars (servedTrainsData
+// in src/pages/api/lib/operator-trains-handler.mjs).
 //
 // The source is the "Train Price Search" behind nightjet.com's own destination
 // pages: GET /nj-booking-ocp/destinations/offers/{train}/{from}/{to}/{ms}
@@ -31,11 +43,20 @@
 //
 // Only what a standard adult can sleep in is priced: couchette and sleeper,
 // one person's place each (the endpoint prices one adult). Seats are read only
-// to be left out, and a night selling nothing but seats has no fare. The
-// endpoint's cheapest couchette can be a place in a ladies-only compartment
-// (nightjet.com prices them the same as mixed ones), which it does not say.
+// to check the berths against and are otherwise left out, and a night selling
+// nothing but seats has no fare. The endpoint's cheapest couchette can be a
+// place in a ladies-only compartment (nightjet.com prices them the same as
+// mixed ones), which it does not say.
+//
+// Every request says who is asking (HONEST_USER_AGENT), and a refusal — a
+// WAF's 403, a 429, a challenge page where JSON was asked for — stops the
+// whole pass on the spot (./http-block.mjs). This map never works around an
+// operator's bot protection, so a block is final for the night: no retry, no
+// next train; the calendars keep last run's nights and what tonight already
+// filled.
 
 import { fetchWithTimeout } from "./scrape-helpers.mjs";
+import { describeBlock, detectBlock, HONEST_USER_AGENT } from "./http-block.mjs";
 import {
   calendarWindow,
   cheapestNight,
@@ -62,6 +83,19 @@ export const NJ_OFFERS_PER_REQUEST = 3;
  */
 export const NJ_FARE_REQUESTS_PER_RUN = 720;
 
+/**
+ * Nights ahead refreshed before anything else (planFareSearches' `nearDays`):
+ * the coming week, the nights a traveller is most likely to book. Overridable
+ * from the registry's params.fares.nearDays.
+ */
+export const NJ_FARE_NEAR_DAYS = 7;
+
+/** What every request to the price search sends: JSON, and who is asking. */
+export const NJ_REQUEST_HEADERS = Object.freeze({
+  accept: "application/json",
+  "user-agent": HONEST_USER_AGENT,
+});
+
 // Courtesy spacing between calls to an API that owes us nothing. Each call is
 // one page view's worth of nightjet.com's own price search.
 const SPACING_MS = 1000;
@@ -72,6 +106,9 @@ export const NJ_TIME_ZONE = "Europe/Vienna";
 
 /** bestOffers key → our berth class. `se` (seat) is deliberately absent. */
 export const NJ_CLASS_BY_OFFER = { le: "couchette", be: "sleeperBed" };
+
+/** The bestOffers key of the seated coach: kept beside a night, never a class. */
+export const NJ_SEAT_OFFER = "se";
 
 const EVA = /^\d{7}$/;
 
@@ -218,25 +255,52 @@ function parsePrice(value) {
 }
 
 /**
- * One journey's berth fares from its bestOffers: { classes, offerNames, seen }.
- * `seen` lists every comfort-class key the answer carried, seats included, and
- * `offerNames` the offers the berth figures are, so the log can say what was
- * priced and what was left out rather than leave it to be guessed.
+ * The ÖBB product an offer is, as a traveller finds it in the shop:
+ * "Sparschiene inkl. Reservierung" → "Sparschiene". Every berth offer read so
+ * far carries that suffix (the place is the reservation), so it tells one
+ * product from another not at all. null when the answer named none.
+ */
+export function offerProduct(name) {
+  if (typeof name !== "string") return null;
+  const product = name.replace(/\s*inkl\.\s*Reservierung\s*$/i, "").trim();
+  return product || null;
+}
+
+/**
+ * One journey's fares from its bestOffers: { classes, offers, seat,
+ * offerNames, seen }. `classes` are the berths; `offers` the product each of
+ * those figures is (offerProduct); `seat` the seated coach's price, kept only
+ * to check the berths against (null when the answer had none). `seen` lists
+ * every comfort-class key the answer carried, seats included, and `offerNames`
+ * the offers the berth figures are, so the log can say what was priced and
+ * what was left out rather than leave it to be guessed.
  */
 export function berthClasses(bestOffers) {
   const classes = {};
+  const offers = {};
   const offerNames = [];
   const seen = [];
-  if (!bestOffers || typeof bestOffers !== "object") return { classes, offerNames, seen };
+  let seat = null;
+  if (!bestOffers || typeof bestOffers !== "object") return { classes, offers, seat, offerNames, seen };
   for (const [key, offer] of Object.entries(bestOffers)) {
     seen.push(key);
-    const cls = NJ_CLASS_BY_OFFER[key.toLowerCase()];
     const price = parsePrice(offer?.price);
+    if (key.toLowerCase() === NJ_SEAT_OFFER) {
+      if (price != null && (seat == null || price < seat)) seat = price;
+      continue;
+    }
+    const cls = NJ_CLASS_BY_OFFER[key.toLowerCase()];
     if (!cls || price == null) continue;
-    if (classes[cls] == null || price < classes[cls]) classes[cls] = price;
+    if (classes[cls] == null || price < classes[cls]) {
+      classes[cls] = price;
+      // The product follows the figure it names.
+      const product = offerProduct(offer?.name);
+      if (product) offers[cls] = product;
+      else delete offers[cls];
+    }
     if (offer?.name) offerNames.push(String(offer.name));
   }
-  return { classes, offerNames, seen };
+  return { classes, offers, seat, offerNames, seen };
 }
 
 function describe(body) {
@@ -247,10 +311,10 @@ function describe(body) {
 }
 
 /**
- * The nights one answer prices: { nights: { date: { classes } }, dates, rows,
- * unreadable, seen, offerNames }. A list of journeys is what the endpoint
- * answers; a single journey object is accepted too. Anything else throws —
- * an error page is not "no train".
+ * The nights one answer prices: { nights: { date: { classes, offers?, seat?,
+ * dep?, arr? } }, dates, rows, unreadable, seen, offerNames }. A list of
+ * journeys is what the endpoint answers; a single journey object is accepted
+ * too. Anything else throws — an error page is not "no train".
  */
 export function journeysFromOffers(body) {
   const rows = Array.isArray(body)
@@ -273,10 +337,11 @@ export function journeysFromOffers(body) {
       unreadable++;
       continue;
     }
-    const { classes, offerNames: names, seen: keys } = berthClasses(row.bestOffers);
+    const { classes, offers, seat, offerNames: names, seen: keys } = berthClasses(row.bestOffers);
     for (const k of keys) seen.add(k);
     for (const name of names) offerNames.add(name);
     const night = (nights[date] ??= { classes: {} });
+    if (seat != null && (night.seat == null || seat < night.seat)) night.seat = seat;
     // That night's own departure and arrival at the priced ends, for the Book
     // link (the first journey of the night when an answer holds two).
     if (!night.dep) {
@@ -285,7 +350,11 @@ export function journeysFromOffers(body) {
       if (dep && arr && arr > dep) Object.assign(night, { dep, arr });
     }
     for (const [cls, amount] of Object.entries(classes)) {
-      if (night.classes[cls] == null || amount < night.classes[cls]) night.classes[cls] = amount;
+      if (night.classes[cls] == null || amount < night.classes[cls]) {
+        night.classes[cls] = amount;
+        if (offers[cls]) (night.offers ??= {})[cls] = offers[cls];
+        else if (night.offers) delete night.offers[cls];
+      }
     }
   }
   return {
@@ -300,11 +369,13 @@ export function journeysFromOffers(body) {
 
 /**
  * What one answer, asked from the start of `from`, proves about the calendar's
- * nights. A night it returns is priced (or `none` when it sells no berth). A
- * night it skips before the last journey it returns has no train — the search
- * runs forward, so it would have come first. An answer with no journey from
- * `from` on means nothing is on sale from then on. Nights after the last
- * journey returned are left for the next request, which starts there.
+ * nights. A night it returns is priced, or `none` with reason "noBerth" when
+ * its journey sells no berth. A night it skips before the last journey it
+ * returns has no train ("noJourney") — the search runs forward, so it would
+ * have come first. An answer with no journey from `from` on means nothing is
+ * on sale from then on. Nights after the last journey returned are left for
+ * the next request, which starts there. A night's seat price rides along
+ * wherever the answer gave one, priced or not.
  */
 export function nightsProven(answer, { from, today, days = FARE_CALENDAR_DAYS }) {
   const returned = answer.dates.filter((d) => d >= from);
@@ -313,29 +384,62 @@ export function nightsProven(answer, { from, today, days = FARE_CALENDAR_DAYS })
   for (const date of calendarWindow(today, days)) {
     const night = answer.nights[date];
     if (night) {
-      out[date] = Object.keys(night.classes).length
-        ? {
-            classes: { ...night.classes },
-            checkedAt: today,
-            ...(night.dep ? { dep: night.dep, arr: night.arr } : {}),
-          }
-        : { none: true, checkedAt: today };
+      const seat = night.seat != null ? { seat: night.seat } : {};
+      if (!Object.keys(night.classes).length) {
+        out[date] = { none: true, checkedAt: today, reason: "noBerth", ...seat };
+        continue;
+      }
+      const offers = Object.keys(night.offers ?? {}).length ? { offers: { ...night.offers } } : {};
+      out[date] = {
+        classes: { ...night.classes },
+        checkedAt: today,
+        ...(night.dep ? { dep: night.dep, arr: night.arr } : {}),
+        ...seat,
+        ...offers,
+      };
     } else if (date >= from && (!last || date < last)) {
-      out[date] = { none: true, checkedAt: today };
+      out[date] = { none: true, checkedAt: today, reason: "noJourney" };
     }
   }
   return out;
 }
 
 /**
+ * The berth classes a priced night sells at or below that night's own seat
+ * price, as [class, amount] pairs; empty when there is no seat price to
+ * compare. A berth is a ticket plus a berth supplement, so one that costs no
+ * more than the seat is a figure that may not be what it claims to be — the
+ * "is this couchette a seat price?" question, asked of every night read.
+ */
+export function berthsAtOrBelowSeat(entry) {
+  if (!entry || entry.none || !Number.isFinite(entry.seat)) return [];
+  return Object.entries(entry.classes ?? {}).filter(
+    ([, amount]) => Number.isFinite(amount) && amount <= entry.seat,
+  );
+}
+
+/**
  * Ask nightjet.com for one train's next journeys from the start of `date`.
- * Resolves the parsed answer (journeysFromOffers); throws with `status` and
- * `body` on an HTTP error, with `shape` when the answer is not a journey list.
+ * Resolves the parsed answer (journeysFromOffers); throws with `blocked` (the
+ * detectBlock verdict) when the host refused an automated client, with
+ * `status` and `body` on any other HTTP error, and with `shape` when the
+ * answer is not a journey list.
  */
 export async function fetchNjOffers({ trainName, fromId, toId, date }, { fetchImpl = fetchWithTimeout } = {}) {
   const url = buildOffersUrl({ trainName, fromId, toId, date });
-  const res = await fetchImpl(url, { headers: { accept: "application/json" } });
+  const res = await fetchImpl(url, { headers: { ...NJ_REQUEST_HEADERS } });
   const text = await res.text();
+  // Every answer is read for a refusal first: a challenge page can come with
+  // any status, 200 included, and must stop the pass rather than read as a
+  // shape error that costs one train.
+  const block = detectBlock({ status: res.status, headers: res.headers, body: text });
+  if (block) {
+    const err = new Error(`nightjet.com ${describeBlock(block)}`);
+    err.blocked = block;
+    err.status = res.status;
+    err.body = text;
+    throw err;
+  }
   if (!res.ok) {
     const err = new Error(`HTTP ${res.status}`);
     err.status = res.status;
@@ -360,7 +464,16 @@ export async function fetchNjOffers({ trainName, fromId, toId, date }, { fetchIm
  * request is refused is skipped for the night (another date will not fix a
  * station the operator does not sell), a server error costs only its night
  * after one retry, and a run of failures stops the pass — that is the
- * operator turning us away, and hammering on would only make it worse.
+ * operator turning us away, and hammering on would only make it worse. A
+ * block (detectBlock: a WAF's 403, a 429, a challenge page) is that said
+ * outright, so it stops the pass at once — no retry, no next train — and is
+ * reported in `stats.blocked` ({ status, reason, vendor }). Whatever was
+ * filled before it is kept, as are last run's nights.
+ *
+ * The coming `nearDays` nights are refreshed before anything else
+ * (planFareSearches), and every night priced tonight is checked against its
+ * own seat price (berthsAtOrBelowSeat): one that fails is kept as read,
+ * counted in `stats.suspect`, and named in the log.
  *
  * @param {object} trains          tonight's trains, keyed by "NJ 40491"
  * @param {object|null} previousTrains last night's file, for the calendars
@@ -374,6 +487,7 @@ export async function fillNjFareCalendars(
     log = console.log,
     days = FARE_CALENDAR_DAYS,
     requests = NJ_FARE_REQUESTS_PER_RUN,
+    nearDays = NJ_FARE_NEAR_DAYS,
     spacingMs = SPACING_MS,
     maxConsecutiveErrors = 5,
     retryDelayMs = 3000,
@@ -381,7 +495,8 @@ export async function fillNjFareCalendars(
 ) {
   const stats = {
     planned: 0, requests: 0, retries: 0, priced: 0, none: 0, errors: 0,
-    capped: false, stopped: false, unpriced: [], substituted: [],
+    capped: false, stopped: false, blocked: null, unpriced: [], substituted: [],
+    seatCompared: 0, suspect: 0, suspects: [],
   };
   const calendars = {};
   const ends = {};
@@ -406,25 +521,26 @@ export async function fillNjFareCalendars(
   const plan = planFareSearches(searchable, {
     today,
     days,
+    nearDays,
     budget: Object.keys(searchable).length * days,
   });
   stats.planned = plan.length;
 
   const broken = new Set();
   const noted = new Set();
-  // Why tonight's nights without a fare have none, per train: a journey on
-  // sale without a berth (seats only, or nothing left), or no journey that
-  // night at all. The calendar keeps one `none` for both; the log keeps them
-  // apart, since the first is a train whose berths are gone (or not sold this
-  // way) and the second a train that does not run.
-  const reasons = new Map();
+  // Every night written tonight, per train. The tallies, the per-train log
+  // line and the seat check are read off these entries, so the log describes
+  // exactly what the file now says — including why a night has no fare, which
+  // the entry itself carries (`reason`).
+  const writtenTonight = new Map();
   const offerKeys = new Set();
   const offerNames = new Set();
   let consecutiveErrors = 0;
   const windowEnd = calendarWindow(today, days).at(-1);
   // A server error or a dropped connection says nothing about the train: one
-  // retry, then it costs only its own night. A 4xx is about the request.
-  const transient = (err) => !err?.shape && (!err?.status || err.status >= 500 || err.status === 429);
+  // retry, then it costs only its own night. A 4xx is about the request. A
+  // block (a 429 included) is neither: it is the host saying stop.
+  const transient = (err) => !err?.blocked && !err?.shape && (!err?.status || err.status >= 500);
 
   for (const { key, date } of plan) {
     if (broken.has(key)) continue;
@@ -474,17 +590,11 @@ export async function fillNjFareCalendars(
       for (const k of answer.seen) offerKeys.add(k);
       for (const name of answer.offerNames) offerNames.add(name);
       const proven = nightsProven(answer, { from: date, today, days });
-      const why = reasons.get(key) ?? { noBerth: 0, noJourney: 0 };
-      reasons.set(key, why);
+      const written = writtenTonight.get(key) ?? {};
+      writtenTonight.set(key, written);
       for (const [d, entry] of Object.entries(proven)) {
         calendars[key].nights[d] = entry;
-        if (!entry.none) {
-          stats.priced++;
-          continue;
-        }
-        stats.none++;
-        if (answer.nights[d]) why.noBerth++;
-        else why.noJourney++;
+        written[d] = entry;
       }
       // Once per train: the answers that turn a whole stretch into "no train".
       const returned = answer.dates.filter((d) => d >= date);
@@ -505,6 +615,20 @@ export async function fillNjFareCalendars(
       }
     } catch (err) {
       stats.errors++;
+      if (err.blocked) {
+        // Final for the night: this map does not work around a refusal, and
+        // asking again (or about another train) is what a refusal says not to.
+        const { status, reason, vendor = null } = err.blocked;
+        stats.blocked = { status, reason, vendor };
+        stats.stopped = true;
+        const body = err.body ? ` — answer began: ${String(err.body).replace(/\s+/g, " ").trim().slice(0, 100)}` : "";
+        log(
+          `[nj-fare] nightjet.com blocked automated requests (${reason}${vendor ? ` by ${vendor}` : ""}) ` +
+            `at ${key} ${date}, request ${stats.requests} — stopping tonight's fare searches; ` +
+            `calendars keep last run's nights${body}`,
+        );
+        break;
+      }
       consecutiveErrors++;
       const night = transient(err);
       if (!night) broken.add(key);
@@ -528,6 +652,44 @@ export async function fillNjFareCalendars(
   }
   if (offerNames.size) log(`[nj-fare] berth offers quoted: ${[...offerNames].join(", ")}`);
 
+  // What tonight wrote, read back off the entries themselves.
+  for (const [key, written] of writtenTonight) {
+    for (const [date, entry] of Object.entries(written)) {
+      if (entry.none) {
+        stats.none++;
+        continue;
+      }
+      stats.priced++;
+      if (!Number.isFinite(entry.seat)) continue;
+      stats.seatCompared++;
+      const low = berthsAtOrBelowSeat(entry);
+      if (low.length) stats.suspects.push({ key, date, seat: entry.seat, classes: Object.fromEntries(low) });
+    }
+  }
+  stats.suspect = stats.suspects.length;
+  // The owner's question — "is this couchette figure really a seat price?" —
+  // answered in the log every night, whichever way it comes out.
+  if (stats.priced) {
+    if (!stats.seatCompared) {
+      log(`[nj-fare] seat check: none of tonight's ${stats.priced} priced night(s) came with a seat price to compare`);
+    } else if (!stats.suspect) {
+      log(`[nj-fare] seat check: all ${stats.seatCompared} priced night(s) with a seat price cost more than the seat`);
+    } else {
+      const shown = 12;
+      const list = stats.suspects
+        .slice(0, shown)
+        .map(({ key, date, seat, classes }) =>
+          `${key} ${date} ${Object.entries(classes).map(([cls, amount]) => `${cls} €${amount}`).join(", ")} ≤ seat €${seat}`,
+        )
+        .join("; ");
+      const more = stats.suspect > shown ? `; … and ${stats.suspect - shown} more` : "";
+      log(
+        `[nj-fare] seat check: ${stats.suspect} of ${stats.seatCompared} priced night(s) cost no more than ` +
+          `that night's seat — kept as read, worth checking on nightjet.com: ${list}${more}`,
+      );
+    }
+  }
+
   for (const [key, train] of Object.entries(trains ?? {})) {
     const cal = calendars[key];
     cal.nights = Object.fromEntries(Object.entries(cal.nights).sort(([a], [b]) => (a < b ? -1 : 1)));
@@ -542,8 +704,15 @@ export async function fillNjFareCalendars(
     if (fare) train.fare = fare;
     if (entries.length) {
       const priced = entries.filter((e) => !e.none).length;
-      const why = reasons.get(key);
-      const tonight = why && why.noBerth + why.noJourney
+      // Why tonight's nights without a fare have none: a journey on sale
+      // without a berth (seats only, or nothing left), or no journey that
+      // night at all — a train whose berths are gone (or not sold this way)
+      // against a train that does not run.
+      const why = { noBerth: 0, noJourney: 0 };
+      for (const e of Object.values(writtenTonight.get(key) ?? {})) {
+        if (e.none && e.reason in why) why[e.reason]++;
+      }
+      const tonight = why.noBerth + why.noJourney
         ? ` (tonight: ${why.noBerth} on sale without a berth, ${why.noJourney} without a journey)`
         : "";
       log(
