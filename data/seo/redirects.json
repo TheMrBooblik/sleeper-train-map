@@ -351,7 +351,7 @@
   "/trains/rovaniemi-to-helsinki-helsingfors-ic-264": "/connections/helsinki-to-rovaniemi",
   "/trains/rovaniemi-to-helsinki-helsingfors-ic-266-h": "/connections/helsinki-to-rovaniemi",
   "/trains/rovaniemi-to-turku-satama-abo-hamn-ic-266-t": "/connections/rovaniemi-to-turku",
-  "/trains/salerno-to-torino-lingotto-ic-notte-796": "/connections",
+  "/trains/salerno-to-torino-lingotto-ic-notte-796": "/connections/salerno-to-torino-lingotto",
   "/trains/salerno-to-torino-porta-nuova-icn-796": "/connections/salerno-to-turin",
   "/trains/salerno-to-torino-porta-nuova-icn-798": "/connections/salerno-to-turin",
   "/trains/salzburg-hbf-to-jesenice-sl-en-415": "/connections/jesenice-to-salzburg",
