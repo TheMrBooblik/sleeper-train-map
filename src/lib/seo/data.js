@@ -35,7 +35,12 @@ import {
   formatFutureFrom,
 } from "./format";
 import { getOperatorPricing, formatFromPrice, formatCheckedAt } from "../operatorPricing";
-import { directionFare, directionFareSummary, isDynamicPricing } from "../fareClasses.mjs";
+import {
+  directionFare,
+  directionFareSummary,
+  isDynamicPricing,
+  pricingForDirection,
+} from "../fareClasses.mjs";
 import { eurHintFor, formatEurApprox } from "../fx.mjs";
 import { fareCalendarDays } from "../fareCalendarView.mjs";
 import { punctualitySummary } from "../punctuality.mjs";
@@ -641,7 +646,7 @@ export function getRouteDetail(routeId) {
 
   // Booking CTA: the same tiered resolution the map's detail panel runs, but
   // at build time against the committed agencies snapshot, so the static HTML
-  // carries the link. Enriched with the curated "from" price for display.
+  // carries the link. Enriched with the "from" price of the train it opens.
   const agencies = getAgencies();
   const resolvedBooking = resolveRouteBooking({
     agencyId: route.agency_id || "",
@@ -652,8 +657,22 @@ export function getRouteDetail(routeId) {
     routeId: String(routeId),
     scheduleStops: primary.stops || [],
   });
+  // The caption's price is the fare of the train the button opens, or none.
+  // The row's `pricing` is the cheaper of its two directions: on the payload
+  // of 10 October 2026, 12 of the 113 rows priced per train (7 Nightjet,
+  // 3 Intercity Notte, 2 China Railway) quoted the return train's figure
+  // beside a button that preselects the outbound. A row priced per route
+  // (prices.json, an operator default) quotes the route's figure as before.
+  // `primary` is the first direction with a train number (the loop above
+  // skips the others), so that is the direction to price.
+  const primaryDir = [0, 1].find((d) => (route[`trip_short_name_${d}`] || "").trim()) ?? 0;
+  const ctaPricing = pricingForDirection(route, primaryDir, summary.pricing);
   const booking = resolvedBooking
-    ? { ...resolvedBooking, fromPrice: summary.fromPrice || null, fromPriceEur: summary.fromPriceEur || "" }
+    ? {
+        ...resolvedBooking,
+        fromPrice: formatFromPrice(ctaPricing) || null,
+        fromPriceEur: eurHintFor(ctaPricing) || "",
+      }
     : null;
   // A fare calendar's undated Book link (a night its operator's link cannot
   // name) searches that direction's own ends: the route's CTA above is built
