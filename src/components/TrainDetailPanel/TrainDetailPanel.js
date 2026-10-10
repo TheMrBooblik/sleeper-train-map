@@ -1680,16 +1680,21 @@ const TrainDetailPanel = ({
                 // not, so read the row's. Then narrow it to THIS train: an
                 // official source prices each direction and berth class
                 // separately (fare_0/fare_1, see src/lib/fareClasses.mjs).
+                // A train with no fare of its own — or a card whose train
+                // cannot be told (fareDir null) — on a row priced per train
+                // keeps the fare model and shows no figure: the row's figure
+                // is the other train's (NJ 449's card quoted NJ 448's €84.9).
                 const basePricing = getOperatorPricing(
                   trip.pricing || !tripRoute?.pricing
                     ? trip
                     : { ...trip, pricing: tripRoute.pricing },
                 );
                 const fareDir = fareDirectionForTrip(tripRoute, trip);
-                const pricing =
-                  fareDir == null
-                    ? basePricing
-                    : pricingForDirection(tripRoute, fareDir, basePricing);
+                const pricing = pricingForDirection(
+                  tripRoute,
+                  fareDir,
+                  basePricing,
+                );
                 // Regular fares only: a promotional deal (European Sleeper's
                 // last-minute pages) is sold elsewhere, so it is shown beside
                 // the link that sells it, in BookingActions below.

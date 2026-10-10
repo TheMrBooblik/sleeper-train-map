@@ -113,6 +113,23 @@ export const DEAL_CLASS_KEYS = new Set([
 ]);
 export const isDealClass = (key) => DEAL_CLASS_KEYS.has(key);
 
+/**
+ * One person's place in a couchette, under every name a source gives it —
+ * the class a fare calendar's grid prints first, because a couchette is what
+ * most people compare night trains by and the figure a reader takes to the
+ * operator's shop. Deal couchettes are included (a European Sleeper deal
+ * night's cell is the deal); the private compartment is not, since its price
+ * is the whole compartment's.
+ */
+export const COUCHETTE_CLASS_KEYS = new Set([
+  "couchette",
+  "couchetteSecond",
+  "couchetteFirst",
+  "lastMinuteCouchette",
+  "flashSaleCouchette",
+]);
+export const isCouchetteClass = (key) => COUCHETTE_CLASS_KEYS.has(key);
+
 export function fareClassLabel(key) {
   return (key && FARE_CLASS_LABELS[key]) || "";
 }
@@ -129,21 +146,61 @@ export function directionFare(row, dir) {
 }
 
 /**
+ * Whether the row's figures are per train: an official source priced each
+ * direction on its own (stampOfficialFares leaves `fare_0` / `fare_1`), so
+ * the row's `pricing` is one of those two trains' figures, not the route's.
+ */
+export function hasDirectionFares(row) {
+  return Boolean(row?.fare_0 || row?.fare_1);
+}
+
+// Everything in a pricing record that describes one figure: the amount and
+// what it was quoted for. The rest (`type`, `source`) describes the fare
+// model and holds for either train.
+const FIGURE_FIELDS = ["fromPrice", "currency", "travelDate", "seatClass", "trainName", "checkedAt", "basis"];
+
+/**
+ * A pricing record with its figure taken out, or null when nothing is left:
+ * the "Dynamic fare" badge and its advice still render, no price does.
+ */
+export function pricingWithoutFigure(pricing) {
+  if (!pricing || typeof pricing !== "object") return null;
+  const rest = { ...pricing };
+  for (const key of FIGURE_FIELDS) delete rest[key];
+  return Object.keys(rest).length ? rest : null;
+}
+
+/**
  * The pricing record for one direction: the row's own record with that
- * direction's figure in place of the cheaper-of-both. Falls back to `base`
- * unchanged when the direction carries no fare of its own.
+ * direction's figure in place of the cheaper-of-both.
+ *
+ * A direction with no fare of its own gets `base` unchanged only when the row
+ * is priced per route (prices.json, an operator default), where the figure is
+ * the route's. Where the row is priced per train, `base` is the OTHER train's
+ * figure — on the payload of 10 October 2026 the map panel quoted NJ 448's
+ * €84.9 on NJ 449's card and EN 50462's €70 on EN 50237's — so that
+ * direction keeps the fare model and no figure. An
+ * unknown direction (`dir` null, see fareDirectionForTrip) is treated the
+ * same way: better no per-train figure than the other train's.
  */
 export function pricingForDirection(row, dir, base = row?.pricing ?? null) {
-  const fare = directionFare(row, dir);
-  if (!fare) return base;
+  const fare = dir == null ? null : directionFare(row, dir);
+  if (!fare) return hasDirectionFares(row) ? pricingWithoutFigure(base) : base;
+  // The model from `base`, the figure from this direction. `base` also names
+  // the train and kind of figure it quoted (`trainName`, `basis`), which on a
+  // per-train row may be the other direction's, so those come from this
+  // direction or not at all.
+  const trainName = String(row?.[`trip_short_name_${dir}`] ?? "").trim();
   return {
-    ...(base || {}),
+    ...(pricingWithoutFigure(base) || {}),
     currency: fare.currency,
     fromPrice: fare.fromPrice,
     source: fare.source ?? base?.source ?? null,
     checkedAt: fare.checkedAt ?? base?.checkedAt ?? null,
     travelDate: fare.travelDate ?? null,
     seatClass: fare.seatClass ?? null,
+    ...(trainName ? { trainName } : {}),
+    ...(fare.basis ? { basis: fare.basis } : {}),
   };
 }
 

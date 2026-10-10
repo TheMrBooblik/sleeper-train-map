@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FiChevronLeft, FiChevronRight, FiExternalLink, FiZap } from "react-icons/fi";
+import { FaBed } from "react-icons/fa";
 import {
   calendarMonths,
   datedBookingHref,
@@ -30,21 +31,33 @@ const TIER_CLASS = {
  * berth prices, book that night. The months sit in a row that scrolls to the
  * right — swipe, trackpad, or the month buttons above it — with two on screen
  * from `sm` and one (the next one peeking in) on a phone, whose cells could
- * not hold a price at half the width. Cells show the cheapest berth without the
- * currency symbol (a 320 px phone gives a cell ~35 px); the selected night
- * below carries the exact prices with it.
+ * not hold a price at half the width. Cells show the cheapest couchette place
+ * without the currency symbol (a 320 px phone gives a cell ~35 px); a night
+ * selling no couchette shows its cheapest other berth under a bed mark, so a
+ * sleeper price never passes for a couchette one. The selected night below
+ * carries the exact prices with it, and the operator's product for each.
  *
  * Server-rendered with the cheapest night selected, so the first paint and
  * the hydrated page agree. The visitor's clock is only consulted after
  * mount, to grey out nights that have passed since the page was built.
  *
  * @param {{ calendar: { currency: string, days: object[], cheapestDate: string,
- *           bookingTemplate: string|null }, trainNumber?: string,
- *           bookingHref?: string|null }} props
+ *           bookingTemplate: string|null, cellBasis: string,
+ *           otherBerthNights: number, noTrainNights: number },
+ *           trainNumber?: string, bookingHref?: string|null }} props
  */
 export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
-  const { days, cheapestDate, bookingTemplate, currency, deals, lastMinute } =
-    calendar;
+  const {
+    days,
+    cheapestDate,
+    bookingTemplate,
+    currency,
+    deals,
+    lastMinute,
+    cellBasis,
+    otherBerthNights,
+    noTrainNights,
+  } = calendar;
   const months = useMemo(() => calendarMonths(days), [days]);
   const [selected, setSelected] = useState(cheapestDate);
   const [today, setToday] = useState(null);
@@ -173,8 +186,12 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
         <div className="text-xs uppercase tracking-wide text-white/40">
           Fares by night
         </div>
+        {/* What a cell is, since it is not simply the night's cheapest
+            place: a couchette wherever the night sells one. */}
         <div className="text-xs text-white/40">
-          Cheapest berth per night
+          {cellBasis === "couchette"
+            ? "Cheapest couchette per night"
+            : "Cheapest berth per night"}
           {currency === "EUR" ? ", in € (rounded)" : ` (${currency}, rounded)`}
         </div>
       </div>
@@ -248,12 +265,20 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
                 const selectable = day.state === "priced" && !past;
                 const isSelected = selectable && day.date === selected;
                 const isDeal = Boolean(day.deal) && selectable;
+                // A night with no couchette prints another berth's price:
+                // marked in the cell, named in its label.
+                const otherBerth = day.state === "priced" && Boolean(day.otherBerth);
+                const noTrain = day.state === "none" && day.reason === "noJourney";
+                const shown =
+                  day.classes.find((c) => c.key === day.cellClass) ?? day.classes[0];
                 const label =
                   day.state === "priced"
-                    ? `${formatNight(day.date)}, ${day.classes[0]?.label.toLowerCase()} ${day.classes[0]?.price}${isDeal ? ` (${day.deal.programme === "flashSale" ? "flash sale" : "last-minute deal"})` : ""}`
-                    : day.state === "none"
-                      ? `${formatNight(day.date)}, no berth on sale`
-                      : `${formatNight(day.date)}, not checked yet`;
+                    ? `${formatNight(day.date)}, ${shown?.label.toLowerCase()} ${shown?.price}${otherBerth ? " (no couchette on sale)" : ""}${isDeal ? ` (${day.deal.programme === "flashSale" ? "flash sale" : "last-minute deal"})` : ""}`
+                    : noTrain
+                      ? `${formatNight(day.date)}, no train that night`
+                      : day.state === "none"
+                        ? `${formatNight(day.date)}, no berth on sale`
+                        : `${formatNight(day.date)}, not checked yet`;
                 return (
                   <button
                     key={day.date}
@@ -261,6 +286,7 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
                     disabled={!selectable}
                     aria-pressed={isSelected}
                     aria-label={label}
+                    title={label}
                     onClick={() => setSelected(day.date)}
                     className={`relative flex min-h-[2.75rem] min-w-0 flex-col items-center justify-center rounded-md px-0.5 py-1 leading-tight transition-colors ${
                       // Tailwind 4 no longer gives a button the pointer.
@@ -285,6 +311,12 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
                         aria-hidden
                       />
                     )}
+                    {otherBerth && (
+                      <FaBed
+                        className={`absolute left-0.5 top-0.5 h-2.5 w-2.5 ${selectable ? "text-sky-300/80" : "text-white/25"}`}
+                        aria-hidden
+                      />
+                    )}
                     <span
                       className={`text-xs ${selectable ? "text-white/70" : "text-white/30"}`}
                     >
@@ -301,9 +333,11 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
                     >
                       {day.state === "priced"
                         ? day.cellPrice
-                        : day.state === "none"
-                          ? "—"
-                          : "·"}
+                        : noTrain
+                          ? "×"
+                          : day.state === "none"
+                            ? "—"
+                            : "·"}
                     </span>
                   </button>
                 );
@@ -329,7 +363,14 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
               : "last-minute deal"}
           </span>
         )}
+        {otherBerthNights > 0 && (
+          <span className="inline-flex items-center gap-1">
+            <FaBed className="h-3 w-3 text-sky-300/80" aria-hidden />
+            no couchette that night: cheapest other berth
+          </span>
+        )}
         <span>— no berth on sale</span>
+        {noTrainNights > 0 && <span>× no train that night</span>}
         <span>· not checked yet</span>
       </div>
 
@@ -374,6 +415,9 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
               >
                 {c.label}{" "}
                 <span className="font-medium text-white">{c.price}</span>
+                {/* The operator's product, so the same fare can be found in
+                    its shop ("Sparschiene" is not "Komfortticket"). */}
+                {c.offer && <span className="text-white/45"> · {c.offer}</span>}
               </li>
             ))}
           </ul>
@@ -403,7 +447,11 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
  * block, so past the calendar it scrolls away with it.
  */
 function NightActionBar({ night, deal, href, dated, trainNumber }) {
-  const regular = night.classes.find((c) => !c.deal);
+  // The class the night's cell prints, so the bar and the grid quote the same
+  // figure; the cheapest regular class when the cell is a deal.
+  const regular =
+    night.classes.find((c) => !c.deal && c.key === night.cellClass) ??
+    night.classes.find((c) => !c.deal);
   return (
     // The wrapper's padding is transparent: it must not swallow taps on the
     // nights underneath it, only the bar inside may.
