@@ -52,8 +52,10 @@ function header(headers, name) {
  * Whether a response is the host refusing automated clients, and what said so.
  *
  * @param {{ status: number, headers?: Headers|object, body?: string }} res
- * @param {{ expectJson?: boolean }} [opts] expectJson: an HTML page where JSON
- *   was asked for is a block page on any status, 200 included
+ * @param {{ expectJson?: boolean }} [opts] expectJson: an HTML page carrying a
+ *   challenge marker (BLOCK_MARKERS) where JSON was asked for is a block on any
+ *   status, 200 included. An HTML page without one is not: a 404 or a
+ *   maintenance page is the caller's ordinary error, not a refusal
  * @returns {null | { status: number, reason: string, vendor: string|null }}
  */
 export function detectBlock({ status, headers, body = "" }, { expectJson = true } = {}) {
