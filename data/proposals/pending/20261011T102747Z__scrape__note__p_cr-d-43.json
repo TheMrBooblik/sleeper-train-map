@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_cr-d-43",
+  "createdAt": "2026-10-11T10:27:47.490Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: D 43 (Beijing West(北京西) – Xi'an(西安))",
+  "summary": "Material change on an approved route (already live — FYI): operating days (return): \"Daily\" → \"null\"; train numbers: \"D 43|D 44\" → \"D 43\"",
+  "target": {
+    "routeKey": "cr_D_43",
+    "agencyId": "CR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (return)": "Daily",
+    "train numbers": "D 43|D 44"
+  },
+  "after": {
+    "operating days (return)": null,
+    "train numbers": "D 43"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
