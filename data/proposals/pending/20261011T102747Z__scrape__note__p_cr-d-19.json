@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_cr-d-19",
+  "createdAt": "2026-10-11T10:27:47.490Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: D 19 (Beijing West(北京西) – Xi'an(西安))",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"D 19|D 20\" → \"D 19|D 42\"",
+  "target": {
+    "routeKey": "cr_D_19",
+    "agencyId": "CR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "D 19|D 20"
+  },
+  "after": {
+    "train numbers": "D 19|D 42"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
