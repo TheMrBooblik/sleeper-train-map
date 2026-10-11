@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "What the Nightjet fare check (scripts/probe-nj-fares.mjs, 'Probe Nightjet fares' workflow, label a PR run-probes) re-asks nightjet.com about. A pull_request run has no workflow inputs, so the sample lives here.",
+    "disputed: the nights the owner checked in ÖBB's shop, asked first and reported with a verdict — [{ \"train\": \"NJ 466\", \"date\": \"2026-10-20\", \"shop\": { \"price\": 119.9, \"product\": \"Sparschiene\", \"compartment\": \"Liegewagen 6er\", \"seenAt\": \"2026-10-11T09:30+02:00\" }, \"note\": \"grid cell said 59.9\" }]. compartment says which class the price is for (couchette/Liege… or sleeper/Schlaf…/bed); a night not after today is skipped with a note.",
+    "The rest of the sample is chosen by the probe: anomalies (couchette at or below the seat price, couchette at seat level ≤ seatLevelMax, bed below couchette, bed only, partnerTrains off the .9 ladder; anomaliesPerKind each, spread across trains), coupledPairs on the same night (nightsPerCoupledPair each), perLeadBucket priced nights per lead bucket (1–3, 4–7, 8–14, 15–21, 22–42 days) on distinct trains by a hash seeded with the date, and repeats of those asked again at least repeatMinGapSeconds later.",
+    "maxRequests caps every request to nightjet.com, robots.txt included, spacingSeconds apart; what the cap drops is logged.",
+    "shop: the ÖBB shop step — robots.txt, then the anonymous token (where a block will show), and only on a 200 the timetable and offers for maxTrainNights nights, spacingSeconds apart, honest User-Agent and functional headers only. A block ends it; it is never retried or worked around."
+  ],
+  "disputed": [],
+  "maxRequests": 60,
+  "spacingSeconds": 2,
+  "anomaliesPerKind": 4,
+  "seatLevelMax": 39.9,
+  "partnerTrains": ["EN 40457", "EN 40476", "EN 40462", "EN 40467", "EN 50462", "EN 40458", "EN 40459"],
+  "coupledPairs": [["NJ 40421", "NJ 421"], ["NJ 493", "NJ 40491"]],
+  "nightsPerCoupledPair": 2,
+  "perLeadBucket": 2,
+  "repeats": 3,
+  "repeatMinGapSeconds": 300,
+  "shop": { "enabled": true, "maxTrainNights": 3, "spacingSeconds": 5 }
+}
