@@ -70,7 +70,10 @@ export function formatNight(iso) {
  *
  * A priced night's cell is its cheapest couchette place, deal couchettes
  * included; a night selling none prints its cheapest other berth instead and
- * carries `otherBerth: true`, so the grid can mark it. `cellClass` names the
+ * carries `otherBerth: true`, so the grid can mark it — on a calendar where
+ * some night sells a couchette. Where none does (EN 40458/40459 sell sleeping
+ * cars only), every cell is a berth by the heading's own word and no night is
+ * marked: a mark on every cell says nothing. `cellClass` names the
  * class the cell prints either way (its label is in `classes`). The grid used
  * to print the cheapest class whatever it was: on the calendars of 10 October
  * 2026 that put an unmarked sleeper price on 159 of 1 457 Nightjet nights (142
@@ -176,6 +179,8 @@ export function fareCalendarDays(
 
   const priced = days.filter((d) => d.state === "priced");
   if (!priced.length) return null;
+  const sellsCouchette = priced.some((d) => !d.otherBerth);
+  if (!sellsCouchette) for (const d of priced) delete d.otherBerth;
   const min = Math.min(...priced.map((d) => d.amount));
   const max = Math.max(...priced.map((d) => d.amount));
   const band = (max - min) / 3;
@@ -197,7 +202,7 @@ export function fareCalendarDays(
     days,
     cheapestDate,
     deals: dealsSummary(days),
-    cellBasis: priced.some((d) => !d.otherBerth) ? "couchette" : "berth",
+    cellBasis: sellsCouchette ? "couchette" : "berth",
     otherBerthNights: priced.filter((d) => d.otherBerth).length,
     noTrainNights: days.filter((d) => d.reason === "noJourney").length,
   };

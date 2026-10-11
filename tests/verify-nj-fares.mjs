@@ -243,6 +243,27 @@ await check("nightsProven: nothing from that night on, or the next journey past 
   assert.ok(Object.values(later).every((e) => e.none));
 });
 
+await check("nightsProven: one empty answer never erases a night the calendar already prices", () => {
+  // EN 40417 (Przemyśl → München), 10 October 2026: a daily train answered one
+  // request with nothing, and the rest of its window became "no train" — 37
+  // priced nights, 16 of them read hours earlier, while EN 40416 priced every
+  // night the other way. The night asked about is the answer's own; the rest
+  // keep their prices until a request about them answers.
+  const held = {
+    "2026-10-30": { classes: { couchette: 64.9 }, checkedAt: "2026-10-05" },
+    "2026-10-31": { none: true, checkedAt: "2026-10-05", reason: "noBerth" },
+    "2026-11-02": { classes: { couchette: 89.9 }, checkedAt: "2026-10-06" },
+  };
+  const out = nightsProven(journeysFromOffers([]), { from: "2026-10-30", today: TODAY, held });
+  assert.deepStrictEqual(out["2026-10-30"], { none: true, checkedAt: TODAY, reason: "noJourney" }, "the night asked about");
+  assert.strictEqual(out["2026-11-02"], undefined, "a priced night is not overwritten by inference");
+  assert.deepStrictEqual(out["2026-10-31"], { none: true, checkedAt: TODAY, reason: "noJourney" }, "a night without a price is");
+  assert.deepStrictEqual(out["2026-11-01"], { none: true, checkedAt: TODAY, reason: "noJourney" });
+  // A night the forward search jumped over is direct evidence, held price or not.
+  const gap = nightsProven(journeysFromOffers([journey("2026-11-03")]), { from: "2026-11-01", today: TODAY, held });
+  assert.deepStrictEqual(gap["2026-11-02"], { none: true, checkedAt: TODAY, reason: "noJourney" });
+});
+
 /**
  * A fake nightjet.com: per train, the dates it runs and their fares. `perAnswer`
  * caps the journeys one answer holds whatever `max` asks — 1 is what the live
@@ -373,6 +394,64 @@ await check("fillNjFareCalendars: a 3×/week train, a train not yet running, and
   assert.strictEqual(capped.requests, 2);
   assert.strictEqual(capped.capped, true);
   assert.strictEqual(Object.keys(tight["NJ 40491"].fareCalendar.nights).length, 6);
+});
+
+await check("fillNjFareCalendars: a flaky empty answer keeps last run's prices and tonight's own answers", async () => {
+  const window = calendarWindow(TODAY);
+  // Every night priced on an earlier run; the near week stale, so it is asked first.
+  const previousNights = {};
+  for (const d of window) previousNights[d] = { classes: { couchette: 70 }, checkedAt: "2026-10-05" };
+  const previous = { "EN 40417": { fareCalendar: { version: FARE_CALENDAR_VERSION, currency: "EUR", nights: previousNights } } };
+  const trains = { "EN 40417": { ...structuredClone(TRAIN), lineName: "EN 40417" } };
+  const log = [];
+  const lines = [];
+  // Runs every night; the answer about the 9th comes back empty once.
+  const daily = fakeNightjet({ "EN 40417": everyNight("2026-10-08", 60, { le: 55 }) }, { log, perAnswer: 1 });
+  const fetchImpl = async (url) => {
+    const from = viennaDate(Number(url.match(/\/(\d{13})\?/)[1]));
+    if (from !== "2026-10-09") return daily(url);
+    log.push({ from });
+    return { ok: true, status: 200, text: async () => "[]" };
+  };
+  await fillNjFareCalendars(trains, previous, {
+    today: TODAY, fetchImpl, spacingMs: 0, requests: 3, log: (l) => lines.push(l),
+  });
+  const nights = trains["EN 40417"].fareCalendar.nights;
+  assert.deepStrictEqual(log.map((r) => r.from), ["2026-10-08", "2026-10-09", "2026-10-10"]);
+  assert.strictEqual(nights["2026-10-08"].classes.couchette, 55, "read tonight");
+  assert.strictEqual(nights["2026-10-09"].reason, "noJourney", "the empty answer's own night");
+  assert.strictEqual(nights["2026-10-10"].classes.couchette, 55, "the next request reads its own night");
+  // The rest keep the price an earlier run read, rather than turning into "no train".
+  const kept = window.filter((d) => d > "2026-10-10");
+  assert.strictEqual(kept.length, 39);
+  assert.ok(kept.every((d) => nights[d].classes?.couchette === 70), "earlier prices kept");
+  assert.ok(lines.some((l) => /EN 40417: nothing on sale from 2026-10-09 on .*except 40 priced on an earlier run/.test(l)), lines.join("\n"));
+
+  // Tonight's own answer outranks what a later empty answer infers: the 20th
+  // is never-checked and asked before the stale 15th, which answers nothing.
+  // The 20th sells seats only, so no held price protects it — only the rule.
+  const prev2 = {};
+  for (const d of window) if (d !== "2026-10-20") prev2[d] = { none: true, checkedAt: "2026-10-05", reason: "noBerth" };
+  for (const d of window.slice(0, 7)) prev2[d] = { none: true, checkedAt: TODAY, reason: "noBerth" };
+  const order = [];
+  const t2 = { "EN 40417": { ...structuredClone(TRAIN), lineName: "EN 40417" } };
+  await fillNjFareCalendars(t2, { "EN 40417": { fareCalendar: { version: FARE_CALENDAR_VERSION, currency: "EUR", nights: prev2 } } }, {
+    today: TODAY,
+    fetchImpl: async (url) => {
+      const from = viennaDate(Number(url.match(/\/(\d{13})\?/)[1]));
+      order.push(from);
+      const body = from === "2026-10-20" ? [journey("2026-10-20", { le: null, be: null })] : [];
+      return { ok: true, status: 200, text: async () => JSON.stringify(body) };
+    },
+    spacingMs: 0,
+    requests: 2,
+    log: () => {},
+  });
+  assert.deepStrictEqual(order, ["2026-10-20", "2026-10-15"]);
+  const n2 = t2["EN 40417"].fareCalendar.nights;
+  assert.deepStrictEqual(n2["2026-10-20"], { none: true, checkedAt: TODAY, reason: "noBerth", seat: 29.9 }, "tonight's answer stands");
+  assert.strictEqual(n2["2026-10-15"].reason, "noJourney");
+  assert.strictEqual(n2["2026-10-21"].reason, "noJourney", "unpriced nights are still inferred");
 });
 
 await check("fillNjFareCalendars: last night's calendar is built on, tonight's nights are not asked twice", async () => {

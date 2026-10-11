@@ -262,14 +262,16 @@ check("fareCalendarDays: banding and the opening night read the figures the grid
   for (const d of priced) assert.strictEqual(d.cellPrice, String(Math.round(d.amount)));
 });
 
-check("fareCalendarDays: a sleeper-only calendar says its cells are berths", () => {
+check("fareCalendarDays: a sleeper-only calendar says its cells are berths, and marks none of them", () => {
   const view = fareCalendarDays(
     { currency: "EUR", nights: { "2026-10-11": { classes: { sleeperBed: 296 } }, "2026-10-12": { classes: { sleeperBed: 316 } } } },
     { today: TODAY },
   );
   assert.strictEqual(view.cellBasis, "berth");
-  assert.strictEqual(view.otherBerthNights, 2);
-  assert.ok(view.days.every((d) => d.otherBerth === true && d.cellClass === "sleeperBed"));
+  // The heading already says "Cheapest berth per night"; a bed on every cell
+  // and a legend reading "no couchette that night" would say it 42 times more.
+  assert.strictEqual(view.otherBerthNights, 0);
+  assert.ok(view.days.every((d) => !("otherBerth" in d) && d.cellClass === "sleeperBed"));
 });
 
 // European Sleeper: deals, the private compartment, eight cabin classes.
@@ -427,7 +429,10 @@ check("the committed payload: every cell is the night's cheapest couchette, else
           c.couchette++;
         } else {
           assert.strictEqual(day.amount, rows[0].amount, `${row.route_id} ${day.date}`);
-          assert.ok(day.otherBerth === true && day.cellClass === rows[0].key, `${row.route_id} ${day.date} is marked and named`);
+          // Marked where the calendar sells a couchette on some other night;
+          // a calendar selling none is all berths, by its heading.
+          assert.strictEqual(Boolean(day.otherBerth), view.cellBasis === "couchette", `${row.route_id} ${day.date} is marked`);
+          assert.strictEqual(day.cellClass, rows[0].key, `${row.route_id} ${day.date} is named`);
           c.other++;
         }
         assert.ok(!JSON.stringify(day).includes('"seat"'));
@@ -450,11 +455,26 @@ check("the committed payload: every cell is the night's cheapest couchette, else
  * formatter's numeric path inlined: operatorPricing.js (formatFromPrice)
  * cannot load in raw node. The wiring itself is asserted against the source.
  */
-function ctaCaption(row) {
+function ctaBooking(row, dir) {
+  return resolveRouteBooking({
+    agencyId: row.agency_id || "",
+    agencies: AGENCIES,
+    agencyUrl: AGENCIES[row.agency_id]?.agency_url ?? null,
+    origin: row[`origin_trip_${dir}`],
+    dest: row[`destination_trip_${dir}`],
+    routeId: String(row.route_id),
+    scheduleStops: [],
+  });
+}
+
+function ctaCaption(row, { booking } = {}) {
   const primaryDir = [0, 1].find((d) => (row[`trip_short_name_${d}`] || "").trim()) ?? 0;
-  const pricing = pricingForDirection(row, primaryDir, resolvePricing(row, OPERATOR_PRICING));
+  const routePricing = resolvePricing(row, OPERATOR_PRICING);
+  const trainPricing = pricingForDirection(row, primaryDir, routePricing);
+  const preselects = Boolean((booking === undefined ? ctaBooking(row, primaryDir) : booking)?.preselects);
+  const pricing = preselects ? trainPricing : routePricing;
   const fromPrice = pricing?.fromPrice == null ? null : `from ${formatMoney(pricing.fromPrice, pricing.currency)}`;
-  return { primaryDir, fromPrice, fromPriceEur: eurHintFor(pricing) || "" };
+  return { primaryDir, preselects, fromPrice, fromPriceEur: eurHintFor(pricing) || "", trainPricing };
 }
 
 check("the CTA caption: Wien → Roma (NJ 40233) quotes NJ 40233, whichever direction is cheaper", () => {
@@ -475,6 +495,7 @@ check("the CTA caption: Wien → Roma (NJ 40233) quotes NJ 40233, whichever dire
   assert.strictEqual(new URL(booking.href).searchParams.get("stationOrigName"), row.origin_trip_0);
   // …so the caption is direction 0's fare, or nothing.
   const caption = ctaCaption(row);
+  assert.ok(caption.preselects);
   assert.strictEqual(caption.primaryDir, 0);
   const own = directionFare(row, 0);
   assert.strictEqual(caption.fromPrice, own ? `from ${formatMoney(own.fromPrice, own.currency)}` : null);
@@ -499,20 +520,41 @@ check("the CTA caption: a row priced per route quotes the route, a yuan fare kee
   assert.strictEqual(ctaCaption(curated).fromPrice, "from €39");
   // A row whose only train is direction 1 books direction 1.
   const oneWay = { ...PER_TRAIN, trip_short_name_0: "" };
-  assert.strictEqual(ctaCaption(oneWay).primaryDir, 1);
-  assert.strictEqual(ctaCaption(oneWay).fromPrice, "from €54.9");
+  assert.strictEqual(ctaCaption(oneWay, { booking: { preselects: true } }).primaryDir, 1);
+  assert.strictEqual(ctaCaption(oneWay, { booking: { preselects: true } }).fromPrice, "from €54.9");
   const china = Object.values(VIEW_MAP).find((r) => r.timetable_source === "chinese" && directionFare(r, 0));
   if (china) {
     const caption = ctaCaption(china);
     assert.ok(caption.fromPrice.startsWith("from ¥"), caption.fromPrice);
-    assert.ok(/^≈ €\d/.test(caption.fromPriceEur), `the euro hint is the same direction's: ${caption.fromPriceEur}`);
+    assert.ok(/^≈ €\d/.test(caption.fromPriceEur), `the euro hint is the same pricing's: ${caption.fromPriceEur}`);
+  }
+});
+
+check("the CTA caption: a button that opens no train in particular quotes the route, as the facts tile does", () => {
+  // Per-train fares, but a link that preselects nothing: the caption names no
+  // train, so neither direction's figure is the one "you'd pay" — the route's is.
+  const row = { ...PER_TRAIN, pricing: { type: "dynamic", fromPrice: 54.9, currency: "EUR", trainName: "NJ 2" } };
+  assert.strictEqual(ctaCaption(row, { booking: { preselects: false } }).fromPrice, "from €54.9");
+  assert.strictEqual(ctaCaption(row, { booking: null }).fromPrice, "from €54.9");
+  // European Sleeper's Brussels–Prague: the Book button is the operator's corridor page.
+  const es = VIEW_MAP["237"];
+  if (es?.pricing?.fromPrice != null) {
+    const booking = ctaBooking(es, 0);
+    assert.strictEqual(booking?.preselects, false, "a corridor page selects no train");
+    assert.strictEqual(ctaCaption(es).fromPrice, `from ${formatMoney(es.pricing.fromPrice, es.pricing.currency)}`);
   }
 });
 
 check("the CTA caption is wired from the CTA's own direction in getRouteDetail", () => {
   const src = read("src/lib/seo/data.js");
   assert.ok(/const primaryDir = \[0, 1\]\.find\(\(d\) => \(route\[`trip_short_name_\$\{d\}`\] \|\| ""\)\.trim\(\)\) \?\? 0;/.test(src), "the first direction with a train, as the loop picks `primary`");
-  assert.ok(/const ctaPricing = pricingForDirection\(route, primaryDir, summary\.pricing\);/.test(src));
+  assert.ok(/const trainPricing = pricingForDirection\(route, primaryDir, summary\.pricing\);/.test(src));
+  assert.ok(/const ctaPricing = resolvedBooking\?\.preselects \? trainPricing : summary\.pricing;/.test(src), "a direction's figure only beside a button that opens that train");
+  // The TrainTrip node names direction 0's train, so it quotes that train's fare.
+  assert.ok(/^\s+trainPricing,$/m.test(src), "the detail carries the named train's pricing");
+  const page = read("src/pages/connections/[pair].js");
+  assert.ok(/detail\.trainPricing !== undefined\s*\?\s*detail\.trainPricing/.test(page), "TrainTrip offers read it");
+  assert.ok(!/^\s+trainPricing:/m.test(page), "…and it stays out of the page props");
   assert.ok(/fromPrice: formatFromPrice\(ctaPricing\) \|\| null/.test(src));
   assert.ok(/fromPriceEur: eurHintFor\(ctaPricing\) \|\| ""/.test(src));
   assert.ok(!/fromPrice: summary\.fromPrice \|\| null, fromPriceEur/.test(src), "no longer the row's cheaper-direction figure");
@@ -521,21 +563,38 @@ check("the CTA caption is wired from the CTA's own direction in getRouteDetail",
   assert.ok(/if \(!trainNumber\) continue;/.test(src) && /const primary = directions\[0\] \|\| \{\};/.test(src));
 });
 
-check("the committed payload: every CTA caption is its own direction's fare", () => {
+check("the committed payload: a CTA caption is its train's fare where the button opens that train, else the route's", () => {
   let rows = 0;
   let changed = 0;
   let silenced = 0;
+  let routeLevel = 0;
+  let offersMoved = 0;
+  let offersDropped = 0;
   for (const row of Object.values(VIEW_MAP)) {
     if (!hasDirectionFares(row)) continue;
     rows++;
     const caption = ctaCaption(row);
     const own = directionFare(row, caption.primaryDir);
-    assert.strictEqual(caption.fromPrice, own ? `from ${formatMoney(own.fromPrice, own.currency)}` : null, row.route_id);
-    if (!own) silenced++;
-    else if (own.fromPrice !== row.pricing?.fromPrice) changed++;
+    const route = resolvePricing(row, OPERATOR_PRICING);
+    if (caption.preselects) {
+      assert.strictEqual(caption.fromPrice, own ? `from ${formatMoney(own.fromPrice, own.currency)}` : null, row.route_id);
+      if (!own) silenced++;
+      else if (own.fromPrice !== row.pricing?.fromPrice) changed++;
+    } else {
+      assert.strictEqual(caption.fromPrice, route?.fromPrice == null ? null : `from ${formatMoney(route.fromPrice, route.currency)}`, row.route_id);
+      routeLevel++;
+    }
+    // The TrainTrip node names the primary train: its fare, never the return's.
+    assert.strictEqual(caption.trainPricing?.fromPrice ?? null, own?.fromPrice ?? null, `${row.route_id} TrainTrip`);
+    if (!own && route?.fromPrice != null) offersDropped++;
+    else if (own && own.fromPrice !== route?.fromPrice) offersMoved++;
   }
   assert.ok(rows > 50, `${rows} rows priced per train`);
-  console.log(`      (${rows} rows priced per train: ${changed} caption(s) now quote the outbound where the row's figure was the return's, ${silenced} quote nothing where the outbound has no fare)`);
+  console.log(
+    `      (${rows} rows priced per train: ${changed} caption(s) quote the outbound where the row's figure was the return's, ` +
+      `${silenced} quote nothing where the outbound has no fare, ${routeLevel} open no particular train and quote the route; ` +
+      `TrainTrip offers: ${offersMoved} now the named train's figure, ${offersDropped} dropped where it has none)`,
+  );
 });
 
 console.log(`\nverify-fare-calendar-view: ${passed} checks passed`);

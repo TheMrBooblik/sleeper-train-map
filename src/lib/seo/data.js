@@ -664,9 +664,13 @@ export function getRouteDetail(routeId) {
   // beside a button that preselects the outbound. A row priced per route
   // (prices.json, an operator default) quotes the route's figure as before.
   // `primary` is the first direction with a train number (the loop above
-  // skips the others), so that is the direction to price.
+  // skips the others), so that is the direction to price. A button that
+  // opens no train in particular — an operator's homepage, European Sleeper's
+  // corridor page (`preselects: false`) — quotes the route, as the facts
+  // tile beside it does.
   const primaryDir = [0, 1].find((d) => (route[`trip_short_name_${d}`] || "").trim()) ?? 0;
-  const ctaPricing = pricingForDirection(route, primaryDir, summary.pricing);
+  const trainPricing = pricingForDirection(route, primaryDir, summary.pricing);
+  const ctaPricing = resolvedBooking?.preselects ? trainPricing : summary.pricing;
   const booking = resolvedBooking
     ? {
         ...resolvedBooking,
@@ -704,6 +708,10 @@ export function getRouteDetail(routeId) {
     agencyId: route.agency_id || "",
     operators: summary.operators,
     pricing: route.pricing || null,
+    // The fare of the train this detail is named after (primaryTrainNumber,
+    // origin → destination): the page's TrainTrip structured data. Read at
+    // build time only; not passed to the page.
+    trainPricing,
     booking,
     countryCodes: summary.countries,
     countries: summary.countries.map(getSeoCountry).filter(Boolean),

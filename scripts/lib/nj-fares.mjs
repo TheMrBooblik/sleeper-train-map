@@ -373,11 +373,17 @@ export function journeysFromOffers(body) {
  * its journey sells no berth. A night it skips before the last journey it
  * returns has no train ("noJourney") — the search runs forward, so it would
  * have come first. An answer with no journey from `from` on means nothing is
- * on sale from then on. Nights after the last journey returned are left for
- * the next request, which starts there. A night's seat price rides along
- * wherever the answer gave one, priced or not.
+ * on sale from then on — but only as far as the calendar does not know
+ * better: a night `held` already prices keeps its price until a request about
+ * that night itself answers, since one empty answer about a daily train is
+ * likelier a hiccup than a timetable (EN 40417, 10 October 2026: one empty
+ * answer turned 37 priced nights, 16 of them read that same day, into "no
+ * train" while the return train priced every night). The night asked about
+ * is the answer's own and is always written. Nights after the last journey
+ * returned are left for the next request, which starts there. A night's seat
+ * price rides along wherever the answer gave one, priced or not.
  */
-export function nightsProven(answer, { from, today, days = FARE_CALENDAR_DAYS }) {
+export function nightsProven(answer, { from, today, days = FARE_CALENDAR_DAYS, held = null }) {
   const returned = answer.dates.filter((d) => d >= from);
   const last = returned.length ? returned[returned.length - 1] : null;
   const out = {};
@@ -398,6 +404,8 @@ export function nightsProven(answer, { from, today, days = FARE_CALENDAR_DAYS })
         ...offers,
       };
     } else if (date >= from && (!last || date < last)) {
+      const priced = held?.[date] && !held[date].none;
+      if (!last && date > from && priced) continue;
       out[date] = { none: true, checkedAt: today, reason: "noJourney" };
     }
   }
@@ -589,10 +597,13 @@ export async function fillNjFareCalendars(
       consecutiveErrors = 0;
       for (const k of answer.seen) offerKeys.add(k);
       for (const name of answer.offerNames) offerNames.add(name);
-      const proven = nightsProven(answer, { from: date, today, days });
+      const proven = nightsProven(answer, { from: date, today, days, held: calendars[key].nights });
       const written = writtenTonight.get(key) ?? {};
       writtenTonight.set(key, written);
       for (const [d, entry] of Object.entries(proven)) {
+        // What an answer infers about a night never overwrites what another
+        // answer tonight said about it directly.
+        if (written[d] && !answer.nights[d]) continue;
         calendars[key].nights[d] = entry;
         written[d] = entry;
       }
@@ -600,7 +611,12 @@ export async function fillNjFareCalendars(
       const returned = answer.dates.filter((d) => d >= date);
       if (!returned.length && !noted.has(key)) {
         noted.add(key);
-        log(`[nj-fare] ${key}: nothing on sale from ${date} on — its nights to ${windowEnd} have no fare`);
+        const kept = Object.entries(calendars[key].nights)
+          .filter(([d, e]) => d > date && !e.none).length;
+        log(
+          `[nj-fare] ${key}: nothing on sale from ${date} on — its nights to ${windowEnd} have no fare` +
+            (kept ? `, except ${kept} priced on an earlier run, kept until asked again` : ""),
+        );
       } else if (
         returned.length &&
         returned[0] > windowEnd &&
