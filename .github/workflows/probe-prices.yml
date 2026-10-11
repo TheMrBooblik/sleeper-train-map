@@ -62,6 +62,29 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Nightjet's fare calendar against a live re-ask of nightjet.com, plus
+      # one honest attempt at ÖBB's shop (scripts/probe-nj-fares.mjs; read-only,
+      # at most ~60 requests). It has its own workflow, probe-nj-fares.yml, but
+      # a workflow added in a PR cannot be dispatched until it merges and this
+      # one can, so dispatching "Probe prices" for nightjet runs it here too.
+      - name: Nightjet fare check
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.source == 'nightjet' }}
+        continue-on-error: true
+        run: |
+          # pipefail, or a crash would read as tee's success.
+          set -o pipefail
+          mkdir -p nj-fare-check
+          node scripts/probe-nj-fares.mjs nj-fare-check 2>&1 | tee nj-fare-check/stdout.txt
+
+      - name: Upload the Nightjet fare check
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.source == 'nightjet' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: nj-fares-probe-output
+          path: nj-fare-check/
+          retention-days: 7
+          if-no-files-found: warn
+
       # probe-health.json is written by the runner; keep it (and the log) as an
       # artifact rather than committing, so a recon run has no side effects.
       - name: Upload probe output
