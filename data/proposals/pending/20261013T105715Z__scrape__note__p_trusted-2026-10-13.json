@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-10-13",
+  "createdAt": "2026-10-13T10:57:15.111Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (7 routes, 5 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_EN_40406: EN 40406 (München Hbf – Warszawa Wschodnia)\nroute nj_standalone_EN_50237: EN 50237 (Stuttgart Hbf – Budapest-Keleti)\nroute nj_standalone_EN_40414: EN 40414 (Zagreb Glavni Kolod. – Zürich HB)\nroute nj_standalone_EN_40462: EN 40462 (Budapest-Keleti – Zürich HB)\nroute nj_standalone_EN_1277: EN 1277 (Warszawa Wschodnia – Rijeka)\nroute nj_standalone_EN_477: EN 477 (Berlin Hbf – Budapest-Nyugati)\nroute cr_D_20: D 20 (Xi'an(西安) – Beijing West(北京西))\nstation Aachen Hauptbahnhof (europeansleeper)\nstation Verviers-Central (europeansleeper)\nstation Xianning(咸宁) (chinese)\nstation Quanzhounan(全州南) (chinese)\nstation Laibin(来宾) (chinese)",
+  "target": {
+    "routeKey": "trusted-2026-10-13",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
