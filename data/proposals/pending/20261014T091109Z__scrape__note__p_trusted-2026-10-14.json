@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-10-14",
+  "createdAt": "2026-10-14T09:11:09.366Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (3 routes, 0 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nroute nj_standalone_EN_443: EN 443 (Stuttgart Hbf – Budapest-Keleti)\nroute nj_standalone_ES_453: ES 453 (Bruxelles Midi – Praha hl.n.)\nroute nj_standalone_ES_475: ES 475 (Paris Gare du Nord – Berlin Hbf)",
+  "target": {
+    "routeKey": "trusted-2026-10-14",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
