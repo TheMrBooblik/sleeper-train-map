@@ -52,7 +52,7 @@ export function probeCandidates(entry, ctx) {
       // A partner EuroNight is its carrier's to price, not nightjet.com's
       // (njPricesTrain): a proposal would put nightjet.com's figure back on
       // the row through prices.json.
-      if (!njPricesTrain(train)) return null;
+      if (!njPricesTrain(train, entry.params?.operatorAgencies?.home)) return null;
       const ends = pricingEnds(train);
       if (!ends) return null;
       // `priced`: the nightly calendar already prices this train, and its

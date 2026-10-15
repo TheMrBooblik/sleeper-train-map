@@ -87,7 +87,7 @@
           { "agency": "HŽPP", "match": ["HŽPP", "HŽ", "HŽ Putnički prijevoz", "Kroatisch*", "Croatian", "Hrvatske željeznice"] },
           { "agency": "ZSSK", "match": ["ZSSK", "Slowakisch*", "Slovak", "Železničná spoločnosť Slovensko"] },
           { "agency": "ES", "match": ["European Sleeper"], "lines": ["ES"], "publishedBy": "europeansleeper" },
-          { "agency": "ÖBB", "match": ["ÖBB", "OEBB", "Österreichisch*", "Oesterreichisch*", "Austrian", "Nightjet"] }
+          { "agency": "ÖBB", "match": ["ÖBB", "OEBB", "Österreichisch*", "Oesterreichisch*", "Austrian"] }
         ]
       }
     },

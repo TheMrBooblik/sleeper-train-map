@@ -17,6 +17,26 @@ export function isActiveRecord(record) {
 
 // ─── Agency scoping for bare train numbers ──────────────────────────────────
 
+/**
+ * Which of a synthetic row's trains decides who runs it: one whose carrier the
+ * source stated (`agencyFrom` other than "home" — nightjet.com's operator
+ * sentence, a train-number prefix, Back-on-Track's attribution), else one
+ * carrying an `agency_id` at all, else the first. Every nightjet train carries
+ * an agency_id — the home fallback included — so "has an agency_id" alone
+ * always picked the outbound, and a pair whose outbound fell back to ÖBB while
+ * its return named PKP was drawn as ÖBB's.
+ * @param {...object} trains
+ * @returns {object|undefined}
+ */
+export function carrierTrain(...trains) {
+  const list = trains.filter(Boolean);
+  return (
+    list.find((t) => t.agencyFrom && t.agencyFrom !== "home") ??
+    list.find((t) => t.agency_id) ??
+    list[0]
+  );
+}
+
 // Bare train numbers are only unique within an operator: Back-on-Track carries
 // a CFM/CFR 401 (Prietenia) and an SJN 475 (Trondheim–Bodø) alongside European
 // Sleeper's ES 401 and ES 475. A source that matches BoT rows by bare number

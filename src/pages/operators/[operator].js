@@ -25,6 +25,7 @@ export default function OperatorHub({
   countries,
   connections,
   advice,
+  unpricedEuroNights = 0,
   bookingGuide = null,
 }) {
   const canonical = absoluteUrl(`/operators/${operator.slug}`);
@@ -97,6 +98,13 @@ export default function OperatorHub({
               <p className="mt-2 text-sm text-white/60 leading-relaxed text-pretty">
                 {operator.name} sells {advice.detail}.
                 {advice.caveat ? ` That said, ${advice.caveat}.` : ""}
+                {unpricedEuroNights > 0
+                  ? ` This does not describe ${
+                      unpricedEuroNights === 1
+                        ? "the international EuroNight below"
+                        : `the ${unpricedEuroNights} international EuroNights below`
+                    }, whose fares are set separately and are not shown here.`
+                  : ""}
               </p>
             </section>
           )}
@@ -183,6 +191,14 @@ export async function getStaticProps({ params }) {
         pricingAdvice(getOperatorPricing({ agency_id: hub.operator.id }), {
           hasLastMinuteDeals: hasLastMinuteDeals(hub.operator.id),
         }) ?? null,
+      // The operator's fare model is its own trains' — PKP's "fixed tariff"
+      // is its domestic one. The international EuroNights it runs are sold
+      // at fares no source here publishes, and their rows say so with an
+      // empty pricing record from nightjet.com (stampOfficialFares); the hub
+      // must not state the domestic model above them as if it covered them.
+      unpricedEuroNights: hub.routes.filter(
+        (r) => r.pricing && r.pricing.type == null && r.pricing.source === "nightjet",
+      ).length,
       bookingGuide: guideProps(getBookingGuide({ agencyId: hub.operator.id })),
     },
   };

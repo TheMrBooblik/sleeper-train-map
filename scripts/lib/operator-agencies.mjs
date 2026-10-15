@@ -271,9 +271,11 @@ export function agencyForOperatorText(text, compiled) {
 /**
  * The carrier in a Back-on-Track agency id, for a train whose own operator
  * text says nothing usable: the first component that is a listed carrier
- * other than home ("HŽPP/ÖBB" → "HŽPP", "PKP/ČD" → "PKP"), else null. Never
- * the compound itself: a compound id picks its booking link by link quality,
- * and that sends a HŽPP train to ÖBB's shop.
+ * other than home ("HŽPP/ÖBB" → "HŽPP", "PKP/ČD" → "PKP"); home when home is
+ * the only carrier the id names ("ÖBB" — Back-on-Track saying ÖBB runs it is
+ * an answer, not a missing one); else null. Never the compound itself: a
+ * compound id picks its booking link by link quality, and that sends a HŽPP
+ * train to ÖBB's shop.
  * @param {unknown} agencyId
  * @param {ReturnType<typeof compileOperatorAgencies>} compiled
  * @returns {string|null}
@@ -284,7 +286,9 @@ export function carrierInAgencyId(agencyId, compiled) {
     .split("/")
     .map((p) => p.normalize("NFC").trim())
     .filter(Boolean);
-  return parts.find((p) => p !== compiled.home && listed.has(p)) ?? null;
+  const partner = parts.find((p) => p !== compiled.home && listed.has(p));
+  if (partner) return partner;
+  return parts.length && parts.every((p) => p === compiled.home) ? compiled.home : null;
 }
 
 /**

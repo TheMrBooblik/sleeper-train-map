@@ -6,6 +6,7 @@
 // construction. ESM/.mjs so raw `node` can run it; no external dependencies.
 
 import {
+  carrierTrain,
   inAgencyScope,
   isActiveRecord,
   isTrain4you,
@@ -317,19 +318,17 @@ function appendSyntheticRoutes(
     // Who runs the row: a train that states its own carrier (agency_id, from a
     // source with synthetic.agency.from "data") decides it, from either
     // direction — nightjet.com names a partner EuroNight's carrier per train.
-    const stated = [data, reversePair?.[1]].find((t) => t?.agency_id) ?? data;
+    const stated = carrierTrain(data, reversePair?.[1]);
     const rowAgency = agency(stated);
-    // BoT's operator attribution for the row this synthetic route replaced
-    // (either direction) — e.g. "PKP/ČD" for a partner EuroNight. Consumed by
-    // the operator display in the panel, which reads it before agency_id. Left
-    // off when the source itself named the carrier: the joint id would then
-    // contradict the carrier the source named, on the very surfaces that
-    // read it first.
-    const carrierStated = [data, reversePair?.[1]].some(
-      (t) => t?.agencyFrom && t.agencyFrom !== "home",
-    );
+    // The operating carrier, which the panel, the schedule link and the
+    // planner read before agency_id: BoT's attribution for the row this
+    // synthetic route replaced (either direction) — e.g. "PKP/ČD" — unless the
+    // source itself named the carrier, in which case it is that one carrier.
+    // Not left off: with no bot_agency_id the panel falls through to the
+    // trains file's brand string and names every partner train "EuroNight".
+    const carrierStated = Boolean(stated?.agencyFrom && stated.agencyFrom !== "home");
     const botAgency = carrierStated
-      ? null
+      ? rowAgency
       : botAgencyByTrain[lineName] ||
         (reversePair ? botAgencyByTrain[reversePair[0]] : null) ||
         null;
@@ -783,15 +782,17 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
       }
     }
     if (!fares.length) {
-      // `fare: null` on every train the row names is the source saying it
-      // does not price them: nightjet.com sells partner EuroNights but its
-      // figures are not the carrier's (scripts/lib/nj-fares.mjs
-      // njPricesTrain). The row then gets an empty pricing record, so
-      // resolvePricing stops at it instead of reaching the carrier's
-      // operator-pricing default — PKP's says "Domestic tariff", which a
-      // München–Przemyśl EuroNight is not.
+      // `fare: null` on a train the row names, with no direction priced, is
+      // the source saying it does not price this row: nightjet.com sells
+      // partner EuroNights but its figures are not the carrier's
+      // (scripts/lib/nj-fares.mjs njPricesTrain). The row then gets an empty
+      // pricing record, so resolvePricing stops at it instead of reaching the
+      // carrier's operator-pricing default — PKP's says "Domestic tariff",
+      // which a München–Przemyśl EuroNight is not. A train with no `fare` key
+      // at all (not on sale yet, or a partner whose carrier is unknown and
+      // whose row is ÖBB's) leaves the default alone.
       const names = [row.trip_short_name_0, row.trip_short_name_1].filter(Boolean);
-      if (names.length && names.every((n) => trains[n] && trains[n].fare === null)) {
+      if (names.some((n) => trains[n] && trains[n].fare === null)) {
         const pricing = { type: null, currency: null, fromPrice: null, source: row.timetable_source };
         row.pricing = pricing;
         for (const [tripKey, trip] of Object.entries(trips ?? {})) {
