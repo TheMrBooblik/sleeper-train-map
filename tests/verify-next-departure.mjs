@@ -304,7 +304,7 @@ await check("snippet: a corridor with nothing running leads with when it runs ag
     assert.match(s.description, /^Summer-only night train: PKP Intercity EN 1277\/1276 runs Rijeka–Warsaw again from 25 June 2027\./);
     assert.match(s.description, /Last season 26 Jun – 30 Aug 2026\./);
     assert.ok(s.description.length <= 160, s.description);
-    assert.match(s.intro, /seasonal summer service run by PKP Intercity and is not running now/);
+    assert.equal(s.intro, "Run by PKP Intercity. The timetable below is for next season.");
   }
 });
 

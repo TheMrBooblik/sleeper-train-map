@@ -487,14 +487,11 @@ export function upcomingSnippet({ cityA, cityB, operatorNames = "", upcoming }) 
     kept = kept.filter((c) => c.drop !== rank);
   }
 
-  const by = operatorNames ? ` run by ${operatorNames}` : "";
-  const intro = run.seasonal
-    ? `The ${cityA}–${cityB} night train is a seasonal ${run.season ? `${run.season} ` : ""}service${by} ` +
-      `and is not running now. The next season starts on ${longDate}` +
-      (run.previousText ? `; the last one ran ${run.previousText}.` : ".") +
-      " The timetable below is next season's."
-    : `The ${cityA}–${cityB} night train${by} is not running now. ` +
-      `Its next departure is on ${longDate}; the timetable below is for that run.`;
+  // The page's header already shows the season and the dates in a card; the
+  // paragraph under it only says who runs it and which timetable this is.
+  const intro =
+    (operatorNames ? `Run by ${operatorNames}. ` : "") +
+    (run.seasonal ? "The timetable below is for next season." : "The timetable below is for its next run.");
 
   return { title, description: kept.map((c) => c.text).join(" "), intro };
 }
