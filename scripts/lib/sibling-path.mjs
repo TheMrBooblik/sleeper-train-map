@@ -239,3 +239,56 @@ export function maxStationDeviationKm(official, path) {
   }
   return max;
 }
+
+function pathKm(path) {
+  let km = 0;
+  for (let i = 0; i < path.length - 1; i++) km += haversineKm(path[i], path[i + 1]);
+  return km;
+}
+
+/**
+ * A track-shaped path through `stops` (in order) built from the real track of
+ * other trains, for a train whose operator sent no route line of its own.
+ *
+ * nightjet.com answers some journeys with stops and no polyline (NJ 449, the
+ * February Brussels–Wien routing via Frankfurt, Würzburg and Passau), and the
+ * adapter used to draw those as straight chords between stations. Every gap
+ * between two consecutive stops is filled from the donor whose track passes
+ * within `matchKm` of BOTH stops and runs between them the shortest way —
+ * never more than `maxDetour` times the straight distance, so a donor that
+ * reaches B by way of somewhere else cannot lend that detour. A gap no donor
+ * covers stays a straight chord, and every stop stays an exact vertex, so a
+ * station can never fall off its own line.
+ *
+ * @param {[number, number][]} stops [lat, lon] per stop, in travel order
+ * @param {[number, number][][]} donors other trains' real track paths
+ * @returns {{ path: [number, number][], filled: number, gaps: number }}
+ */
+export function trackPathFromSiblings(stops, donors, { matchKm = 6, maxDetour = 1.8 } = {}) {
+  const usable = (donors ?? []).filter((p) => Array.isArray(p) && p.length >= 3);
+  if (!Array.isArray(stops) || stops.length < 2) {
+    return { path: stops ?? [], filled: 0, gaps: 0 };
+  }
+  const out = [stops[0]];
+  let filled = 0;
+  for (let i = 0; i < stops.length - 1; i++) {
+    const a = stops[i];
+    const b = stops[i + 1];
+    const direct = haversineKm(a, b);
+    let best = null;
+    let bestKm = Infinity;
+    for (const donor of usable) {
+      const slice = siblingSliceBetween(a, b, donor, matchKm);
+      if (!slice?.length) continue;
+      const km = pathKm([a, ...slice, b]);
+      if (km > direct * maxDetour + 2) continue;
+      if (km < bestKm - 0.5 || (Math.abs(km - bestKm) <= 0.5 && slice.length > best.length)) {
+        best = slice;
+        bestKm = km;
+      }
+    }
+    if (best) filled++;
+    out.push(...(best ?? []), b);
+  }
+  return { path: out, filled, gaps: stops.length - 1 };
+}
