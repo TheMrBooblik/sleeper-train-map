@@ -10,6 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { validateOperatorAgencies } from "./operator-agencies.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const REGISTRY_PATH = path.join(
@@ -117,6 +118,14 @@ export function validateRegistryEntry(entry) {
   const paramUrl = entry?.params?.feedUrl ?? entry?.params?.baseUrl ?? null;
   if (paramUrl && entry?.endpoint && entry.endpoint !== paramUrl) {
     errors.push(`${tag} endpoint must match params.${entry?.params?.feedUrl ? "feedUrl" : "baseUrl"} ("${paramUrl}")`);
+  }
+  // Which carrier runs a train, read off the operator's own words
+  // (scripts/lib/operator-agencies.mjs). A typo would quietly send every
+  // partner train to its fallback carrier, so the mapping is checked here.
+  if (entry?.params?.operatorAgencies != null) {
+    for (const message of validateOperatorAgencies(entry.params.operatorAgencies)) {
+      errors.push(`${tag} params.${message}`);
+    }
   }
 
   const enrich = entry?.enrich;

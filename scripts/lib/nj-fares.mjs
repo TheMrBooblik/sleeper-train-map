@@ -90,6 +90,22 @@ export const NJ_FARE_REQUESTS_PER_RUN = 720;
  */
 export const NJ_FARE_NEAR_DAYS = 7;
 
+/**
+ * Whether nightjet.com's price search may price a train: ÖBB's own Nightjets
+ * only. A partner EuroNight (nightjet.com's `partnerTrain`, stored as
+ * operator "EuroNight") belongs to its carrier — PKP, MÁV, ČD, HŽPP — whose
+ * own site sells it at its own fares, and the figure nightjet.com quotes for
+ * one is not that fare: the owner found it reading like a seat price, and on
+ * PKP's EN 40416/40407 a "sleeper" came out cheaper than a "couchette". So
+ * they get no calendar, no headline fare and no weekly probe proposal, and
+ * their pages send the reader to the carrier (agency_id, scripts/adapters/
+ * nightjet.mjs). Keyed on the partner flag, never on an "EN " prefix.
+ * @param {{ operator?: string }|null|undefined} train
+ */
+export function njPricesTrain(train) {
+  return Boolean(train) && train.operator !== "EuroNight";
+}
+
 /** What every request to the price search sends: JSON, and who is asking. */
 export const NJ_REQUEST_HEADERS = Object.freeze({
   accept: "application/json",

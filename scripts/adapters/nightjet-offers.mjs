@@ -17,7 +17,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { cheapestClass } from "../lib/fare-calendar.mjs";
-import { buildOffersUrl, fetchNjOffers, pricingEnds } from "../lib/nj-fares.mjs";
+import { buildOffersUrl, fetchNjOffers, njPricesTrain, pricingEnds } from "../lib/nj-fares.mjs";
 import { selectProbeTargets, weeksSinceEpoch } from "../lib/probe-rotation.mjs";
 
 // Courtesy spacing between calls to an API that owes us nothing.
@@ -49,6 +49,10 @@ export function probeCandidates(entry, ctx) {
     .map(([lineName, train]) => {
       const routeKey = `nj_standalone_${lineName.replace(/\s+/g, "_")}`;
       if (!seenRoutes.has(routeKey)) return null;
+      // A partner EuroNight is its carrier's to price, not nightjet.com's
+      // (njPricesTrain): a proposal would put nightjet.com's figure back on
+      // the row through prices.json.
+      if (!njPricesTrain(train)) return null;
       const ends = pricingEnds(train);
       if (!ends) return null;
       // `priced`: the nightly calendar already prices this train, and its
