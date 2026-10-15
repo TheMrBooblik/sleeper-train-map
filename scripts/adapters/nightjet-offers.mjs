@@ -17,7 +17,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { cheapestClass } from "../lib/fare-calendar.mjs";
-import { buildOffersUrl, fetchNjOffers, pricingEnds } from "../lib/nj-fares.mjs";
+import { buildOffersUrl, fetchNjOffers, njPricesTrain, pricingEnds } from "../lib/nj-fares.mjs";
 import { selectProbeTargets, weeksSinceEpoch } from "../lib/probe-rotation.mjs";
 
 // Courtesy spacing between calls to an API that owes us nothing.
@@ -49,6 +49,10 @@ export function probeCandidates(entry, ctx) {
     .map(([lineName, train]) => {
       const routeKey = `nj_standalone_${lineName.replace(/\s+/g, "_")}`;
       if (!seenRoutes.has(routeKey)) return null;
+      // A partner EuroNight is its carrier's to price, not nightjet.com's
+      // (njPricesTrain): a proposal would put nightjet.com's figure back on
+      // the row through prices.json.
+      if (!njPricesTrain(train)) return null;
       const ends = pricingEnds(train);
       if (!ends) return null;
       // `priced`: the nightly calendar already prices this train, and its
@@ -97,7 +101,10 @@ export async function probePrices(entry, ctx) {
     if (i > 0) await sleep(REQUEST_SPACING_MS);
     const url = buildProbeUrl({ ...c, date });
     try {
-      const answer = await fetchNjOffers({ trainName: c.lineName, fromId: c.from, toId: c.to, date });
+      const answer = await fetchNjOffers(
+        { trainName: c.lineName, fromId: c.from, toId: c.to, date },
+        { fetchImpl: ctx.fetch },
+      );
       // The first journey on or after the sample date that sells a berth.
       const night = answer.dates.find((d) => d >= date && cheapestClass(answer.nights[d].classes));
       if (!night) {
@@ -117,6 +124,12 @@ export async function probePrices(entry, ctx) {
     } catch (err) {
       errors.push(`${c.lineName}: ${err.message}`);
       console.warn(`[probe:nj] ${c.lineName}: ${err.message}`);
+      // A refusal is final for the run (scripts/lib/http-block.mjs): the
+      // routes after this one are not asked.
+      if (err.blocked) {
+        console.warn(`[probe:nj] stopping after ${i + 1} of ${targets.length}: nightjet.com refused automated requests`);
+        break;
+      }
     }
   }
   return { prices, attempted: targets.length, errors };

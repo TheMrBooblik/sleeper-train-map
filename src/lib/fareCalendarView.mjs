@@ -4,7 +4,11 @@
  * The data is a row's `fare_calendar_{dir}` (stamped by stampOfficialFares
  * from the source's own calendar, see scripts/lib/fare-calendar.mjs):
  * { currency, nights: { "2026-10-19": { classes: { couchette: 53.6, … },
- * checkedAt } | { none: true, checkedAt } } }.
+ * checkedAt, offers?: { couchette: "Sparschiene" }, seat? } |
+ * { none: true, checkedAt, reason?: "noBerth" | "noJourney", seat? } } }.
+ * A night's `seat` (Nightjet's cheapest seated-coach price) is kept by the
+ * scrape for verification only and is never read here: this map prices
+ * sleeping places, and a seat figure on a sleeper calendar is the wrong number.
  *
  * Dependency-free `.mjs`, and every date is handled as a "YYYY-MM-DD" string
  * with UTC arithmetic and fixed name tables — no Intl, no local clock. The
@@ -13,7 +17,7 @@
  * whole-page hydration failure (the planner met exactly that, see
  * src/lib/plan/format.mjs).
  */
-import { fareClassRows, formatMoney } from "./fareClasses.mjs";
+import { fareClassRows, formatMoney, isCouchetteClass } from "./fareClasses.mjs";
 import { dealsSummary, isDealClass, nightDeal } from "./lastMinuteDeals.mjs";
 
 const DAY_MS = 86_400_000;
@@ -56,12 +60,35 @@ export function formatNight(iso) {
 /**
  * The calendar's nights as a flat list from the day after `today` through the
  * last night the calendar holds, each one
- * { date, state: "priced" | "none" | "unknown", amount, price, tier, classes,
- *   checkedAt, bookingDate, bookingDeparture, bookingArrival }.
+ * { date, state: "priced" | "none" | "unknown", amount, price, cellPrice,
+ *   cellClass?, otherBerth?, reason?, tier, classes, deal, checkedAt,
+ *   bookingDate, bookingDeparture, bookingArrival }.
  * `unknown` is a night not searched yet; `none` one whose search found no
- * berth on sale. `tier` bands priced nights low / mid / high by where they
- * sit in this train's own price range, so a cheap night stands out without
- * pretending to know what "cheap" means across trains.
+ * berth on sale, with `reason` saying why where the source recorded it:
+ * "noJourney" (no train that night) or "noBerth" (it ran, selling no
+ * couchette or sleeper). The key is absent otherwise.
+ *
+ * A priced night's cell is its cheapest couchette place, deal couchettes
+ * included; a night selling none prints its cheapest other berth instead and
+ * carries `otherBerth: true`, so the grid can mark it — on a calendar where
+ * some night sells a couchette. Where none does (EN 40458/40459 sell sleeping
+ * cars only), every cell is a berth by the heading's own word and no night is
+ * marked: a mark on every cell says nothing. `cellClass` names the
+ * class the cell prints either way (its label is in `classes`). The grid used
+ * to print the cheapest class whatever it was: on the calendars of 10 October
+ * 2026 that put an unmarked sleeper price on 159 of 1 457 Nightjet nights (142
+ * selling no couchette, 17 where the sleeper was the cheaper). `amount` is the
+ * cell's figure, and everything that compares nights — `tier`,
+ * `cheapestDate` — reads it, so the night the calendar opens on and the
+ * colours it uses agree with the numbers it prints. `tier` bands priced
+ * nights low / mid / high by where they sit in this train's own range, so a
+ * cheap night stands out without pretending to know what "cheap" means
+ * across trains.
+ *
+ * The optional keys are left out rather than written as null or false: every
+ * night here is serialised into a connection page's static props, and the
+ * largest of those (Berlin–Paris, 182 nights) was already past Next's 128 kB
+ * page-data warning before they existed.
  *
  * @param {object} calendar  row.fare_calendar_{dir}
  * @param {object} opts
@@ -73,8 +100,12 @@ export function formatNight(iso) {
  *   that night's own departure and arrival, for a link that names the whole
  *   journey (ÖBB's), or null
  * @returns {{ currency: string, days: object[], cheapestDate: string|null,
- *   deals: object|null } | null}
- *   null when the calendar prices no night at all
+ *   deals: object|null, cellBasis: "couchette" | "berth",
+ *   otherBerthNights: number, noTrainNights: number } | null}
+ *   null when the calendar prices no night at all. `cellBasis` says what the
+ *   cells are, for the grid's heading: "couchette" when any night sells one,
+ *   else "berth" (a sleeper-only train). The two counts say which marks the
+ *   legend has to explain.
  */
 export function fareCalendarDays(
   calendar,
@@ -102,11 +133,16 @@ export function fareCalendarDays(
     d = isoPlusDays(d, 1)
   ) {
     const entry = nights[d];
+    // `entry.classes` only: a night's `seat` sits beside it and is never a
+    // class (fareClassRows also skips any class without a label, "seat" too).
     const classes =
       entry && !entry.none
         ? fareClassRows({ classes: entry.classes, currency }, { from: dynamic })
         : [];
-    const amount = classes.length ? classes[0].amount : null;
+    // Cheapest first, so the first couchette is the cheapest couchette.
+    const cell = classes.find((c) => isCouchetteClass(c.key)) ?? classes[0] ?? null;
+    const amount = cell ? cell.amount : null;
+    const reason = entry?.none ? noneReason(entry) : null;
     days.push({
       date: d,
       state: amount != null ? "priced" : entry ? "none" : "unknown",
@@ -116,14 +152,23 @@ export function fareCalendarDays(
       // units, no symbol. "119.99" ran into the next cell; the exact price
       // is on the selected night's card below the grid.
       cellPrice: amount != null ? String(Math.round(amount)) : "",
+      ...(cell ? { cellClass: cell.key } : {}),
+      ...(cell && !isCouchetteClass(cell.key) ? { otherBerth: true } : {}),
+      ...(reason ? { reason } : {}),
       tier: null,
-      // A deal's figure is the promo price itself, never "from".
-      classes: classes.map(({ key, label, price, amount: a }) => ({
-        key,
-        label,
-        price: isDealClass(key) ? formatMoney(a, currency) : price,
-        ...(isDealClass(key) ? { deal: true } : {}),
-      })),
+      // A deal's figure is the promo price itself, never "from". `offer` is
+      // the operator's own product for that figure (ÖBB's "Sparschiene"), so
+      // a reader can find the same fare in the operator's shop.
+      classes: classes.map(({ key, label, price, amount: a }) => {
+        const offer = offerName(entry, key);
+        return {
+          key,
+          label,
+          price: isDealClass(key) ? formatMoney(a, currency) : price,
+          ...(isDealClass(key) ? { deal: true } : {}),
+          ...(offer ? { offer } : {}),
+        };
+      }),
       // The night's last-minute deal against its regular fares (src/lib/lastMinuteDeals.mjs).
       deal: entry && !entry.none ? nightDeal(entry, { currency, compartmentSize }) : null,
       checkedAt: entry?.checkedAt ?? null,
@@ -134,6 +179,8 @@ export function fareCalendarDays(
 
   const priced = days.filter((d) => d.state === "priced");
   if (!priced.length) return null;
+  const sellsCouchette = priced.some((d) => !d.otherBerth);
+  if (!sellsCouchette) for (const d of priced) delete d.otherBerth;
   const min = Math.min(...priced.map((d) => d.amount));
   const max = Math.max(...priced.map((d) => d.amount));
   const band = (max - min) / 3;
@@ -150,7 +197,40 @@ export function fareCalendarDays(
   }
   // The earliest of the cheapest nights: the nearer date is the more useful to offer.
   const cheapestDate = priced.find((d) => d.amount === min).date;
-  return { currency, days, cheapestDate, deals: dealsSummary(days) };
+  return {
+    currency,
+    days,
+    cheapestDate,
+    deals: dealsSummary(days),
+    cellBasis: sellsCouchette ? "couchette" : "berth",
+    otherBerthNights: priced.filter((d) => d.otherBerth).length,
+    noTrainNights: days.filter((d) => d.reason === "noJourney").length,
+  };
+}
+
+/**
+ * Why a night has no fare, where the source recorded it (Nightjet does, see
+ * scripts/lib/nj-fares.mjs): "noJourney" when the search proved no train ran
+ * that night, "noBerth" when one ran selling no couchette or sleeper. null
+ * for anything else, an entry written before the field existed included —
+ * that night is read as it always was, "no berth on sale". (Nightjet's
+ * `noBerth` also covers berths gone: the endpoint does not tell sold out from
+ * never sold.)
+ */
+function noneReason(entry) {
+  return entry?.reason === "noJourney" || entry?.reason === "noBerth" ? entry.reason : null;
+}
+
+/**
+ * The operator's product name for one class's figure that night, or null.
+ * Short display text only: anything that is not a plain, reasonably short
+ * string is left out rather than printed.
+ */
+function offerName(entry, key) {
+  const name = entry?.offers?.[key];
+  if (typeof name !== "string") return null;
+  const trimmed = name.trim();
+  return trimmed && trimmed.length <= 60 ? trimmed : null;
 }
 
 /**

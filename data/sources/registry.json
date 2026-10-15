@@ -67,7 +67,7 @@
     "agencyDefaults": { "agencyId": "ÖBB", "operatorName": "Nightjet" },
     "synthetic": {
       "idPrefix": "nj_standalone_",
-      "agency": { "from": "fixed", "value": "ÖBB" },
+      "agency": { "from": "data", "fallback": "ÖBB" },
       "resolveAliases": true,
       "withService": false,
       "excludeBotMatched": true,
@@ -77,9 +77,21 @@
       "countryCodes": [80, 81, 83, 84, 85, 88],
       "concurrency": 6,
       "maxPartnerTrains": 25,
-      "fares": { "enabled": true, "days": 42, "requestsPerRun": 720 }
+      "fares": { "enabled": true, "days": 42, "requestsPerRun": 720 },
+      "operatorAgencies": {
+        "home": "ÖBB",
+        "carriers": [
+          { "agency": "PKP", "match": ["PKP", "PKP Intercity", "Polnisch*", "Polish", "Polskie Koleje"] },
+          { "agency": "ČD", "match": ["ČD", "České dráhy", "Tschechisch*", "Czech"] },
+          { "agency": "MÁV", "match": ["MÁV", "MÁV-START", "Ungarisch*", "Hungarian", "Magyar Államvasutak"] },
+          { "agency": "HŽPP", "match": ["HŽPP", "HŽ", "HŽ Putnički prijevoz", "Kroatisch*", "Croatian", "Hrvatske željeznice"] },
+          { "agency": "ZSSK", "match": ["ZSSK", "Slowakisch*", "Slovak", "Železničná spoločnosť Slovensko"] },
+          { "agency": "ES", "match": ["European Sleeper"], "lines": ["ES"], "publishedBy": "europeansleeper" },
+          { "agency": "ÖBB", "match": ["ÖBB", "OEBB", "Österreichisch*", "Oesterreichisch*", "Austrian", "Nightjet"] }
+        ]
+      }
     },
-    "enrich": { "strategy": "trainsByNumber", "setPolyline": true },
+    "enrich": { "strategy": "trainsByNumber", "setPolyline": true, "requireSameTrain": true },
     "probe": { "pricing": { "adapter": "nightjet-offers", "sampleRoutes": 4 } },
     "freshness": { "ttlHours": 25 }
   },

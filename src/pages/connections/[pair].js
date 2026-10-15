@@ -275,13 +275,18 @@ function stopPosition(stop) {
 }
 
 /**
- * The route's cheapest known fare as { lowPrice, currency }, or null.
- * Route-level price first, operator default second — getOperatorPricing()'s own
- * precedence, the same seam RouteFactsGrid renders the "From" tile through.
+ * The fare of the train a TrainTrip node names, as { lowPrice, currency }, or
+ * null. The node carries one train's number and ends (direction 0's), so on a
+ * row priced per train it quotes that train's fare and never the return's —
+ * pricingForDirection() in getRouteDetail, the rule the map panel and the
+ * Book caption follow. A row priced per route quotes the route: route-level
+ * price first, operator default second, getOperatorPricing()'s precedence.
  */
 function numericOffer(detail) {
   return offerFromPricing(
-    getOperatorPricing({ agency_id: detail.agencyId, pricing: detail.pricing }),
+    detail.trainPricing !== undefined
+      ? detail.trainPricing
+      : getOperatorPricing({ agency_id: detail.agencyId, pricing: detail.pricing }),
   );
 }
 
@@ -319,9 +324,8 @@ export async function getStaticProps({ params }) {
       booking: d.booking,
       countries: d.countries,
       countryCodes: d.countryCodes,
-      // Numeric floor for the TrainTrip offers, resolved through the same seam
-      // RouteFactsGrid renders the "From" tile with, so the markup and the
-      // visible price can never disagree.
+      // Numeric floor for the TrainTrip offers: the named train's own fare,
+      // resolved through the same seam as the facts tile and the Book caption.
       offer: numericOffer(d),
       // Buy now or later — resolved here so the CTA, the facts tile and the FAQ
       // on this page all read the same pricingAdvice() record. The deals link

@@ -14,6 +14,7 @@ import {
   routeIdsFromFilteredTrips,
   keepViewMapRowForTripActivity,
 } from "./primitives.mjs";
+import { sameTrainAsRow } from "../../../lib/sameTrain.mjs";
 
 // Source registry: declares per-source synthetic-route config (id prefix,
 // agency, aliasing, dedup strategy). Bundled via ESM JSON import so the
@@ -313,16 +314,28 @@ function appendSyntheticRoutes(
         resolveName(v.stations?.[v.stations.length - 1]?.name) === origin,
     );
     const safeId = lineName.replace(/\s+/g, "_");
+    // Who runs the row: a train that states its own carrier (agency_id, from a
+    // source with synthetic.agency.from "data") decides it, from either
+    // direction — nightjet.com names a partner EuroNight's carrier per train.
+    const stated = [data, reversePair?.[1]].find((t) => t?.agency_id) ?? data;
+    const rowAgency = agency(stated);
     // BoT's operator attribution for the row this synthetic route replaced
-    // (either direction) — e.g. "PKP/ČD" for a partner EuroNight the nightjet
-    // source styles as ÖBB. Consumed by the operator display in the panel.
-    const botAgency =
-      botAgencyByTrain[lineName] ||
-      (reversePair ? botAgencyByTrain[reversePair[0]] : null) ||
-      null;
+    // (either direction) — e.g. "PKP/ČD" for a partner EuroNight. Consumed by
+    // the operator display in the panel, which reads it before agency_id. Left
+    // off when the source itself named the carrier: the joint id would then
+    // contradict the carrier the source named, on the very surfaces that
+    // read it first.
+    const carrierStated = [data, reversePair?.[1]].some(
+      (t) => t?.agencyFrom && t.agencyFrom !== "home",
+    );
+    const botAgency = carrierStated
+      ? null
+      : botAgencyByTrain[lineName] ||
+        (reversePair ? botAgencyByTrain[reversePair[0]] : null) ||
+        null;
     const entry = {
       route_id: `${idPrefix}${safeId}`,
-      agency_id: agency(data),
+      agency_id: rowAgency,
       ...(botAgency ? { bot_agency_id: botAgency } : {}),
       trip_short_name_0: lineName,
       origin_trip_0: origin,
@@ -374,7 +387,7 @@ function appendSyntheticRoutes(
       const fDest = resolveName(future.stations[future.stations.length - 1].name);
       const futureEntry = {
         route_id: `${entry.route_id}_from_${future.activeFrom.replace(/-/g, "")}`,
-        agency_id: agency(data),
+        agency_id: rowAgency,
         ...(botAgency ? { bot_agency_id: botAgency } : {}),
         trip_short_name_0: lineName,
         origin_trip_0: fOrigin,
@@ -432,22 +445,24 @@ function withPolylineAndStations([, data]) {
 // EuroNight trains are operated by e.g. PKP/ČD, not by the ÖBB default the
 // synthetic source carries for styling).
 
-// "exact": BoT trip_short_name matches the official train key verbatim (NJ/EN).
+// "exact": BoT trip_short_name matches the official train key verbatim (NJ/EN)
+// AND the train ends in one of the row's end cities (sameTrainAsRow). The
+// number alone is not enough: nightjet.com's EN 442 runs Budapest–Stuttgart
+// while Back-on-Track's is ČD's Humenné–Praha, and deleting that row lost a
+// train nobody else carries. A row the official train is not is kept, and
+// its number then counts as Back-on-Track's (excludeBotMatched), so the two
+// trains never share one number on the map.
 function dropBotRowsExact(filteredViewMap, trains) {
-  const apiTrainNumbers = new Set(Object.keys(trains));
   const botAgencyByTrain = {};
   Object.keys(filteredViewMap).forEach((key) => {
     const route = filteredViewMap[key];
-    const t0 = (route?.trip_short_name_0 || "").trim();
-    const t1 = (route?.trip_short_name_1 || "").trim();
-    if (apiTrainNumbers.has(t0) || apiTrainNumbers.has(t1)) {
-      const botAgency = (route?.agency_id || "").trim();
-      if (botAgency) {
-        if (apiTrainNumbers.has(t0)) botAgencyByTrain[t0] = botAgency;
-        if (apiTrainNumbers.has(t1)) botAgencyByTrain[t1] = botAgency;
-      }
-      delete filteredViewMap[key];
-    }
+    const names = [route?.trip_short_name_0, route?.trip_short_name_1]
+      .map((n) => (n || "").trim())
+      .filter((n) => n && trains[n] && sameTrainAsRow(route, trains[n]));
+    if (!names.length) return;
+    const botAgency = (route?.agency_id || "").trim();
+    if (botAgency) for (const n of names) botAgencyByTrain[n] = botAgency;
+    delete filteredViewMap[key];
   });
   return botAgencyByTrain;
 }
@@ -767,7 +782,24 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
         row[`fare_calendar_${dir}`] = calendar;
       }
     }
-    if (!fares.length) continue;
+    if (!fares.length) {
+      // `fare: null` on every train the row names is the source saying it
+      // does not price them: nightjet.com sells partner EuroNights but its
+      // figures are not the carrier's (scripts/lib/nj-fares.mjs
+      // njPricesTrain). The row then gets an empty pricing record, so
+      // resolvePricing stops at it instead of reaching the carrier's
+      // operator-pricing default — PKP's says "Domestic tariff", which a
+      // München–Przemyśl EuroNight is not.
+      const names = [row.trip_short_name_0, row.trip_short_name_1].filter(Boolean);
+      if (names.length && names.every((n) => trains[n] && trains[n].fare === null)) {
+        const pricing = { type: null, currency: null, fromPrice: null, source: row.timetable_source };
+        row.pricing = pricing;
+        for (const [tripKey, trip] of Object.entries(trips ?? {})) {
+          if (String(trip.route_id) === String(key)) trips[tripKey] = { ...trip, pricing };
+        }
+      }
+      continue;
+    }
     // Never compare across currencies; the first direction's currency decides.
     const sameCurrency = fares.filter((f) => f.currency === fares[0].currency);
     const cheapest = sameCurrency.reduce((a, b) => (b.fromPrice < a.fromPrice ? b : a));
