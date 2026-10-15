@@ -38,6 +38,10 @@ import {
   readOperatorText,
 } from "../lib/operator-agencies.mjs";
 import { sameTrainAsRow } from "../../src/lib/sameTrain.mjs";
+import {
+  fillTimetableVariants,
+  NJ_TIMETABLE_READS_PER_RUN,
+} from "../lib/nj-timetable-variants.mjs";
 
 function normalizeNJTrain(data, date, operator = "Nightjet") {
   const stops = Array.isArray(data?.route?.stops) ? data.route.stops : [];
@@ -237,6 +241,34 @@ export async function priceTrains(results, entry, ctx, previous = readPreviousTr
     console.warn(`[scrape] nightjet fares failed: ${err.message} — trains kept without fares`);
     return { failed: err.message };
   }
+}
+
+/**
+ * Each night's own stop list, one read per clock the calendar shows and the
+ * run does not answer (scripts/lib/nj-timetable-variants.mjs). Skipped on a
+ * night the fare search was refused: the same host would refuse this too.
+ */
+export async function readTimetableVariants(results, entry, ctx, previous, fareStats, fetchTrain = fetchSingleTrain) {
+  const { enabled = true, readsPerRun = NJ_TIMETABLE_READS_PER_RUN } = entry.params?.timetableVariants ?? {};
+  if (!enabled) return null;
+  if (fareStats?.blocked) {
+    console.log("[scrape] nightjet timetables: skipped, the fare search was refused tonight");
+    return null;
+  }
+  const stats = await fillTimetableVariants(results, previous, {
+    today: ctx.today,
+    fetchTrain,
+    reads: readsPerRun,
+  });
+  const trains = Object.values(results).filter((t) => t.timetableVariants).length;
+  console.log(
+    `[scrape] nightjet timetables: ${stats.read} read tonight (${stats.kept} kept, ` +
+      `${stats.mismatched} answered another clock, ${stats.failed} unanswered), ` +
+      `${stats.carried} carried from earlier nights; ${trains} train(s) with a timetable per clock` +
+      `${stats.capped ? `, budget spent (${stats.planned - stats.read} left for tomorrow)` : ""}` +
+      `${stats.stopped ? ", stopped after repeated failures" : ""}`,
+  );
+  return stats;
 }
 
 /** Last night's trains file, or null on a first run. */
@@ -460,6 +492,7 @@ export async function run(entry, ctx) {
   }
 
   const fareStats = await priceTrains(results, entry, ctx, previous);
+  await readTimetableVariants(results, entry, ctx, previous, fareStats);
 
   ctx.write(entry.output, { uploadedAt: ctx.today, trains: results });
   console.log(`[scrape] stored ${Object.keys(results).length} NJ/EN trains`);

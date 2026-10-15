@@ -57,7 +57,12 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
   const timedCalendar = (fareCalendar?.days ?? []).some((d) => d.dep);
   const retimed =
     pickedNight?.dep && pickedNight?.arr
-      ? stopsForNight(stops, { departure: pickedNight.dep, arrival: pickedNight.arr })
+      ? stopsForNight(
+          stops,
+          { departure: pickedNight.dep, arrival: pickedNight.arr },
+          // That night's own timetable, where the scrape read one for its clock.
+          Number.isInteger(pickedNight.tt) ? fareCalendar.timetables?.[pickedNight.tt] : null,
+        )
       : null;
   const shownStops = retimed?.stops ?? stops;
   const shownDeparture = retimed?.departure ?? departureTime;
@@ -242,6 +247,12 @@ function NightTimesNote({ night, retimed, runDeparture, runArrival, onReset }) {
     text = `No times recorded for ${date}; the times below are the published timetable's.`;
   } else if (retimed.sameAsRun) {
     text = `Times for ${date}.`;
+  } else if (retimed.ownTimetable) {
+    text = `Times for ${date}, from the operator's timetable for that night`;
+    text +=
+      retimed.departure !== runDeparture && runDeparture
+        ? `: it leaves at ${retimed.departure} instead of ${runDeparture}.`
+        : ".";
   } else {
     const moved = [
       retimed.departure !== runDeparture && runDeparture

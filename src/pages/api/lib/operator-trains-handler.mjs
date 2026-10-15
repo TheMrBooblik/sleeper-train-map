@@ -24,14 +24,19 @@ import { journeyTimesTheEnds, nightTimesSummary } from "../../../lib/nightTimes.
 const served = new WeakMap();
 export function servedTrainsData(data) {
   const trains = data?.trains;
-  if (!trains || !Object.values(trains).some((t) => t?.fareCalendar)) return data;
+  if (!trains || !Object.values(trains).some((t) => t?.fareCalendar || t?.timetableVariants)) {
+    return data;
+  }
   if (served.has(data)) return served.get(data);
   const out = {
     ...data,
     trains: Object.fromEntries(
       Object.entries(trains).map(([key, train]) => {
-        if (!train?.fareCalendar) return [key, train];
-        const { fareCalendar: calendar, ...rest } = train;
+        if (!train?.fareCalendar && !train?.timetableVariants) return [key, train];
+        // Each night's own timetable (timetableVariants) is the connection
+        // page's, read at build time from the file itself.
+        const { fareCalendar: calendar, timetableVariants: _variants, ...rest } = train;
+        if (!calendar) return [key, rest];
         const stations = Array.isArray(train.stations) ? train.stations : [];
         const ownEnds = journeyTimesTheEnds(
           calendar.journey,

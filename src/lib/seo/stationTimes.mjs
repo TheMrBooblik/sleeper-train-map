@@ -153,8 +153,16 @@ function loadIndex() {
     const trains = readTrains(file);
     if (!trains || typeof trains !== "object") continue;
     for (const [key, entry] of Object.entries(trains)) {
-      const stations = cleanStations(entry, INSTANT_TIME_ZONES[file] ?? null);
+      const timeZone = INSTANT_TIME_ZONES[file] ?? null;
+      const stations = cleanStations(entry, timeZone);
       if (!stations) continue;
+      // Each night's own timetable where the source read one per clock
+      // (scripts/lib/nj-timetable-variants.mjs), cleaned the same way.
+      let variants = null;
+      for (const [clock, variant] of Object.entries(entry.timetableVariants ?? {})) {
+        const cleaned = cleanStations(variant, timeZone);
+        if (cleaned) (variants ??= {})[clock] = cleaned;
+      }
       // Index under the entry key and any train-number-bearing field, so a route's
       // trip_short_name ("NJ 421", "ICN 752", "EC 345") resolves regardless of source.
       const keys = new Set(
@@ -166,7 +174,7 @@ function loadIndex() {
         if (!_index.has(k)) _index.set(k, []);
         const bucket = _index.get(k);
         if (!bucket.some((c) => c.file === file && c.stations === stations)) {
-          bucket.push({ file, stations });
+          bucket.push({ file, stations, variants });
         }
       }
     }
@@ -196,4 +204,29 @@ export function getStationTimesForTrain(trainNumber, { origin, destination } = {
     if (looseNameEq(first, origin) && looseNameEq(last, destination)) return stations;
   }
   return null;
+}
+
+/**
+ * Each night's own stop list for a train, keyed by its clock ("21:54>08:59+1",
+ * src/lib/nightTimes.mjs clockKey), from the same feed getStationTimesForTrain
+ * picks — or null. A timetable whose ends are not the route's is left out,
+ * like a feed's.
+ *
+ * @param {string} trainNumber
+ * @param {{ origin?: string, destination?: string }} [endpoints]
+ * @returns {Record<string, { name:string, arrival:string, departure:string }[]> | null}
+ */
+export function getTimetableVariantsForTrain(trainNumber, { origin, destination } = {}) {
+  const candidates = loadIndex().get(normNumber(trainNumber));
+  if (!candidates?.length || !origin || !destination) return null;
+  const ends = (stations) =>
+    looseNameEq(stations[0].name, origin) &&
+    looseNameEq(stations[stations.length - 1].name, destination);
+  const picked = candidates.find((c) => ends(c.stations));
+  if (!picked?.variants) return null;
+  const out = {};
+  for (const [clock, stations] of Object.entries(picked.variants)) {
+    if (ends(stations)) out[clock] = stations;
+  }
+  return Object.keys(out).length ? out : null;
 }

@@ -80,6 +80,17 @@ export function nightClock(nightIso, entry) {
 }
 
 /**
+ * One clock as a key, "21:54>08:59+1": nights with the same key leave and
+ * arrive at the same times, which is how the scrape groups a train's nights
+ * into the few timetables they actually run to (one timetable read per key,
+ * scripts/lib/nj-timetable-variants.mjs) and how the page finds a night's.
+ */
+export function clockKey(clock) {
+  if (!clock?.departure || !clock?.arrival) return null;
+  return `${clock.departure}>${clock.arrival}+${clock.arrivalDays ?? 0}`;
+}
+
+/**
  * Whether the calendar's clocks are clocks at the train's own two ends. The
  * price search names a car-train terminal by its neighbouring station (`Wien
  * Hbf (Autoreisezuganlage)` is priced as `Wien Hbf`, scripts/lib/nj-fares.mjs
@@ -173,22 +184,48 @@ export function formatClockRange(range) {
  * A direction's stop list retimed for one night: the night's own clock at
  * both ends, and the run's intermediate times kept only where the night
  * leaves and arrives exactly when the run did. Returns
- * { stops, departure, arrival, sameAsRun } — `sameAsRun` false means the
- * intermediate times were cleared — or null when the night has no clock
- * (the page then keeps the run's times as they are).
+ * { stops, departure, arrival, sameAsRun, ownTimetable } — `sameAsRun` false
+ * with `ownTimetable` false means the intermediate times were cleared — or
+ * null when the night has no clock (the page then keeps the run's times as
+ * they are).
+ *
+ * `nightStops` is the timetable the operator answered for a night on this
+ * clock (scripts/lib/nj-timetable-variants.mjs), when the scrape read one:
+ * it replaces the stop list whole (`ownTimetable`), since a night on another
+ * clock can also call at other stations — a diversion is why it runs late.
  *
  * @param {{ name: string, departure: string, arrival: string }[]} stops
  * @param {{ departure: string, arrival: string } | null} clock  nightClock()
+ * @param {{ name: string, departure: string, arrival: string }[] | null} [nightStops]
  */
-export function stopsForNight(stops, clock) {
+export function stopsForNight(stops, clock, nightStops = null) {
   if (!clock || !Array.isArray(stops) || stops.length < 2) return null;
   if (stops.some((s) => !s || typeof s !== "object")) return null;
+  if (
+    Array.isArray(nightStops) &&
+    nightStops.length >= 2 &&
+    nightStops.every((s) => s && typeof s === "object")
+  ) {
+    const end = nightStops.length - 1;
+    return {
+      sameAsRun: false,
+      ownTimetable: true,
+      departure: clock.departure,
+      arrival: clock.arrival,
+      stops: nightStops.map((s, i) => {
+        if (i === 0) return { ...s, arrival: "", departure: clock.departure };
+        if (i === end) return { ...s, arrival: clock.arrival, departure: "" };
+        return s;
+      }),
+    };
+  }
   const last = stops.length - 1;
   const runDeparture = stops[0].departure || stops[0].arrival || "";
   const runArrival = stops[last].arrival || stops[last].departure || "";
   const sameAsRun = runDeparture === clock.departure && runArrival === clock.arrival;
   return {
     sameAsRun,
+    ownTimetable: false,
     departure: clock.departure,
     arrival: clock.arrival,
     stops: stops.map((s, i) => {

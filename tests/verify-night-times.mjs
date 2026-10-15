@@ -13,6 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  clockKey,
   formatClockRange,
   journeyTimesTheEnds,
   nightClock,
@@ -21,6 +22,12 @@ import {
 } from "../src/lib/nightTimes.mjs";
 import { fareCalendarDays } from "../src/lib/fareCalendarView.mjs";
 import { servedTrainsData } from "../src/pages/api/lib/operator-trains-handler.mjs";
+import {
+  calendarClocks,
+  fillTimetableVariants,
+  planTimetableReads,
+  runClock,
+} from "../scripts/lib/nj-timetable-variants.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 let passed = 0;
@@ -184,5 +191,165 @@ check("the committed Nightjet file: every served range is well formed", () => {
   }
   console.log(`    (${ranged} Nightjet trains with a clock that moves)`);
 });
+
+// ── One timetable read per clock ────────────────────────────────────────────
+// Vienna keeps UTC+2 until 25 October 2026, so 18:15Z is 20:15 there.
+const at = (date, hhmm, hours = 2) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  return new Date(Date.parse(`${date}T00:00:00Z`) + ((h - hours) * 60 + m) * 60_000).toISOString();
+};
+const nextDay = (iso) => new Date(Date.parse(`${iso}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+const answer = (night, dep, arr, via = "Köln Hbf") => ({
+  lineName: "NJ 403",
+  stations: [
+    { id: "8400058", name: "Amsterdam Centraal", departure: at(night, dep) },
+    { id: "8000207", name: via, arrival: at(night, "23:00"), departure: at(night, "23:05") },
+    { id: "8503000", name: "Zürich HB", arrival: at(nextDay(night), arr) },
+  ],
+});
+const train = () => ({
+  ...answer("2026-10-15", "21:01", "08:42"),
+  fareCalendar: {
+    journey: { from: "Amsterdam Centraal", to: "Zürich HB" },
+    nights: {
+      "2026-10-16": priced("2026-10-16T21:01", "2026-10-17T08:42"), // the run's own clock
+      "2026-10-17": priced("2026-10-17T20:15", "2026-10-18T08:05"),
+      "2026-10-18": priced("2026-10-18T20:15", "2026-10-19T08:05"),
+      "2026-10-19": priced("2026-10-19T20:01", "2026-10-20T07:41"),
+      "2026-10-20": { none: true, checkedAt: "2026-10-15", reason: "noBerth" },
+    },
+  },
+});
+
+check("a train's own run and its calendar's clocks", () => {
+  assert.deepStrictEqual(runClock(train()), { night: "2026-10-15", key: "21:01>08:42+1" });
+  const clocks = calendarClocks(train(), "2026-10-15");
+  assert.deepStrictEqual([...clocks.keys()], ["21:01>08:42+1", "20:15>08:05+1", "20:01>07:41+1"]);
+  assert.deepStrictEqual(clocks.get("20:15>08:05+1"), ["2026-10-17", "2026-10-18"]);
+  assert.strictEqual(clockKey({ departure: "20:15", arrival: "08:05", arrivalDays: 1 }), "20:15>08:05+1");
+  const carTrain = train();
+  carTrain.stations[0].name = "Wien Hbf (Autoreisezuganlage)";
+  carTrain.fareCalendar.journey.from = "Wien Hbf";
+  assert.strictEqual(calendarClocks(carTrain, "2026-10-15").size, 0, "another end's clocks");
+});
+
+check("one read per clock the run does not answer, on its nearest night", () => {
+  const { reads } = planTimetableReads({ "NJ 403": train() }, null, { today: "2026-10-15" });
+  assert.deepStrictEqual(
+    reads.map((r) => [r.clock, r.night]),
+    [
+      ["20:15>08:05+1", "2026-10-17"],
+      ["20:01>07:41+1", "2026-10-19"],
+    ],
+  );
+});
+
+check("a recent read is reused, an old one read again", () => {
+  const stations = answer("2026-10-12", "20:15", "08:05").stations;
+  const previous = {
+    "NJ 403": {
+      timetableVariants: {
+        "20:15>08:05+1": { readAt: "2026-10-12", night: "2026-10-12", stations },
+        "20:01>07:41+1": { readAt: "2026-10-01", night: "2026-10-01", stations },
+        "19:00>06:00+1": { readAt: "2026-10-14", night: "2026-10-14", stations },
+      },
+    },
+  };
+  const { reads, carried } = planTimetableReads({ "NJ 403": train() }, previous, { today: "2026-10-15" });
+  assert.deepStrictEqual(reads.map((r) => r.clock), ["20:01>07:41+1"]);
+  // A clock the calendar no longer shows is not carried.
+  assert.deepStrictEqual(Object.keys(carried.get("NJ 403")), ["20:15>08:05+1"]);
+});
+
+const run = async (fetchTrain, opts = {}) => {
+  const trains = { "NJ 403": train() };
+  const asked = [];
+  const stats = await fillTimetableVariants(trains, opts.previous ?? null, {
+    today: "2026-10-15",
+    fetchTrain: async (n, d) => {
+      asked.push(`${n} ${d}`);
+      return fetchTrain(n, d);
+    },
+    spacingMs: 0,
+    ...opts,
+  });
+  return { trains, stats, asked };
+};
+
+const asyncChecks = [];
+const checkAsync = (name, fn) => asyncChecks.push([name, fn]);
+
+checkAsync("an answer on the night and clock asked for is kept", async () => {
+  const { trains, stats, asked } = await run((n, d) =>
+    d === "2026-10-17" ? answer(d, "20:15", "08:05", "Düsseldorf Hbf") : answer(d, "20:01", "07:41"),
+  );
+  assert.deepStrictEqual(asked, ["NJ 403 2026-10-17", "NJ 403 2026-10-19"]);
+  assert.strictEqual(stats.kept, 2);
+  const v = trains["NJ 403"].timetableVariants["20:15>08:05+1"];
+  assert.strictEqual(v.night, "2026-10-17");
+  assert.strictEqual(v.readAt, "2026-10-15");
+  assert.strictEqual(v.stations[1].name, "Düsseldorf Hbf", "a diversion's own stops");
+  assert.deepStrictEqual(Object.keys(v.stations[0]).sort(), ["arrival", "departure", "id", "name"]);
+});
+
+checkAsync("an answer about another night or another clock is dropped", async () => {
+  const { trains, stats } = await run((n, d) =>
+    // Asked for the 17th, answered with the next run; asked for the 19th,
+    // answered on that night but at a clock that moved again.
+    d === "2026-10-17" ? answer("2026-10-18", "20:15", "08:05") : answer(d, "20:31", "07:41"),
+  );
+  assert.strictEqual(stats.mismatched, 2);
+  assert.strictEqual(trains["NJ 403"].timetableVariants, undefined);
+});
+
+checkAsync("the budget and repeated failures stop the reads", async () => {
+  const capped = await run((n, d) => answer(d, "20:15", "08:05"), { reads: 1 });
+  assert.strictEqual(capped.stats.read, 1);
+  assert.strictEqual(capped.stats.capped, true);
+  const many = { "NJ 403": train() };
+  for (let d = 21; d <= 30; d++) {
+    many["NJ 403"].fareCalendar.nights[`2026-10-${d}`] = priced(`2026-10-${d}T19:${d}`, `2026-10-${d + 1}T08:00`);
+  }
+  let calls = 0;
+  const stats = await fillTimetableVariants(many, null, {
+    today: "2026-10-15",
+    fetchTrain: async () => {
+      calls++;
+      return null;
+    },
+    spacingMs: 0,
+  });
+  assert.strictEqual(calls, 5, "five unanswered reads in a row end the pass");
+  assert.strictEqual(stats.stopped, true);
+});
+
+check("a night's own timetable replaces the stop list whole", () => {
+  const own = [
+    { name: "Amsterdam Centraal", departure: "20:15", arrival: "" },
+    { name: "Düsseldorf Hbf", departure: "22:40", arrival: "22:38" },
+    { name: "Zürich HB", departure: "", arrival: "08:05" },
+  ];
+  const r = stopsForNight(STOPS, { departure: "20:15", arrival: "08:05" }, own);
+  assert.strictEqual(r.ownTimetable, true);
+  assert.strictEqual(r.stops.length, 3);
+  assert.strictEqual(r.stops[1].name, "Düsseldorf Hbf");
+  assert.strictEqual(r.stops[1].arrival, "22:38");
+  // Without one, the run's list with the stops in between cleared, as before.
+  assert.strictEqual(stopsForNight(STOPS, { departure: "21:01", arrival: "08:05" }, null).ownTimetable, false);
+});
+
+check("the panel's trains file carries no per-night timetables", () => {
+  const t = train();
+  t.timetableVariants = { "20:15>08:05+1": { readAt: "2026-10-15", night: "2026-10-17", stations: [] } };
+  const served = servedTrainsData({ trains: { "NJ 403": t } });
+  assert.ok(!("timetableVariants" in served.trains["NJ 403"]));
+  assert.ok(!("fareCalendar" in served.trains["NJ 403"]));
+});
+
+for (const [name, fn] of asyncChecks) {
+  await fn();
+  passed++;
+  console.log(`  ✓ ${name}`);
+}
 
 console.log(`\n${passed} checks passed`);
