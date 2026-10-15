@@ -108,7 +108,9 @@ export function richerAnswer(asked, onRun) {
   if (!asked?.stations?.length) return onRun;
   if (runDateOf(onRun) !== runDateOf(asked)) return asked;
   const score = (t) => (t.polyline ? 1000 : 0) + t.stations.length;
-  return score(onRun) >= score(asked) ? onRun : asked;
+  // Strictly fuller only: on a tie the first answer stands, so the log below
+  // names just the trains the re-read actually repaired.
+  return score(onRun) > score(asked) ? onRun : asked;
 }
 
 /**
@@ -136,7 +138,7 @@ export async function fetchTrainForNextRun(trainNumber, date, fetchOne = fetchSi
   if (kept !== asked) {
     console.log(
       `[nj] ${trainNumber}: next run ${runDate} — re-read on that date ` +
-        `(${asked.stations.length}→${kept.stations.length} stops, polyline ${asked.polyline ? "kept" : kept.polyline ? "gained" : "still missing"})`,
+        `(${asked.stations.length}→${kept.stations.length} stops${!asked.polyline && kept.polyline ? ", polyline gained" : ""})`,
     );
   }
   return kept;
