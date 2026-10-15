@@ -251,7 +251,7 @@ export function useRoutePaths({
         return;
       }
 
-      const futureStartDate = getFutureRouteStartDate(routeId, trips);
+      const futureStartDate = getFutureRouteStartDate(routeId, trips, route);
       const isFuture = futureStartDate !== null;
       // Tickets already on sale (e.g. ES Brussels–Milano): full opacity, date on hover only.
       const fadeAsFuture =

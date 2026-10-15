@@ -21,6 +21,11 @@
  * 63 of them in October 2026, ÖBB's 24 Nightjet corridors among them, about
  * half the control group's baseline impressions.
  *
+ * A page none of whose trains runs now (a seasonal train out of season) is
+ * read apart too, as "seasonal": its title and description lead with the date
+ * it runs again under either variant (src/lib/nextDeparture.mjs), so it is
+ * neither arm.
+ *
  * Read it with three things in mind, which it prints:
  *
  *   - Volume. The four European Sleeper pages took 3 clicks from 793
@@ -100,7 +105,7 @@ function main() {
   // Arms from the pages as the build renders them today; only pages with a
   // "before" can be compared, so a pair newer than the baseline sits out. A
   // control page that gained a price since is its own row (see the header).
-  const arms = { treatment: [], control: [], priced: [] };
+  const arms = { treatment: [], control: [], priced: [], seasonal: [] };
   const pricedSources = new Set();
   let unbaselined = 0;
   for (const pair of getPublishedPairs()) {
@@ -109,8 +114,13 @@ function main() {
       unbaselined += 1;
       continue;
     }
-    const arm =
-      snippetVariantFor(pair.agencyIds) === FACTS ? "treatment" : pair.fromPrice ? "priced" : "control";
+    const arm = pair.upcoming
+      ? "seasonal"
+      : snippetVariantFor(pair.agencyIds) === FACTS
+        ? "treatment"
+        : pair.fromPrice
+          ? "priced"
+          : "control";
     if (arm === "priced") for (const s of pair.priceSources ?? []) pricedSources.add(s);
     arms[arm].push({
       slug: pair.slug,
@@ -134,8 +144,14 @@ function main() {
   console.log(`\n${"=".repeat(68)}`);
   console.log("                      pages    impr  clicks      CTR     pos");
   const sums = {};
-  for (const arm of ["treatment", "control", "priced"]) {
-    if (arm === "priced" && !arms.priced.length) continue;
+  if (arms.seasonal.length) {
+    console.log(
+      `${arms.seasonal.length} page(s) have no train running now and lead with the next season: ` +
+        `${arms.seasonal.map((r) => r.slug).join(", ")} — read apart as "seasonal".`,
+    );
+  }
+  for (const arm of ["treatment", "control", "priced", "seasonal"]) {
+    if ((arm === "priced" || arm === "seasonal") && !arms[arm].length) continue;
     sums[arm] = {
       before: totals(arms[arm].map((r) => r.before)),
       after: totals(arms[arm].map((r) => r.after)),

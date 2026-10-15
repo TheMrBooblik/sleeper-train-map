@@ -14,6 +14,7 @@ import {
   routeHasNotStartedYet,
   shouldHideRouteDueToFutureDate,
 } from "../Map/utils/routeStyleUtils";
+import { rowNextDeparture, upcomingRun } from "../../lib/nextDeparture.mjs";
 import { splitViaString } from "../../lib/viaSplit.mjs";
 import { normalizeStationNameForLookup } from "../../lib/stationKey.mjs";
 import { orderByPromotion } from "../../lib/operatorPromotion.mjs";
@@ -82,7 +83,9 @@ const TrainBottomBar = ({
   const isNotRunning = useCallback(
     (row) =>
       hasUnknownStart(row?.route_id, trips) ||
-      (row?.draw_as_active === true && routeHasNotStartedYet(row)),
+      (row?.draw_as_active === true && routeHasNotStartedYet(row)) ||
+      // On sale, next run weeks off (a seasonal EuroNight out of season).
+      Boolean(rowNextDeparture(row)),
     [trips],
   );
 
@@ -184,6 +187,11 @@ const TrainBottomBar = ({
         ).trim(),
         viaText: viaText,
         notRunning: isNotRunning(el),
+        // "summer only" for a seasonal train out of season, which is what
+        // tells it apart from one that has never run.
+        notRunningLabel: upcomingRun(el)?.seasonal
+          ? upcomingRun(el).badge.toLowerCase()
+          : "not running yet",
         routeId: el?.route_id?.toString(), // Store route_id for color determination
         routeData: el, // Keep source route data for special color rules (e.g. RegioJet)
       });
@@ -275,7 +283,7 @@ const TrainBottomBar = ({
                     )}
                     {route.notRunning && (
                       <span className="ml-1.5 shrink-0 text-xs font-normal text-gray-400">
-                        not running yet
+                        {route.notRunningLabel || "not running yet"}
                       </span>
                     )}
                   </div>

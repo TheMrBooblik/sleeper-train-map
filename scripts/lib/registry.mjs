@@ -188,6 +188,21 @@ export function validateRegistryEntry(entry) {
     ) {
       errors.push(`${tag} synthetic.botMatchAgencies must be an array of non-empty strings`);
     }
+    // A source whose trains are dated by their next run (nightjet.com) stamps
+    // that date on the row when it is weeks off; the zone says which calendar
+    // day a departure falls on. Misspelling it must not silently mean "off".
+    if (synthetic.nextDeparture != null) {
+      const tz = synthetic.nextDeparture?.timeZone;
+      let valid = typeof tz === "string" && tz.length > 0;
+      if (valid) {
+        try {
+          new Intl.DateTimeFormat("en", { timeZone: tz });
+        } catch {
+          valid = false;
+        }
+      }
+      if (!valid) errors.push(`${tag} synthetic.nextDeparture.timeZone must be an IANA time zone`);
+    }
     if (!entry?.output) {
       errors.push(`${tag} synthetic entries must declare an output trains file`);
     }

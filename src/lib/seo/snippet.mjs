@@ -27,6 +27,7 @@
  */
 
 import { durationIsImplausible, greatCircleKm } from "../durationPlausibility.mjs";
+import { formatLongDate } from "../nextDeparture.mjs";
 
 /** Variant ids. FACTS is the new wording; CONTROL is the pinned former one. */
 export const CONTROL = "control";
@@ -435,6 +436,68 @@ function factsDescription({
   return kept.map((c) => c.text).join(" ");
 }
 
+const capitalize = (word) => (word ? `${word[0].toUpperCase()}${word.slice(1)}` : "");
+
+/**
+ * Title, description and intro for a corridor none of whose trains is running
+ * now — a seasonal train out of season, on sale for next season.
+ *
+ * It takes precedence over both variants, because what the other two say is
+ * wrong for it rather than merely plain: "1 night train connects Rijeka and
+ * Warsaw. Compare timetables…" invites someone to book tonight a train whose
+ * next run is in June, and that is what /connections/rijeka-to-warsaw said in
+ * October 2026. The date the train runs again is the fact the searcher needs
+ * before any other, so it goes in the title.
+ *
+ * @param {object} input
+ * @param {{trainLabel?: string, operator?: string, stopCount?: number,
+ *          run: {nextDeparture: string, nextDepartureText: string,
+ *                previousText: string, season: string, seasonal: boolean}}} input.upcoming
+ *   the corridor's earliest next run, already resolved (src/lib/nextDeparture.mjs)
+ */
+export function upcomingSnippet({ cityA, cityB, operatorNames = "", upcoming }) {
+  const { run, trainLabel = "", operator = "", stopCount = 0 } = upcoming;
+  const base = `${cityA} to ${cityB} Night Train`;
+  const longDate = formatLongDate(run.nextDeparture);
+  const seasonLabel = run.seasonal
+    ? `${run.season ? `${capitalize(run.season)} Only` : "Seasonal"}, from ${run.nextDepartureText}`
+    : `Next Run ${run.nextDepartureText}`;
+
+  // A colon and a comma rather than the dash the other variants use: the
+  // product owner asked for fewer of them in copy a reader sees.
+  let title = `${base}: ${seasonLabel}`;
+  if (title.length > TITLE_MAX) title = `${base}, from ${run.nextDepartureText}`;
+  if (title.length > TITLE_MAX) title = base;
+  title = title.length <= BRAND_BUDGET ? `${title}${BRAND}` : title;
+
+  const train = [operator, trainLabel].filter(Boolean).join(" ");
+  const lead = run.seasonal
+    ? `${run.season ? `${capitalize(run.season)}-only` : "Seasonal"} night train: ` +
+      `${train ? `${train} runs` : "it runs"} ${cityA}–${cityB} again from ${longDate}.`
+    : `Not running now: ${train ? `${train} next runs` : "the next train runs"} ${cityA}–${cityB} on ${longDate}.`;
+  const clauses = [
+    { text: lead, drop: 0 },
+    { text: run.previousText ? `Last season ${run.previousText}.` : "", drop: 2 },
+    {
+      text: stopCount >= 3 ? `Timetable, ${stopCount} stops and where to book.` : "Timetable and where to book.",
+      drop: 1,
+    },
+  ].filter((c) => c.text);
+  let kept = clauses;
+  for (const rank of [1, 2]) {
+    if (kept.map((c) => c.text).join(" ").length <= DESCRIPTION_MAX) break;
+    kept = kept.filter((c) => c.drop !== rank);
+  }
+
+  // The page's header already shows the season and the dates in a card; the
+  // paragraph under it only says who runs it and which timetable this is.
+  const intro =
+    (operatorNames ? `Run by ${operatorNames}. ` : "") +
+    (run.seasonal ? "The timetable below is for next season." : "The timetable below is for its next run.");
+
+  return { title, description: kept.map((c) => c.text).join(" "), intro };
+}
+
 /**
  * Title, meta description and the visible intro paragraph for a pair page.
  *
@@ -454,6 +517,9 @@ function factsDescription({
  * @param {string} [input.variant] CONTROL (default) or FACTS
  * @param {string} [input.today] "YYYY-MM-DD" — the build date, so a timetable
  *   that has not started yet is not the one described
+ * @param {object|null} [input.upcoming] set only when NO train on the corridor
+ *   runs now: the corridor's earliest next run (see upcomingSnippet), which
+ *   then decides the wording under either variant
  * @returns {{title: string, description: string, intro: string}}
  */
 export function connectionSnippet({
@@ -465,7 +531,9 @@ export function connectionSnippet({
   directions = [],
   variant = CONTROL,
   today = "",
+  upcoming = null,
 } = {}) {
+  if (upcoming?.run?.nextDeparture) return upcomingSnippet({ cityA, cityB, operatorNames, upcoming });
   const intro = controlDescription({ cityA, cityB, trainCount, operatorNames, fromPrice });
   const controlTitle = `Night Trains ${cityA} to ${cityB} — Times, Stops & Tickets | Pingwi`;
 
