@@ -121,4 +121,14 @@ check("drawn lines, bar chips and panel chips use the lifted colour on the dark 
   assert.match(read("src/components/TrainDetailPanel/TrainDetailPanel.js"), /liftForDarkMap\(getOperatorBaseColor\(trip\)\)/);
 });
 
+check("station dots take their ring from --station-ring, which the dark theme sets", () => {
+  for (const rel of ["src/components/Map/utils/mapIcons.js", "src/components/Map/hooks/useMapMarkers.js"]) {
+    const src = read(rel);
+    assert.doesNotMatch(src, /solid white/, `${rel}: a hard-coded white ring glares on the dark map`);
+    assert.match(src, /solid var\(--station-ring, white\)/, `${rel}: light theme keeps its white ring`);
+  }
+  const darkBlock = css.match(/\[data-theme="dark"\] \{[^}]*\}/)?.[0] || "";
+  assert.match(darkBlock, /--station-ring:\s*#[0-9a-f]{6}/i);
+});
+
 console.log(`\nverify-map-theme: ${checks} checks passed`);

@@ -342,8 +342,8 @@ export function useMapMarkers({
             // Hit area around the 20px visual dot — wide on touch, tight for a
             // mouse (same pointer-aware size as createMapIcons).
             html: `<div style="width:${hitSize}px;height:${hitSize}px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
-              <div style="width:20px;height:20px;background:${bgGradient};border-radius:50%;border:3px solid white;box-shadow:${shadow};transition:all 0.3s ease;z-index:1000;position:relative;">
-              <div style="position:absolute;top:-8px;left:-8px;background:linear-gradient(135deg,#FF9800,#F57C00);color:white;border-radius:50%;width:16px;height:16px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:bold;border:2px solid white;box-shadow:0 2px 6px rgba(255,152,0,0.5);z-index:2000;">
+              <div style="width:20px;height:20px;background:${bgGradient};border-radius:50%;border:3px solid var(--station-ring, white);box-shadow:${shadow};transition:all 0.3s ease;z-index:1000;position:relative;">
+              <div style="position:absolute;top:-8px;left:-8px;background:linear-gradient(135deg,#FF9800,#F57C00);color:white;border-radius:50%;width:16px;height:16px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:bold;border:2px solid var(--station-ring, white);box-shadow:0 2px 6px rgba(255,152,0,0.5);z-index:2000;">
                 ${filteredStop.groupSize}
               </div>
             </div></div>`,

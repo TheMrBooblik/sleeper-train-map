@@ -577,6 +577,10 @@ abbr {
   --map-overlay-text: #d4d4d8;
   --map-overlay-muted: #a1a1aa;
   --map-overlay-track: #3f3f46;
+  /* Station dots (mapIcons.js, useMapMarkers.js): a white ring glares on the
+   * dark basemap, so the ring takes the map's own dark instead. It still
+   * parts a dot from a line drawn through it. */
+  --station-ring: #18181b;
 }
 
 [data-theme="dark"] .leaflet-container {
