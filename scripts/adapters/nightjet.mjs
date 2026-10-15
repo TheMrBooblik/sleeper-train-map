@@ -38,6 +38,7 @@ import {
   readOperatorText,
 } from "../lib/operator-agencies.mjs";
 import { sameTrainAsRow } from "../../src/lib/sameTrain.mjs";
+import { trackPathFromSiblings } from "../lib/sibling-path.mjs";
 
 function normalizeNJTrain(data, date, operator = "Nightjet") {
   const stops = Array.isArray(data?.route?.stops) ? data.route.stops : [];
@@ -142,6 +143,43 @@ export async function fetchTrainForNextRun(trainNumber, date, fetchOne = fetchSi
     );
   }
   return kept;
+}
+
+/**
+ * Route lines for trains nightjet.com sent without one, drawn along the
+ * track of the trains it did send one for.
+ *
+ * The answer for NJ 449 (from 8 February 2027, Brussels–Wien via Frankfurt,
+ * Würzburg, Nürnberg and Passau) carries stops and no polyline on every date
+ * asked, so the adapter's fallback was a straight chord between each pair of
+ * stations, and the map drew it as one. Every stretch of that routing is
+ * ridden by another Nightjet the same answer set does draw (NJ 469 to Köln and
+ * Koblenz, NJ 40421 from there to Wien), so `trackPathFromSiblings` lends each
+ * gap the donor track that runs between its two stops. A gap no donor covers
+ * stays a chord. `ownLines` names the trains whose line is nightjet.com's own:
+ * only those lend, so a borrowed line is never borrowed from again.
+ * @param {Record<string, {polyline: string, stations: object[]}>} trains
+ * @param {Set<string>} ownLines
+ * @returns {string[]} the trains whose line was rebuilt
+ */
+export function borrowTrackGeometry(trains, ownLines) {
+  const donors = [...ownLines]
+    .map((key) => trains[key]?.polyline)
+    .filter(Boolean)
+    .map((encoded) => polyline.decode(encoded));
+  const rebuilt = [];
+  for (const [key, train] of Object.entries(trains)) {
+    if (ownLines.has(key)) continue;
+    const stops = (train.stations ?? [])
+      .filter((s) => s.location?.latitude && s.location?.longitude)
+      .map((s) => [s.location.latitude, s.location.longitude]);
+    if (stops.length < 2) continue;
+    const { path, filled, gaps } = trackPathFromSiblings(stops, donors);
+    if (!filled) continue;
+    train.polyline = polyline.encode(path);
+    rebuilt.push(`${key} (${filled}/${gaps} stretches)`);
+  }
+  return rebuilt;
 }
 
 async function fetchNJTrainNumbers(date, countryCodes) {
@@ -397,6 +435,7 @@ export async function run(entry, ctx) {
   const allNumbers = [...new Set([...njNumbers, ...enNumbers])];
   console.log(`[scrape] fetching ${allNumbers.length} NJ/EN trains`);
 
+  const ownLines = new Set();
   for (let i = 0; i < allNumbers.length; i += concurrency) {
     const batch = allNumbers.slice(i, i + concurrency);
     const fetched = await Promise.all(batch.map((n) => fetchTrainForNextRun(n, ctx.today)));
@@ -409,6 +448,7 @@ export async function run(entry, ctx) {
         train.polyline ||
         (fallbackPositions.length >= 2 ? polyline.encode(fallbackPositions) : null);
       if (!encodedPolyline) return;
+      if (train.polyline) ownLines.add(train.lineName);
       results[train.lineName] = {
         lineName: train.lineName,
         operator: train.operator,
@@ -417,6 +457,11 @@ export async function run(entry, ctx) {
         stations: train.stations,
       };
     });
+  }
+
+  const rebuilt = borrowTrackGeometry(results, ownLines);
+  if (rebuilt.length) {
+    console.log(`[nj] no route line from nightjet.com, drawn along other trains' track: ${rebuilt.join(", ")}`);
   }
 
   const previous = readPreviousTrains(entry, ctx);

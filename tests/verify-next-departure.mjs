@@ -39,7 +39,9 @@ import {
 } from "../src/lib/nextDeparture.mjs";
 import { buildInitialData } from "../src/pages/api/lib/build-initial-data.mjs";
 import { validateRegistry } from "../scripts/lib/registry.mjs";
-import { fetchTrainForNextRun, richerAnswer } from "../scripts/adapters/nightjet.mjs";
+import { borrowTrackGeometry, fetchTrainForNextRun, richerAnswer } from "../scripts/adapters/nightjet.mjs";
+import { haversineKm } from "../scripts/lib/sibling-path.mjs";
+import polyline from "@mapbox/polyline";
 import {
   getFutureRouteStartDate,
   upcomingPreviewRouteIds,
@@ -413,6 +415,37 @@ await check("payload: EN 1276/1277 is a summer train whose next season starts 25
       if (!x[`next_departure_${dir}`]) continue;
       assert.ok(x[`next_departure_${dir}`] > "2026-10-29", `${x.route_id} ${x[`next_departure_${dir}`]}`);
     }
+  }
+});
+
+await check("a train sent without a route line is drawn along other trains' track, never as chords", () => {
+  const st = (name, lat, lon) => ({ name, location: { latitude: lat, longitude: lon } });
+  // A donor riding A → B → C along a bend, and a train calling at A and C only.
+  const bend = [];
+  for (let i = 0; i <= 40; i++) bend.push([48 + i * 0.01, 14 + Math.sin(i / 8) * 0.05]);
+  const trains = {
+    "NJ 1": { polyline: polyline.encode(bend), stations: [st("A", 48, 14), st("C", 48.4, bend[40][1])] },
+    "NJ 2": {
+      polyline: polyline.encode([[48, 14], [48.4, bend[40][1]], [52, 4]]),
+      stations: [st("A", 48, 14), st("C", 48.4, bend[40][1]), st("Far", 52, 4)],
+    },
+  };
+  const rebuilt = borrowTrackGeometry(trains, new Set(["NJ 1"]));
+  assert.deepEqual(rebuilt, ["NJ 2 (1/2 stretches)"]);
+  const drawn = polyline.decode(trains["NJ 2"].polyline);
+  assert.ok(drawn.length > 30, "A → C follows the donor's bend");
+  assert.deepEqual(drawn.at(-1), [52, 4], "a stretch no donor rides stays a chord, and every stop stays a vertex");
+  assert.equal(polyline.decode(trains["NJ 1"].polyline).length, 41, "a line of nightjet.com's own is never rewritten");
+
+  // The committed answer for NJ 449: its line was its 16 stops, and is now track.
+  const file = readJson("public/data/scraped/nightjet-trains.json");
+  const nj449 = file.trains?.["NJ 449"] ?? file.data?.trains?.["NJ 449"];
+  if (nj449) {
+    const line = polyline.decode(nj449.polyline);
+    assert.ok(line.length > nj449.stations.length * 10, `NJ 449 has ${line.length} vertices for ${nj449.stations.length} stops`);
+    let worst = 0;
+    for (let i = 0; i < line.length - 1; i++) worst = Math.max(worst, haversineKm(line[i], line[i + 1]));
+    assert.ok(worst < 20, `NJ 449's longest straight stretch is ${worst.toFixed(1)} km`);
   }
 });
 
