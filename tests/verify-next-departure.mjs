@@ -229,6 +229,53 @@ await check("build: opt-in per source, and the registry rejects a bad zone", () 
   assert.ok(errors.some((e) => /nextDeparture\.timeZone/.test(e)), errors.join("; "));
 });
 
+await check("build: a train pairs with the return in its own period, and a later one cannot take its partner", () => {
+  // nightjet.com's Wien–Brussels corridor on 15 October 2026, in feed order:
+  // NJ 469 (now), NJ 449 (February, no polyline), NJ 468 (December), NJ 448
+  // (now). Paired by feed order, NJ 448 sat on a row with NJ 449 and the map
+  // drew February's routing as straight lines over tonight's train.
+  const wien = (dep) => at("Wien Hbf", 48.18, 16.38, dep);
+  const bru = (dep) => at("Brüssel Midi", 50.84, 4.34, dep);
+  const nj = (name, stations, polyline) => ({
+    lineName: name, operator: "Nightjet", agency_id: "ÖBB", agencyFrom: "home", fare: null, polyline, lastSeenAt: SEEN, stations,
+  });
+  const trains = {
+    "NJ 469": nj("NJ 469", [bru("2026-10-16T17:06:00.000Z"), wien("2026-10-17T08:00:00.000Z")], "p469"),
+    "NJ 449": nj("NJ 449", [bru("2027-02-08T16:56:00.000Z"), wien("2027-02-09T08:00:00.000Z")], "p449"),
+    "NJ 468": nj("NJ 468", [wien("2026-12-13T18:36:00.000Z"), bru("2026-12-14T09:00:00.000Z")], "p468"),
+    "NJ 448": nj("NJ 448", [wien("2026-10-15T16:13:00.000Z"), bru("2026-10-16T07:59:00.000Z")], "p448"),
+  };
+  const stops = [
+    { stop_id: "Wien Hbf", stop_name: "Wien Hbf", stop_lat: 48.18, stop_lon: 16.38 },
+    { stop_id: "Brüssel Midi", stop_name: "Brüssel Midi", stop_lat: 50.84, stop_lon: 4.34 },
+  ];
+  const vm = buildInitialData({
+    stops, viewMap: {}, trips: {}, operatorTrains: { nightjet: trains },
+    registry: [{ ...structuredClone(NJ_ENTRY), probe: undefined }], seenIndex: null, routePrices: {},
+  }).viewMap;
+  const pairOf = (id) => [vm[id]?.trip_short_name_0, vm[id]?.trip_short_name_1].join(" / ");
+  assert.equal(pairOf("nj_standalone_NJ_469"), "NJ 469 / NJ 448", "the two running tonight");
+  assert.equal(pairOf("nj_standalone_NJ_449"), "NJ 449 / NJ 468", "the two on sale for later");
+  assert.equal(vm.nj_standalone_NJ_469.nj_polyline_1, "p448");
+  // A later train with no same-period partner does not take a running one's:
+  // NJ 429 (February) had taken NJ 420 from NJ 421.
+  const ams = (dep) => at("Amsterdam Centraal", 52.38, 4.9, dep);
+  const ibk = (dep) => at("Innsbruck Hbf", 47.26, 11.4, dep);
+  const vm2 = buildInitialData({
+    stops: [...stops, { stop_id: "Amsterdam Centraal", stop_name: "Amsterdam Centraal", stop_lat: 52.38, stop_lon: 4.9 },
+      { stop_id: "Innsbruck Hbf", stop_name: "Innsbruck Hbf", stop_lat: 47.26, stop_lon: 11.4 }],
+    viewMap: {}, trips: {},
+    operatorTrains: { nightjet: {
+      "NJ 429": nj("NJ 429", [ams("2027-02-07T18:00:00.000Z"), ibk("2027-02-08T08:00:00.000Z")], "p429"),
+      "NJ 421": nj("NJ 421", [ams("2026-10-15T18:00:00.000Z"), ibk("2026-10-16T08:00:00.000Z")], "p421"),
+      "NJ 420": nj("NJ 420", [ibk("2026-10-15T19:00:00.000Z"), ams("2026-10-16T09:00:00.000Z")], "p420"),
+    } },
+    registry: [{ ...structuredClone(NJ_ENTRY), probe: undefined }], seenIndex: null, routePrices: {},
+  }).viewMap;
+  assert.equal([vm2.nj_standalone_NJ_421?.trip_short_name_0, vm2.nj_standalone_NJ_421?.trip_short_name_1].join(" / "), "NJ 421 / NJ 420");
+  assert.equal(vm2.nj_standalone_NJ_429?.trip_short_name_1, undefined, "the February train stands alone");
+});
+
 // ── the adapter ──────────────────────────────────────────────────────────────
 
 const answer = (departure, { polyline = null, stops = 2 } = {}) => ({
