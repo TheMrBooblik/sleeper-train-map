@@ -40,6 +40,7 @@ import {
 import { sameTrainAsRow } from "../../src/lib/sameTrain.mjs";
 import {
   fillTimetableVariants,
+  NJ_TIMETABLE_MIN_NIGHTS,
   NJ_TIMETABLE_READS_PER_RUN,
 } from "../lib/nj-timetable-variants.mjs";
 
@@ -249,7 +250,11 @@ export async function priceTrains(results, entry, ctx, previous = readPreviousTr
  * night the fare search was refused: the same host would refuse this too.
  */
 export async function readTimetableVariants(results, entry, ctx, previous, fareStats, fetchTrain = fetchSingleTrain) {
-  const { enabled = true, readsPerRun = NJ_TIMETABLE_READS_PER_RUN } = entry.params?.timetableVariants ?? {};
+  const {
+    enabled = true,
+    readsPerRun = NJ_TIMETABLE_READS_PER_RUN,
+    minNights = NJ_TIMETABLE_MIN_NIGHTS,
+  } = entry.params?.timetableVariants ?? {};
   if (!enabled) return null;
   if (fareStats?.blocked) {
     console.log("[scrape] nightjet timetables: skipped, the fare search was refused tonight");
@@ -259,12 +264,14 @@ export async function readTimetableVariants(results, entry, ctx, previous, fareS
     today: ctx.today,
     fetchTrain,
     reads: readsPerRun,
+    minNights,
   });
   const trains = Object.values(results).filter((t) => t.timetableVariants).length;
   console.log(
     `[scrape] nightjet timetables: ${stats.read} read tonight (${stats.kept} kept, ` +
       `${stats.mismatched} answered another clock, ${stats.failed} unanswered), ` +
-      `${stats.carried} carried from earlier nights; ${trains} train(s) with a timetable per clock` +
+      `${stats.carried} carried from earlier nights, ${stats.rare} clock(s) under ${minNights} nights left unread; ` +
+      `${trains} train(s) with a timetable per clock` +
       `${stats.capped ? `, budget spent (${stats.planned - stats.read} left for tomorrow)` : ""}` +
       `${stats.stopped ? ", stopped after repeated failures" : ""}`,
   );

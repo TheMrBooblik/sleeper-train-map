@@ -234,7 +234,7 @@ check("a train's own run and its calendar's clocks", () => {
 });
 
 check("one read per clock the run does not answer, on its nearest night", () => {
-  const { reads } = planTimetableReads({ "NJ 403": train() }, null, { today: "2026-10-15" });
+  const { reads } = planTimetableReads({ "NJ 403": train() }, null, { today: "2026-10-15", minNights: 1 });
   assert.deepStrictEqual(
     reads.map((r) => [r.clock, r.night]),
     [
@@ -242,6 +242,26 @@ check("one read per clock the run does not answer, on its nearest night", () => 
       ["20:01>07:41+1", "2026-10-19"],
     ],
   );
+});
+
+check("only a clock that holds for several nights is worth a read", () => {
+  const t = train();
+  // 20:15 holds three nights now, 20:01 still one.
+  t.fareCalendar.nights["2026-10-21"] = priced("2026-10-21T20:15", "2026-10-22T08:05");
+  const { reads, rare } = planTimetableReads({ "NJ 403": t }, null, { today: "2026-10-15" });
+  assert.deepStrictEqual(reads.map((r) => r.clock), ["20:15>08:05+1"]);
+  assert.strictEqual(rare, 1);
+  // A read already made is carried whatever its clock's count: it costs nothing.
+  const previous = {
+    "NJ 403": {
+      timetableVariants: {
+        "20:01>07:41+1": { readAt: "2026-10-14", night: "2026-10-19", stations: answer("2026-10-19", "20:01", "07:41").stations },
+      },
+    },
+  };
+  const again = planTimetableReads({ "NJ 403": t }, previous, { today: "2026-10-15" });
+  assert.deepStrictEqual(Object.keys(again.carried.get("NJ 403")), ["20:01>07:41+1"]);
+  assert.strictEqual(again.rare, 0);
 });
 
 check("a recent read is reused, an old one read again", () => {
@@ -255,7 +275,10 @@ check("a recent read is reused, an old one read again", () => {
       },
     },
   };
-  const { reads, carried } = planTimetableReads({ "NJ 403": train() }, previous, { today: "2026-10-15" });
+  const { reads, carried } = planTimetableReads({ "NJ 403": train() }, previous, {
+    today: "2026-10-15",
+    minNights: 1,
+  });
   assert.deepStrictEqual(reads.map((r) => r.clock), ["20:01>07:41+1"]);
   // A clock the calendar no longer shows is not carried.
   assert.deepStrictEqual(Object.keys(carried.get("NJ 403")), ["20:15>08:05+1"]);
@@ -271,6 +294,7 @@ const run = async (fetchTrain, opts = {}) => {
       return fetchTrain(n, d);
     },
     spacingMs: 0,
+    minNights: 1,
     ...opts,
   });
   return { trains, stats, asked };
@@ -318,6 +342,7 @@ checkAsync("the budget and repeated failures stop the reads", async () => {
       return null;
     },
     spacingMs: 0,
+    minNights: 1,
   });
   assert.strictEqual(calls, 5, "five unanswered reads in a row end the pass");
   assert.strictEqual(stats.stopped, true);

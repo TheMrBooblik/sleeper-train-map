@@ -15,6 +15,13 @@
 // answer: on 15 October that was 101 clocks across 32 trains, about 70 reads
 // beyond the run, against ~3 000 for every night.
 //
+// And only for a clock that repeats: a works timing that holds for a fortnight
+// is worth its read, one that touches a single night is not. On 15 October the
+// 72 clocks beside the runs split that way — 19 held one night, 13 two — and
+// the 40 holding three or more covered 411 of their 456 nights (90%) for 40
+// reads instead of 72 (NJ_TIMETABLE_MIN_NIGHTS). A night on a rarer clock
+// keeps the page's fallback: its ends retimed, the stops between left blank.
+//
 // An answer is kept only when it is that night's journey on that clock: its
 // first departure on the night asked about, and its clock equal to the one the
 // price search gave. Anything else (the next run, a works timing that moved
@@ -32,6 +39,8 @@ import { viennaDate, viennaDateTime } from "./nj-fares.mjs";
 
 /** The most reads one night may spend. 15 October needed ~70. */
 export const NJ_TIMETABLE_READS_PER_RUN = 120;
+/** A clock must hold for this many of the calendar's nights to be read. */
+export const NJ_TIMETABLE_MIN_NIGHTS = 3;
 /** A timetable read this many days ago is still trusted for its clock. */
 export const READ_MAX_AGE_DAYS = 7;
 /** This many unanswered reads in a row is the host turning us away. */
@@ -93,15 +102,17 @@ function compactStations(stations) {
  * What tonight must read and what it may reuse. Per train, every clock in its
  * calendar other than its own run's is either carried from last night's file
  * (read within READ_MAX_AGE_DAYS) or planned as one read on its nearest
- * night. Reads are ordered by night, nearest first, so a budget cut costs the
- * far weeks.
+ * night — when the clock holds for at least `minNights` nights (a carried
+ * read is kept whatever its count: it costs nothing). Reads are ordered by
+ * night, nearest first, so a budget cut costs the far weeks.
  *
  * @returns {{ reads: { key: string, train: string, clock: string, night: string }[],
  *             carried: Map<string, object> }}  `carried` is train key →
  *   { clock: variant } to start from.
  */
-export function planTimetableReads(trains, previous, { today }) {
+export function planTimetableReads(trains, previous, { today, minNights = NJ_TIMETABLE_MIN_NIGHTS }) {
   const reads = [];
+  let rare = 0;
   const carried = new Map();
   for (const [key, train] of Object.entries(trains ?? {})) {
     const clocks = calendarClocks(train, today);
@@ -116,12 +127,16 @@ export function planTimetableReads(trains, previous, { today }) {
         kept[clock] = old;
         continue;
       }
+      if (nights.length < minNights) {
+        rare++;
+        continue;
+      }
       reads.push({ key, train: train.lineName ?? key, clock, night: nights[0] });
     }
     carried.set(key, kept);
   }
   reads.sort((a, b) => (a.night < b.night ? -1 : a.night > b.night ? 1 : a.key.localeCompare(b.key)));
-  return { reads, carried };
+  return { reads, carried, rare };
 }
 
 /**
@@ -142,13 +157,15 @@ export async function fillTimetableVariants(
     today,
     fetchTrain,
     reads: budget = NJ_TIMETABLE_READS_PER_RUN,
+    minNights = NJ_TIMETABLE_MIN_NIGHTS,
     spacingMs = SPACING_MS,
     sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
   },
 ) {
-  const stats = { planned: 0, read: 0, kept: 0, carried: 0, mismatched: 0, failed: 0, capped: false, stopped: false };
-  const { reads, carried } = planTimetableReads(trains, previous, { today });
+  const stats = { planned: 0, rare: 0, read: 0, kept: 0, carried: 0, mismatched: 0, failed: 0, capped: false, stopped: false };
+  const { reads, carried, rare } = planTimetableReads(trains, previous, { today, minNights });
   stats.planned = reads.length;
+  stats.rare = rare;
   for (const [key, kept] of carried) {
     trains[key].timetableVariants = { ...kept };
     stats.carried += Object.keys(kept).length;
