@@ -162,32 +162,32 @@ export default function NearbyStationsSheet({
       />
       <div
         ref={sheetRef}
-        className="fixed bottom-0 left-0 right-0 z-[1101] max-h-[70dvh] overflow-y-auto overscroll-y-contain rounded-t-2xl bg-white shadow-2xl pb-[env(safe-area-inset-bottom,0px)]"
+        className="fixed bottom-0 left-0 right-0 z-[1101] max-h-[70dvh] overflow-y-auto overscroll-y-contain rounded-t-2xl bg-white dark:bg-zinc-900 shadow-2xl pb-[env(safe-area-inset-bottom,0px)]"
         role="dialog"
         aria-modal="true"
         aria-label="Sleeper stations near you"
       >
         <div
-          className="sticky top-0 z-10 flex touch-none cursor-grab active:cursor-grabbing items-center justify-center border-b border-gray-100 bg-white px-4 py-3"
+          className="sticky top-0 z-10 flex touch-none cursor-grab active:cursor-grabbing items-center justify-center border-b border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-3"
           onPointerDown={onSheetDragStart}
           onPointerMove={onSheetDragMove}
           onPointerUp={onSheetDragEnd}
           onPointerCancel={onSheetDragEnd}
         >
-          <div className="h-1 w-10 rounded-full bg-gray-300" aria-hidden />
+          <div className="h-1 w-10 rounded-full bg-gray-300 dark:bg-zinc-600" aria-hidden />
           <button
             type="button"
             onClick={onClose}
             onPointerDown={(e) => e.stopPropagation()}
             aria-label="Close"
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800"
           >
             ✖
           </button>
         </div>
 
         <div className="px-4 pt-3 pb-4">
-          <h2 className="text-base font-semibold text-gray-900">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-zinc-100">
             {status === "error"
               ? "Location unavailable"
               : status === "locating"
@@ -195,29 +195,29 @@ export default function NearbyStationsSheet({
                 : "Sleeper stations near you"}
           </h2>
           {status === "locating" && (
-            <p className="mt-3 flex items-center gap-2 text-sm text-gray-500">
+            <p className="mt-3 flex items-center gap-2 text-sm text-gray-500 dark:text-zinc-400">
               <span
-                className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500"
+                className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 dark:border-zinc-600 border-t-blue-500"
                 aria-hidden
               />
               Locating…
             </p>
           )}
           {status === "error" && (
-            <p className="mt-2 text-sm text-amber-700">{message}</p>
+            <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">{message}</p>
           )}
           {status === "ready" && results.length === 0 && (
-            <p className="mt-2 text-sm text-gray-500">{message}</p>
+            <p className="mt-2 text-sm text-gray-500 dark:text-zinc-400">{message}</p>
           )}
           {status === "ready" && results.length > 0 && (
-            <ul className="mt-3 divide-y divide-gray-100">
+            <ul className="mt-3 divide-y divide-gray-100 dark:divide-zinc-800">
               {results.map(({ stop, distanceKm }) => {
                 const label = stop.stop_id;
                 return (
                   <li key={stop.stop_id}>
                     <button
                       type="button"
-                      className="flex w-full items-center justify-between gap-3 py-3 text-left hover:bg-gray-50 active:bg-gray-100"
+                      className="flex w-full items-center justify-between gap-3 py-3 text-left hover:bg-gray-50 dark:hover:bg-zinc-800/60 active:bg-gray-100 dark:active:bg-zinc-800"
                       onClick={() => {
                         onSelect?.({
                           type: "station",
@@ -230,10 +230,10 @@ export default function NearbyStationsSheet({
                         onClose?.();
                       }}
                     >
-                      <span className="min-w-0 truncate text-sm font-medium text-gray-900">
+                      <span className="min-w-0 truncate text-sm font-medium text-gray-900 dark:text-zinc-100">
                         {label}
                       </span>
-                      <span className="shrink-0 text-xs text-gray-500">
+                      <span className="shrink-0 text-xs text-gray-500 dark:text-zinc-400">
                         {formatDistanceKm(distanceKm)}
                       </span>
                     </button>

@@ -17,6 +17,7 @@ import {
 import { splitViaString } from "../../lib/viaSplit.mjs";
 import { normalizeStationNameForLookup } from "../../lib/stationKey.mjs";
 import { orderByPromotion } from "../../lib/operatorPromotion.mjs";
+import { liftForDarkMap } from "../../lib/mapTheme.mjs";
 import {
   disambiguateLabels,
   selectedCityMatcher,
@@ -41,6 +42,7 @@ const TrainBottomBar = ({
   trips,
   cities,
   stationCoords,
+  isDarkMap = false,
 }) => {
   // The "more to the right" fade. It sits on a wrapper that does not scroll:
   // as a ::after of the scroll container it scrolled WITH the chips, and once
@@ -200,7 +202,7 @@ const TrainBottomBar = ({
   );
 
   return (
-    <div className="absolute bottom-0 w-full pb-[env(safe-area-inset-bottom,0px)] md:pb-0 bg-white shadow-[-2px_0_8px_rgba(0,0,0,0.1)] z-[1000]">
+    <div className="absolute bottom-0 w-full pb-[env(safe-area-inset-bottom,0px)] md:pb-0 bg-white dark:bg-zinc-900 dark:text-zinc-100 shadow-[-2px_0_8px_rgba(0,0,0,0.1)] z-[1000]">
       <div
         ref={scrollRef}
         onScroll={updateFade}
@@ -209,18 +211,20 @@ const TrainBottomBar = ({
       >
         <div className="flex min-w-max p-1">
           {!hasBackOnTrackRoutes ? (
-            <div className="flex items-center h-10 px-4 text-sm text-gray-500 italic">
+            <div className="flex items-center h-10 px-4 text-sm text-gray-500 dark:text-zinc-400 italic">
               No night train routes found for this station.
             </div>
           ) : (
             chips.map((route, index) => {
               // Operator brand color (with shade variation for same-operator routes)
-              const routeColor =
+              // Lifted on the dark theme to match the line it names.
+              const baseColor =
                 routeColorMap.get(route.routeId) || NEUTRAL_FALLBACK_COLOR;
+              const routeColor = isDarkMap ? liftForDarkMap(baseColor) : baseColor;
 
               return (
                 <div
-                  className="relative flex items-center h-10 md:h-auto max-w-[calc(100vw-1rem)] pl-2 pr-3 whitespace-nowrap text-sm cursor-pointer hover:bg-gray-100 active:bg-gray-100 md:active:bg-transparent transition-colors"
+                  className="relative flex items-center h-10 md:h-auto max-w-[calc(100vw-1rem)] pl-2 pr-3 whitespace-nowrap text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-zinc-800 active:bg-gray-100 dark:active:bg-zinc-800 md:active:bg-transparent transition-colors"
                   key={`route-info-${index}`}
                   role="button"
                   tabIndex={0}
@@ -253,7 +257,7 @@ const TrainBottomBar = ({
                   {/* Never wider than the screen: a long name is cut with an
                   ellipsis rather than pushing the chip off a phone. */}
                   <div
-                    className={`flex min-w-0 items-center ${route.notRunning ? "text-gray-500" : ""}`}
+                    className={`flex min-w-0 items-center ${route.notRunning ? "text-gray-500 dark:text-zinc-400" : ""}`}
                   >
                     <strong className="shrink-0">
                       {abbreviateStationName(route.origin)}
@@ -269,12 +273,12 @@ const TrainBottomBar = ({
                       {abbreviateStationName(route.destination)}
                     </strong>
                     {suffixes[index] && (
-                      <span className="ml-1.5 shrink-0 text-xs font-normal text-gray-500">
+                      <span className="ml-1.5 shrink-0 text-xs font-normal text-gray-500 dark:text-zinc-400">
                         {suffixes[index]}
                       </span>
                     )}
                     {route.notRunning && (
-                      <span className="ml-1.5 shrink-0 text-xs font-normal text-gray-400">
+                      <span className="ml-1.5 shrink-0 text-xs font-normal text-gray-400 dark:text-zinc-500">
                         not running yet
                       </span>
                     )}
@@ -289,10 +293,7 @@ const TrainBottomBar = ({
         <div
           aria-hidden
           data-testid="bottom-bar-fade"
-          className="pointer-events-none absolute inset-y-0 right-0 w-8"
-          style={{
-            background: "linear-gradient(to left, white 40%, transparent)",
-          }}
+          className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-white from-40% to-transparent dark:from-zinc-900"
         />
       )}
     </div>

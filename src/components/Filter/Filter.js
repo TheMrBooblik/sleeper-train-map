@@ -14,20 +14,20 @@ import React from "react";
 const Filter = ({ selected, filterName, onClose }) => {
   return (
     <div
-      className={`absolute !z-999 left-[66px] top-[10px] h-11 max-w-[calc(100vw-76px)] items-center overflow-hidden rounded bg-white text-sm leaflet-bar ${
+      className={`absolute !z-999 left-[66px] top-[10px] h-11 max-w-[calc(100vw-76px)] items-center overflow-hidden rounded bg-white dark:bg-zinc-900 text-sm leaflet-bar ${
         selected ? "flex" : "hidden"
       }`}
     >
       <button
         type="button"
         onClick={onClose}
-        className="flex h-full w-10 shrink-0 cursor-pointer items-center justify-center text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+        className="flex h-full w-10 shrink-0 cursor-pointer items-center justify-center text-gray-500 dark:text-zinc-400 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-900 dark:hover:text-zinc-100"
         aria-label="Clear filter"
       >
         ✖
       </button>
-      <span className="min-w-0 truncate pr-3 text-gray-900">
-        <span className="hidden text-gray-500 md:inline">Filter:&nbsp;</span>
+      <span className="min-w-0 truncate pr-3 text-gray-900 dark:text-zinc-100">
+        <span className="hidden text-gray-500 dark:text-zinc-400 md:inline">Filter:&nbsp;</span>
         <strong>{filterName}</strong>
       </span>
     </div>
