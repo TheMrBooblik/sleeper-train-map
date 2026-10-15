@@ -214,6 +214,62 @@ export async function priceTrains(results, entry, ctx, previous = readPreviousTr
   }
 }
 
+const BORROW_TOLERANCE_KM = 3;
+
+function kmBetween(a, b) {
+  const rad = (x) => (x * Math.PI) / 180;
+  const dLat = rad(b[0] - a[0]);
+  const dLon = rad(b[1] - a[1]);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a[0])) * Math.cos(rad(b[0])) * Math.sin(dLon / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+
+/**
+ * A train nightjet.com sends without its route shape is drawn as straight
+ * lines between its stations. When its return train has the real track, the
+ * map draws the straight chain and then every stretch where the return leaves
+ * it — the whole return, as a second line beside the first (NJ 1237
+ * Wien–Venezia against NJ 1236, 13 points against 1 228). Such a train takes
+ * the reverse of the return's track instead, but only when it is the same
+ * corridor: the two run between the same ends, swapped, and every station of
+ * the shapeless train lies within BORROW_TOLERANCE_KM of the borrowed track.
+ * Mutates `trains`; returns a log line per borrowed shape. Exported for tests.
+ * @param {Record<string, object>} trains
+ * @returns {string[]}
+ */
+export function borrowReverseGeometry(trains) {
+  const lines = [];
+  const ends = (t) => [t?.stations?.[0]?.name, t?.stations?.[t.stations.length - 1]?.name];
+  const located = (t) =>
+    (t?.stations ?? [])
+      .filter((s) => s.location?.latitude && s.location?.longitude)
+      .map((s) => [s.location.latitude, s.location.longitude]);
+  for (const [key, train] of Object.entries(trains ?? {})) {
+    if (train.polylineSource !== "stations") continue;
+    const [from, to] = ends(train);
+    if (!from || !to) continue;
+    for (const [otherKey, other] of Object.entries(trains)) {
+      if (otherKey === key || other.polylineSource || !other.polyline) continue;
+      const [oFrom, oTo] = ends(other);
+      if (oFrom !== to || oTo !== from) continue;
+      let track;
+      try {
+        track = polyline.decode(other.polyline).reverse();
+      } catch {
+        continue;
+      }
+      if (track.length < 2) continue;
+      const fits = located(train).every((p) => track.some((q) => kmBetween(p, q) <= BORROW_TOLERANCE_KM));
+      if (!fits) continue;
+      train.polyline = polyline.encode(track);
+      train.polylineSource = `reverse:${otherKey}`;
+      lines.push(`${key} has no route shape — drawn on ${otherKey}'s track, reversed`);
+      break;
+    }
+  }
+  return lines;
+}
+
 /** Last night's trains file, or null on a first run. */
 function readPreviousTrains(entry, ctx) {
   try {
@@ -410,10 +466,15 @@ export async function run(entry, ctx) {
         operator: train.operator,
         operatorText: train.operatorText,
         polyline: encodedPolyline,
+        // Straight lines between the stations, for want of the route's own:
+        // borrowReverseGeometry may replace it with the return train's track.
+        ...(train.polyline ? {} : { polylineSource: "stations" }),
         stations: train.stations,
       };
     });
   }
+
+  for (const line of borrowReverseGeometry(results)) console.log(`[scrape] nightjet: ${line}`);
 
   const previous = readPreviousTrains(entry, ctx);
   let operatorWarning = null;

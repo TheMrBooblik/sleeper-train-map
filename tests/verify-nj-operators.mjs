@@ -40,9 +40,12 @@ import { validateRegistry } from "../scripts/lib/registry.mjs";
 import {
   assignTrainAgencies,
   backOnTrackAgencies,
+  borrowReverseGeometry,
   priceTrains,
   selectPartnerNumbers,
 } from "../scripts/adapters/nightjet.mjs";
+import polyline from "@mapbox/polyline";
+import { returnGeometryBranches } from "../src/components/Map/utils/returnGeometryBranches.js";
 import { probeCandidates } from "../scripts/adapters/nightjet-offers.mjs";
 import { njPricesTrain } from "../scripts/lib/nj-fares.mjs";
 import { sameTrainAsRow } from "../src/lib/sameTrain.mjs";
@@ -390,6 +393,51 @@ await check("selectPartnerNumbers: another source's trains leave before the cap,
   assert.deepEqual(tight.cut, ["EN 40020", "EN 40021", "EN 50999"]);
   assert.deepEqual(selectPartnerNumbers(["EN 1", "EN 1"], { compiled: null }).kept, ["EN 1"], "deduplicated");
   assert.deepEqual(selectPartnerNumbers(["ES 452"], { compiled: null }).kept, ["ES 452"], "no mapping, no hand-over");
+});
+
+await check("borrowReverseGeometry: a train with no route shape takes its return's track, only on the same corridor", () => {
+  // NJ 1237 Wien → Venezia comes from nightjet.com without a shape, NJ 1236
+  // with 1 228 points of track: drawn as a 13-point chain, the map added the
+  // whole return beside it as ten "branches".
+  const at = (name, lat, lon) => ({ name, location: { latitude: lat, longitude: lon } });
+  const track = [[48.185, 16.378], [47.5, 15.9], [47.07, 15.42], [46.62, 14.31], [46.06, 13.24], [45.44, 12.32]];
+  const trains = () => ({
+    "NJ 1237": {
+      polylineSource: "stations",
+      polyline: polyline.encode([[48.185, 16.378], [47.07, 15.42], [45.44, 12.32]]),
+      stations: [at("Wien Hbf", 48.185, 16.378), at("Graz Hbf", 47.07, 15.42), at("Venedig Santa Lucia", 45.44, 12.32)],
+    },
+    "NJ 1236": {
+      polyline: polyline.encode([...track].reverse()),
+      stations: [at("Venedig Santa Lucia", 45.44, 12.32), at("Wien Hbf", 48.185, 16.378)],
+    },
+    // Same ends, another corridor: its stations are far from that track.
+    "NJ 9999": {
+      polylineSource: "stations",
+      polyline: polyline.encode([[48.185, 16.378], [44.5, 11.3], [45.44, 12.32]]),
+      stations: [at("Wien Hbf", 48.185, 16.378), at("Bologna", 44.5, 11.3), at("Venedig Santa Lucia", 45.44, 12.32)],
+    },
+  });
+  const t = trains();
+  const lines = borrowReverseGeometry(t);
+  assert.deepEqual(lines, ["NJ 1237 has no route shape — drawn on NJ 1236's track, reversed"]);
+  assert.deepEqual(polyline.decode(t["NJ 1237"].polyline), track);
+  assert.equal(t["NJ 1237"].polylineSource, "reverse:NJ 1236");
+  assert.equal(t["NJ 9999"].polylineSource, "stations", "a station 100 km off the track keeps its own chain");
+  const solo = { "EN 415": trains()["NJ 1237"] };
+  assert.deepEqual(borrowReverseGeometry(solo), [], "no return, nothing to borrow");
+});
+
+await check("committed payload: NJ 1237 draws one line, not its return beside it", () => {
+  const vm = readJson("public/data/published/initial-data.json").data.viewMap;
+  for (const key of ["nj_standalone_NJ_1237", "nj_standalone_EN_40476"]) {
+    const row = vm[key];
+    assert.ok(row, key);
+    const a = polyline.decode(row.nj_polyline_0);
+    const b = polyline.decode(row.nj_polyline_1);
+    assert.ok(a.length > 100, `${key} direction 0 is track, not a station chain (${a.length} points)`);
+    assert.equal(returnGeometryBranches(a, b, { routeId: `${key}-verify` }).length, 0, `${key} draws no second line`);
+  }
 });
 
 // ─── The build ───────────────────────────────────────────────────────────────
