@@ -15,6 +15,7 @@ import {
   keepViewMapRowForTripActivity,
 } from "./primitives.mjs";
 import { sameTrainAsRow } from "../../../lib/sameTrain.mjs";
+import { upcomingDepartureForTrain } from "../../../lib/nextDeparture.mjs";
 
 // Source registry: declares per-source synthetic-route config (id prefix,
 // agency, aliasing, dedup strategy). Bundled via ESM JSON import so the
@@ -299,8 +300,22 @@ function appendSyntheticRoutes(
     withService = false,
     botAgencyByTrain = {},
     sourceId = null,
+    nextDeparture = null,
+    seasonByTrain = {},
   },
 ) {
+  // A train the source dates only by its next run, when that run is weeks off
+  // (synthetic.nextDeparture, nightjet.com): `next_departure_{dir}` plus the
+  // season the replaced Back-on-Track row last ran. Stamped only when the run
+  // is more than UPCOMING_AFTER_DAYS out, so a running train's row does not
+  // change every night. src/lib/nextDeparture.mjs reads both.
+  const stampNextRun = (row, dir, lineName, train) => {
+    if (!nextDeparture) return;
+    const date = upcomingDepartureForTrain(train, { timeZone: nextDeparture.timeZone });
+    if (!date) return;
+    row[`next_departure_${dir}`] = date;
+    if (seasonByTrain[lineName]) row[`previous_service_${dir}`] = seasonByTrain[lineName];
+  };
   const paired = new Set();
   trainList.forEach(([lineName, data]) => {
     if (paired.has(lineName)) return;
@@ -355,6 +370,7 @@ function appendSyntheticRoutes(
       // of from a per-operator feed it would otherwise have to hardcode.
       ...(sourceId ? { timetable_source: sourceId } : {}),
     };
+    stampNextRun(entry, 0, lineName, data);
     if (reversePair) {
       const [revName, revData] = reversePair;
       entry.trip_short_name_1 = revName;
@@ -369,6 +385,7 @@ function appendSyntheticRoutes(
         .join(" - ");
       if (withService) entry.service_id_1 = revData.frequency || null;
       entry.nj_polyline_1 = revData.polyline || null;
+      stampNextRun(entry, 1, revName, revData);
       paired.add(revName);
     }
     paired.add(lineName);
@@ -452,7 +469,11 @@ function withPolylineAndStations([, data]) {
 // train nobody else carries. A row the official train is not is kept, and
 // its number then counts as Back-on-Track's (excludeBotMatched), so the two
 // trains never share one number on the map.
-function dropBotRowsExact(filteredViewMap, trains) {
+// `seasonByTrain`, when given, collects each dropped direction's own service
+// string: a seasonal train the official source only knows by its next run
+// (nightjet.com's EN 1276/1277, next run June 2027) keeps the season it last
+// ran as `previous_service_{dir}` on the synthetic row (see nextDeparture.mjs).
+function dropBotRowsExact(filteredViewMap, trains, seasonByTrain = null) {
   const botAgencyByTrain = {};
   Object.keys(filteredViewMap).forEach((key) => {
     const route = filteredViewMap[key];
@@ -462,6 +483,13 @@ function dropBotRowsExact(filteredViewMap, trains) {
     if (!names.length) return;
     const botAgency = (route?.agency_id || "").trim();
     if (botAgency) for (const n of names) botAgencyByTrain[n] = botAgency;
+    if (seasonByTrain) {
+      for (const dir of [0, 1]) {
+        const name = (route?.[`trip_short_name_${dir}`] || "").trim();
+        const service = (route?.[`service_id_${dir}`] || "").trim();
+        if (name && service && names.includes(name)) seasonByTrain[name] = service;
+      }
+    }
     delete filteredViewMap[key];
   });
   return botAgencyByTrain;
@@ -495,7 +523,8 @@ function dropBotRowsIcn(filteredViewMap, trains, idPrefix) {
 }
 
 const DEDUP_STRATEGIES = {
-  exact: (viewMap, trains) => dropBotRowsExact(viewMap, trains),
+  exact: (viewMap, trains, _synthetic, seasonByTrain) =>
+    dropBotRowsExact(viewMap, trains, seasonByTrain),
   icn: (viewMap, trains, synthetic) =>
     dropBotRowsIcn(viewMap, trains, synthetic.idPrefix),
 };
@@ -572,8 +601,9 @@ export function buildInitialData({
     }
 
     const dedup = DEDUP_STRATEGIES[synthetic.dedupStrategy];
+    const seasonByTrain = {};
     const botAgencyByTrain = dedup
-      ? dedup(filteredViewMap, trains, synthetic) || {}
+      ? dedup(filteredViewMap, trains, synthetic, seasonByTrain) || {}
       : {};
 
     // Source attribution for the classifier's trusted-station auto-approval.
@@ -620,6 +650,8 @@ export function buildInitialData({
       withService: !!synthetic.withService,
       botAgencyByTrain,
       sourceId: entry.id,
+      nextDeparture: synthetic.nextDeparture ?? null,
+      seasonByTrain,
     });
   }
 

@@ -495,14 +495,20 @@ check("the report reads its own baseline as no change, on both arms", () => {
     assert.match(run.stdout, /treatment 1\.00×, control 1\.00× → net 1\.00×/, run.stdout);
     // A control page that gained a price is not a control: it is read apart,
     // and the control row holds only unpriced pages.
+    // A page with no train running now leads with the next season under
+    // either variant, so it is neither arm either.
+    const seasonal = pairs.filter((p) => baseline.pages[p.slug] && p.upcoming);
+    if (seasonal.length) {
+      assert.match(run.stdout, new RegExp(`seasonal\\s+before\\s+${seasonal.length}\\s`), run.stdout);
+    }
     const priced = pairs.filter(
-      (p) => baseline.pages[p.slug] && p.fromPrice && snippetVariantFor(p.agencyIds) !== FACTS,
+      (p) => baseline.pages[p.slug] && !p.upcoming && p.fromPrice && snippetVariantFor(p.agencyIds) !== FACTS,
     );
     assert.ok(priced.length > 0, "the published pairs carry priced control-variant pages");
     assert.match(run.stdout, new RegExp(`${priced.length} control page\\(s\\) gained a price`), run.stdout);
     assert.match(run.stdout, new RegExp(`priced\\s+before\\s+${priced.length}\\s`), run.stdout);
     const unpriced = pairs.filter(
-      (p) => baseline.pages[p.slug] && !p.fromPrice && snippetVariantFor(p.agencyIds) !== FACTS,
+      (p) => baseline.pages[p.slug] && !p.upcoming && !p.fromPrice && snippetVariantFor(p.agencyIds) !== FACTS,
     );
     assert.match(run.stdout, new RegExp(`control\\s+before\\s+${unpriced.length}\\s`), run.stdout);
     for (const slug of TREATED_PAIRS) assert.ok(run.stdout.includes(slug), `${slug} missing from the treatment table`);

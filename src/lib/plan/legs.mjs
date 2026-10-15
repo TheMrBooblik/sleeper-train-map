@@ -234,7 +234,12 @@ export function buildLegs(payload, options = {}) {
         service: serviceRaw,
         serviceText: renderCalendar(calendar) || "",
         days: calendar.daysOfWeek,
-        validFrom: calendar.validFrom,
+        // A train on sale for a later season (nightjet.com dates it by its
+        // next run, next_departure_{dir}): nothing before that night runs.
+        validFrom: [calendar.validFrom, route[`next_departure_${direction}`]]
+          .filter(Boolean)
+          .sort()
+          .at(-1) ?? calendar.validFrom,
         validUntil: calendar.validUntil,
         cadence: calendar.cadence,
         serviceNote: calendar.note,

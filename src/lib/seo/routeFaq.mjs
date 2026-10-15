@@ -197,6 +197,7 @@ export function buildConnectionFaq(input = {}) {
     pricingType = "",
     hasLastMinuteDeals = false,
     punctualityText = "",
+    seasonText = "",
   } = input;
 
   if (!originCity || !destCity) return [];
@@ -204,6 +205,16 @@ export function buildConnectionFaq(input = {}) {
   const pair = `${originCity} to ${destCity}`;
   const operatorNames = humanJoin(operators);
   const faq = [];
+
+  // When it runs — first, and only for a train that is not running now (a
+  // seasonal train out of season): that is the one answer that changes
+  // whether the rest of the page is any use to a traveller today.
+  if (seasonText) {
+    faq.push({
+      q: `When does the ${pair} night train run?`,
+      a: seasonText,
+    });
+  }
 
   // How many + who.
   if (trainCount > 0) {

@@ -78,6 +78,21 @@ import {
   durationMinutesBetween,
   formatDurationShort,
 } from "../../lib/officialRowSchedule.mjs";
+import { upcomingRun } from "../../lib/nextDeparture.mjs";
+
+/** The Notes line for a synthetic card whose train is out of season, or "". */
+function seasonNote(route, dir) {
+  const run = upcomingRun(route);
+  if (!run) return "";
+  const own = run.departures.find((d) => d.dir === dir);
+  return [
+    `${run.headline}.`,
+    own ? `This train next leaves on ${own.dateText}.` : "",
+    run.previousText ? `Last season: ${run.previousText}.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
 
 /**
  * How much of the viewport the panel occupies, so the map can frame a selected
@@ -435,6 +450,9 @@ const TrainDetailPanel = ({
           // Service string carried from the route row (synthetic sources with
           // withService:true, e.g. Amtrak/VIA/curated) so Frequency can render.
           service_id: route[`service_id_${suffix}`] || null,
+          // A train on sale out of season (nightjet.com dates it by its next
+          // run): the card's Notes say so before anything else on it.
+          irregularities: seasonNote(route, Number(suffix)),
           // Times will be filled from the official operator timetable when available.
           origin_departure_time: null,
           destination_arrival_time: null,

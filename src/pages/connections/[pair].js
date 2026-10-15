@@ -1,6 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import { FaArrowRight } from "react-icons/fa";
+import { FiCalendar, FiCloudSnow, FiSun } from "react-icons/fi";
 
 import SeoLayout from "@components/seo/SeoLayout";
 import Breadcrumbs from "@components/seo/Breadcrumbs";
@@ -21,6 +22,7 @@ import { getRouteDetail } from "../../lib/seo/data";
 import { cityForStation } from "../../lib/seo/cities.mjs";
 import { connectionSnippet, snippetVariantFor } from "../../lib/seo/snippet.mjs";
 import { punctualityAnswer } from "../../lib/punctuality.mjs";
+import { formatLongDate } from "../../lib/nextDeparture.mjs";
 import {
   formatTrainNumber,
   joinTrainNumbers,
@@ -56,6 +58,7 @@ export default function ConnectionPage({
   intro,
   faq,
   bookingGuide,
+  upcomingNotice,
 }) {
   const canonical = absoluteUrl(`/connections/${slug}`);
   const operatorNames = operators.map((o) => o.name).join(", ");
@@ -124,18 +127,68 @@ export default function ConnectionPage({
           />
 
           <header className="mt-6 max-w-3xl">
-            <p className="text-sm text-primary-green">{operatorNames}</p>
-            <h1 className="mt-2 text-3xl sm:text-4xl font-bold text-white tracking-tight text-balance">
-              Night Trains from {cityA} to {cityB}
+            {/* An out-of-season corridor says so in the first thing the eye
+                lands on — a chip above the heading — instead of in prose. */}
+            {upcomingNotice ? (
+              <p className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-300 px-2.5 py-1 text-black">
+                  <SeasonIcon season={upcomingNotice.season} />
+                  {upcomingNotice.badge}
+                </span>
+                {upcomingNotice.seasonal && (
+                  <span className="rounded-full border border-white/15 px-2.5 py-1 text-white/70">
+                    Not running now
+                  </span>
+                )}
+              </p>
+            ) : (
+              <p className="text-sm text-primary-green">{operatorNames}</p>
+            )}
+            <h1 className="mt-3 text-3xl sm:text-4xl font-bold text-white tracking-tight text-balance">
+              {upcomingNotice?.season
+                ? `${upcomingNotice.season[0].toUpperCase()}${upcomingNotice.season.slice(1)} Night Train`
+                : upcomingNotice?.seasonal
+                  ? "Seasonal Night Train"
+                  : "Night Trains"}{" "}
+              from {cityA} to {cityB}
             </h1>
+
+            {/* Nothing on this corridor runs now: one date, big, then each
+                direction's first night. */}
+            {upcomingNotice && (
+              <div
+                className="mt-5 max-w-md rounded-2xl border border-amber-300/30 bg-amber-300/[0.06] p-5 sm:p-6"
+                data-testid="upcoming-notice"
+              >
+                <p className="text-xs font-medium uppercase tracking-wide text-amber-200/80">
+                  {upcomingNotice.seasonal ? "Next season starts" : "Next departure"}
+                </p>
+                <p className="mt-1 text-3xl font-bold text-amber-200 sm:text-4xl">{upcomingNotice.longDate}</p>
+                <dl className="mt-4 space-y-1.5 text-sm">
+                  {upcomingNotice.departures.map((d) => (
+                    <div key={d.dir} className="flex items-baseline justify-between gap-4">
+                      <dt className="min-w-0 text-white/60">
+                        {d.originCity} → {d.destinationCity}
+                      </dt>
+                      <dd className="shrink-0 font-medium text-white tabular-nums">{d.dateShort}</dd>
+                    </div>
+                  ))}
+                </dl>
+                {upcomingNotice.previousText && (
+                  <p className="mt-4 text-xs text-white/45">Last season {upcomingNotice.previousText}</p>
+                )}
+              </div>
+            )}
+
             {/* `intro` and not `description`: on a page that renders the
                 FACTS snippet the meta description leads with the train and its
                 clock, which is a snippet and not an opening sentence. `intro`
                 is the prose the page has always opened with, and on every other
                 page the two are the same string. See src/lib/seo/snippet.mjs. */}
             <p className="mt-4 text-white/70 leading-relaxed text-pretty">
-              {intro} Trains run in both directions — {cityA} to {cityB} and{" "}
-              {cityB} to {cityA}.
+              {intro}
+              {!upcomingNotice &&
+                ` Trains run in both directions — ${cityA} to ${cityB} and ${cityB} to ${cityA}.`}
             </p>
           </header>
 
@@ -189,6 +242,14 @@ export default function ConnectionPage({
                     </span>
                   )}
                 </h3>
+                {t.upcoming && (
+                  <p className="mt-2 inline-flex flex-wrap items-center gap-2 text-sm">
+                    <span className="rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-0.5 text-xs font-semibold text-amber-200">
+                      {t.upcoming.badge}
+                    </span>
+                    <span className="text-white/60">from {t.upcoming.nextDepartureText}</span>
+                  </p>
+                )}
 
                 <div className="mt-5">
                   <RouteFactsGrid detail={t} />
@@ -290,6 +351,29 @@ function numericOffer(detail) {
   );
 }
 
+/**
+ * The header card's view of an upcoming run: one long date, and each
+ * direction by city with its first night ("Fri 25 Jun" — the year is in the
+ * big date above it).
+ */
+function noticeFor(run) {
+  return {
+    ...run,
+    longDate: formatLongDate(run.nextDeparture),
+    departures: run.departures.map((d) => ({
+      ...d,
+      originCity: cityForStation(d.origin) || d.origin,
+      destinationCity: cityForStation(d.destination) || d.destination,
+      dateShort: d.date.slice(0, 4) === run.nextDeparture.slice(0, 4) ? d.dateText.replace(/ \d{4}$/, "") : d.dateText,
+    })),
+  };
+}
+
+function SeasonIcon({ season }) {
+  const Icon = season === "summer" ? FiSun : season === "winter" ? FiCloudSnow : FiCalendar;
+  return <Icon aria-hidden="true" className="h-3.5 w-3.5" />;
+}
+
 export async function getStaticPaths() {
   return {
     paths: getAllCityPairs().map((p) => ({ params: { pair: p.slug } })),
@@ -341,6 +425,8 @@ export async function getStaticProps({ params }) {
         trainNumber: formatTrainNumber(x.trainNumber, d.agencyId),
       })),
       facts: d.facts,
+      // Not running now (a seasonal train out of season), or null.
+      upcoming: d.upcoming,
       // Only the first train with geometry renders a map; drop the rest so the
       // page payload doesn't carry a polyline per train.
       map:
@@ -373,6 +459,26 @@ export async function getStaticProps({ params }) {
   const guide =
     trains.map((t) => getBookingGuide({ agencyId: t.agencyId })).find(Boolean) ?? null;
 
+  // Trains on sale for a later season. When it is every train on the corridor,
+  // the page and its snippet lead with the date they run again.
+  const upcomingTrains = trains.filter((t) => t.upcoming);
+  const allUpcoming = trains.length > 0 && upcomingTrains.length === trains.length;
+  const firstUpcoming = upcomingTrains.length
+    ? upcomingTrains.reduce((a, b) => (a.upcoming.nextDeparture <= b.upcoming.nextDeparture ? a : b))
+    : null;
+  const seasonText = upcomingTrains
+    .map((t) => {
+      const legs = t.upcoming.departures
+        .map((d) => `from ${cityForStation(d.origin) || d.origin} on ${d.dateText}`)
+        .join(" and ");
+      const name = joinTrainNumbers(t.trainNumbers);
+      return (
+        `${t.upcoming.sentence.replace(/^This/, name ? `The ${name}` : "This")}` +
+        (legs ? ` It next leaves ${legs}.` : "")
+      );
+    })
+    .join(" ");
+
   const faq = withBookingGuideFaq(buildConnectionFaq({
     originCity: pair.cityA,
     destCity: pair.cityB,
@@ -386,6 +492,7 @@ export async function getStaticProps({ params }) {
       : "",
     pricingType: pricingTypes.size === 1 ? [...pricingTypes][0] : "",
     hasLastMinuteDeals: trains.some((t) => t.booking?.dealsUrl),
+    seasonText,
     punctualityText: punctualityAnswer(
       trains.flatMap((t) =>
         t.directions.map((d) => ({ origin: d.origin, destination: d.destination, punctuality: d.punctualityRecord })),
@@ -450,6 +557,15 @@ export async function getStaticProps({ params }) {
     // The build date: a timetable that has not started yet (the December
     // preview rows) is not the one the snippet describes.
     today: new Date().toISOString().slice(0, 10),
+    // Nothing runs now: the snippet leads with when it runs again.
+    upcoming: allUpcoming
+      ? {
+          run: firstUpcoming.upcoming,
+          trainLabel: joinTrainNumbers(firstUpcoming.trainNumbers),
+          operator: firstUpcoming.operators[0]?.name || "",
+          stopCount: Math.max(0, ...firstUpcoming.directions.map((d) => d.stops.length)),
+        }
+      : null,
   });
 
   return {
@@ -468,6 +584,7 @@ export async function getStaticProps({ params }) {
       intro: snippet.intro,
       faq,
       bookingGuide: guideProps(guide),
+      upcomingNotice: allUpcoming ? noticeFor(firstUpcoming.upcoming) : null,
     },
   };
 }

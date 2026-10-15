@@ -71,7 +71,8 @@
       "resolveAliases": true,
       "withService": false,
       "excludeBotMatched": true,
-      "dedupStrategy": "exact"
+      "dedupStrategy": "exact",
+      "nextDeparture": { "timeZone": "Europe/Vienna" }
     },
     "params": {
       "countryCodes": [80, 81, 83, 84, 85, 88],

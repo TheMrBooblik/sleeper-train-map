@@ -18,6 +18,7 @@ import { parseBotServiceString, renderCalendar } from "../../pages/api/lib/calen
 // Reuse the exact "not yet running" detection the map hover uses, so a route is
 // flagged "future" here in the same way (irregularities "From …", postponed
 // notes, or an upcoming service_id season).
+import { upcomingRun } from "../nextDeparture.mjs";
 import { getFutureRouteStartDate } from "../../components/Map/utils/routeStyleUtils";
 import { getRouteFrequencyOverride } from "../routeFrequencyOverrides";
 import { buildPairSlug } from "./slugify.mjs";
@@ -367,7 +368,7 @@ function buildSummary(route) {
     longName && !/\s[–-]\s/.test(longName) && longName !== endpointTitle ? longName : "";
 
   // Future ("not yet running") flag — reuses the map's detector verbatim.
-  const futureStartDate = getFutureRouteStartDate(routeId, getPublished().trips);
+  const futureStartDate = getFutureRouteStartDate(routeId, getPublished().trips, route);
 
   // The connection page this route lives on. Computed here rather than via
   // aggregate.js (which imports this module) so route cards can link to
@@ -512,6 +513,10 @@ export function getRouteDetail(routeId) {
   const { viewMap } = getPublished();
   const route = Object.values(viewMap).find((r) => String(r.route_id) === String(routeId));
   if (!route) return null;
+  // On sale but not running at build time: a seasonal train out of season
+  // (src/lib/nextDeparture.mjs). The page leads with it, and so does its
+  // snippet. Null for a running train.
+  const upcoming = upcomingRun(route, new Date().toISOString().slice(0, 10));
 
   const summary = buildSummary(route);
   const trips = getTripsByRoute().get(String(routeId)) || [];
@@ -587,6 +592,8 @@ export function getRouteDetail(routeId) {
       trainNumber,
       origin,
       destination,
+      // "Fri 25 Jun 2027" — this train's next run, when it is not running now.
+      nextDepartureText: upcoming?.departures.find((d) => d.dir === dir)?.dateText ?? "",
       departureTime: vmDeparture || stops[0]?.departure || "",
       arrivalTime: vmArrival || stops[stops.length - 1]?.arrival || "",
       via,
@@ -717,6 +724,7 @@ export function getRouteDetail(routeId) {
     countries: summary.countries.map(getSeoCountry).filter(Boolean),
     directions,
     facts,
+    upcoming,
     map: {
       polyline0: route.nj_polyline_0 || null,
       polyline1: route.nj_polyline_1 || null,
