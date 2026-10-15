@@ -750,7 +750,9 @@ await check("pricedJourney: every committed NJ/EN calendar records its ends, and
       assert.deepStrictEqual(cal.journey, trains[row[`trip_short_name_${dir}`]].fareCalendar.journey);
     }
   }
-  assert.ok(calendars > 40, `${calendars} published Nightjet calendars`);
+  // ÖBB's own Nightjets only: partner EuroNights are their carrier's to price
+  // (njPricesTrain) and carry no calendar (tests/verify-nj-operators.mjs).
+  assert.ok(calendars > 25, `${calendars} published Nightjet calendars`);
 });
 
 await check("buildDatedBookingLink: ÖBB opens the priced train on the night picked, as ÖBB's own timetable does", () => {
@@ -871,7 +873,7 @@ await check("the connection page: a Nightjet night links its own departure, or f
       }
     }
   }
-  assert.ok(calendars > 40, `${calendars} calendars`);
+  assert.ok(calendars > 25, `${calendars} calendars`);
   console.log(`      (${dated} night(s) dated from their own clocks, ${undated} waiting for a re-check)`);
   // The page wires it: the journey and each night's clocks into the link, the
   // component filling them, and each calendar's own direction as fallback.

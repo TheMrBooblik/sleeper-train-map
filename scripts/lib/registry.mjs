@@ -52,6 +52,7 @@ const KNOWN_ENRICH_KEYS = new Set([
   "updateEndpoints",
   "updateServiceDays",
   "stamp",
+  "requireSameTrain",
 ]);
 
 const KNOWN_SCHEDULES = new Set(["daily", "weekly", "manual"]);
@@ -206,6 +207,18 @@ export function validateRegistry(registry) {
 
   const ids = registry.map((e) => e?.id).filter(Boolean);
   if (new Set(ids).size !== ids.length) errors.push("duplicate entry ids");
+
+  // A carrier "published by" another source hands that source its trains; a
+  // misspelt id would hand them to nobody, so the source must exist and be
+  // another entry.
+  for (const entry of registry) {
+    for (const carrier of entry?.params?.operatorAgencies?.carriers ?? []) {
+      const by = carrier?.publishedBy;
+      if (typeof by !== "string" || !by) continue;
+      if (by === entry.id) errors.push(`[${entry.id}] params.operatorAgencies: ${carrier.agency} is publishedBy the source itself`);
+      else if (!ids.includes(by)) errors.push(`[${entry.id}] params.operatorAgencies: ${carrier.agency} publishedBy unknown source "${by}"`);
+    }
+  }
 
   const outputs = registry.map((e) => e?.output).filter(Boolean);
   if (new Set(outputs).size !== outputs.length) errors.push("duplicate output filenames");

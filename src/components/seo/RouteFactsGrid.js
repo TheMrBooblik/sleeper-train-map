@@ -42,6 +42,12 @@ export default function RouteFactsGrid({ detail }) {
   // on its own.
   const advice = detail.advice ?? pricingAdvice(pricing);
   const operatorNames = detail.operators.map((o) => o.name).join(" · ");
+  // Fact hides itself on no value and no children, but the children below are
+  // an array of conditionals, which is never empty — so a route nobody prices
+  // (no fare model on file, or a partner EuroNight left to its carrier)
+  // rendered a "Tickets" heading over nothing.
+  const dynamicFrom = pricing?.type === "dynamic" ? formatFromPrice(pricing) : null;
+  const hasTickets = Boolean(priceLabel || dynamicFrom);
 
   return (
     <div className="space-y-4">
@@ -51,41 +57,43 @@ export default function RouteFactsGrid({ detail }) {
         <Fact label="Distance" value={detail.facts.distanceText} />
         <Fact label="CO₂" value={detail.facts.co2Text} />
         <Fact label="Classes" value={detail.facts.classes} />
-        <Fact label="Tickets" value={priceLabel}>
-          {priceLabel && (
-            <PricingExplainer
-              advice={advice}
-              label={priceLabel}
-              className="mt-1"
-              labelClassName="text-sm font-medium"
-              checkedAt={formatCheckedAt(pricing?.checkedAt)}
-            />
-          )}
-          {/* A fixed fare's figure is in the badge; its euro equivalent goes
-              on its own small line rather than into the badge itself. */}
-          {priceLabel && pricing?.type !== "dynamic" && eurHintFor(pricing) && (
-            <div className="mt-0.5 text-xs text-white/50" title={eurRateNote()}>
-              ({eurHintFor(pricing)})
-            </div>
-          )}
-          {/* A dynamic fare's badge carries no figure (formatPricingLabel);
-              the figure sits on its own line, always as "from …". */}
-          {pricing?.type === "dynamic" && formatFromPrice(pricing) && (
-            <div className="mt-1 text-sm font-medium text-white">
-              {formatFromPrice(pricing).replace(/^from/, "From")}
-              {eurHintFor(pricing) && (
-                <span className="font-normal text-white/50" title={eurRateNote()}>
-                  {" "}({eurHintFor(pricing)})
-                </span>
-              )}
-              {fareContext(pricing) && (
-                <div className="text-xs font-normal text-white/50">
-                  {fareContext(pricing)}
-                </div>
-              )}
-            </div>
-          )}
-        </Fact>
+        {hasTickets && (
+          <Fact label="Tickets" value={priceLabel}>
+            {priceLabel && (
+              <PricingExplainer
+                advice={advice}
+                label={priceLabel}
+                className="mt-1"
+                labelClassName="text-sm font-medium"
+                checkedAt={formatCheckedAt(pricing?.checkedAt)}
+              />
+            )}
+            {/* A fixed fare's figure is in the badge; its euro equivalent goes
+                on its own small line rather than into the badge itself. */}
+            {priceLabel && pricing?.type !== "dynamic" && eurHintFor(pricing) && (
+              <div className="mt-0.5 text-xs text-white/50" title={eurRateNote()}>
+                ({eurHintFor(pricing)})
+              </div>
+            )}
+            {/* A dynamic fare's badge carries no figure (formatPricingLabel);
+                the figure sits on its own line, always as "from …". */}
+            {dynamicFrom && (
+              <div className="mt-1 text-sm font-medium text-white">
+                {dynamicFrom.replace(/^from/, "From")}
+                {eurHintFor(pricing) && (
+                  <span className="font-normal text-white/50" title={eurRateNote()}>
+                    {" "}({eurHintFor(pricing)})
+                  </span>
+                )}
+                {fareContext(pricing) && (
+                  <div className="text-xs font-normal text-white/50">
+                    {fareContext(pricing)}
+                  </div>
+                )}
+              </div>
+            )}
+          </Fact>
+        )}
       </div>
 
       {detail.countries.length > 0 && (

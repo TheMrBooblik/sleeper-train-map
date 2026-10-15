@@ -14,6 +14,14 @@
 //   { "home": "ÖBB",
 //     "carriers": [{ "agency": "PKP", "match": ["PKP", "Polnisch*", …] }, …] }
 //
+// Two optional carrier keys:
+// - `lines`: train-number prefixes only this carrier uses ("ES" for
+//   European Sleeper's "ES 452"), read when the operator text names no one;
+// - `publishedBy`: the registry source that publishes this carrier's trains
+//   itself. nightjet.com sells European Sleeper's ES 452/453/475 too, and a
+//   second copy of the route under the shop's name is not what the map wants:
+//   the reading source leaves such trains out.
+//
 // A keyword matches whole words of the folded text: "PKP Intercity" is two
 // consecutive words, and a trailing `*` matches a word stem ("Polnisch*" →
 // "Polnische", "Polnischen"). Whole words are load-bearing: a prefix "slov"
@@ -63,6 +71,8 @@ export function readOperatorText(value) {
 }
 
 const MIN_STEM_LENGTH = 4;
+const CARRIER_KEYS = new Set(["agency", "match", "lines", "publishedBy"]);
+const LINE_PREFIX = /^[A-Za-z]{1,6}$/;
 
 function compileKeyword(keyword) {
   const raw = String(keyword ?? "");
@@ -96,6 +106,7 @@ export function validateOperatorAgencies(config) {
     return errors;
   }
   const seenAgencies = new Set();
+  const lineOwner = new Map(); // upper-case line prefix → agency
   const owner = new Map(); // folded keyword → agency
   const stems = []; // { agency, word }
   for (const [i, carrier] of config.carriers.entries()) {
@@ -105,7 +116,29 @@ export function validateOperatorAgencies(config) {
       continue;
     }
     for (const key of Object.keys(carrier)) {
-      if (key !== "agency" && key !== "match") errors.push(`${tag}: unknown key "${key}"`);
+      if (!CARRIER_KEYS.has(key)) errors.push(`${tag}: unknown key "${key}"`);
+    }
+    if (carrier.lines != null) {
+      if (!Array.isArray(carrier.lines) || !carrier.lines.length) {
+        errors.push(`${tag}.lines must be a non-empty array of train-number prefixes`);
+      } else {
+        for (const line of carrier.lines) {
+          if (typeof line !== "string" || !LINE_PREFIX.test(line)) {
+            errors.push(`${tag}.lines: ${JSON.stringify(line)} must be 1–6 letters, e.g. "ES"`);
+            continue;
+          }
+          const prior = lineOwner.get(line.toUpperCase());
+          if (prior && prior !== carrier.agency) errors.push(`${tag}.lines: "${line}" also belongs to ${prior}`);
+          lineOwner.set(line.toUpperCase(), carrier.agency);
+        }
+      }
+    }
+    if (carrier.publishedBy != null) {
+      if (typeof carrier.publishedBy !== "string" || !carrier.publishedBy.trim()) {
+        errors.push(`${tag}.publishedBy must be a registry source id`);
+      } else if (carrier.agency === config.home) {
+        errors.push(`${tag}.publishedBy: the home carrier's trains are this source's own`);
+      }
     }
     if (!validId(carrier.agency)) {
       errors.push(`${tag}.agency must be one NFC agency id without "/" (a compound id books by link quality)`);
@@ -174,6 +207,8 @@ export function compileOperatorAgencies(config) {
     carriers: config.carriers.map((c) => ({
       agency: c.agency,
       keywords: c.match.map(compileKeyword),
+      lines: (c.lines ?? []).map((l) => l.toUpperCase()),
+      publishedBy: c.publishedBy ?? null,
     })),
   };
 }
@@ -250,4 +285,28 @@ export function carrierInAgencyId(agencyId, compiled) {
     .map((p) => p.normalize("NFC").trim())
     .filter(Boolean);
   return parts.find((p) => p !== compiled.home && listed.has(p)) ?? null;
+}
+
+/**
+ * The carrier a train number's prefix belongs to ("ES 452" → "ES"), for a
+ * train whose operator text names no one; null when no carrier lists the
+ * prefix.
+ * @param {unknown} lineName
+ * @param {ReturnType<typeof compileOperatorAgencies>} compiled
+ * @returns {string|null}
+ */
+export function agencyForLineName(lineName, compiled) {
+  const prefix = String(lineName ?? "").trim().match(/^[A-Za-z]+/)?.[0]?.toUpperCase();
+  if (!prefix) return null;
+  return compiled.carriers.find((c) => c.lines.includes(prefix))?.agency ?? null;
+}
+
+/**
+ * The registry source that publishes this carrier's trains itself, or null.
+ * @param {unknown} agency
+ * @param {ReturnType<typeof compileOperatorAgencies>} compiled
+ * @returns {string|null}
+ */
+export function publishedElsewhere(agency, compiled) {
+  return compiled.carriers.find((c) => c.agency === agency)?.publishedBy ?? null;
 }

@@ -29,11 +29,14 @@ import {
   NJ_FARE_REQUESTS_PER_RUN,
 } from "../lib/nj-fares.mjs";
 import {
+  agencyForLineName,
   agencyForOperatorText,
   carrierInAgencyId,
   compileOperatorAgencies,
+  publishedElsewhere,
   readOperatorText,
 } from "../lib/operator-agencies.mjs";
+import { sameTrainAsRow } from "../../src/lib/sameTrain.mjs";
 
 function normalizeNJTrain(data, date, operator = "Nightjet") {
   const stops = Array.isArray(data?.route?.stops) ? data.route.stops : [];
@@ -199,12 +202,15 @@ function readPreviousTrains(entry, ctx) {
  * partner train falls back to when nightjet.com's own operator text names no
  * carrier. Rows carrying the source's own idPrefix are skipped — they are
  * this pipeline's leftover rows, and reading them back would echo our own
- * last answer as Back-on-Track's.
+ * last answer as Back-on-Track's. With `trains`, a row counts only for the
+ * train it describes (sameTrainAsRow): Back-on-Track's EN 442 is ČD's
+ * Humenné–Praha, not the Budapest–Stuttgart EN 442 nightjet.com sells.
  * @param {object|null} viewMap
  * @param {string} idPrefix
+ * @param {Record<string, object>} [trains]
  * @returns {Map<string, string>}
  */
-export function backOnTrackAgencies(viewMap, idPrefix) {
+export function backOnTrackAgencies(viewMap, idPrefix, trains = null) {
   const out = new Map();
   for (const [key, route] of Object.entries(viewMap ?? {})) {
     const id = String(route?.route_id ?? key);
@@ -213,7 +219,9 @@ export function backOnTrackAgencies(viewMap, idPrefix) {
     if (!agency) continue;
     for (const dir of [0, 1]) {
       const name = String(route?.[`trip_short_name_${dir}`] ?? "").trim();
-      if (name && !out.has(name)) out.set(name, agency);
+      if (!name || out.has(name)) continue;
+      if (trains?.[name] && !sameTrainAsRow(route, trains[name])) continue;
+      out.set(name, agency);
     }
   }
   return out;
@@ -226,9 +234,10 @@ export function backOnTrackAgencies(viewMap, idPrefix) {
  * - An ÖBB Nightjet is the home carrier ("home"). Text naming a partner on
  *   one is logged, not applied.
  * - A partner EuroNight takes the carrier its operator text names
- *   ("operator"). With no text tonight, last night's stated carrier is kept;
- *   text naming no known carrier is not carried, since a changed sentence may
- *   mean a changed carrier.
+ *   ("operator"), else the carrier whose train-number prefix it carries
+ *   ("line": "ES 452" → ES). With no text tonight, last night's stated
+ *   carrier is kept; text naming no known carrier is not carried, since a
+ *   changed sentence may mean a changed carrier.
  * - Failing that, the first carrier in Back-on-Track's attribution that is
  *   not home ("bot": "HŽPP/ÖBB" → HŽPP — never the compound, which would
  *   book through ÖBB's shop by link quality).
@@ -263,6 +272,13 @@ export function assignTrainAgencies(trains, { compiled, previous = null, botAgen
         report.notes.push(`${key}: "${train.operatorText}" names ${verdict.all.join(", ")} — took ${verdict.agency}, named first`);
       }
       count("operator", verdict.agency);
+      continue;
+    }
+    const byLine = agencyForLineName(key, compiled);
+    if (byLine) {
+      train.agency_id = byLine;
+      train.agencyFrom = "line";
+      count("line", byLine);
       continue;
     }
     const before = previous?.[key];
@@ -354,11 +370,26 @@ export async function run(entry, ctx) {
   if (entry.params?.operatorAgencies) {
     const viewMap =
       ctx.shared?.viewMap ?? readScraped(ctx.rootDir, "backontrack-view_ontd_map.json") ?? {};
+    const compiled = compileOperatorAgencies(entry.params.operatorAgencies);
     const report = assignTrainAgencies(results, {
-      compiled: compileOperatorAgencies(entry.params.operatorAgencies),
+      compiled,
       previous,
-      botAgencies: backOnTrackAgencies(viewMap, entry.synthetic?.idPrefix),
+      botAgencies: backOnTrackAgencies(viewMap, entry.synthetic?.idPrefix, results),
     });
+    // A carrier whose trains another source publishes (European Sleeper's
+    // ES 452/453/475, sold here too) is left to that source: a second copy
+    // of the route under the shop's name, priced by the shop, is what the
+    // map showed when nightjet.com began listing them.
+    const handedOver = {};
+    for (const [key, train] of Object.entries(results)) {
+      const by = publishedElsewhere(train.agency_id, compiled);
+      if (!by) continue;
+      (handedOver[by] ??= []).push(key);
+      delete results[key];
+    }
+    for (const [by, keys] of Object.entries(handedOver)) {
+      console.log(`[scrape] nightjet: left ${keys.sort().join(", ")} to ${by}, which publishes them`);
+    }
     const by = Object.entries(report.byAgency)
       .sort((a, b) => b[1] - a[1])
       .map(([agency, n]) => `${agency} ${n}`)

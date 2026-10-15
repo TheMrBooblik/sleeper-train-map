@@ -14,6 +14,7 @@ import {
   routeIdsFromFilteredTrips,
   keepViewMapRowForTripActivity,
 } from "./primitives.mjs";
+import { sameTrainAsRow } from "../../../lib/sameTrain.mjs";
 
 // Source registry: declares per-source synthetic-route config (id prefix,
 // agency, aliasing, dedup strategy). Bundled via ESM JSON import so the
@@ -325,7 +326,7 @@ function appendSyntheticRoutes(
     // contradict the carrier the source named, on the very surfaces that
     // read it first.
     const carrierStated = [data, reversePair?.[1]].some(
-      (t) => t?.agencyFrom === "operator" || t?.agencyFrom === "bot",
+      (t) => t?.agencyFrom && t.agencyFrom !== "home",
     );
     const botAgency = carrierStated
       ? null
@@ -444,22 +445,24 @@ function withPolylineAndStations([, data]) {
 // EuroNight trains are operated by e.g. PKP/ČD, not by the ÖBB default the
 // synthetic source carries for styling).
 
-// "exact": BoT trip_short_name matches the official train key verbatim (NJ/EN).
+// "exact": BoT trip_short_name matches the official train key verbatim (NJ/EN)
+// AND the train ends in one of the row's end cities (sameTrainAsRow). The
+// number alone is not enough: nightjet.com's EN 442 runs Budapest–Stuttgart
+// while Back-on-Track's is ČD's Humenné–Praha, and deleting that row lost a
+// train nobody else carries. A row the official train is not is kept, and
+// its number then counts as Back-on-Track's (excludeBotMatched), so the two
+// trains never share one number on the map.
 function dropBotRowsExact(filteredViewMap, trains) {
-  const apiTrainNumbers = new Set(Object.keys(trains));
   const botAgencyByTrain = {};
   Object.keys(filteredViewMap).forEach((key) => {
     const route = filteredViewMap[key];
-    const t0 = (route?.trip_short_name_0 || "").trim();
-    const t1 = (route?.trip_short_name_1 || "").trim();
-    if (apiTrainNumbers.has(t0) || apiTrainNumbers.has(t1)) {
-      const botAgency = (route?.agency_id || "").trim();
-      if (botAgency) {
-        if (apiTrainNumbers.has(t0)) botAgencyByTrain[t0] = botAgency;
-        if (apiTrainNumbers.has(t1)) botAgencyByTrain[t1] = botAgency;
-      }
-      delete filteredViewMap[key];
-    }
+    const names = [route?.trip_short_name_0, route?.trip_short_name_1]
+      .map((n) => (n || "").trim())
+      .filter((n) => n && trains[n] && sameTrainAsRow(route, trains[n]));
+    if (!names.length) return;
+    const botAgency = (route?.agency_id || "").trim();
+    if (botAgency) for (const n of names) botAgencyByTrain[n] = botAgency;
+    delete filteredViewMap[key];
   });
   return botAgencyByTrain;
 }

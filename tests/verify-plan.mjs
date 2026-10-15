@@ -433,7 +433,18 @@ check("a destination the train terminates at outranks one it passes through", ()
   // Amsterdam is the sharper case: ES 453 runs Brussels → Prague, so from
   // Amsterdam the ride is not the whole route but Prague is still where the
   // train ends — and it must not be filed with the villages it passes at 3am.
-  const ams = departuresFrom(planner, { from: "amsterdam", date: "2026-09-18" }).destinations;
+  // Asked on a night it runs: the feed dates its window from the next run, so
+  // a fixed date drifts out of it (an undated duplicate of the train, built
+  // from nightjet.com's listing, used to answer for every date instead).
+  const reaches = (date) => {
+    const slugs = departuresFrom(planner, { from: "amsterdam", date }).destinations.map((d) => d.city.slug);
+    return slugs.includes("prague") && slugs.includes("decin");
+  };
+  const amsDate = Array.from({ length: 180 }, (_, i) =>
+    new Date(Date.UTC(2026, 8, 18 + i)).toISOString().slice(0, 10),
+  ).find(reaches);
+  assert.ok(amsDate, "ES 453 should reach Prague and Děčín from Amsterdam on some night");
+  const ams = departuresFrom(planner, { from: "amsterdam", date: amsDate }).destinations;
   const prague = ams.findIndex((d) => d.city.slug === "prague");
   const decin = ams.findIndex((d) => d.city.slug === "decin");
   assert.ok(prague !== -1 && decin !== -1, "both Prague and Děčín should be reachable");

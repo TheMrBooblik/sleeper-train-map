@@ -84,6 +84,7 @@
     "verify-nj-fares": "node tests/verify-nj-fares.mjs",
     "verify-fare-calendar-view": "node tests/verify-fare-calendar-view.mjs",
     "verify-nj-fare-check": "node tests/verify-nj-fare-check.mjs",
+    "verify-nj-operators": "node tests/verify-nj-operators.mjs",
     "probe-nj-fares": "node scripts/probe-nj-fares.mjs",
     "probe-es-fares": "node scripts/probe-es-fares.mjs",
     "verify-sncf-open-data": "node tests/verify-sncf-open-data.mjs",
