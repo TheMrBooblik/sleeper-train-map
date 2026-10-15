@@ -463,8 +463,10 @@ export function upcomingSnippet({ cityA, cityB, operatorNames = "", upcoming }) 
     ? `${run.season ? `${capitalize(run.season)} Only` : "Seasonal"}, from ${run.nextDepartureText}`
     : `Next Run ${run.nextDepartureText}`;
 
-  let title = `${base} — ${seasonLabel}`;
-  if (title.length > TITLE_MAX) title = `${base} — from ${run.nextDepartureText}`;
+  // A colon and a comma rather than the dash the other variants use: the
+  // product owner asked for fewer of them in copy a reader sees.
+  let title = `${base}: ${seasonLabel}`;
+  if (title.length > TITLE_MAX) title = `${base}, from ${run.nextDepartureText}`;
   if (title.length > TITLE_MAX) title = base;
   title = title.length <= BRAND_BUDGET ? `${title}${BRAND}` : title;
 

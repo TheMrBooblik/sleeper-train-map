@@ -133,7 +133,7 @@ await check("upcomingRun: seasonal only with a past season, 'not running now' wi
   );
   assert.equal(seasonal.seasonal, true);
   assert.equal(seasonal.badge, "Summer only");
-  assert.equal(seasonal.headline, "Summer seasonal train — next season from 25 Jun 2027");
+  assert.equal(seasonal.headline, "Summer seasonal train, next season from 25 Jun 2027");
   assert.deepEqual(
     seasonal.departures.map((d) => `${d.train} ${d.dateText}`),
     ["EN 1277 Fri 25 Jun 2027", "EN 1276 Sun 27 Jun 2027"],
@@ -141,7 +141,7 @@ await check("upcomingRun: seasonal only with a past season, 'not running now' wi
   const bare = upcomingRun(row({ next_departure_0: "2026-12-13", next_departure_1: "2026-12-13" }), TODAY);
   assert.equal(bare.seasonal, false);
   assert.equal(bare.badge, "Not running now");
-  assert.equal(bare.headline, "Not running now — next departure 13 Dec 2026");
+  assert.equal(bare.headline, "Not running now, next departure 13 Dec 2026");
   assert.equal(upcomingRun(row(), TODAY), null);
 });
 
@@ -299,7 +299,7 @@ await check("snippet: a corridor with nothing running leads with when it runs ag
       variant,
       upcoming: { run: RUN, trainLabel: "EN 1277/1276", operator: "PKP Intercity", stopCount: 29 },
     });
-    assert.equal(s.title, "Rijeka to Warsaw Night Train — Summer Only, from 25 Jun 2027");
+    assert.equal(s.title, "Rijeka to Warsaw Night Train: Summer Only, from 25 Jun 2027");
     assert.ok(s.title.length <= 60);
     assert.match(s.description, /^Summer-only night train: PKP Intercity EN 1277\/1276 runs Rijeka–Warsaw again from 25 June 2027\./);
     assert.match(s.description, /Last season 26 Jun – 30 Aug 2026\./);
@@ -315,7 +315,7 @@ await check("snippet: long city names shed the season before the date", () => {
     trainCount: 1,
     upcoming: { run: RUN },
   });
-  assert.equal(s.title, "Mönchengladbach to Rijeka Night Train — from 25 Jun 2027");
+  assert.equal(s.title, "Mönchengladbach to Rijeka Night Train, from 25 Jun 2027");
   const longest = connectionSnippet({ cityA: "Mönchengladbach", cityB: "Constantinople", trainCount: 1, upcoming: { run: RUN } });
   assert.equal(longest.title, "Mönchengladbach to Constantinople Night Train | Pingwi", "never cut mid-date");
 });

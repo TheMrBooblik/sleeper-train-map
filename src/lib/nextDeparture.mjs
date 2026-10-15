@@ -235,8 +235,8 @@ export function upcomingRun(route, today = localToday()) {
       ? "Seasonal"
       : "Not running now";
   const headline = seasonal
-    ? `${season ? `${season[0].toUpperCase()}${season.slice(1)} seasonal train` : "Seasonal train"} — next season from ${nextDepartureText}`
-    : `Not running now — next departure ${nextDepartureText}`;
+    ? `${season ? `${season[0].toUpperCase()}${season.slice(1)} seasonal train` : "Seasonal train"}, next season from ${nextDepartureText}`
+    : `Not running now, next departure ${nextDepartureText}`;
   const sentence = seasonal
     ? `This is a seasonal ${season ? `${season} ` : ""}train and is not running now. ` +
       `The next season starts on ${formatLongDate(nextDeparture)}` +
