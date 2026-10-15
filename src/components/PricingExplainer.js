@@ -28,10 +28,10 @@ const TONES = {
     guidance: "text-white/90",
   },
   light: {
-    summary: "text-gray-900",
-    marker: "border-gray-300 text-gray-400 group-hover:border-gray-500 group-hover:text-gray-600",
-    panel: "text-gray-600",
-    guidance: "text-gray-900",
+    summary: "text-gray-900 dark:text-zinc-100",
+    marker: "border-gray-300 dark:border-zinc-600 text-gray-400 dark:text-zinc-500 group-hover:border-gray-500 dark:group-hover:border-zinc-400 group-hover:text-gray-600 dark:group-hover:text-zinc-400",
+    panel: "text-gray-600 dark:text-zinc-400",
+    guidance: "text-gray-900 dark:text-zinc-100",
   },
 };
 

@@ -132,7 +132,7 @@ const LocationControl = () => {
 
   useEffect(() => {
     const container = L.DomUtil.create("div", "leaflet-bar leaflet-control");
-    const link = L.DomUtil.create("a", "", container);
+    const link = L.DomUtil.create("a", "location-control", container);
 
     link.href = "#";
     link.title = "My location";
@@ -151,7 +151,14 @@ const LocationControl = () => {
     link.style.lineHeight = "44px";
     link.style.textAlign = "center";
     link.style.textDecoration = "none";
-    // Dynamic coloring based on state
+    // Dynamic coloring based on state. The idle state leaves colour to the
+    // `.leaflet-bar a` rules so the dark map theme can restyle it; the two
+    // transient states carry a class for the same reason.
+    link.classList.toggle("location-control--locating", !!isLocating);
+    link.classList.toggle(
+      "location-control--message",
+      !isLocating && !!loadingMessage,
+    );
     if (isLocating) {
       link.style.color = "#007aff";
       link.style.backgroundColor = "#f0f8ff";
@@ -159,8 +166,8 @@ const LocationControl = () => {
       link.style.color = "#f39c12"; // Orange for warnings/messages
       link.style.backgroundColor = "#fff9e6";
     } else {
-      link.style.color = "#333";
-      link.style.backgroundColor = "white";
+      link.style.color = "";
+      link.style.backgroundColor = "";
     }
 
     link.style.fontSize = "18px";
