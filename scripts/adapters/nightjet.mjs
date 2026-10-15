@@ -27,6 +27,7 @@ import {
   njPricesTrain,
   NJ_FARE_NEAR_DAYS,
   NJ_FARE_REQUESTS_PER_RUN,
+  viennaDate,
 } from "../lib/nj-fares.mjs";
 import {
   agencyForLineName,
@@ -88,6 +89,57 @@ async function fetchSingleTrain(trainNumber, date) {
     console.warn(`[nj] fetch failed for ${trainNumber}: ${e.message}`);
     return null;
   }
+}
+
+/** The Vienna date a normalized train's journey starts on, or null. */
+function runDateOf(train) {
+  const first = train?.stations?.[0];
+  return viennaDate(first?.departure ?? first?.arrival ?? null);
+}
+
+/**
+ * The fuller of two answers about the same journey: one with nightjet.com's
+ * own polyline beats one without, then more stops beat fewer. `onRun` is only
+ * taken when it describes the run `asked` returned (same start date), so a
+ * second answer about a different journey can never replace the first.
+ */
+export function richerAnswer(asked, onRun) {
+  if (!onRun?.stations?.length) return asked;
+  if (!asked?.stations?.length) return onRun;
+  if (runDateOf(onRun) !== runDateOf(asked)) return asked;
+  const score = (t) => (t.polyline ? 1000 : 0) + t.stations.length;
+  return score(onRun) >= score(asked) ? onRun : asked;
+}
+
+/**
+ * A train asked about on `date`, answered from the journey it next runs.
+ *
+ * nightjet.com answers a date the train does not run with its next journey,
+ * and since October 2026 that answer can come back thinned: no polyline and
+ * stops without coordinates, which normalizeNJTrain has to drop. EN 1276
+ * Rijeka–Warszawa (next run 27 June 2027) arrived without its route line and
+ * without Wien Meidling and Wien Hbf, so the map drew a straight line from
+ * Wiener Neustadt to Ostrava; asked for 27 June itself, the same endpoint
+ * returns both Vienna stops and the full polyline. So a train whose answer
+ * starts on a later date is asked again for that date, and the fuller answer
+ * is kept — one extra request per train not running tonight.
+ * @param {string} trainNumber
+ * @param {string} date "YYYY-MM-DD"
+ * @param {(n: string, d: string) => Promise<object|null>} [fetchOne]
+ */
+export async function fetchTrainForNextRun(trainNumber, date, fetchOne = fetchSingleTrain) {
+  const asked = await fetchOne(trainNumber, date);
+  const runDate = runDateOf(asked);
+  if (!asked || !runDate || runDate <= date) return asked;
+  const onRun = await fetchOne(trainNumber, runDate);
+  const kept = richerAnswer(asked, onRun);
+  if (kept !== asked) {
+    console.log(
+      `[nj] ${trainNumber}: next run ${runDate} — re-read on that date ` +
+        `(${asked.stations.length}→${kept.stations.length} stops, polyline ${asked.polyline ? "kept" : kept.polyline ? "gained" : "still missing"})`,
+    );
+  }
+  return kept;
 }
 
 async function fetchNJTrainNumbers(date, countryCodes) {
@@ -345,7 +397,7 @@ export async function run(entry, ctx) {
 
   for (let i = 0; i < allNumbers.length; i += concurrency) {
     const batch = allNumbers.slice(i, i + concurrency);
-    const fetched = await Promise.all(batch.map((n) => fetchSingleTrain(n, ctx.today)));
+    const fetched = await Promise.all(batch.map((n) => fetchTrainForNextRun(n, ctx.today)));
     fetched.forEach((train) => {
       if (!train) return;
       const fallbackPositions = train.stations

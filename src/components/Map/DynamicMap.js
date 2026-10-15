@@ -50,6 +50,7 @@ import { useMapMarkers } from "./hooks/useMapMarkers";
 import LoadingOverlay from "./components/LoadingOverlay";
 import MapClickHandler from "./components/MapClickHandler";
 import MapViewportTracker from "./components/MapViewportTracker";
+import { upcomingRun } from "../../lib/nextDeparture.mjs";
 
 /** Format "YYYY-MM-DD" → "15 January 2026" for the future-route popup. */
 function formatFutureDate(dateStr) {
@@ -967,9 +968,13 @@ const TrainMap = ({
                       const label = trainNumber
                         ? `${trainNumber}: ${segment}`
                         : `Route: ${segment}`;
-                      return path.isFuture
-                        ? `${label} · from ${formatFutureDate(path.futureStartDate)}`
-                        : label;
+                      if (!path.isFuture) return label;
+                      // A seasonal train says so: "Summer only, next season
+                      // from 25 Jun 2027" rather than a bare date.
+                      const run = upcomingRun(route);
+                      return run?.seasonal
+                        ? `${label} · ${run.badge}, next season from ${run.nextDepartureText}`
+                        : `${label} · from ${formatFutureDate(path.futureStartDate)}`;
                     })()}
                   </Tooltip>
                 </Polyline>

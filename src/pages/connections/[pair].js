@@ -56,6 +56,7 @@ export default function ConnectionPage({
   intro,
   faq,
   bookingGuide,
+  upcomingNotice,
 }) {
   const canonical = absoluteUrl(`/connections/${slug}`);
   const operatorNames = operators.map((o) => o.name).join(", ");
@@ -126,7 +127,12 @@ export default function ConnectionPage({
           <header className="mt-6 max-w-3xl">
             <p className="text-sm text-primary-green">{operatorNames}</p>
             <h1 className="mt-2 text-3xl sm:text-4xl font-bold text-white tracking-tight text-balance">
-              Night Trains from {cityA} to {cityB}
+              {upcomingNotice?.season
+                ? `${upcomingNotice.season[0].toUpperCase()}${upcomingNotice.season.slice(1)} Night Train`
+                : upcomingNotice?.seasonal
+                  ? "Seasonal Night Train"
+                  : "Night Trains"}{" "}
+              from {cityA} to {cityB}
             </h1>
             {/* `intro` and not `description`: on a page that renders the
                 FACTS snippet the meta description leads with the train and its
@@ -138,6 +144,30 @@ export default function ConnectionPage({
               {cityB} to {cityA}.
             </p>
           </header>
+
+          {/* Nothing on this corridor runs now: say so before anything else,
+              with the dates it runs again. */}
+          {upcomingNotice && (
+            <aside
+              className="mt-6 rounded-xl border border-amber-400/30 bg-amber-400/[0.07] p-5"
+              data-testid="upcoming-notice"
+            >
+              <p className="text-base font-semibold text-amber-200">{upcomingNotice.headline}</p>
+              <p className="mt-1 text-sm text-white/70">Not running now — tickets and times below are for next season.</p>
+              <ul className="mt-3 space-y-1 text-sm text-white/80">
+                {upcomingNotice.departures.map((d) => (
+                  <li key={d.dir}>
+                    <span className="text-white/50">Next departure</span> {d.origin} → {d.destination}
+                    {d.train ? <span className="text-white/50"> ({d.train})</span> : null}:{" "}
+                    <span className="font-semibold text-white">{d.dateText}</span>
+                  </li>
+                ))}
+              </ul>
+              {upcomingNotice.previousText && (
+                <p className="mt-3 text-xs text-white/50">Last season: {upcomingNotice.previousText}</p>
+              )}
+            </aside>
+          )}
 
           {(countries.length > 0 || operators.length > 0) && (
             <div className="mt-6 flex flex-wrap gap-2">
@@ -189,6 +219,17 @@ export default function ConnectionPage({
                     </span>
                   )}
                 </h3>
+                {t.upcoming && (
+                  <p className="mt-2 inline-flex flex-wrap items-center gap-2 text-sm">
+                    <span className="rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-0.5 text-xs font-semibold text-amber-200">
+                      {t.upcoming.badge}
+                    </span>
+                    <span className="text-white/70">
+                      {t.upcoming.seasonal ? "Next season from" : "Next departure"} {t.upcoming.nextDepartureText}
+                      {t.upcoming.previousText ? ` · last season ${t.upcoming.previousText}` : ""}
+                    </span>
+                  </p>
+                )}
 
                 <div className="mt-5">
                   <RouteFactsGrid detail={t} />
@@ -341,6 +382,8 @@ export async function getStaticProps({ params }) {
         trainNumber: formatTrainNumber(x.trainNumber, d.agencyId),
       })),
       facts: d.facts,
+      // Not running now (a seasonal train out of season), or null.
+      upcoming: d.upcoming,
       // Only the first train with geometry renders a map; drop the rest so the
       // page payload doesn't carry a polyline per train.
       map:
@@ -373,6 +416,26 @@ export async function getStaticProps({ params }) {
   const guide =
     trains.map((t) => getBookingGuide({ agencyId: t.agencyId })).find(Boolean) ?? null;
 
+  // Trains on sale for a later season. When it is every train on the corridor,
+  // the page and its snippet lead with the date they run again.
+  const upcomingTrains = trains.filter((t) => t.upcoming);
+  const allUpcoming = trains.length > 0 && upcomingTrains.length === trains.length;
+  const firstUpcoming = upcomingTrains.length
+    ? upcomingTrains.reduce((a, b) => (a.upcoming.nextDeparture <= b.upcoming.nextDeparture ? a : b))
+    : null;
+  const seasonText = upcomingTrains
+    .map((t) => {
+      const legs = t.upcoming.departures
+        .map((d) => `from ${cityForStation(d.origin) || d.origin} on ${d.dateText}`)
+        .join(" and ");
+      const name = joinTrainNumbers(t.trainNumbers);
+      return (
+        `${t.upcoming.sentence.replace(/^This/, name ? `The ${name}` : "This")}` +
+        (legs ? ` It next leaves ${legs}.` : "")
+      );
+    })
+    .join(" ");
+
   const faq = withBookingGuideFaq(buildConnectionFaq({
     originCity: pair.cityA,
     destCity: pair.cityB,
@@ -386,6 +449,7 @@ export async function getStaticProps({ params }) {
       : "",
     pricingType: pricingTypes.size === 1 ? [...pricingTypes][0] : "",
     hasLastMinuteDeals: trains.some((t) => t.booking?.dealsUrl),
+    seasonText,
     punctualityText: punctualityAnswer(
       trains.flatMap((t) =>
         t.directions.map((d) => ({ origin: d.origin, destination: d.destination, punctuality: d.punctualityRecord })),
@@ -450,6 +514,15 @@ export async function getStaticProps({ params }) {
     // The build date: a timetable that has not started yet (the December
     // preview rows) is not the one the snippet describes.
     today: new Date().toISOString().slice(0, 10),
+    // Nothing runs now: the snippet leads with when it runs again.
+    upcoming: allUpcoming
+      ? {
+          run: firstUpcoming.upcoming,
+          trainLabel: joinTrainNumbers(firstUpcoming.trainNumbers),
+          operator: firstUpcoming.operators[0]?.name || "",
+          stopCount: Math.max(0, ...firstUpcoming.directions.map((d) => d.stops.length)),
+        }
+      : null,
   });
 
   return {
@@ -468,6 +541,7 @@ export async function getStaticProps({ params }) {
       intro: snippet.intro,
       faq,
       bookingGuide: guideProps(guide),
+      upcomingNotice: allUpcoming ? firstUpcoming.upcoming : null,
     },
   };
 }

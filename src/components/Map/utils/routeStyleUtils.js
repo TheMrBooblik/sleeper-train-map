@@ -1,3 +1,5 @@
+import { localToday, rowNextDeparture } from "../../../lib/nextDeparture.mjs";
+
 /**
  * Route styling and route-matching helpers for map polylines.
  * Line weight says whether a route is real yet; the dash array says how often it
@@ -819,8 +821,15 @@ export function routeHasNotStartedYet(route, now = new Date()) {
  */
 export function upcomingPreviewRouteIds(viewMap, now = new Date()) {
   const ids = new Set();
+  const today = localToday(now);
   for (const route of Object.values(viewMap ?? {})) {
     if (route?.route_id == null) continue;
+    // A train on sale whose next run is weeks off (nightjet.com's seasonal
+    // EuroNights, next_departure_{dir}): its stops are next season's.
+    if (rowNextDeparture(route, today)) {
+      ids.add(String(route.route_id));
+      continue;
+    }
     if (route.draw_as_active !== true) continue;
     if (routeHasNotStartedYet(route, now)) ids.add(String(route.route_id));
   }
@@ -837,7 +846,17 @@ export function upcomingPreviewRouteIds(viewMap, now = new Date()) {
  * @param {Object} trips - Trips data
  * @returns {string|null} "YYYY-MM-DD" or null
  */
-export function getFutureRouteStartDate(routeId, trips) {
+export function getFutureRouteStartDate(routeId, trips, route = undefined) {
+  return (
+    futureStartFromTrips(routeId, trips) ??
+    // A synthetic row has no trips. One the operator dates only by its next
+    // run (nightjet.com: EN 1276/1277 Rijeka–Warszawa, next run 25 June 2027)
+    // carries that run on the row; see src/lib/nextDeparture.mjs.
+    (route ? rowNextDeparture(route) : null)
+  );
+}
+
+function futureStartFromTrips(routeId, trips) {
   if (!trips || !routeId) return null;
 
   const routeTrips = Object.values(trips).filter(

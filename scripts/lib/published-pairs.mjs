@@ -27,6 +27,7 @@ import { formatDurationMinutes, routeDurationMinutes } from "../../src/lib/seo/f
 import { formatMoney } from "../../src/lib/fareClasses.mjs";
 import { resolvePricing } from "../../src/lib/pricingResolve.mjs";
 import { parseBotServiceString, renderCalendar } from "../../src/pages/api/lib/calendar.mjs";
+import { rowNextDeparture } from "../../src/lib/nextDeparture.mjs";
 
 const ROOT = path.resolve(new URL("../..", import.meta.url).pathname);
 
@@ -80,7 +81,7 @@ function planClocks() {
  * @returns {{slug:string, cityA:string, cityB:string, trainCount:number,
  *            operatorNames:string, fromPrice:string, directions:object[]}[]}
  */
-export function getPublishedPairs() {
+export function getPublishedPairs({ today = new Date().toISOString().slice(0, 10) } = {}) {
   const payload = readJson("public/data/published/initial-data.json").data;
   // Endpoint coordinates, so the duration plausibility gate is exercised here
   // the same way the build exercises it.
@@ -136,10 +137,12 @@ export function getPublishedPairs() {
       if (!pairs.has(slug)) {
         pairs.set(slug, {
           slug, cityA, cityB, routeIds: new Set(), operators: new Set(), agencyIds: new Set(), prices: [], directions: [],
+          running: 0,
         });
       }
       const entry = pairs.get(slug);
       if (!entry.routeIds.has(routeId) && pricing?.fromPrice != null) entry.prices.push(pricing);
+      if (!entry.routeIds.has(routeId) && !rowNextDeparture(route, today)) entry.running += 1;
       entry.routeIds.add(routeId);
       for (const name of operatorNames.split(", ").filter(Boolean)) entry.operators.add(name);
       for (const id of operatorIds) entry.agencyIds.add(id);
@@ -184,6 +187,9 @@ export function getPublishedPairs() {
         // a nightly official fare). The snippet report reads a page that
         // gained a price apart from its control group.
         priceSources: [...new Set(p.prices.map((x) => x.source).filter(Boolean))].sort(),
+        // No train on the corridor runs now (a seasonal train out of season):
+        // the page and its snippet lead with the next run under either variant.
+        upcoming: p.running === 0,
         directions: p.directions,
       };
     })

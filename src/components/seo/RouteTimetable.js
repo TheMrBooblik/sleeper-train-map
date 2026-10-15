@@ -39,6 +39,7 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
     fare,
     fareCalendar,
     punctuality,
+    nextDepartureText,
   } = direction;
   const lastIdx = stops.length - 1;
 
@@ -52,6 +53,14 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
           <span className="font-mono text-sm text-primary-green">{trainNumber}</span>
         )}
       </div>
+
+      {/* Out of season: the times below are next season's, and the first
+          thing to say is when that is. */}
+      {nextDepartureText && (
+        <p className="mt-2 text-sm font-medium text-amber-300" data-testid="next-departure">
+          Next departure {nextDepartureText}
+        </p>
+      )}
 
       <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/60">
         {departureTime && <span>Departs {departureTime}</span>}
