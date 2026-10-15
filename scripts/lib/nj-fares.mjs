@@ -91,19 +91,28 @@ export const NJ_FARE_REQUESTS_PER_RUN = 720;
 export const NJ_FARE_NEAR_DAYS = 7;
 
 /**
- * Whether nightjet.com's price search may price a train: ÖBB's own Nightjets
- * only. A partner EuroNight (nightjet.com's `partnerTrain`, stored as
- * operator "EuroNight") belongs to its carrier — PKP, MÁV, ČD, HŽPP — whose
- * own site sells it at its own fares, and the figure nightjet.com quotes for
- * one is not that fare: the owner found it reading like a seat price, and on
- * PKP's EN 40416/40407 a "sleeper" came out cheaper than a "couchette". So
- * they get no calendar, no headline fare and no weekly probe proposal, and
- * their pages send the reader to the carrier (agency_id, scripts/adapters/
- * nightjet.mjs). Keyed on the partner flag, never on an "EN " prefix.
- * @param {{ operator?: string }|null|undefined} train
+ * Whether nightjet.com's price search may price a train: ÖBB's own. A partner
+ * EuroNight (nightjet.com's `partnerTrain`, stored as operator "EuroNight")
+ * belongs to its carrier — PKP, MÁV, ČD, HŽPP — whose own site sells it at its
+ * own fares, and the figure nightjet.com quotes for one is not that fare: the
+ * owner found it reading like a seat price, and on PKP's EN 40416/40407 a
+ * "sleeper" came out cheaper than a "couchette". So they get no calendar, no
+ * headline fare and no weekly probe proposal, and their pages send the reader
+ * to the carrier (agency_id, scripts/adapters/nightjet.mjs).
+ *
+ * A partner-listed train whose carrier is known to be ÖBB (`agency_id` is
+ * `home` and something stated it: nightjet.com's sentence, a number prefix,
+ * Back-on-Track) is ÖBB's train and priced like one. A partner whose carrier
+ * fell back to ÖBB for want of an answer (`agencyFrom` "home") is not priced:
+ * nobody said whose fare it would be. Keyed on the partner flag and the
+ * resolved carrier, never on an "EN " prefix.
+ * @param {{ operator?: string, agency_id?: string, agencyFrom?: string }|null|undefined} train
+ * @param {string} [home] the source's home carrier (params.operatorAgencies.home)
  */
-export function njPricesTrain(train) {
-  return Boolean(train) && train.operator !== "EuroNight";
+export function njPricesTrain(train, home = "ÖBB") {
+  if (!train) return false;
+  if (train.operator !== "EuroNight") return true;
+  return train.agency_id === home && Boolean(train.agencyFrom) && train.agencyFrom !== "home";
 }
 
 /** What every request to the price search sends: JSON, and who is asking. */

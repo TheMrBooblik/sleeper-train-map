@@ -115,17 +115,41 @@ async function fetchNJTrainNumbers(date, countryCodes) {
   return Array.from(njNumbers);
 }
 
-async function fetchPartnerTrainNumbers(date, max = 25) {
+async function fetchPartnerTrainNumbers(date) {
   const url = `https://www.nightjet.com/nj-booking-ocp/destinations/partner/${date}`;
   try {
     const res = await fetchWithTimeout(url, { headers: { accept: "application/json" } });
     if (!res.ok) return [];
     const data = await res.json();
-    return (Array.isArray(data) ? data : []).map((t) => t?.trainNumber).filter(Boolean).slice(0, max);
+    return (Array.isArray(data) ? data : []).map((t) => t?.trainNumber).filter(Boolean);
   } catch (e) {
     console.warn(`[nj] partner fetch failed: ${e.message}`);
     return [];
   }
+}
+
+/**
+ * Which of nightjet.com's partner trains tonight's run fetches: the list in
+ * its own order, less trains whose number prefix belongs to a carrier another
+ * source publishes (European Sleeper's "ES …"), then cut at `max`. The hand-
+ * over comes first because the cap used to: from 14 October the partner list
+ * filled all 25 slots with 22 EuroNights and three ES trains that run() then
+ * threw away — ES 474 was the 26th — so any new partner train would have
+ * pushed a real EuroNight out without a word. What the cap cuts is returned so
+ * the run can say so.
+ * @param {string[]} numbers
+ * @param {{ compiled?: object|null, max?: number }} opts
+ * @returns {{ kept: string[], handedOver: Record<string, string[]>, cut: string[] }}
+ */
+export function selectPartnerNumbers(numbers, { compiled = null, max = 25 } = {}) {
+  const handedOver = {};
+  const eligible = [];
+  for (const number of [...new Set(numbers ?? [])]) {
+    const by = compiled ? publishedElsewhere(agencyForLineName(number, compiled), compiled) : null;
+    if (by) (handedOver[by] ??= []).push(number);
+    else eligible.push(number);
+  }
+  return { kept: eligible.slice(0, max), handedOver, cut: eligible.slice(max) };
 }
 
 /**
@@ -143,14 +167,19 @@ export async function priceTrains(results, entry, ctx, previous = readPreviousTr
   } = entry.params?.fares ?? {};
   // A partner EuroNight is its carrier's to price: never carried from last
   // night's file, and `fare: null` says so to stampOfficialFares, which then
-  // gives the row no fare model rather than its operator's default.
+  // gives the row no fare model rather than its operator's default. A partner
+  // whose carrier fell back to ÖBB for want of an answer carries no fare at
+  // all instead: its row is presented as ÖBB's and books in ÖBB's shop, so
+  // ÖBB's fare model is the honest advice there — only the figure is withheld.
+  const home = entry.params?.operatorAgencies?.home ?? "ÖBB";
   const priced = {};
   for (const [key, train] of Object.entries(results ?? {})) {
-    if (njPricesTrain(train)) {
+    if (njPricesTrain(train, home)) {
       priced[key] = train;
     } else {
       delete train.fareCalendar;
-      train.fare = null;
+      if (train.agency_id === home && train.agencyFrom === "home") delete train.fare;
+      else train.fare = null;
     }
   }
   if (!enabled) return null;
@@ -271,6 +300,16 @@ export function assignTrainAgencies(trains, { compiled, previous = null, botAgen
       if (verdict.status === "ambiguous") {
         report.notes.push(`${key}: "${train.operatorText}" names ${verdict.all.join(", ")} — took ${verdict.agency}, named first`);
       }
+      if (verdict.status === "home") {
+        // nightjet.com's word is taken — it says ÖBB runs this partner-listed
+        // train — but never silently: the live partner sentences name their
+        // carrier ("Operated by Polnische Bahn PKP"), so one naming only ÖBB
+        // is worth a line, and a warning when Back-on-Track says otherwise.
+        const fromBot = carrierInAgencyId(botAgencies.get(key), compiled);
+        const line = `${key}: partner train whose operator text names only ${compiled.home} ("${train.operatorText}")`;
+        if (fromBot && fromBot !== compiled.home) report.problems.push(`${line} — Back-on-Track says ${fromBot}; kept ${compiled.home}`);
+        else report.notes.push(line);
+      }
       count("operator", verdict.agency);
       continue;
     }
@@ -336,11 +375,22 @@ export async function run(entry, ctx) {
   const { countryCodes = [], concurrency = 6, maxPartnerTrains = 25 } = entry.params ?? {};
   const results = {};
 
-  const [njNumbers, enNumbers] = await Promise.all([
+  const compiled = entry.params?.operatorAgencies
+    ? compileOperatorAgencies(entry.params.operatorAgencies)
+    : null;
+  const [njNumbers, partnerNumbers] = await Promise.all([
     fetchNJTrainNumbers(ctx.today, countryCodes),
-    fetchPartnerTrainNumbers(ctx.today, maxPartnerTrains),
+    fetchPartnerTrainNumbers(ctx.today),
   ]);
-  const allNumbers = [...new Set([...njNumbers, ...enNumbers])];
+  const partners = selectPartnerNumbers(partnerNumbers, { compiled, max: maxPartnerTrains });
+  for (const [by, keys] of Object.entries(partners.handedOver)) {
+    console.log(`[scrape] nightjet: left ${keys.join(", ")} to ${by}, which publishes them (by train number)`);
+  }
+  const capWarning = partners.cut.length
+    ? `partner list cut at ${maxPartnerTrains} (params.maxPartnerTrains): ${partners.cut.join(", ")} not fetched`
+    : null;
+  if (capWarning) console.warn(`[scrape] nightjet: ${capWarning}`);
+  const allNumbers = [...new Set([...njNumbers, ...partners.kept])];
   console.log(`[scrape] fetching ${allNumbers.length} NJ/EN trains`);
 
   for (let i = 0; i < allNumbers.length; i += concurrency) {
@@ -370,7 +420,6 @@ export async function run(entry, ctx) {
   if (entry.params?.operatorAgencies) {
     const viewMap =
       ctx.shared?.viewMap ?? readScraped(ctx.rootDir, "backontrack-view_ontd_map.json") ?? {};
-    const compiled = compileOperatorAgencies(entry.params.operatorAgencies);
     const report = assignTrainAgencies(results, {
       compiled,
       previous,
@@ -414,7 +463,7 @@ export async function run(entry, ctx) {
 
   // Returned, not thrown: a throw would record the source as failed, and the
   // trains it exists for were fetched and written above.
-  const warning = [fareWarning(fareStats), operatorWarning].filter(Boolean).join("; ");
+  const warning = [fareWarning(fareStats), operatorWarning, capWarning].filter(Boolean).join("; ");
   if (warning) console.warn(`[scrape] nightjet: ${warning}`);
   return warning ? { warning } : null;
 }

@@ -37,13 +37,19 @@ import {
   validateOperatorAgencies,
 } from "../scripts/lib/operator-agencies.mjs";
 import { validateRegistry } from "../scripts/lib/registry.mjs";
-import { assignTrainAgencies, backOnTrackAgencies, priceTrains } from "../scripts/adapters/nightjet.mjs";
+import {
+  assignTrainAgencies,
+  backOnTrackAgencies,
+  priceTrains,
+  selectPartnerNumbers,
+} from "../scripts/adapters/nightjet.mjs";
 import { probeCandidates } from "../scripts/adapters/nightjet-offers.mjs";
 import { njPricesTrain } from "../scripts/lib/nj-fares.mjs";
 import { sameTrainAsRow } from "../src/lib/sameTrain.mjs";
 import { enrichViewMap } from "../scripts/lib/enrich-view-map.mjs";
 import { buildInitialData, stampOfficialFares } from "../src/pages/api/lib/build-initial-data.mjs";
 import { resolvePricing } from "../src/lib/pricingResolve.mjs";
+import { resolveOperatorComponents } from "../src/lib/operatorAgencies.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const readJson = (rel) => JSON.parse(fs.readFileSync(path.join(ROOT, rel), "utf8"));
@@ -154,7 +160,8 @@ await check("line prefixes, Back-on-Track ids and publishedBy", () => {
   assert.equal(carrierInAgencyId("HŽPP/ÖBB", COMPILED), "HŽPP");
   assert.equal(carrierInAgencyId("ÖBB/MÁV", COMPILED), "MÁV");
   assert.equal(carrierInAgencyId("PKP/ČD", COMPILED), "PKP");
-  assert.equal(carrierInAgencyId("ÖBB", COMPILED), null);
+  // Back-on-Track saying ÖBB alone runs it is an answer, not a missing one.
+  assert.equal(carrierInAgencyId("ÖBB", COMPILED), "ÖBB");
   assert.equal(carrierInAgencyId("SJ", COMPILED), null);
   assert.equal(carrierInAgencyId(null, COMPILED), null);
 });
@@ -228,6 +235,11 @@ await check("assignTrainAgencies: text, then prefix, then last night, then Back-
     "EN 40457": train("EuroNight", ["Berlin Hbf", "Budapest-Keleti"], { operatorText: "Operated by Slowenische Bahn SŽ" }),
     "EN 442": train("EuroNight", ["Budapest-Keleti", "Stuttgart Hbf"]),
     "EN 415": train("EuroNight", ["Zagreb Glavni Kolod.", "Stuttgart Hbf"]),
+    // nightjet.com naming only ÖBB on a partner-listed train: taken, never silently.
+    "EN 1272": train("EuroNight", ["Split", "Wien Hbf"], { operatorText: "Operated by Österreichische Bundesbahnen" }),
+    "EN 40465": train("EuroNight", ["Zürich HB", "Zagreb Glavni Kolod."], { operatorText: "Operated by ÖBB" }),
+    // "Nightjet" is the shop's brand, not a carrier: it names no one.
+    "EN 40414": train("EuroNight", ["Zagreb Glavni Kolod.", "Zürich HB"], { operatorText: "Nightjet-Partnerzug" }),
   };
   const previous = {
     "EN 40237": { agency_id: "HŽPP", agencyFrom: "operator", operatorText: "Operated by Kroatische Bahn HŽPP" },
@@ -239,6 +251,14 @@ await check("assignTrainAgencies: text, then prefix, then last night, then Back-
       58: { route_id: 58, agency_id: "MÁV", trip_short_name_0: "EN 40457", origin_trip_0: "Berlin Hbf", destination_trip_0: "Budapest-Keleti" },
       6: ROW_6,
       nj_standalone_EN_415: { route_id: "nj_standalone_EN_415", agency_id: "ÖBB", trip_short_name_0: "EN 415" },
+      117: {
+        route_id: 117,
+        agency_id: "HŽPP/ÖBB",
+        trip_short_name_0: "EN 40414",
+        trip_short_name_1: "EN 40465",
+        origin_trip_0: "Zagreb Glavni Kolod.",
+        destination_trip_0: "Zürich HB",
+      },
     },
     "nj_standalone_",
     trains,
@@ -257,17 +277,33 @@ await check("assignTrainAgencies: text, then prefix, then last night, then Back-
     "EN 40457": "MÁV/bot", // text naming no listed carrier is not carried over
     "EN 442": "ÖBB/home",
     "EN 415": "ÖBB/home",
+    "EN 1272": "ÖBB/operator",
+    "EN 40465": "ÖBB/operator",
+    "EN 40414": "HŽPP/bot",
   });
   assert.ok(report.notes.some((n) => n.startsWith("NJ 40421 is a Nightjet")), "…and the oddity is logged");
   assert.ok(report.problems.some((p) => p.startsWith("EN 40457: operator text \"Operated by Slowenische Bahn SŽ\"")));
   assert.ok(report.problems.some((p) => p.startsWith("EN 442: no operator text and no Back-on-Track carrier")));
-  assert.equal(report.problems.length, 3, report.problems.join("; "));
+  assert.ok(report.notes.some((n) => n.startsWith("EN 1272: partner train whose operator text names only ÖBB")));
+  assert.ok(
+    report.problems.some((p) => p.startsWith("EN 40465: partner train whose operator text names only ÖBB") && p.endsWith("Back-on-Track says HŽPP; kept ÖBB")),
+    "ÖBB against Back-on-Track's HŽPP is a warning",
+  );
+  assert.ok(report.problems.some((p) => p.startsWith('EN 40414: operator text "Nightjet-Partnerzug" names no carrier')));
+  assert.equal(report.problems.length, 5, report.problems.join("; "));
   assert.equal(trains["EN 40237"].operatorText, "Operated by Kroatische Bahn HŽPP");
 });
 
 await check("the fare pass and the probe leave partner trains to their carrier", async () => {
   assert.equal(njPricesTrain({ operator: "Nightjet" }), true);
   assert.equal(njPricesTrain({ operator: "EuroNight" }), false);
+  assert.equal(njPricesTrain({ operator: "EuroNight", agency_id: "PKP", agencyFrom: "operator" }), false);
+  // A partner-listed train nightjet.com (or Back-on-Track) says ÖBB runs is ÖBB's train…
+  assert.equal(njPricesTrain({ operator: "EuroNight", agency_id: "ÖBB", agencyFrom: "operator" }), true);
+  assert.equal(njPricesTrain({ operator: "EuroNight", agency_id: "ÖBB", agencyFrom: "bot" }), true);
+  // …one that fell back to ÖBB for want of an answer is nobody's to price.
+  assert.equal(njPricesTrain({ operator: "EuroNight", agency_id: "ÖBB", agencyFrom: "home" }), false);
+  assert.equal(njPricesTrain({ operator: "EuroNight", agency_id: "SBB", agencyFrom: "operator" }, "SBB"), true, "home is the source's");
   assert.equal(njPricesTrain(null), false);
 
   const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "nj-operators-"));
@@ -308,22 +344,52 @@ await check("the fare pass and the probe leave partner trains to their carrier",
     assert.equal(results["EN 40417"].fare, null, "`fare: null` says the source does not price it");
     assert.equal("fareCalendar" in results["EN 40417"], false, "last night's calendar is not carried");
 
-    // Partner trains only: not one request.
-    const partnersOnly = { "EN 40417": { operator: "EuroNight", ...structuredClone(partnerIds) } };
+    // Partner trains only: not one request. One whose carrier fell back to
+    // ÖBB carries no fare key at all, so its ÖBB row keeps ÖBB's fare model
+    // (stampOfficialFares stamps the empty record only on `fare: null`).
+    const partnersOnly = {
+      "EN 40417": { operator: "EuroNight", ...structuredClone(partnerIds) },
+      "EN 477": { operator: "EuroNight", agency_id: "ÖBB", agencyFrom: "home", fare: { fromPrice: 1 }, ...structuredClone(partnerIds) },
+    };
     urls.length = 0;
     await priceTrains(partnersOnly, entry, { today: "2026-10-15", rootDir, fetch: async (url) => { urls.push(url); return new Response("[]"); } });
     assert.equal(urls.length, 0);
+    assert.equal(partnersOnly["EN 40417"].fare, null);
+    assert.equal("fare" in partnersOnly["EN 477"], false);
 
     // The weekly probe: a proposal for a partner would put nightjet.com's
     // figure back on the row through prices.json.
     const candidates = probeCandidates(
-      { output: "nightjet-trains.json" },
+      { output: "nightjet-trains.json", params: { operatorAgencies: CONFIG } },
       { rootDir, seenRoutes: new Set(["nj_standalone_NJ_402", "nj_standalone_EN_40417"]) },
     );
     assert.deepEqual(candidates.map((c) => c.lineName), ["NJ 402"]);
   } finally {
     fs.rmSync(rootDir, { recursive: true, force: true });
   }
+});
+
+await check("selectPartnerNumbers: another source's trains leave before the cap, and the cap says what it cut", () => {
+  // 14 October: 22 EuroNights and three ES trains filled all 25 slots, and
+  // ES 474 — the 26th — was cut; any new partner would have pushed a real
+  // EuroNight out without a word.
+  const list = [
+    ...Array.from({ length: 22 }, (_, i) => `EN ${40000 + i}`),
+    "ES 452",
+    "ES 453",
+    "ES 475",
+    "ES 474",
+    "EN 50999",
+  ];
+  const got = selectPartnerNumbers(list, { compiled: COMPILED, max: 25 });
+  assert.deepEqual(got.handedOver, { europeansleeper: ["ES 452", "ES 453", "ES 475", "ES 474"] });
+  assert.equal(got.kept.length, 23);
+  assert.ok(got.kept.includes("EN 50999"), "the train behind the ES block is fetched");
+  assert.deepEqual(got.cut, []);
+  const tight = selectPartnerNumbers(list, { compiled: COMPILED, max: 20 });
+  assert.deepEqual(tight.cut, ["EN 40020", "EN 40021", "EN 50999"]);
+  assert.deepEqual(selectPartnerNumbers(["EN 1", "EN 1"], { compiled: null }).kept, ["EN 1"], "deduplicated");
+  assert.deepEqual(selectPartnerNumbers(["ES 452"], { compiled: null }).kept, ["ES 452"], "no mapping, no hand-over");
 });
 
 // ─── The build ───────────────────────────────────────────────────────────────
@@ -380,7 +446,6 @@ const njTrains = () => ({
     operator: "EuroNight",
     agency_id: "ÖBB",
     agencyFrom: "home",
-    fare: null,
     polyline: "p442",
     stations: [at("Budapest-Keleti", 47.5, 19.08), at("Stuttgart Hbf", 48.78, 9.18)],
   },
@@ -398,13 +463,16 @@ const build = () => {
   }).viewMap;
 };
 
-await check("build: a partner row is its carrier's, with no joint id and no fare model", () => {
+await check("build: a partner row is its carrier's, with one operating carrier and no fare model", () => {
   const vm = build();
   const row = vm.nj_standalone_EN_40416;
   assert.ok(row, Object.keys(vm).join(", "));
   assert.equal(vm[118], undefined, "Back-on-Track's row for the same train is replaced");
   assert.equal(row.agency_id, "PKP");
-  assert.equal("bot_agency_id" in row, false, "PKP/ČD would contradict the carrier nightjet.com names");
+  // The panel, the schedule link and the planner read bot_agency_id first:
+  // Back-on-Track's "PKP/ČD" would contradict nightjet.com, and no field at
+  // all let the panel fall through to the trains file's brand "EuroNight".
+  assert.equal(row.bot_agency_id, "PKP");
   assert.deepEqual(row.pricing, { type: null, currency: null, fromPrice: null, source: "nightjet" });
   assert.equal(resolvePricing(row, { PKP: { type: "fixed", note: "Domestic tariff" } }), row.pricing, "PKP's domestic default never reached");
   assert.equal(row.fare_0, undefined);
@@ -414,13 +482,16 @@ await check("build: a partner row is its carrier's, with no joint id and no fare
 await check("build: the row takes its carrier from whichever direction states one", () => {
   const { stops, viewMap, trips } = world();
   const trains = njTrains();
-  // Tonight the outbound's answer named no carrier; the return's did.
-  delete trains["EN 40416"].agency_id;
-  delete trains["EN 40416"].agencyFrom;
+  // Tonight the outbound's answer named no carrier and it fell back to ÖBB —
+  // the shape the adapter writes, agency_id and all; the return's named PKP.
+  trains["EN 40416"].agency_id = "ÖBB";
+  trains["EN 40416"].agencyFrom = "home";
+  delete trains["EN 40416"].fare;
   const vm = buildInitialData({ stops, viewMap, trips, operatorTrains: { nightjet: trains }, registry: [njEntry], seenIndex: null, routePrices: {} }).viewMap;
   assert.equal(vm.nj_standalone_EN_40416.trip_short_name_1, "EN 40417");
-  assert.equal(vm.nj_standalone_EN_40416.agency_id, "PKP", "not the registry's ÖBB fallback");
-  assert.equal("bot_agency_id" in vm.nj_standalone_EN_40416, false);
+  assert.equal(vm.nj_standalone_EN_40416.agency_id, "PKP", "not the outbound's ÖBB fallback");
+  assert.equal(vm.nj_standalone_EN_40416.bot_agency_id, "PKP");
+  assert.equal(vm.nj_standalone_EN_40416.pricing?.type, null, "one refused direction and none priced: no fare model");
 });
 
 await check("build: a Back-on-Track row that only shares the number is kept, and the namesake gets no row", () => {
@@ -444,19 +515,22 @@ await check("build: a source that names no carrier keeps Back-on-Track's joint a
   assert.equal(vm.nj_standalone_EN_40416.pricing, undefined, "no stamp without `fare: null`");
 });
 
-await check("stampOfficialFares: `fare: null` on every train the row names, and only then", () => {
+await check("stampOfficialFares: `fare: null` on a train the row names, none priced, and only then", () => {
   const registry = [{ id: "nightjet", enabled: true, official: true }];
   const rows = () => ({
     a: { route_id: "a", agency_id: "PKP", timetable_source: "nightjet", trip_short_name_0: "EN 1", trip_short_name_1: "EN 2" },
     b: { route_id: "b", agency_id: "PKP", timetable_source: "nightjet", trip_short_name_0: "EN 1", trip_short_name_1: "NJ 3" },
     c: { route_id: "c", agency_id: "ÖBB", timetable_source: "nightjet", trip_short_name_0: "NJ 4" },
     d: { route_id: "d", agency_id: "ÖBB", timetable_source: "nightjet", trip_short_name_0: "NJ 9" },
+    e: { route_id: "e", agency_id: "PKP", timetable_source: "nightjet", trip_short_name_0: "EN 1", trip_short_name_1: "NJ 4" },
+    f: { route_id: "f", agency_id: "ÖBB", timetable_source: "nightjet", trip_short_name_0: "EN 477" },
   });
   const trains = {
     "EN 1": { fare: null },
     "EN 2": { fare: null },
     "NJ 3": { fare: { fromPrice: 59.9, currency: "EUR", sampledAt: "2026-10-15" } },
     "NJ 4": {},
+    "EN 477": { agency_id: "ÖBB", agencyFrom: "home" },
   };
   const vm = rows();
   const trips = { t: { route_id: "a" } };
@@ -466,6 +540,9 @@ await check("stampOfficialFares: `fare: null` on every train the row names, and 
   assert.equal(vm.b.pricing.fromPrice, 59.9, "a priced direction still prices the row");
   assert.equal(vm.c.pricing, undefined, "a train with no fare yet is not a train the source refuses to price");
   assert.equal(vm.d.pricing, undefined, "nor is a train the file does not carry");
+  assert.equal(vm.e.pricing?.type, null, "one refused train, the other unpriced: the refusal stands");
+  assert.ok(vm.e.pricing, "…as a record, so the carrier's default is not reached");
+  assert.equal(vm.f.pricing, undefined, "a partner whose carrier fell back to ÖBB keeps ÖBB's fare model");
 });
 
 await check("enrichment: requireSameTrain keeps a namesake's line off a Back-on-Track row", async () => {
@@ -495,16 +572,62 @@ await check("committed data: partner trains carry one carrier, no nightjet.com p
   for (const [key, t] of Object.entries(trains)) {
     assert.ok(listed.has(t.agency_id), `${key} carrier ${t.agency_id}`);
     assert.equal(publishedElsewhere(t.agency_id, COMPILED), null, `${key} belongs to another source`);
-    if (t.operator === "EuroNight") {
-      partners++;
-      assert.equal(t.fare, null, `${key} fare`);
-      assert.equal(t.fareCalendar, undefined, `${key} calendar`);
+    if (t.operator === "EuroNight") partners++;
+    else assert.equal(t.agency_id, CONFIG.home, `${key} is ÖBB's`);
+    if (njPricesTrain(t, CONFIG.home)) continue;
+    assert.equal(t.fareCalendar, undefined, `${key} calendar`);
+    if (t.agency_id === CONFIG.home && t.agencyFrom === "home") {
+      assert.equal("fare" in t, false, `${key}: carrier unknown, row is ÖBB's — no refusal stamped`);
     } else {
-      assert.equal(t.agency_id, CONFIG.home, `${key} is ÖBB's`);
+      assert.equal(t.fare, null, `${key} fare`);
     }
   }
   assert.ok(partners >= 15, `${partners} partner trains`);
   assert.ok(!Object.keys(trains).some((k) => /^ES\b/.test(k)), "European Sleeper's trains are its own source's");
+});
+
+const AGENCIES = (() => {
+  const raw = readJson("public/data/scraped/backontrack-agencies.json");
+  const data = raw.data ?? raw;
+  return Array.isArray(data) ? Object.fromEntries(data.map((a) => [a.agency_id, a])) : data;
+})();
+
+/**
+ * The map panel's operator name for a synthetic row's trip, as
+ * TrainDetailPanel computes it (its imports do not load in raw node, so the
+ * chain is replayed here and pinned against the source below).
+ */
+function panelOperatorName(row, trainsFile) {
+  const operatorAgencyId = row.bot_agency_id || row.agency_id;
+  const components = resolveOperatorComponents({ agencyId: operatorAgencyId, agencies: AGENCIES });
+  const botOperatorName = row.bot_agency_id && components.length ? components.map((c) => c.name).join(" + ") : null;
+  return botOperatorName || trainsFile[row.trip_short_name_0]?.operator || null;
+}
+
+await check("the map panel names a partner train's carrier, never the brand \"EuroNight\"", () => {
+  // The fault: with no bot_agency_id the panel fell through to the trains
+  // file's `operator` — "EuroNight" for every partner — and München–Przemyśl
+  // read "EuroNight" beside a PKP logo.
+  const src = fs.readFileSync(path.join(ROOT, "src/components/TrainDetailPanel/TrainDetailPanel.js"), "utf8");
+  assert.ok(
+    /const botOperatorName =\s*tripRoute\?\.bot_agency_id && operatorComponents\.length/.test(src),
+    "the panel's name chain is still keyed on bot_agency_id (update panelOperatorName if it moved)",
+  );
+  assert.ok(/botOperatorName \|\|\s*nightjetTrain\?\.operator/.test(src), "…ahead of the trains file's brand");
+  const vm = readJson("public/data/published/initial-data.json").data.viewMap;
+  const trains = readJson("public/data/scraped/nightjet-trains.json").data.trains;
+  let checked = 0;
+  for (const row of Object.values(vm)) {
+    if (row.timetable_source !== "nightjet") continue;
+    if (![0, 1].some((d) => trains[row[`trip_short_name_${d}`]]?.operator === "EuroNight")) continue;
+    const name = panelOperatorName(row, trains);
+    assert.notEqual(name, "EuroNight", `${row.route_id} would read "EuroNight"`);
+    assert.ok(name, `${row.route_id} has no operator name`);
+    checked++;
+  }
+  assert.ok(checked >= 8, `${checked} partner rows`);
+  const przemysl = vm.nj_standalone_EN_40417 ?? vm.nj_standalone_EN_40416;
+  assert.equal(panelOperatorName(przemysl, trains), "PKP Intercity S.A.");
 });
 
 await check("committed payload: partner rows priced by no one, ÖBB's rows unchanged, no duplicate ES row, ČD's EN 442 back", () => {
@@ -515,6 +638,7 @@ await check("committed payload: partner rows priced by no one, ÖBB's rows uncha
   let njPriced = 0;
   for (const row of Object.values(vm)) {
     if (row.timetable_source !== "nightjet") continue;
+    const named = [0, 1].map((d) => trains[row[`trip_short_name_${d}`]]).filter(Boolean);
     if (isPartner(row)) {
       partnerRows++;
       for (const d of [0, 1]) {
@@ -522,13 +646,18 @@ await check("committed payload: partner rows priced by no one, ÖBB's rows uncha
         assert.equal(row[`fare_calendar_${d}`], undefined, `${row.route_id} fare_calendar_${d}`);
       }
       assert.equal(row.pricing?.fromPrice ?? null, null, `${row.route_id} quotes no figure`);
-      assert.equal(row.pricing?.type ?? null, null, `${row.route_id} gives no fare advice`);
       assert.ok(!String(row.agency_id).includes("/"), `${row.route_id} ${row.agency_id}`);
-      const stated = [0, 1].some((d) => {
-        const from = trains[row[`trip_short_name_${d}`]]?.agencyFrom;
-        return from && from !== "home";
-      });
-      if (stated) assert.equal(row.bot_agency_id, undefined, `${row.route_id} carries ${row.bot_agency_id}`);
+      const stated = named.find((t) => t.agencyFrom && t.agencyFrom !== "home");
+      if (stated) {
+        assert.equal(row.agency_id, stated.agency_id, `${row.route_id} takes the stated carrier`);
+        assert.equal(row.bot_agency_id, row.agency_id, `${row.route_id} operating carrier`);
+      }
+      if (named.some((t) => t.fare === null)) {
+        assert.equal(row.pricing?.type, null, `${row.route_id} gives no fare advice`);
+        assert.ok(row.pricing, `${row.route_id} stops at its own empty record`);
+      } else {
+        assert.equal(row.agency_id, CONFIG.home, `${row.route_id}: only an unknown-carrier row keeps a fare model, ÖBB's`);
+      }
     } else if (row.pricing?.fromPrice != null) {
       njPriced++;
       assert.equal(row.agency_id, "ÖBB");

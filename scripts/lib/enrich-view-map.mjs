@@ -23,7 +23,7 @@ import {
   extractKeysFromTripLabel,
 } from "../../src/lib/pkpTrainKeyExtract.js";
 import { buildVia } from "../../src/lib/pkpGtfsMerge.js";
-import { inAgencyScope } from "../../src/pages/api/lib/primitives.mjs";
+import { carrierTrain, inAgencyScope } from "../../src/pages/api/lib/primitives.mjs";
 import { splitViaString } from "../../src/lib/viaSplit.mjs";
 import { sameTrainAsRow } from "../../src/lib/sameTrain.mjs";
 
@@ -389,7 +389,8 @@ export function appendSyntheticLeftovers({ entry, viewMap, trains, log = () => {
     const safeId = lineName.replace(/\s+/g, "_");
     const entryRow = {
       route_id: `${synthetic.idPrefix}${safeId}`,
-      agency_id: agencyOf(data),
+      // The stating direction decides, as in build-initial-data.
+      agency_id: agencyOf(carrierTrain(data, reversePair?.[1])),
       trip_short_name_0: lineName,
       origin_trip_0: origin,
       destination_trip_0: dest,

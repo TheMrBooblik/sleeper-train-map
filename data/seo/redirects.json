@@ -200,7 +200,7 @@
   "/trains/helsinki-helsingfors-to-kolari-p-269": "/connections/helsinki-to-kolari",
   "/trains/huizhou-to-chongqingdong-k-1172": "/connections/chongqing-to-huizhou",
   "/trains/humenne-to-bratislava-hl-st-r-680": "/connections/bratislava-to-humenne",
-  "/trains/humenne-to-praha-hl-n-en-442": "/connections",
+  "/trains/humenne-to-praha-hl-n-en-442": "/connections/humenne-to-prague",
   "/trains/iasi-to-cluj-napoca-irn-1837": "/connections/cluj-napoca-to-iasi",
   "/trains/iasi-to-timisoara-nord-irn-1763": "/connections/iasi-to-timisoara",
   "/trains/innsbruck-hbf-to-amsterdam-centraal-nj-420": "/connections/amsterdam-to-innsbruck",
