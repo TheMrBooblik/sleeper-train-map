@@ -113,7 +113,12 @@ check("a stamped row carrying nothing to say still answers null", () => {
 
   check("times: feeds, then the corrected row, then the trip", () => {
     // The departure tile.
-    const tile = panel.slice(panel.indexOf("{pkpOriginDeparture ||"));
+    // (The tile's chain, not the visibility test above it, which lists the
+    // arrival fields in between; a moving Nightjet clock prints its range
+    // ahead of the chain, src/lib/nightTimes.mjs.)
+    const tileAt = panel.search(/pkpOriginDeparture \|\|\s+naOriginDeparture/);
+    assert.ok(tileAt >= 0, "the departure tile's chain was not found");
+    const tile = panel.slice(tileAt);
     for (const feed of ["naOriginDeparture", "esOriginDeparture"])
       assert.ok(
         tile.indexOf(feed) < tile.indexOf("officialRow?.departure"),

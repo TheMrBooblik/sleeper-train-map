@@ -78,6 +78,7 @@ import {
   formatDurationShort,
 } from "../../lib/officialRowSchedule.mjs";
 import { upcomingRun } from "../../lib/nextDeparture.mjs";
+import { formatClockRange } from "../../lib/nightTimes.mjs";
 
 /** The Notes line for a synthetic card whose train is out of season, or "". */
 function seasonNote(route, dir) {
@@ -148,6 +149,21 @@ function detectGtfsRouteKindFromTrips(relevantTrips) {
   }
 
   return null;
+}
+
+/**
+ * A clock that moves from night to night: "20:01–21:01", and under it the
+ * time most nights keep where one does (src/lib/nightTimes.mjs).
+ */
+function NightClockRange({ range }) {
+  return (
+    <>
+      {formatClockRange(range)}
+      <div className="text-xs font-normal text-gray-500">
+        {range.usual ? `usually ${range.usual}` : "varies by night"}
+      </div>
+    </>
+  );
 }
 
 function formatCalendarDate(value) {
@@ -1563,6 +1579,28 @@ const TrainDetailPanel = ({
                   nightjetStations?.[nightjetStations.length - 1]?.arrival ||
                   nightjetStations?.[nightjetStations.length - 1]?.departure ||
                   null;
+                // Nightjet's clock moves from night to night (engineering
+                // works): the stop list is one run's, so where the next weeks'
+                // nights leave or arrive at other times, the tiles print the
+                // range instead of that run's time (src/lib/nightTimes.mjs).
+                const nightTimes =
+                  tripRoute?.timetable_source === "nightjet" &&
+                  nightjetTrain?.nightTimes?.varies
+                    ? nightjetTrain.nightTimes
+                    : null;
+                const nightTimesRunDate = (() => {
+                  const iso = nightjetStations?.[0]?.departure;
+                  const t = iso ? Date.parse(iso) : NaN;
+                  if (!nightTimes || !Number.isFinite(t)) return "";
+                  // Client-only component (the map never renders on the
+                  // server), so Intl cannot cost a hydration mismatch here.
+                  return new Date(t).toLocaleDateString("en-GB", {
+                    timeZone: "Europe/Vienna",
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                  });
+                })();
                 const itStations = Array.isArray(itTrain?.stations)
                   ? itTrain.stations
                   : [];
@@ -2035,7 +2073,10 @@ const TrainDetailPanel = ({
                             Departure
                           </div>
                           <div className="font-semibold text-gray-900">
-                            {pkpOriginDeparture ||
+                            {nightTimes?.departure.varies ? (
+                              <NightClockRange range={nightTimes.departure} />
+                            ) : (
+                              pkpOriginDeparture ||
                               naOriginDeparture ||
                               esOriginDeparture ||
                               sourceOriginDeparture ||
@@ -2044,7 +2085,8 @@ const TrainDetailPanel = ({
                                 trip.origin_departure_time ||
                                   nightjetOriginDeparture ||
                                   itOriginDeparture,
-                              )}
+                              )
+                            )}
                           </div>
                         </div>
                         <div className="rounded-md bg-gray-50 p-2">
@@ -2052,7 +2094,10 @@ const TrainDetailPanel = ({
                             Arrival
                           </div>
                           <div className="font-semibold text-gray-900">
-                            {pkpDestinationArrival ||
+                            {nightTimes?.arrival.varies ? (
+                              <NightClockRange range={nightTimes.arrival} />
+                            ) : (
+                              pkpDestinationArrival ||
                               naDestinationArrival ||
                               esDestinationArrival ||
                               sourceDestinationArrival ||
@@ -2061,10 +2106,34 @@ const TrainDetailPanel = ({
                                 trip.destination_arrival_time ||
                                   nightjetDestinationArrival ||
                                   itDestinationArrival,
-                              )}
+                              )
+                            )}
                           </div>
                         </div>
                       </div>
+                    )}
+
+                    {nightTimes && (
+                      <p
+                        className="text-xs text-gray-500"
+                        data-testid="night-times-note"
+                      >
+                        This train&apos;s times change from night to night
+                        {nightTimesRunDate
+                          ? `; the stops below are for ${nightTimesRunDate}`
+                          : ""}
+                        .{" "}
+                        {trainPageSlug && (
+                          <Link
+                            href={`/connections/${trainPageSlug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline underline-offset-2 hover:text-gray-700"
+                          >
+                            Times for each night
+                          </Link>
+                        )}
+                      </p>
                     )}
 
                     {/* Back-on-Track's `duration` was computed from the times

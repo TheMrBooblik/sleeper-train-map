@@ -44,6 +44,7 @@ import {
 } from "../fareClasses.mjs";
 import { eurHintFor, formatEurApprox } from "../fx.mjs";
 import { fareCalendarDays } from "../fareCalendarView.mjs";
+import { journeyTimesTheEnds } from "../nightTimes.mjs";
 import { punctualitySummary } from "../punctuality.mjs";
 import { buildDatedBookingLink, buildDealsLandingUrl } from "../operatorBooking.js";
 import { lastMinuteProgramme } from "../lastMinuteDeals.mjs";
@@ -495,6 +496,9 @@ function fareCalendarFor(route, dir, { origin, destination, today }) {
     bookingDate: link ? link.dateFor : () => null,
     bookingTimes: link ? link.timesFor : () => null,
     compartmentSize: programme?.compartmentSize ?? 5,
+    // Each night's own clock retimes the stop list, but only where it was
+    // read at the train's own ends (src/lib/nightTimes.mjs).
+    timed: journeyTimesTheEnds(calendar.journey, origin, destination),
   });
   if (!view) return null;
   // A last-minute deal is sold from the operator's promo page, not through

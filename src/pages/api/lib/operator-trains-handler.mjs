@@ -6,6 +6,7 @@
 //          "404"   → 404 when absent or stale (legacy cd-trains behaviour)
 
 import { getTrainsBySource, isFresh } from "./file-store.mjs";
+import { journeyTimesTheEnds, nightTimesSummary } from "../../../lib/nightTimes.mjs";
 
 /**
  * The trains file as the browser needs it: without each train's fareCalendar.
@@ -14,6 +15,11 @@ import { getTrainsBySource, isFresh } from "./file-store.mjs";
  * from here, and the panel fetches this file whole — Nightjet's calendars
  * alone are ~87 KB of it. The cached blob is never mutated: the copy is
  * memoised per blob, so a warm lambda strips once.
+ *
+ * What the panel does need from the calendar is how the train's clock moves
+ * from night to night, so a train whose calendar times its own ends gets
+ * `nightTimes` in its place (src/lib/nightTimes.mjs): a few dozen bytes
+ * saying NJ 403 leaves between 20:01 and 21:01.
  */
 const served = new WeakMap();
 export function servedTrainsData(data) {
@@ -25,8 +31,15 @@ export function servedTrainsData(data) {
     trains: Object.fromEntries(
       Object.entries(trains).map(([key, train]) => {
         if (!train?.fareCalendar) return [key, train];
-        const { fareCalendar: _calendar, ...rest } = train;
-        return [key, rest];
+        const { fareCalendar: calendar, ...rest } = train;
+        const stations = Array.isArray(train.stations) ? train.stations : [];
+        const ownEnds = journeyTimesTheEnds(
+          calendar.journey,
+          stations[0]?.name,
+          stations[stations.length - 1]?.name,
+        );
+        const nightTimes = ownEnds ? nightTimesSummary(calendar) : null;
+        return [key, nightTimes ? { ...rest, nightTimes } : rest];
       }),
     ),
   };
