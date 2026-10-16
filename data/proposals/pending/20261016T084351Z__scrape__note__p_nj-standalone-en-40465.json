@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-40465",
+  "createdAt": "2026-10-16T08:43:51.070Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: EN 40465 (Zürich HB – Zagreb Glavni Kolod.)",
+  "summary": "Material change on an approved route (already live — FYI): operator: \"ÖBB\" → \"HŽPP\"",
+  "target": {
+    "routeKey": "nj_standalone_EN_40465",
+    "agencyId": "HŽPP",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operator": "ÖBB"
+  },
+  "after": {
+    "operator": "HŽPP"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
