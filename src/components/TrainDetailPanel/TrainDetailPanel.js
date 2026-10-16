@@ -60,6 +60,7 @@ import {
 } from "../../lib/europeanSleeper.mjs";
 import BookingActions from "./BookingActions";
 import BookingGuide from "../BookingGuide";
+import { liftForDarkMap } from "../../lib/mapTheme.mjs";
 import { getBookingGuide, guideProps } from "../../lib/bookingGuide.mjs";
 import SuggestEditModal from "../SuggestEdit/SuggestEditModal";
 import {
@@ -159,7 +160,7 @@ function NightClockRange({ range }) {
   return (
     <>
       {formatClockRange(range)}
-      <div className="text-xs font-normal text-gray-500">
+      <div className="text-xs font-normal text-gray-500 dark:text-zinc-400">
         {range.usual ? `usually ${range.usual}` : "varies by night"}
       </div>
     </>
@@ -273,6 +274,14 @@ function matchesEndpoint(stopName, tripEndpoint) {
   return a.includes(b) || b.includes(a);
 }
 
+// The pricing badge's palette was picked for white; on the dark theme its
+// text colour is lifted the same way route lines are, and its translucent
+// background carries over as is.
+function darkBadgeStyle(style, isDark) {
+  if (!isDark || !style?.color) return style;
+  return { ...style, color: liftForDarkMap(style.color) };
+}
+
 const TrainDetailPanel = ({
   isOpen,
   onClose,
@@ -281,6 +290,7 @@ const TrainDetailPanel = ({
   viewMapData,
   selectedStation,
   firstDirectionByRoute,
+  isDarkMap = false,
 }) => {
   const { agencies } = useAgencies();
   // Both of these are fallbacks for rendering this panel without the map's own
@@ -1200,7 +1210,7 @@ const TrainDetailPanel = ({
       )}
       <div
         ref={sheetRef}
-        className={`fixed z-[1000] bg-white shadow-lg transition-all duration-300 overflow-y-auto overscroll-y-none bottom-0 left-0 right-0 rounded-t-2xl ${
+        className={`fixed z-[1000] bg-white dark:bg-zinc-900 dark:text-zinc-100 shadow-lg transition-all duration-300 overflow-y-auto overscroll-y-none bottom-0 left-0 right-0 rounded-t-2xl ${
           expanded ? "h-[88dvh]" : "h-[55dvh]"
         } pb-[env(safe-area-inset-bottom,0px)] md:top-13 md:right-0 md:bottom-auto md:left-auto md:rounded-none md:h-[calc(100vh-3rem)] md:w-[300px] md:translate-y-0 md:pb-0 ${
           isOpen
@@ -1210,22 +1220,22 @@ const TrainDetailPanel = ({
       >
         {/* Mobile drag handle — swipe down to dismiss (same pattern as WelcomeTour). */}
         <div
-          className="md:hidden sticky top-0 z-20 flex touch-none cursor-grab active:cursor-grabbing justify-center pt-2 pb-1 shrink-0 bg-white"
+          className="md:hidden sticky top-0 z-20 flex touch-none cursor-grab active:cursor-grabbing justify-center pt-2 pb-1 shrink-0 bg-white dark:bg-zinc-900"
           onPointerDown={onSheetDragStart}
           onPointerMove={onSheetDragMove}
           onPointerUp={onSheetDragEnd}
           onPointerCancel={onSheetDragEnd}
         >
-          <div className="w-10 h-1 rounded-full bg-gray-300" aria-hidden />
+          <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-zinc-600" aria-hidden />
         </div>
         {/* Header */}
-        <div className="sticky bg-white border-b border-gray-200 pl-5 py-1 flex items-center justify-between z-10">
-          <h2 className="text-base font-semibold text-gray-900">
+        <div className="sticky bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700 pl-5 py-1 flex items-center justify-between z-10">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-zinc-100">
             Train Details
           </h2>
           <button
             onClick={onClose}
-            className="text-xl leading-none text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded w-5 h-5 p-5 cursor-pointer flex items-center justify-center transition-colors"
+            className="text-xl leading-none text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-zinc-100 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded w-5 h-5 p-5 cursor-pointer flex items-center justify-center transition-colors"
             aria-label="Close panel"
             title="Close (ESC)"
           >
@@ -1236,7 +1246,7 @@ const TrainDetailPanel = ({
         {/* Content */}
         <div className="p-4 space-y-4 mb-10">
           {tripsToRender.length === 0 ? (
-            <div className="text-gray-500 text-sm">
+            <div className="text-gray-500 dark:text-zinc-400 text-sm">
               {routesLoading ||
               tripsLoading ||
               nightjetLoading ||
@@ -1250,7 +1260,7 @@ const TrainDetailPanel = ({
               esLoading ? (
                 <span className="flex items-center gap-2">
                   <span
-                    className="inline-block w-3.5 h-3.5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"
+                    className="inline-block w-3.5 h-3.5 border-2 border-gray-300 dark:border-zinc-600 border-t-blue-500 rounded-full animate-spin"
                     aria-hidden
                   />
                   Loading train details...
@@ -1262,59 +1272,63 @@ const TrainDetailPanel = ({
           ) : (
             <>
               {gtfsLoadFailed && gtfsRouteKind && (
-                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded p-2">
                   Detailed stop schedule is currently unavailable.
                 </div>
               )}
               {nightjetLoadFailed && fallbackTrips.length > 0 && (
-                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded p-2">
                   NightJet timetable is currently unavailable.
                 </div>
               )}
               {cdLoadFailed && isECTrip(relevantTrips) && (
-                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded p-2">
                   Czech Railways timetable is currently unavailable.
                 </div>
               )}
               {chineseLoadFailed && hasCRFallback && (
-                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded p-2">
                   China Railway station list is currently unavailable.
                 </div>
               )}
               {italianLoadFailed && hasFSFallback && (
-                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded p-2">
                   Italian Railways timetable is currently unavailable.
                 </div>
               )}
               {caucasusLoadFailed && hasCaucasusFallback && (
-                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded p-2">
                   Caucasus Railways station list is currently unavailable.
                 </div>
               )}
               {curatedLoadFailed && hasCuratedFallback && (
-                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded p-2">
                   Detailed timetable is currently unavailable.
                 </div>
               )}
               {naLoadFailed && hasNAFallback && (
-                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded p-2">
                   Amtrak / VIA Rail timetable is currently unavailable.
                 </div>
               )}
               {esLoadFailed && hasESTrips && (
-                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded p-2">
                   European Sleeper timetable is currently unavailable.
                 </div>
               )}
               {sourceFeedLoadFailed && sourceFeedRequired && (
-                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded p-2">
                   Detailed timetable is currently unavailable.
                 </div>
               )}
 
               {orderedTrips.map((trip, index) => {
                 // Operator brand color for accent styling
-                const operatorColor = getOperatorBaseColor(trip);
+                // Lifted on the dark theme: it is printed as text (the train
+                // chip) and a navy brand colour is unreadable on zinc-900.
+                const operatorColor = isDarkMap
+                  ? liftForDarkMap(getOperatorBaseColor(trip))
+                  : getOperatorBaseColor(trip);
                 const normalizedTrainNumber = normalizeTrainNumber(
                   trip.trip_short_name,
                 );
@@ -1801,7 +1815,10 @@ const TrainDetailPanel = ({
                     }
                   : null;
                 const pricingLabel = formatPricingLabel(pricing);
-                const pricingBadgeStyle = getPricingBadgeStyle(pricing);
+                const pricingBadgeStyle = darkBadgeStyle(
+                  getPricingBadgeStyle(pricing),
+                  isDarkMap,
+                );
                 // Keyed to the SELLING agency, because a deals page is a
                 // selling-side thing and BookingActions renders that link right
                 // below — the two must not disagree about whether one exists.
@@ -1812,7 +1829,7 @@ const TrainDetailPanel = ({
                 return (
                   <div
                     key={`${trip.trip_id}-${index}`}
-                    className="rounded-xl space-y-2 bg-white pb-3 border-b border-gray-100 last:border-b-0"
+                    className="rounded-xl space-y-2 bg-white dark:bg-zinc-900 pb-3 border-b border-gray-100 dark:border-zinc-800 last:border-b-0"
                     style={{
                       borderLeft: `3px solid ${operatorColor}`,
                       paddingLeft: "12px",
@@ -1875,7 +1892,7 @@ const TrainDetailPanel = ({
                             })}
                           </div>
                         )}
-                        <div className="text-sm font-medium text-gray-900 truncate">
+                        <div className="text-sm font-medium text-gray-900 dark:text-zinc-100 truncate">
                           {operatorName}
                         </div>
                       </div>
@@ -1911,7 +1928,7 @@ const TrainDetailPanel = ({
                         "?" opens what it means for booking (PricingExplainer). */}
                     {pricingLabel && pricingBadgeStyle && (
                       <div className="flex items-start gap-2">
-                        <span className="text-xs text-gray-500 uppercase mt-0.5">
+                        <span className="text-xs text-gray-500 dark:text-zinc-400 uppercase mt-0.5">
                           Price
                         </span>
                         <PricingExplainer
@@ -1929,21 +1946,21 @@ const TrainDetailPanel = ({
                         source quotes them (12306 does). */}
                     {fareRows.length > 0 && (
                       <div className="space-y-1" data-testid="fare-classes">
-                        <div className="text-xs text-gray-500 uppercase">
+                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
                           Fares
                         </div>
                         <ul className="space-y-0.5">
                           {fareRows.map((f) => (
                             <li
                               key={f.key}
-                              className="text-xs text-gray-700"
+                              className="text-xs text-gray-700 dark:text-zinc-300"
                             >
                               {f.label}{" "}
-                              <span className="font-semibold text-gray-900">
+                              <span className="font-semibold text-gray-900 dark:text-zinc-100">
                                 {f.price}
                               </span>
                               {chipDates && f.date && (
-                                <span className="text-gray-500">
+                                <span className="text-gray-500 dark:text-zinc-400">
                                   {" "}
                                   · {formatTravelDateShort(f.date)}
                                 </span>
@@ -1957,7 +1974,7 @@ const TrainDetailPanel = ({
                           pricing?.type === "dynamic" &&
                           formatTravelDate(sharedFareDate) && (
                           <div
-                            className="text-xs text-gray-500"
+                            className="text-xs text-gray-500 dark:text-zinc-400"
                             data-testid="fare-travel-date"
                           >
                             Lowest fares{" "}
@@ -1968,7 +1985,7 @@ const TrainDetailPanel = ({
                             night's quote: say whose range it is. */}
                         {fareBasisLabel(dirFare) && (
                           <div
-                            className="text-xs text-gray-500"
+                            className="text-xs text-gray-500 dark:text-zinc-400"
                             data-testid="fare-basis"
                           >
                             {fareBasisLabel(dirFare)}
@@ -1979,10 +1996,10 @@ const TrainDetailPanel = ({
 
                     {/* Route */}
                     <div className="space-y-1">
-                      <div className="text-xs text-gray-500 uppercase">
+                      <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
                         Route
                       </div>
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-gray-900 dark:text-zinc-100">
                         {abbreviateStationName(
                           esOrigin || officialRow?.origin || trip.trip_origin,
                         )}{" "}
@@ -1994,7 +2011,7 @@ const TrainDetailPanel = ({
                         )}
                       </div>
                       {viaSummary && (
-                        <div className="text-xs text-gray-600">
+                        <div className="text-xs text-gray-600 dark:text-zinc-400">
                           via {abbreviateStationName(viaSummary)}
                         </div>
                       )}
@@ -2006,7 +2023,7 @@ const TrainDetailPanel = ({
                           href={tripRoute.info_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
                         >
                           About this route
                           <FiExternalLink className="h-3 w-3 shrink-0" aria-hidden />
@@ -2017,7 +2034,7 @@ const TrainDetailPanel = ({
                     {/* Bus replacement notice */}
                     {busConnectors.length > 0 && (
                       <div className="space-y-1">
-                        <div className="text-xs text-gray-500 uppercase">
+                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
                           Connections
                         </div>
                         {busConnectors.map((seg, i) => {
@@ -2026,12 +2043,7 @@ const TrainDetailPanel = ({
                           return (
                             <div
                               key={i}
-                              className="flex items-start gap-2 text-xs rounded p-2"
-                              style={{
-                                background: "#fff4ec",
-                                border: "1px solid #f5c09a",
-                                color: "#a3450c",
-                              }}
+                              className="flex items-start gap-2 text-xs rounded p-2 border bg-[#fff4ec] border-[#f5c09a] text-[#a3450c] dark:bg-orange-950/40 dark:border-orange-800/60 dark:text-orange-300"
                             >
                               <span style={{ fontSize: "0.9em" }}>🚌</span>
                               <span>
@@ -2068,11 +2080,11 @@ const TrainDetailPanel = ({
                           itDestinationArrival,
                       )) && (
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="rounded-md bg-gray-50 p-2">
-                          <div className="text-xs text-gray-500 uppercase">
+                        <div className="rounded-md bg-gray-50 dark:bg-zinc-800/60 p-2">
+                          <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
                             Departure
                           </div>
-                          <div className="font-semibold text-gray-900">
+                          <div className="font-semibold text-gray-900 dark:text-zinc-100">
                             {nightTimes?.departure.varies ? (
                               <NightClockRange range={nightTimes.departure} />
                             ) : (
@@ -2089,11 +2101,11 @@ const TrainDetailPanel = ({
                             )}
                           </div>
                         </div>
-                        <div className="rounded-md bg-gray-50 p-2">
-                          <div className="text-xs text-gray-500 uppercase">
+                        <div className="rounded-md bg-gray-50 dark:bg-zinc-800/60 p-2">
+                          <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
                             Arrival
                           </div>
-                          <div className="font-semibold text-gray-900">
+                          <div className="font-semibold text-gray-900 dark:text-zinc-100">
                             {nightTimes?.arrival.varies ? (
                               <NightClockRange range={nightTimes.arrival} />
                             ) : (
@@ -2115,7 +2127,7 @@ const TrainDetailPanel = ({
 
                     {nightTimes && (
                       <p
-                        className="text-xs text-gray-500"
+                        className="text-xs text-gray-500 dark:text-zinc-400"
                         data-testid="night-times-note"
                       >
                         This train&apos;s times change from night to night
@@ -2128,7 +2140,7 @@ const TrainDetailPanel = ({
                             href={`/connections/${trainPageSlug}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="underline underline-offset-2 hover:text-gray-700"
+                            className="underline underline-offset-2 hover:text-gray-700 dark:hover:text-zinc-300"
                           >
                             Times for each night
                           </Link>
@@ -2144,7 +2156,7 @@ const TrainDetailPanel = ({
                       sourceDuration ||
                       officialRow?.durationText ||
                       trip.duration) && (
-                      <div className="text-xs text-gray-600">
+                      <div className="text-xs text-gray-600 dark:text-zinc-400">
                         Duration:{" "}
                         {esDuration ||
                           sourceDuration ||
@@ -2160,7 +2172,7 @@ const TrainDetailPanel = ({
                       trip.service_id ||
                       getRouteFrequencyOverride(trip.route_id)) && (
                       <div className="space-y-1">
-                        <div className="text-xs text-gray-500 uppercase">
+                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
                           Frequency
                         </div>
                         <div className="text-sm">
@@ -2182,7 +2194,7 @@ const TrainDetailPanel = ({
                                         href={override.sourceUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-blue-600 hover:underline"
+                                        className="text-blue-600 dark:text-blue-400 hover:underline"
                                       >
                                         Details
                                       </a>
@@ -2206,7 +2218,7 @@ const TrainDetailPanel = ({
                     {/* Classes Available */}
                     {trip.classes && (
                       <div className="space-y-1">
-                        <div className="text-xs text-gray-500 uppercase">
+                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
                           Classes
                         </div>
                         <div className="text-sm capitalize">{trip.classes}</div>
@@ -2216,10 +2228,10 @@ const TrainDetailPanel = ({
                     {/* Irregularities/Notes */}
                     {trip.irregularities && (
                       <div className="space-y-1">
-                        <div className="text-xs text-gray-500 uppercase">
+                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
                           Notes
                         </div>
-                        <div className="text-xs text-amber-700 bg-amber-50 p-2 rounded">
+                        <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2 rounded">
                           {trip.irregularities}
                         </div>
                       </div>
@@ -2230,7 +2242,7 @@ const TrainDetailPanel = ({
                         rather than below, so it reads next to the times while
                         they are still collapsed. */}
                     {scheduleLink && (
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-gray-400 dark:text-zinc-500">
                         <a
                           href={scheduleLink.url}
                           target="_blank"
@@ -2239,7 +2251,7 @@ const TrainDetailPanel = ({
                               ? "sponsored nofollow noopener noreferrer"
                               : "noopener noreferrer"
                           }
-                          className="inline-flex items-center gap-1 hover:text-gray-600 hover:underline"
+                          className="inline-flex items-center gap-1 hover:text-gray-600 dark:hover:text-zinc-400 hover:underline"
                         >
                           {scheduleLink.label}
                           <FiExternalLink
@@ -2253,31 +2265,31 @@ const TrainDetailPanel = ({
                     {/* Dated timetable changes: the card above is the usual
                         timetable, these are the nights it is not. */}
                     {upcomingChanges.length > 0 && (
-                      <details className="rounded-md bg-amber-50">
+                      <details className="rounded-md bg-amber-50 dark:bg-amber-950/40">
                         <summary className="cursor-pointer list-none px-2 py-1.5 flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium text-amber-900">
+                          <span className="text-xs font-medium text-amber-900 dark:text-amber-100">
                             Timetable changes in the next 2 weeks (
                             {upcomingChangeNights}{" "}
                             {upcomingChangeNights === 1 ? "night" : "nights"})
                           </span>
                           <span
-                            className="inline-flex items-center justify-center h-5 w-5 text-amber-700"
+                            className="inline-flex items-center justify-center h-5 w-5 text-amber-700 dark:text-amber-300"
                             aria-hidden
                           >
                             <FiChevronDown className="h-4 w-4" />
                           </span>
                         </summary>
                         <div className="px-2 pb-2 space-y-1.5">
-                          <div className="text-xs text-amber-800">
+                          <div className="text-xs text-amber-800 dark:text-amber-200">
                             From the operator&apos;s timetable data, usually
                             engineering works. Check the night you travel.
                           </div>
                           {upcomingChanges.map((change) => (
                             <div
                               key={change.dates[0]}
-                              className="rounded bg-white px-2 py-1.5 text-xs space-y-1"
+                              className="rounded bg-white dark:bg-zinc-900 px-2 py-1.5 text-xs space-y-1"
                             >
-                              <div className="text-gray-800">
+                              <div className="text-gray-800 dark:text-zinc-200">
                                 <span className="font-medium">
                                   {change.dates.length > 1
                                     ? `${formatPlanDate(change.dates[0])} – ${formatPlanDate(change.dates[change.dates.length - 1])}`
@@ -2288,12 +2300,12 @@ const TrainDetailPanel = ({
                                 stops
                               </div>
                               {change.skipped.length > 0 && (
-                                <div className="text-gray-500">
+                                <div className="text-gray-500 dark:text-zinc-400">
                                   Not calling at: {change.skipped.join(", ")}
                                 </div>
                               )}
                               {change.added.length > 0 && (
-                                <div className="text-gray-500">
+                                <div className="text-gray-500 dark:text-zinc-400">
                                   Also calls at: {change.added.join(", ")}
                                 </div>
                               )}
@@ -2306,10 +2318,10 @@ const TrainDetailPanel = ({
                                       key={night.date}
                                       className="grid grid-cols-[1fr_auto_auto] items-center gap-2 py-0.5"
                                     >
-                                      <span className="text-gray-700">
+                                      <span className="text-gray-700 dark:text-zinc-300">
                                         {label}
                                       </span>
-                                      <span className="text-gray-600 tabular-nums whitespace-nowrap">
+                                      <span className="text-gray-600 dark:text-zinc-400 tabular-nums whitespace-nowrap">
                                         {night.departure || "--"} →{" "}
                                         {night.arrival || "--"}
                                       </span>
@@ -2320,7 +2332,7 @@ const TrainDetailPanel = ({
                                           rel="noopener noreferrer"
                                           aria-label={`Check ${label} on the operator's site`}
                                           title="Check this night on the operator's site"
-                                          className="text-gray-400 hover:text-gray-600"
+                                          className="text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-400"
                                         >
                                           <FiExternalLink
                                             className="h-3 w-3"
@@ -2342,13 +2354,13 @@ const TrainDetailPanel = ({
 
                     {/* Accordion: all stations with arrival/departure times */}
                     {schedule?.stops?.length > 0 && (
-                      <details className="rounded-md bg-gray-50">
+                      <details className="rounded-md bg-gray-50 dark:bg-zinc-800/60">
                         <summary className="cursor-pointer list-none px-2 py-1.5 flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium text-gray-900">
+                          <span className="text-xs font-medium text-gray-900 dark:text-zinc-100">
                             Show all stations ({schedule.stops.length})
                           </span>
                           <span
-                            className="inline-flex items-center justify-center h-5 w-5 text-gray-500 transition-transform duration-200 group-open:rotate-180"
+                            className="inline-flex items-center justify-center h-5 w-5 text-gray-500 dark:text-zinc-400 transition-transform duration-200 group-open:rotate-180"
                             aria-hidden
                           >
                             <FiChevronDown className="h-4 w-4" />
@@ -2356,24 +2368,24 @@ const TrainDetailPanel = ({
                         </summary>
                         <div className="px-2 pb-2 space-y-1">
                           {(validFrom || validUntil) && (
-                            <div className="text-xs text-gray-600">
+                            <div className="text-xs text-gray-600 dark:text-zinc-400">
                               Valid: {validFrom || "?"} - {validUntil || "?"}
                             </div>
                           )}
                           {schedule?.days && (
-                            <div className="text-xs text-gray-600">
+                            <div className="text-xs text-gray-600 dark:text-zinc-400">
                               Runs: {schedule.days}
                             </div>
                           )}
-                          <div className="rounded bg-white">
+                          <div className="rounded bg-white dark:bg-zinc-900">
                             {schedule.stops.map((stop) => (
                               <div
                                 key={`${schedule.tripId}-${stop.sequence}-${stop.stopId}`}
-                                className="grid grid-cols-[1fr_auto] gap-2 px-2 py-1.5 text-xs border-b border-gray-50 last:border-b-0"
+                                className="grid grid-cols-[1fr_auto] gap-2 px-2 py-1.5 text-xs border-b border-gray-50 dark:border-zinc-800 last:border-b-0"
                               >
-                                <div className="text-gray-800">{stop.name}</div>
+                                <div className="text-gray-800 dark:text-zinc-200">{stop.name}</div>
                                 {(stop.arrival || stop.departure) && (
-                                  <div className="text-gray-600 tabular-nums whitespace-nowrap">
+                                  <div className="text-gray-600 dark:text-zinc-400 tabular-nums whitespace-nowrap">
                                     {stop.arrival || "--"} /{" "}
                                     {stop.departure || "--"}
                                   </div>
@@ -2389,34 +2401,34 @@ const TrainDetailPanel = ({
                         Hidden for PKP trains — the Polish GTFS feed already
                         covers the full corridor and takes priority. */}
                     {!pkpSchedule && cdSchedule?.stops?.length > 0 && (
-                      <details className="rounded-md bg-gray-50">
+                      <details className="rounded-md bg-gray-50 dark:bg-zinc-800/60">
                         <summary className="cursor-pointer list-none px-2 py-1.5 flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium text-gray-900">
+                          <span className="text-xs font-medium text-gray-900 dark:text-zinc-100">
                             Show all stations ({cdSchedule.stops.length})
                           </span>
                           <span
-                            className="inline-flex items-center justify-center h-5 w-5 text-gray-500 transition-transform duration-200 group-open:rotate-180"
+                            className="inline-flex items-center justify-center h-5 w-5 text-gray-500 dark:text-zinc-400 transition-transform duration-200 group-open:rotate-180"
                             aria-hidden
                           >
                             <FiChevronDown className="h-4 w-4" />
                           </span>
                         </summary>
                         <div className="px-2 pb-2 space-y-1">
-                          <div className="rounded bg-white">
+                          <div className="rounded bg-white dark:bg-zinc-900">
                             {cdSchedule.stops.map((stop, i) => (
                               <div
                                 key={`cd-${cdSchedule.trainNumber}-${i}`}
-                                className="grid grid-cols-[1fr_auto] gap-2 px-2 py-1.5 text-xs border-b border-gray-50 last:border-b-0"
+                                className="grid grid-cols-[1fr_auto] gap-2 px-2 py-1.5 text-xs border-b border-gray-50 dark:border-zinc-800 last:border-b-0"
                               >
-                                <div className="text-gray-800">{stop.name}</div>
-                                <div className="text-gray-600 tabular-nums whitespace-nowrap">
+                                <div className="text-gray-800 dark:text-zinc-200">{stop.name}</div>
+                                <div className="text-gray-600 dark:text-zinc-400 tabular-nums whitespace-nowrap">
                                   {stop.arrival || "--"} /{" "}
                                   {stop.departure || "--"}
                                 </div>
                               </div>
                             ))}
                           </div>
-                          <div className="text-xs text-gray-400 pt-1">
+                          <div className="text-xs text-gray-400 dark:text-zinc-500 pt-1">
                             <a
                               href={`https://www.cd.cz/en/vlak/${numericTrainNumber}`}
                               target="_blank"
@@ -2469,7 +2481,7 @@ const TrainDetailPanel = ({
                           agencyId: trip.agency_id || null,
                         })
                       }
-                      className="w-full text-center text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2 pt-1"
+                      className="w-full text-center text-xs text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:hover:text-zinc-300 underline underline-offset-2 pt-1"
                     >
                       Suggest an edit / report wrong data
                     </button>

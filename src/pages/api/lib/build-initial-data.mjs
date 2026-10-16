@@ -290,6 +290,42 @@ function applyStationRenames(trains, renames) {
 // with decoded polylines, pairing each direction with its reverse where found.
 // Shared by NJ, Chinese, Italian and Caucasus sources; per-source differences
 // are passed as options.
+/**
+ * Reverse-direction partners for synthetic trains, period-aware: lineName ->
+ * the lineName of its return. Same-period pairs first (both running now, or
+ * both on sale for a later run), then whatever is left pairs across periods,
+ * each pass in feed order so the result is stable between builds.
+ */
+function pairByPeriod(trainList, resolveName, nextDeparture) {
+  const ends = new Map(
+    trainList.map(([k, v]) => [
+      k,
+      {
+        from: resolveName(v.stations?.[0]?.name),
+        to: resolveName(v.stations?.[v.stations.length - 1]?.name),
+        later: Boolean(upcomingDepartureForTrain(v, { timeZone: nextDeparture.timeZone })),
+      },
+    ]),
+  );
+  const partnerOf = new Map();
+  for (const samePeriodOnly of [true, false]) {
+    for (const [k] of trainList) {
+      if (partnerOf.has(k)) continue;
+      const a = ends.get(k);
+      const match = trainList.find(([j]) => {
+        if (j === k || partnerOf.has(j)) return false;
+        const b = ends.get(j);
+        return b.from === a.to && b.to === a.from && (!samePeriodOnly || b.later === a.later);
+      });
+      if (match) {
+        partnerOf.set(k, match[0]);
+        partnerOf.set(match[0], k);
+      }
+    }
+  }
+  return partnerOf;
+}
+
 function appendSyntheticRoutes(
   viewMap,
   trainList,
@@ -317,17 +353,33 @@ function appendSyntheticRoutes(
     if (seasonByTrain[lineName]) row[`previous_service_${dir}`] = seasonByTrain[lineName];
   };
   const paired = new Set();
+  // Which train is whose return. A corridor can carry this timetable's train
+  // and next period's under other numbers, and pairing each train with the
+  // first reverse train in feed order joins the wrong ones: nightjet.com lists
+  // NJ 448 Wien→Brussels (running now) and NJ 449 Brussels→Wien (from
+  // February), and that order put them on one row — NJ 449's answer carries
+  // no polyline, so the map drew next February's Frankfurt routing as
+  // straight lines over the train that runs tonight. Where the source dates
+  // its trains by their next run (synthetic.nextDeparture), trains are paired
+  // within their own period first and across periods only from what is left,
+  // so a February train cannot take the partner of one running tonight
+  // (NJ 429 had taken NJ 420 from NJ 421). Without it, the old greedy order.
+  const partnerOf = nextDeparture ? pairByPeriod(trainList, resolveName, nextDeparture) : null;
   trainList.forEach(([lineName, data]) => {
     if (paired.has(lineName)) return;
     const origin = resolveName(data.stations[0].name);
     const dest = resolveName(data.stations[data.stations.length - 1].name);
-    const reversePair = trainList.find(
-      ([k, v]) =>
-        k !== lineName &&
-        !paired.has(k) &&
-        resolveName(v.stations?.[0]?.name) === dest &&
-        resolveName(v.stations?.[v.stations.length - 1]?.name) === origin,
-    );
+    const reversePair = partnerOf
+      ? partnerOf.has(lineName)
+        ? trainList.find(([k]) => k === partnerOf.get(lineName) && !paired.has(k))
+        : undefined
+      : trainList.find(
+          ([k, v]) =>
+            k !== lineName &&
+            !paired.has(k) &&
+            resolveName(v.stations?.[0]?.name) === dest &&
+            resolveName(v.stations?.[v.stations.length - 1]?.name) === origin,
+        );
     const safeId = lineName.replace(/\s+/g, "_");
     // Who runs the row: a train that states its own carrier (agency_id, from a
     // source with synthetic.agency.from "data") decides it, from either

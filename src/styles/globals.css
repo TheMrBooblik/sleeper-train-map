@@ -5,6 +5,11 @@
   --color-primary-green-light: #7fd4b4;
 }
 
+/* `dark:` means the map page's dark theme: <html data-theme="dark">, written
+ * by useMapTheme (Layout) and removed when the map unmounts. The SEO pages are
+ * dark by design and never set it, so `dark:` classes there do nothing. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 html,
 body {
   padding: 0;
@@ -63,6 +68,12 @@ img {
 
 .leaflet-control-zoom a {
   transition: all 0.2s ease;
+}
+
+/* The locate button's idle colour (it used to be set inline, which the dark
+ * theme could not override). */
+.leaflet-bar a.location-control {
+  color: #333;
 }
 
 .leaflet-control-zoom a.zoom-control-active {
@@ -546,4 +557,111 @@ abbr {
 
 .tour-country-carousel::-webkit-scrollbar {
   display: none;
+}
+
+/*
+ * Dark map theme (<html data-theme="dark">, see useMapTheme).
+ *
+ * The basemap is OpenStreetMap's own tiles under a filter rather than a dark
+ * tile service: every dark provider (CARTO, Stadia, MapTiler) is a freemium
+ * API with a view cap. invert + hue-rotate(180deg) turns the light style
+ * into a dark one while keeping water blue and parks green; the rest tones
+ * the result down so labels stay readable and the land does not glare.
+ * Only `.basemap-tiles` is filtered — the OpenRailwayMap overlay colour-codes
+ * track types and must keep its colours.
+ */
+[data-theme="dark"] {
+  --map-overlay-bg: rgba(24, 24, 27, 0.96);
+  --map-overlay-border: rgba(255, 255, 255, 0.1);
+  --map-overlay-title: #f4f4f5;
+  --map-overlay-text: #d4d4d8;
+  --map-overlay-muted: #a1a1aa;
+  --map-overlay-track: #3f3f46;
+  /* Station dots (mapIcons.js, useMapMarkers.js): a white ring glares on the
+   * dark basemap, so the ring takes the map's own dark instead. It still
+   * parts a dot from a line drawn through it. */
+  --station-ring: #18181b;
+}
+
+[data-theme="dark"] .leaflet-container {
+  background-color: #1b1e22;
+}
+
+[data-theme="dark"] .basemap-tiles {
+  filter: invert(1) hue-rotate(180deg) brightness(0.88) contrast(0.92)
+    saturate(0.65);
+}
+
+[data-theme="dark"] .leaflet-bar {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .leaflet-bar a {
+  background-color: #18181b;
+  color: #e4e4e7;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .leaflet-bar a:hover,
+[data-theme="dark"] .leaflet-bar a:focus {
+  background-color: #27272a;
+  color: #fff;
+}
+
+[data-theme="dark"] .leaflet-bar a.leaflet-disabled {
+  background-color: #18181b;
+  color: #52525b;
+}
+
+[data-theme="dark"] .leaflet-control-zoom a.zoom-control-active {
+  color: #60a5fa !important;
+}
+
+/* LocationControl writes these two states inline; !important beats that. */
+[data-theme="dark"] .leaflet-bar a.location-control--locating {
+  background-color: #172554 !important;
+  color: #60a5fa !important;
+}
+
+[data-theme="dark"] .leaflet-bar a.location-control--message {
+  background-color: #422006 !important;
+  color: #fbbf24 !important;
+}
+
+[data-theme="dark"] .leaflet-control-attribution {
+  background: rgba(24, 24, 27, 0.8) !important;
+  color: #a1a1aa;
+}
+
+[data-theme="dark"] .leaflet-control-attribution a {
+  color: #7dd3fc;
+}
+
+[data-theme="dark"] .leaflet-tooltip {
+  background-color: #18181b;
+  border-color: #3f3f46;
+  color: #f4f4f5;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .leaflet-tooltip-top::before {
+  border-top-color: #18181b;
+}
+
+[data-theme="dark"] .leaflet-tooltip-bottom::before {
+  border-bottom-color: #18181b;
+}
+
+[data-theme="dark"] .leaflet-tooltip-left::before {
+  border-left-color: #18181b;
+}
+
+[data-theme="dark"] .leaflet-tooltip-right::before {
+  border-right-color: #18181b;
+}
+
+[data-theme="dark"] .leaflet-popup-content-wrapper,
+[data-theme="dark"] .leaflet-popup-tip {
+  background: #18181b;
+  color: #f4f4f5;
 }

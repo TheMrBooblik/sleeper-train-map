@@ -50,6 +50,7 @@ import { useMapMarkers } from "./hooks/useMapMarkers";
 import LoadingOverlay from "./components/LoadingOverlay";
 import MapClickHandler from "./components/MapClickHandler";
 import MapViewportTracker from "./components/MapViewportTracker";
+import { liftForDarkMap } from "../../lib/mapTheme.mjs";
 import { upcomingRun } from "../../lib/nextDeparture.mjs";
 
 /** Format "YYYY-MM-DD" → "15 January 2026" for the future-route popup. */
@@ -135,6 +136,7 @@ const TrainMap = ({
   showRoutes = true,
   hideIntermediateStations = false,
   showRailwayOverlay = false,
+  isDarkMap = false,
   searchTarget,
   onSearchProcessed,
   onStationSelect,
@@ -857,6 +859,12 @@ const TrainMap = ({
           // tiles, did not.
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           maxZoom={19}
+          // The dark theme is these same tiles under a CSS filter keyed on
+          // this class (globals.css). Static on purpose: Leaflet reads
+          // `className` once, so the theme switches via <html data-theme>
+          // rather than by re-creating the layer. The OpenRailwayMap overlay
+          // has no class, so its colour-coded track types stay unfiltered.
+          className="basemap-tiles"
           {...tileLoadingOptions}
         />
         {showRailwayOverlay && (
@@ -984,6 +992,11 @@ const TrainMap = ({
                   positions={path.positions}
                   pathOptions={{
                     ...path.pathOptions,
+                    // Navy and midnight-blue brands vanish on the dark
+                    // basemap; lifted to a visible lightness, same hue.
+                    color: isDarkMap
+                      ? liftForDarkMap(path.pathOptions.color)
+                      : path.pathOptions.color,
                     cursor: "pointer",
                     opacity: resolvedOpacity,
                     weight: resolvedWeight,
@@ -1012,6 +1025,7 @@ const TrainMap = ({
           trips={trips}
           cities={cities}
           stationCoords={stationCoordsByName}
+          isDarkMap={isDarkMap}
         />
       </div>
 
@@ -1022,6 +1036,7 @@ const TrainMap = ({
         viewMapData={viewMapData}
         selectedStation={selectedStationName}
         firstDirectionByRoute={firstDirectionByRoute}
+        isDarkMap={isDarkMap}
         selectedRouteIds={
           selectedTrainRouteIds?.filter(
             (id) => !shouldHideRouteDueToFutureDate(id, trips, viewMapData?.[id]),

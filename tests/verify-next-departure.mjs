@@ -39,7 +39,9 @@ import {
 } from "../src/lib/nextDeparture.mjs";
 import { buildInitialData } from "../src/pages/api/lib/build-initial-data.mjs";
 import { validateRegistry } from "../scripts/lib/registry.mjs";
-import { fetchTrainForNextRun, richerAnswer } from "../scripts/adapters/nightjet.mjs";
+import { borrowTrackGeometry, fetchTrainForNextRun, richerAnswer } from "../scripts/adapters/nightjet.mjs";
+import { haversineKm } from "../scripts/lib/sibling-path.mjs";
+import polyline from "@mapbox/polyline";
 import {
   getFutureRouteStartDate,
   upcomingPreviewRouteIds,
@@ -229,6 +231,53 @@ await check("build: opt-in per source, and the registry rejects a bad zone", () 
   assert.ok(errors.some((e) => /nextDeparture\.timeZone/.test(e)), errors.join("; "));
 });
 
+await check("build: a train pairs with the return in its own period, and a later one cannot take its partner", () => {
+  // nightjet.com's Wien–Brussels corridor on 15 October 2026, in feed order:
+  // NJ 469 (now), NJ 449 (February, no polyline), NJ 468 (December), NJ 448
+  // (now). Paired by feed order, NJ 448 sat on a row with NJ 449 and the map
+  // drew February's routing as straight lines over tonight's train.
+  const wien = (dep) => at("Wien Hbf", 48.18, 16.38, dep);
+  const bru = (dep) => at("Brüssel Midi", 50.84, 4.34, dep);
+  const nj = (name, stations, polyline) => ({
+    lineName: name, operator: "Nightjet", agency_id: "ÖBB", agencyFrom: "home", fare: null, polyline, lastSeenAt: SEEN, stations,
+  });
+  const trains = {
+    "NJ 469": nj("NJ 469", [bru("2026-10-16T17:06:00.000Z"), wien("2026-10-17T08:00:00.000Z")], "p469"),
+    "NJ 449": nj("NJ 449", [bru("2027-02-08T16:56:00.000Z"), wien("2027-02-09T08:00:00.000Z")], "p449"),
+    "NJ 468": nj("NJ 468", [wien("2026-12-13T18:36:00.000Z"), bru("2026-12-14T09:00:00.000Z")], "p468"),
+    "NJ 448": nj("NJ 448", [wien("2026-10-15T16:13:00.000Z"), bru("2026-10-16T07:59:00.000Z")], "p448"),
+  };
+  const stops = [
+    { stop_id: "Wien Hbf", stop_name: "Wien Hbf", stop_lat: 48.18, stop_lon: 16.38 },
+    { stop_id: "Brüssel Midi", stop_name: "Brüssel Midi", stop_lat: 50.84, stop_lon: 4.34 },
+  ];
+  const vm = buildInitialData({
+    stops, viewMap: {}, trips: {}, operatorTrains: { nightjet: trains },
+    registry: [{ ...structuredClone(NJ_ENTRY), probe: undefined }], seenIndex: null, routePrices: {},
+  }).viewMap;
+  const pairOf = (id) => [vm[id]?.trip_short_name_0, vm[id]?.trip_short_name_1].join(" / ");
+  assert.equal(pairOf("nj_standalone_NJ_469"), "NJ 469 / NJ 448", "the two running tonight");
+  assert.equal(pairOf("nj_standalone_NJ_449"), "NJ 449 / NJ 468", "the two on sale for later");
+  assert.equal(vm.nj_standalone_NJ_469.nj_polyline_1, "p448");
+  // A later train with no same-period partner does not take a running one's:
+  // NJ 429 (February) had taken NJ 420 from NJ 421.
+  const ams = (dep) => at("Amsterdam Centraal", 52.38, 4.9, dep);
+  const ibk = (dep) => at("Innsbruck Hbf", 47.26, 11.4, dep);
+  const vm2 = buildInitialData({
+    stops: [...stops, { stop_id: "Amsterdam Centraal", stop_name: "Amsterdam Centraal", stop_lat: 52.38, stop_lon: 4.9 },
+      { stop_id: "Innsbruck Hbf", stop_name: "Innsbruck Hbf", stop_lat: 47.26, stop_lon: 11.4 }],
+    viewMap: {}, trips: {},
+    operatorTrains: { nightjet: {
+      "NJ 429": nj("NJ 429", [ams("2027-02-07T18:00:00.000Z"), ibk("2027-02-08T08:00:00.000Z")], "p429"),
+      "NJ 421": nj("NJ 421", [ams("2026-10-15T18:00:00.000Z"), ibk("2026-10-16T08:00:00.000Z")], "p421"),
+      "NJ 420": nj("NJ 420", [ibk("2026-10-15T19:00:00.000Z"), ams("2026-10-16T09:00:00.000Z")], "p420"),
+    } },
+    registry: [{ ...structuredClone(NJ_ENTRY), probe: undefined }], seenIndex: null, routePrices: {},
+  }).viewMap;
+  assert.equal([vm2.nj_standalone_NJ_421?.trip_short_name_0, vm2.nj_standalone_NJ_421?.trip_short_name_1].join(" / "), "NJ 421 / NJ 420");
+  assert.equal(vm2.nj_standalone_NJ_429?.trip_short_name_1, undefined, "the February train stands alone");
+});
+
 // ── the adapter ──────────────────────────────────────────────────────────────
 
 const answer = (departure, { polyline = null, stops = 2 } = {}) => ({
@@ -366,6 +415,37 @@ await check("payload: EN 1276/1277 is a summer train whose next season starts 25
       if (!x[`next_departure_${dir}`]) continue;
       assert.ok(x[`next_departure_${dir}`] > "2026-10-29", `${x.route_id} ${x[`next_departure_${dir}`]}`);
     }
+  }
+});
+
+await check("a train sent without a route line is drawn along other trains' track, never as chords", () => {
+  const st = (name, lat, lon) => ({ name, location: { latitude: lat, longitude: lon } });
+  // A donor riding A → B → C along a bend, and a train calling at A and C only.
+  const bend = [];
+  for (let i = 0; i <= 40; i++) bend.push([48 + i * 0.01, 14 + Math.sin(i / 8) * 0.05]);
+  const trains = {
+    "NJ 1": { polyline: polyline.encode(bend), stations: [st("A", 48, 14), st("C", 48.4, bend[40][1])] },
+    "NJ 2": {
+      polyline: polyline.encode([[48, 14], [48.4, bend[40][1]], [52, 4]]),
+      stations: [st("A", 48, 14), st("C", 48.4, bend[40][1]), st("Far", 52, 4)],
+    },
+  };
+  const rebuilt = borrowTrackGeometry(trains, new Set(["NJ 1"]));
+  assert.deepEqual(rebuilt, ["NJ 2 (1/2 stretches)"]);
+  const drawn = polyline.decode(trains["NJ 2"].polyline);
+  assert.ok(drawn.length > 30, "A → C follows the donor's bend");
+  assert.deepEqual(drawn.at(-1), [52, 4], "a stretch no donor rides stays a chord, and every stop stays a vertex");
+  assert.equal(polyline.decode(trains["NJ 1"].polyline).length, 41, "a line of nightjet.com's own is never rewritten");
+
+  // The committed answer for NJ 449: its line was its 16 stops, and is now track.
+  const file = readJson("public/data/scraped/nightjet-trains.json");
+  const nj449 = file.trains?.["NJ 449"] ?? file.data?.trains?.["NJ 449"];
+  if (nj449) {
+    const line = polyline.decode(nj449.polyline);
+    assert.ok(line.length > nj449.stations.length * 10, `NJ 449 has ${line.length} vertices for ${nj449.stations.length} stops`);
+    let worst = 0;
+    for (let i = 0; i < line.length - 1; i++) worst = Math.max(worst, haversineKm(line[i], line[i + 1]));
+    assert.ok(worst < 20, `NJ 449's longest straight stretch is ${worst.toFixed(1)} km`);
   }
 });
 
