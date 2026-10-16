@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-40458",
+  "createdAt": "2026-10-16T08:43:51.070Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: EN 40458 (Praha hl.n. – Zürich HB)",
+  "summary": "Material change on an approved route (already live — FYI): operator: \"ÖBB\" → \"ČD\"",
+  "target": {
+    "routeKey": "nj_standalone_EN_40458",
+    "agencyId": "ČD",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operator": "ÖBB"
+  },
+  "after": {
+    "operator": "ČD"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
