@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-40414",
+  "createdAt": "2026-10-17T08:19:48.139Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: EN 40414 (Zagreb Glavni Kolod. – Zürich HB)",
+  "summary": "Material change on an approved route (already live — FYI): operator: \"ÖBB\" → \"HŽPP\"",
+  "target": {
+    "routeKey": "nj_standalone_EN_40414",
+    "agencyId": "HŽPP",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operator": "ÖBB"
+  },
+  "after": {
+    "operator": "HŽPP"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
