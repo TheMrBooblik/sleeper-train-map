@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-40406",
+  "createdAt": "2026-10-17T08:19:48.139Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: EN 40406 (München Hbf – Warszawa Wschodnia)",
+  "summary": "Material change on an approved route (already live — FYI): operator: \"ÖBB\" → \"PKP\"",
+  "target": {
+    "routeKey": "nj_standalone_EN_40406",
+    "agencyId": "PKP",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operator": "ÖBB"
+  },
+  "after": {
+    "operator": "PKP"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
