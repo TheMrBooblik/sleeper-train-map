@@ -254,11 +254,24 @@ for (const [from, to] of SAMPLES) {
     dateStart: `${dd}/${mm}/${yyyy}`,
     dateEnd: "",
   }, `${from}→${to}`);
-  console.log(`\n<<<GETTRIP\n${JSON.stringify(trips, null, 1)}\n>>>GETTRIP`);
-  for (const name of ["bogies", "seat"]) {
-    const js = await request(new URL(`assets/js/booking/${name}.js`, pageBase).href, { accept: "*/*", referer: formAction });
-    if (!describe(`assets/js/booking/${name}.js`, js)) continue;
-    console.log(`\n<<<SCRIPT ${name} ${js.body.length}\n${js.body}\n>>>SCRIPT ${name}`);
+  const tripList = Array.isArray(trips?.data) ? trips.data : [];
+  console.log(`  ${tripList.length} trips: ${tripList.map((t) => `${t.trainNo} ${t.trainTypeNameEn} ${t.departureTime}→${t.arrivalTime}`).join(" | ")}`);
+  // The coach list with each place's fare: what bogies.js posts to
+  // booking/booking/getTrainCoach before anyone logs in. The first answer is
+  // printed whole, the rest as a digest.
+  for (const [i, trip] of tripList.entries()) {
+    const coaches = await ajax("booking/booking/getTrainCoach", {
+      tripId: String(trip.tripId),
+      provinceStartId: String(start),
+      provinceEndId: String(end),
+    }, `train ${trip.trainNo}`);
+    const results = coaches?.data?.results ?? [];
+    if (i === 0 || trip.trainNo === "9") console.log(`\n<<<COACHES ${trip.trainNo}\n${JSON.stringify(coaches, null, 1).slice(0, 30_000)}\n>>>COACHES`);
+    console.log(`  train ${trip.trainNo}: ${coaches?.errorCode}, ${results.length} coaches, keys ${JSON.stringify(Object.keys(results[0] ?? {}))}`);
+    for (const c of results) {
+      const seats = (c.coachSeats ?? []).map((x) => `${x.seatTypNameEn ?? x.seatTypNameTh}=${x.seatFeeAmt}`).join(", ");
+      console.log(`    ${c.coachDesc} | class ${c.coachClass} ${c.coachClassDescEn ?? ""} | ${c.coachSeatTypeEn ?? ""} | ${c.coachAirTypeEn ?? ""} | avail ${c.availableSeatCount} | ${seats}`);
+    }
   }
 
 }
