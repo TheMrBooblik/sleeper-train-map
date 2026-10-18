@@ -242,35 +242,16 @@ for (const [from, to] of SAMPLES) {
     }
   }
   dumps.push([`search ${from}→${to}`, page.body]);
-  // The whole results page, once, between markers: the trip list is built by
-  // code this probe has not found by pattern, so read it whole offline.
-  console.log(`\n<<<RESULTS-PAGE ${page.body.length}\n${page.body}\n>>>RESULTS-PAGE`);
-
-  // The results page fills itself from an external script (showTrips). Find
-  // it and every call it makes, with the context around showTrips.
-  if (from === SAMPLES[0][0]) {
-    const pageBase = base(page.body, formAction);
-    const allSrcs = [...page.body.matchAll(/<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi)].map((m) => new URL(m[1], pageBase).href);
-    console.log(`  all results-page script srcs:\n    ${allSrcs.join("\n    ")}`);
-    const pageSrcs = allSrcs.filter((u) => /dticket\.railway\.co\.th/.test(u) && !/jquery-|bootstrap\.|popper|all\.min|owl\.|scrollReveal|scrollreveal|select2|jquery\.mask|datepicker|SmartUtil|RecaptchaHelper|assets\/js\/common\.js|assets\/js\/script\.js|DTUtil|LangLoader/i.test(u));
-    // Inline scripts that define or carry showTrips.
-    for (const m of page.body.matchAll(/<script\b(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi)) {
-      const js = m[1];
-      const at = js.search(/showTrips\s*(?:=|\()\s*(?:function|\(|async|[a-z])/);
-      const def = js.search(/(?:function\s+showTrips|showTrips\s*=)/);
-      if (def >= 0) console.log(`  --- inline showTrips definition\n${js.slice(def, def + 9000)}`);
-      else if (at >= 0 && /SmartUtil\.ajax/.test(js)) console.log(`  (inline script ${js.length} chars calls showTrips and ajax)`);
-    }
-    for (const src of pageSrcs.slice(0, 8)) {
-      const js = await request(src, { accept: "*/*", referer: formAction });
-      if (!describe(src, js)) continue;
-      save(src, js.body);
-      const calls = [...new Set([...js.body.matchAll(/(?:SmartUtil\.ajax|DTUtil\.\w+|url\s*:)\s*\(?\s*['"`]([^'"`]+)['"`]/g)].map((m) => m[1]))];
-      console.log(`  calls: ${calls.join("  ")}`);
-      for (const m of js.body.matchAll(/function\s+showTrips[\s\S]{0,6000}/g)) console.log(`  --- showTrips\n${m[0]}`);
-      for (const m of js.body.matchAll(/SmartUtil\.ajax\(\s*['"`][^'"`]*(?:trip|train|fare|seat|search|coach)[^'"`]*['"`][\s\S]{0,1500}/gi)) console.log(`  --- ajax\n${m[0]}`);
-    }
+  // The results page writes its booking scripts in with document.write
+  // (assets/js/booking/*.js); the trip list is trips.js. Print the two that
+  // fetch and draw trips whole, between markers, to read offline.
+  const pageBase = base(page.body, formAction);
+  for (const name of ["trips", "booking"]) {
+    const js = await request(new URL(`assets/js/booking/${name}.js`, pageBase).href, { accept: "*/*", referer: formAction });
+    if (!describe(`assets/js/booking/${name}.js`, js)) continue;
+    console.log(`\n<<<SCRIPT ${name} ${js.body.length}\n${js.body}\n>>>SCRIPT ${name}`);
   }
+
 }
 
 // The captcha helper in full: which actions it guards.
