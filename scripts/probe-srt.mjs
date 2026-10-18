@@ -243,6 +243,25 @@ for (const [from, to] of SAMPLES) {
     }
   }
   dumps.push([`search ${from}→${to}`, page.body]);
+
+  // The results page fills itself from an external script (showTrips). Find
+  // it and every call it makes, with the context around showTrips.
+  if (from === SAMPLES[0][0]) {
+    const pageBase = base(page.body, formAction);
+    const pageSrcs = [...page.body.matchAll(/<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi)]
+      .map((m) => new URL(m[1], pageBase).href)
+      .filter((u) => /dticket\.railway\.co\.th/.test(u) && !/jquery-|bootstrap|popper|all\.min|owl|scroll|select2|mask|datepicker|SmartUtil|RecaptchaHelper|common\.js|script\.js|DTUtil|LangLoader/i.test(u));
+    console.log(`  results-page scripts: ${pageSrcs.join("  ")}`);
+    for (const src of pageSrcs.slice(0, 8)) {
+      const js = await request(src, { accept: "*/*", referer: formAction });
+      if (!describe(src, js)) continue;
+      save(src, js.body);
+      const calls = [...new Set([...js.body.matchAll(/(?:SmartUtil\.ajax|DTUtil\.\w+|url\s*:)\s*\(?\s*['"`]([^'"`]+)['"`]/g)].map((m) => m[1]))];
+      console.log(`  calls: ${calls.join("  ")}`);
+      for (const m of js.body.matchAll(/function\s+showTrips[\s\S]{0,6000}/g)) console.log(`  --- showTrips\n${m[0]}`);
+      for (const m of js.body.matchAll(/SmartUtil\.ajax\(\s*['"`][^'"`]*(?:trip|train|fare|seat|search|coach)[^'"`]*['"`][\s\S]{0,1500}/gi)) console.log(`  --- ajax\n${m[0]}`);
+    }
+  }
 }
 
 // The captcha helper in full: which actions it guards.
