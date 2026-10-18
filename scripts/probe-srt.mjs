@@ -133,8 +133,15 @@ const base = (html, url) => {
 
 console.log(`# SRT D-Ticket probe — ${new Date().toISOString()}`);
 
-// 1. Home: the form, its inputs, its station lists, its scripts.
-const home = await request(HOME);
+// 1. Home: the form, its inputs, its station lists, its scripts. D-Ticket
+// answers some runner addresses and times out on others (runs alternate), so
+// a connect timeout gets one retry after a pause — a timeout is not a refusal.
+let home = await request(HOME);
+if (home.error && /TIMEOUT|ECONNRESET|ETIMEDOUT/i.test(home.error)) {
+  console.log(`first attempt: ${home.error} — retrying once in 30 s`);
+  await sleep(30_000);
+  home = await request(HOME);
+}
 if (!describe(HOME, home)) process.exit(0);
 save("home", home.body);
 const homeBase = base(home.body, HOME);
