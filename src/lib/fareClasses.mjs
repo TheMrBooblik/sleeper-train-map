@@ -27,16 +27,18 @@ export const CURRENCY_SYMBOLS = {
   TRY: "₺",
   CNY: "¥",
   JPY: "¥",
+  THB: "฿",
   GEL: "₾",
   AZN: "₼",
   AMD: "֏",
 };
 
-// Currencies whose fares run to five digits, where "¥23210" is hard to read.
+// Currencies whose fares run to four or five digits, where "¥23210" and
+// "฿1453" are hard to read.
 // Grouped with a fixed comma rather than Intl, because this string is
 // server-rendered on the connection pages and Node's ICU and a browser's do not
 // always agree on separators. Everything else prints exactly as before.
-const GROUPED_CURRENCIES = new Set(["JPY"]);
+const GROUPED_CURRENCIES = new Set(["JPY", "THB"]);
 
 /** "¥335.5" — the amount as the operator quotes it, with the currency's symbol. */
 export function formatMoney(amount, currency) {
@@ -74,6 +76,18 @@ export const FARE_CLASS_LABELS = {
   singleTwinCabin: "Single Twin cabin",
   twinCabinPerPerson: "Sunrise Twin, per person (2 sharing)",
   deluxeSingleCabin: "Single Deluxe cabin",
+  // State Railway of Thailand (scripts/lib/srt.mjs), from D-Ticket's coach
+  // list: what one adult pays for one berth, whole route. A 2nd-class sleeper
+  // is an open car of curtained berths; 1st class is a two-berth cabin, which
+  // one traveller can also take whole ("to yourself", the operator's charter
+  // room). Seats are left out at the source.
+  srtSecondUpper: "2nd class sleeper, upper berth",
+  srtSecondLower: "2nd class sleeper, lower berth",
+  srtSecondFanUpper: "2nd class fan sleeper, upper berth",
+  srtSecondFanLower: "2nd class fan sleeper, lower berth",
+  srtFirstUpper: "1st class cabin, upper berth",
+  srtFirstLower: "1st class cabin, lower berth",
+  srtFirstPrivate: "1st class cabin to yourself",
   // European Sleeper (scripts/lib/es-fares.mjs). Every figure is what one
   // adult pays — one bed — except the private compartment: one booking for
   // the whole couchette compartment, up to 5 people. So a 2- or 3-bed cabin

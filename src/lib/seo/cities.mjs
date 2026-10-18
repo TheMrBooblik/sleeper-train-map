@@ -21,6 +21,7 @@
  */
 
 import STATION_CITIES from "../../../data/overrides/station-cities.json" with { type: "json" };
+import STATION_CARD_NAMES from "../../../data/overrides/station-card-names.json" with { type: "json" };
 
 // Station-type qualifiers that follow a city name. Matched at end of string only,
 // so "Central African …"-style names are never truncated mid-word.
@@ -137,4 +138,17 @@ export function stationsMissingCityOverride(stationNames) {
     if (hint && hint !== raw) missing.add(raw);
   }
   return [...missing].sort();
+}
+
+/**
+ * The name a route card's title gives a terminus: the station's own name,
+ * unless data/overrides/station-card-names.json says travellers know it by its
+ * city ("Krung Thep Aphiwat" → "Bangkok"). Titles only — never a URL.
+ * @param {string} name
+ * @returns {string}
+ */
+export function cardNameForStation(name) {
+  const key = String(name ?? "").trim();
+  const mapped = key && !key.startsWith("_") ? STATION_CARD_NAMES[key] : undefined;
+  return typeof mapped === "string" ? mapped : key;
 }

@@ -19,7 +19,7 @@ import {
   getRelatedConnections,
 } from "../../lib/seo/aggregate";
 import { getRouteDetail } from "../../lib/seo/data";
-import { cityForStation } from "../../lib/seo/cities.mjs";
+import { cardNameForStation, cityForStation } from "../../lib/seo/cities.mjs";
 import { connectionSnippet, snippetVariantFor } from "../../lib/seo/snippet.mjs";
 import { punctualityAnswer } from "../../lib/punctuality.mjs";
 import { formatLongDate } from "../../lib/nextDeparture.mjs";
@@ -234,7 +234,11 @@ export default function ConnectionPage({
             {trains.map((t) => (
               <div key={t.routeId} className="border-t border-white/10 pt-8 first:border-0 first:pt-0">
                 <h3 className="text-lg font-semibold text-white">
-                  {t.origin} <span className="text-white/40">→</span> {t.destination}
+                  {/* The route by the names travellers know its ends by
+                      (station-card-names.json); the timetable below keeps
+                      the stations' own. */}
+                  {cardNameForStation(t.origin)} <span className="text-white/40">→</span>{" "}
+                  {cardNameForStation(t.destination)}
                   {t.trainNumbers.length > 0 && (
                     <span className="font-semibold text-white/50">
                       {" "}

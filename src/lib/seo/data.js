@@ -23,7 +23,7 @@ import { getFutureRouteStartDate } from "../../components/Map/utils/routeStyleUt
 import { getRouteFrequencyOverride } from "../routeFrequencyOverrides";
 import { buildPairSlug } from "./slugify.mjs";
 import { routeEndpoints, buildRouteSlugMaps } from "./routeSlugs.mjs";
-import { cityForStation } from "./cities.mjs";
+import { cardNameForStation, cityForStation } from "./cities.mjs";
 import { getStationTimesForTrain, getTimetableVariantsForTrain } from "./stationTimes.mjs";
 import {
   deriveTitle,
@@ -311,6 +311,11 @@ function countryCodesForRoute(route, allStopNames, operatorIds) {
   return [...codes];
 }
 
+/** A title that is just "Origin – Destination" takes the card names instead. */
+function cardTitle(title, origin, destination, endpointTitle) {
+  return origin && destination && title === `${origin} – ${destination}` ? endpointTitle : title;
+}
+
 /** Build the lightweight summary for one viewMap route. */
 function buildSummary(route) {
   const routeId = String(route.route_id);
@@ -362,8 +367,12 @@ function buildSummary(route) {
   // the operator's proper train NAME (e.g. "Bessarabia", "Le Train Bleu")
   // separately so cards can show it in small type. A long_name that is itself a
   // "City – City" description (contains a spaced dash) is not a real name.
+  const cardOrigin = cardNameForStation(origin);
+  const cardDestination = cardNameForStation(destination);
   const endpointTitle =
-    origin && destination ? `${origin} – ${destination}` : origin || destination || "Night train";
+    origin && destination
+      ? `${cardOrigin} – ${cardDestination}`
+      : cardOrigin || cardDestination || "Night train";
   const longName = (route.route_long_name || "").trim();
   const routeName =
     longName && !/\s[–-]\s/.test(longName) && longName !== endpointTitle ? longName : "";
@@ -384,7 +393,9 @@ function buildSummary(route) {
     routeId,
     slug,
     pairSlug,
-    title: deriveTitle(route, origin, destination),
+    // A synthetic row's long name is its two station names; a card says the
+    // city where the station is not known by it (station-card-names.json).
+    title: cardTitle(deriveTitle(route, origin, destination), origin, destination, endpointTitle),
     endpointTitle,
     routeName,
     origin,

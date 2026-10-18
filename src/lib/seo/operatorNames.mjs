@@ -70,6 +70,9 @@ export const OPERATORS = {
   // Japan
   JRW: { name: "JR West", slug: "jr-west" },
 
+  // Thailand
+  SRT: { name: "State Railway of Thailand", slug: "state-railway-of-thailand" },
+
   // Caucasus
   GR: { name: "Georgian Railway", slug: "georgian-railway" },
   ADY: { name: "Azerbaijan Railways", slug: "azerbaijan-railways" },

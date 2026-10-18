@@ -23,6 +23,7 @@ export const COUNTRIES = [
   { code: "RO", name: "Romania", center: [45.9, 25.0], zoom: 6 },
   { code: "RS", name: "Serbia", center: [44.0, 21.0], zoom: 7 },
   { code: "SE", name: "Sweden", center: [62.0, 15.0], zoom: 5 },
+  { code: "TH", name: "Thailand", center: [13.5, 100.8], zoom: 6 },
   { code: "SI", name: "Slovenia", center: [46.1, 14.8], zoom: 8 },
   { code: "SK", name: "Slovakia", center: [48.7, 19.7], zoom: 7 },
   { code: "UA", name: "Ukraine", center: [49.0, 32.0], zoom: 5 },
