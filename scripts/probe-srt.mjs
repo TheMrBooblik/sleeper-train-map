@@ -248,10 +248,17 @@ for (const [from, to] of SAMPLES) {
   // it and every call it makes, with the context around showTrips.
   if (from === SAMPLES[0][0]) {
     const pageBase = base(page.body, formAction);
-    const pageSrcs = [...page.body.matchAll(/<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi)]
-      .map((m) => new URL(m[1], pageBase).href)
-      .filter((u) => /dticket\.railway\.co\.th/.test(u) && !/jquery-|bootstrap|popper|all\.min|owl|scroll|select2|mask|datepicker|SmartUtil|RecaptchaHelper|common\.js|script\.js|DTUtil|LangLoader/i.test(u));
-    console.log(`  results-page scripts: ${pageSrcs.join("  ")}`);
+    const allSrcs = [...page.body.matchAll(/<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi)].map((m) => new URL(m[1], pageBase).href);
+    console.log(`  all results-page script srcs:\n    ${allSrcs.join("\n    ")}`);
+    const pageSrcs = allSrcs.filter((u) => /dticket\.railway\.co\.th/.test(u) && !/jquery-|bootstrap\.|popper|all\.min|owl\.|scrollReveal|scrollreveal|select2|jquery\.mask|datepicker|SmartUtil|RecaptchaHelper|assets\/js\/common\.js|assets\/js\/script\.js|DTUtil|LangLoader/i.test(u));
+    // Inline scripts that define or carry showTrips.
+    for (const m of page.body.matchAll(/<script\b(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi)) {
+      const js = m[1];
+      const at = js.search(/showTrips\s*(?:=|\()\s*(?:function|\(|async|[a-z])/);
+      const def = js.search(/(?:function\s+showTrips|showTrips\s*=)/);
+      if (def >= 0) console.log(`  --- inline showTrips definition\n${js.slice(def, def + 9000)}`);
+      else if (at >= 0 && /SmartUtil\.ajax/.test(js)) console.log(`  (inline script ${js.length} chars calls showTrips and ajax)`);
+    }
     for (const src of pageSrcs.slice(0, 8)) {
       const js = await request(src, { accept: "*/*", referer: formAction });
       if (!describe(src, js)) continue;
