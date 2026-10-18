@@ -27,16 +27,18 @@ export const CURRENCY_SYMBOLS = {
   TRY: "₺",
   CNY: "¥",
   JPY: "¥",
+  THB: "฿",
   GEL: "₾",
   AZN: "₼",
   AMD: "֏",
 };
 
-// Currencies whose fares run to five digits, where "¥23210" is hard to read.
+// Currencies whose fares run to four or five digits, where "¥23210" and
+// "฿1453" are hard to read.
 // Grouped with a fixed comma rather than Intl, because this string is
 // server-rendered on the connection pages and Node's ICU and a browser's do not
 // always agree on separators. Everything else prints exactly as before.
-const GROUPED_CURRENCIES = new Set(["JPY"]);
+const GROUPED_CURRENCIES = new Set(["JPY", "THB"]);
 
 /** "¥335.5" — the amount as the operator quotes it, with the currency's symbol. */
 export function formatMoney(amount, currency) {
