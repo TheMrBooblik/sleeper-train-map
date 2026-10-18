@@ -141,9 +141,10 @@ export function stationsMissingCityOverride(stationNames) {
 }
 
 /**
- * The name a route card's title gives a terminus: the station's own name,
- * unless data/overrides/station-card-names.json says travellers know it by its
- * city ("Krung Thep Aphiwat" → "Bangkok"). Titles only — never a URL.
+ * The name a route card's title (and the map's bottom bar) gives a terminus:
+ * the station's own name, unless data/overrides/station-card-names.json says
+ * travellers know it by its city ("Bangkok (Krung Thep Aphiwat)" → "Bangkok").
+ * Short labels only — never a URL, never a stop list.
  * @param {string} name
  * @returns {string}
  */

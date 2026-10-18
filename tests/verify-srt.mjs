@@ -46,7 +46,7 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 console.log("names");
 check("bilingual Namtang name, tab and prefix stripped", eq(bilingualName("SRT ชุมทางหาดใหญ่\t;SRT Hat Yai Junction\t"), { th: "ชุมทางหาดใหญ่", en: "Hat Yai Junction" }));
 const namer = makeStationNamer(config.stationNames);
-check("Namtang's Bangkok terminus and D-Ticket's agree", namer("Bangkok (Krung Thep Aphiwat)") === "Krung Thep Aphiwat" && namer("Krung Thep Aphiwat") === "Krung Thep Aphiwat");
+check("Namtang's Bangkok terminus and D-Ticket's agree, city first", namer("Krung Thep Aphiwat") === "Bangkok (Krung Thep Aphiwat)" && namer("Krung Thep Aphiwat Central Terminal Station [Red Line]") === "Bangkok (Krung Thep Aphiwat)" && namer("Bangkok (Krung Thep Aphiwat)") === "Bangkok (Krung Thep Aphiwat)");
 check("one spelling for Su-ngai Kolok from both sources", namer("Su-Ngai Kolok") === "Su-ngai Kolok");
 check("route number from a Namtang short name", routeTrainNumber("9 ด่วนพิเศษ") === "9" && routeTrainNumber("102") === "102" && routeTrainNumber("รถเร็ว") === null);
 check("service names", serviceName("SPECIAL EXPRESS CNR") === "Special Express" && serviceName("EXPRESS") === "Express" && serviceName("RAPID") === "Rapid");
@@ -130,7 +130,7 @@ const positions = stationPositions(namtang, config);
 check("termini Namtang lacks take the config's position", positions.has("Trang") && positions.has("Chiang Mai"));
 const built = buildSrtTrains({ config, found: picked, namtang, positions, today: "2026-10-18", travelDate: "2026-10-28" });
 const sp9 = built["Special Express 9"];
-check("train 9 built with Namtang's stops", sp9?.stations.map((s) => s.name).join(">") === "Krung Thep Aphiwat>Phitsanulok>Chiang Mai");
+check("train 9 built with Namtang's stops", sp9?.stations.map((s) => s.name).join(">") === "Bangkok (Krung Thep Aphiwat)>Phitsanulok>Chiang Mai");
 check("only the ends carry a time, D-Ticket's", sp9.stations[0].departure === "18:40" && sp9.stations[2].arrival === "07:15" && sp9.stations[1].departure === null && sp9.stations[1].arrival === null);
 const path9 = polyline.decode(sp9.polyline);
 check("the line follows Namtang's track (more than the stops)", path9.length > 3, String(path9.length));
@@ -272,6 +272,14 @@ console.log("registry and wiring");
   const none = await loadOsmTrack({ rootDir: root, today: "2026-11-01", params, fetchImpl: async () => new Response("busy", { status: 500 }), retryMs: 0 });
   check("no tile ever answered: no OSM track, and no cache written", none === null && !fs.existsSync(cacheFile));
   fs.rmSync(root, { recursive: true, force: true });
+}
+
+{
+  const { cardNameForStation, cityForStation } = await import("../src/lib/seo/cities.mjs");
+  const bkk = "Bangkok (Krung Thep Aphiwat)";
+  check("Bangkok's terminus: city first in stop lists, plain Bangkok on cards and bottom-bar chips, /bangkok in URLs", cardNameForStation(bkk) === "Bangkok" && cityForStation(bkk) === "Bangkok" && cardNameForStation("Hat Yai Junction") === "Hat Yai");
+  const bar = fs.readFileSync(path.join(ROOT, "src/components/TrainBottomBar/TrainBottomBar.js"), "utf8");
+  check("…and the bottom bar names a chip's ends through it", /chipName\(route\.origin\)/.test(bar) && /chipName\(route\.destination\)/.test(bar));
 }
 
 const registry = JSON.parse(fs.readFileSync(path.join(ROOT, "data/sources/registry.json"), "utf8"));

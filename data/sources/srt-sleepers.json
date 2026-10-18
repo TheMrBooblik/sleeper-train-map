@@ -29,9 +29,9 @@
   },
   "frequency": "Daily",
   "stationNames": {
-    "_comment": "Namtang and D-Ticket spellings → the one name the map uses.",
-    "Bangkok (Krung Thep Aphiwat)": "Krung Thep Aphiwat",
-    "Krung Thep Aphiwat Central Terminal Station [Red Line]": "Krung Thep Aphiwat",
+    "_comment": "Namtang and D-Ticket spellings → the one name the map uses. Bangkok's terminus is named with its city first, as D-Ticket's own trip list does: few travellers know Krung Thep Aphiwat by name. `origin` stays D-Ticket's station-list spelling, which is what its id is looked up by.",
+    "Krung Thep Aphiwat": "Bangkok (Krung Thep Aphiwat)",
+    "Krung Thep Aphiwat Central Terminal Station [Red Line]": "Bangkok (Krung Thep Aphiwat)",
     "Den Sai": "Den Chai",
     "STR Nakhon Ratchasima": "Nakhon Ratchasima",
     "Sila-at": "Sila At",
