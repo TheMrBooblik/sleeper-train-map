@@ -50,6 +50,7 @@ import { useMapMarkers } from "./hooks/useMapMarkers";
 import LoadingOverlay from "./components/LoadingOverlay";
 import MapClickHandler from "./components/MapClickHandler";
 import MapViewportTracker from "./components/MapViewportTracker";
+import MarkerTooltipGuard from "./components/MarkerTooltipGuard";
 import { liftForDarkMap } from "../../lib/mapTheme.mjs";
 import { upcomingRun } from "../../lib/nextDeparture.mjs";
 
@@ -880,6 +881,7 @@ const TrainMap = ({
           onClearFilter={handleFilterClose}
         />
         <MapViewportTracker onViewportChange={handleViewportChange} />
+        <MarkerTooltipGuard />
         <MapFlyController
           target={flyToTarget}
           onDone={() => setFlyToTarget(null)}
