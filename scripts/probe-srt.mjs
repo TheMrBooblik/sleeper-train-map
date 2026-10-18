@@ -12,10 +12,15 @@
 //     Transport's national GTFS, 200, refreshed daily.
 //   - dticket.railway.co.th/DTicketPublicWeb/home/Home: SRT's own booking
 //     site, 200, with a plain search form (POST booking/booking).
-// So this run reads D-Ticket closely: the station lists and inputs the search
-// form carries, the scripts it loads (searched for the calls it makes), and
-// one search per sample corridor, printing what the answer holds. Page text
-// last, so the log tail is the raw material.
+// Later runs followed D-Ticket's own page to the calls the nightly adapter
+// (scripts/adapters/srt.mjs) now makes: home/Home/getStation (station ids),
+// booking/booking (sets the search), booking/booking/getTrip (trains with
+// times) and booking/booking/getTrainCoach (each coach with every berth's
+// fare) — all before login; its reCAPTCHA guards login, auto-seat, summary and
+// QR scan only. This run repeats that for one corridor and prints each
+// answer, so a change in their shape shows here before it costs a night.
+// D-Ticket answers some runner addresses and times out on others: a connect
+// timeout gets one retry; a second one is the answer for this run.
 //
 // Read-only: GETs plus the site's own search POST, an honest User-Agent, at
 // most MAX_REQUESTS, nothing booked. A block (detectBlock) stops the run for
