@@ -246,7 +246,16 @@ for (const [from, to] of SAMPLES) {
   // (assets/js/booking/*.js); the trip list is trips.js. Print the two that
   // fetch and draw trips whole, between markers, to read offline.
   const pageBase = base(page.body, formAction);
-  for (const name of ["trips", "booking"]) {
+  // The trip list itself: what trips.js posts to booking/booking/getTrip.
+  const trips = await ajax("booking/booking/getTrip", {
+    tripType: "1",
+    provinceStartId: String(start),
+    provinceEndId: String(end),
+    dateStart: `${dd}/${mm}/${yyyy}`,
+    dateEnd: "",
+  }, `${from}→${to}`);
+  console.log(`\n<<<GETTRIP\n${JSON.stringify(trips, null, 1)}\n>>>GETTRIP`);
+  for (const name of ["bogies", "seat"]) {
     const js = await request(new URL(`assets/js/booking/${name}.js`, pageBase).href, { accept: "*/*", referer: formAction });
     if (!describe(`assets/js/booking/${name}.js`, js)) continue;
     console.log(`\n<<<SCRIPT ${name} ${js.body.length}\n${js.body}\n>>>SCRIPT ${name}`);
