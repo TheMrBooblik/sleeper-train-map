@@ -25,7 +25,9 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { downloadFile, streamZipCsv } from "../lib/gtfs.mjs";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import { streamZipCsv } from "../lib/gtfs.mjs";
 import { HONEST_USER_AGENT, detectBlock } from "../lib/http-block.mjs";
 import {
   berthFares,
@@ -41,6 +43,12 @@ const REQUEST_SPACING_MS = 1_200;
 const FETCH_TIMEOUT_MS = 30_000;
 const RETRY_PAUSE_MS = 30_000;
 const DEFAULT_DATE_OFFSET_DAYS = 7;
+// A download that stalls must cost its address, not the night: the first
+// branch run hung for 20 minutes on one. The mirror is tried next.
+const DOWNLOAD_TIMEOUT_MS = 180_000;
+// The whole D-Ticket pass, however slow the host is tonight: what was read by
+// then is kept, every other train comes from last night's file.
+const DTICKET_BUDGET_MS = 12 * 60_000;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const isTimeout = (err) => /TIMEOUT|ECONNRESET|ETIMEDOUT|ECONNREFUSED/i.test(String(err?.cause?.code ?? err?.message ?? err));
@@ -55,11 +63,17 @@ function readJsonSafe(file) {
 
 // ─── Namtang ────────────────────────────────────────────────────────────────
 
+async function downloadWithTimeout(url, dest, timeoutMs = DOWNLOAD_TIMEOUT_MS) {
+  const res = await fetch(url, { headers: { "User-Agent": HONEST_USER_AGENT }, signal: AbortSignal.timeout(timeoutMs) });
+  if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+  await pipeline(Readable.fromWeb(res.body), fs.createWriteStream(dest));
+}
+
 async function fetchNamtang(params, zipPath, log) {
   fs.mkdirSync(path.dirname(zipPath), { recursive: true });
   for (const url of [params.feedUrl, ...(params.fallbackUrls ?? [])].filter(Boolean)) {
     try {
-      await downloadFile(url, zipPath);
+      await downloadWithTimeout(url, zipPath);
       const size = fs.statSync(zipPath).size;
       if (size < 1e6) throw new Error(`only ${size} bytes`);
       log(`Namtang GTFS: ${(size / 1e6).toFixed(0)} MB from ${new URL(url).host}`);
@@ -193,7 +207,8 @@ export function makeDTicketClient(base, { fetchImpl = fetch, spacingMs = REQUEST
 const ddmmyyyy = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 
 /** Every corridor, both directions: trips and each overnight trip's berth fares. */
-export async function readDTicket({ config, client, travelDate, log }) {
+export async function readDTicket({ config, client, travelDate, log, budgetMs = DTICKET_BUDGET_MS }) {
+  const deadline = Date.now() + budgetMs;
   await client.call("home/Home");
   const stationsAnswer = await client.call("home/Home/getStation", { form: { LineId: "" }, json: true });
   if (stationsAnswer?.errorCode !== "S_SUCCESS" || !Array.isArray(stationsAnswer.data)) {
@@ -204,6 +219,10 @@ export async function readDTicket({ config, client, travelDate, log }) {
   const answers = [];
   let failures = 0;
   for (const far of config.corridors) {
+    if (Date.now() > deadline) {
+      log(`time budget spent — corridors from ${far} on are left for tomorrow`);
+      break;
+    }
     for (const [from, to] of [
       [origin, far],
       [far, origin],
