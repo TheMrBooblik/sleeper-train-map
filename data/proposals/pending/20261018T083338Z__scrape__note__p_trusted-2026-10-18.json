@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-10-18",
+  "createdAt": "2026-10-18T08:33:38.458Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (0 routes, 2 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation Shibing(施秉) (chinese)\nstation Jiangshan(江山) (chinese)",
+  "target": {
+    "routeKey": "trusted-2026-10-18",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
