@@ -811,6 +811,39 @@
         }
       ]
     },
+    "SRT": {
+      "website": "https://www.railway.co.th",
+      "countries": ["TH"],
+      "integrationStatus": "in-progress",
+      "difficulty": "medium",
+      "notes": "Registry id `srt`. Stops, positions and track from the Ministry of Transport's national GTFS (Namtang); times and per-berth fares from SRT's own booking site D-Ticket, one search per corridor in data/sources/srt-sleepers.json. railway.co.th itself and the ttsview train-tracking site are not usable from GitHub's runners (connect timeout; a Cloudflare Turnstile challenge), and D-Ticket answers some runner addresses and times out on others — the adapter retries once and otherwise rebuilds from last night's file.",
+      "sources": [
+        {
+          "name": "Namtang national GTFS (Office of Transport and Traffic Policy and Planning)",
+          "url": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip",
+          "docsUrl": "https://mobilitydatabase.org/feeds/gtfs/mdb-1831",
+          "format": "GTFS (daily; mirrored as Mobility Database mdb-1831)",
+          "provides": ["stops", "geometry"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": "2026-10-18",
+          "probeWorkflow": "probe-srt.yml",
+          "notes": "Full stop lists and shapes for most long-distance SRT trains, but their stop times are placeholders (00:01, 00:02 …) and are never read; only the Bangkok-area stubs carry real times. Its fare tables cover the Bangkok commuter lines only."
+        },
+        {
+          "name": "D-Ticket (SRT online booking): getTrip + getTrainCoach",
+          "url": "https://dticket.railway.co.th/DTicketPublicWeb/home/Home",
+          "docsUrl": null,
+          "format": "JSON behind the booking search (POST, form-encoded, session cookie)",
+          "provides": ["times", "fares"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": "2026-10-18",
+          "probeWorkflow": "probe-srt.yml",
+          "notes": "home/Home/getStation (station ids) → booking/booking (sets the search) → booking/booking/getTrip (trains, departure/arrival) → booking/booking/getTrainCoach (coaches, fare per berth). All before login; the site's reCAPTCHA guards login, auto-seat and summary only."
+        }
+      ]
+    },
     "JRW": {
       "website": "https://www.westjr.co.jp/global/en/",
       "countries": ["JP"],

@@ -15,6 +15,7 @@
   "TCDD": { "type": "fixed", "currency": "TRY", "fromPrice": null, "source": "draft" },
   "CR": { "type": "fixed", "currency": "CNY", "fromPrice": null, "source": "draft", "note": "China Railway government tariff" },
   "JRW": { "type": "fixed", "currency": "JPY", "fromPrice": null, "source": "draft", "note": "JR distance tariff: basic fare + limited express charge + berth charge" },
+  "SRT": { "type": "fixed", "currency": "THB", "fromPrice": null, "source": "draft", "note": "SRT distance tariff: fare + train-type supplement + air-conditioning + berth charge" },
   "GR": { "type": "fixed", "currency": "GEL", "fromPrice": null, "source": "draft" },
   "ADY": { "type": "fixed", "currency": "AZN", "fromPrice": null, "source": "draft" },
   "SCR": { "type": "fixed", "currency": "AMD", "fromPrice": null, "source": "draft" },

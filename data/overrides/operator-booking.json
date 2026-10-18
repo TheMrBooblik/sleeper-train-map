@@ -156,6 +156,9 @@
     "bookingPageUrl": "https://www.westjr.co.jp/global/en/ticket/route_search/",
     "scheduleUrl": "https://www.jr-odekake.net/railroad/train/sunriseseto_izumo/"
   },
+  "SRT": {
+    "bookingPageUrl": "https://dticket.railway.co.th/DTicketPublicWeb/home/Home"
+  },
   "GR": {
     "bookingPageUrl": "https://tre.ge/en",
     "scheduleUrl": "https://www.railway.ge/en/passenger-traffic/"

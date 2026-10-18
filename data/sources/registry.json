@@ -326,6 +326,41 @@
   },
   {
     "v": 1,
+    "id": "srt",
+    "label": "State Railway of Thailand",
+    "description": "Thailand's night trains from two official sources. The Ministry of Transport's national GTFS (Namtang, namtang-api.otp.go.th; Mobility Database mdb-1831 as fallback) gives station positions, full stop lists and track — its long-distance stop times are placeholders and are never read. SRT's own booking site D-Ticket gives each train's departure and arrival times and the fare of every berth, from the public search its page makes before login (one search per corridor in data/sources/srt-sleepers.json, both directions). Kept: trains that run overnight and sell a berth. Probe workflow: 'Probe SRT source'.",
+    "kind": "json-api",
+    "adapter": "srt",
+    "enabled": true,
+    "official": true,
+    "trusted": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.railway.co.th",
+    "endpoint": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip",
+    "docsUrl": "https://mobilitydatabase.org/feeds/gtfs/mdb-1831",
+    "output": "srt-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "SRT", "operatorName": "State Railway of Thailand" },
+    "synthetic": {
+      "idPrefix": "srt_",
+      "agency": { "from": "fixed", "value": "SRT" },
+      "resolveAliases": false,
+      "withService": true,
+      "excludeBotMatched": false,
+      "dedupStrategy": null
+    },
+    "params": {
+      "configPath": "data/sources/srt-sleepers.json",
+      "feedUrl": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip",
+      "fallbackUrls": ["https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-1831/latest.zip"],
+      "baseUrl": "https://dticket.railway.co.th/DTicketPublicWeb/",
+      "dateOffsetDays": 7
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
     "id": "curated",
     "label": "Curated routes",
     "description": "Admin-approved routes from data/canonical/routes/ (added via the review queue) — coverage beyond what any scraper provides",

@@ -1,0 +1,58 @@
+{
+  "_comment": [
+    "State Railway of Thailand night trains, read by scripts/adapters/srt.mjs.",
+    "Two official sources, each for what it is good at. The Ministry of Transport's national GTFS (Namtang, namtang-api.otp.go.th, mirrored as Mobility Database mdb-1831) gives station positions, the full stop list of most long-distance trains and the track they run on; its long-distance stop TIMES are placeholders (00:01, 00:02 …) and are never read. SRT's own booking site, D-Ticket (dticket.railway.co.th), gives each train's departure and arrival times and its fare per class and berth, from the same public search a traveller uses before logging in.",
+    "A corridor is one D-Ticket search. The adapter keeps a train from a corridor's answer only when it runs overnight (arrives the day after it leaves) and sells a berth, so a day train and a seats-only rapid drop out on their own and a new sleeper on a known corridor is picked up without editing this file. A train found on several corridors (37 is on Bangkok–Hat Yai and Bangkok–Su-ngai Kolok) is filed under the one it rides longest, which is the one ending at its own terminus.",
+    "`coordinates` holds a position for a terminus Namtang does not carry (it is a Bangkok-centred feed); `approx: true` marks a position taken from the town's station as published in public references rather than from an SRT feed — replace it with an official one when a feed carries it."
+  ],
+  "operator": {
+    "agencyId": "SRT",
+    "name": "State Railway of Thailand"
+  },
+  "origin": "Krung Thep Aphiwat",
+  "corridors": [
+    "Chiang Mai",
+    "Den Chai",
+    "Nong Khai",
+    "Ubon Ratchathani",
+    "Hat Yai Junction",
+    "Padang Besar",
+    "Yala",
+    "Su-Ngai Kolok",
+    "Trang",
+    "Kantang",
+    "Nakhon Si Thammarat"
+  ],
+  "pairs": {
+    "_comment": "Return train per outbound train where it is not the next number up (SRT numbers a pair n / n+1).",
+    "109": "102"
+  },
+  "frequency": "Daily",
+  "stationNames": {
+    "_comment": "Namtang and D-Ticket spellings → the one name the map uses.",
+    "Bangkok (Krung Thep Aphiwat)": "Krung Thep Aphiwat",
+    "Krung Thep Aphiwat Central Terminal Station [Red Line]": "Krung Thep Aphiwat",
+    "Den Sai": "Den Chai",
+    "STR Nakhon Ratchasima": "Nakhon Ratchasima",
+    "Sila-at": "Sila At",
+    "Su-Ngai Kolok": "Su-ngai Kolok",
+    "Su-Ngai Padi": "Su-ngai Padi",
+    "Sungai Kolok": "Su-ngai Kolok"
+  },
+  "coordinates": {
+    "Trang": { "lat": 7.5586, "lon": 99.6097, "approx": true },
+    "Kantang": { "lat": 7.4047, "lon": 99.5169, "approx": true },
+    "Nakhon Si Thammarat": { "lat": 8.4339, "lon": 99.9636, "approx": true },
+    "Padang Besar": { "lat": 6.6642, "lon": 100.3214, "approx": true }
+  },
+  "fareClasses": {
+    "_comment": "D-Ticket coach class × berth → our class key. Seats are never priced; a coach for women and children only or for passengers with disabilities sells the same berths at the same fare and is left out, as women-only compartments are elsewhere.",
+    "1:Lower Berth": "srtFirstLower",
+    "1:Upper Berth": "srtFirstUpper",
+    "1:Charter room": "srtFirstPrivate",
+    "2:Lower Berth": "srtSecondLower",
+    "2:Upper Berth": "srtSecondUpper",
+    "2fan:Lower Berth": "srtSecondFanLower",
+    "2fan:Upper Berth": "srtSecondFanUpper"
+  }
+}

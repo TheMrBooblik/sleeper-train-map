@@ -76,6 +76,18 @@ export const FARE_CLASS_LABELS = {
   singleTwinCabin: "Single Twin cabin",
   twinCabinPerPerson: "Sunrise Twin, per person (2 sharing)",
   deluxeSingleCabin: "Single Deluxe cabin",
+  // State Railway of Thailand (scripts/lib/srt.mjs), from D-Ticket's coach
+  // list: what one adult pays for one berth, whole route. A 2nd-class sleeper
+  // is an open car of curtained berths; 1st class is a two-berth cabin, which
+  // one traveller can also take whole ("to yourself", the operator's charter
+  // room). Seats are left out at the source.
+  srtSecondUpper: "2nd class sleeper, upper berth",
+  srtSecondLower: "2nd class sleeper, lower berth",
+  srtSecondFanUpper: "2nd class fan sleeper, upper berth",
+  srtSecondFanLower: "2nd class fan sleeper, lower berth",
+  srtFirstUpper: "1st class cabin, upper berth",
+  srtFirstLower: "1st class cabin, lower berth",
+  srtFirstPrivate: "1st class cabin to yourself",
   // European Sleeper (scripts/lib/es-fares.mjs). Every figure is what one
   // adult pays — one bed — except the private compartment: one booking for
   // the whole couchette compartment, up to 5 people. So a 2- or 3-bed cabin
