@@ -135,17 +135,63 @@ export async function loadNamtang(zipPath) {
 // ─── OpenStreetMap track ────────────────────────────────────────────────────
 
 // Every railway line in and around Thailand (Padang Besar is in Malaysia),
-// service sidings left out: one Overpass query, ~5 000 km of track.
+// service sidings left out. Asked as tiles rather than one country-sized
+// query: the first branch run had both public Overpass servers refuse the
+// whole bbox at once (502, 500), which a busy server does to a heavy query.
 const OSM_TRACK_QUERY = (bbox) =>
-  `[out:json][timeout:240];way["railway"="rail"][!"service"](${bbox.join(",")});out geom;`;
+  `[out:json][timeout:180];way["railway"="rail"][!"service"](${bbox.join(",")});out geom;`;
 const OSM_TRACK_MAX_AGE_DAYS = 7;
+const OSM_TILE_DEG = 4;
+const OSM_ATTEMPTS = 3;
+const OSM_ENDPOINTS = [...OVERPASS_ENDPOINTS, "https://overpass.private.coffee/api/interpreter"];
+// The whole refresh, every tile and retry: past it the cache (or Namtang) draws tonight.
+const OSM_BUDGET_MS = 20 * 60_000;
+
+/** [south, west, north, east] cut into equal tiles of at most `deg` degrees a side. */
+export function bboxTiles([s, w, n, e], deg = OSM_TILE_DEG) {
+  const rows = Math.max(1, Math.ceil((n - s) / deg - 1e-9));
+  const cols = Math.max(1, Math.ceil((e - w) / deg - 1e-9));
+  const r = (v) => Math.round(v * 1e4) / 1e4;
+  const tiles = [];
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      tiles.push([r(s + ((n - s) * i) / rows), r(w + ((e - w) * j) / cols), r(s + ((n - s) * (i + 1)) / rows), r(w + ((e - w) * (j + 1)) / cols)]);
+    }
+  }
+  return tiles;
+}
+
+async function overpassTile(bbox, { fetchImpl, log, deadline = Infinity, retryMs = 10_000 }) {
+  let last = null;
+  for (let attempt = 0; attempt < OSM_ATTEMPTS; attempt++) {
+    if (Date.now() > deadline) throw new Error(`out of time (${last ?? "no answer"})`);
+    const url = OSM_ENDPOINTS[attempt % OSM_ENDPOINTS.length];
+    if (attempt) await sleep(retryMs * attempt);
+    try {
+      const res = await fetchImpl(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain", "User-Agent": HONEST_USER_AGENT },
+        body: OSM_TRACK_QUERY(bbox),
+        signal: AbortSignal.timeout(240_000),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!Array.isArray(json?.elements)) throw new Error("no elements");
+      return json.elements;
+    } catch (err) {
+      last = `${new URL(url).host}: ${err.message}`;
+      log(`OSM track tile ${bbox.join(",")}: ${last}`);
+    }
+  }
+  throw new Error(last ?? "no answer");
+}
 
 /**
  * The track network to route trains along, from a committed cache refreshed
  * weekly from Overpass. A failed refresh keeps the cache (track rarely moves);
  * no cache and no answer means tonight routes on Namtang's shapes alone.
  */
-export async function loadOsmTrack({ rootDir, today, params = {}, fetchImpl = fetch, log = () => {} }) {
+export async function loadOsmTrack({ rootDir, today, params = {}, fetchImpl = fetch, log = () => {}, retryMs }) {
   const file = path.join(rootDir, "public/data/scraped", params.file ?? "osm-srt-track.json");
   const cached = readJsonSafe(file);
   const age = cached?.data?.fetchedAt
@@ -156,25 +202,22 @@ export async function loadOsmTrack({ rootDir, today, params = {}, fetchImpl = fe
     log(`OSM track: ${cached.data.ways.length} ways from the cache (${cached.data.fetchedAt})`);
     return decode(cached.data);
   }
-  const query = OSM_TRACK_QUERY(params.bbox ?? [5.6, 97.3, 20.6, 106.0]);
-  for (const url of OVERPASS_ENDPOINTS) {
-    try {
-      const res = await fetchImpl(url, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain", "User-Agent": HONEST_USER_AGENT },
-        body: query,
-        signal: AbortSignal.timeout(300_000),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const ways = trackFromOverpass(await res.json());
-      if (ways.length < 100) throw new Error(`only ${ways.length} ways`);
-      const data = { fetchedAt: today, source: new URL(url).host, ways: ways.map((w) => polyline.encode(w)) };
-      fs.writeFileSync(file, JSON.stringify({ uploadedAt: new Date().toISOString(), data }));
-      log(`OSM track: ${ways.length} ways, ${ways.reduce((n, w) => n + w.length, 0)} points from ${data.source}`);
-      return ways;
-    } catch (err) {
-      log(`OSM track from ${new URL(url).host} failed: ${err.message}`);
+  try {
+    const byId = new Map();
+    const deadline = Date.now() + (params.budgetMs ?? OSM_BUDGET_MS);
+    for (const tile of bboxTiles(params.bbox ?? [5.6, 97.3, 20.6, 106.0])) {
+      for (const el of await overpassTile(tile, { fetchImpl, log, deadline, retryMs })) {
+        if (el.type === "way") byId.set(el.id, el);
+      }
     }
+    const ways = trackFromOverpass({ elements: [...byId.values()] });
+    if (ways.length < 100) throw new Error(`only ${ways.length} ways`);
+    const data = { fetchedAt: today, ways: ways.map((w) => polyline.encode(w)) };
+    fs.writeFileSync(file, JSON.stringify({ uploadedAt: new Date().toISOString(), data }));
+    log(`OSM track: ${ways.length} ways, ${ways.reduce((n, w) => n + w.length, 0)} points`);
+    return ways;
+  } catch (err) {
+    log(`OSM track: ${err.message}`);
   }
   if (cached?.data?.ways?.length) {
     log(`OSM track: Overpass unavailable — using the cache from ${cached.data.fetchedAt}`);

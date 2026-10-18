@@ -226,6 +226,35 @@ console.log("routing along track (rail-graph)");
 }
 
 console.log("registry and wiring");
+// ─── OSM track, in tiles ─────────────────────────────────────────────────────
+{
+  const { bboxTiles, loadOsmTrack } = await import("../scripts/adapters/srt.mjs");
+  const tiles = bboxTiles([5.6, 97.3, 20.6, 106.0]);
+  check("Thailand's box cut into 4° tiles that cover it exactly", tiles.length === 12 && tiles.every(([s, w, n, e]) => n - s <= 4 && e - w <= 4) && tiles[0][0] === 5.6 && tiles[0][1] === 97.3 && tiles.at(-1)[2] === 20.6 && tiles.at(-1)[3] === 106);
+  const os = await import("node:os");
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "srt-osm-"));
+  fs.mkdirSync(path.join(root, "public/data/scraped"), { recursive: true });
+  // 150 ways, each answered by every tile its box touches: the merge keeps one copy.
+  const way = (id) => ({ type: "way", id, nodes: [id * 10, id * 10 + 1], geometry: [{ lat: 13 + id / 1000, lon: 100 }, { lat: 13 + id / 1000, lon: 100.01 }] });
+  let calls = 0;
+  const answering = async () => { calls++; return new Response(JSON.stringify({ elements: Array.from({ length: 150 }, (_, i) => way(i)) }), { status: 200 }); };
+  const params = { bbox: [5.6, 97.3, 13.6, 101.3], file: "osm-test.json" };
+  const got = await loadOsmTrack({ rootDir: root, today: "2026-10-18", params, fetchImpl: answering, retryMs: 0 });
+  check("every tile asked once, ways merged by id", calls === 2 && got?.length === 150);
+  const cached = JSON.parse(fs.readFileSync(path.join(root, "public/data/scraped/osm-test.json"), "utf8"));
+  check("the merged track is cached with its date", cached.data.fetchedAt === "2026-10-18" && cached.data.ways.length === 150);
+  calls = 0;
+  await loadOsmTrack({ rootDir: root, today: "2026-10-20", params, fetchImpl: answering, retryMs: 0 });
+  check("a cache under a week old is used without asking", calls === 0);
+  // One tile failing every attempt: tonight uses last week's track, never half a network.
+  let n = 0;
+  const flaky = async () => (n++ === 0 ? answering() : new Response("busy", { status: 502 }));
+  const stale = await loadOsmTrack({ rootDir: root, today: "2026-11-01", params, fetchImpl: flaky, retryMs: 0 });
+  const after = JSON.parse(fs.readFileSync(path.join(root, "public/data/scraped/osm-test.json"), "utf8"));
+  check("a failed tile keeps the whole stale cache", stale?.length === 150 && after.data.fetchedAt === "2026-10-18" && n === 4);
+  fs.rmSync(root, { recursive: true, force: true });
+}
+
 const registry = JSON.parse(fs.readFileSync(path.join(ROOT, "data/sources/registry.json"), "utf8"));
 const entry = registry.find((e) => e.id === "srt");
 check("registry entry: enabled, official, agency SRT, prefix srt_", entry?.enabled && entry.official && entry.synthetic?.idPrefix === "srt_" && entry.agencyDefaults?.agencyId === "SRT");
