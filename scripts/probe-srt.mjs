@@ -175,57 +175,80 @@ for (const src of srcs.slice(0, 8)) {
   for (const m of js.body.matchAll(/.{0,120}\$\.(?:ajax|post|get)\s*\([\s\S]{0,300}/g)) console.log(`  ajax: ${m[0].replace(/\s+/g, " ")}`);
 }
 
-// 3. One search per sample corridor, using the form's own field names. The
-// station values are whatever the form's options say these names are.
-const stationOptions = Object.values(selects).flat(2);
-const valueFor = (thaiName) => stationOptions.find((o) => o.label.replace(/\s+/g, "") === thaiName)?.value
-  ?? stationOptions.find((o) => o.label.includes(thaiName))?.value ?? null;
-const formAction = new URL("booking/booking", homeBase).href;
-const needsCaptcha = /g-recaptcha-response|cf-turnstile-response/i.test(home.body.match(/<form\b[\s\S]*?<\/form>/i)?.[0] ?? "");
-console.log(`\n# Searches → ${formAction} (captcha field in form: ${needsCaptcha})`);
+// 3. The station list the form fills itself with (POST home/Home/getStation,
+// JSON), then one search per sample corridor with the ids it gives, then the
+// calls the results page makes to fill itself in.
+const ajax = async (relative, form, label = relative) => {
+  const res = await request(new URL(relative, homeBase).href, {
+    method: "POST",
+    form,
+    accept: "application/json, text/javascript, */*; q=0.01",
+    referer: HOME,
+  });
+  if (!describe(`POST ${relative} ${label === relative ? "" : label}`, res)) return null;
+  save(`ajax-${relative}-${label}`, res.body);
+  try {
+    return JSON.parse(res.body);
+  } catch {
+    console.log(`  not JSON: ${res.body.slice(0, 400).replace(/\s+/g, " ")}`);
+    return null;
+  }
+};
+
+const stationsAnswer = await ajax("home/Home/getStation", { LineId: "" });
+const stationList = Array.isArray(stationsAnswer?.data) ? stationsAnswer.data : [];
+console.log(`  errorCode ${stationsAnswer?.errorCode}, ${stationList.length} stations; keys ${JSON.stringify(Object.keys(stationList[0] ?? {}))}`);
+for (const st of stationList.slice(0, 1000)) {
+  console.log(`    ${st.stationId}\t${st.stationNo}\t${st.stationNameTh}\t${st.stationNameEn}`);
+}
+const idFor = (thai) => stationList.find((s) => String(s.stationNameTh).trim() === thai)?.stationId ?? null;
+
 const travel = new Date(Date.now() + 10 * 86_400_000);
 const dd = String(travel.getUTCDate()).padStart(2, "0");
 const mm = String(travel.getUTCMonth() + 1).padStart(2, "0");
 const yyyy = travel.getUTCFullYear();
-if (!needsCaptcha) {
-  for (const [from, to] of SAMPLES) {
-    const start = valueFor(from);
-    const end = valueFor(to);
-    console.log(`\n${from} (${start}) → ${to} (${end}), ${yyyy}-${mm}-${dd}`);
-    if (!start || !end) { console.log("  station not in the form's lists — skipped"); continue; }
-    const form = {
-      tripType: "1",
-      tripType1: "1",
-      provinceStart: start,
-      provinceEnd: end,
-      "date-start-picker": `${dd}/${mm}/${yyyy}`,
-      "date-start": `${dd}/${mm}/${yyyy}`,
-      "date-end-picker": "",
-      "date-end": "",
-      seatperson: "1",
-      lineId: "0",
-    };
-    const res = await request(formAction, { method: "POST", form, referer: HOME });
-    if (!describe(`POST ${formAction} ${from}→${to}`, res)) continue;
-    save(`search-${from}-${to}`, res.body);
-    let page = res;
-    if (res.location) {
-      page = await request(new URL(res.location, formAction).href, { referer: HOME });
-      if (!describe(`redirect → ${res.location}`, page)) continue;
-      save(`search-${from}-${to}-redirect`, page.body);
-    }
-    console.log(`  inputs: ${inputsOf(page.body).filter((i) => /hidden/i.test(i)).slice(0, 40).join(" | ")}`);
-    for (const m of page.body.matchAll(/.{0,100}(\d{1,2}[:.]\d{2}).{0,100}/g)) {
-      const line = m[0].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-      if (line.length > 8) console.log(`  time: ${line}`);
-      if (requests >= MAX_REQUESTS) break;
-    }
-    for (const m of page.body.matchAll(/<script\b(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi)) {
-      if (/ajax|url|train|fare|price|seat/i.test(m[1])) console.log(`  --- inline script\n${m[1].replace(/\n\s*\n/g, "\n").slice(0, 5_000)}`);
-    }
-    dumps.push([`search ${from}→${to}`, page.body]);
+const formAction = new URL("booking/booking", homeBase).href;
+console.log(`\n# Searches → ${formAction}`);
+for (const [from, to] of SAMPLES) {
+  const start = idFor(from);
+  const end = idFor(to);
+  console.log(`\n${from} (${start}) → ${to} (${end}), ${dd}/${mm}/${yyyy}`);
+  if (!start || !end) { console.log("  station not in getStation's list — skipped"); continue; }
+  const form = {
+    tripType: "1",
+    provinceStart: String(start),
+    provinceEnd: String(end),
+    "date-start-picker": `${dd}/${mm}/${yyyy}`,
+    "date-start": `${dd}/${mm}/${yyyy}`,
+    "date-end-picker": "",
+    "date-end": "",
+    seatperson: "1",
+    lineId: "0",
+  };
+  const res = await request(formAction, { method: "POST", form, referer: HOME });
+  if (!describe(`POST booking/booking ${from}→${to}`, res)) continue;
+  save(`search-${from}-${to}`, res.body);
+  let page = res;
+  if (res.location) {
+    page = await request(new URL(res.location, formAction).href, { referer: HOME });
+    if (!describe(`redirect → ${res.location}`, page)) continue;
+    save(`search-${from}-${to}-redirect`, page.body);
   }
+  const calls = [...new Set([...page.body.matchAll(/(?:SmartUtil\.ajax|DTUtil\.\w+|url\s*:)\s*\(?\s*['"]([^'"]+)['"]/g)].map((m) => m[1]))];
+  console.log(`  calls the page makes: ${calls.join("  ")}`);
+  console.log(`  hidden inputs: ${inputsOf(page.body).filter((i) => /hidden/i.test(i)).slice(0, 40).join(" | ")}`);
+  for (const m of page.body.matchAll(/<script\b(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi)) {
+    if (/SmartUtil\.ajax|search|train|fare|price/i.test(m[1]) && !/getNotifications|getTripGroup|getNewsInfo/.test(m[1])) {
+      console.log(`  --- inline script (${m[1].length} chars)\n${m[1].replace(/\n\s*\n/g, "\n").slice(0, 9_000)}`);
+    }
+  }
+  dumps.push([`search ${from}→${to}`, page.body]);
+  break; // one corridor is enough to learn the shape; the next run follows the calls
 }
+
+// The captcha helper in full: which actions it guards.
+const helper = await request(new URL("assets/js/RecaptchaHelper.js", homeBase).href, { accept: "*/*" });
+if (describe("RecaptchaHelper.js", helper)) console.log(helper.body.slice(0, 4_000));
 
 console.log(`\n# Requests: ${requests}; blocked hosts: ${[...blockedHosts].join(", ") || "none"}`);
 console.log(`\n# Page text (capped at ${MAX_TEXT_LOG} chars each)`);
