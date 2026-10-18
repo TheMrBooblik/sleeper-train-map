@@ -32,11 +32,11 @@ const MAX_TEXT_LOG = 15_000;
 const SPACING_MS = 1_000;
 const HOME = "https://dticket.railway.co.th/DTicketPublicWeb/home/Home";
 
-// Corridors to try a search on: [from, to] as Thai station names.
+// Corridors to try a search on: [from, to].
+// English names exactly as getStation spells them.
 const SAMPLES = [
-  ["กรุงเทพอภิวัฒน์", "เชียงใหม่"],
-  ["กรุงเทพอภิวัฒน์", "หาดใหญ่"],
-  ["กรุงเทพอภิวัฒน์", "หนองคาย"],
+  ["Krung Thep Aphiwat", "Chiang Mai"],
+  ["Krung Thep Aphiwat", "Hat Yai Junction"],
 ];
 
 let requests = 0;
@@ -198,10 +198,10 @@ const ajax = async (relative, form, label = relative) => {
 const stationsAnswer = await ajax("home/Home/getStation", { LineId: "" });
 const stationList = Array.isArray(stationsAnswer?.data) ? stationsAnswer.data : [];
 console.log(`  errorCode ${stationsAnswer?.errorCode}, ${stationList.length} stations; keys ${JSON.stringify(Object.keys(stationList[0] ?? {}))}`);
-for (const st of stationList.slice(0, 1000)) {
+for (const st of stationList.slice(0, 5)) {
   console.log(`    ${st.stationId}\t${st.stationNo}\t${st.stationNameTh}\t${st.stationNameEn}`);
 }
-const idFor = (thai) => stationList.find((s) => String(s.stationNameTh).trim() === thai)?.stationId ?? null;
+const idFor = (name) => stationList.find((s) => String(s.stationNameEn).trim() === name)?.stationId ?? null;
 
 const travel = new Date(Date.now() + 10 * 86_400_000);
 const dd = String(travel.getUTCDate()).padStart(2, "0");
@@ -243,7 +243,6 @@ for (const [from, to] of SAMPLES) {
     }
   }
   dumps.push([`search ${from}→${to}`, page.body]);
-  break; // one corridor is enough to learn the shape; the next run follows the calls
 }
 
 // The captcha helper in full: which actions it guards.
