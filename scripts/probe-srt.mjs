@@ -242,6 +242,9 @@ for (const [from, to] of SAMPLES) {
     }
   }
   dumps.push([`search ${from}→${to}`, page.body]);
+  // The whole results page, once, between markers: the trip list is built by
+  // code this probe has not found by pattern, so read it whole offline.
+  console.log(`\n<<<RESULTS-PAGE ${page.body.length}\n${page.body}\n>>>RESULTS-PAGE`);
 
   // The results page fills itself from an external script (showTrips). Find
   // it and every call it makes, with the context around showTrips.
