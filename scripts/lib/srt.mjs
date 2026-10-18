@@ -233,6 +233,15 @@ export function pairOrder(numbers, pairs = {}) {
 const KM_SAME_STATION = 3;
 
 /**
+ * How long a train D-Ticket stopped confirming is carried from last night's
+ * file: D-Ticket answers some runner addresses and not others, so a few
+ * nights in a row without an answer is expected, but a timetable nobody has
+ * confirmed for a month is no longer one to publish (fares.mjs keeps the same
+ * 30 days for a fare).
+ */
+export const CARRY_MAX_DAYS = 30;
+
+/**
  * Build the trains file entries. `found` is pickCorridorTrains' answer for
  * tonight (or null when D-Ticket was unreachable), `previous` last night's
  * trains file (times and fares are carried from it when tonight read none).
@@ -243,6 +252,16 @@ export function buildSrtTrains({ config, found, namtang, positions, previous = {
   const donors = [...namtang.values()].map((t) => t.shape).filter((s) => Array.isArray(s) && s.length >= 3);
   const prevByNumber = new Map(Object.values(previous).map((t) => [String(t.trainNo ?? ""), t]));
 
+  const fresh = (t) => {
+    const at = Date.parse(`${t?.timetable?.checkedAt ?? ""}T00:00:00Z`);
+    return Number.isFinite(at) && (Date.parse(`${today}T00:00:00Z`) - at) / 86_400_000 <= CARRY_MAX_DAYS;
+  };
+  for (const [n, t] of [...prevByNumber]) {
+    if (!fresh(t)) {
+      log(`${n}: last confirmed ${t?.timetable?.checkedAt ?? "never"}, over ${CARRY_MAX_DAYS} days ago — no longer carried`);
+      prevByNumber.delete(n);
+    }
+  }
   const numbers = found ? [...found.keys()] : [...prevByNumber.keys()].filter(Boolean);
   const trains = {};
   for (const number of pairOrder(numbers, config.pairs)) {

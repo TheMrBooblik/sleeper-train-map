@@ -142,7 +142,9 @@ check("file order puts each train before its return", Object.keys(built)[0] === 
 console.log("a night D-Ticket cannot be reached");
 const rebuilt = buildSrtTrains({ config, found: null, namtang, positions, previous: built, today: "2026-10-19", travelDate: "2026-10-29" });
 check("last night's trains, times and fares are kept", rebuilt["Special Express 9"]?.stations[0].departure === "18:40" && rebuilt["Special Express 9"].fare.fromPrice === 938);
-check("…and say so", rebuilt["Special Express 9"].timetable.source === "previous");
+check("…and say so, keeping the night it was last confirmed", rebuilt["Special Express 9"].timetable.source === "previous" && rebuilt["Special Express 9"].timetable.checkedAt === "2026-10-18");
+const monthLater = buildSrtTrains({ config, found: null, namtang, positions, previous: rebuilt, today: "2026-11-18", travelDate: "2026-11-25" });
+check("a timetable unconfirmed for over 30 days is no longer published", Object.keys(monthLater).length === 0);
 
 console.log("adapter against a fake D-Ticket");
 {
