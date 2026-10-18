@@ -19,6 +19,7 @@
  */
 import { fareClassRows, formatMoney, isCouchetteClass } from "./fareClasses.mjs";
 import { dealsSummary, isDealClass, nightDeal } from "./lastMinuteDeals.mjs";
+import { nightClock } from "./nightTimes.mjs";
 
 const DAY_MS = 86_400_000;
 const MONTHS = [
@@ -62,7 +63,10 @@ export function formatNight(iso) {
  * last night the calendar holds, each one
  * { date, state: "priced" | "none" | "unknown", amount, price, cellPrice,
  *   cellClass?, otherBerth?, reason?, tier, classes, deal, checkedAt,
- *   bookingDate, bookingDeparture, bookingArrival }.
+ *   bookingDate, bookingDeparture, bookingArrival, dep?, arr? }.
+ * `dep`/`arr` ("21:54", "08:59") are the night's own clock at the train's
+ * ends where the source recorded one (Nightjet's do, src/lib/nightTimes.mjs)
+ * and `timed` allows it; the connection page retimes its stop list with them.
  * `unknown` is a night not searched yet; `none` one whose search found no
  * berth on sale, with `reason` saying why where the source recorded it:
  * "noJourney" (no train that night) or "noBerth" (it ran, selling no
@@ -99,6 +103,9 @@ export function formatNight(iso) {
  * @param {(iso: string) => {departure: string, arrival: string}|null} [opts.bookingTimes]
  *   that night's own departure and arrival, for a link that names the whole
  *   journey (ÖBB's), or null
+ * @param {boolean} [opts.timed=true]  whether each night's clock is the
+ *   train's own (false where the calendar priced another end, see
+ *   journeyTimesTheEnds)
  * @returns {{ currency: string, days: object[], cheapestDate: string|null,
  *   deals: object|null, cellBasis: "couchette" | "berth",
  *   otherBerthNights: number, noTrainNights: number } | null}
@@ -115,6 +122,7 @@ export function fareCalendarDays(
     bookingDate = () => null,
     bookingTimes = () => null,
     compartmentSize = 5,
+    timed = true,
   } = {},
 ) {
   const nights = calendar?.nights;
@@ -143,6 +151,7 @@ export function fareCalendarDays(
     const cell = classes.find((c) => isCouchetteClass(c.key)) ?? classes[0] ?? null;
     const amount = cell ? cell.amount : null;
     const reason = entry?.none ? noneReason(entry) : null;
+    const clock = timed ? nightClock(d, entry) : null;
     days.push({
       date: d,
       state: amount != null ? "priced" : entry ? "none" : "unknown",
@@ -174,6 +183,7 @@ export function fareCalendarDays(
       checkedAt: entry?.checkedAt ?? null,
       bookingDate: bookingDate(d) ?? null,
       ...nightBookingTimes(bookingTimes(d)),
+      ...(clock ? { dep: clock.departure, arr: clock.arrival } : {}),
     });
   }
 

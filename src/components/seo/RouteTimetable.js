@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { FiExternalLink } from "react-icons/fi";
 import FareCalendar from "./FareCalendar";
+import { formatNight } from "../../lib/fareCalendarView.mjs";
+import { stopsForNight } from "../../lib/nightTimes.mjs";
 
 /**
  * Resolve the clock time to show against a stop. Stops are { name, arrival,
@@ -21,8 +24,15 @@ const stopName = (stop) => (typeof stop === "string" ? stop : stop.name);
  * Static timetable for one direction of a route: header (train number, endpoints,
  * times, days) + the ordered stop list with per-stop times where the operator feed
  * provides them (otherwise just origin departure / destination arrival).
+ *
+ * Choosing a night in the fare calendar retimes it to that night where the
+ * calendar knows the night's own clock (Nightjet's, src/lib/nightTimes.mjs):
+ * the published times are one run's, and a works night leaves an hour later.
+ * Until a night is chosen the page shows the published run, so the static
+ * HTML keeps every stop's time.
  */
 export default function RouteTimetable({ direction, bookingHref = null }) {
+  const [pickedDate, setPickedDate] = useState(null);
   if (!direction) return null;
   const {
     trainNumber,
@@ -41,7 +51,23 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
     punctuality,
     nextDepartureText,
   } = direction;
-  const lastIdx = stops.length - 1;
+  const pickedNight = pickedDate
+    ? (fareCalendar?.days ?? []).find((d) => d.date === pickedDate) ?? null
+    : null;
+  const timedCalendar = (fareCalendar?.days ?? []).some((d) => d.dep);
+  const retimed =
+    pickedNight?.dep && pickedNight?.arr
+      ? stopsForNight(
+          stops,
+          { departure: pickedNight.dep, arrival: pickedNight.arr },
+          // That night's own timetable, where the scrape read one for its clock.
+          Number.isInteger(pickedNight.tt) ? fareCalendar.timetables?.[pickedNight.tt] : null,
+        )
+      : null;
+  const shownStops = retimed?.stops ?? stops;
+  const shownDeparture = retimed?.departure ?? departureTime;
+  const shownArrival = retimed?.arrival ?? arrivalTime;
+  const lastIdx = shownStops.length - 1;
 
   return (
     <section className="rounded-xl border border-white/10 bg-white/[0.02] p-5 sm:p-6">
@@ -63,8 +89,9 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
       )}
 
       <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/60">
-        {departureTime && <span>Departs {departureTime}</span>}
-        {arrivalTime && <span>Arrives {arrivalTime}</span>}
+        {shownDeparture && <span>Departs {shownDeparture}</span>}
+        {shownArrival && <span>Arrives {shownArrival}</span>}
+        {retimed && <span>on {formatNight(pickedNight.date)}</span>}
         {serviceDays && <span>{serviceDays}</span>}
       </div>
 
@@ -77,6 +104,7 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
           calendar={fareCalendar}
           trainNumber={trainNumber}
           bookingHref={bookingHref}
+          onPick={timedCalendar ? setPickedDate : undefined}
         />
       ) : (
         fare?.classes?.length > 0 && (
@@ -136,8 +164,18 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
         </div>
       )}
 
+      {pickedNight && timedCalendar && (
+        <NightTimesNote
+          night={pickedNight}
+          retimed={retimed}
+          runDeparture={departureTime}
+          runArrival={arrivalTime}
+          onReset={() => setPickedDate(null)}
+        />
+      )}
+
       <ol className="mt-5 space-y-0">
-        {stops.map((stop, i) => {
+        {shownStops.map((stop, i) => {
           const isFirst = i === 0;
           const isLast = i === lastIdx;
           const name = stopName(stop);
@@ -194,5 +232,53 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
         </p>
       )}
     </section>
+  );
+}
+
+/**
+ * What the stop list below is showing once a night is chosen: that night's
+ * own times, and — where the night leaves or arrives at another time than the
+ * published run — why the stops in between have none.
+ */
+function NightTimesNote({ night, retimed, runDeparture, runArrival, onReset }) {
+  const date = formatNight(night.date);
+  let text;
+  if (!retimed) {
+    text = `No times recorded for ${date}; the times below are the published timetable's.`;
+  } else if (retimed.sameAsRun) {
+    text = `Times for ${date}.`;
+  } else if (retimed.ownTimetable) {
+    text = `Times for ${date}, from the operator's timetable for that night`;
+    text +=
+      retimed.departure !== runDeparture && runDeparture
+        ? `: it leaves at ${retimed.departure} instead of ${runDeparture}.`
+        : ".";
+  } else {
+    const moved = [
+      retimed.departure !== runDeparture && runDeparture
+        ? `leaves at ${retimed.departure} instead of ${runDeparture}`
+        : null,
+      retimed.arrival !== runArrival && runArrival
+        ? `arrives at ${retimed.arrival} instead of ${runArrival}`
+        : null,
+    ].filter(Boolean);
+    text =
+      `Times for ${date}: the train ${moved.join(" and ") || "runs to another timetable"} that night. ` +
+      "Its times at the stops in between are not published here — check the operator's timetable for that date.";
+  }
+  return (
+    <p
+      className="mt-5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/60"
+      data-testid="night-times"
+    >
+      {text}{" "}
+      <button
+        type="button"
+        onClick={onReset}
+        className="cursor-pointer text-white/80 underline underline-offset-2 hover:text-white"
+      >
+        Show the published timetable
+      </button>
+    </p>
   );
 }

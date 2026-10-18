@@ -24,7 +24,7 @@ import { getRouteFrequencyOverride } from "../routeFrequencyOverrides";
 import { buildPairSlug } from "./slugify.mjs";
 import { routeEndpoints, buildRouteSlugMaps } from "./routeSlugs.mjs";
 import { cityForStation } from "./cities.mjs";
-import { getStationTimesForTrain } from "./stationTimes.mjs";
+import { getStationTimesForTrain, getTimetableVariantsForTrain } from "./stationTimes.mjs";
 import {
   deriveTitle,
   formatAnyTime,
@@ -44,6 +44,7 @@ import {
 } from "../fareClasses.mjs";
 import { eurHintFor, formatEurApprox } from "../fx.mjs";
 import { fareCalendarDays } from "../fareCalendarView.mjs";
+import { clockKey, journeyTimesTheEnds, nightClock } from "../nightTimes.mjs";
 import { punctualitySummary } from "../punctuality.mjs";
 import { buildDatedBookingLink, buildDealsLandingUrl } from "../operatorBooking.js";
 import { lastMinuteProgramme } from "../lastMinuteDeals.mjs";
@@ -475,7 +476,7 @@ function withCheckedLabel(fare, currency = null) {
  * are left out; the page is rebuilt nightly with the data, and the calendar
  * greys out anything the visitor's own clock says has passed.
  */
-function fareCalendarFor(route, dir, { origin, destination, today }) {
+function fareCalendarFor(route, dir, { origin, destination, today, variants = null }) {
   const calendar = route[`fare_calendar_${dir}`];
   if (!calendar) return null;
   // `journey` is the train and ends the calendar priced (Nightjet's carry it),
@@ -495,8 +496,28 @@ function fareCalendarFor(route, dir, { origin, destination, today }) {
     bookingDate: link ? link.dateFor : () => null,
     bookingTimes: link ? link.timesFor : () => null,
     compartmentSize: programme?.compartmentSize ?? 5,
+    // Each night's own clock retimes the stop list, but only where it was
+    // read at the train's own ends (src/lib/nightTimes.mjs).
+    timed: journeyTimesTheEnds(calendar.journey, origin, destination),
   });
   if (!view) return null;
+  // A night whose clock the scrape read a timetable for points at it by
+  // index (`tt`), so the page carries each timetable once, not per night.
+  const timetables = [];
+  if (variants) {
+    const index = new Map();
+    for (const day of view.days) {
+      if (!day.dep) continue;
+      const key = clockKey(nightClock(day.date, calendar.nights?.[day.date]));
+      const stops = key ? variants[key] : null;
+      if (!stops) continue;
+      if (!index.has(key)) {
+        index.set(key, timetables.length);
+        timetables.push(stops.map(({ name, arrival, departure }) => ({ name, arrival, departure })));
+      }
+      day.tt = index.get(key);
+    }
+  }
   // A last-minute deal is sold from the operator's promo page, not through
   // the ordinary search, so each deal night carries its own link there.
   for (const day of view.days) {
@@ -506,6 +527,7 @@ function fareCalendarFor(route, dir, { origin, destination, today }) {
     ...view,
     bookingTemplate: link?.template ?? null,
     lastMinute: view.deals && programme ? programme : null,
+    ...(timetables.length ? { timetables } : {}),
   };
 }
 
@@ -616,6 +638,7 @@ export function getRouteDetail(routeId) {
         origin,
         destination,
         today: new Date().toISOString().slice(0, 10),
+        variants: raw ? getTimetableVariantsForTrain(trainNumber, { origin, destination }) : null,
       }),
     });
   }

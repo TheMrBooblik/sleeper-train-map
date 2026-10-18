@@ -91,7 +91,8 @@
     "probe-es-fares": "node scripts/probe-es-fares.mjs",
     "verify-sncf-open-data": "node tests/verify-sncf-open-data.mjs",
     "probe-sncf-open-data": "node scripts/probe-sncf-open-data.mjs",
-    "verify-bottom-bar": "node tests/verify-bottom-bar.mjs"
+    "verify-bottom-bar": "node tests/verify-bottom-bar.mjs",
+    "verify-night-times": "node tests/verify-night-times.mjs"
   },
   "packageManager": "npm@10",
   "repository": {

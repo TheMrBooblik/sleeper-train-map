@@ -6,6 +6,7 @@
 //          "404"   → 404 when absent or stale (legacy cd-trains behaviour)
 
 import { getTrainsBySource, isFresh } from "./file-store.mjs";
+import { journeyTimesTheEnds, nightTimesSummary } from "../../../lib/nightTimes.mjs";
 
 /**
  * The trains file as the browser needs it: without each train's fareCalendar.
@@ -14,19 +15,36 @@ import { getTrainsBySource, isFresh } from "./file-store.mjs";
  * from here, and the panel fetches this file whole — Nightjet's calendars
  * alone are ~87 KB of it. The cached blob is never mutated: the copy is
  * memoised per blob, so a warm lambda strips once.
+ *
+ * What the panel does need from the calendar is how the train's clock moves
+ * from night to night, so a train whose calendar times its own ends gets
+ * `nightTimes` in its place (src/lib/nightTimes.mjs): a few dozen bytes
+ * saying NJ 403 leaves between 20:01 and 21:01.
  */
 const served = new WeakMap();
 export function servedTrainsData(data) {
   const trains = data?.trains;
-  if (!trains || !Object.values(trains).some((t) => t?.fareCalendar)) return data;
+  if (!trains || !Object.values(trains).some((t) => t?.fareCalendar || t?.timetableVariants)) {
+    return data;
+  }
   if (served.has(data)) return served.get(data);
   const out = {
     ...data,
     trains: Object.fromEntries(
       Object.entries(trains).map(([key, train]) => {
-        if (!train?.fareCalendar) return [key, train];
-        const { fareCalendar: _calendar, ...rest } = train;
-        return [key, rest];
+        if (!train?.fareCalendar && !train?.timetableVariants) return [key, train];
+        // Each night's own timetable (timetableVariants) is the connection
+        // page's, read at build time from the file itself.
+        const { fareCalendar: calendar, timetableVariants: _variants, ...rest } = train;
+        if (!calendar) return [key, rest];
+        const stations = Array.isArray(train.stations) ? train.stations : [];
+        const ownEnds = journeyTimesTheEnds(
+          calendar.journey,
+          stations[0]?.name,
+          stations[stations.length - 1]?.name,
+        );
+        const nightTimes = ownEnds ? nightTimesSummary(calendar) : null;
+        return [key, nightTimes ? { ...rest, nightTimes } : rest];
       }),
     ),
   };

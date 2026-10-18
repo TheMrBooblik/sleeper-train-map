@@ -44,9 +44,13 @@ const TIER_CLASS = {
  * @param {{ calendar: { currency: string, days: object[], cheapestDate: string,
  *           bookingTemplate: string|null, cellBasis: string,
  *           otherBerthNights: number, noTrainNights: number },
- *           trainNumber?: string, bookingHref?: string|null }} props
+ *           trainNumber?: string, bookingHref?: string|null,
+ *           onPick?: (date: string) => void }} props  `onPick` hears a night
+ *           the visitor chose (a cell, the deals banner), never the one the
+ *           calendar opens on: the timetable around it retimes its stops to
+ *           the chosen night (RouteTimetable).
  */
-export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
+export default function FareCalendar({ calendar, trainNumber, bookingHref, onPick }) {
   const {
     days,
     cheapestDate,
@@ -153,6 +157,7 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
   const select = (date) => {
     setSelected(date);
     reveal(date);
+    onPick?.(date);
   };
 
   // A page built before the cheapest night passed: move to the cheapest one left.
@@ -287,7 +292,10 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref }) {
                     aria-pressed={isSelected}
                     aria-label={label}
                     title={label}
-                    onClick={() => setSelected(day.date)}
+                    onClick={() => {
+                      setSelected(day.date);
+                      onPick?.(day.date);
+                    }}
                     className={`relative flex min-h-[2.75rem] min-w-0 flex-col items-center justify-center rounded-md px-0.5 py-1 leading-tight transition-colors ${
                       // Tailwind 4 no longer gives a button the pointer.
                       selectable ? "cursor-pointer" : "cursor-default"
@@ -465,6 +473,14 @@ function NightActionBar({ night, deal, href, dated, trainNumber }) {
             {formatNight(night.date)}
             {trainNumber ? (
               <span className="text-white/50"> · {trainNumber}</span>
+            ) : null}
+            {/* The night's own clock, where the source recorded one: a
+                Nightjet leaves at another time on a works night. */}
+            {night.dep && night.arr ? (
+              <span className="whitespace-nowrap font-mono text-white/50" data-testid="fare-calendar-clock">
+                {" "}
+                · {night.dep} → {night.arr}
+              </span>
             ) : null}
           </div>
           <div className="mt-0.5 text-xs text-white/60">

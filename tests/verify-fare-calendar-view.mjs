@@ -477,10 +477,18 @@ function ctaCaption(row, { booking } = {}) {
   return { primaryDir, preselects, fromPrice, fromPriceEur: eurHintFor(pricing) || "", trainPricing };
 }
 
-check("the CTA caption: Wien → Roma (NJ 40233) quotes NJ 40233, whichever direction is cheaper", () => {
-  const row = VIEW_MAP.nj_standalone_NJ_40233;
+check("the CTA caption: Wien–Roma (NJ 40233/40294) quotes direction 0's train, whichever direction is cheaper", () => {
+  // Which of the pair is direction 0 (and so the row's id) follows the order
+  // nightjet.com listed them in that night, so the row is found by its trains.
+  const row = Object.values(VIEW_MAP).find((r) =>
+    [r.trip_short_name_0, r.trip_short_name_1].includes("NJ 40233"),
+  );
   assert.ok(row, "the Wien–Roma Nightjet is in the payload");
-  assert.strictEqual(row.trip_short_name_0, "NJ 40233");
+  assert.deepStrictEqual(
+    [row.trip_short_name_0, row.trip_short_name_1].sort(),
+    ["NJ 40233", "NJ 40294"],
+  );
+  const returnTrain = row.trip_short_name_1;
   // The button preselects direction 0's ends…
   const booking = resolveRouteBooking({
     agencyId: row.agency_id,
@@ -491,7 +499,7 @@ check("the CTA caption: Wien → Roma (NJ 40233) quotes NJ 40233, whichever dire
     routeId: String(row.route_id),
     scheduleStops: [],
   });
-  assert.ok(booking?.preselects, "the shop link names Wien Hbf → Roma Tiburtina");
+  assert.ok(booking?.preselects, "the shop link names direction 0's two ends");
   assert.strictEqual(new URL(booking.href).searchParams.get("stationOrigName"), row.origin_trip_0);
   // …so the caption is direction 0's fare, or nothing.
   const caption = ctaCaption(row);
@@ -502,13 +510,13 @@ check("the CTA caption: Wien → Roma (NJ 40233) quotes NJ 40233, whichever dire
   assert.strictEqual(caption.fromPriceEur, "", "a euro fare carries no ≈€ hint");
 
   // The same row on a night the return train is cheaper: the caption must not
-  // follow the row's figure across to NJ 40294.
+  // follow the row's figure across to the return train.
   const returnCheaper = structuredClone(row);
   returnCheaper.fare_0 = { ...returnCheaper.fare_0, fromPrice: 114.9, currency: "EUR" };
   returnCheaper.fare_1 = { ...returnCheaper.fare_1, fromPrice: 79.9, currency: "EUR" };
-  returnCheaper.pricing = { ...returnCheaper.pricing, fromPrice: 79.9, trainName: "NJ 40294" };
+  returnCheaper.pricing = { ...returnCheaper.pricing, fromPrice: 79.9, trainName: returnTrain };
   assert.strictEqual(ctaCaption(returnCheaper).fromPrice, "from €114.9");
-  // And on a night NJ 40233 has no fare at all, no figure.
+  // And on a night direction 0's train has no fare at all, no figure.
   const outboundUnpriced = structuredClone(returnCheaper);
   delete outboundUnpriced.fare_0;
   assert.strictEqual(ctaCaption(outboundUnpriced).fromPrice, null);
