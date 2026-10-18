@@ -89,6 +89,9 @@ export default function CityCombobox({
           aria-autocomplete="list"
           aria-activedescendant={open && results[active] ? `${id}-opt-${active}` : undefined}
           autoComplete="off"
+          // Declared since the first version and never wired: the "add another
+          // city" picker opens on a tap, and the tap should land in the field.
+          autoFocus={autoFocus}
           disabled={disabled}
           placeholder={disabled ? "Loading cities…" : placeholder}
           value={display}

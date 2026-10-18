@@ -38,9 +38,11 @@ import {
   departuresFrom,
   findJourneys,
   isInterchange,
+  nextServedNight,
   resolvePlan,
   ridesBetween,
 } from "../src/lib/plan/search.mjs";
+import { rideBookingLink } from "../src/lib/plan/booking.mjs";
 import { hydratePlanIndex, packPlanIndex } from "../src/lib/plan/index-codec.mjs";
 import { formatPlanDate } from "../src/lib/plan/format.mjs";
 import {
@@ -69,6 +71,7 @@ import { buildPlanIndex, readPublished } from "../scripts/build-plan-index.mjs";
 import { stripDisabledRoutes } from "../src/pages/api/lib/build-initial-data.mjs";
 import DISABLED_ROUTES from "../data/overrides/disabled-routes.json" with { type: "json" };
 import OPERATOR_PRICING from "../data/overrides/operator-pricing.json" with { type: "json" };
+import REGISTRY from "../data/sources/registry.json" with { type: "json" };
 import { resolvePricing } from "../src/lib/pricingResolve.mjs";
 
 let passed = 0;
@@ -547,11 +550,18 @@ check("the planner and the UI resolve a price the same way", () => {
 
   const advised = planner.legs.filter((l) => l.pricing?.type).length;
   assert.ok(advised > 400, `only ${advised} legs carry pricing advice`);
-  // Nothing may invent a figure: every from-price must come from the table.
+  // Nothing may invent a figure: every from-price comes from the table, or
+  // from an official source's own nightly fare (stampOfficialFares, which
+  // writes the registry id as `source`) — the second written after this check
+  // was, which is why it once read "the table" alone.
+  const official = new Set(
+    (Array.isArray(REGISTRY) ? REGISTRY : REGISTRY.sources ?? []).filter((src) => src.official).map((src) => src.id),
+  );
   for (const leg of planner.legs) {
     if (leg.pricing?.fromPrice == null) continue;
     assert.ok(
-      Object.values(table).some((p) => p.fromPrice === leg.pricing.fromPrice),
+      official.has(leg.pricing.source) ||
+        Object.values(table).some((p) => p.fromPrice === leg.pricing.fromPrice),
       `leg ${leg.id} has a from-price no operator declares`,
     );
   }
@@ -574,6 +584,74 @@ check("a ride carries every field the card renders", () => {
   assert.ok(priced, "some leg must carry pricing");
   const ridesWithPricing = destinations.filter((d) => d.best.pricing?.type).length;
   assert.ok(ridesWithPricing > 0, "pricing must survive the leg → ride copy");
+});
+
+check("a planner ride books the stations and the night it is about", () => {
+  // Someone who knows where they are going came to buy a ticket. The Book
+  // button must open the SELLER's shop (agency_id, which the connection page's
+  // CTA resolves from — operatorIds reads bot_agency_id first), with the
+  // stations the traveller boards and leaves at, on the plan's own night.
+  const date = "2026-12-04";
+  const rideOn = (agencyId) => {
+    for (const leg of planner.legs.filter((l) => l.agencyId === agencyId)) {
+      const from = leg.stops[0].citySlug;
+      const to = leg.stops[leg.stops.length - 1].citySlug;
+      const ride = ridesBetween(planner, { from, to, date }).rides.find((r) => r.legId === leg.id);
+      if (ride) return ride;
+    }
+    return null;
+  };
+
+  // Trenitalia's link takes an optional night (urlDateSuffix, dd-MM-yyyy).
+  const fs = rideOn("FS");
+  assert.ok(fs, "no Intercity Notte ride to book");
+  assert.equal(fs.agencyId, "FS", "the seller must survive the leg → ride copy");
+  const fsLink = rideBookingLink(fs);
+  assert.ok(fsLink?.href.includes("departureDate=04-12-2026"), `undated: ${fsLink?.href}`);
+  assert.ok(fsLink.href.includes(encodeURIComponent(fs.from.station)), "boarding station missing");
+
+  // A corridor the operator sells on its own page keeps that page — the same
+  // top tier as the connection page's CTA (routePages, operatorAgencies.mjs).
+  const es = rideOn("ES");
+  assert.ok(es, "no European Sleeper ride to book");
+  assert.ok(rideBookingLink(es)?.href, "a European Sleeper ride must have a Book link");
+
+  assert.equal(rideBookingLink({ ...fs, agencyId: "", operatorIds: [] }), null);
+  assert.equal(rideBookingLink(null), null);
+});
+
+check("a hop with no train that night points at the next one", () => {
+  // Most sleepers run two or three times a week, so "not this night" is the
+  // planner's commonest dead end for someone who knows where they are going.
+  let found = 0;
+  for (const leg of planner.legs) {
+    if (!leg.days || leg.days.length === 0 || leg.days.length >= 7 || leg.cadence) continue;
+    const from = leg.stops[0].citySlug;
+    const to = leg.stops[leg.stops.length - 1].citySlug;
+    // A night it does not run, inside its validity.
+    let date = "2026-11-02";
+    for (let i = 0; i < 7; i++) {
+      const { rides } = ridesBetween(planner, { from, to, date });
+      if (rides.length && !rides.some((r) => isOfferable(r.availability.status))) break;
+      date = addDays(date, 1);
+    }
+    const { rides } = ridesBetween(planner, { from, to, date });
+    if (!rides.length || rides.some((r) => isOfferable(r.availability.status))) continue;
+    const next = nextServedNight(planner, { from, to, date });
+    assert.ok(next, `${from} → ${to}: no next night after ${date}`);
+    assert.ok(next.date > date && next.nightsLater >= 1);
+    assert.equal(addDays(date, next.nightsLater), next.date);
+    const after = ridesBetween(planner, { from, to, date: next.date }).rides;
+    assert.ok(after.some((r) => isOfferable(r.availability.status)), "the next night must be served");
+    // And it is the FIRST such night, not merely a later one.
+    for (let n = 1; n < next.nightsLater; n++) {
+      const between = ridesBetween(planner, { from, to, date: addDays(date, n) }).rides;
+      assert.ok(!between.some((r) => isOfferable(r.availability.status)), "skipped a served night");
+    }
+    if (++found >= 10) break;
+  }
+  assert.ok(found >= 5, `only ${found} part-week legs to test against`);
+  assert.equal(nextServedNight(planner, { from: "", to: "vienna", date: "2026-11-02" }), null);
 });
 
 check("every terminus city knows its country", () => {

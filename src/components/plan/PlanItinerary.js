@@ -45,7 +45,43 @@ function StayStepper({ nights, onChange, city }) {
  * "no results" for a four-city trip hides which of the three legs was the
  * problem.
  */
-export default function PlanItinerary({ plan, stays, onStayChange, onRemoveCity }) {
+/**
+ * The way out of "not this night": the next night a train runs, as one tap.
+ *
+ * For the first hop that moves the whole trip; for a later one it adds nights
+ * in the city before it, so the hops already settled keep their dates.
+ */
+function NextNight({ hop, next, onTryNight }) {
+  if (!next || !onTryNight) return null;
+  const label =
+    hop.index === 0
+      ? `Leave ${formatPlanDate(next.date)} instead`
+      : `Stay ${next.nightsLater} more ${next.nightsLater === 1 ? "night" : "nights"} in ${hop.from.name}`;
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sky-400/20 bg-sky-400/5 px-4 py-3">
+      <p className="text-sm text-white/70">
+        No train on {formatPlanDate(hop.date)}. The next one leaves{" "}
+        <strong className="font-medium text-white">{formatPlanDate(next.date)}</strong>.
+      </p>
+      <button
+        type="button"
+        onClick={() => onTryNight(hop, next)}
+        className="rounded-full bg-sky-300 px-3.5 py-1.5 text-sm font-medium text-black transition-colors hover:bg-sky-200"
+      >
+        {label}
+      </button>
+    </div>
+  );
+}
+
+export default function PlanItinerary({
+  plan,
+  stays,
+  onStayChange,
+  onRemoveCity,
+  nextNights = [],
+  onTryNight = null,
+}) {
   const [expanded, setExpanded] = useState({});
 
   return (
@@ -101,7 +137,10 @@ export default function PlanItinerary({ plan, stays, onStayChange, onRemoveCity 
                     on board. Shown because you asked for this pair.
                   </p>
                 )}
-                <RideCard ride={hop.best} />
+                {!hop.served && (
+                  <NextNight hop={hop} next={nextNights[hop.index]} onTryNight={onTryNight} />
+                )}
+                <RideCard ride={hop.best} bookable />
                 {alternatives.length > 0 && (
                   <div>
                     <button
@@ -118,7 +157,7 @@ export default function PlanItinerary({ plan, stays, onStayChange, onRemoveCity 
                     {isOpen && (
                       <div className="mt-3 flex flex-col gap-3">
                         {alternatives.map((ride) => (
-                          <RideCard key={ride.key} ride={ride} compact />
+                          <RideCard key={ride.key} ride={ride} compact bookable />
                         ))}
                       </div>
                     )}
