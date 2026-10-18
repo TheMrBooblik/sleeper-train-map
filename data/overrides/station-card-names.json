@@ -1,0 +1,5 @@
+{
+  "_comment": "What a route card's title calls a terminus whose station name a traveller would not recognise as the city it serves. Titles only: URLs come from station-cities.json, and timetables, stop lists and the map keep the station's own name. Keep it short: a name that already says its city (Wien Hbf, Praha hl.n.) does not belong here.",
+  "Krung Thep Aphiwat": "Bangkok",
+  "Hat Yai Junction": "Hat Yai"
+}
