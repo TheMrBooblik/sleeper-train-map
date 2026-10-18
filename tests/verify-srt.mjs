@@ -186,6 +186,45 @@ console.log("adapter against a fake D-Ticket");
   check("run() exists", typeof run === "function");
 }
 
+console.log("routing along track (rail-graph)");
+{
+  const { buildRailGraph, routeBetween, routeThroughStops, simplifyPath, trackFromOverpass, km } = await import("../scripts/lib/rail-graph.mjs");
+  const line = (a, b, n) => Array.from({ length: n + 1 }, (_, i) => [a[0] + ((b[0] - a[0]) * i) / n, a[1] + ((b[1] - a[1]) * i) / n]);
+  // A main line south from Bangkok with a bend, and a branch west from a
+  // junction on it — the shape of the line to Trang off the Southern Line.
+  const bangkok = [13.8, 100.54];
+  const bend = [11.0, 99.4];
+  const junction = [8.17, 99.68];
+  const trang = [7.56, 99.61];
+  const main = [...line(bangkok, bend, 60), ...line(bend, junction, 60).slice(1)];
+  const branch = line(junction, trang, 20);
+  const graph = buildRailGraph([main, branch], { joinMeters: 30 });
+  const routed = routeBetween(graph, bangkok, trang);
+  const along = routed ? routed.slice(1).reduce((n, p, i) => n + km(routed[i], p), 0) : 0;
+  const viaTrack = km(bangkok, bend) + km(bend, junction) + km(junction, trang);
+  check("an endpoints-only train runs along the main line and down the branch", routed && Math.abs(along - viaTrack) < 5, `${along.toFixed(0)} vs ${viaTrack.toFixed(0)} km`);
+  check("…its stations are the line's first and last vertex", routed && eq(routed[0], bangkok) && eq(routed.at(-1), trang));
+  // Two overlapping shapes that share no vertex (a feed's shapes do this).
+  const offset = line([bend[0] + 0.0004, bend[1]], junction, 40);
+  const shapes = buildRailGraph([line(bangkok, bend, 30), offset], { joinMeters: 150 });
+  check("shapes overlapping without a shared vertex are joined into one network", Boolean(routeBetween(shapes, bangkok, junction)));
+  check("a station far from any track is not routed", routeBetween(graph, bangkok, [12.0, 102.5]) === null);
+  const loop = buildRailGraph([[...line(bangkok, [13.8, 104], 30), ...line([13.8, 104], [13.0, 104], 10).slice(1), ...line([13.0, 104], [13.0, 100.54], 30).slice(1)]], { joinMeters: 0 });
+  check("a route far longer than the straight line is refused", routeBetween(loop, bangkok, [13.0, 100.54]) === null);
+  const through = routeThroughStops([bangkok, junction, [12.0, 102.5]], [["osm", graph]]);
+  check("each gap says where its line came from", eq(through.sources, ["osm", "chord"]));
+  const zig = line([0, 0], [0, 1], 100);
+  check("simplifying keeps a junction it is told to", simplifyPath(zig, 15, new Set([37])).some((p) => eq(p, zig[37])) && simplifyPath(zig, 15).length === 2);
+  const overpass = {
+    elements: [
+      { type: "way", nodes: [1, 2, 3, 4, 5], geometry: line([0, 0], [0, 0.04], 4).map(([lat, lon]) => ({ lat, lon })) },
+      { type: "way", nodes: [3, 6], geometry: [{ lat: 0, lon: 0.02 }, { lat: 0.02, lon: 0.02 }] },
+    ],
+  };
+  const ways = trackFromOverpass(overpass);
+  check("a node two OSM ways share survives simplification", ways[0].some((p) => eq(p, [0, 0.02])));
+}
+
 console.log("registry and wiring");
 const registry = JSON.parse(fs.readFileSync(path.join(ROOT, "data/sources/registry.json"), "utf8"));
 const entry = registry.find((e) => e.id === "srt");

@@ -29,6 +29,9 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { streamZipCsv } from "../lib/gtfs.mjs";
 import { HONEST_USER_AGENT, detectBlock } from "../lib/http-block.mjs";
+import { trackFromOverpass } from "../lib/rail-graph.mjs";
+import { OVERPASS_ENDPOINTS } from "../lib/scrape-helpers.mjs";
+import polyline from "@mapbox/polyline";
 import {
   berthFares,
   buildSrtTrains,
@@ -127,6 +130,58 @@ export async function loadNamtang(zipPath) {
     [...points].map(([id, pts]) => [id, pts.sort((a, b) => a[0] - b[0]).map(([, lat, lon]) => [lat, lon])]),
   );
   return { routes, trips, stopTimesByTrip, stopsById, shapesById };
+}
+
+// ─── OpenStreetMap track ────────────────────────────────────────────────────
+
+// Every railway line in and around Thailand (Padang Besar is in Malaysia),
+// service sidings left out: one Overpass query, ~5 000 km of track.
+const OSM_TRACK_QUERY = (bbox) =>
+  `[out:json][timeout:240];way["railway"="rail"][!"service"](${bbox.join(",")});out geom;`;
+const OSM_TRACK_MAX_AGE_DAYS = 7;
+
+/**
+ * The track network to route trains along, from a committed cache refreshed
+ * weekly from Overpass. A failed refresh keeps the cache (track rarely moves);
+ * no cache and no answer means tonight routes on Namtang's shapes alone.
+ */
+export async function loadOsmTrack({ rootDir, today, params = {}, fetchImpl = fetch, log = () => {} }) {
+  const file = path.join(rootDir, "public/data/scraped", params.file ?? "osm-srt-track.json");
+  const cached = readJsonSafe(file);
+  const age = cached?.data?.fetchedAt
+    ? (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${cached.data.fetchedAt}T00:00:00Z`)) / 86_400_000
+    : Infinity;
+  const decode = (data) => (data?.ways ?? []).map((w) => polyline.decode(w));
+  if (age <= (params.maxAgeDays ?? OSM_TRACK_MAX_AGE_DAYS)) {
+    log(`OSM track: ${cached.data.ways.length} ways from the cache (${cached.data.fetchedAt})`);
+    return decode(cached.data);
+  }
+  const query = OSM_TRACK_QUERY(params.bbox ?? [5.6, 97.3, 20.6, 106.0]);
+  for (const url of OVERPASS_ENDPOINTS) {
+    try {
+      const res = await fetchImpl(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain", "User-Agent": HONEST_USER_AGENT },
+        body: query,
+        signal: AbortSignal.timeout(300_000),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const ways = trackFromOverpass(await res.json());
+      if (ways.length < 100) throw new Error(`only ${ways.length} ways`);
+      const data = { fetchedAt: today, source: new URL(url).host, ways: ways.map((w) => polyline.encode(w)) };
+      fs.writeFileSync(file, JSON.stringify({ uploadedAt: new Date().toISOString(), data }));
+      log(`OSM track: ${ways.length} ways, ${ways.reduce((n, w) => n + w.length, 0)} points from ${data.source}`);
+      return ways;
+    } catch (err) {
+      log(`OSM track from ${new URL(url).host} failed: ${err.message}`);
+    }
+  }
+  if (cached?.data?.ways?.length) {
+    log(`OSM track: Overpass unavailable — using the cache from ${cached.data.fetchedAt}`);
+    return decode(cached.data);
+  }
+  log("OSM track: no cache and no Overpass answer — routing on Namtang's shapes only");
+  return null;
 }
 
 // ─── D-Ticket ───────────────────────────────────────────────────────────────
@@ -322,9 +377,12 @@ export async function run(entry, ctx) {
   }
   log(`D-Ticket: ${client.requests} request(s) for travel on ${travelDate}`);
 
+  const osmTrack = await loadOsmTrack({ rootDir: ctx.rootDir, today: ctx.today, params: params.osmTrack, fetchImpl: ctx.fetch ?? fetch, log });
+
   const trains = buildSrtTrains({
     config,
     found,
+    osmTrack,
     namtang,
     positions: stationPositions(namtang, config),
     previous,
@@ -338,7 +396,7 @@ export async function run(entry, ctx) {
   for (const t of Object.values(trains)) {
     const a = t.stations[0];
     const b = t.stations[t.stations.length - 1];
-    log(`${t.lineName}: ${a.name} ${a.departure} → ${b.name} ${b.arrival}, ${t.stations.length} stops, from ${t.fare ? `฿${t.fare.fromPrice}` : "—"}`);
+    log(`${t.lineName}: ${a.name} ${a.departure} → ${b.name} ${b.arrival}, ${t.stations.length} stops, from ${t.fare ? `฿${t.fare.fromPrice}` : "—"}, line ${JSON.stringify(t.geometry)}`);
   }
   ctx.write(entry.output, {
     uploadedAt: ctx.today,

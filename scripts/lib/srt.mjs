@@ -18,6 +18,7 @@
 
 import polyline from "@mapbox/polyline";
 import { haversineKm, trackPathFromSiblings } from "./sibling-path.mjs";
+import { buildRailGraph, routeThroughStops } from "./rail-graph.mjs";
 
 /** "SRT เชียงใหม่;SRT Chiang Mai\t" → { th: "เชียงใหม่", en: "Chiang Mai" } */
 export function bilingualName(raw) {
@@ -246,10 +247,31 @@ export const CARRY_MAX_DAYS = 30;
  * tonight (or null when D-Ticket was unreachable), `previous` last night's
  * trains file (times and fares are carried from it when tonight read none).
  */
-export function buildSrtTrains({ config, found, namtang, positions, previous = {}, today, travelDate, log = () => {} }) {
+export function buildSrtTrains({
+  config,
+  found,
+  namtang,
+  positions,
+  previous = {},
+  today,
+  travelDate,
+  osmTrack = null,
+  log = () => {},
+}) {
   const namer = makeStationNamer(config.stationNames);
   const operator = config.operator ?? {};
   const donors = [...namtang.values()].map((t) => t.shape).filter((s) => Array.isArray(s) && s.length >= 3);
+  // Where the line comes from, best first: OpenStreetMap's railway ways (a
+  // real network, junctions and branches included), then Namtang's shapes
+  // joined where they overlap, then the nearest SRT shape that covers a gap.
+  const graphs = [];
+  if (osmTrack?.length) graphs.push(["osm", buildRailGraph(osmTrack, { joinMeters: 30 })]);
+  graphs.push(["namtang", buildRailGraph(donors, { joinMeters: 150 })]);
+  const memo = new Map();
+  const siblingGap = (a, b) => {
+    const { path, filled } = trackPathFromSiblings([a, b], donors);
+    return filled ? path : null;
+  };
   const prevByNumber = new Map(Object.values(previous).map((t) => [String(t.trainNo ?? ""), t]));
 
   const fresh = (t) => {
@@ -297,11 +319,21 @@ export function buildSrtTrains({ config, found, namtang, positions, previous = {
       dropoff: true,
     }));
 
-    // Track: every gap between two stops taken from the SRT track that runs
-    // between them (Namtang's shapes, this train's own and its siblings'), so
-    // a shape Namtang cut short — train 31's ends at Chumphon — still draws.
-    const own = nt?.shape && stopsFromFeed ? [nt.shape] : [];
-    const { path } = trackPathFromSiblings(stops.map((s) => [s.lat, s.lon]), [...own, ...donors]);
+    // Track: every gap between two stops routed along real track, so a
+    // shape Namtang cut short (train 31's ends at Chumphon) and a train it
+    // carries only as two ends (83 to Trang, off the main line at Thung Song)
+    // both draw along the rails rather than across the country.
+    const routed = routeThroughStops(stops.map((s) => [s.lat, s.lon]), graphs, siblingGap, memo);
+    const geometry = routed.sources.reduce((acc, src) => ({ ...acc, [src]: (acc[src] ?? 0) + 1 }), {});
+    let encoded = polyline.encode(routed.path);
+    // A night without OSM must not make a line worse than last night's.
+    const prevChords = prev?.geometry?.chord ?? Infinity;
+    const sameStops = prev && prev.stations?.map((s) => s.name).join(">") === stops.map((s) => s.name).join(">");
+    if (sameStops && (geometry.chord ?? 0) > prevChords && prev.polyline) {
+      encoded = prev.polyline;
+      Object.assign(geometry, prev.geometry, { carried: true });
+    }
+    if (geometry.chord) log(`${number}: ${geometry.chord} of ${routed.sources.length} gap(s) drawn straight — no track found between those stops`);
 
     const fare = live
       ? fareRecord(live.classes, { sampledAt: today, travelDate })
@@ -315,7 +347,8 @@ export function buildSrtTrains({ config, found, namtang, positions, previous = {
       operator: operator.name ?? "State Railway of Thailand",
       agency_id: operator.agencyId ?? "SRT",
       frequency: config.frequency ?? null,
-      polyline: polyline.encode(path),
+      polyline: encoded,
+      geometry,
       stations,
       ...(fare ? { fare } : {}),
       timetable: live

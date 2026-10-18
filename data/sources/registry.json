@@ -355,7 +355,8 @@
       "feedUrl": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip",
       "fallbackUrls": ["https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-1831/latest.zip"],
       "baseUrl": "https://dticket.railway.co.th/DTicketPublicWeb/",
-      "dateOffsetDays": 7
+      "dateOffsetDays": 7,
+      "osmTrack": { "file": "osm-srt-track.json", "maxAgeDays": 7, "bbox": [5.6, 97.3, 20.6, 106.0] }
     },
     "freshness": { "ttlHours": 25 }
   },
