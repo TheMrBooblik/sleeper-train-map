@@ -34,10 +34,9 @@ const HOME = "https://dticket.railway.co.th/DTicketPublicWeb/home/Home";
 
 // Corridors to try a search on: [from, to].
 // English names exactly as getStation spells them.
-const SAMPLES = [
-  ["Krung Thep Aphiwat", "Chiang Mai"],
-  ["Krung Thep Aphiwat", "Hat Yai Junction"],
-];
+// One corridor: the search's answer has the same shape on every line, and
+// the fewer requests a discovery run makes, the better a guest it is.
+const SAMPLES = [["Krung Thep Aphiwat", "Chiang Mai"]];
 
 let requests = 0;
 const cookies = new Map();
