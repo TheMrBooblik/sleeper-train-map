@@ -334,6 +334,7 @@ export function buildSrtTrains({
       Object.assign(geometry, prev.geometry, { carried: true });
     }
     if (geometry.chord) log(`${number}: ${geometry.chord} of ${routed.sources.length} gap(s) drawn straight — no track found between those stops`);
+    if (geometry.partial) log(`${number}: ${geometry.partial} gap(s) along track as far as it goes, then straight for the last ${routed.chordKm.join(", ")} km`);
 
     const fare = live
       ? fareRecord(live.classes, { sampledAt: today, travelDate })

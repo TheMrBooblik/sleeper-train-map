@@ -141,7 +141,7 @@ export async function loadNamtang(zipPath) {
 const OSM_TRACK_QUERY = (bbox) =>
   `[out:json][timeout:180];way["railway"="rail"][!"service"](${bbox.join(",")});out geom;`;
 const OSM_TRACK_MAX_AGE_DAYS = 7;
-const OSM_TILE_DEG = 4;
+const OSM_TILE_DEG = 3;
 const OSM_ATTEMPTS = 3;
 const OSM_ENDPOINTS = [...OVERPASS_ENDPOINTS, "https://overpass.private.coffee/api/interpreter"];
 // The whole refresh, every tile and retry: past it the cache (or Namtang) draws tonight.
@@ -188,43 +188,50 @@ async function overpassTile(bbox, { fetchImpl, log, deadline = Infinity, retryMs
 
 /**
  * The track network to route trains along, from a committed cache refreshed
- * weekly from Overpass. A failed refresh keeps the cache (track rarely moves);
- * no cache and no answer means tonight routes on Namtang's shapes alone.
+ * weekly from Overpass one tile at a time. Each tile keeps its own date, so a
+ * tile Overpass refuses tonight keeps last week's copy and is asked again
+ * tomorrow while the others refresh (track rarely moves); a tile never once
+ * answered leaves its corner to Namtang's shapes. Ways are merged by id, as
+ * a way crossing a tile edge comes back whole in both.
  */
 export async function loadOsmTrack({ rootDir, today, params = {}, fetchImpl = fetch, log = () => {}, retryMs }) {
   const file = path.join(rootDir, "public/data/scraped", params.file ?? "osm-srt-track.json");
-  const cached = readJsonSafe(file);
-  const age = cached?.data?.fetchedAt
-    ? (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${cached.data.fetchedAt}T00:00:00Z`)) / 86_400_000
-    : Infinity;
-  const decode = (data) => (data?.ways ?? []).map((w) => polyline.decode(w));
-  if (age <= (params.maxAgeDays ?? OSM_TRACK_MAX_AGE_DAYS)) {
-    log(`OSM track: ${cached.data.ways.length} ways from the cache (${cached.data.fetchedAt})`);
-    return decode(cached.data);
-  }
-  try {
-    const byId = new Map();
-    const deadline = Date.now() + (params.budgetMs ?? OSM_BUDGET_MS);
-    for (const tile of bboxTiles(params.bbox ?? [5.6, 97.3, 20.6, 106.0])) {
-      for (const el of await overpassTile(tile, { fetchImpl, log, deadline, retryMs })) {
-        if (el.type === "way") byId.set(el.id, el);
-      }
+  const cachedTiles = readJsonSafe(file)?.data?.tiles ?? {};
+  const maxAge = params.maxAgeDays ?? OSM_TRACK_MAX_AGE_DAYS;
+  const ageOf = (t) => (t?.fetchedAt ? (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${t.fetchedAt}T00:00:00Z`)) / 86_400_000 : Infinity);
+  const deadline = Date.now() + (params.budgetMs ?? OSM_BUDGET_MS);
+  const tiles = {};
+  let fetched = 0;
+  let failed = 0;
+  for (const bbox of bboxTiles(params.bbox ?? [5.6, 97.3, 20.6, 106.0], params.tileDeg ?? OSM_TILE_DEG)) {
+    const key = bbox.join(",");
+    const old = cachedTiles[key] ?? null;
+    if (old && ageOf(old) <= maxAge) {
+      tiles[key] = old;
+      continue;
     }
-    const ways = trackFromOverpass({ elements: [...byId.values()] });
-    if (ways.length < 100) throw new Error(`only ${ways.length} ways`);
-    const data = { fetchedAt: today, ways: ways.map((w) => polyline.encode(w)) };
-    fs.writeFileSync(file, JSON.stringify({ uploadedAt: new Date().toISOString(), data }));
-    log(`OSM track: ${ways.length} ways, ${ways.reduce((n, w) => n + w.length, 0)} points`);
-    return ways;
-  } catch (err) {
-    log(`OSM track: ${err.message}`);
+    try {
+      const elements = await overpassTile(bbox, { fetchImpl, log, deadline, retryMs });
+      const ways = elements.filter((e) => e.type === "way" && Array.isArray(e.geometry) && e.geometry.length >= 2);
+      const lines = trackFromOverpass({ elements: ways });
+      tiles[key] = { fetchedAt: today, ways: ways.map((w, i) => [w.id, polyline.encode(lines[i])]) };
+      fetched++;
+    } catch (err) {
+      failed++;
+      if (old) tiles[key] = old;
+      log(`OSM track tile ${key}: ${err.message}${old ? ` — keeping the copy from ${old.fetchedAt}` : " — no copy yet"}`);
+    }
   }
-  if (cached?.data?.ways?.length) {
-    log(`OSM track: Overpass unavailable — using the cache from ${cached.data.fetchedAt}`);
-    return decode(cached.data);
+  if (fetched) fs.writeFileSync(file, JSON.stringify({ uploadedAt: new Date().toISOString(), data: { tiles } }));
+  const byId = new Map();
+  for (const t of Object.values(tiles)) for (const [id, enc] of t.ways ?? []) if (!byId.has(id)) byId.set(id, enc);
+  const held = Object.keys(tiles).length;
+  log(`OSM track: ${byId.size} ways from ${held} tile(s) (${fetched} refreshed tonight, ${failed} refused${held - fetched ? `, ${held - fetched} from the cache` : ""})`);
+  if (!byId.size) {
+    log("OSM track: nothing yet — routing on Namtang's shapes only");
+    return null;
   }
-  log("OSM track: no cache and no Overpass answer — routing on Namtang's shapes only");
-  return null;
+  return [...byId.values()].map((enc) => polyline.decode(enc));
 }
 
 // ─── D-Ticket ───────────────────────────────────────────────────────────────
