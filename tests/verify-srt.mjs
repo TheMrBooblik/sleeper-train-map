@@ -46,7 +46,7 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 console.log("names");
 check("bilingual Namtang name, tab and prefix stripped", eq(bilingualName("SRT ชุมทางหาดใหญ่\t;SRT Hat Yai Junction\t"), { th: "ชุมทางหาดใหญ่", en: "Hat Yai Junction" }));
 const namer = makeStationNamer(config.stationNames);
-check("Namtang's Bangkok terminus and D-Ticket's agree", namer("Bangkok (Krung Thep Aphiwat)") === "Krung Thep Aphiwat" && namer("Krung Thep Aphiwat") === "Krung Thep Aphiwat");
+check("Namtang's Bangkok terminus and D-Ticket's agree, city first", namer("Krung Thep Aphiwat") === "Bangkok (Krung Thep Aphiwat)" && namer("Krung Thep Aphiwat Central Terminal Station [Red Line]") === "Bangkok (Krung Thep Aphiwat)" && namer("Bangkok (Krung Thep Aphiwat)") === "Bangkok (Krung Thep Aphiwat)");
 check("one spelling for Su-ngai Kolok from both sources", namer("Su-Ngai Kolok") === "Su-ngai Kolok");
 check("route number from a Namtang short name", routeTrainNumber("9 ด่วนพิเศษ") === "9" && routeTrainNumber("102") === "102" && routeTrainNumber("รถเร็ว") === null);
 check("service names", serviceName("SPECIAL EXPRESS CNR") === "Special Express" && serviceName("EXPRESS") === "Express" && serviceName("RAPID") === "Rapid");
@@ -130,7 +130,7 @@ const positions = stationPositions(namtang, config);
 check("termini Namtang lacks take the config's position", positions.has("Trang") && positions.has("Chiang Mai"));
 const built = buildSrtTrains({ config, found: picked, namtang, positions, today: "2026-10-18", travelDate: "2026-10-28" });
 const sp9 = built["Special Express 9"];
-check("train 9 built with Namtang's stops", sp9?.stations.map((s) => s.name).join(">") === "Krung Thep Aphiwat>Phitsanulok>Chiang Mai");
+check("train 9 built with Namtang's stops", sp9?.stations.map((s) => s.name).join(">") === "Bangkok (Krung Thep Aphiwat)>Phitsanulok>Chiang Mai");
 check("only the ends carry a time, D-Ticket's", sp9.stations[0].departure === "18:40" && sp9.stations[2].arrival === "07:15" && sp9.stations[1].departure === null && sp9.stations[1].arrival === null);
 const path9 = polyline.decode(sp9.polyline);
 check("the line follows Namtang's track (more than the stops)", path9.length > 3, String(path9.length));
@@ -213,6 +213,19 @@ console.log("routing along track (rail-graph)");
   check("a route far longer than the straight line is refused", routeBetween(loop, bangkok, [13.0, 100.54]) === null);
   const through = routeThroughStops([bangkok, junction, [12.0, 102.5]], [["osm", graph]]);
   check("each gap says where its line came from", eq(through.sources, ["osm", "chord"]));
+  // The branch missing from the track (Namtang has no shape for it) and the
+  // main line running on past the junction by Cha Uat to Phatthalung, as it
+  // does: the line follows the rails to the junction and only the branch is
+  // straight — not from the earliest point the straight part could start,
+  // which is what an unweighted cost picks (a chord is always shorter).
+  const chaUat = [7.97, 100.03];
+  const phatthalung = [7.62, 100.07];
+  const noBranch = buildRailGraph([[...main, ...line(junction, chaUat, 10).slice(1), ...line(chaUat, phatthalung, 10).slice(1)]], { joinMeters: 30 });
+  const partial = routeThroughStops([bangkok, trang], [["namtang", noBranch]]);
+  const leaves = partial.path.at(-2);
+  check("a branch the track lacks: rails to the junction, straight down the branch", eq(partial.sources, ["partial"]) && km(leaves, junction) < 10 && Math.abs(partial.chordKm[0] - km(junction, trang)) < 10, `leaves at ${leaves}, ${partial.chordKm} km straight`);
+  const back = routeThroughStops([trang, bangkok], [["namtang", noBranch]]);
+  check("…and the same from the branch end", eq(back.sources, ["partial"]) && km(back.path[1], junction) < 10 && eq(back.path[0], trang));
   const zig = line([0, 0], [0, 1], 100);
   check("simplifying keeps a junction it is told to", simplifyPath(zig, 15, new Set([37])).some((p) => eq(p, zig[37])) && simplifyPath(zig, 15).length === 2);
   const overpass = {
@@ -230,29 +243,43 @@ console.log("registry and wiring");
 {
   const { bboxTiles, loadOsmTrack } = await import("../scripts/adapters/srt.mjs");
   const tiles = bboxTiles([5.6, 97.3, 20.6, 106.0]);
-  check("Thailand's box cut into 4° tiles that cover it exactly", tiles.length === 12 && tiles.every(([s, w, n, e]) => n - s <= 4 && e - w <= 4) && tiles[0][0] === 5.6 && tiles[0][1] === 97.3 && tiles.at(-1)[2] === 20.6 && tiles.at(-1)[3] === 106);
+  check("Thailand's box cut into equal 3° tiles that cover it exactly", tiles.length === 15 && tiles.every(([s, w, n, e]) => n - s <= 3 + 1e-9 && e - w <= 3 + 1e-9) && tiles[0][0] === 5.6 && tiles[0][1] === 97.3 && tiles.at(-1)[2] === 20.6 && tiles.at(-1)[3] === 106);
   const os = await import("node:os");
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "srt-osm-"));
   fs.mkdirSync(path.join(root, "public/data/scraped"), { recursive: true });
+  const cacheFile = path.join(root, "public/data/scraped/osm-test.json");
   // 150 ways, each answered by every tile its box touches: the merge keeps one copy.
   const way = (id) => ({ type: "way", id, nodes: [id * 10, id * 10 + 1], geometry: [{ lat: 13 + id / 1000, lon: 100 }, { lat: 13 + id / 1000, lon: 100.01 }] });
+  const answer = (ids) => new Response(JSON.stringify({ elements: ids.map(way) }), { status: 200 });
   let calls = 0;
-  const answering = async () => { calls++; return new Response(JSON.stringify({ elements: Array.from({ length: 150 }, (_, i) => way(i)) }), { status: 200 }); };
-  const params = { bbox: [5.6, 97.3, 13.6, 101.3], file: "osm-test.json" };
+  const answering = async () => { calls++; return answer(Array.from({ length: 150 }, (_, i) => i)); };
+  const params = { bbox: [5.6, 97.3, 13.6, 101.3], tileDeg: 4, file: "osm-test.json" };
   const got = await loadOsmTrack({ rootDir: root, today: "2026-10-18", params, fetchImpl: answering, retryMs: 0 });
   check("every tile asked once, ways merged by id", calls === 2 && got?.length === 150);
-  const cached = JSON.parse(fs.readFileSync(path.join(root, "public/data/scraped/osm-test.json"), "utf8"));
-  check("the merged track is cached with its date", cached.data.fetchedAt === "2026-10-18" && cached.data.ways.length === 150);
+  const cached = JSON.parse(fs.readFileSync(cacheFile, "utf8"));
+  check("each tile is cached with its own date", Object.values(cached.data.tiles).length === 2 && Object.values(cached.data.tiles).every((t) => t.fetchedAt === "2026-10-18" && t.ways.length === 150));
   calls = 0;
   await loadOsmTrack({ rootDir: root, today: "2026-10-20", params, fetchImpl: answering, retryMs: 0 });
   check("a cache under a week old is used without asking", calls === 0);
-  // One tile failing every attempt: tonight uses last week's track, never half a network.
+  // The first tile answers with new track, the second refuses every attempt:
+  // the first is refreshed, the second keeps last week's copy.
   let n = 0;
-  const flaky = async () => (n++ === 0 ? answering() : new Response("busy", { status: 502 }));
-  const stale = await loadOsmTrack({ rootDir: root, today: "2026-11-01", params, fetchImpl: flaky, retryMs: 0 });
-  const after = JSON.parse(fs.readFileSync(path.join(root, "public/data/scraped/osm-test.json"), "utf8"));
-  check("a failed tile keeps the whole stale cache", stale?.length === 150 && after.data.fetchedAt === "2026-10-18" && n === 4);
+  const flaky = async () => (n++ === 0 ? answer(Array.from({ length: 10 }, (_, i) => 1000 + i)) : new Response("busy", { status: 502 }));
+  const mixed = await loadOsmTrack({ rootDir: root, today: "2026-11-01", params, fetchImpl: flaky, retryMs: 0 });
+  const after = Object.values(JSON.parse(fs.readFileSync(cacheFile, "utf8")).data.tiles);
+  check("a refused tile keeps its own copy while the others refresh", mixed?.length === 160 && n === 4 && eq(after.map((t) => t.fetchedAt), ["2026-11-01", "2026-10-18"]));
+  fs.rmSync(cacheFile);
+  const none = await loadOsmTrack({ rootDir: root, today: "2026-11-01", params, fetchImpl: async () => new Response("busy", { status: 500 }), retryMs: 0 });
+  check("no tile ever answered: no OSM track, and no cache written", none === null && !fs.existsSync(cacheFile));
   fs.rmSync(root, { recursive: true, force: true });
+}
+
+{
+  const { cardNameForStation, cityForStation } = await import("../src/lib/seo/cities.mjs");
+  const bkk = "Bangkok (Krung Thep Aphiwat)";
+  check("Bangkok's terminus: city first in stop lists, plain Bangkok on cards and bottom-bar chips, /bangkok in URLs", cardNameForStation(bkk) === "Bangkok" && cityForStation(bkk) === "Bangkok" && cardNameForStation("Hat Yai Junction") === "Hat Yai");
+  const bar = fs.readFileSync(path.join(ROOT, "src/components/TrainBottomBar/TrainBottomBar.js"), "utf8");
+  check("…and the bottom bar names a chip's ends through it", /chipName\(route\.origin\)/.test(bar) && /chipName\(route\.destination\)/.test(bar));
 }
 
 const registry = JSON.parse(fs.readFileSync(path.join(ROOT, "data/sources/registry.json"), "utf8"));

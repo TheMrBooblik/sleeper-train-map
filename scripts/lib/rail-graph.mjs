@@ -116,8 +116,11 @@ export function nearestNode(graph, point, rings = 2) {
   return { id: best, km: bestKm };
 }
 
-/** Binary-heap Dijkstra from `from` to `to`; the node path, or null. */
-function shortestPath(graph, from, to, maxKm) {
+/**
+ * Binary-heap Dijkstra from `from`, stopping at `to` when one is given and at
+ * `maxKm` of track either way: each node's distance and predecessor.
+ */
+function shortestTree(graph, from, { to = -1, maxKm = Infinity } = {}) {
   const dist = new Float64Array(graph.size).fill(Infinity);
   const prev = new Int32Array(graph.size).fill(-1);
   const heap = [[0, from]];
@@ -154,8 +157,7 @@ function shortestPath(graph, from, to, maxKm) {
   while (heap.length) {
     const [d, u] = pop();
     if (d > dist[u]) continue;
-    if (u === to) break;
-    if (d > maxKm) return null;
+    if (u === to || d > maxKm) break;
     const edges = graph.adj[u];
     for (let k = 0; k < edges.length; k += 2) {
       const v = edges[k];
@@ -167,10 +169,20 @@ function shortestPath(graph, from, to, maxKm) {
       }
     }
   }
-  if (!Number.isFinite(dist[to])) return null;
+  return { dist, prev };
+}
+
+const nodesTo = (prev, to) => {
   const out = [];
   for (let v = to; v !== -1; v = prev[v]) out.push(v);
-  return { nodes: out.reverse(), km: dist[to] };
+  return out.reverse();
+};
+
+/** The node path from `from` to `to`, or null. */
+function shortestPath(graph, from, to, maxKm) {
+  const { dist, prev } = shortestTree(graph, from, { to, maxKm });
+  if (!Number.isFinite(dist[to])) return null;
+  return { nodes: nodesTo(prev, to), km: dist[to] };
 }
 
 /**
@@ -191,14 +203,64 @@ export function routeBetween(graph, a, b, { maxSnapKm = 8, maxDetour = 2.2, slac
 }
 
 /**
+ * Track from `a` toward `b` when `b` lies off every track this graph has (a
+ * branch line it does not carry): along the rails from `a` to the node that
+ * makes rails + `chordWeight` × the straight remainder shortest, then straight
+ * to `b`. The weight is what picks the junction: unweighted, leaving the
+ * rails as early as the limit allows always wins (a straight line is shorter
+ * than track), while at 4 a train to Trang follows the main line to Thung
+ * Song, where the Trang branch leaves it, and one to Padang Besar to Hat Yai.
+ * Refused when `a` itself is off track, when the remainder is over
+ * `maxChordKm`, or when the whole is an implausible detour.
+ * Returns { path, chordKm } or null.
+ */
+export function routeToward(graph, a, b, { maxSnapKm = 8, maxChordKm = 120, chordWeight = 4, maxDetour = 2.2, slackKm = 40 } = {}) {
+  if (!graph?.size) return null;
+  const na = nearestNode(graph, a);
+  if (na.id < 0 || na.km > maxSnapKm) return null;
+  const straight = km(a, b);
+  const limit = straight * maxDetour + slackKm;
+  const { dist, prev } = shortestTree(graph, na.id, { maxKm: limit });
+  const rings = Math.ceil(maxChordKm / (INDEX_CELL * 111)) + 1;
+  const [lat, lon] = b;
+  const y = Math.floor(lat / INDEX_CELL);
+  const x = Math.floor(lon / INDEX_CELL);
+  let best = -1;
+  let bestCost = Infinity;
+  let bestKm = Infinity;
+  let bestChord = 0;
+  for (let dy = -rings; dy <= rings; dy++) {
+    for (let dx = -rings; dx <= rings; dx++) {
+      for (const i of graph.index.get(`${y + dy},${x + dx}`) ?? []) {
+        if (!Number.isFinite(dist[i])) continue;
+        const chord = km(graph.coords[i], b);
+        if (chord > maxChordKm) continue;
+        const cost = dist[i] + chord * chordWeight;
+        if (cost < bestCost) {
+          bestCost = cost;
+          bestKm = dist[i] + chord;
+          best = i;
+          bestChord = chord;
+        }
+      }
+    }
+  }
+  if (best < 0 || bestKm > limit) return null;
+  return { path: [a, ...nodesTo(prev, best).map((id) => graph.coords[id]), b], chordKm: bestChord };
+}
+
+/**
  * A line through `stops` in order, each gap routed on the first graph that
  * can route it (OSM first, a feed's shapes second), else left to `fallback`
- * (which returns the gap's points, or null for a straight chord). Returns the
- * path and where each gap came from.
+ * (which returns the gap's points, or null), then to track as far as it goes
+ * and straight for the rest, and only then a straight chord. Returns the
+ * path, where each gap came from, and how long each "partial" gap's straight
+ * remainder is.
  */
 export function routeThroughStops(stops, graphs, fallback = () => null, memo = new Map()) {
   const path = [stops[0]];
   const sources = [];
+  const chordKm = [];
   for (let i = 0; i < stops.length - 1; i++) {
     const a = stops[i];
     const b = stops[i + 1];
@@ -206,10 +268,14 @@ export function routeThroughStops(stops, graphs, fallback = () => null, memo = n
     let source = "chord";
     const key = `${a}|${b}`;
     const back = `${b}|${a}`;
-    if (memo.has(key)) [seg, source] = memo.get(key);
-    else if (memo.has(back)) {
-      const [s0, src] = memo.get(back);
+    if (memo.has(key)) {
+      const [s0, src, ck] = memo.get(key);
+      [seg, source] = [s0, src];
+      if (ck != null) chordKm.push(Math.round(ck));
+    } else if (memo.has(back)) {
+      const [s0, src, ck] = memo.get(back);
       [seg, source] = [s0 ? [...s0].reverse() : null, src];
+      if (ck != null) chordKm.push(Math.round(ck));
     } else {
       for (const [name, graph] of graphs) {
         seg = routeBetween(graph, a, b);
@@ -227,10 +293,26 @@ export function routeThroughStops(stops, graphs, fallback = () => null, memo = n
         source = "siblings";
       }
     }
+    // One end of the gap on a branch line no graph carries: rails as far as
+    // they go, straight for the rest, from whichever end is on track.
+    if (!seg) {
+      for (const [name, graph] of graphs) {
+        const fwd = routeToward(graph, a, b);
+        const rev = fwd ? null : routeToward(graph, b, a);
+        const got = fwd ?? (rev ? { path: [...rev.path].reverse(), chordKm: rev.chordKm } : null);
+        if (got) {
+          seg = got.path;
+          source = "partial";
+          chordKm.push(Math.round(got.chordKm));
+          memo.set(key, [seg, source, got.chordKm]);
+          break;
+        }
+      }
+    }
     sources.push(source);
     path.push(...(seg ? seg.slice(1) : [b]));
   }
-  return { path, sources };
+  return { path, sources, chordKm };
 }
 
 /**

@@ -19,11 +19,17 @@ import { splitViaString } from "../../lib/viaSplit.mjs";
 import { normalizeStationNameForLookup } from "../../lib/stationKey.mjs";
 import { orderByPromotion } from "../../lib/operatorPromotion.mjs";
 import { liftForDarkMap } from "../../lib/mapTheme.mjs";
+import { cardNameForStation } from "../../lib/seo/cities.mjs";
 import {
   disambiguateLabels,
   selectedCityMatcher,
   stationFirstEndpoints,
 } from "../../lib/stationFirst.mjs";
+
+// A chip has room for a name, not a station's full title: the city a
+// traveller knows it by where station-card-names.json gives one
+// ("Bangkok (Krung Thep Aphiwat)" → "Bangkok"), abbreviated as before.
+const chipName = (name) => abbreviateStationName(cardNameForStation(name));
 
 /**
  * Bottom bar showing routes (Back-on-Track + NightJet/EuroNight) for the selected station.
@@ -203,8 +209,8 @@ const TrainBottomBar = ({
   const chips = Array.from(routeMap.values());
   const suffixes = disambiguateLabels(
     chips.map((c) => ({
-      from: abbreviateStationName(c.origin),
-      to: abbreviateStationName(c.destination),
+      from: chipName(c.origin),
+      to: chipName(c.destination),
       trainNumber: c.trainNumber,
     })),
   );
@@ -268,7 +274,7 @@ const TrainBottomBar = ({
                     className={`flex min-w-0 items-center ${route.notRunning ? "text-gray-500 dark:text-zinc-400" : ""}`}
                   >
                     <strong className="shrink-0">
-                      {abbreviateStationName(route.origin)}
+                      {chipName(route.origin)}
                     </strong>
                     &nbsp;-&nbsp;
                     {route.viaText ? (
@@ -278,7 +284,7 @@ const TrainBottomBar = ({
                     ) : null}
                     {route.viaText && <>&nbsp;-&nbsp;</>}
                     <strong className="truncate">
-                      {abbreviateStationName(route.destination)}
+                      {chipName(route.destination)}
                     </strong>
                     {suffixes[index] && (
                       <span className="ml-1.5 shrink-0 text-xs font-normal text-gray-500 dark:text-zinc-400">
