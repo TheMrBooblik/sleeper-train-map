@@ -218,6 +218,12 @@ export function buildLegs(payload, options = {}) {
         direction,
         train,
         operatorIds,
+        // Who SELLS the ticket, which is not always who runs the train:
+        // operatorIds reads bot_agency_id first (the joint operator Back-on-
+        // Track recorded), while the booking CTA on the connection page is
+        // resolved from agency_id. The planner's Book button must open the same
+        // shop that page does.
+        agencyId: String(route.agency_id || "").trim(),
         stops: stopList,
         departure,
         arrival,

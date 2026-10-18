@@ -110,7 +110,7 @@ const LINK_KINDS = {
  * Returns [{ id, name, logoUrl, deepLink, bookingPageUrl, fareUrl, homeUrl,
  * linkUrl, linkKind }] in the id's original order.
  */
-export function resolveOperatorComponents({ agencyId, agencies, origin, dest, routeId }) {
+export function resolveOperatorComponents({ agencyId, agencies, origin, dest, routeId, isoDate }) {
   return splitAgencyIds(agencyId).map((id) => {
     const agency = agencies?.[id] || null;
     const booking = getOperatorBooking(id);
@@ -119,7 +119,7 @@ export function resolveOperatorComponents({ agencyId, agencies, origin, dest, ro
       name: agency?.agency_name || id,
       logoUrl: agency?.agency_logo_url || null,
       routePage: routeId ? (booking?.routePages?.[String(routeId)] ?? null) : null,
-      deepLink: buildBookingUrl({ agencyId: id, origin, dest }),
+      deepLink: buildBookingUrl({ agencyId: id, origin, dest, isoDate }),
       bookingPageUrl: getBookingPageUrl(id),
       fareUrl: agency?.agency_fare_url || null,
       homeUrl: agency?.agency_url || null,
@@ -145,8 +145,8 @@ export function resolveOperatorComponents({ agencyId, agencies, origin, dest, ro
  *
  * Returns { href, deepLink, componentId, componentName, dealsLink }.
  */
-export function resolveBookingHref({ agencyId, agencies, agencyUrl, origin, dest, routeId }) {
-  const components = resolveOperatorComponents({ agencyId, agencies, origin, dest, routeId });
+export function resolveBookingHref({ agencyId, agencies, agencyUrl, origin, dest, routeId, isoDate }) {
+  const components = resolveOperatorComponents({ agencyId, agencies, origin, dest, routeId, isoDate });
   for (const tier of LINK_TIERS) {
     const winner = components.find((c) => c[tier]);
     if (winner) {

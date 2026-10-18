@@ -41,6 +41,7 @@ function rideFor(leg, boardIndex, alightIndex, date) {
     routeId: leg.routeId,
     train: leg.train,
     operatorIds: leg.operatorIds,
+    agencyId: leg.agencyId || "",
     pairSlug: leg.pairSlug,
     pricing: leg.pricing,
     date,
@@ -169,6 +170,29 @@ export function ridesBetween(planner, { from, to, date, includeUnavailable = tru
   return worthwhile.length > 0
     ? { rides: worthwhile, onlyShortHops: false }
     : { rides: all, onlyShortHops: all.length > 0 };
+}
+
+/**
+ * The first night after `date` on which a train could take you from one city to
+ * another, or null when none does within `within` nights.
+ *
+ * A hop with no train on the chosen night is the planner's most common dead
+ * end for someone who already knows where they are going — most sleepers run
+ * two or three times a week — and "not this night" without a next one leaves
+ * them paging through dates one by one. Offerable means the same as it does for
+ * `served`: confirmed, or a train whose days we do not know.
+ *
+ * @returns {{date: string, nightsLater: number, status: string}|null}
+ */
+export function nextServedNight(planner, { from, to, date, within = 60 } = {}) {
+  if (!from || !to || !date) return null;
+  for (let n = 1; n <= within; n++) {
+    const night = addDays(date, n);
+    const { rides } = ridesBetween(planner, { from, to, date: night });
+    const ride = rides.find((r) => isOfferable(r.availability.status));
+    if (ride) return { date: night, nightsLater: n, status: ride.availability.status };
+  }
+  return null;
 }
 
 /**
