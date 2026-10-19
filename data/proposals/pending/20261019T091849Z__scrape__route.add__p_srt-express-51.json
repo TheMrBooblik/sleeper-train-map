@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_srt-express-51",
+  "createdAt": "2026-10-19T09:18:49.194Z",
+  "source": "scrape",
+  "sourceDetail": "srt",
+  "kind": "route.add",
+  "title": "New train: Express 51 (Bangkok (Krung Thep Aphiwat) – Chiang Mai)",
+  "summary": "Route \"srt_Express_51\" appeared in tonight's scrape and is withheld from the map until approved. Via: Don Muang - Rangsit - Ayutthaya - Lopburi - Nakhon Sawan - Taphan Hin - Phichit - Phitsanulok - Nong Tom - Pichai - Uttaradit - Sila At - Den Chai - Ban Pin - Mae Mo - Nakhon Lampang - Khun Tan - Lamphun",
+  "target": {
+    "routeKey": "srt_Express_51",
+    "agencyId": "SRT",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "Express 51",
+    "returnTrain": "Express 52",
+    "origin": "Bangkok (Krung Thep Aphiwat)",
+    "destination": "Chiang Mai",
+    "operator": "SRT",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "srt_Express_51"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
