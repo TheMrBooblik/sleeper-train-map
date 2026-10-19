@@ -1,5 +1,5 @@
 import React from "react";
-import Link from "next/link";
+import Link from "../Link";
 
 import { getOperatorName } from "../../lib/seo/operators";
 import { OPERATOR_BRAND_COLORS } from "../Map/utils/operatorColors";

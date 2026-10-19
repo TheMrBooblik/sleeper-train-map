@@ -36,6 +36,7 @@
     "verify-payload-projection": "node tests/verify-payload-projection.mjs",
     "verify-service-worker": "node tests/verify-service-worker.mjs",
     "verify-bundle-tracing": "node tests/verify-bundle-tracing.mjs",
+    "verify-cdn-requests": "node tests/verify-cdn-requests.mjs",
     "verify-station-selection": "node tests/verify-station-selection.mjs",
     "verify-synthetic-scope": "node tests/verify-synthetic-scope.mjs",
     "verify-return-branches": "node tests/verify-return-branches.mjs",

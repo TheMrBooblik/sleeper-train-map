@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import Link from "../Link";
 import Legend from "@components/Legend";
 import { getFlagEmoji } from "../../lib/countries";
 import TourCard from "./TourCard";

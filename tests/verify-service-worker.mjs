@@ -60,11 +60,11 @@ vm.runInContext(source, sandbox);
 
 // Function declarations land on the sandbox object; `const` bindings do not,
 // so those are read back by evaluating the identifier in the same context.
-const { isNeverCache, isDataPayload, isStaticAsset, isFresh } = sandbox;
+const { isNeverCache, isDataPayload, isStaticAsset, isFresh, needsNoRefresh } = sandbox;
 const CACHE_VERSION = vm.runInContext("CACHE_VERSION", sandbox);
 const MAX_STALE_MS = vm.runInContext("MAX_STALE_MS", sandbox);
 
-for (const [name, fn] of Object.entries({ isNeverCache, isDataPayload, isStaticAsset, isFresh })) {
+for (const [name, fn] of Object.entries({ isNeverCache, isDataPayload, isStaticAsset, isFresh, needsNoRefresh })) {
   if (typeof fn !== "function") fail(`sw.js no longer defines ${name}()`);
 }
 if (failures > 0) process.exit(1);
@@ -142,6 +142,21 @@ expect(
 expect(isFresh(withDate("not a date")), false, "an unparseable date is not fresh");
 expect(isFresh(withDate(null)), false, "a missing date header is not fresh");
 expect(isFresh(undefined), false, "no response at all is not fresh");
+
+// Inside the hour the CDN would return the copy already cached (s-maxage=3600),
+// so the background refresh is skipped — each one is a CDN request on the bill.
+expect(needsNoRefresh(withDate(new Date().toUTCString())), true, "a copy from now is not refreshed");
+expect(
+  needsNoRefresh(withDate(new Date(Date.now() - 2 * 60 * 60 * 1000).toUTCString())),
+  false,
+  "a two-hour-old copy is refreshed in the background",
+);
+expect(needsNoRefresh(withDate(null)), false, "a copy of unknown age is refreshed");
+expect(
+  needsNoRefresh(withDate(new Date(Date.now() + 10 * 60 * 1000).toUTCString())),
+  false,
+  "a copy dated in the future (skewed clock) is refreshed rather than trusted",
+);
 ok("bounded by the nightly scrape cycle, and safe on a missing header");
 
 // ─── 5. The cache version moved with the strategy ───────────────────────────

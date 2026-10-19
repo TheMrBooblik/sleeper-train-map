@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../Link";
 import { getOperatorBaseColor } from "@components/Map/utils/operatorColors";
 import { joinTrainNumbers } from "../../lib/operatorAgencies.mjs";
 import { eurRateNote } from "../../lib/fx.mjs";

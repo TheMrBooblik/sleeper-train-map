@@ -1,6 +1,6 @@
 // Admin dashboard. Served only on localhost (see src/lib/localAdmin.mjs).
 import Head from "next/head";
-import Link from "next/link";
+import Link from "../components/Link";
 import { useEffect, useState } from "react";
 import { HEADER_HEIGHT } from "../constants/header";
 import TimetablesTab from "../components/Admin/TimetablesTab";

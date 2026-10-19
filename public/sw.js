@@ -1,6 +1,7 @@
 /* Minimal service worker for installability + light offline shell.
  * - Cache-first for content-hashed static assets (chunks, icons, CSS, Leaflet images)
- * - Stale-while-revalidate for the nightly data payloads (see isDataPayload)
+ * - Stale-while-revalidate for the nightly data payloads (see isDataPayload),
+ *   with no refresh at all while the cached copy is under an hour old
  * - Network-first for HTML navigations
  * - Never cache admin / review / suggest write paths
  */
@@ -14,6 +15,13 @@ const SHELL_URLS = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons
 // fresh fetch — and it bounds how long a returning visitor can be left on an
 // older *shape* of a file after a deploy that changes one.
 const MAX_STALE_MS = 24 * 60 * 60 * 1000;
+
+// How long a cached data payload is handed over WITHOUT the background refresh.
+// The API sends these with s-maxage=3600, so inside the hour the network would
+// return the very copy we already hold — and every refresh is one of Vercel
+// Hobby's 1M CDN requests a month, which the site ran out of in October 2026.
+// Before this, a reload refetched every data file a first visit did.
+const REVALIDATE_AFTER_MS = 60 * 60 * 1000;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -71,12 +79,23 @@ function isStaticAsset(url) {
   );
 }
 
+/** Milliseconds since the cached response was served, or NaN when unknowable. */
+function ageMs(response) {
+  const date = response?.headers?.get("date");
+  if (!date) return NaN;
+  return Date.now() - new Date(date).getTime();
+}
+
 /** Whether a cached response is recent enough to hand over without waiting. */
 function isFresh(response) {
-  const date = response?.headers?.get("date");
-  if (!date) return false;
-  const age = Date.now() - new Date(date).getTime();
+  const age = ageMs(response);
   return Number.isFinite(age) && age < MAX_STALE_MS;
+}
+
+/** Whether a cached response is so recent that refreshing it would fetch the same copy. */
+function needsNoRefresh(response) {
+  const age = ageMs(response);
+  return Number.isFinite(age) && age >= 0 && age < REVALIDATE_AFTER_MS;
 }
 
 /** Fetch, storing a copy for next time. The write is kept alive by the caller. */
@@ -97,7 +116,9 @@ async function serveDataPayload(event, req) {
   const cached = await cache.match(req);
 
   if (cached && isFresh(cached)) {
-    event.waitUntil(fetchAndStore(event, cache, req).catch(() => {}));
+    if (!needsNoRefresh(cached)) {
+      event.waitUntil(fetchAndStore(event, cache, req).catch(() => {}));
+    }
     return cached;
   }
 

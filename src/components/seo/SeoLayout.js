@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../Link";
 import { useEffect, useRef, useState } from "react";
 import { FaArrowRight, FaBars, FaMapMarkedAlt, FaRegCalendarAlt, FaRoute, FaInfoCircle } from "react-icons/fa";
 import PriceDisclaimer from "../PriceDisclaimer";

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../Link";
 import { FaChevronRight } from "react-icons/fa";
 import JsonLd from "./JsonLd";
 import { absoluteUrl } from "../../lib/seo/site";
