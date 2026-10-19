@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Head from "next/head";
-import Link from "next/link";
+import Link from "../../components/Link";
 import { useRouter } from "next/router";
 
 import SeoLayout from "@components/seo/SeoLayout";

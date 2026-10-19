@@ -1,5 +1,5 @@
 import Head from "next/head";
-import Link from "next/link";
+import Link from "../../components/Link";
 import { FaArrowRight } from "react-icons/fa";
 import { FiCalendar, FiCloudSnow, FiSun } from "react-icons/fi";
 

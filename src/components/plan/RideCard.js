@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../Link";
 import { FiExternalLink } from "react-icons/fi";
 
 import AvailabilityBadge from "./AvailabilityBadge";

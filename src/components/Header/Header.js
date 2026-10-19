@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../Link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FaBars,
