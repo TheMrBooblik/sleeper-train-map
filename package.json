@@ -125,6 +125,6 @@
   "devDependencies": {
     "@playwright/test": "^1.58.0",
     "husky": "^9.1.7",
-    "unpdf": "1.8.1"
+    "pdfjs-dist": "6.3.289"
   }
 }

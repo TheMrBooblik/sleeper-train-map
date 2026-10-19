@@ -7,10 +7,24 @@
 // within `tolerance` points share a line; a table row stays one line, and a
 // column is its x.
 
-import { getDocumentProxy } from "unpdf";
+import path from "node:path";
+import { createRequire } from "node:module";
+
+// Japanese PDFs embed CID fonts that pdf.js can only decode with its CMap
+// files; without them every glyph is dropped (the first probe of JR West's
+// timetable read one "!" off the whole page). pdfjs-dist ships them.
+const PDFJS_DIR = path.dirname(createRequire(import.meta.url).resolve("pdfjs-dist/package.json"));
 
 export async function pdfLines(bytes, { tolerance = 2 } = {}) {
-  const pdf = await getDocumentProxy(new Uint8Array(bytes));
+  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const pdf = await getDocument({
+    data: new Uint8Array(bytes),
+    cMapUrl: `${path.join(PDFJS_DIR, "cmaps")}/`,
+    cMapPacked: true,
+    standardFontDataUrl: `${path.join(PDFJS_DIR, "standard_fonts")}/`,
+    isEvalSupported: false,
+    verbosity: 0,
+  }).promise;
   const pages = [];
   for (let n = 1; n <= pdf.numPages; n++) {
     const page = await pdf.getPage(n);
