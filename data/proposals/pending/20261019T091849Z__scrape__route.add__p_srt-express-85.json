@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_srt-express-85",
+  "createdAt": "2026-10-19T09:18:49.194Z",
+  "source": "scrape",
+  "sourceDetail": "srt",
+  "kind": "route.add",
+  "title": "New train: Express 85 (Bangkok (Krung Thep Aphiwat) – Nakhon Si Thammarat)",
+  "summary": "Route \"srt_Express_85\" appeared in tonight's scrape and is withheld from the map until approved. Via: ",
+  "target": {
+    "routeKey": "srt_Express_85",
+    "agencyId": "SRT",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "Express 85",
+    "returnTrain": "Express 86",
+    "origin": "Bangkok (Krung Thep Aphiwat)",
+    "destination": "Nakhon Si Thammarat",
+    "operator": "SRT",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "srt_Express_85"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
