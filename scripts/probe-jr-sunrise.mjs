@@ -18,6 +18,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { loadRegistry } from "./lib/registry.mjs";
 import { fetchPage } from "./adapters/jr-sunrise.mjs";
+import { pdfLines } from "./lib/pdf-lines.mjs";
 import {
   datePlusDays,
   discoverTimetableIds,
@@ -107,6 +108,7 @@ const SUNRISE = /サンライズ|sunrise/i;
 const worthFollowing = ({ href, text }) =>
   isJrWest(href) &&
   !/\.(?:pdf|jpe?g|png|gif|css|js)(?:\?|$)/i.test(href) &&
+  !/\/ticket\//.test(href) &&
   (/station-timetable|train-timetable|\/eki\//i.test(href) ||
     /時刻表|駅情報|timetable/i.test(text) ||
     stationNames.has(text.replace(/駅$/, "")));
@@ -153,6 +155,29 @@ for (const [href, text] of pdfs) {
     console.log(`- ${text.slice(0, 40)} → ${href} — ${err.message}`);
   }
   await sleep(500);
+}
+
+// JR West's own Sunrise timetable is a PDF linked from the guide page
+// (2026-10-19: pdf/jikokuhyo.pdf, 458 KB, last modified at the March timetable
+// change). Its text is printed as positioned lines, top to bottom, so a parser
+// can be written against the real layout.
+const timetablePdf = [...pdfs.keys()].find((href) => /sunrise/i.test(href) && /jikoku/i.test(href));
+if (timetablePdf) {
+  console.log(`\n## Timetable PDF text — ${timetablePdf}`);
+  try {
+    const res = await fetch(timetablePdf, { signal: AbortSignal.timeout(30_000) });
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (outDir) fs.writeFileSync(path.join(outDir, "jikokuhyo.pdf"), bytes);
+    const pages = await pdfLines(bytes);
+    for (const [i, lines] of pages.entries()) {
+      console.log(`\n### page ${i + 1} (${lines.length} lines)`);
+      for (const line of lines.slice(0, 300)) {
+        console.log(`  y${String(line.y).padStart(4)} | ${line.cells.map((c) => `${c.x}:${c.text}`).join("  ")}`);
+      }
+    }
+  } catch (err) {
+    console.log(`could not read the PDF: ${err.message}`);
+  }
 }
 
 console.log(`\n## Train pages linked as a Sunrise (${sunriseTrainLinks.size})`);
