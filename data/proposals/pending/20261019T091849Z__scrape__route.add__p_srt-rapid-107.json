@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_srt-rapid-107",
+  "createdAt": "2026-10-19T09:18:49.194Z",
+  "source": "scrape",
+  "sourceDetail": "srt",
+  "kind": "route.add",
+  "title": "New train: Rapid 107 (Bangkok (Krung Thep Aphiwat) – Den Chai)",
+  "summary": "Route \"srt_Rapid_107\" appeared in tonight's scrape and is withheld from the map until approved. Via: ",
+  "target": {
+    "routeKey": "srt_Rapid_107",
+    "agencyId": "SRT",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "Rapid 107",
+    "returnTrain": "Rapid 108",
+    "origin": "Bangkok (Krung Thep Aphiwat)",
+    "destination": "Den Chai",
+    "operator": "SRT",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "srt_Rapid_107"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
