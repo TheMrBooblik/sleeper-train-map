@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_srt-special-express-13",
+  "createdAt": "2026-10-19T09:18:49.194Z",
+  "source": "scrape",
+  "sourceDetail": "srt",
+  "kind": "route.add",
+  "title": "New train: Special Express 13 (Bangkok (Krung Thep Aphiwat) – Chiang Mai)",
+  "summary": "Route \"srt_Special_Express_13\" appeared in tonight's scrape and is withheld from the map until approved. Via: Don Muang - Rangsit - Ayutthaya - Lopburi - Nakhon Sawan - Phichit - Phitsanulok - Uttaradit - Sila At - Den Chai - Ban Pin - Nakhon Lampang - Khun Tan - Lamphun",
+  "target": {
+    "routeKey": "srt_Special_Express_13",
+    "agencyId": "SRT",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "Special Express 13",
+    "returnTrain": "Special Express 14",
+    "origin": "Bangkok (Krung Thep Aphiwat)",
+    "destination": "Chiang Mai",
+    "operator": "SRT",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "srt_Special_Express_13"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
