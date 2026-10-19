@@ -19,7 +19,7 @@
   "operator": {
     "agencyId": "JRW",
     "name": "JR West",
-    "note": "Operated jointly by JR West and JR Central (JR East and JR Shikoku own sections of the line). Sold by JR West online and at any JR ticket office."
+    "note": "JR West is the seller (online, and at any JR ticket office). Each train is run jointly by the JR companies whose lines it uses, listed per train in `railways` in journey order from Tokyo: JR East (Tokyo–Atami), JR Central (Atami–Maibara), JR West (beyond Maibara) and, for the Seto, JR Shikoku (Kojima–Takamatsu). The 285 series sets belong to JR West and JR Central."
   },
   "stations": [
     { "id": "tokyo", "name": "Tokyo", "aliases": ["東京"], "lat": 35.6812, "lon": 139.7671 },
@@ -116,6 +116,7 @@
     {
       "lineName": "Sunrise Izumo 4031M",
       "service": "Sunrise Izumo",
+      "railways": ["JR East", "JR Central", "JR West"],
       "direction": "westbound",
       "frequency": "Daily",
       "corridors": ["tokaido-sanyo", "hakubi-sanin"],
@@ -142,6 +143,7 @@
     {
       "lineName": "Sunrise Izumo 4032M",
       "service": "Sunrise Izumo",
+      "railways": ["JR East", "JR Central", "JR West"],
       "direction": "eastbound",
       "frequency": "Daily",
       "corridors": ["tokaido-sanyo", "hakubi-sanin"],
@@ -169,6 +171,7 @@
     {
       "lineName": "Sunrise Seto 5031M",
       "service": "Sunrise Seto",
+      "railways": ["JR East", "JR Central", "JR West", "JR Shikoku"],
       "direction": "westbound",
       "frequency": "Daily",
       "corridors": ["tokaido-sanyo", "seto-ohashi"],
@@ -190,6 +193,7 @@
     {
       "lineName": "Sunrise Seto 5032M",
       "service": "Sunrise Seto",
+      "railways": ["JR East", "JR Central", "JR West", "JR Shikoku"],
       "direction": "eastbound",
       "frequency": "Daily",
       "corridors": ["tokaido-sanyo", "seto-ohashi"],

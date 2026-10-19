@@ -30,10 +30,18 @@ export default function OperatorHub({
   const canonical = absoluteUrl(`/operators/${operator.slug}`);
   const title = `${operator.name} Night Train Routes & Destinations | Pingwi`;
   const countryNames = countries.map((c) => c.name).join(", ");
-  const description =
-    `Every ${operator.name} night and sleeper train route — ${routes.length} connections` +
-    (countryNames ? ` across ${countryNames}.` : ".") +
-    " Timetables, stops and destinations on an interactive map.";
+  // An operator that sells every route on its hub but runs none of them alone
+  // (JR West and the Sunrise, run jointly with JR East, JR Central and JR
+  // Shikoku) must not be described as running "every route" itself.
+  const partners = jointPartners(routes, operator.name);
+  const description = partners.length
+    ? `${routes.length} night and sleeper train ${routes.length === 1 ? "connection" : "connections"}` +
+      (countryNames ? ` across ${countryNames}.` : ".") +
+      ` ${operator.name} sells the tickets and runs the trains jointly with ${joinNames(partners)}.` +
+      " Timetables, stops and destinations on an interactive map."
+    : `Every ${operator.name} night and sleeper train route — ${routes.length} connections` +
+      (countryNames ? ` across ${countryNames}.` : ".") +
+      " Timetables, stops and destinations on an interactive map.";
 
   const collectionLd = {
     "@context": "https://schema.org",
@@ -157,6 +165,25 @@ export default function OperatorHub({
       <JsonLd data={collectionLd} />
     </>
   );
+}
+
+/** "A, B and C". */
+function joinNames(names) {
+  return names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0] ?? "";
+}
+
+/**
+ * The other railways an operator runs its routes with, in journey order —
+ * only when EVERY route on the hub lists railway companies besides this
+ * operator; [] otherwise, which keeps the ordinary "every route" copy.
+ */
+function jointPartners(routes, operatorName) {
+  if (!routes.length || !routes.every((r) => r.railways?.some((n) => n !== operatorName))) return [];
+  const names = [];
+  for (const r of routes) {
+    for (const n of r.railways) if (n !== operatorName && !names.includes(n)) names.push(n);
+  }
+  return names;
 }
 
 export async function getStaticPaths() {

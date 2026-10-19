@@ -1,5 +1,6 @@
 import { formatFromPrice } from "../../lib/operatorPricing";
 import { eurHintFor, eurRateNote } from "../../lib/fx.mjs";
+import { fareClassLabel } from "../../lib/fareClasses.mjs";
 
 /** A single labelled stat tile. Renders nothing when it has no value. */
 function Fact({ label, value, sub = "", subTitle = undefined }) {
@@ -38,7 +39,14 @@ export default function CountryFacts({ facts, stationCount }) {
       <Fact
         label="Tickets"
         value={fromLabel ? fromLabel.replace(/^from/, "From") : null}
-        sub={eurHintFor(facts.minFromPrice) ? `(${eurHintFor(facts.minFromPrice)})` : ""}
+        sub={[
+          // What the cheapest figure buys: Japan's ¥15,480 is the Nobinobi
+          // carpet space, not a room.
+          fareClassLabel(facts.minFromPrice?.seatClass),
+          eurHintFor(facts.minFromPrice) ? `(${eurHintFor(facts.minFromPrice)})` : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         subTitle={eurRateNote()}
       />
     </div>

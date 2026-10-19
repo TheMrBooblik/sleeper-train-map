@@ -19,6 +19,7 @@ import {
   getRelatedConnections,
 } from "../../lib/seo/aggregate";
 import { getRouteDetail } from "../../lib/seo/data";
+import { operatedByNames } from "../../lib/seo/operatedBy.mjs";
 import { cardNameForStation, cityForStation } from "../../lib/seo/cities.mjs";
 import { connectionSnippet, snippetVariantFor } from "../../lib/seo/snippet.mjs";
 import { punctualityAnswer } from "../../lib/punctuality.mjs";
@@ -29,6 +30,7 @@ import {
   splitAgencyIds,
 } from "../../lib/operatorAgencies.mjs";
 import { buildConnectionFaq } from "../../lib/seo/routeFaq.mjs";
+import { leadWithCity } from "../../lib/seo/leadDirection.mjs";
 import {
   getBookingGuide,
   guideProps,
@@ -51,6 +53,7 @@ export default function ConnectionPage({
   cityB,
   trains,
   operators,
+  runBy = [],
   countries,
   related,
   title,
@@ -61,7 +64,9 @@ export default function ConnectionPage({
   upcomingNotice,
 }) {
   const canonical = absoluteUrl(`/connections/${slug}`);
-  const operatorNames = operators.map((o) => o.name).join(", ");
+  // Who runs the trains, which is not always who sells them (JR West sells
+  // the Sunrise; four JR companies run it).
+  const operatorNames = (runBy?.length ? runBy : operators.map((o) => o.name)).join(", ");
 
   const itemListLd = {
     "@context": "https://schema.org",
@@ -263,8 +268,8 @@ export default function ConnectionPage({
                   <div className="mt-6">
                     <BookingCta
                       booking={t.booking}
-                      origin={t.origin}
-                      destination={t.destination}
+                      origin={t.bookingOrigin}
+                      destination={t.bookingDestination}
                       advice={t.advice}
                     />
                   </div>
@@ -399,6 +404,8 @@ export async function getStaticProps({ params }) {
       title: d.title,
       origin: d.origin,
       destination: d.destination,
+      bookingOrigin: d.origin,
+      bookingDestination: d.destination,
       // Already labelled by buildSummary.
       primaryTrainNumber: d.primaryTrainNumber,
       // The directions keep the RAW number, because that is what the timetable
@@ -408,6 +415,7 @@ export async function getStaticProps({ params }) {
         .filter(Boolean),
       agencyId: d.agencyId,
       operators: d.operators,
+      railways: d.railways ?? [],
       pricing: d.pricing,
       booking: d.booking,
       countries: d.countries,
@@ -438,6 +446,10 @@ export async function getStaticProps({ params }) {
           ? d.map
           : null,
     }));
+
+  // Each train lists the direction leaving cityA first, matching the heading
+  // (leadDirection.mjs). The booking CTA keeps bookingOrigin/…Destination.
+  for (const [i, t] of trains.entries()) trains[i] = leadWithCity(t, pair.cityA, cityForStation);
 
   // Fastest journey + cheapest known "from" price across the pair's trains.
   const timed = pair.routes.filter((r) => r.durationMinutes > 0);
@@ -488,6 +500,7 @@ export async function getStaticProps({ params }) {
     destCity: pair.cityB,
     trainCount: pair.routes.length,
     operators: pair.operators.map((o) => o.name),
+    runBy: operatedByNames(pair.routes),
     fastestDurationText: fastest?.durationText || "",
     // The answer is prose with room for the euro figure; the meta description
     // (the snippet below) keeps the bare fare to stay inside a snippet.
@@ -550,7 +563,7 @@ export async function getStaticProps({ params }) {
     // dropped above and never rendered, and the description has to count
     // what the page actually shows.
     trainCount: trains.length,
-    operatorNames: pair.operators.map((o) => o.name).join(", "),
+    operatorNames: operatedByNames(pair.routes).join(", "),
     // Already formatted ("from €39") by buildSummary; the FAQ answer above
     // uses the same figure, so the snippet and the page cannot quote
     // different prices. It is only ever a real sampled fare — no price, no
@@ -579,6 +592,7 @@ export async function getStaticProps({ params }) {
       cityB: pair.cityB,
       trains,
       operators: pair.operators,
+      runBy: operatedByNames(pair.routes),
       countries: pair.countries,
       related: getRelatedConnections(pair.slug, 8),
       title: snippet.title,

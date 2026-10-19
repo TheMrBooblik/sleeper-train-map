@@ -46,6 +46,8 @@ import {
 } from "../src/lib/bookingGuide.mjs";
 import { FARE_CLASS_LABELS, fareClassRows, formatMoney } from "../src/lib/fareClasses.mjs";
 import { cityForStation } from "../src/lib/seo/cities.mjs";
+import { leadWithCity } from "../src/lib/seo/leadDirection.mjs";
+import { operatedByNames } from "../src/lib/seo/operatedBy.mjs";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const readJson = (rel) => JSON.parse(fs.readFileSync(path.join(ROOT, rel), "utf8"));
@@ -403,6 +405,9 @@ await check("the adapter takes what validates, keeps the baseline for the rest, 
   assert.equal(trains["Sunrise Izumo 4031M"].fare.classes.singleCabin, 15510 + 7900);
   assert.equal(trains["Sunrise Izumo 4031M"].fare.sampledAt, "2026-09-28");
   assert.equal(trains["Sunrise Izumo 4031M"].agency_id, "JRW");
+  // JR West sells both trains; the JR companies whose lines each one uses run it.
+  assert.deepEqual(trains["Sunrise Izumo 4031M"].railways, ["JR East", "JR Central", "JR West"]);
+  assert.deepEqual(trains["Sunrise Seto 5032M"].railways, ["JR East", "JR Central", "JR West", "JR Shikoku"]);
   assert.ok(polyline.decode(trains["Sunrise Seto 5031M"].polyline).length > 12);
 });
 
@@ -490,6 +495,10 @@ await check("the published payload carries both routes, priced, with their stati
     assert.ok(row.nj_polyline_0 && row.nj_polyline_1);
     assert.equal(row.service_id_0, "Daily");
   }
+  // agency_id stays the seller, which the booking link and the operator hub
+  // resolve through; railways says who runs the train.
+  assert.deepEqual(izumo.railways, ["JR East", "JR Central", "JR West"]);
+  assert.deepEqual(seto.railways, ["JR East", "JR Central", "JR West", "JR Shikoku"]);
   assert.equal(izumo.trip_short_name_1, "Sunrise Izumo 4032M", "the two directions pair into one route");
   assert.match(izumo.via_1, /Osaka/);
   assert.doesNotMatch(izumo.via_0, /Osaka/);
@@ -502,6 +511,42 @@ await check("the endpoints resolve to cities, so the connection pages read Tokyo
   assert.equal(cityForStation("Sannomiya"), "Kobe");
   assert.equal(cityForStation("Tokyo"), "Tokyo");
   assert.equal(cityForStation("Takamatsu"), "Takamatsu");
+});
+
+await check("page copy names who runs the trains, and nothing changes where no route says", () => {
+  const jrw = [{ id: "JRW", name: "JR West" }];
+  const sunrise = [
+    { railways: ["JR East", "JR Central", "JR West"], operators: jrw },
+    { railways: ["JR East", "JR Central", "JR West", "JR Shikoku"], operators: jrw },
+  ];
+  assert.deepEqual(operatedByNames(sunrise), ["JR East", "JR Central", "JR West", "JR Shikoku"]);
+  // Without railway data: the operators by name, the order hubs always printed.
+  const plain = [
+    { operators: [{ id: "PKP", name: "PKP Intercity" }] },
+    { operators: [{ id: "ÖBB", name: "ÖBB" }, { id: "PKP", name: "PKP Intercity" }] },
+  ];
+  assert.deepEqual(operatedByNames(plain), ["ÖBB", "PKP Intercity"]);
+});
+
+await check("a connection page lists the direction leaving its first city first", () => {
+  // /connections/takamatsu-to-tokyo: the row's direction 0 is Tokyo → Takamatsu.
+  const train = {
+    origin: "Tokyo",
+    destination: "Takamatsu",
+    trainNumbers: ["Sunrise Seto 5031M", "Sunrise Seto 5032M"],
+    directions: [
+      { origin: "Tokyo", destination: "Takamatsu", trainNumber: "Sunrise Seto 5031M" },
+      { origin: "Takamatsu", destination: "Tokyo", trainNumber: "Sunrise Seto 5032M" },
+    ],
+  };
+  const led = leadWithCity(train, "Takamatsu", cityForStation);
+  assert.equal(led.origin, "Takamatsu");
+  assert.equal(led.destination, "Tokyo");
+  assert.deepEqual(led.trainNumbers, ["Sunrise Seto 5032M", "Sunrise Seto 5031M"]);
+  assert.equal(led.directions[0].trainNumber, "Sunrise Seto 5032M");
+  assert.equal(leadWithCity(train, "Tokyo", cityForStation), train, "already in order");
+  const oneWay = { ...train, directions: [train.directions[0]] };
+  assert.equal(leadWithCity(oneWay, "Takamatsu", cityForStation), oneWay, "a one-way train is left alone");
 });
 
 console.log(`\n[verify-jr-sunrise] ${checks} checks passed`);

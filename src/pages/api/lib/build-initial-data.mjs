@@ -286,6 +286,14 @@ function applyStationRenames(trains, renames) {
 
 // ─── Synthetic routes ────────────────────────────────────────────────────────
 
+/** Both directions' railway companies, outbound order first, or null. */
+function railwaysOf(data, revData) {
+  const names = [...(data?.railways ?? []), ...(revData?.railways ?? [])]
+    .map((n) => String(n ?? "").trim())
+    .filter(Boolean);
+  return names.length ? [...new Set(names)] : null;
+}
+
 // Builds synthetic view_ontd_map rows from a list of [lineName, data] trains
 // with decoded polylines, pairing each direction with its reverse where found.
 // Shared by NJ, Chinese, Italian and Caucasus sources; per-source differences
@@ -381,6 +389,7 @@ function appendSyntheticRoutes(
             resolveName(v.stations?.[v.stations.length - 1]?.name) === origin,
         );
     const safeId = lineName.replace(/\s+/g, "_");
+    const railways = railwaysOf(data, reversePair?.[1]);
     // Who runs the row: a train that states its own carrier (agency_id, from a
     // source with synthetic.agency.from "data") decides it, from either
     // direction — nightjet.com names a partner EuroNight's carrier per train.
@@ -421,6 +430,11 @@ function appendSyntheticRoutes(
       // that source's own trains file (/api/operator-trains?source=…) instead
       // of from a per-operator feed it would otherwise have to hardcode.
       ...(sourceId ? { timetable_source: sourceId } : {}),
+      // The railway companies that run the train, when the source says, in
+      // journey order. agency_id stays the seller the booking link resolves
+      // through; this is who runs it (JR West sells the Sunrise, and JR East,
+      // JR Central, JR West and JR Shikoku run it over their own lines).
+      ...(railways ? { railways } : {}),
     };
     stampNextRun(entry, 0, lineName, data);
     if (reversePair) {

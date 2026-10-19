@@ -9,10 +9,10 @@
     "sunrise": {
       "agencyIds": ["JRW"],
       "title": "How to book the Sunrise Izumo and Sunrise Seto",
-      "summary": "Tickets go on sale at 10:00 Japan time one month before travel, and the private rooms can be gone within minutes. Rooms for two follow their own rules: a Sunrise Twin is booked as \"1 adult\" because it is sold per room, and each traveller still needs a basic-fare ticket of their own.",
+      "summary": "Tickets go on sale at 10:00 Japan time one month before travel, and the private rooms can be gone within minutes. Rooms for two follow their own rules: booked online, a Sunrise Twin is entered as \"1 adult\" because JR West prices the room rather than each person, and the second traveller still needs a basic-fare ticket of their own.",
       "highlights": [
         "Sales open at 10:00 JST (UTC+9) one month before the travel date; the rooms can sell out within minutes.",
-        "A Sunrise Twin is sold per room, so book it for \"1 adult\" — then buy a second basic-fare ticket for whoever shares it.",
+        "Booking a Sunrise Twin online? Choose \"1 adult\": JR West prices the room, not each person. Then buy a second basic-fare ticket for whoever shares it.",
         "Tickets booked online are printed at a JR ticket machine with the card you paid with and a 4-digit PIN.",
         "Only the Tokyo-bound train stops at Osaka and Sannomiya (Kobe), and no food is sold on board."
       ],
@@ -29,9 +29,9 @@
           "heading": "Rooms for two",
           "points": [
             "Two room types take two people. The Sunrise Twin is a two-person room with two beds. The Single Twin is a one-person room with an upper and a lower bed.",
-            "A Sunrise Twin is charged as a whole room, the same whether one or two people use it. For that reason JR West's reservation page asks you to enter \"1 adult\" even when booking for two.",
-            "The basic fare is charged per traveller, and a booking for \"1 adult\" carries one. The second traveller buys their own basic-fare ticket for the same journey before going through the gate, or pays the conductor on board.",
-            "A second person can use a Single Twin's upper bed for an extra-bed charge (¥5,500 in 2026) on top of their own fare. Ask at a JR ticket office how to add them."
+            "Online, JR West sells a Sunrise Twin by the room. Its reservation form tells you to choose \"1 adult\" whether one or two people (children included) will use it, because the price is set per room and does not change with the number of people.",
+            "That booking includes one basic-fare ticket, because the basic fare is charged per traveller. The second traveller needs their own basic-fare ticket for the same journey: buy it before going through the gate, or pay the conductor on board.",
+            "A Single Twin is a one-person room, but JR West's online form books it for up to two people: the second sleeps on the upper (extra) bed and pays an extra-bed charge (¥5,500 in 2026) plus their own basic fare and limited express charge."
           ]
         },
         {
@@ -70,7 +70,7 @@
         },
         {
           "q": "How do I book a room for two on the Sunrise Izumo or Sunrise Seto?",
-          "a": "A Sunrise Twin is sold per room, so JR West asks you to book it for \"1 adult\" even when two people will share it. The basic fare is charged per traveller, and that booking includes only one, so the second traveller buys their own basic-fare ticket for the same journey, at the station or from the conductor on board."
+          "a": "Online, JR West prices a Sunrise Twin per room and asks you to choose \"1 adult\" even when two people will share it. That booking includes one basic-fare ticket, because the basic fare is charged per traveller, so the second traveller buys their own for the same journey, at the station or from the conductor on board."
         },
         {
           "q": "Does the Sunrise Izumo or Sunrise Seto stop in Osaka?",
@@ -117,7 +117,7 @@
           "url": "https://www.reddit.com/r/JapanTravel/comments/1d62gqb/sunrise_express_twin_room_guide_osaka_to_tokyo/"
         }
       ],
-      "checkedAt": "2026-09-29"
+      "checkedAt": "2026-10-01"
     }
   }
 }

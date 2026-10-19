@@ -29,6 +29,9 @@ function humanJoin(names) {
  * @param {{name:string}[]} args.connectedCountries
  * @param {string} [args.pricingType] "dynamic"|"fixed" when every operator on
  *   the hub agrees; "" when they disagree or none has a record.
+ * @param {string[]} [args.operatedBy] who runs the trains, when that is not
+ *   just the operators who sell them (operatedByNames in ./data.js). Booking
+ *   answers keep naming the sellers.
  */
 export function buildCountryFaq({
   country,
@@ -36,20 +39,22 @@ export function buildCountryFaq({
   facts,
   connectedCountries,
   pricingType = "",
+  operatedBy = null,
 }) {
   const faq = [];
   const name = country.name;
   const operatorNames = humanJoin(operators.map((o) => o.name));
+  const runByNames = operatedBy?.length ? humanJoin(operatedBy) : operatorNames;
 
   // How many trains + who runs them.
   if (facts.routeCount > 0) {
     faq.push({
       q: `How many night trains serve ${name}?`,
       a:
-        `${facts.routeCount} night and sleeper train ${
+        `${facts.routeCount} ${country.routeQualifier ? `${country.routeQualifier} ` : ""}night and sleeper train ${
           facts.routeCount === 1 ? "route" : "routes"
         } currently serve ${name}` +
-        (operatorNames ? `, operated by ${operatorNames}.` : "."),
+        (runByNames ? `, operated by ${runByNames}.` : "."),
     });
   }
 

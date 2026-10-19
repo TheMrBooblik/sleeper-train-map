@@ -14,13 +14,15 @@ import {
   getConnectionsForCity,
 } from "../../../../lib/seo/aggregate";
 import { toCardRoute } from "../../../../lib/seo/data";
+import { operatedByNames } from "../../../../lib/seo/operatedBy.mjs";
 import { getFlagEmoji } from "../../../../lib/countries";
 import { OG_IMAGE, absoluteUrl } from "../../../../lib/seo/site";
 
 export default function StationHub({ country, station, routes, operators, connections }) {
   const canonical = absoluteUrl(`/night-trains/${country.slug}/from/${station.slug}`);
   const title = `Night Trains from ${station.name} (${country.name}) | Pingwi`;
-  const operatorNames = operators.map((o) => o.name).join(", ");
+  // Who runs the trains, not only who sells them (see operatedByNames).
+  const operatorNames = operatedByNames(routes).join(", ");
   const description =
     `${routes.length} night and sleeper trains run from ${station.name}` +
     (operatorNames ? `, operated by ${operatorNames}.` : ".") +
@@ -87,7 +89,13 @@ export default function StationHub({ country, station, routes, operators, connec
 
           {operators.length > 0 && (
             <section className="mt-10">
-              <h2 className="text-lg font-semibold text-white">Operators</h2>
+              {/* These link to operator pages, which exist for the company
+                  that sells a route. Where the routes name the railways that
+                  run them (Japan: four JR companies, one seller), the list is
+                  the seller, and says so. */}
+              <h2 className="text-lg font-semibold text-white">
+                {routes.some((r) => r.railways?.length) ? "Tickets sold by" : "Operators"}
+              </h2>
               <div className="mt-3 flex flex-wrap gap-2">
                 {operators.map((o) => (
                   <Link
