@@ -59,6 +59,11 @@ export function calendarWindow(today, days = FARE_CALENDAR_DAYS) {
  * checkedAt: "2026-09-27" } | { none: true, checkedAt } } }. `none` is a night
  * the search answered without our train or without a berth on sale — the train
  * does not run, or its berths are gone; either way there is nothing to book.
+ * A source may keep more beside `classes` (Nightjet: each night's clocks, its
+ * seat price and the product each figure is, and why a `none` night has no
+ * fare — scripts/lib/nj-fares.mjs). Every reader of a price reads `classes`
+ * alone, which is what keeps a seat price kept for checking from ever being
+ * quoted as a fare.
  */
 export function pruneCalendar(
   calendar,
@@ -91,12 +96,22 @@ export function pruneCalendar(
  * its next weeks before any train gets its far ones), then the stalest checks.
  * A night checked today is never searched again the same day.
  *
+ * `nearDays` (opt-in, default 0) puts the nights a traveller is most likely to
+ * book ahead of everything else. Without it a near night checked yesterday
+ * waits behind every never-checked far one and then behind every older check,
+ * so a budget that goes round a full Nightjet calendar in about 2.6 nights
+ * leaves tomorrow's fare as old as the one six weeks out — up to three days.
+ * With it the order is: (0) never-checked nights within `nearDays`, (1)
+ * nights within `nearDays` checked before today, stalest first, (2) never-
+ * checked farther nights, nearest first, (3) the rest, stalest first. At 0
+ * the first two tiers are empty and the order is exactly the one above.
+ *
  * @param {Record<string, object>} calendars trainKey → pruned calendar
  * @returns {{ key: string, date: string }[]}
  */
 export function planFareSearches(
   calendars,
-  { today, days = FARE_CALENDAR_DAYS, budget = FARE_CALENDAR_BUDGET } = {},
+  { today, days = FARE_CALENDAR_DAYS, budget = FARE_CALENDAR_BUDGET, nearDays = 0 } = {},
 ) {
   const dates = calendarWindow(today, days);
   const candidates = [];
@@ -108,8 +123,13 @@ export function planFareSearches(
       candidates.push({ key, date, i, checkedAt });
     });
   }
+  // `i` is 0 for tomorrow, so "within nearDays" is i < nearDays.
+  const tier = (c) => (c.i < nearDays ? 0 : 2) + (c.checkedAt ? 1 : 0);
   candidates.sort((a, b) => {
-    if (!a.checkedAt !== !b.checkedAt) return a.checkedAt ? 1 : -1;
+    const ta = tier(a);
+    const tb = tier(b);
+    if (ta !== tb) return ta - tb;
+    // Within a tier both nights were checked or neither was.
     if (a.checkedAt && a.checkedAt !== b.checkedAt)
       return a.checkedAt < b.checkedAt ? -1 : 1;
     if (a.i !== b.i) return a.i - b.i;
@@ -135,11 +155,33 @@ export function cheapestClass(classes) {
  * every other surface already reads ({ fromPrice, currency, seatClass,
  * classes, sampledAt, travelDate }). A tie keeps the earlier night — the
  * nearer date is the more useful one to name. null when no night is priced.
+ *
+ * `classes` is each class's OWN cheapest night across the calendar, with the
+ * night it is for in `classDates` — not the classes of the night that won.
+ * The first European Sleeper calendar is why: the cheapest night was a €40
+ * last-minute deal for tomorrow, and that night's regular couchette was
+ * €159.99, so the map panel printed "Couchette from €159.99" for a train whose
+ * couchettes start at €59.99 on other nights. A class's "from" is that class's
+ * minimum, and the date travels with it so the figure stays one night's price.
+ * `dealLanding` names the page the cheapest last-minute deal is sold from
+ * (scripts/lib/es-fare-calendar.mjs), where the calendar carries one.
  */
 export function cheapestNight(calendar) {
   let best = null;
+  const classes = {};
+  const classDates = {};
+  const dealLandings = {};
   for (const date of Object.keys(calendar?.nights ?? {}).sort()) {
     const entry = calendar.nights[date];
+    for (const [cls, amount] of Object.entries(entry?.classes ?? {})) {
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+      if (classes[cls] == null || amount < classes[cls]) {
+        classes[cls] = amount;
+        classDates[cls] = date;
+        if (entry.deal?.landing) dealLandings[cls] = entry.deal.landing;
+        else delete dealLandings[cls];
+      }
+    }
     const c = cheapestClass(entry?.classes);
     if (!c) continue;
     if (!best || c[1] < best.fromPrice) {
@@ -147,11 +189,15 @@ export function cheapestNight(calendar) {
         fromPrice: c[1],
         currency: calendar.currency,
         seatClass: c[0],
-        classes: { ...entry.classes },
         sampledAt: entry.checkedAt,
         travelDate: date,
       };
     }
   }
-  return best && best.currency ? best : null;
+  if (!best || !best.currency) return null;
+  const out = { ...best, classes, classDates };
+  // The deal class with the lowest price, if any carries a landing page.
+  const deal = Object.keys(dealLandings).sort((a, b) => classes[a] - classes[b])[0];
+  if (deal) out.dealLanding = dealLandings[deal];
+  return out;
 }

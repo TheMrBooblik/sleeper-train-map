@@ -51,7 +51,7 @@
     "v": 1,
     "id": "nightjet",
     "label": "NightJet / EuroNight",
-    "description": "Official ÖBB NightJet API — accurate polylines and timetables",
+    "description": "Official ÖBB NightJet API — accurate polylines, timetables and every night's fares for six weeks",
     "kind": "json-api",
     "adapter": "nightjet",
     "enabled": true,
@@ -67,18 +67,32 @@
     "agencyDefaults": { "agencyId": "ÖBB", "operatorName": "Nightjet" },
     "synthetic": {
       "idPrefix": "nj_standalone_",
-      "agency": { "from": "fixed", "value": "ÖBB" },
+      "agency": { "from": "data", "fallback": "ÖBB" },
       "resolveAliases": true,
       "withService": false,
       "excludeBotMatched": true,
-      "dedupStrategy": "exact"
+      "dedupStrategy": "exact",
+      "nextDeparture": { "timeZone": "Europe/Vienna" }
     },
     "params": {
       "countryCodes": [80, 81, 83, 84, 85, 88],
       "concurrency": 6,
-      "maxPartnerTrains": 25
+      "maxPartnerTrains": 25,
+      "fares": { "enabled": true, "days": 42, "requestsPerRun": 720 },
+      "operatorAgencies": {
+        "home": "ÖBB",
+        "carriers": [
+          { "agency": "PKP", "match": ["PKP", "PKP Intercity", "Polnisch*", "Polish", "Polskie Koleje"] },
+          { "agency": "ČD", "match": ["ČD", "České dráhy", "Tschechisch*", "Czech"] },
+          { "agency": "MÁV", "match": ["MÁV", "MÁV-START", "Ungarisch*", "Hungarian", "Magyar Államvasutak"] },
+          { "agency": "HŽPP", "match": ["HŽPP", "HŽ", "HŽ Putnički prijevoz", "Kroatisch*", "Croatian", "Hrvatske željeznice"] },
+          { "agency": "ZSSK", "match": ["ZSSK", "Slowakisch*", "Slovak", "Železničná spoločnosť Slovensko"] },
+          { "agency": "ES", "match": ["European Sleeper"], "lines": ["ES"], "publishedBy": "europeansleeper" },
+          { "agency": "ÖBB", "match": ["ÖBB", "OEBB", "Österreichisch*", "Oesterreichisch*", "Austrian", "Nightjet"] }
+        ]
+      }
     },
-    "enrich": { "strategy": "trainsByNumber", "setPolyline": true },
+    "enrich": { "strategy": "trainsByNumber", "setPolyline": true, "requireSameTrain": true },
     "probe": { "pricing": { "adapter": "nightjet-offers", "sampleRoutes": 4 } },
     "freshness": { "ttlHours": 25 }
   },
@@ -126,7 +140,27 @@
         "https://files.mobilitydatabase.org/mdb-3107/latest.zip"
       ],
       "configPath": "data/sources/europeansleeper-sleepers.json",
-      "timetableUrl": "https://www.europeansleeper.eu/timetable"
+      "timetableUrl": "https://www.europeansleeper.eu/timetable",
+      "fares": {
+        "enabled": true,
+        "days": 92,
+        "searchesPerRun": 600,
+        "lastMinute": {
+          "indexPath": "/last-minute",
+          "pages": [
+            { "path": "/last-minutes-berlin-prague", "trains": ["453"] },
+            { "path": "/last-minutes-amsterdam-brussels", "trains": ["452", "454"] },
+            { "path": "/last-minutes-hamburg-berlin", "trains": ["475"] },
+            { "path": "/last-minutes-brussels-paris", "trains": ["474"] },
+            { "path": "/last-minute-switzerland-milan", "trains": ["401"] },
+            { "path": "/last-minute-cologne-brussels", "trains": ["400"] }
+          ]
+        },
+        "flashSale": {
+          "indexPath": "/flash-sale",
+          "pages": []
+        }
+      }
     },
     "freshness": { "ttlHours": 25 }
   },
@@ -287,6 +321,42 @@
       ],
       "timetableUrlTemplate": "https://timetable.jr-odekake.net/train-timetable/{id}?date={date}",
       "seedTimetableIds": [3841, 3751]
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
+    "id": "srt",
+    "label": "State Railway of Thailand",
+    "description": "Thailand's night trains from two official sources. The Ministry of Transport's national GTFS (Namtang, namtang-api.otp.go.th; Mobility Database mdb-1831 as fallback) gives station positions, full stop lists and track — its long-distance stop times are placeholders and are never read. SRT's own booking site D-Ticket gives each train's departure and arrival times and the fare of every berth, from the public search its page makes before login (one search per corridor in data/sources/srt-sleepers.json, both directions). Kept: trains that run overnight and sell a berth. Probe workflow: 'Probe SRT source'.",
+    "kind": "json-api",
+    "adapter": "srt",
+    "enabled": true,
+    "official": true,
+    "trusted": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.railway.co.th",
+    "endpoint": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip",
+    "docsUrl": "https://mobilitydatabase.org/feeds/gtfs/mdb-1831",
+    "output": "srt-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "SRT", "operatorName": "State Railway of Thailand" },
+    "synthetic": {
+      "idPrefix": "srt_",
+      "agency": { "from": "fixed", "value": "SRT" },
+      "resolveAliases": false,
+      "withService": true,
+      "excludeBotMatched": false,
+      "dedupStrategy": null
+    },
+    "params": {
+      "configPath": "data/sources/srt-sleepers.json",
+      "feedUrl": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip",
+      "fallbackUrls": ["https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-1831/latest.zip"],
+      "baseUrl": "https://dticket.railway.co.th/DTicketPublicWeb/",
+      "dateOffsetDays": 7,
+      "osmTrack": { "file": "osm-srt-track.json", "maxAgeDays": 7, "bbox": [5.6, 97.3, 20.6, 106.0] }
     },
     "freshness": { "ttlHours": 25 }
   },
@@ -480,7 +550,7 @@
     "v": 1,
     "id": "sncf",
     "label": "SNCF",
-    "description": "Official SNCF Open Data GTFS (TGV / Intercit\u00e9s / TER), filtered to the Intercit\u00e9s de Nuit (data/sources/sncf-sleepers.json). The feed's routes are not addresses \u2014 route_long_name is \"-\" for six of these eleven trains and files two of the named ones under another corridor \u2014 so the allowlist selects them as oriented endpoint pairs and keys each by Back-on-Track's own \"IC Nuit NNNN\" label, which is what the trainsByNumber enrichment looks a view-map row up by. Enrichment is deliberately via-only: the feed has no shapes.txt, and one route_id there carries both directions plus the portions that split at Toulouse and Brive, so the fullest trip for a pair can be a through-portion whose endpoint times are not the train's. The first live run confirmed that from two angles \u2014 endpoint times disagreed with Back-on-Track by over an hour on four of ten runs, and service days came out per-trip (\"Sun\" for a daily train), because a date-expanded feed gives each trip its own service_id and only one trip is picked. Stop lists survive all of that (8\u201316 stations against Back-on-Track's 2\u20135, and every stop between two fixed endpoints is on the corridor whichever trip was chosen), so updateVia is on with viaOnlyIfRicher, and setTimes/updateEndpoints/updateServiceDays/stamp stay off. Probe workflow: 'Probe GTFS feed'.",
+    "description": "Official SNCF Open Data GTFS (TGV / Intercit\u00e9s / TER), filtered to the Intercit\u00e9s de Nuit (data/sources/sncf-sleepers.json). The feed's routes are not addresses \u2014 route_long_name is \"-\" for six of these eleven trains and files two of the named ones under another corridor \u2014 so the allowlist selects them as oriented endpoint pairs and keys each by Back-on-Track's own \"IC Nuit NNNN\" label, which is what the trainsByNumber enrichment looks a view-map row up by. Enrichment is deliberately via-only: the feed has no shapes.txt, and one route_id there carries both directions plus the portions that split at Toulouse and Brive, so the fullest trip for a pair can be a through-portion whose endpoint times are not the train's. The first live run confirmed that from two angles \u2014 endpoint times disagreed with Back-on-Track by over an hour on four of ten runs, and service days came out per-trip (\"Sun\" for a daily train), because a date-expanded feed gives each trip its own service_id and only one trip is picked. Stop lists survive all of that (8\u201316 stations against Back-on-Track's 2\u20135, and every stop between two fixed endpoints is on the corridor whichever trip was chosen), so updateVia is on with viaOnlyIfRicher, and setTimes/updateEndpoints/updateServiceDays/stamp stay off. Beside the timetable the adapter reads two of SNCF's own open datasets nightly (params.openData, scripts/lib/sncf-open-data.mjs): \"Tarifs Intercit\u00e9s\" for each train's standard-fare range per couchette class (berths only \u2014 a seat range on a pair that day Intercit\u00e9s also run is the day trains' as much as the night train's), and \"R\u00e9gularit\u00e9 mensuelle Intercit\u00e9s\" for its punctuality, attributed only where no daytime Intercit\u00e9s runs the same pair. Probe workflows: 'Probe GTFS feed', 'Probe SNCF open data'.",
     "kind": "gtfs",
     "adapter": "gtfs-sleeper",
     "enabled": true,
@@ -516,7 +586,12 @@
       "configPath": "data/sources/sncf-sleepers.json",
       "agency": "SNCF",
       "operator": "SNCF",
-      "canonicalizeStationNames": true
+      "canonicalizeStationNames": true,
+      "openData": {
+        "base": "https://ressources.data.sncf.com",
+        "tariffs": "tarifs-intercites",
+        "punctuality": "regularite-mensuelle-intercites"
+      }
     },
     "freshness": { "ttlHours": 25 }
   },

@@ -12,6 +12,9 @@ import {
   FaSearch,
   FaMapMarkerAlt,
   FaRegCalendarAlt,
+  FaMoon,
+  FaSun,
+  FaAdjust,
 } from "react-icons/fa";
 
 import Container from "@components/Container";
@@ -79,6 +82,49 @@ const ControlRow = ({ label, icon, isActive, onClick }) => (
   </button>
 );
 
+const THEME_OPTIONS = [
+  { value: "system", label: "Auto", icon: <FaAdjust size={12} /> },
+  { value: "light", label: "Light", icon: <FaSun size={12} /> },
+  { value: "dark", label: "Dark", icon: <FaMoon size={12} /> },
+];
+
+// Map theme picker: a three-way radio group under the toggles. "Auto" follows
+// the OS setting, so it is the default and the honest label for it.
+// `idSuffix` keeps the label id unique — both menus may be in the DOM.
+const ThemeRow = ({ value, onChange, idSuffix }) => (
+  <div className="mt-1 border-t border-white/15 px-3 pt-3 pb-1">
+    <div id={`map-theme-label-${idSuffix}`} className="mb-2 text-xs text-white/60">
+      Map theme
+    </div>
+    <div
+      role="radiogroup"
+      aria-labelledby={`map-theme-label-${idSuffix}`}
+      className="grid grid-cols-3 gap-1 rounded-lg bg-white/10 p-1"
+    >
+      {THEME_OPTIONS.map((opt) => {
+        const active = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(opt.value)}
+            className={`flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-md text-sm transition-colors ${
+              active
+                ? "bg-white/25 text-white"
+                : "text-white/60 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            {opt.icon}
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
+
 function usePopover() {
   const [open, setOpen] = useState(false);
   const panelRef = useRef(null);
@@ -117,6 +163,8 @@ const Header = ({
   setHideIntermediateStations,
   showRailwayOverlay,
   setShowRailwayOverlay,
+  themePreference,
+  setThemePreference,
   stops,
   stopsLoading,
   onSearchSelect,
@@ -231,6 +279,13 @@ const Header = ({
                     />
                   ))}
                 </div>
+                {setThemePreference && (
+                  <ThemeRow
+                    idSuffix="mobile"
+                    value={themePreference}
+                    onChange={setThemePreference}
+                  />
+                )}
                 {/* Same 44px full-width row geometry as the toggles above —
                     these were 16px-tall inline links, too small to tap. */}
                 <div className="mt-2 flex flex-col gap-0.5 border-t border-white/15 pt-2">
@@ -315,6 +370,13 @@ const Header = ({
                     />
                   ))}
                 </div>
+                {setThemePreference && (
+                  <ThemeRow
+                    idSuffix="desktop"
+                    value={themePreference}
+                    onChange={setThemePreference}
+                  />
+                )}
               </div>
             ) : null}
           </div>

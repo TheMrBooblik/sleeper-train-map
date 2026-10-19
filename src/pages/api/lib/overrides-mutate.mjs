@@ -211,6 +211,16 @@ export function applyOverrideMutation(resource, action, payload, current) {
           ...(existing.urlDateSuffix !== undefined && {
             urlDateSuffix: existing.urlDateSuffix,
           }),
+          // The one-train link a fare calendar's Book button opens (ÖBB's
+          // shop by connection); not on the form, so carried through.
+          ...(existing.journeyUrlTemplate !== undefined && {
+            journeyUrlTemplate: existing.journeyUrlTemplate,
+          }),
+          // The deals landing-page template the fare calendar links each
+          // last-minute deal to; the form edits only the plain deals link.
+          ...(existing.dealsUrlTemplate !== undefined && {
+            dealsUrlTemplate: existing.dealsUrlTemplate,
+          }),
           // Schedule ("official timetable") config is not on the booking form,
           // so a booking-URL edit must carry it through untouched or the
           // helper link silently disappears for that operator.

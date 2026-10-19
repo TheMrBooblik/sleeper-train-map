@@ -890,6 +890,26 @@ function crossesMidnight(sts) {
   return arr >= 24 * 3600 || arr < dep;
 }
 
+/**
+ * Every unordered pair of end stations some DAYTIME trip in the feed runs
+ * between, as "keyA|keyB" (sorted), where a station's key is `keyOf(stop_id)`
+ * and a stop whose key is null is skipped. A trip is daytime when it does not
+ * run past midnight (crossesMidnight). SNCF's regularity figures are counted
+ * per pair of stations, day and night trains together, so a night train's
+ * pair that a day train also runs cannot be given that pair's figure — this
+ * is how the sncf-open-data reader knows which pairs those are.
+ */
+export function dayServedStationPairs(gtfs, keyOf) {
+  const pairs = new Set();
+  for (const sts of gtfs?.stopTimesByTrip?.values?.() ?? []) {
+    if (sts.length < 2 || crossesMidnight(sts)) continue;
+    const a = keyOf(sts[0].stop_id);
+    const b = keyOf(sts[sts.length - 1].stop_id);
+    if (a && b && a !== b) pairs.add([a, b].sort().join("|"));
+  }
+  return pairs;
+}
+
 // The first (dir 1) or last (dir -1) stop of a trip that has coordinates.
 function firstLocatedStop(sts, gtfs, dir) {
   const order = dir === -1 ? [...sts].reverse() : sts;

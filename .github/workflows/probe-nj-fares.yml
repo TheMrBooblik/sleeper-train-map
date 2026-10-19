@@ -1,0 +1,76 @@
+name: Probe Nightjet fares
+
+# The Nightjet fare check: re-asks nightjet.com's "Train Price Search" about a
+# sample of the nights our fare calendar stores — the owner's disputed nights
+# (data/sources/nj-fare-check.json), the anomalies, a seeded spread over lead
+# times, a few asked twice — and compares what it answers now with what we
+# stored, flag by flag. Then, if the config turns it on, it asks ÖBB's shop
+# (robots.txt first, then the anonymous token, where a block will show). It
+# prints a table and a summary, writes the same to the job summary, and
+# uploads a CSV checklist for the owner's side-by-side check in the shop plus
+# every raw answer. The dev sandbox reaches neither host; this is how the
+# calendar is checked against its source.
+#
+# Label a PR `run-probes` to run it from the PR head. It also runs on every
+# push to a PR that carries the label (`synchronize`), because a probe added in
+# a PR cannot be dispatched until it is on the default branch, and removing and
+# re-adding the label through the API did not fire the `labeled` event — so
+# without `synchronize` a fix to the probe could not be tried before merging.
+# The paths filter keeps both events to a PR that touches the probe (for a
+# pull_request event GitHub compares the PR's whole diff against its base), so
+# a labelled PR that changes something else does not spend sixty requests on
+# it; once this is on the default branch, dispatch it instead.
+#
+# Read-only: at most sixty GETs to nightjet.com and a handful of requests to
+# the shop, an honest User-Agent, nothing booked, nothing committed. A block
+# is final for the run: the probe says BLOCKED, stops asking that host, and
+# never works around it.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled, synchronize]
+    paths:
+      - scripts/probe-nj-fares.mjs
+      - scripts/lib/nj-fare-check.mjs
+      - scripts/lib/http-block.mjs
+      - data/sources/nj-fare-check.json
+      - .github/workflows/probe-nj-fares.yml
+
+concurrency:
+  group: probe-nj-fares-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'run-probes') ||
+      (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'run-probes'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Check Nightjet fares against nightjet.com (and the shop)
+        continue-on-error: true
+        run: |
+          # `| tee` would make bash report tee's status, so a probe that
+          # crashes would leave the step green: pipefail.
+          set -o pipefail
+          mkdir -p probe-output
+          node scripts/probe-nj-fares.mjs probe-output 2>&1 | tee probe-output/stdout.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nj-fares-probe-output
+          path: probe-output/
+          retention-days: 7

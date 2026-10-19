@@ -27,16 +27,18 @@ export const CURRENCY_SYMBOLS = {
   TRY: "₺",
   CNY: "¥",
   JPY: "¥",
+  THB: "฿",
   GEL: "₾",
   AZN: "₼",
   AMD: "֏",
 };
 
-// Currencies whose fares run to five digits, where "¥23210" is hard to read.
+// Currencies whose fares run to four or five digits, where "¥23210" and
+// "฿1453" are hard to read.
 // Grouped with a fixed comma rather than Intl, because this string is
 // server-rendered on the connection pages and Node's ICU and a browser's do not
 // always agree on separators. Everything else prints exactly as before.
-const GROUPED_CURRENCIES = new Set(["JPY"]);
+const GROUPED_CURRENCIES = new Set(["JPY", "THB"]);
 
 /** "¥335.5" — the amount as the operator quotes it, with the currency's symbol. */
 export function formatMoney(amount, currency) {
@@ -60,6 +62,10 @@ export const FARE_CLASS_LABELS = {
   // map shows sleeping places only, and a class without a label is skipped.
   couchette: "Couchette",
   sleeperCabin: "Sleeper cabin",
+  // SNCF Intercités de Nuit (scripts/lib/sncf-open-data.mjs), from SNCF's
+  // published tariff: a standard adult's range per class, never a seat.
+  couchetteSecond: "Couchette, 2nd class",
+  couchetteFirst: "Couchette, 1st class",
   // JR West's Sunrise Izumo / Seto (scripts/lib/jr-sunrise.mjs). Every figure
   // is per traveller for the whole route. Nobinobi is a numbered, carpeted
   // space on the floor — a place to lie down with no cabin, and the cheapest
@@ -70,7 +76,73 @@ export const FARE_CLASS_LABELS = {
   singleTwinCabin: "Single Twin cabin",
   twinCabinPerPerson: "Sunrise Twin, per person (2 sharing)",
   deluxeSingleCabin: "Single Deluxe cabin",
+  // State Railway of Thailand (scripts/lib/srt.mjs), from D-Ticket's coach
+  // list: what one adult pays for one berth, whole route. A 2nd-class sleeper
+  // is an open car of curtained berths; 1st class is a two-berth cabin, which
+  // one traveller can also take whole ("to yourself", the operator's charter
+  // room). Seats are left out at the source.
+  srtSecondUpper: "2nd class sleeper, upper berth",
+  srtSecondLower: "2nd class sleeper, lower berth",
+  srtSecondFanUpper: "2nd class fan sleeper, upper berth",
+  srtSecondFanLower: "2nd class fan sleeper, lower berth",
+  srtFirstUpper: "1st class cabin, upper berth",
+  srtFirstLower: "1st class cabin, lower berth",
+  srtFirstPrivate: "1st class cabin to yourself",
+  // European Sleeper (scripts/lib/es-fares.mjs). Every figure is what one
+  // adult pays — one bed — except the private compartment: one booking for
+  // the whole couchette compartment, up to 5 people. So a 2- or 3-bed cabin
+  // is labelled as the bed it prices, or "3-bed cabin €109.99" reads as the
+  // cabin's price. Women-only compartments and seats are left out at the source.
+  privateCouchette: "Private compartment",
+  sleeperTriple: "Sleeper, bed in 3-bed cabin",
+  sleeperDouble: "Sleeper, bed in 2-bed cabin",
+  sleeperSingle: "Sleeper, single cabin",
+  comfortTriple: "Comfort sleeper, bed in 3-bed cabin",
+  comfortDouble: "Comfort sleeper, bed in 2-bed cabin",
+  comfortSingle: "Comfort sleeper, single cabin",
+  // ÖBB Nightjet / EuroNight (scripts/lib/nj-fares.mjs): nightjet.com's
+  // cheapest offer per comfort class for one adult — "couchette" above for a
+  // couchette place, and one bed in the sleeping car, whichever cabin is
+  // cheapest that night. Seats are left out at the source.
+  sleeperBed: "Sleeper, one bed",
+  // Its last-minute deals (scripts/lib/es-last-minute.mjs): sold from the
+  // operator's promo pages, not its fare finder — see src/lib/lastMinuteDeals.mjs.
+  lastMinuteCouchette: "Last-minute couchette",
+  lastMinutePrivate: "Last-minute private compartment",
+  // …and its flash sales (the same mechanism, on selected dates further out).
+  flashSaleCouchette: "Flash-sale couchette",
+  flashSalePrivate: "Flash-sale private compartment",
 };
+
+/**
+ * Classes that are promotional deals sold outside the operator's ordinary
+ * search (European Sleeper's last-minute and flash-sale pages). The map panel
+ * lists them apart from the regular fares, beside the link that sells them.
+ */
+export const DEAL_CLASS_KEYS = new Set([
+  "lastMinuteCouchette",
+  "lastMinutePrivate",
+  "flashSaleCouchette",
+  "flashSalePrivate",
+]);
+export const isDealClass = (key) => DEAL_CLASS_KEYS.has(key);
+
+/**
+ * One person's place in a couchette, under every name a source gives it —
+ * the class a fare calendar's grid prints first, because a couchette is what
+ * most people compare night trains by and the figure a reader takes to the
+ * operator's shop. Deal couchettes are included (a European Sleeper deal
+ * night's cell is the deal); the private compartment is not, since its price
+ * is the whole compartment's.
+ */
+export const COUCHETTE_CLASS_KEYS = new Set([
+  "couchette",
+  "couchetteSecond",
+  "couchetteFirst",
+  "lastMinuteCouchette",
+  "flashSaleCouchette",
+]);
+export const isCouchetteClass = (key) => COUCHETTE_CLASS_KEYS.has(key);
 
 export function fareClassLabel(key) {
   return (key && FARE_CLASS_LABELS[key]) || "";
@@ -88,21 +160,61 @@ export function directionFare(row, dir) {
 }
 
 /**
+ * Whether the row's figures are per train: an official source priced each
+ * direction on its own (stampOfficialFares leaves `fare_0` / `fare_1`), so
+ * the row's `pricing` is one of those two trains' figures, not the route's.
+ */
+export function hasDirectionFares(row) {
+  return Boolean(row?.fare_0 || row?.fare_1);
+}
+
+// Everything in a pricing record that describes one figure: the amount and
+// what it was quoted for. The rest (`type`, `source`) describes the fare
+// model and holds for either train.
+const FIGURE_FIELDS = ["fromPrice", "currency", "travelDate", "seatClass", "trainName", "checkedAt", "basis"];
+
+/**
+ * A pricing record with its figure taken out, or null when nothing is left:
+ * the "Dynamic fare" badge and its advice still render, no price does.
+ */
+export function pricingWithoutFigure(pricing) {
+  if (!pricing || typeof pricing !== "object") return null;
+  const rest = { ...pricing };
+  for (const key of FIGURE_FIELDS) delete rest[key];
+  return Object.keys(rest).length ? rest : null;
+}
+
+/**
  * The pricing record for one direction: the row's own record with that
- * direction's figure in place of the cheaper-of-both. Falls back to `base`
- * unchanged when the direction carries no fare of its own.
+ * direction's figure in place of the cheaper-of-both.
+ *
+ * A direction with no fare of its own gets `base` unchanged only when the row
+ * is priced per route (prices.json, an operator default), where the figure is
+ * the route's. Where the row is priced per train, `base` is the OTHER train's
+ * figure — on the payload of 10 October 2026 the map panel quoted NJ 448's
+ * €84.9 on NJ 449's card and EN 50462's €70 on EN 50237's — so that
+ * direction keeps the fare model and no figure. An
+ * unknown direction (`dir` null, see fareDirectionForTrip) is treated the
+ * same way: better no per-train figure than the other train's.
  */
 export function pricingForDirection(row, dir, base = row?.pricing ?? null) {
-  const fare = directionFare(row, dir);
-  if (!fare) return base;
+  const fare = dir == null ? null : directionFare(row, dir);
+  if (!fare) return hasDirectionFares(row) ? pricingWithoutFigure(base) : base;
+  // The model from `base`, the figure from this direction. `base` also names
+  // the train and kind of figure it quoted (`trainName`, `basis`), which on a
+  // per-train row may be the other direction's, so those come from this
+  // direction or not at all.
+  const trainName = String(row?.[`trip_short_name_${dir}`] ?? "").trim();
   return {
-    ...(base || {}),
+    ...(pricingWithoutFigure(base) || {}),
     currency: fare.currency,
     fromPrice: fare.fromPrice,
     source: fare.source ?? base?.source ?? null,
     checkedAt: fare.checkedAt ?? base?.checkedAt ?? null,
     travelDate: fare.travelDate ?? null,
     seatClass: fare.seatClass ?? null,
+    ...(trainName ? { trainName } : {}),
+    ...(fare.basis ? { basis: fare.basis } : {}),
   };
 }
 
@@ -115,17 +227,129 @@ export function pricingForDirection(row, dir, base = row?.pricing ?? null) {
  * where the figure is the cheapest seen on one sampled date, not the price.
  * A fixed tariff's class price is the price, so it prints bare.
  */
-export function fareClassRows(fare, { from = false } = {}) {
+export function fareClassRows(fare, { from = false, deals = "include" } = {}) {
   if (!fare?.classes || typeof fare.classes !== "object") return [];
   return Object.entries(fare.classes)
     .filter(([key, amount]) => FARE_CLASS_LABELS[key] && Number.isFinite(amount) && amount > 0)
+    .filter(([key]) => (deals === "exclude" ? !isDealClass(key) : deals === "only" ? isDealClass(key) : true))
     .sort((a, b) => a[1] - b[1])
     .map(([key, amount]) => ({
       key,
       label: FARE_CLASS_LABELS[key],
       amount,
-      price: `${from ? "from " : ""}${formatMoney(amount, fare.currency)}`,
+      // A published tariff states its range (SNCF: "€39–€75", the standard
+      // fare as it moves with demand); that says more than "from €39".
+      max: classMaxOf(fare, key, amount),
+      price: classMaxOf(fare, key, amount)
+        ? `${formatMoney(amount, fare.currency)}–${formatMoney(classMaxOf(fare, key, amount), fare.currency)}`
+        : `${from ? "from " : ""}${formatMoney(amount, fare.currency)}`,
+      // The night this class's figure is for, where the source keeps a
+      // calendar (each class's own cheapest night, see cheapestNight).
+      date: fare.classDates?.[key] ?? null,
     }));
+}
+
+/** A class's published maximum when it is above its minimum, else null. */
+function classMaxOf(fare, key, amount) {
+  const max = fare?.classMax?.[key];
+  return Number.isFinite(max) && max > amount ? max : null;
+}
+
+/**
+ * What kind of figure a fare is, in words, or "" for a fare quoted from a
+ * search (the default). A published tariff's range is not a price somebody
+ * was quoted for a night, and the page says so.
+ */
+export function fareBasisLabel(fare) {
+  return fare?.basis === "tariff"
+    ? "Standard adult fare as published by the operator; it moves with demand within this range"
+    : "";
+}
+
+/**
+ * The map panel's short list: one row per kind of place, in a fixed order.
+ * European Sleeper prices up to eight regular classes a night — standard and
+ * Comfort sleepers in single, 2- and 3-bed cabins beside the couchette and
+ * the private compartment — and a card listing all eight said less than four
+ * would. So its cabins fold by beds, each row the cheapest of its group on
+ * that group's own cheapest night, and single cabins are left to the
+ * connection page's calendar. A fare without those cabin classes (12306,
+ * Intercity Notte, JR) is listed as it always was.
+ * Each row: { key, label, amount, price, date, classKey } — `classKey` is the
+ * class that won the group.
+ */
+const PANEL_FARE_GROUPS = [
+  { key: "couchette", label: "Couchette", classes: ["couchette"] },
+  // A cabin row prices one bed, and says so; the private compartment's price
+  // is the whole compartment's, which its name already says.
+  { key: "cabin3", label: "Bed in 3-bed cabin", classes: ["sleeperTriple", "comfortTriple"] },
+  { key: "cabin2", label: "Bed in 2-bed cabin", classes: ["sleeperDouble", "comfortDouble"] },
+  { key: "privateCouchette", label: "Private compartment", classes: ["privateCouchette"] },
+];
+const CABIN_CLASSES = new Set([
+  "sleeperTriple", "sleeperDouble", "sleeperSingle",
+  "comfortTriple", "comfortDouble", "comfortSingle",
+]);
+
+export function panelFareRows(fare, { from = false } = {}) {
+  const classes = fare?.classes;
+  if (!classes || typeof classes !== "object") return [];
+  if (!Object.keys(classes).some((k) => CABIN_CLASSES.has(k))) {
+    return fareClassRows(fare, { from, deals: "exclude" });
+  }
+  const dateOf = (k) => fare.classDates?.[k] ?? null;
+  const rows = [];
+  for (const group of PANEL_FARE_GROUPS) {
+    let best = null;
+    for (const k of group.classes) {
+      const amount = classes[k];
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+      // The cheaper class wins; on a tie, the nearer night.
+      const nearer = best && amount === best.amount && (dateOf(k) ?? "9") < (dateOf(best.k) ?? "9");
+      if (!best || amount < best.amount || nearer) best = { k, amount };
+    }
+    if (!best) continue;
+    rows.push({
+      key: group.key,
+      label: group.label,
+      amount: best.amount,
+      price: `${from ? "from " : ""}${formatMoney(best.amount, fare.currency)}`,
+      date: dateOf(best.k),
+      classKey: best.k,
+    });
+  }
+  return rows;
+}
+
+/**
+ * A direction's fare split into what the ordinary booking search sells and
+ * the cheapest promotional deal, each as { fromPrice, seatClass, travelDate }
+ * (the deal also { label, price, landing }), or null for a part it lacks.
+ * Without per-class dates (12306, an older file) the record's own travelDate
+ * stands in.
+ */
+export function splitDealFare(fare) {
+  const rows = fareClassRows(fare);
+  const pick = (row) =>
+    row
+      ? {
+          fromPrice: row.amount,
+          seatClass: row.key,
+          travelDate: row.date ?? fare?.travelDate ?? null,
+        }
+      : null;
+  const regular = pick(rows.find((r) => !isDealClass(r.key)));
+  const dealRow = rows.find((r) => isDealClass(r.key));
+  const deal = dealRow
+    ? {
+        ...pick(dealRow),
+        label: dealRow.label,
+        price: formatMoney(dealRow.amount, fare.currency),
+        landing: fare?.dealLanding ?? null,
+        programme: String(dealRow.key).startsWith("flashSale") ? "flashSale" : "lastMinute",
+      }
+    : null;
+  return { regular, deal };
 }
 
 /**
@@ -209,5 +433,6 @@ export function directionFareSummary(row, dir, { dynamic = isDynamicPricing(row?
     // A fixed tariff (12306) is searched on a date too, but its price does
     // not depend on it: naming the date would suggest it does.
     travelLabel: dynamic ? formatTravelDate(fare.travelDate) : "",
+    basisLabel: fareBasisLabel(fare),
   };
 }

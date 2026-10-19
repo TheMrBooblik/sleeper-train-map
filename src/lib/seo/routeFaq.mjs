@@ -185,6 +185,8 @@ export function buildRouteFaq(input = {}) {
  * @param {string} [input.fromPrice]             already formatted, e.g. "from €29"
  * @param {string} [input.pricingType]           "dynamic" | "fixed", from the operator record
  * @param {boolean} [input.hasLastMinuteDeals]   an operator here publishes a deals page
+ * @param {string} [input.punctualityText]       the operator's own on-time figures, already
+ *                                               worded (src/lib/punctuality.mjs punctualityAnswer)
  * @returns {{q:string,a:string}[]}
  */
 export function buildConnectionFaq(input = {}) {
@@ -198,6 +200,8 @@ export function buildConnectionFaq(input = {}) {
     fromPrice = "",
     pricingType = "",
     hasLastMinuteDeals = false,
+    punctualityText = "",
+    seasonText = "",
   } = input;
 
   if (!originCity || !destCity) return [];
@@ -206,6 +210,16 @@ export function buildConnectionFaq(input = {}) {
   const operatorNames = humanJoin(operators);
   const runByNames = runBy.length ? humanJoin(runBy) : operatorNames;
   const faq = [];
+
+  // When it runs — first, and only for a train that is not running now (a
+  // seasonal train out of season): that is the one answer that changes
+  // whether the rest of the page is any use to a traveller today.
+  if (seasonText) {
+    faq.push({
+      q: `When does the ${pair} night train run?`,
+      a: seasonText,
+    });
+  }
 
   // How many + who.
   if (trainCount > 0) {
@@ -222,6 +236,15 @@ export function buildConnectionFaq(input = {}) {
     faq.push({
       q: `How long does the ${pair} night train take?`,
       a: `The fastest overnight journey is about ${fastestDurationText}.`,
+    });
+  }
+
+  // Whether it runs on time — only where the operator publishes a figure that
+  // is the night train's alone; no figure, no question.
+  if (punctualityText) {
+    faq.push({
+      q: `Is the ${pair} night train on time?`,
+      a: punctualityText,
     });
   }
 

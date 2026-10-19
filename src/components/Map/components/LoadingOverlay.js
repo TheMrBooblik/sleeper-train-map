@@ -9,6 +9,9 @@ import React from "react";
  * This overlay disappears as soon as stations are ready (~1-2s),
  * revealing the map. NightJet/EuroNight routes then load in the
  * background via BackgroundLoadingBadge.
+ *
+ * Colours read `--map-overlay-*` with the light values as fallbacks; the dark
+ * map theme sets the variables (globals.css).
  */
 export default function LoadingOverlay({ stopsLoading, citiesLoading }) {
   return (
@@ -19,22 +22,22 @@ export default function LoadingOverlay({ stopsLoading, citiesLoading }) {
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
-        backgroundColor: "rgba(255,255,255,0.96)",
+        backgroundColor: "var(--map-overlay-bg, rgba(255,255,255,0.96))",
         padding: "30px 40px",
         borderRadius: "12px",
         boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
         textAlign: "center",
         minWidth: "280px",
-        border: "1px solid rgba(0,0,0,0.07)",
+        border: "1px solid var(--map-overlay-border, rgba(0,0,0,0.07))",
       }}
     >
       {/* Header */}
       <div style={{ marginBottom: "20px" }}>
         <div style={{ fontSize: "44px", marginBottom: "10px" }}>🚂</div>
-        <h3 style={{ margin: "0 0 8px 0", color: "#1e293b", fontSize: "17px", fontWeight: "700" }}>
+        <h3 style={{ margin: "0 0 8px 0", color: "var(--map-overlay-title, #1e293b)", fontSize: "17px", fontWeight: "700" }}>
           Loading European Trains
         </h3>
-        <p style={{ margin: 0, color: "#64748b", fontSize: "13px" }}>
+        <p style={{ margin: 0, color: "var(--map-overlay-muted, #64748b)", fontSize: "13px" }}>
           Fetching stations across Europe…
         </p>
       </div>
@@ -44,7 +47,7 @@ export default function LoadingOverlay({ stopsLoading, citiesLoading }) {
         style={{
           width: "100%",
           height: "6px",
-          backgroundColor: "#e2e8f0",
+          backgroundColor: "var(--map-overlay-track, #e2e8f0)",
           borderRadius: "3px",
           overflow: "hidden",
           marginBottom: "14px",
@@ -72,7 +75,7 @@ export default function LoadingOverlay({ stopsLoading, citiesLoading }) {
           flexDirection: "column",
           gap: "6px",
           fontSize: "12px",
-          color: "#64748b",
+          color: "var(--map-overlay-muted, #64748b)",
         }}
       >
         <StatusRow
@@ -108,7 +111,7 @@ function StatusRow({ done, label }) {
             display: "inline-block",
             width: "11px",
             height: "11px",
-            border: "1.5px solid #cbd5e1",
+            border: "1.5px solid var(--map-overlay-track, #cbd5e1)",
             borderTop: "1.5px solid #3b82f6",
             borderRadius: "50%",
             animation: "spin 0.8s linear infinite",
@@ -116,7 +119,13 @@ function StatusRow({ done, label }) {
           }}
         />
       )}
-      <span style={{ color: done ? "#334155" : "#64748b" }}>{label}</span>
+      <span
+        style={{
+          color: done
+            ? "var(--map-overlay-text, #334155)"
+            : "var(--map-overlay-muted, #64748b)",
+        }}
+      >{label}</span>
       {/* Keyframe for row spinner */}
       <style>{`
         @keyframes spin {

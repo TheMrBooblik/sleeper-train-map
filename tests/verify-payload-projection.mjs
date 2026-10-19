@@ -23,6 +23,10 @@ import {
   mergeRouteGeometry,
   routeStationKeys,
 } from "../src/pages/api/lib/payload-projection.mjs";
+import {
+  createTrainsFileHandler,
+  servedTrainsData,
+} from "../src/pages/api/lib/operator-trains-handler.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
@@ -233,6 +237,54 @@ const initialDataSrc = fs.readFileSync(
 );
 if (!/stripPageOnlyFields\(/.test(initialDataSrc)) {
   fail("/api/initial-data does not apply stripPageOnlyFields");
+}
+
+// The same calendars sit on the trains in each source's own file, which the
+// map panel fetches whole through /api/operator-trains. Served through the
+// real handler, so the wiring is under test and not just the helper.
+{
+  const res = {
+    code: 0,
+    body: null,
+    status(code) {
+      this.code = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    },
+    setHeader() {},
+  };
+  const trainsFiles = fs
+    .readdirSync(path.join(root, "public", "data", "scraped"))
+    .filter((f) => f.endsWith("-trains.json"));
+  let checked = 0;
+  for (const file of trainsFiles) {
+    const raw = JSON.parse(fs.readFileSync(path.join(root, "public", "data", "scraped", file), "utf8"));
+    const rawTrains = raw.data?.trains ?? raw.trains ?? {};
+    const calendars = Object.values(rawTrains).filter((t) => t?.fareCalendar).length;
+    if (!calendars) continue;
+    await createTrainsFileHandler({ file, label: file })({}, res);
+    const served = res.body?.trains ?? {};
+    const leaked = Object.values(served).filter((t) => t?.fareCalendar).length;
+    const fares = Object.values(served).filter((t) => t?.fare).length;
+    const rawFares = Object.values(rawTrains).filter((t) => t?.fare).length;
+    if (res.code !== 200 || Object.keys(served).length !== Object.keys(rawTrains).length) {
+      fail(`${file}: the handler did not serve every train`);
+    } else if (leaked) {
+      fail(`${file}: ${leaked} train(s) still carry a fare calendar through /api/operator-trains`);
+    } else if (fares !== rawFares) {
+      fail(`${file}: the headline fare must survive the strip (${fares} of ${rawFares})`);
+    } else {
+      ok(`${file}: ${calendars} fare calendar(s) stay out of /api/operator-trains, fares kept`);
+      checked++;
+    }
+  }
+  if (!checked) fail("no committed trains file carries a fare calendar to check the strip against");
+  const cached = { trains: { a: { fare: { fromPrice: 1 }, fareCalendar: { nights: {} } } } };
+  servedTrainsData(cached);
+  if (!cached.trains.a.fareCalendar) fail("servedTrainsData mutated the cached blob");
 }
 
 const before = gz(payload);

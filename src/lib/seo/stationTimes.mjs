@@ -61,7 +61,42 @@ function readTrains(file) {
   }
 }
 
-function cleanStations(entry) {
+/**
+ * Feeds that write each stop's time as an INSTANT ("2027-06-25T12:06:00.000Z")
+ * rather than a station clock, and the zone their stations keep. Every page
+ * that reads these used to print the UTC hour: EN 1277 "Departs 12:06" from
+ * Warszawa Wschodnia, which it leaves at 14:06, and NJ 470 two hours early
+ * out of Zürich in summer. Both feeds run wholly within Central European Time
+ * (nightjet.com's Nightjets and partner EuroNights, Trenitalia's Intercity
+ * Notte). A feed not listed here keeps its times as written, which is right for
+ * every feed that writes station clocks ("22:47", "2026-10-15T15:45:00").
+ */
+const INSTANT_TIME_ZONES = {
+  "nightjet-trains.json": "Europe/Vienna",
+  "italian-trains.json": "Europe/Rome",
+};
+
+const INSTANT_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})$/;
+const clockFormatters = new Map();
+
+/** "HH:MM" on the station's own clock for an instant, else the value unchanged. */
+export function stationClock(value, timeZone) {
+  if (!timeZone || typeof value !== "string" || !INSTANT_RE.test(value)) return value || "";
+  const ms = Date.parse(value);
+  if (!Number.isFinite(ms)) return value;
+  if (!clockFormatters.has(timeZone)) {
+    clockFormatters.set(
+      timeZone,
+      new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }),
+    );
+  }
+  const parts = Object.fromEntries(
+    clockFormatters.get(timeZone).formatToParts(new Date(ms)).map((x) => [x.type, x.value]),
+  );
+  return `${parts.hour}:${parts.minute}`;
+}
+
+function cleanStations(entry, timeZone = null) {
   const raw = Array.isArray(entry?.stations)
     ? entry.stations
     : Array.isArray(entry?.stops)
@@ -83,8 +118,8 @@ function cleanStations(entry) {
         code: s?.code || null,
         lat: Number.isFinite(lat) ? lat : null,
         lon: Number.isFinite(lon) ? lon : null,
-        arrival: s?.arrival || "",
-        departure: s?.departure || "",
+        arrival: stationClock(s?.arrival || "", timeZone),
+        departure: stationClock(s?.departure || "", timeZone),
       };
     })
     .filter((s) => s.name);
@@ -118,8 +153,16 @@ function loadIndex() {
     const trains = readTrains(file);
     if (!trains || typeof trains !== "object") continue;
     for (const [key, entry] of Object.entries(trains)) {
-      const stations = cleanStations(entry);
+      const timeZone = INSTANT_TIME_ZONES[file] ?? null;
+      const stations = cleanStations(entry, timeZone);
       if (!stations) continue;
+      // Each night's own timetable where the source read one per clock
+      // (scripts/lib/nj-timetable-variants.mjs), cleaned the same way.
+      let variants = null;
+      for (const [clock, variant] of Object.entries(entry.timetableVariants ?? {})) {
+        const cleaned = cleanStations(variant, timeZone);
+        if (cleaned) (variants ??= {})[clock] = cleaned;
+      }
       // Index under the entry key and any train-number-bearing field, so a route's
       // trip_short_name ("NJ 421", "ICN 752", "EC 345") resolves regardless of source.
       const keys = new Set(
@@ -131,7 +174,7 @@ function loadIndex() {
         if (!_index.has(k)) _index.set(k, []);
         const bucket = _index.get(k);
         if (!bucket.some((c) => c.file === file && c.stations === stations)) {
-          bucket.push({ file, stations });
+          bucket.push({ file, stations, variants });
         }
       }
     }
@@ -161,4 +204,29 @@ export function getStationTimesForTrain(trainNumber, { origin, destination } = {
     if (looseNameEq(first, origin) && looseNameEq(last, destination)) return stations;
   }
   return null;
+}
+
+/**
+ * Each night's own stop list for a train, keyed by its clock ("21:54>08:59+1",
+ * src/lib/nightTimes.mjs clockKey), from the same feed getStationTimesForTrain
+ * picks — or null. A timetable whose ends are not the route's is left out,
+ * like a feed's.
+ *
+ * @param {string} trainNumber
+ * @param {{ origin?: string, destination?: string }} [endpoints]
+ * @returns {Record<string, { name:string, arrival:string, departure:string }[]> | null}
+ */
+export function getTimetableVariantsForTrain(trainNumber, { origin, destination } = {}) {
+  const candidates = loadIndex().get(normNumber(trainNumber));
+  if (!candidates?.length || !origin || !destination) return null;
+  const ends = (stations) =>
+    looseNameEq(stations[0].name, origin) &&
+    looseNameEq(stations[stations.length - 1].name, destination);
+  const picked = candidates.find((c) => ends(c.stations));
+  if (!picked?.variants) return null;
+  const out = {};
+  for (const [clock, stations] of Object.entries(picked.variants)) {
+    if (ends(stations)) out[clock] = stations;
+  }
+  return Object.keys(out).length ? out : null;
 }

@@ -25,6 +25,7 @@ import {
 import { buildVia } from "../../src/lib/pkpGtfsMerge.js";
 import { inAgencyScope } from "../../src/pages/api/lib/primitives.mjs";
 import { splitViaString } from "../../src/lib/viaSplit.mjs";
+import { sameTrainAsRow } from "../../src/lib/sameTrain.mjs";
 
 // "2026-06-11T18:13:00.000Z" → "18:13" (BoT rows carry plain HH:MM strings).
 /**
@@ -69,6 +70,15 @@ function trainsByNumber({ entry, viewMap, trains, stopCoords, log }) {
   const opts = entry.enrich;
   const isKnownStation = stopCoords ? (n) => !!stopCoords(n) : null;
   let touched = 0;
+  // `requireSameTrain`: a number names this row's train only when the train
+  // also ends in one of the row's end cities (src/lib/sameTrain.mjs). Without
+  // it nightjet.com's Budapest–Stuttgart EN 442 drew its line onto
+  // Back-on-Track's Humenné–Praha EN 442.
+  const trainFor = (route, name) => {
+    const match = name ? trains[name.toString().trim()] : null;
+    if (!match) return null;
+    return !opts.requireSameTrain || sameTrainAsRow(route, match) ? match : null;
+  };
 
   Object.values(viewMap).forEach((route) => {
     if (!inAgencyScope(route, opts.agencyIds)) return;
@@ -78,7 +88,7 @@ function trainsByNumber({ entry, viewMap, trains, stopCoords, log }) {
     if (opts.setPolyline && (opts.polylineMode ?? "legacy") === "legacy") {
       const names = [route.trip_short_name_0, route.trip_short_name_1].filter(Boolean);
       for (const name of names) {
-        const match = trains[name.toString().trim()];
+        const match = trainFor(route, name);
         if (match?.polyline) {
           route.nj_polyline = match.polyline;
           break;
@@ -89,8 +99,7 @@ function trainsByNumber({ entry, viewMap, trains, stopCoords, log }) {
     let matchedAny = false;
     let tookAnyFeedTrip = false;
     for (const d of [0, 1]) {
-      const name = route[`trip_short_name_${d}`];
-      const match = name ? trains[name.toString().trim()] : null;
+      const match = trainFor(route, route[`trip_short_name_${d}`]);
       if (!match) continue;
       matchedAny = true;
 

@@ -1,3 +1,5 @@
+import { localToday, rowNextDeparture } from "../../../lib/nextDeparture.mjs";
+
 /**
  * Route styling and route-matching helpers for map polylines.
  * Line weight says whether a route is real yet; the dash array says how often it
@@ -683,6 +685,34 @@ export function shouldHideRouteDueToFutureDate(routeId, trips, route = undefined
   return false;
 }
 
+/**
+ * The routes of a station selection that actually draw a line.
+ *
+ * Clicking a station selects every route calling there, closed seasons
+ * included — the click gathers routes by name, not by date. useRoutePaths
+ * skips a closed route when it draws, so its stops must not stay on the map
+ * either: they were kept as long as any OTHER route, selected or not, still
+ * called there. Clicking Wien Hbf put Split, Knin, Maribor, Celje and Tychy on
+ * the map with no line through them (ÖBB's EN 1272 Split–Wien, whose summer
+ * ended on 26 September, and PKP's EN 1276 Rijeka–Warszawa), and clicking Graz
+ * drew nineteen line-less dots from Ostrava to Warszawa. Markers and lines now
+ * answer "which selected routes are on the map" from this one predicate.
+ *
+ * @param {Array<string|number>} routeIds selected route ids (stopRouteIds)
+ * @param {Record<string, object>} trips
+ * @param {Record<string, object>} viewMap
+ * @returns {Set<string>}
+ */
+export function selectedRoutesWithLines(routeIds, trips, viewMap) {
+  const live = new Set();
+  for (const id of routeIds ?? []) {
+    const key = String(id).trim();
+    if (!key) continue;
+    if (!isRouteOutsideServiceIdSeason(key, trips, viewMap?.[key])) live.add(key);
+  }
+  return live;
+}
+
 // Start of a validity window on a viewMap row. Two shapes reach this field:
 // the operator feeds write ISO ("2026-12-14 – 2027-03-17: Mon, Wed, Fri", en
 // dash or hyphen), Back-on-Track writes slashes ("2026/09/09-12/11: Daily").
@@ -791,8 +821,15 @@ export function routeHasNotStartedYet(route, now = new Date()) {
  */
 export function upcomingPreviewRouteIds(viewMap, now = new Date()) {
   const ids = new Set();
+  const today = localToday(now);
   for (const route of Object.values(viewMap ?? {})) {
     if (route?.route_id == null) continue;
+    // A train on sale whose next run is weeks off (nightjet.com's seasonal
+    // EuroNights, next_departure_{dir}): its stops are next season's.
+    if (rowNextDeparture(route, today)) {
+      ids.add(String(route.route_id));
+      continue;
+    }
     if (route.draw_as_active !== true) continue;
     if (routeHasNotStartedYet(route, now)) ids.add(String(route.route_id));
   }
@@ -809,7 +846,17 @@ export function upcomingPreviewRouteIds(viewMap, now = new Date()) {
  * @param {Object} trips - Trips data
  * @returns {string|null} "YYYY-MM-DD" or null
  */
-export function getFutureRouteStartDate(routeId, trips) {
+export function getFutureRouteStartDate(routeId, trips, route = undefined) {
+  return (
+    futureStartFromTrips(routeId, trips) ??
+    // A synthetic row has no trips. One the operator dates only by its next
+    // run (nightjet.com: EN 1276/1277 Rijeka–Warszawa, next run 25 June 2027)
+    // carries that run on the row; see src/lib/nextDeparture.mjs.
+    (route ? rowNextDeparture(route) : null)
+  );
+}
+
+function futureStartFromTrips(routeId, trips) {
   if (!trips || !routeId) return null;
 
   const routeTrips = Object.values(trips).filter(

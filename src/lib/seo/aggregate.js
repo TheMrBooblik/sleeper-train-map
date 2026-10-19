@@ -310,6 +310,9 @@ export function getAllCityPairs() {
       cityB: p.cityB,
       routeCount: p.routes.length,
       lastChanged: lastChangedOf(p.routes),
+      // Every operator on the corridor, which is what the snippet rollout
+      // gates on (src/lib/seo/snippet.mjs) — the sitemap reads it.
+      operatorIds: [...new Set(p.routes.flatMap((r) => r.operatorIds || []))],
     }))
     .sort((a, b) => a.slug.localeCompare(b.slug));
 }

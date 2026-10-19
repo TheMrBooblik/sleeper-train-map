@@ -20,6 +20,7 @@ import {
   hopDates,
   isPlanDate,
   parsePlanPath,
+  planPartsFromPath,
   splitCorridor,
 } from "../src/lib/plan/url.mjs";
 import { availabilityFor, isOfferable, weekdayOf } from "../src/lib/plan/availability.mjs";
@@ -37,9 +38,11 @@ import {
   departuresFrom,
   findJourneys,
   isInterchange,
+  nextServedNight,
   resolvePlan,
   ridesBetween,
 } from "../src/lib/plan/search.mjs";
+import { rideBookingLink } from "../src/lib/plan/booking.mjs";
 import { hydratePlanIndex, packPlanIndex } from "../src/lib/plan/index-codec.mjs";
 import { formatPlanDate } from "../src/lib/plan/format.mjs";
 import {
@@ -68,6 +71,7 @@ import { buildPlanIndex, readPublished } from "../scripts/build-plan-index.mjs";
 import { stripDisabledRoutes } from "../src/pages/api/lib/build-initial-data.mjs";
 import DISABLED_ROUTES from "../data/overrides/disabled-routes.json" with { type: "json" };
 import OPERATOR_PRICING from "../data/overrides/operator-pricing.json" with { type: "json" };
+import REGISTRY from "../data/sources/registry.json" with { type: "json" };
 import { resolvePricing } from "../src/lib/pricingResolve.mjs";
 
 let passed = 0;
@@ -98,6 +102,47 @@ check("a plan round-trips through its URL", () => {
   assert.equal(buildPlanPath({ cities: [] }), "/plan");
   // A date with no cities is not a plan, so it does not reach the path.
   assert.equal(buildPlanPath({ cities: [], date: "2026-09-18" }), "/plan");
+});
+
+check("a plan reads back off the browser URL the rewrite serves it under", () => {
+  // /plan/* is one static page; the plan comes off asPath, never a route param.
+  for (const plan of [
+    { cities: [], date: null, stays: [] },
+    { cities: ["amsterdam"], date: "2026-09-18", stays: [] },
+    { cities: ["amsterdam", "berlin", "prague", "vienna"], date: "2026-09-18", stays: [2, 1] },
+  ]) {
+    const { slug, stay } = planPartsFromPath(`${buildPlanHref(plan)}#results`);
+    const back = parsePlanPath(slug);
+    assert.deepEqual(back.cities, plan.cities, JSON.stringify(plan));
+    assert.equal(back.date, plan.date, JSON.stringify(plan));
+    assert.deepEqual(decodeStays(stay), plan.stays, JSON.stringify(plan));
+  }
+  assert.deepEqual(planPartsFromPath("/plan/"), { slug: [], stay: null });
+  // Only the /plan prefix is stripped — "/planet/x" is not a plan.
+  assert.deepEqual(planPartsFromPath("/planet/x").slug, []);
+});
+
+check("NO page is an ISR route", () => {
+  // Vercel Hobby pauses the project when ISR Writes pass 200 000 a month, and
+  // a revalidating or fallback page over an unbounded URL space (the planner
+  // was one) writes a cache entry per distinct URL a crawler invents. Every
+  // page here is built once per deploy; data freshness comes from the nightly
+  // deploy, not from revalidation.
+  const offenders = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name !== "api") walk(full);
+      } else if (/\.(js|jsx|ts|tsx|mjs)$/.test(entry.name)) {
+        const src = fs.readFileSync(full, "utf8");
+        if (/^\s*revalidate\s*:/m.test(src)) offenders.push(`${full}: revalidate`);
+        if (/fallback\s*:\s*(true|["']blocking["'])/.test(src)) offenders.push(`${full}: fallback`);
+      }
+    }
+  };
+  walk(path.join(ROOT, "src/pages"));
+  assert.deepEqual(offenders, []);
 });
 
 check("NO city slug contains the corridor separator", () => {
@@ -391,7 +436,18 @@ check("a destination the train terminates at outranks one it passes through", ()
   // Amsterdam is the sharper case: ES 453 runs Brussels → Prague, so from
   // Amsterdam the ride is not the whole route but Prague is still where the
   // train ends — and it must not be filed with the villages it passes at 3am.
-  const ams = departuresFrom(planner, { from: "amsterdam", date: "2026-09-18" }).destinations;
+  // Asked on a night it runs: the feed dates its window from the next run, so
+  // a fixed date drifts out of it (an undated duplicate of the train, built
+  // from nightjet.com's listing, used to answer for every date instead).
+  const reaches = (date) => {
+    const slugs = departuresFrom(planner, { from: "amsterdam", date }).destinations.map((d) => d.city.slug);
+    return slugs.includes("prague") && slugs.includes("decin");
+  };
+  const amsDate = Array.from({ length: 180 }, (_, i) =>
+    new Date(Date.UTC(2026, 8, 18 + i)).toISOString().slice(0, 10),
+  ).find(reaches);
+  assert.ok(amsDate, "ES 453 should reach Prague and Děčín from Amsterdam on some night");
+  const ams = departuresFrom(planner, { from: "amsterdam", date: amsDate }).destinations;
   const prague = ams.findIndex((d) => d.city.slug === "prague");
   const decin = ams.findIndex((d) => d.city.slug === "decin");
   assert.ok(prague !== -1 && decin !== -1, "both Prague and Děčín should be reachable");
@@ -494,11 +550,18 @@ check("the planner and the UI resolve a price the same way", () => {
 
   const advised = planner.legs.filter((l) => l.pricing?.type).length;
   assert.ok(advised > 400, `only ${advised} legs carry pricing advice`);
-  // Nothing may invent a figure: every from-price must come from the table.
+  // Nothing may invent a figure: every from-price comes from the table, or
+  // from an official source's own nightly fare (stampOfficialFares, which
+  // writes the registry id as `source`) — the second written after this check
+  // was, which is why it once read "the table" alone.
+  const official = new Set(
+    (Array.isArray(REGISTRY) ? REGISTRY : REGISTRY.sources ?? []).filter((src) => src.official).map((src) => src.id),
+  );
   for (const leg of planner.legs) {
     if (leg.pricing?.fromPrice == null) continue;
     assert.ok(
-      Object.values(table).some((p) => p.fromPrice === leg.pricing.fromPrice),
+      official.has(leg.pricing.source) ||
+        Object.values(table).some((p) => p.fromPrice === leg.pricing.fromPrice),
       `leg ${leg.id} has a from-price no operator declares`,
     );
   }
@@ -521,6 +584,74 @@ check("a ride carries every field the card renders", () => {
   assert.ok(priced, "some leg must carry pricing");
   const ridesWithPricing = destinations.filter((d) => d.best.pricing?.type).length;
   assert.ok(ridesWithPricing > 0, "pricing must survive the leg → ride copy");
+});
+
+check("a planner ride books the stations and the night it is about", () => {
+  // Someone who knows where they are going came to buy a ticket. The Book
+  // button must open the SELLER's shop (agency_id, which the connection page's
+  // CTA resolves from — operatorIds reads bot_agency_id first), with the
+  // stations the traveller boards and leaves at, on the plan's own night.
+  const date = "2026-12-04";
+  const rideOn = (agencyId) => {
+    for (const leg of planner.legs.filter((l) => l.agencyId === agencyId)) {
+      const from = leg.stops[0].citySlug;
+      const to = leg.stops[leg.stops.length - 1].citySlug;
+      const ride = ridesBetween(planner, { from, to, date }).rides.find((r) => r.legId === leg.id);
+      if (ride) return ride;
+    }
+    return null;
+  };
+
+  // Trenitalia's link takes an optional night (urlDateSuffix, dd-MM-yyyy).
+  const fs = rideOn("FS");
+  assert.ok(fs, "no Intercity Notte ride to book");
+  assert.equal(fs.agencyId, "FS", "the seller must survive the leg → ride copy");
+  const fsLink = rideBookingLink(fs);
+  assert.ok(fsLink?.href.includes("departureDate=04-12-2026"), `undated: ${fsLink?.href}`);
+  assert.ok(fsLink.href.includes(encodeURIComponent(fs.from.station)), "boarding station missing");
+
+  // A corridor the operator sells on its own page keeps that page — the same
+  // top tier as the connection page's CTA (routePages, operatorAgencies.mjs).
+  const es = rideOn("ES");
+  assert.ok(es, "no European Sleeper ride to book");
+  assert.ok(rideBookingLink(es)?.href, "a European Sleeper ride must have a Book link");
+
+  assert.equal(rideBookingLink({ ...fs, agencyId: "", operatorIds: [] }), null);
+  assert.equal(rideBookingLink(null), null);
+});
+
+check("a hop with no train that night points at the next one", () => {
+  // Most sleepers run two or three times a week, so "not this night" is the
+  // planner's commonest dead end for someone who knows where they are going.
+  let found = 0;
+  for (const leg of planner.legs) {
+    if (!leg.days || leg.days.length === 0 || leg.days.length >= 7 || leg.cadence) continue;
+    const from = leg.stops[0].citySlug;
+    const to = leg.stops[leg.stops.length - 1].citySlug;
+    // A night it does not run, inside its validity.
+    let date = "2026-11-02";
+    for (let i = 0; i < 7; i++) {
+      const { rides } = ridesBetween(planner, { from, to, date });
+      if (rides.length && !rides.some((r) => isOfferable(r.availability.status))) break;
+      date = addDays(date, 1);
+    }
+    const { rides } = ridesBetween(planner, { from, to, date });
+    if (!rides.length || rides.some((r) => isOfferable(r.availability.status))) continue;
+    const next = nextServedNight(planner, { from, to, date });
+    assert.ok(next, `${from} → ${to}: no next night after ${date}`);
+    assert.ok(next.date > date && next.nightsLater >= 1);
+    assert.equal(addDays(date, next.nightsLater), next.date);
+    const after = ridesBetween(planner, { from, to, date: next.date }).rides;
+    assert.ok(after.some((r) => isOfferable(r.availability.status)), "the next night must be served");
+    // And it is the FIRST such night, not merely a later one.
+    for (let n = 1; n < next.nightsLater; n++) {
+      const between = ridesBetween(planner, { from, to, date: addDays(date, n) }).rides;
+      assert.ok(!between.some((r) => isOfferable(r.availability.status)), "skipped a served night");
+    }
+    if (++found >= 10) break;
+  }
+  assert.ok(found >= 5, `only ${found} part-week legs to test against`);
+  assert.equal(nextServedNight(planner, { from: "", to: "vienna", date: "2026-11-02" }), null);
 });
 
 check("every terminus city knows its country", () => {

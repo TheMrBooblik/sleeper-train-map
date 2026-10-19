@@ -33,15 +33,15 @@ const TONES = {
     link: "underline underline-offset-2 hover:text-white/70",
   },
   light: {
-    wrap: "rounded-md bg-amber-50 border border-amber-200",
-    title: "text-xs font-semibold text-gray-900",
-    summary: "mt-1 text-xs leading-relaxed text-gray-700",
-    highlight: "text-xs text-gray-800",
-    heading: "text-xs font-semibold text-gray-900",
-    point: "text-xs leading-relaxed text-gray-600",
+    wrap: "rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60",
+    title: "text-xs font-semibold text-gray-900 dark:text-zinc-100",
+    summary: "mt-1 text-xs leading-relaxed text-gray-700 dark:text-zinc-300",
+    highlight: "text-xs text-gray-800 dark:text-zinc-200",
+    heading: "text-xs font-semibold text-gray-900 dark:text-zinc-100",
+    point: "text-xs leading-relaxed text-gray-600 dark:text-zinc-400",
     bullet: "bg-amber-500",
-    sources: "text-[11px] text-gray-400",
-    link: "underline underline-offset-2 hover:text-gray-700",
+    sources: "text-[11px] text-gray-400 dark:text-zinc-500",
+    link: "underline underline-offset-2 hover:text-gray-700 dark:hover:text-zinc-300",
   },
 };
 
@@ -110,14 +110,14 @@ export default function BookingGuide({ guide, tone = "dark", compact = false, cl
       <details className={`group ${t.wrap} ${className}`}>
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 [&::-webkit-details-marker]:hidden">
           <span className={t.title}>Before you book: how tickets work on this train</span>
-          <span aria-hidden className="text-gray-400 transition-transform group-open:rotate-45">
+          <span aria-hidden className="text-gray-400 dark:text-zinc-500 transition-transform group-open:rotate-45">
             +
           </span>
         </summary>
         <div className="px-2.5 pb-2.5">
           <Bullets items={guide.highlights} textClass={t.highlight} bulletClass={t.bullet} />
           <details className="mt-2">
-            <summary className={`cursor-pointer text-xs font-medium text-gray-700 ${t.link}`}>
+            <summary className={`cursor-pointer text-xs font-medium text-gray-700 dark:text-zinc-300 ${t.link}`}>
               The full guide
             </summary>
             <Sections sections={guide.sections} t={t} />

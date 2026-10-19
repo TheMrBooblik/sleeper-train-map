@@ -18,12 +18,13 @@ import { parseBotServiceString, renderCalendar } from "../../pages/api/lib/calen
 // Reuse the exact "not yet running" detection the map hover uses, so a route is
 // flagged "future" here in the same way (irregularities "From …", postponed
 // notes, or an upcoming service_id season).
+import { upcomingRun } from "../nextDeparture.mjs";
 import { getFutureRouteStartDate } from "../../components/Map/utils/routeStyleUtils";
 import { getRouteFrequencyOverride } from "../routeFrequencyOverrides";
 import { buildPairSlug } from "./slugify.mjs";
 import { routeEndpoints, buildRouteSlugMaps } from "./routeSlugs.mjs";
-import { cityForStation } from "./cities.mjs";
-import { getStationTimesForTrain } from "./stationTimes.mjs";
+import { cardNameForStation, cityForStation } from "./cities.mjs";
+import { getStationTimesForTrain, getTimetableVariantsForTrain } from "./stationTimes.mjs";
 import {
   deriveTitle,
   formatAnyTime,
@@ -35,10 +36,18 @@ import {
   formatFutureFrom,
 } from "./format";
 import { getOperatorPricing, formatFromPrice, formatCheckedAt } from "../operatorPricing";
-import { directionFare, directionFareSummary, isDynamicPricing } from "../fareClasses.mjs";
+import {
+  directionFare,
+  directionFareSummary,
+  isDynamicPricing,
+  pricingForDirection,
+} from "../fareClasses.mjs";
 import { eurHintFor, formatEurApprox } from "../fx.mjs";
 import { fareCalendarDays } from "../fareCalendarView.mjs";
-import { buildDatedBookingLink } from "../operatorBooking.js";
+import { clockKey, journeyTimesTheEnds, nightClock } from "../nightTimes.mjs";
+import { punctualitySummary } from "../punctuality.mjs";
+import { buildDatedBookingLink, buildDealsLandingUrl } from "../operatorBooking.js";
+import { lastMinuteProgramme } from "../lastMinuteDeals.mjs";
 import {
   formatTrainNumber,
   resolveScheduleLink,
@@ -302,6 +311,11 @@ function countryCodesForRoute(route, allStopNames, operatorIds) {
   return [...codes];
 }
 
+/** A title that is just "Origin – Destination" takes the card names instead. */
+function cardTitle(title, origin, destination, endpointTitle) {
+  return origin && destination && title === `${origin} – ${destination}` ? endpointTitle : title;
+}
+
 /** Build the lightweight summary for one viewMap route. */
 function buildSummary(route) {
   const routeId = String(route.route_id);
@@ -353,14 +367,18 @@ function buildSummary(route) {
   // the operator's proper train NAME (e.g. "Bessarabia", "Le Train Bleu")
   // separately so cards can show it in small type. A long_name that is itself a
   // "City – City" description (contains a spaced dash) is not a real name.
+  const cardOrigin = cardNameForStation(origin);
+  const cardDestination = cardNameForStation(destination);
   const endpointTitle =
-    origin && destination ? `${origin} – ${destination}` : origin || destination || "Night train";
+    origin && destination
+      ? `${cardOrigin} – ${cardDestination}`
+      : cardOrigin || cardDestination || "Night train";
   const longName = (route.route_long_name || "").trim();
   const routeName =
     longName && !/\s[–-]\s/.test(longName) && longName !== endpointTitle ? longName : "";
 
   // Future ("not yet running") flag — reuses the map's detector verbatim.
-  const futureStartDate = getFutureRouteStartDate(routeId, getPublished().trips);
+  const futureStartDate = getFutureRouteStartDate(routeId, getPublished().trips, route);
 
   // The connection page this route lives on. Computed here rather than via
   // aggregate.js (which imports this module) so route cards can link to
@@ -375,7 +393,9 @@ function buildSummary(route) {
     routeId,
     slug,
     pairSlug,
-    title: deriveTitle(route, origin, destination),
+    // A synthetic row's long name is its two station names; a card says the
+    // city where the station is not known by it (station-card-names.json).
+    title: cardTitle(deriveTitle(route, origin, destination), origin, destination, endpointTitle),
     endpointTitle,
     routeName,
     origin,
@@ -472,23 +492,69 @@ function withCheckedLabel(fare, currency = null) {
  * are left out; the page is rebuilt nightly with the data, and the calendar
  * greys out anything the visitor's own clock says has passed.
  */
-function fareCalendarFor(route, dir, { origin, destination, today }) {
+function fareCalendarFor(route, dir, { origin, destination, today, variants = null }) {
   const calendar = route[`fare_calendar_${dir}`];
   if (!calendar) return null;
-  const link = buildDatedBookingLink({ agencyId: route.agency_id || "", origin, dest: destination });
+  // `journey` is the train and ends the calendar priced (Nightjet's carry it),
+  // each night its own clocks: an operator that books one connection (ÖBB)
+  // opens exactly that train on that night.
+  const link = buildDatedBookingLink({
+    agencyId: route.agency_id || "",
+    origin,
+    dest: destination,
+    journey: calendar.journey ?? null,
+    nightTimes: (iso) => calendar.nights?.[iso] ?? null,
+  });
+  const programme = lastMinuteProgramme(route.agency_id);
   const view = fareCalendarDays(calendar, {
     today,
     dynamic: isDynamicPricing(route.pricing),
     bookingDate: link ? link.dateFor : () => null,
+    bookingTimes: link ? link.timesFor : () => null,
+    compartmentSize: programme?.compartmentSize ?? 5,
+    // Each night's own clock retimes the stop list, but only where it was
+    // read at the train's own ends (src/lib/nightTimes.mjs).
+    timed: journeyTimesTheEnds(calendar.journey, origin, destination),
   });
   if (!view) return null;
-  return { ...view, bookingTemplate: link?.template ?? null };
+  // A night whose clock the scrape read a timetable for points at it by
+  // index (`tt`), so the page carries each timetable once, not per night.
+  const timetables = [];
+  if (variants) {
+    const index = new Map();
+    for (const day of view.days) {
+      if (!day.dep) continue;
+      const key = clockKey(nightClock(day.date, calendar.nights?.[day.date]));
+      const stops = key ? variants[key] : null;
+      if (!stops) continue;
+      if (!index.has(key)) {
+        index.set(key, timetables.length);
+        timetables.push(stops.map(({ name, arrival, departure }) => ({ name, arrival, departure })));
+      }
+      day.tt = index.get(key);
+    }
+  }
+  // A last-minute deal is sold from the operator's promo page, not through
+  // the ordinary search, so each deal night carries its own link there.
+  for (const day of view.days) {
+    if (day.deal) day.deal.href = buildDealsLandingUrl(route.agency_id, day.deal.landing);
+  }
+  return {
+    ...view,
+    bookingTemplate: link?.template ?? null,
+    lastMinute: view.deals && programme ? programme : null,
+    ...(timetables.length ? { timetables } : {}),
+  };
 }
 
 export function getRouteDetail(routeId) {
   const { viewMap } = getPublished();
   const route = Object.values(viewMap).find((r) => String(r.route_id) === String(routeId));
   if (!route) return null;
+  // On sale but not running at build time: a seasonal train out of season
+  // (src/lib/nextDeparture.mjs). The page leads with it, and so does its
+  // snippet. Null for a running train.
+  const upcoming = upcomingRun(route, new Date().toISOString().slice(0, 10));
 
   const summary = buildSummary(route);
   const trips = getTripsByRoute().get(String(routeId)) || [];
@@ -564,6 +630,8 @@ export function getRouteDetail(routeId) {
       trainNumber,
       origin,
       destination,
+      // "Fri 25 Jun 2027" — this train's next run, when it is not running now.
+      nextDepartureText: upcoming?.departures.find((d) => d.dir === dir)?.dateText ?? "",
       departureTime: vmDeparture || stops[0]?.departure || "",
       arrivalTime: vmArrival || stops[stops.length - 1]?.arrival || "",
       via,
@@ -576,11 +644,17 @@ export function getRouteDetail(routeId) {
       // This train's own official fare, per berth class — the facts tile above
       // shows the cheaper of the two directions, this is the one you'd pay.
       fare: withCheckedLabel(directionFareSummary(route, dir), directionFare(route, dir)?.currency),
+      // How often this train arrived on time, where the operator publishes it
+      // for this train alone (SNCF: punctuality_{dir}, src/lib/punctuality.mjs).
+      // The raw record too, for the FAQ answer.
+      punctuality: punctualitySummary(route[`punctuality_${dir}`]),
+      punctualityRecord: route[`punctuality_${dir}`] ?? null,
       // …and every night's, where the source keeps a calendar.
       fareCalendar: fareCalendarFor(route, dir, {
         origin,
         destination,
         today: new Date().toISOString().slice(0, 10),
+        variants: raw ? getTimetableVariantsForTrain(trainNumber, { origin, destination }) : null,
       }),
     });
   }
@@ -618,7 +692,7 @@ export function getRouteDetail(routeId) {
 
   // Booking CTA: the same tiered resolution the map's detail panel runs, but
   // at build time against the committed agencies snapshot, so the static HTML
-  // carries the link. Enriched with the curated "from" price for display.
+  // carries the link. Enriched with the "from" price of the train it opens.
   const agencies = getAgencies();
   const resolvedBooking = resolveRouteBooking({
     agencyId: route.agency_id || "",
@@ -629,9 +703,43 @@ export function getRouteDetail(routeId) {
     routeId: String(routeId),
     scheduleStops: primary.stops || [],
   });
+  // The caption's price is the fare of the train the button opens, or none.
+  // The row's `pricing` is the cheaper of its two directions: on the payload
+  // of 10 October 2026, 12 of the 113 rows priced per train (7 Nightjet,
+  // 3 Intercity Notte, 2 China Railway) quoted the return train's figure
+  // beside a button that preselects the outbound. A row priced per route
+  // (prices.json, an operator default) quotes the route's figure as before.
+  // `primary` is the first direction with a train number (the loop above
+  // skips the others), so that is the direction to price. A button that
+  // opens no train in particular — an operator's homepage, European Sleeper's
+  // corridor page (`preselects: false`) — quotes the route, as the facts
+  // tile beside it does.
+  const primaryDir = [0, 1].find((d) => (route[`trip_short_name_${d}`] || "").trim()) ?? 0;
+  const trainPricing = pricingForDirection(route, primaryDir, summary.pricing);
+  const ctaPricing = resolvedBooking?.preselects ? trainPricing : summary.pricing;
   const booking = resolvedBooking
-    ? { ...resolvedBooking, fromPrice: summary.fromPrice || null, fromPriceEur: summary.fromPriceEur || "" }
+    ? {
+        ...resolvedBooking,
+        fromPrice: formatFromPrice(ctaPricing) || null,
+        fromPriceEur: eurHintFor(ctaPricing) || "",
+      }
     : null;
+  // A fare calendar's undated Book link (a night its operator's link cannot
+  // name) searches that direction's own ends: the route's CTA above is built
+  // from direction 0, which sent every return calendar to the reverse trip.
+  for (const dir of directions) {
+    if (!dir.fareCalendar) continue;
+    const own = resolveRouteBooking({
+      agencyId: route.agency_id || "",
+      agencies,
+      agencyUrl: agencies[route.agency_id]?.agency_url ?? null,
+      origin: dir.origin,
+      dest: dir.destination,
+      routeId: String(routeId),
+      scheduleStops: dir.stops || [],
+    });
+    dir.fareCalendar.bookingHref = own?.href ?? null;
+  }
 
   return {
     routeId: String(routeId),
@@ -647,11 +755,16 @@ export function getRouteDetail(routeId) {
     operators: summary.operators,
     railways: summary.railways,
     pricing: route.pricing || null,
+    // The fare of the train this detail is named after (primaryTrainNumber,
+    // origin → destination): the page's TrainTrip structured data. Read at
+    // build time only; not passed to the page.
+    trainPricing,
     booking,
     countryCodes: summary.countries,
     countries: summary.countries.map(getSeoCountry).filter(Boolean),
     directions,
     facts,
+    upcoming,
     map: {
       polyline0: route.nj_polyline_0 || null,
       polyline1: route.nj_polyline_1 || null,

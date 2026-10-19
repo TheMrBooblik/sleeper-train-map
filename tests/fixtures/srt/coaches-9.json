@@ -1,0 +1,169 @@
+{
+ "errorSource": null,
+ "errorCode": "S_SUCCESS",
+ "errorMessage": null,
+ "errorParams": null,
+ "data": {
+  "fareAmt": null,
+  "trainFeeAmt": null,
+  "results": [
+   {
+    "coachId": "147",
+    "coachNo": "62",
+    "coachDesc": "บนอ.ป.24.CN : รถโบกี้นั่งและนอน ชั้น 1 ปรับอากาศ - ผู้โดยสารทั่วไป",
+    "coachTypeId": "2",
+    "coachClass": "1",
+    "coachClassDescTh": "ชั้น 1",
+    "coachClassDescEn": "1st Class",
+    "coachSeatType": "1",
+    "coachSeatTypeTh": "นอน",
+    "coachSeatTypeEn": "Sleeping Coach",
+    "coachAirType": "1",
+    "coachAirTypeTh": "ปรับอากาศ",
+    "coachAirTypeEn": "Air Coach",
+    "coachLayoutId": "2",
+    "seatQty": "24",
+    "cabinQty": "2",
+    "coachFeeAmt": 210,
+    "coachSeats": [
+     {
+      "seatType": "11",
+      "seatTypNameTh": "เหมาห้อง",
+      "seatTypNameEn": "Charter room",
+      "seatFeeAmt": 2446
+     },
+     {
+      "seatType": "5",
+      "seatTypNameTh": "เตียงล่าง",
+      "seatTypNameEn": "Lower Berth",
+      "seatFeeAmt": 1646
+     },
+     {
+      "seatType": "4",
+      "seatTypNameTh": "เตียงบน",
+      "seatTypNameEn": "Upper Berth",
+      "seatFeeAmt": 1446
+     }
+    ],
+    "coachImage": "",
+    "fareAmt": 586,
+    "trainFeeAmt": 250,
+    "availableSeatCount": 0
+   },
+   {
+    "coachId": "148",
+    "coachNo": "63",
+    "coachDesc": "บนท.ป.40.CN : รถโบกี้นั่งและนอน ชั้น 2 ปรับอากาศ - ผู้โดยสารทั่วไป",
+    "coachTypeId": "6",
+    "coachClass": "2",
+    "coachClassDescTh": "ชั้น 2",
+    "coachClassDescEn": "2nd Class",
+    "coachSeatType": "1",
+    "coachSeatTypeTh": "นอน",
+    "coachSeatTypeEn": "Sleeping Coach",
+    "coachAirType": "1",
+    "coachAirTypeTh": "ปรับอากาศ",
+    "coachAirTypeEn": "Air Coach",
+    "coachLayoutId": "6",
+    "seatQty": "40",
+    "cabinQty": "0",
+    "coachFeeAmt": 210,
+    "coachSeats": [
+     {
+      "seatType": "5",
+      "seatTypNameTh": "เตียงล่าง",
+      "seatTypNameEn": "Lower Berth",
+      "seatFeeAmt": 1038
+     },
+     {
+      "seatType": "4",
+      "seatTypNameTh": "เตียงบน",
+      "seatTypNameEn": "Upper Berth",
+      "seatFeeAmt": 938
+     }
+    ],
+    "coachImage": "",
+    "fareAmt": 278,
+    "trainFeeAmt": 250,
+    "availableSeatCount": 0
+   },
+   {
+    "coachId": "149",
+    "coachNo": "64",
+    "coachDesc": "บนท.ป.36.CN : รถโบกี้นั่งและนอน ชั้น 2 ปรับอากาศ - ผู้พิการ",
+    "coachTypeId": "7",
+    "coachClass": "2",
+    "coachClassDescTh": "ชั้น 2",
+    "coachClassDescEn": "2nd Class",
+    "coachSeatType": "1",
+    "coachSeatTypeTh": "นอน",
+    "coachSeatTypeEn": "Sleeping Coach",
+    "coachAirType": "1",
+    "coachAirTypeTh": "ปรับอากาศ",
+    "coachAirTypeEn": "Air Coach",
+    "coachLayoutId": "8",
+    "seatQty": "36",
+    "cabinQty": "0",
+    "coachFeeAmt": 210,
+    "coachSeats": [
+     {
+      "seatType": "5",
+      "seatTypNameTh": "เตียงล่าง",
+      "seatTypNameEn": "Lower Berth",
+      "seatFeeAmt": 1038
+     },
+     {
+      "seatType": "4",
+      "seatTypNameTh": "เตียงบน",
+      "seatTypNameEn": "Upper Berth",
+      "seatFeeAmt": 938
+     }
+    ],
+    "coachImage": "",
+    "fareAmt": 278,
+    "trainFeeAmt": 250,
+    "availableSeatCount": 0
+   },
+   {
+    "coachId": "150",
+    "coachNo": "65",
+    "coachDesc": "บนท.ป.40.CN : รถโบกี้นั่งและนอน ชั้น 2 ปรับอากาศ - สตรีและเด็ก",
+    "coachTypeId": "6",
+    "coachClass": "2",
+    "coachClassDescTh": "ชั้น 2",
+    "coachClassDescEn": "2nd Class",
+    "coachSeatType": "1",
+    "coachSeatTypeTh": "นอน",
+    "coachSeatTypeEn": "Sleeping Coach",
+    "coachAirType": "1",
+    "coachAirTypeTh": "ปรับอากาศ",
+    "coachAirTypeEn": "Air Coach",
+    "coachLayoutId": "6",
+    "seatQty": "40",
+    "cabinQty": "0",
+    "coachFeeAmt": 210,
+    "coachSeats": [
+     {
+      "seatType": "5",
+      "seatTypNameTh": "เตียงล่าง",
+      "seatTypNameEn": "Lower Berth",
+      "seatFeeAmt": 1038
+     },
+     {
+      "seatType": "4",
+      "seatTypNameTh": "เตียงบน",
+      "seatTypNameEn": "Upper Berth",
+      "seatFeeAmt": 938
+     }
+    ],
+    "coachImage": "",
+    "fareAmt": 278,
+    "trainFeeAmt": 250,
+    "availableSeatCount": 0
+   }
+  ],
+  "waitingListEnabled": true
+ },
+ "viewStateHolder": "wYhOf3AFB3BvqMNszGd45NZgDjU2eKxfLdn0bTYA8zBS8_COZxU4e83xiBJ5scSGaQSWqZq6Ke6q8S61b9VFn8pjORIQxEBTF8ve5dGDTb3u7ECxKR3y-mWK__qW2BUQHJjs2nRD8_UkwM4QFslQff8wlKiAzjhqF2XgFKc024O_3nUkxI91hHTafF23EfCuSNp8u62OH-r_iyo_d5_auAU8FkwILPLquHWtHxHChJhv0KGwW0juN7ZsCpgPIRm4zI0r477S8i2HxpIssXl4Qyg7J0QOroMHO3NzWoCK803C6PTIPSPisngQ7vmcHU0qLUNVvEKLedo_HXuHWu8afxMkOAVSBX0K815w",
+ "result": true
+}

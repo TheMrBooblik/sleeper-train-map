@@ -14,6 +14,8 @@ import {
   routeIdsFromFilteredTrips,
   keepViewMapRowForTripActivity,
 } from "./primitives.mjs";
+import { sameTrainAsRow } from "../../../lib/sameTrain.mjs";
+import { upcomingDepartureForTrain } from "../../../lib/nextDeparture.mjs";
 
 // Source registry: declares per-source synthetic-route config (id prefix,
 // agency, aliasing, dedup strategy). Bundled via ESM JSON import so the
@@ -296,6 +298,42 @@ function railwaysOf(data, revData) {
 // with decoded polylines, pairing each direction with its reverse where found.
 // Shared by NJ, Chinese, Italian and Caucasus sources; per-source differences
 // are passed as options.
+/**
+ * Reverse-direction partners for synthetic trains, period-aware: lineName ->
+ * the lineName of its return. Same-period pairs first (both running now, or
+ * both on sale for a later run), then whatever is left pairs across periods,
+ * each pass in feed order so the result is stable between builds.
+ */
+function pairByPeriod(trainList, resolveName, nextDeparture) {
+  const ends = new Map(
+    trainList.map(([k, v]) => [
+      k,
+      {
+        from: resolveName(v.stations?.[0]?.name),
+        to: resolveName(v.stations?.[v.stations.length - 1]?.name),
+        later: Boolean(upcomingDepartureForTrain(v, { timeZone: nextDeparture.timeZone })),
+      },
+    ]),
+  );
+  const partnerOf = new Map();
+  for (const samePeriodOnly of [true, false]) {
+    for (const [k] of trainList) {
+      if (partnerOf.has(k)) continue;
+      const a = ends.get(k);
+      const match = trainList.find(([j]) => {
+        if (j === k || partnerOf.has(j)) return false;
+        const b = ends.get(j);
+        return b.from === a.to && b.to === a.from && (!samePeriodOnly || b.later === a.later);
+      });
+      if (match) {
+        partnerOf.set(k, match[0]);
+        partnerOf.set(match[0], k);
+      }
+    }
+  }
+  return partnerOf;
+}
+
 function appendSyntheticRoutes(
   viewMap,
   trainList,
@@ -306,32 +344,74 @@ function appendSyntheticRoutes(
     withService = false,
     botAgencyByTrain = {},
     sourceId = null,
+    nextDeparture = null,
+    seasonByTrain = {},
   },
 ) {
+  // A train the source dates only by its next run, when that run is weeks off
+  // (synthetic.nextDeparture, nightjet.com): `next_departure_{dir}` plus the
+  // season the replaced Back-on-Track row last ran. Stamped only when the run
+  // is more than UPCOMING_AFTER_DAYS out, so a running train's row does not
+  // change every night. src/lib/nextDeparture.mjs reads both.
+  const stampNextRun = (row, dir, lineName, train) => {
+    if (!nextDeparture) return;
+    const date = upcomingDepartureForTrain(train, { timeZone: nextDeparture.timeZone });
+    if (!date) return;
+    row[`next_departure_${dir}`] = date;
+    if (seasonByTrain[lineName]) row[`previous_service_${dir}`] = seasonByTrain[lineName];
+  };
   const paired = new Set();
+  // Which train is whose return. A corridor can carry this timetable's train
+  // and next period's under other numbers, and pairing each train with the
+  // first reverse train in feed order joins the wrong ones: nightjet.com lists
+  // NJ 448 Wien→Brussels (running now) and NJ 449 Brussels→Wien (from
+  // February), and that order put them on one row — NJ 449's answer carries
+  // no polyline, so the map drew next February's Frankfurt routing as
+  // straight lines over the train that runs tonight. Where the source dates
+  // its trains by their next run (synthetic.nextDeparture), trains are paired
+  // within their own period first and across periods only from what is left,
+  // so a February train cannot take the partner of one running tonight
+  // (NJ 429 had taken NJ 420 from NJ 421). Without it, the old greedy order.
+  const partnerOf = nextDeparture ? pairByPeriod(trainList, resolveName, nextDeparture) : null;
   trainList.forEach(([lineName, data]) => {
     if (paired.has(lineName)) return;
     const origin = resolveName(data.stations[0].name);
     const dest = resolveName(data.stations[data.stations.length - 1].name);
-    const reversePair = trainList.find(
-      ([k, v]) =>
-        k !== lineName &&
-        !paired.has(k) &&
-        resolveName(v.stations?.[0]?.name) === dest &&
-        resolveName(v.stations?.[v.stations.length - 1]?.name) === origin,
-    );
+    const reversePair = partnerOf
+      ? partnerOf.has(lineName)
+        ? trainList.find(([k]) => k === partnerOf.get(lineName) && !paired.has(k))
+        : undefined
+      : trainList.find(
+          ([k, v]) =>
+            k !== lineName &&
+            !paired.has(k) &&
+            resolveName(v.stations?.[0]?.name) === dest &&
+            resolveName(v.stations?.[v.stations.length - 1]?.name) === origin,
+        );
     const safeId = lineName.replace(/\s+/g, "_");
     const railways = railwaysOf(data, reversePair?.[1]);
+    // Who runs the row: a train that states its own carrier (agency_id, from a
+    // source with synthetic.agency.from "data") decides it, from either
+    // direction — nightjet.com names a partner EuroNight's carrier per train.
+    const stated = [data, reversePair?.[1]].find((t) => t?.agency_id) ?? data;
+    const rowAgency = agency(stated);
     // BoT's operator attribution for the row this synthetic route replaced
-    // (either direction) — e.g. "PKP/ČD" for a partner EuroNight the nightjet
-    // source styles as ÖBB. Consumed by the operator display in the panel.
-    const botAgency =
-      botAgencyByTrain[lineName] ||
-      (reversePair ? botAgencyByTrain[reversePair[0]] : null) ||
-      null;
+    // (either direction) — e.g. "PKP/ČD" for a partner EuroNight. Consumed by
+    // the operator display in the panel, which reads it before agency_id. Left
+    // off when the source itself named the carrier: the joint id would then
+    // contradict the carrier the source named, on the very surfaces that
+    // read it first.
+    const carrierStated = [data, reversePair?.[1]].some(
+      (t) => t?.agencyFrom && t.agencyFrom !== "home",
+    );
+    const botAgency = carrierStated
+      ? null
+      : botAgencyByTrain[lineName] ||
+        (reversePair ? botAgencyByTrain[reversePair[0]] : null) ||
+        null;
     const entry = {
       route_id: `${idPrefix}${safeId}`,
-      agency_id: agency(data),
+      agency_id: rowAgency,
       ...(botAgency ? { bot_agency_id: botAgency } : {}),
       trip_short_name_0: lineName,
       origin_trip_0: origin,
@@ -356,6 +436,7 @@ function appendSyntheticRoutes(
       // JR Central, JR West and JR Shikoku run it over their own lines).
       ...(railways ? { railways } : {}),
     };
+    stampNextRun(entry, 0, lineName, data);
     if (reversePair) {
       const [revName, revData] = reversePair;
       entry.trip_short_name_1 = revName;
@@ -370,6 +451,7 @@ function appendSyntheticRoutes(
         .join(" - ");
       if (withService) entry.service_id_1 = revData.frequency || null;
       entry.nj_polyline_1 = revData.polyline || null;
+      stampNextRun(entry, 1, revName, revData);
       paired.add(revName);
     }
     paired.add(lineName);
@@ -388,7 +470,7 @@ function appendSyntheticRoutes(
       const fDest = resolveName(future.stations[future.stations.length - 1].name);
       const futureEntry = {
         route_id: `${entry.route_id}_from_${future.activeFrom.replace(/-/g, "")}`,
-        agency_id: agency(data),
+        agency_id: rowAgency,
         ...(botAgency ? { bot_agency_id: botAgency } : {}),
         trip_short_name_0: lineName,
         origin_trip_0: fOrigin,
@@ -446,22 +528,35 @@ function withPolylineAndStations([, data]) {
 // EuroNight trains are operated by e.g. PKP/ČD, not by the ÖBB default the
 // synthetic source carries for styling).
 
-// "exact": BoT trip_short_name matches the official train key verbatim (NJ/EN).
-function dropBotRowsExact(filteredViewMap, trains) {
-  const apiTrainNumbers = new Set(Object.keys(trains));
+// "exact": BoT trip_short_name matches the official train key verbatim (NJ/EN)
+// AND the train ends in one of the row's end cities (sameTrainAsRow). The
+// number alone is not enough: nightjet.com's EN 442 runs Budapest–Stuttgart
+// while Back-on-Track's is ČD's Humenné–Praha, and deleting that row lost a
+// train nobody else carries. A row the official train is not is kept, and
+// its number then counts as Back-on-Track's (excludeBotMatched), so the two
+// trains never share one number on the map.
+// `seasonByTrain`, when given, collects each dropped direction's own service
+// string: a seasonal train the official source only knows by its next run
+// (nightjet.com's EN 1276/1277, next run June 2027) keeps the season it last
+// ran as `previous_service_{dir}` on the synthetic row (see nextDeparture.mjs).
+function dropBotRowsExact(filteredViewMap, trains, seasonByTrain = null) {
   const botAgencyByTrain = {};
   Object.keys(filteredViewMap).forEach((key) => {
     const route = filteredViewMap[key];
-    const t0 = (route?.trip_short_name_0 || "").trim();
-    const t1 = (route?.trip_short_name_1 || "").trim();
-    if (apiTrainNumbers.has(t0) || apiTrainNumbers.has(t1)) {
-      const botAgency = (route?.agency_id || "").trim();
-      if (botAgency) {
-        if (apiTrainNumbers.has(t0)) botAgencyByTrain[t0] = botAgency;
-        if (apiTrainNumbers.has(t1)) botAgencyByTrain[t1] = botAgency;
+    const names = [route?.trip_short_name_0, route?.trip_short_name_1]
+      .map((n) => (n || "").trim())
+      .filter((n) => n && trains[n] && sameTrainAsRow(route, trains[n]));
+    if (!names.length) return;
+    const botAgency = (route?.agency_id || "").trim();
+    if (botAgency) for (const n of names) botAgencyByTrain[n] = botAgency;
+    if (seasonByTrain) {
+      for (const dir of [0, 1]) {
+        const name = (route?.[`trip_short_name_${dir}`] || "").trim();
+        const service = (route?.[`service_id_${dir}`] || "").trim();
+        if (name && service && names.includes(name)) seasonByTrain[name] = service;
       }
-      delete filteredViewMap[key];
     }
+    delete filteredViewMap[key];
   });
   return botAgencyByTrain;
 }
@@ -494,7 +589,8 @@ function dropBotRowsIcn(filteredViewMap, trains, idPrefix) {
 }
 
 const DEDUP_STRATEGIES = {
-  exact: (viewMap, trains) => dropBotRowsExact(viewMap, trains),
+  exact: (viewMap, trains, _synthetic, seasonByTrain) =>
+    dropBotRowsExact(viewMap, trains, seasonByTrain),
   icn: (viewMap, trains, synthetic) =>
     dropBotRowsIcn(viewMap, trains, synthetic.idPrefix),
 };
@@ -571,8 +667,9 @@ export function buildInitialData({
     }
 
     const dedup = DEDUP_STRATEGIES[synthetic.dedupStrategy];
+    const seasonByTrain = {};
     const botAgencyByTrain = dedup
-      ? dedup(filteredViewMap, trains, synthetic) || {}
+      ? dedup(filteredViewMap, trains, synthetic, seasonByTrain) || {}
       : {};
 
     // Source attribution for the classifier's trusted-station auto-approval.
@@ -619,6 +716,8 @@ export function buildInitialData({
       withService: !!synthetic.withService,
       botAgencyByTrain,
       sourceId: entry.id,
+      nextDeparture: synthetic.nextDeparture ?? null,
+      seasonByTrain,
     });
   }
 
@@ -681,6 +780,7 @@ export function buildInitialData({
 
   stampTimetableSources(filteredViewMap, registry);
   stampOfficialFares(filteredViewMap, filteredTrips, operatorTrains, registry);
+  stampPunctuality(filteredViewMap, operatorTrains, registry);
   stampEndpointCountries(filteredViewMap, stops);
   stampScheduleOriginCodes(filteredViewMap, operatorTrains, registry);
 
@@ -756,6 +856,16 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
         currency: fare.currency,
         seatClass: fare.seatClass ?? null,
         ...(fare.classes && typeof fare.classes === "object" ? { classes: fare.classes } : {}),
+        // Each class's own cheapest night (scripts/lib/fare-calendar.mjs
+        // cheapestNight), and where the cheapest last-minute deal is sold.
+        ...(fare.classDates && typeof fare.classDates === "object" ? { classDates: fare.classDates } : {}),
+        ...(fare.dealLanding ? { dealLanding: fare.dealLanding } : {}),
+        // A published tariff's range (SNCF's tarifs-intercites): each class's
+        // maximum beside its minimum in `classes`, and what kind of figure it
+        // is, so the pages can print "€39–€75" and say whose range it is.
+        ...(fare.classMax && typeof fare.classMax === "object" ? { classMax: fare.classMax } : {}),
+        ...(fare.basis ? { basis: fare.basis } : {}),
+        ...(fare.tariffModified ? { tariffModified: fare.tariffModified } : {}),
         source: row.timetable_source,
         checkedAt: fare.sampledAt ?? null,
         // The night the figure was quoted for. A yield-managed fare
@@ -770,7 +880,24 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
         row[`fare_calendar_${dir}`] = calendar;
       }
     }
-    if (!fares.length) continue;
+    if (!fares.length) {
+      // `fare: null` on every train the row names is the source saying it
+      // does not price them: nightjet.com sells partner EuroNights but its
+      // figures are not the carrier's (scripts/lib/nj-fares.mjs
+      // njPricesTrain). The row then gets an empty pricing record, so
+      // resolvePricing stops at it instead of reaching the carrier's
+      // operator-pricing default — PKP's says "Domestic tariff", which a
+      // München–Przemyśl EuroNight is not.
+      const names = [row.trip_short_name_0, row.trip_short_name_1].filter(Boolean);
+      if (names.length && names.every((n) => trains[n] && trains[n].fare === null)) {
+        const pricing = { type: null, currency: null, fromPrice: null, source: row.timetable_source };
+        row.pricing = pricing;
+        for (const [tripKey, trip] of Object.entries(trips ?? {})) {
+          if (String(trip.route_id) === String(key)) trips[tripKey] = { ...trip, pricing };
+        }
+      }
+      continue;
+    }
     // Never compare across currencies; the first direction's currency decides.
     const sameCurrency = fares.filter((f) => f.currency === fares[0].currency);
     const cheapest = sameCurrency.reduce((a, b) => (b.fromPrice < a.fromPrice ? b : a));
@@ -786,12 +913,40 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
       // a tile quoting it beside a timetable of both must say which one.
       ...(cheapest.trainName ? { trainName: cheapest.trainName } : {}),
       ...(cheapest.seatClass ? { seatClass: cheapest.seatClass } : {}),
+      ...(cheapest.basis ? { basis: cheapest.basis } : {}),
     };
     row.pricing = pricing;
     for (const [tripKey, trip] of Object.entries(trips ?? {})) {
       if (String(trip.route_id) === String(key)) trips[tripKey] = { ...trip, pricing };
     }
     stamped++;
+  }
+  return stamped;
+}
+
+/**
+ * Copy each direction's punctuality from the official trains file that times
+ * the row (`timetable_source`) onto `punctuality_{dir}`. Today only SNCF
+ * writes it (scripts/lib/sncf-open-data.mjs), from SNCF's monthly AQST
+ * regularity figures, and only for a train whose origin–destination no
+ * daytime Intercités shares. Keyed by the row's own train label like the fare,
+ * so a bare number another operator shares cannot lend its figure across.
+ * Read by the connection pages only — the map payload drops it
+ * (stripPageOnlyFields).
+ */
+export function stampPunctuality(viewMap, operatorTrains, registry) {
+  const official = new Set((registry ?? []).filter((e) => e?.enabled && e.official).map((e) => e.id));
+  let stamped = 0;
+  for (const row of Object.values(viewMap ?? {})) {
+    if (!official.has(row.timetable_source)) continue;
+    const trains = operatorTrains?.[row.timetable_source];
+    if (!trains) continue;
+    for (const dir of [0, 1]) {
+      const value = trains[row[`trip_short_name_${dir}`]]?.punctuality;
+      if (!value || !Number.isFinite(value.onTimeRate)) continue;
+      row[`punctuality_${dir}`] = value;
+      stamped++;
+    }
   }
   return stamped;
 }

@@ -94,6 +94,36 @@ export function parsePlanPath(slug, knownSlugs) {
 }
 
 /**
+ * Read a plan URL as the browser holds it — "/plan/a-to-b/2026-09-18?stay=1".
+ *
+ * Every /plan/* URL is served the one static /plan page through a rewrite (see
+ * next.config.js), so Next hands the page no `slug` param: the plan is read
+ * off the path itself, after mount.
+ *
+ * @param {string} asPath
+ * @returns {{slug: string[], stay: string|null}}
+ */
+export function planPartsFromPath(asPath) {
+  const raw = String(asPath || "");
+  const [beforeHash] = raw.split("#");
+  const queryAt = beforeHash.indexOf("?");
+  const pathname = queryAt === -1 ? beforeHash : beforeHash.slice(0, queryAt);
+  const search = queryAt === -1 ? "" : beforeHash.slice(queryAt + 1);
+  const rest = pathname.replace(/^\/plan(?=\/|$)/, "");
+  const slug = rest === pathname ? [] : rest.split("/").filter(Boolean).map(safeDecode);
+  const stay = new URLSearchParams(search).get("stay");
+  return { slug, stay };
+}
+
+function safeDecode(segment) {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
+/**
  * Write a plan back to a path. The inverse of parsePlanPath for every plan the
  * planner can produce.
  *

@@ -60,6 +60,11 @@ export const CITY_COUNTRY_OVERRIDES = {
   "fort-william": "GB",
   helsinki: "FI",
   inverness: "GB",
+  // nightjet.com writes these two ends its own way ("Kuty" for Slovakia's
+  // Kúty, EN 477; "Jesenice(SL)", EN 415), so Back-on-Track's table cannot
+  // place them either.
+  jesenice: "SI",
+  kuty: "SK",
   "latour-de-carol": "FR",
   "reggio-calabria": "IT",
   turku: "FI",

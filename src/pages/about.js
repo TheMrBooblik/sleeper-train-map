@@ -4,6 +4,7 @@ import { FaTrain, FaMapMarkerAlt, FaMoon, FaArrowRight } from "react-icons/fa";
 import { COUNTRIES, getFlagEmoji } from "../lib/countries";
 import { slugify } from "../lib/seo/slugify.mjs";
 import { OG_IMAGE, SITE_URL, absoluteUrl } from "../lib/seo/site";
+import PriceDisclaimer from "../components/PriceDisclaimer";
 
 const FeatureCard = ({ icon: Icon, title, description }) => (
   <div className="flex flex-col items-start gap-4 p-6 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
@@ -34,7 +35,7 @@ const CountryCard = ({ code, name, hubCountryCodes = [] }) => (
   </Link>
 );
 
-const ASIA_COUNTRY_CODES = new Set(["CN", "JP"]);
+const ASIA_COUNTRY_CODES = new Set(["CN", "JP", "TH"]);
 // One count for the page body, the meta tags and the structured data: the
 // grid below renders every entry of COUNTRIES, and a hardcoded "24+" in the
 // head fell behind it as soon as Asia and North America were added.
@@ -336,6 +337,7 @@ export default function AboutPage({ hubCountryCodes = [] }) {
               </Link>
             </nav>
           </div>
+          <PriceDisclaimer className="max-w-6xl mx-auto mt-6 text-center sm:text-left" />
         </footer>
       </div>
 

@@ -31,6 +31,9 @@ import { getDealsLink } from "./operatorBooking.js";
  * @param {string} [args.dest] - arrival station name (deep-link preselection)
  * @param {string} [args.routeId] - route id, used for NA per-route landing pages
  * @param {{name:string, code?:string|null}[]} [args.scheduleStops] - stops with GTFS codes (NA deep links)
+ * @param {string} [args.isoDate] - "YYYY-MM-DD", the night to open on, for an
+ *   operator whose deep link takes a date (the planner knows the night; the
+ *   connection page does not, and leaves it out)
  * @returns {{ href: string|null, preselects: boolean, sellerName: string|null,
  *             dealsUrl: string|null, dealsLabel: string|null } | null}
  */
@@ -42,6 +45,7 @@ export function resolveRouteBooking({
   dest,
   routeId,
   scheduleStops,
+  isoDate,
 }) {
   let href = null;
   let deepLink = null;
@@ -67,6 +71,7 @@ export function resolveRouteBooking({
       origin,
       dest,
       routeId,
+      isoDate,
     });
     href = resolved.href;
     deepLink = resolved.deepLink;

@@ -137,6 +137,30 @@
           "lastChecked": null,
           "probeWorkflow": null,
           "notes": "Same content as the GTFS export in the European standard format. Only worth it if the GTFS export turns out to be missing something — the one known gap is shapes.txt, so check whether NeTEx carries track geometry before reaching for OSM."
+        },
+        {
+          "name": "SNCF Open Data — Tarifs Intercités",
+          "url": "https://ressources.data.sncf.com/api/explore/v2.1/catalog/datasets/tarifs-intercites/exports/json",
+          "docsUrl": "https://ressources.data.sncf.com/explore/dataset/tarifs-intercites/",
+          "format": "JSON",
+          "provides": ["fares"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": "2026-10-04",
+          "probeWorkflow": "probe-sncf-open-data.yml",
+          "notes": "Standard-fare (tarif plein) range, minimum and maximum, per origin–destination and class for day and night Intercités, ODbL, revised with each tariff change (current one from 2 January 2026). Read nightly by the sncf entry's params.openData (scripts/lib/sncf-open-data.mjs) — couchette classes only, since day trains share some pairs. Written blind (the host is unreachable from a dev sandbox); confirm the class labels with the probe."
+        },
+        {
+          "name": "SNCF Open Data — Régularité mensuelle Intercités",
+          "url": "https://ressources.data.sncf.com/api/explore/v2.1/catalog/datasets/regularite-mensuelle-intercites/exports/json",
+          "docsUrl": "https://ressources.data.sncf.com/explore/dataset/regularite-mensuelle-intercites/",
+          "format": "JSON",
+          "provides": ["punctuality"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": "2026-10-04",
+          "probeWorkflow": "probe-sncf-open-data.yml",
+          "notes": "AQST monthly counts per selected origin–destination: trains scheduled, run, cancelled and late at the terminus. Per pair, not per train, so it is attributed to a night train only where no daytime Intercités runs the same pair (dayServedStationPairs in gtfs.mjs). Whether the AQST selection includes the night pairs at all is what the probe answers."
         }
       ]
     },
@@ -784,6 +808,39 @@
           "lastChecked": null,
           "probeWorkflow": "probe-12306.yml",
           "notes": "Registry id `chinese`. leftTicket + queryByTrainNo; sticky merge keeps yesterday's trains on a total outage."
+        }
+      ]
+    },
+    "SRT": {
+      "website": "https://www.railway.co.th",
+      "countries": ["TH"],
+      "integrationStatus": "in-progress",
+      "difficulty": "medium",
+      "notes": "Registry id `srt`. Stops, positions and track from the Ministry of Transport's national GTFS (Namtang); times and per-berth fares from SRT's own booking site D-Ticket, one search per corridor in data/sources/srt-sleepers.json. railway.co.th itself and the ttsview train-tracking site are not usable from GitHub's runners (connect timeout; a Cloudflare Turnstile challenge), and D-Ticket answers some runner addresses and times out on others — the adapter retries once and otherwise rebuilds from last night's file.",
+      "sources": [
+        {
+          "name": "Namtang national GTFS (Office of Transport and Traffic Policy and Planning)",
+          "url": "https://namtang-api.otp.go.th/download/namtang-gtfs.zip",
+          "docsUrl": "https://mobilitydatabase.org/feeds/gtfs/mdb-1831",
+          "format": "GTFS (daily; mirrored as Mobility Database mdb-1831)",
+          "provides": ["stops", "geometry"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": "2026-10-18",
+          "probeWorkflow": "probe-srt.yml",
+          "notes": "Full stop lists and shapes for most long-distance SRT trains, but their stop times are placeholders (00:01, 00:02 …) and are never read; only the Bangkok-area stubs carry real times. Its fare tables cover the Bangkok commuter lines only."
+        },
+        {
+          "name": "D-Ticket (SRT online booking): getTrip + getTrainCoach",
+          "url": "https://dticket.railway.co.th/DTicketPublicWeb/home/Home",
+          "docsUrl": null,
+          "format": "JSON behind the booking search (POST, form-encoded, session cookie)",
+          "provides": ["times", "fares"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": "2026-10-18",
+          "probeWorkflow": "probe-srt.yml",
+          "notes": "home/Home/getStation (station ids) → booking/booking (sets the search) → booking/booking/getTrip (trains, departure/arrival) → booking/booking/getTrainCoach (coaches, fare per berth). All before login; the site's reCAPTCHA guards login, auto-seat and summary only."
         }
       ]
     },

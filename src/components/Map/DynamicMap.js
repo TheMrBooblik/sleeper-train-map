@@ -50,6 +50,9 @@ import { useMapMarkers } from "./hooks/useMapMarkers";
 import LoadingOverlay from "./components/LoadingOverlay";
 import MapClickHandler from "./components/MapClickHandler";
 import MapViewportTracker from "./components/MapViewportTracker";
+import MarkerTooltipGuard from "./components/MarkerTooltipGuard";
+import { liftForDarkMap } from "../../lib/mapTheme.mjs";
+import { upcomingRun } from "../../lib/nextDeparture.mjs";
 
 /** Format "YYYY-MM-DD" → "15 January 2026" for the future-route popup. */
 function formatFutureDate(dateStr) {
@@ -134,6 +137,7 @@ const TrainMap = ({
   showRoutes = true,
   hideIntermediateStations = false,
   showRailwayOverlay = false,
+  isDarkMap = false,
   searchTarget,
   onSearchProcessed,
   onStationSelect,
@@ -856,6 +860,12 @@ const TrainMap = ({
           // tiles, did not.
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           maxZoom={19}
+          // The dark theme is these same tiles under a CSS filter keyed on
+          // this class (globals.css). Static on purpose: Leaflet reads
+          // `className` once, so the theme switches via <html data-theme>
+          // rather than by re-creating the layer. The OpenRailwayMap overlay
+          // has no class, so its colour-coded track types stay unfiltered.
+          className="basemap-tiles"
           {...tileLoadingOptions}
         />
         {showRailwayOverlay && (
@@ -871,6 +881,7 @@ const TrainMap = ({
           onClearFilter={handleFilterClose}
         />
         <MapViewportTracker onViewportChange={handleViewportChange} />
+        <MarkerTooltipGuard />
         <MapFlyController
           target={flyToTarget}
           onDone={() => setFlyToTarget(null)}
@@ -967,9 +978,13 @@ const TrainMap = ({
                       const label = trainNumber
                         ? `${trainNumber}: ${segment}`
                         : `Route: ${segment}`;
-                      return path.isFuture
-                        ? `${label} · from ${formatFutureDate(path.futureStartDate)}`
-                        : label;
+                      if (!path.isFuture) return label;
+                      // A seasonal train says so: "Summer only, next season
+                      // from 25 Jun 2027" rather than a bare date.
+                      const run = upcomingRun(route);
+                      return run?.seasonal
+                        ? `${label} · ${run.badge}, next season from ${run.nextDepartureText}`
+                        : `${label} · from ${formatFutureDate(path.futureStartDate)}`;
                     })()}
                   </Tooltip>
                 </Polyline>
@@ -979,6 +994,11 @@ const TrainMap = ({
                   positions={path.positions}
                   pathOptions={{
                     ...path.pathOptions,
+                    // Navy and midnight-blue brands vanish on the dark
+                    // basemap; lifted to a visible lightness, same hue.
+                    color: isDarkMap
+                      ? liftForDarkMap(path.pathOptions.color)
+                      : path.pathOptions.color,
                     cursor: "pointer",
                     opacity: resolvedOpacity,
                     weight: resolvedWeight,
@@ -1007,6 +1027,7 @@ const TrainMap = ({
           trips={trips}
           cities={cities}
           stationCoords={stationCoordsByName}
+          isDarkMap={isDarkMap}
         />
       </div>
 
@@ -1017,6 +1038,7 @@ const TrainMap = ({
         viewMapData={viewMapData}
         selectedStation={selectedStationName}
         firstDirectionByRoute={firstDirectionByRoute}
+        isDarkMap={isDarkMap}
         selectedRouteIds={
           selectedTrainRouteIds?.filter(
             (id) => !shouldHideRouteDueToFutureDate(id, trips, viewMapData?.[id]),

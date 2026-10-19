@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { FiExternalLink } from "react-icons/fi";
 
 import AvailabilityBadge from "./AvailabilityBadge";
+import { isOfferable } from "../../lib/plan/availability.mjs";
+import { rideBookingLink } from "../../lib/plan/booking.mjs";
 import { getOperatorMeta } from "../../lib/seo/operators";
 import { formatDurationMinutes } from "../../lib/seo/format";
 import { formatFromPrice, pricingAdvice } from "../../lib/operatorPricing";
@@ -49,10 +52,14 @@ function operatorLabel(operatorIds = []) {
  * Back-on-Track times only the two endpoints and 292 of the 541 legs have no
  * operator feed to fill the stops between.
  */
-export default function RideCard({ ride, action = null, compact = false }) {
+export default function RideCard({ ride, action = null, compact = false, bookable = false }) {
   const { from, to, departure, arrival, durationMinutes, availability } = ride;
   const offset = dayOffsetLabel(departure, arrival);
   const operator = operatorLabel(ride.operatorIds);
+  // Only on a night the train could run: a Book button beside "Not this night"
+  // sends the traveller to buy a ticket for a train that is not there.
+  const booking =
+    bookable && isOfferable(availability?.status) ? rideBookingLink(ride) : null;
 
   return (
     <article
@@ -139,12 +146,32 @@ export default function RideCard({ ride, action = null, compact = false }) {
               href={`/connections/${ride.pairSlug}`}
               className="text-white/50 underline-offset-4 transition-colors hover:text-white hover:underline"
             >
-              Timetable &amp; booking
+              {booking ? "Timetable & fares" : "Timetable & booking"}
             </Link>
           )}
           {action}
+          {/* Outbound booking links may carry referral tags — the same rel as
+              the connection page's BookingCta. */}
+          {booking && (
+            <a
+              href={booking.href}
+              target="_blank"
+              rel="sponsored nofollow noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary-green px-4 py-1.5 text-sm font-semibold text-black transition-colors hover:bg-primary-green-light"
+            >
+              Book
+              <FiExternalLink className="h-3.5 w-3.5" aria-hidden />
+            </a>
+          )}
         </div>
       </div>
+      {booking && (
+        <p className="mt-2 text-right text-xs text-white/35">
+          {booking.preselects
+            ? "Opens with your stations filled in"
+            : `Opens ${booking.sellerName || "the operator"}'s booking page`}
+        </p>
+      )}
 
       {availability?.reason && availability.status !== "runs" && (
         <p className="mt-3 rounded-lg bg-white/[0.03] px-3 py-2 text-xs text-white/50">

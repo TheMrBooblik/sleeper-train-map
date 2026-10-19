@@ -150,6 +150,30 @@ test.describe('Planner Smoke Tests', () => {
     expect(first).toContain('Vienna');
   });
 
+  test('picking a destination shows the trip, not the same form again', async ({ page }) => {
+    // On a phone the form and the heading are the whole first screen. Picking
+    // "To" used to clear the field it was typed in (it only ever appended) and
+    // render the trip below the fold, so the tap looked like a reset. Now the
+    // form folds into a one-line summary and the trip is on screen.
+    await page.setViewportSize({ width: 390, height: 664 });
+    await page.goto('/plan/amsterdam/2026-10-23');
+    const to = page.getByRole('combobox', { name: 'To (optional)' });
+    await expect(to).toBeEnabled({ timeout: 20000 });
+    await to.click();
+    await to.fill('Vienna');
+    await page.getByRole('option', { name: /Vienna/ }).first().click();
+
+    await expect(page).toHaveURL(/\/plan\/amsterdam-to-vienna\//);
+    const results = page.locator('#plan-results');
+    await expect(results).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'Change' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Add another city after Vienna/ })).toBeVisible();
+
+    // Reopened, the form shows the destination that was picked.
+    await page.getByRole('button', { name: 'Change' }).click();
+    await expect(page.getByRole('combobox', { name: 'To', exact: true })).toHaveValue('Vienna');
+  });
+
   test('a shared plan URL resolves on a cold load', async ({ page }) => {
     await page.goto('/plan/amsterdam-to-vienna/2026-09-18');
     await expect(page.getByRole('heading', { level: 1 })).toContainText(

@@ -38,6 +38,9 @@ export function stationHitSize() {
     : HIT_TOUCH;
 }
 
+// The ring around every dot reads `--station-ring` (white unless the dark map
+// theme sets it, globals.css): a white ring is what separates a dot from the
+// light basemap and the lines through it, and on the dark one it glares.
 function stationDotHtml({ hit, size, gradient, border, shadow, zIndex, opacity }) {
   const offset = (hit - size) / 2;
   const fade = opacity == null ? "" : `opacity:${opacity};`;
@@ -60,7 +63,7 @@ export function createMapIcons(Leaflet) {
       hit: HIT,
       size: 20,
       gradient: "linear-gradient(135deg, #2196F3, #1976D2)",
-      border: "3px solid white",
+      border: "3px solid var(--station-ring, white)",
       shadow:
         "0 3px 8px rgba(33, 150, 243, 0.4), 0 0 0 1px rgba(33, 150, 243, 0.2)",
       zIndex: 1000,
@@ -75,7 +78,7 @@ export function createMapIcons(Leaflet) {
       hit: HIT,
       size: 20,
       gradient: "linear-gradient(135deg, #FF5722, #E64A19)",
-      border: "3px solid white",
+      border: "3px solid var(--station-ring, white)",
       shadow:
         "0 3px 8px rgba(255, 87, 34, 0.5), 0 0 0 1px rgba(255, 87, 34, 0.3)",
       zIndex: 2000,
@@ -91,7 +94,7 @@ export function createMapIcons(Leaflet) {
       hit: HIT,
       size: 16,
       gradient: "linear-gradient(135deg, #4CAF50, #388E3C)",
-      border: "2px solid white",
+      border: "2px solid var(--station-ring, white)",
       shadow:
         "0 2px 6px rgba(76, 175, 80, 0.35), 0 0 0 1px rgba(76, 175, 80, 0.2)",
       zIndex: 100,
@@ -111,7 +114,7 @@ export function createMapIcons(Leaflet) {
       hit: HIT,
       size: 16,
       gradient: "linear-gradient(135deg, #4CAF50, #388E3C)",
-      border: "2px solid white",
+      border: "2px solid var(--station-ring, white)",
       shadow:
         "0 2px 6px rgba(76, 175, 80, 0.35), 0 0 0 1px rgba(76, 175, 80, 0.2)",
       zIndex: 90,

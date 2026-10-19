@@ -1,6 +1,8 @@
 {
   "ÖBB": {
     "urlTemplate": "https://shop.oebbtickets.at/en/ticket?stationOrigName={origin}&stationDestName={dest}&cref=pingwi",
+    "journeyUrlTemplate": "https://shop.oebbtickets.at/en/ticket?cref=pingwi&connectionDatetimeDeparture={departure}&connectionDatetimeArrival={arrival}&connectionOrigEva={originId}&connectionDestEva={destId}&stationOrigName={originName}&stationDestName={destName}",
+    "dateFormat": "yyyy-MM-dd",
     "dealsUrl": null,
     "dealsLabel": null,
     "stationNames": {
@@ -154,6 +156,9 @@
     "bookingPageUrl": "https://www.westjr.co.jp/global/en/ticket/route_search/",
     "scheduleUrl": "https://www.jr-odekake.net/railroad/train/sunriseseto_izumo/"
   },
+  "SRT": {
+    "bookingPageUrl": "https://dticket.railway.co.th/DTicketPublicWeb/home/Home"
+  },
   "GR": {
     "bookingPageUrl": "https://tre.ge/en",
     "scheduleUrl": "https://www.railway.ge/en/passenger-traffic/"
@@ -215,6 +220,9 @@
     "bookingPageUrl": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=view&u=",
     "dealsUrl": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=deals&u=%2Flast-minutes-berlin-prague",
     "dealsLabel": "Last-minute deals",
+    "dealsUrlTemplate": "https://deals.europeansleeper.eu/c?c=37347&m=12&a=505962&r=deals&u={path}",
+    "urlDateSuffix": "%26departureDate%3D{date}",
+    "dateFormat": "yyyy-MM-dd",
     "requireStationMapping": true,
     "stationNames": {
       "Amsterdam Centraal": "8400058",

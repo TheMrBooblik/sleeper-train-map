@@ -1,8 +1,14 @@
 // scripts/adapters/nightjet-offers.mjs
-// Weekly price probe: samples NightJet connections ~30 days out and reports
-// the cheapest advertised fare per route. The nightjet.com booking API is
-// undocumented and shifts shape — extraction is defensive (price-extract.mjs)
-// and every result lands in the review queue, never directly on the map.
+// Weekly price probe: samples NightJet trains ~30 days out and reports the
+// cheapest berth per route. Every result lands in the review queue, never
+// directly on the map — the nightly fare calendar (scripts/lib/nj-fares.mjs)
+// is what prices the rows, and this probe reads the same endpoint the same
+// way, so `npm run probe-prices:debug` (the `run-probes` label) shows exactly
+// what that calendar is built from.
+//
+// It used to call the booking flow's /connection/{from}/{to}/{date}, which now
+// sits behind a proof-of-work captcha and answered 400 on every run
+// (probe-health.json: four empty runs in a row, "NJ 1236: HTTP 400").
 //
 // Which routes get sampled is selectProbeTargets()'s call, not this file's: the
 // budget is small against an undocumented API, so it has to be spent on routes
@@ -10,8 +16,8 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fetchWithTimeout } from "../lib/scrape-helpers.mjs";
-import { extractMinPrice } from "../lib/price-extract.mjs";
+import { cheapestClass } from "../lib/fare-calendar.mjs";
+import { buildOffersUrl, fetchNjOffers, njPricesTrain, pricingEnds } from "../lib/nj-fares.mjs";
 import { selectProbeTargets, weeksSinceEpoch } from "../lib/probe-rotation.mjs";
 
 // Courtesy spacing between calls to an API that owes us nothing.
@@ -37,17 +43,23 @@ export function probeCandidates(entry, ctx) {
   const trains = njFile?.data?.trains ?? {};
   const seenRoutes = ctx.seenRoutes ?? new Set();
 
-  // Trains whose synthetic route key is live and whose endpoint stations carry
-  // numeric EVA ids (required by the connection API).
+  // Trains whose synthetic route key is live and whose ends carry the 7-digit
+  // station ids the price search takes (the same ends the calendar prices).
   return Object.entries(trains)
     .map(([lineName, train]) => {
       const routeKey = `nj_standalone_${lineName.replace(/\s+/g, "_")}`;
-      const stations = train.stations ?? [];
-      const from = stations[0]?.id;
-      const to = stations[stations.length - 1]?.id;
       if (!seenRoutes.has(routeKey)) return null;
-      if (!/^\d+$/.test(String(from ?? "")) || !/^\d+$/.test(String(to ?? ""))) return null;
-      return { routeKey, lineName, from: String(from), to: String(to) };
+      // A partner EuroNight is its carrier's to price, not nightjet.com's
+      // (njPricesTrain): a proposal would put nightjet.com's figure back on
+      // the row through prices.json.
+      if (!njPricesTrain(train)) return null;
+      const ends = pricingEnds(train);
+      if (!ends) return null;
+      // `priced`: the nightly calendar already prices this train, and its
+      // figure outranks a prices.json entry, so a proposal for it would
+      // change nothing once approved. Kept as a candidate for the debug
+      // script, which shows what the endpoint answers either way.
+      return { routeKey, lineName, from: ends.fromId, to: ends.toId, priced: Boolean(train.fare) };
     })
     .filter(Boolean);
 }
@@ -66,6 +78,14 @@ export async function probePrices(entry, ctx) {
     return { prices: [], attempted: 0, errors: [`${entry.output} unreadable: ${err.message}`] };
   }
 
+  // Only what the nightly fare calendar does not price: a proposal for a train
+  // it prices would be overwritten by stampOfficialFares the night it lands.
+  const calendarPriced = candidates.filter((c) => c.priced).length;
+  candidates = candidates.filter((c) => !c.priced);
+  if (calendarPriced) {
+    console.log(`[probe:nj] ${calendarPriced} route(s) left out: the nightly fare calendar prices them`);
+  }
+
   const targets = selectProbeTargets(candidates, ctx.prices ?? {}, {
     sampleSize: sampleRoutes,
     rotation: weeksSinceEpoch(),
@@ -79,32 +99,37 @@ export async function probePrices(entry, ctx) {
   const prices = [];
   for (const [i, c] of targets.entries()) {
     if (i > 0) await sleep(REQUEST_SPACING_MS);
-    const url = buildProbeUrl({ from: c.from, to: c.to, date });
+    const url = buildProbeUrl({ ...c, date });
     try {
-      const res = await fetchWithTimeout(url, { headers: { accept: "application/json" } });
-      if (!res.ok) {
-        errors.push(`${c.lineName}: HTTP ${res.status}`);
-        console.warn(`[probe:nj] ${c.lineName}: HTTP ${res.status}`);
+      const answer = await fetchNjOffers(
+        { trainName: c.lineName, fromId: c.from, toId: c.to, date },
+        { fetchImpl: ctx.fetch },
+      );
+      // The first journey on or after the sample date that sells a berth.
+      const night = answer.dates.find((d) => d >= date && cheapestClass(answer.nights[d].classes));
+      if (!night) {
+        errors.push(`${c.lineName}: no berth on sale in ${answer.rows} journey(s) from ${date}`);
+        console.warn(`[probe:nj] ${c.lineName}: no berth on sale in ${answer.rows} journey(s) from ${date}`);
         continue;
       }
-      const data = await res.json();
-      const fromPrice = extractMinPrice(data);
-      if (fromPrice == null) {
-        errors.push(`${c.lineName}: no price field found`);
-        console.warn(`[probe:nj] ${c.lineName}: no price field found`);
-        continue;
-      }
+      const [seatClass, fromPrice] = cheapestClass(answer.nights[night].classes);
       prices.push({
         routeKey: c.routeKey,
         fromPrice,
         currency: "EUR",
-        sampleDate: date,
+        sampleDate: night,
         evidenceUrl: url,
       });
-      console.log(`[probe:nj] ${c.lineName}: from €${fromPrice} (${date})`);
+      console.log(`[probe:nj] ${c.lineName}: ${seatClass} from €${fromPrice} (${night})`);
     } catch (err) {
       errors.push(`${c.lineName}: ${err.message}`);
       console.warn(`[probe:nj] ${c.lineName}: ${err.message}`);
+      // A refusal is final for the run (scripts/lib/http-block.mjs): the
+      // routes after this one are not asked.
+      if (err.blocked) {
+        console.warn(`[probe:nj] stopping after ${i + 1} of ${targets.length}: nightjet.com refused automated requests`);
+        break;
+      }
     }
   }
   return { prices, attempted: targets.length, errors };
@@ -114,8 +139,8 @@ export async function probePrices(entry, ctx) {
  * The URL the probe would call for one route, so the debug script can print and
  * fetch exactly what the nightly job does rather than a hand-built guess.
  */
-export function buildProbeUrl({ from, to, date }) {
-  return `https://www.nightjet.com/nj-booking-ocp/connection/${from}/${to}/${date}`;
+export function buildProbeUrl({ lineName, from, to, date }) {
+  return buildOffersUrl({ trainName: lineName, fromId: from, toId: to, date });
 }
 
 export { sampleDate };

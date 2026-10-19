@@ -18,7 +18,17 @@
  *     date: the plain CTA keeps opening the operator's own default, and a
  *     night picked on the fare calendar opens on that night.
  *   - dateOffsetDays: the default {date} when the caller names none (default 7).
+ *   - journeyUrlTemplate: a link to ONE train on one night, for a shop that
+ *     addresses a connection rather than a route and a date — ÖBB's ticket
+ *     shop takes the departure and arrival date-time and both ends' 7-digit
+ *     station ids, the exact link ÖBB's own timetable hands off with. It is
+ *     filled from the journey a fare calendar priced ({originId}, {destId},
+ *     {originName}, {destName}: the operator's own ids and names) and leaves
+ *     {departure} and {arrival} — that night's own local date-times,
+ *     "2026-12-07T18:01" — for the night picked (buildDatedBookingLink).
  *   - dealsUrl / dealsLabel: optional secondary "last-minute deals" link
+ *   - dealsUrlTemplate: a deals landing page by path ({path}), for the fare
+ *     calendar's per-night last-minute deals (buildDealsLandingUrl)
  *   - stationNames: map of our station name -> the booking site's expected name
  *
  * This mirrors operatorPricing.js: the JSON is bundled at build time (no API),
@@ -125,23 +135,66 @@ export function buildBookingUrl({ agencyId, origin, dest, date, isoDate }) {
 
 /**
  * A booking link that opens on a night of the caller's choosing, for the fare
- * calendar: { template, dateFor } where `template` is the deep link with a
- * literal "{date}" left in it and `dateFor(iso)` the night as that link wants
- * it — so a page carries one URL and a short date per night instead of a full
- * URL for each of six weeks. Tries each component of a compound agency id in
- * turn. null when no operator's link takes a date (the caller then links to
- * the route's ordinary booking page and says the night must be chosen there).
+ * calendar: { template, dateFor, timesFor } where `template` is the deep link
+ * with its per-night placeholders left in — "{date}", or for a journey link
+ * "{departure}" and "{arrival}" — and `dateFor(iso)` / `timesFor(iso)` give one
+ * night's values, so a page carries one URL and a short string per night
+ * instead of a full URL for each of six weeks.
+ *
+ * `journey` is the one the calendar priced (scripts/lib/nj-fares.mjs
+ * pricedJourney) and `nightTimes(iso)` that night's own { dep, arr } — an
+ * operator with a journeyUrlTemplate opens that train itself, and a night
+ * without its own clocks gets no dated link rather than another night's (one
+ * train number runs at different times across works and timetable periods).
+ * Tries each component of a compound agency id in turn. null when no
+ * operator's link takes a date (the caller then links to the route's ordinary
+ * booking page and says the night must be chosen there).
  */
-export function buildDatedBookingLink({ agencyId, origin, dest }) {
+export function buildDatedBookingLink({ agencyId, origin, dest, journey = null, nightTimes = null }) {
   for (const id of splitAgencyIds(agencyId)) {
     const booking = getOperatorBooking(id);
+    const byJourney = buildJourneyLink(booking, journey, nightTimes);
+    if (byJourney) return byJourney;
     const template = booking?.urlTemplate;
     if (!template || !(template.includes("{date}") || booking.urlDateSuffix)) continue;
     const url = buildBookingUrl({ agencyId: id, origin, dest, date: "{date}" });
     if (!url) continue;
-    return { template: url, dateFor: (iso) => isoBookingDate(booking, iso) };
+    return { template: url, dateFor: (iso) => isoBookingDate(booking, iso), timesFor: () => null };
   }
   return null;
+}
+
+const LOCAL_DATE_TIME = /^\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):[0-5]\d$/;
+const STATION_ID = /^\d{7}$/;
+
+/**
+ * The journey link for one priced train, or null when the operator has none or
+ * the journey is short of an id or a name — a link to the wrong train is worse
+ * than the plain route search the caller falls back to. `timesFor(iso)` answers
+ * only for a night whose own clocks are well formed and start on that night.
+ */
+function buildJourneyLink(booking, journey, nightTimes) {
+  const template = booking?.journeyUrlTemplate;
+  if (!template || !journey || typeof nightTimes !== "function") return null;
+  const { fromId, toId, from, to } = journey;
+  if (!STATION_ID.test(String(fromId ?? "")) || !STATION_ID.test(String(toId ?? ""))) return null;
+  if (!from || !to) return null;
+  return {
+    template: template
+      .replaceAll("{originId}", fromId)
+      .replaceAll("{destId}", toId)
+      .replaceAll("{originName}", encodeURIComponent(from))
+      .replaceAll("{destName}", encodeURIComponent(to)),
+    dateFor: (iso) => isoBookingDate(booking, iso),
+    timesFor: (iso) => {
+      const night = nightTimes(iso);
+      const departure = String(night?.dep ?? "");
+      const arrival = String(night?.arr ?? "");
+      if (!LOCAL_DATE_TIME.test(departure) || !LOCAL_DATE_TIME.test(arrival)) return null;
+      if (!departure.startsWith(`${iso}T`) || arrival <= departure) return null;
+      return { departure, arrival };
+    },
+  };
 }
 
 function isoBookingDate(booking, isoDate) {
@@ -161,6 +214,24 @@ export function getDealsLink(agencyId) {
     url: booking.dealsUrl,
     label: booking.dealsLabel || "View deals",
   };
+}
+
+/**
+ * The link to one of the operator's last-minute landing pages, by site path
+ * ("/last-minutes-berlin-prague") — the page a fare-calendar deal is sold
+ * from. `dealsUrlTemplate` carries {path}, substituted URL-encoded (European
+ * Sleeper's affiliate redirect takes a site-relative path, the same shape as
+ * its `dealsUrl`). Tries each component of a compound id; null when no
+ * operator declares a template or the path is not a site path.
+ */
+export function buildDealsLandingUrl(agencyId, landingPath) {
+  const p = String(landingPath ?? "");
+  if (!/^\/[a-z0-9/_-]+$/i.test(p)) return null;
+  for (const id of splitAgencyIds(agencyId)) {
+    const template = getOperatorBooking(id)?.dealsUrlTemplate;
+    if (template) return template.replaceAll("{path}", encodeURIComponent(p));
+  }
+  return null;
 }
 
 /**

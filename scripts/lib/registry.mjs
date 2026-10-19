@@ -10,6 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { validateOperatorAgencies } from "./operator-agencies.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const REGISTRY_PATH = path.join(
@@ -51,6 +52,7 @@ const KNOWN_ENRICH_KEYS = new Set([
   "updateEndpoints",
   "updateServiceDays",
   "stamp",
+  "requireSameTrain",
 ]);
 
 const KNOWN_SCHEDULES = new Set(["daily", "weekly", "manual"]);
@@ -118,6 +120,14 @@ export function validateRegistryEntry(entry) {
   if (paramUrl && entry?.endpoint && entry.endpoint !== paramUrl) {
     errors.push(`${tag} endpoint must match params.${entry?.params?.feedUrl ? "feedUrl" : "baseUrl"} ("${paramUrl}")`);
   }
+  // Which carrier runs a train, read off the operator's own words
+  // (scripts/lib/operator-agencies.mjs). A typo would quietly send every
+  // partner train to its fallback carrier, so the mapping is checked here.
+  if (entry?.params?.operatorAgencies != null) {
+    for (const message of validateOperatorAgencies(entry.params.operatorAgencies)) {
+      errors.push(`${tag} params.${message}`);
+    }
+  }
 
   const enrich = entry?.enrich;
   if (enrich != null) {
@@ -178,6 +188,21 @@ export function validateRegistryEntry(entry) {
     ) {
       errors.push(`${tag} synthetic.botMatchAgencies must be an array of non-empty strings`);
     }
+    // A source whose trains are dated by their next run (nightjet.com) stamps
+    // that date on the row when it is weeks off; the zone says which calendar
+    // day a departure falls on. Misspelling it must not silently mean "off".
+    if (synthetic.nextDeparture != null) {
+      const tz = synthetic.nextDeparture?.timeZone;
+      let valid = typeof tz === "string" && tz.length > 0;
+      if (valid) {
+        try {
+          new Intl.DateTimeFormat("en", { timeZone: tz });
+        } catch {
+          valid = false;
+        }
+      }
+      if (!valid) errors.push(`${tag} synthetic.nextDeparture.timeZone must be an IANA time zone`);
+    }
     if (!entry?.output) {
       errors.push(`${tag} synthetic entries must declare an output trains file`);
     }
@@ -197,6 +222,18 @@ export function validateRegistry(registry) {
 
   const ids = registry.map((e) => e?.id).filter(Boolean);
   if (new Set(ids).size !== ids.length) errors.push("duplicate entry ids");
+
+  // A carrier "published by" another source hands that source its trains; a
+  // misspelt id would hand them to nobody, so the source must exist and be
+  // another entry.
+  for (const entry of registry) {
+    for (const carrier of entry?.params?.operatorAgencies?.carriers ?? []) {
+      const by = carrier?.publishedBy;
+      if (typeof by !== "string" || !by) continue;
+      if (by === entry.id) errors.push(`[${entry.id}] params.operatorAgencies: ${carrier.agency} is publishedBy the source itself`);
+      else if (!ids.includes(by)) errors.push(`[${entry.id}] params.operatorAgencies: ${carrier.agency} publishedBy unknown source "${by}"`);
+    }
+  }
 
   const outputs = registry.map((e) => e?.output).filter(Boolean);
   if (new Set(outputs).size !== outputs.length) errors.push("duplicate output filenames");

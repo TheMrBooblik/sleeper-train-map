@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { FaArrowRight, FaBars, FaMapMarkedAlt, FaRegCalendarAlt, FaRoute, FaInfoCircle } from "react-icons/fa";
+import PriceDisclaimer from "../PriceDisclaimer";
 
 /**
  * Shared chrome for the SEO content pages. Clones the dark-theme layout of the
@@ -175,6 +176,7 @@ export default function SeoLayout({ children }) {
             </Link>
           </nav>
         </div>
+        <PriceDisclaimer className="max-w-6xl mx-auto mt-6 text-center sm:text-left" />
       </footer>
     </div>
   );

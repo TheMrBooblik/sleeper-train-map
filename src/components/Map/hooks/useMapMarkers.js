@@ -8,6 +8,7 @@ import { StationTooltipContent } from "../utils/stationTooltip";
 import {
   shouldHideRouteDueToFutureDate,
   upcomingPreviewRouteIds,
+  selectedRoutesWithLines,
 } from "../utils/routeStyleUtils";
 import { createMapIcons, stationHitSize } from "../utils/mapIcons";
 import { thinStationsByViewport } from "../utils/thinStationsByViewport";
@@ -127,6 +128,25 @@ export function useMapMarkers({
       return !skipSet.has(stop.stop_id) && !skipSet.has(n);
     });
 
+    // With a station selected, a stop belongs on the map only if one of the
+    // selected routes that DRAWS a line calls there. The season filter above
+    // asks whether any route at the stop still runs, selected or not, so a
+    // closed selected route kept its stops as dots with no line through them.
+    // Filtered before grouping, so a grouped marker cannot anchor on one.
+    const liveSelectedRouteIds =
+      selected && stopRouteIds?.length > 0
+        ? selectedRoutesWithLines(stopRouteIds, trips, viewMapData)
+        : null;
+    if (!routeFilteredMode && liveSelectedRouteIds) {
+      stopsToShow = stopsToShow.filter((stop) => {
+        const n = normalizeStationNameForLookup(stop.stop_id);
+        const cityInfo = cities[n] || cities[stop.stop_id];
+        return (cityInfo?.stop_route_ids || "")
+          .split(",")
+          .some((id) => liveSelectedRouteIds.has(id.trim()));
+      });
+    }
+
     // Keep zoom-thinning narrowly scoped:
     // - only in normal station mode
     // - only when intermediate stations are not already hidden
@@ -240,24 +260,25 @@ export function useMapMarkers({
 
         // This filter is Back-on-Track specific (requires city.stop_route_ids).
         // In routeFilteredMode we may render GTFS-only stations without this field.
-        if (!routeFilteredMode && selected && stopRouteIds?.length > 0) {
+        if (!routeFilteredMode && liveSelectedRouteIds) {
           const stationRouteIds = (stop_route_ids || "")
             .split(",")
             .map((id) => id.trim())
             .filter(Boolean);
           const isPartOfSelectedRoutes = stationRouteIds.some((id) =>
-            stopRouteIds.includes(id),
+            liveSelectedRouteIds.has(id),
           );
           if (!isPartOfSelectedRoutes) return null;
         }
 
         let isViaStationForFilteredRoutes = !!cityInfo?.isViaStation;
-        if (selected && stopRouteIds?.length > 0 && !isSelected) {
+        if (liveSelectedRouteIds && !isSelected) {
           const stationsToCheck =
             filteredStop.isGrouped && filteredStop.groupedStations
               ? filteredStop.groupedStations.map((s) => s.stop_id)
               : [stop_id];
-          const isOriginOrDestination = stopRouteIds.some((routeId) => {
+          // Only a drawn route can make this stop an endpoint on screen.
+          const isOriginOrDestination = [...liveSelectedRouteIds].some((routeId) => {
             const route = routeIdMap.get(routeId);
             if (!route) return false;
             const routeStations = [
@@ -321,8 +342,8 @@ export function useMapMarkers({
             // Hit area around the 20px visual dot — wide on touch, tight for a
             // mouse (same pointer-aware size as createMapIcons).
             html: `<div style="width:${hitSize}px;height:${hitSize}px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
-              <div style="width:20px;height:20px;background:${bgGradient};border-radius:50%;border:3px solid white;box-shadow:${shadow};transition:all 0.3s ease;z-index:1000;position:relative;">
-              <div style="position:absolute;top:-8px;left:-8px;background:linear-gradient(135deg,#FF9800,#F57C00);color:white;border-radius:50%;width:16px;height:16px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:bold;border:2px solid white;box-shadow:0 2px 6px rgba(255,152,0,0.5);z-index:2000;">
+              <div style="width:20px;height:20px;background:${bgGradient};border-radius:50%;border:3px solid var(--station-ring, white);box-shadow:${shadow};transition:all 0.3s ease;z-index:1000;position:relative;">
+              <div style="position:absolute;top:-8px;left:-8px;background:linear-gradient(135deg,#FF9800,#F57C00);color:white;border-radius:50%;width:16px;height:16px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:bold;border:2px solid var(--station-ring, white);box-shadow:0 2px 6px rgba(255,152,0,0.5);z-index:2000;">
                 ${filteredStop.groupSize}
               </div>
             </div></div>`,

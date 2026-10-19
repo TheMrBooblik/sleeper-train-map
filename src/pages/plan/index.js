@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -15,6 +15,7 @@ import { usePlanIndex } from "../../hooks/requests/usePlanIndex";
 import {
   departuresFrom,
   findJourneys,
+  nextServedNight,
   resolvePlan,
   titleFromSlug,
 } from "../../lib/plan/search.mjs";
@@ -23,6 +24,7 @@ import {
   decodeStays,
   isPlanDate,
   parsePlanPath,
+  planPartsFromPath,
 } from "../../lib/plan/url.mjs";
 import { formatPlanDate } from "../../lib/plan/format.mjs";
 import { byStartCityScore, prominenceLookup } from "../../lib/plan/prominence.mjs";
@@ -107,21 +109,23 @@ export default function PlanPage({ seoCities, initialPlan }) {
     [region, regionTabs],
   );
 
-  // The plan starts as whatever getStaticProps read off the path, NOT as
-  // whatever router.query holds: on the first client render the router has not
-  // populated its params yet, so reading it here renders a different tree than
-  // the server sent and React throws the whole subtree away and re-renders it.
-  // After mount the router is the source of truth, which is what makes shallow
-  // navigation and the browser Back button work.
+  // The plan starts empty, exactly as the static HTML was rendered: every
+  // /plan/* URL is the one prebuilt /plan page served through a rewrite, so the
+  // server never knows which plan was asked for. Reading the URL during the
+  // first client render would produce a different tree than the server sent
+  // and React would throw the whole subtree away. After mount the URL is the
+  // source of truth, which is what makes shallow navigation and the browser
+  // Back button work.
   const [parsed, setParsed] = useState(initialPlan);
   const [stays, setStays] = useState(initialPlan.stays);
 
   useEffect(() => {
     if (!router.isReady) return;
-    const next = parsePlanPath(router.query.slug, knownSlugs);
+    const { slug, stay } = planPartsFromPath(router.asPath);
+    const next = parsePlanPath(slug, knownSlugs);
     setParsed({ cities: next.cities, date: next.date });
-    setStays(decodeStays(router.query.stay));
-  }, [router.isReady, router.asPath, router.query.slug, router.query.stay, knownSlugs]);
+    setStays(decodeStays(stay));
+  }, [router.isReady, router.asPath, knownSlugs]);
 
   const cities = parsed.cities;
   const date = isPlanDate(parsed.date) ? parsed.date : today;
@@ -141,6 +145,28 @@ export default function PlanPage({ seoCities, initialPlan }) {
     [router, cities, parsed.date, stays, today],
   );
 
+  // Where to bring the reader after a change they made. On a phone the form
+  // and the heading fill the first screen, so a result rendered below them is a
+  // result nobody sees: picking a destination used to leave the screen looking
+  // exactly as it did before the tap, and read as the choice being reset. Set
+  // by the handler, consumed by the effect below once the result has rendered.
+  const scrollTarget = useRef(null);
+  // A plan of two or more cities shows the trip as a one-line summary rather
+  // than the whole form, so the result sits right under it.
+  const [editing, setEditing] = useState(false);
+  const [addingCity, setAddingCity] = useState(false);
+
+  /** A change made in the form: show its result, not the form again. */
+  const commit = useCallback(
+    (next, options) => {
+      setEditing(false);
+      setAddingCity(false);
+      scrollTarget.current = "plan-results";
+      go(next, options);
+    },
+    [go],
+  );
+
   const plan = useMemo(() => {
     if (!planner || cities.length < 2 || !hasDate) return null;
     return resolvePlan(planner, { cities, date, stays });
@@ -158,8 +184,34 @@ export default function PlanPage({ seoCities, initialPlan }) {
     return findJourneys(planner, { from: cities[0], to: cities[1], date, maxLegs: 3, limit: 6 });
   }, [planner, plan, cities, date, hasDate]);
 
+  // The way out of "not this night", per hop: the next night a train runs.
+  const nextNights = useMemo(() => {
+    if (!planner || !plan) return [];
+    return plan.hops.map((hop) =>
+      !hop.served && hop.rides.length > 0
+        ? nextServedNight(planner, { from: hop.from.slug, to: hop.to.slug, date: hop.date })
+        : null,
+    );
+  }, [planner, plan]);
+
+  useEffect(() => {
+    const id = scrollTarget.current;
+    if (!id) return;
+    const target = document.getElementById(id);
+    if (!target) return;
+    scrollTarget.current = null;
+    // Only when it is not already where the eye is — a desktop that shows the
+    // result beside the form should not jump.
+    const { top } = target.getBoundingClientRect();
+    if (top < 80 || top > window.innerHeight * 0.6) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [plan, explore]);
+
   const originCity = planner?.cityBySlug.get(cities[0]) || null;
   const lastCity = cities.length ? cities[cities.length - 1] : "";
+  const lastCityRecord = planner?.cityBySlug.get(lastCity) || null;
+  const isPlan = cities.length >= 2;
   const canonicalPath = buildPlanHref({ cities, date: parsed.date, stays });
   // /plan is a landing page worth indexing. Every parameterised plan under it is
   // one of an unbounded number of URLs that differ only by a date, which is a
@@ -200,56 +252,114 @@ export default function PlanPage({ seoCities, initialPlan }) {
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary-green">
             Night train planner
           </p>
-          <h1 className="mt-3 text-4xl font-semibold leading-tight text-white sm:text-5xl">
+          <h1 className="mt-3 text-3xl font-semibold leading-tight text-white sm:text-5xl">
             {heading.rich}
           </h1>
-          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-white/60">
-            {cities.length === 0
-              ? "Pick where you are. We'll show you every city a sleeper could reach that night — then keep going, one night at a time."
-              : "Add a city to extend the trip. The link in your address bar is the whole plan: copy it to keep it or send it to someone."}
-          </p>
+          {/* Once there is something to show, the screen belongs to it: on a
+              phone this paragraph alone is a third of the first screen. */}
+          {cities.length === 0 ? (
+            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-white/60">
+              Pick where you are and where you want to go. We&apos;ll find the night train —
+              or, if you don&apos;t know yet, every city a sleeper could reach that night.
+            </p>
+          ) : (
+            !isPlan && (
+              <p className="mt-4 hidden max-w-2xl text-lg leading-relaxed text-white/60 sm:block">
+                Pick a destination, or leave it empty to see every city a sleeper could reach
+                that night.
+              </p>
+            )
+          )}
         </header>
 
-        <section
-          aria-label="Trip"
-          className="mt-8 grid gap-5 rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:grid-cols-2"
-        >
-          <CityCombobox
-            label="From"
-            value={originCity || (cities[0] ? { name: titleFromSlug(cities[0]) } : null)}
-            cities={planner?.cities ?? []}
-            disabled={isLoading}
-            onSelect={(city) => go({ cities: city ? [city.slug, ...cities.slice(1)] : [] })}
+        {isPlan && !editing ? (
+          <TripSummary
+            names={cities.map((slug) => cityLabel(planner, slug))}
+            date={date}
+            onEdit={() => setEditing(true)}
           />
-          {cities.length >= 1 && (
+        ) : (
+          <section
+            aria-label="Trip"
+            className="mt-8 grid gap-5 rounded-2xl border border-white/10 bg-white/[0.02] p-5 sm:grid-cols-2"
+          >
             <CityCombobox
-              // Always empty and always APPENDING. An earlier version bound this
-              // to cities[1] while labelling it with the last city of the chain,
-              // so on a four-city plan it said "after Vienna" and edited Berlin.
-              // Cities already in the plan are removed from the itinerary below,
-              // which is where they are visible.
-              label={cities.length === 1 ? "To (optional)" : `Then on to (after ${cityLabel(planner, lastCity)})`}
-              value={null}
+              label="From"
+              value={originCity || (cities[0] ? { name: titleFromSlug(cities[0]) } : null)}
               cities={planner?.cities ?? []}
               disabled={isLoading}
-              placeholder={
-                cities.length === 1
-                  ? "Leave empty to see everywhere you could go"
-                  : "Add another night"
-              }
-              onSelect={(city) => city && go({ cities: [...cities, city.slug] })}
+              onSelect={(city) => {
+                if (!city) return go({ cities: [] });
+                const next = [city.slug, ...cities.slice(1)];
+                return next.length >= 2 ? commit({ cities: next }) : go({ cities: next });
+              }}
             />
-          )}
-          <div className={`min-w-0 ${cities.length >= 1 ? "sm:col-span-2" : ""}`}>
-            {today && (
-              <DateField
-                value={date}
-                today={today}
-                onChange={(value) => go({ date: value }, { replace: true })}
+            {cities.length >= 1 && (
+              <CityCombobox
+                // With one city this APPENDS the destination. With two or more
+                // it shows — and replaces — the LAST city, which is what "To"
+                // means; the stops in between are edited in the itinerary. An
+                // earlier version bound it to cities[1] while labelling it with
+                // the last city, so on a four-city plan it said "after Vienna"
+                // and edited Berlin; and before this one it was always empty,
+                // so the city just picked vanished from the field and the plan
+                // looked reset.
+                label={isPlan ? "To" : "To (optional)"}
+                value={
+                  isPlan
+                    ? lastCityRecord || { name: titleFromSlug(lastCity) }
+                    : null
+                }
+                cities={planner?.cities ?? []}
+                disabled={isLoading}
+                placeholder={isPlan ? "City or station" : "Leave empty to see everywhere you could go"}
+                onSelect={(city) => {
+                  if (!city) {
+                    // Clearing "To" drops the final city, never the start.
+                    return isPlan ? go({ cities: cities.slice(0, -1) }) : undefined;
+                  }
+                  const base = isPlan ? cities.slice(0, -1) : cities;
+                  if (base[base.length - 1] === city.slug) return undefined;
+                  return commit({ cities: [...base, city.slug] });
+                }}
               />
             )}
-          </div>
-        </section>
+            <div className={`min-w-0 ${cities.length >= 1 ? "sm:col-span-2" : ""}`}>
+              {today && (
+                <DateField
+                  value={date}
+                  today={today}
+                  onChange={(value) =>
+                    isPlan
+                      ? commit({ date: value }, { replace: true })
+                      : go({ date: value }, { replace: true })
+                  }
+                />
+              )}
+            </div>
+            {isPlan && (
+              <div className="flex justify-end sm:col-span-2">
+                <button
+                  type="button"
+                  onClick={() => setEditing(false)}
+                  className="rounded-full border border-white/15 px-4 py-1.5 text-sm text-white/70 transition-colors hover:border-white/30 hover:text-white"
+                >
+                  Done
+                </button>
+              </div>
+            )}
+            {/* One city, no destination: the list is below the fold on a phone,
+                and nothing on the first screen says it is there. */}
+            {explore && explore.destinations.length > 0 && (
+              <a
+                href="#explore-results"
+                className="text-sm text-primary-green underline-offset-4 hover:underline sm:hidden"
+              >
+                See {explore.destinations.length} places you could wake up in ↓
+              </a>
+            )}
+          </section>
+        )}
 
         {error && (
           <p className="mt-8 rounded-xl border border-rose-500/25 bg-rose-500/10 p-4 text-rose-200">
@@ -343,7 +453,12 @@ export default function PlanPage({ seoCities, initialPlan }) {
 
         {/* ── Mode 1: where could I go from here ──────────────────────── */}
         {explore && (
-          <section className="mt-12" aria-labelledby="explore-title" aria-live="polite">
+          <section
+            id="explore-results"
+            className="mt-12 scroll-mt-24"
+            aria-labelledby="explore-title"
+            aria-live="polite"
+          >
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <h2 id="explore-title" className="text-xl font-semibold text-white">
                 {explore.destinations.length > 0
@@ -370,6 +485,11 @@ export default function PlanPage({ seoCities, initialPlan }) {
                     action={
                       <Link
                         href={buildPlanHref({ cities: [...cities, city.slug], date: parsed.date, stays })}
+                        // The link is far down the list; the plan it opens
+                        // renders at the top. Bring the reader to it.
+                        onClick={() => {
+                          scrollTarget.current = "plan-results";
+                        }}
                         className="rounded-full bg-primary-green px-3.5 py-1.5 text-sm font-medium text-black transition-colors hover:bg-primary-green-light"
                       >
                         {rides.length > 1 ? `Go here (${rides.length} trains)` : "Go here"}
@@ -384,7 +504,12 @@ export default function PlanPage({ seoCities, initialPlan }) {
 
         {/* ── Modes 2 & 3: a plan with two or more cities ─────────────── */}
         {plan && (
-          <section className="mt-12" aria-labelledby="plan-title" aria-live="polite">
+          <section
+            id="plan-results"
+            className="mt-8 scroll-mt-24"
+            aria-labelledby="plan-title"
+            aria-live="polite"
+          >
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <h2 id="plan-title" className="text-xl font-semibold text-white">
                 Your trip · {plan.nights} {plan.nights === 1 ? "night" : "nights"}
@@ -412,7 +537,56 @@ export default function PlanPage({ seoCities, initialPlan }) {
                 onRemoveCity={(cityIndex) =>
                   go({ cities: cities.filter((_, i) => i !== cityIndex) })
                 }
+                nextNights={nextNights}
+                onTryNight={(hop, next) => {
+                  if (hop.index === 0) return go({ date: next.date }, { replace: true });
+                  const nextStays = [...stays];
+                  while (nextStays.length < hop.index) nextStays.push(0);
+                  nextStays[hop.index - 1] = (nextStays[hop.index - 1] || 0) + next.nightsLater;
+                  return go({ stays: nextStays }, { replace: true });
+                }}
               />
+            </div>
+
+            {/* Extending the trip comes AFTER the trip, not before it: the
+                first thing someone who picked two cities wants to see is the
+                train between them. */}
+            <div className="mt-6">
+              {addingCity ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+                  <CityCombobox
+                    label={`Then on to (after ${cityLabel(planner, lastCity)})`}
+                    value={null}
+                    // Not the city the trip already ends in, which the
+                    // unfiltered list offers first whenever it is a big hub.
+                    cities={(planner?.cities ?? []).filter((c) => c.slug !== lastCity)}
+                    disabled={isLoading}
+                    autoFocus
+                    placeholder="Add another night"
+                    onSelect={(city) => {
+                      if (!city || city.slug === lastCity) return;
+                      setAddingCity(false);
+                      go({ cities: [...cities, city.slug] });
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setAddingCity(false)}
+                    className="mt-3 text-sm text-white/45 underline-offset-4 hover:text-white hover:underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAddingCity(true)}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 px-4 py-3 text-sm text-white/65 transition-colors hover:border-primary-green/50 hover:text-white"
+                >
+                  <span aria-hidden="true" className="text-primary-green">+</span>
+                  Add another city after {cityLabel(planner, lastCity)}
+                </button>
+              )}
             </div>
 
             {/* A two-city plan with no direct train and no chain either. Saying
@@ -452,6 +626,9 @@ export default function PlanPage({ seoCities, initialPlan }) {
                     <li key={journey.cities.join(">")}>
                       <Link
                         href={buildPlanHref({ cities: journey.cities, date: parsed.date })}
+                        onClick={() => {
+                          scrollTarget.current = "plan-results";
+                        }}
                         className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 transition-colors hover:border-primary-green/40"
                       >
                         <span className="text-white">
@@ -471,6 +648,9 @@ export default function PlanPage({ seoCities, initialPlan }) {
               <SharePlan href={canonicalPath} />
               <Link
                 href={buildPlanHref({ cities: [lastCity], date: plan.endDate })}
+                onClick={() => {
+                  scrollTarget.current = "explore-results";
+                }}
                 className="text-sm text-primary-green underline-offset-4 hover:underline"
               >
                 Where could you go from {cityLabel(planner, lastCity)} next? →
@@ -482,6 +662,37 @@ export default function PlanPage({ seoCities, initialPlan }) {
         <DataHonesty />
       </div>
     </SeoLayout>
+  );
+}
+
+/**
+ * The trip, collapsed to one line once there is a trip to show.
+ *
+ * The full form is three fields and a row of date chips — on a phone, the whole
+ * first screen. With two cities chosen the reader has answered it; what they
+ * want next is the train, so the form folds away and "Change" brings it back.
+ */
+function TripSummary({ names, date, onEdit }) {
+  return (
+    <section
+      aria-label="Trip"
+      className="mt-6 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3"
+    >
+      {/* The cities are the heading right above, so this line is the one
+          thing the heading does not say: when. */}
+      <p className="min-w-0 truncate text-sm text-white/55">
+        Departing{" "}
+        <span className="font-medium text-white">{date ? formatPlanDate(date) : "—"}</span>
+        <span className="sr-only"> · {names.join(" → ")}</span>
+      </p>
+      <button
+        type="button"
+        onClick={onEdit}
+        className="shrink-0 rounded-full border border-white/15 px-4 py-1.5 text-sm text-white/75 transition-colors hover:border-primary-green/50 hover:text-white"
+      >
+        Change
+      </button>
+    </section>
   );
 }
 
@@ -565,8 +776,10 @@ function DataHonesty() {
           however short.
         </li>
         <li>
-          We don't yet carry live availability or fares. Each train links to its connection page
-          for timetables and where to book.
+          We don't carry live seat availability. <strong className="font-medium text-white/70">Book
+          </strong> opens the operator's own shop — with your stations, and your night where the
+          operator's site takes one — and each train links to its connection page for the full
+          timetable and fares.
         </li>
       </ul>
     </section>
@@ -574,28 +787,24 @@ function DataHonesty() {
 }
 
 /**
- * Only the landing page is pre-rendered with data. Every plan under it is
- * client-rendered from the static index, which is what keeps an unbounded URL
- * space (every city pair × every date) from becoming an unbounded number of
- * cached server renders.
+ * One static page, built once per deployment, serves every plan.
+ *
+ * /plan/{cities}/{date} is an unbounded URL space — every city pair × every
+ * date — and it used to be an ISR route (a blocking fallback plus revalidation),
+ * which rendered and wrote a cache entry for each distinct URL a visitor or a
+ * crawler asked for. That is the one Vercel Hobby quota this site could
+ * exhaust (ISR Writes, 200 000/month), and exceeding it pauses the project.
+ * next.config.js now rewrites /plan/:path+ onto this page and marks those URLs
+ * noindex by header; the plan itself is read off the URL after mount and
+ * rendered from the static plan index, which is where its content always came
+ * from anyway. No serverless hop, no cache write, whatever the URL.
  */
-export async function getStaticPaths() {
-  return { paths: [{ params: { slug: [] } }], fallback: "blocking" };
-}
-
-export async function getStaticProps({ params }) {
-  const { getPlanIndex, getTopStartCities } = await import("../../lib/plan/published.mjs");
-  const index = getPlanIndex();
-  const knownSlugs = index ? new Set(index.cities.map((c) => c.slug)) : undefined;
-  const { cities, date } = parsePlanPath(params?.slug, knownSlugs);
-
+export async function getStaticProps() {
+  const { getTopStartCities } = await import("../../lib/plan/published.mjs");
   return {
     props: {
       seoCities: getTopStartCities(),
-      // Parsed with the same function the client uses, so the two can never
-      // read one URL as two different plans.
-      initialPlan: { cities, date, stays: [] },
+      initialPlan: { cities: [], date: null, stays: [] },
     },
-    revalidate: 86400,
   };
 }

@@ -47,7 +47,13 @@ const GEOMETRY_FIELDS = ["nj_polyline_0", "nj_polyline_1", "nj_polyline"];
  * night of six weeks per direction — worth a page, not the map's first paint.
  */
 function isPageOnlyField(field) {
-  return field === "fare_calendar_0" || field === "fare_calendar_1";
+  return (
+    field === "fare_calendar_0" ||
+    field === "fare_calendar_1" ||
+    // Monthly punctuality (SNCF's AQST figures): a connection-page fact.
+    field === "punctuality_0" ||
+    field === "punctuality_1"
+  );
 }
 
 /**

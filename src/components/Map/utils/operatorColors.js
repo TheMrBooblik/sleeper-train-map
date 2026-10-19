@@ -60,6 +60,9 @@ export const OPERATOR_BRAND_COLORS = {
   // Japan
   JRW: "#0072BC", // JR West – JR West blue
 
+  // Thailand
+  SRT: "#E36B1E", // State Railway of Thailand – SRT orange
+
   // Caucasus
   GR: "#D4380D", // Georgian Railway – Georgian red-orange
   ADY: "#0080C8", // ADY (Azerbaijan Railways) – ADY blue

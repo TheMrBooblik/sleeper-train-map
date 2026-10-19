@@ -1,0 +1,46 @@
+{
+ "errorSource": null,
+ "errorCode": "S_SUCCESS",
+ "errorMessage": null,
+ "errorParams": null,
+ "data": {
+  "fareAmt": null,
+  "trainFeeAmt": null,
+  "results": [
+   {
+    "coachId": "136",
+    "coachNo": "49",
+    "coachDesc": "กซข.ป.76 : รถโบกี้นั่ง ชั้น 2 ปรับอากาศ(สปรินเตอร์) - ผู้โดยสารทั่วไป",
+    "coachTypeId": "12",
+    "coachClass": "2",
+    "coachClassDescTh": "ชั้น 2",
+    "coachClassDescEn": "2nd Class",
+    "coachSeatType": "2",
+    "coachSeatTypeTh": "นั่ง",
+    "coachSeatTypeEn": "Seating Coach",
+    "coachAirType": "1",
+    "coachAirTypeTh": "ปรับอากาศ",
+    "coachAirTypeEn": "Air Coach",
+    "coachLayoutId": "13",
+    "seatQty": "76",
+    "cabinQty": "0",
+    "coachFeeAmt": 110,
+    "coachSeats": [
+     {
+      "seatType": null,
+      "seatTypNameTh": "",
+      "seatTypNameEn": "",
+      "seatFeeAmt": 558
+     }
+    ],
+    "coachImage": "",
+    "fareAmt": 278,
+    "trainFeeAmt": 170,
+    "availableSeatCount": 0
+   }
+  ],
+  "waitingListEnabled": true
+ },
+ "viewStateHolder": "u_owXNzlGBY63N3Tsb7gQJT2DQkYUaSGziOVXNefblHdNb2zrLL2h3i6QP84rST2ZnFNej0U2a8fVJZmOduMAdGzIG8-3LfCbu5cWjdbfJweq5f4RuGzWUnPQVcatfFGmxd2L5lAVCEVxEyc2pynMu_-UbBM2opkJCeN87eybL9B3iK34L8A8QvZBKFIKQDqwU7IKtRM6SfEL5lGiIs4csMLd5D6PLgcGrwEmpD1R5rvJux-sa4t4O_3Q7RMuuWOKsGn5p5K4gDPXEkoGE8PZGyIwCbkdLyTjZS6X7RmLC3CoYHb8O8oFT5cg2bWqR5rXYeOTALrRAZh4KAZv-naCDKzluQeCHDhxnzf",
+ "result": true
+}

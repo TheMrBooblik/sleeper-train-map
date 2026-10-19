@@ -170,7 +170,9 @@ export async function getStaticProps() {
     props: {
       countries: getAllCountryHubs(),
       operators: getAllOperatorHubs(),
-      cityPairs: getAllCityPairs(),
+      // operatorIds is for the sitemap's rollout gate; the directory does not
+      // render it, so it stays out of the page payload.
+      cityPairs: getAllCityPairs().map(({ operatorIds, ...pair }) => pair),
       routeCount: getAllRouteSummaries().length,
     },
   };

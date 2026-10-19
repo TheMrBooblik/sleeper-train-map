@@ -9,6 +9,7 @@ import Section from "@components/Section";
 import { useWindowSize } from "../../hooks/useWindowSize";
 import { getCountryByCode } from "../../lib/countries";
 import { useInitialData } from "../../hooks/requests/useInitialData";
+import { useMapTheme } from "../../hooks/useMapTheme";
 
 const DEFAULT_CENTER = [49.385541, 12.765493];
 const DEFAULT_ZOOM = 5;
@@ -39,6 +40,7 @@ const Layout = ({ children, tourSeo }) => {
   const tourOpenRef = useRef(true);
   const pulseShownRef = useRef(false);
   const { width, height } = useWindowSize();
+  const mapTheme = useMapTheme();
 
   useEffect(() => {
     tourOpenRef.current = tourOpen;
@@ -200,6 +202,8 @@ const Layout = ({ children, tourSeo }) => {
         setHideIntermediateStations={setHideIntermediateStations}
         showRailwayOverlay={showRailwayOverlay}
         setShowRailwayOverlay={setShowRailwayOverlay}
+        themePreference={mapTheme.preference}
+        setThemePreference={mapTheme.setPreference}
         stops={stops}
         stopsLoading={stopsLoading}
         onSearchSelect={setSearchTarget}
@@ -238,6 +242,7 @@ const Layout = ({ children, tourSeo }) => {
             showRoutes={showRoutes}
             hideIntermediateStations={hideIntermediateStations}
             showRailwayOverlay={showRailwayOverlay}
+            isDarkMap={mapTheme.isDark}
             searchTarget={searchTarget}
             onSearchProcessed={() => setSearchTarget(null)}
             onStationSelect={dismissTour}
