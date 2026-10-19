@@ -177,28 +177,41 @@ export function extractStopRecords(html, matchStation) {
   const records = [];
   let current = null;
   let pendingLabel = null;
+  // The time just read, while it is still unlabeled and nothing has come
+  // between it and the next segment. JR West's train pages put the label in
+  // its own cell AFTER the time ("12:18 | 着 | 12:19 | 発"); read as a prefix,
+  // every label would land on the next time and an arrival would become the
+  // departure.
+  let openTime = null;
   for (let seg of htmlSegments(html)) {
     const split = splitStationSegment(seg, matchStation);
     if (split) {
       current = { station: split.station, times: [], pass: false };
       records.push(current);
       pendingLabel = null;
+      openTime = null;
       if (!split.rest) continue;
       seg = split.rest;
     }
     if (!current) continue;
     const times = timesInText(seg);
     if (times.length) {
+      openTime = null;
       for (const t of times) {
-        current.times.push({ time: t.time, label: t.label ?? pendingLabel });
+        const entry = { time: t.time, label: t.label ?? pendingLabel };
+        current.times.push(entry);
         pendingLabel = null;
+        openTime = entry.label ? null : entry;
       }
       continue;
     }
     if (labelOf(seg)) {
-      pendingLabel = labelOf(seg);
+      if (openTime) openTime.label = labelOf(seg);
+      else pendingLabel = labelOf(seg);
+      openTime = null;
       continue;
     }
+    openTime = null;
     if (PASS_MARK.test(seg)) {
       if (!current.times.length) current.pass = true;
       continue;
@@ -324,11 +337,56 @@ export function validateScrapedStops(scraped, train, { maxDriftMinutes = MAX_DRI
 
 /** Scrape one train out of one page: { stops } when it validates, else { problems }. */
 export function timetableFromPage(html, train, matchStation, opts) {
+  // A page that names its train must name this one: JR West's ids are opaque,
+  // and the first seeded pair turned out to be a Nagoya local and the Yamanote line.
+  const stated = pageTrainNumbers(html);
+  const want = trainNumberOf(train);
+  if (stated.length && want && !stated.includes(want)) {
+    return { problems: [`page is train ${stated.join("/")}, not ${want}`] };
+  }
   const records = extractStopRecords(html, matchStation);
   const { stops, problems } = matchTrainInRecords(records, train);
   if (problems.length) return { problems };
   const invalid = validateScrapedStops(stops, train, opts);
   return invalid.length ? { problems: invalid } : { stops };
+}
+
+/** "Sunrise Izumo 4031M" → "4031M". */
+export function trainNumberOf(train) {
+  return /(\d{1,5}[A-Z]?)\s*$/.exec(train?.lineName ?? "")?.[1] ?? null;
+}
+
+/** The train number a JR West train page states ("列車番号 | 4031M"), or null. */
+export function pageTrainNumbers(html) {
+  const segs = htmlSegments(html);
+  const at = segs.findIndex((s) => s === "列車番号" || /^train\s*(?:no\.?|number)$/i.test(s));
+  if (at < 0) return [];
+  const out = [];
+  for (const seg of segs.slice(at + 1, at + 6)) {
+    if (/^\d{1,5}[A-Z]?$/.test(seg)) out.push(seg);
+    else break;
+  }
+  return out;
+}
+
+/**
+ * Every link on a page as { href, text }, hrefs made absolute against
+ * `baseUrl`. The text is the anchor's own, tags stripped — enough to tell a
+ * "サンライズ出雲" link from the rest of a station's departures.
+ */
+export function extractLinks(html, baseUrl) {
+  const out = [];
+  for (const m of String(html ?? "").matchAll(/<a\b[^>]*?href\s*=\s*["']([^"'#][^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
+    let href;
+    try {
+      href = new URL(decodeEntities(m[1]), baseUrl).href;
+    } catch {
+      continue;
+    }
+    const text = decodeEntities(m[2].replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+    out.push({ href, text });
+  }
+  return out;
 }
 
 /** Train-timetable ids linked from a JR West page (e.g. the Sunrise guide). */

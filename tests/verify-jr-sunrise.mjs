@@ -24,10 +24,12 @@ import {
   acceptRoomCharges,
   buildSunriseTrains,
   discoverTimetableIds,
+  extractLinks,
   extractStopRecords,
   fareForTrain,
   htmlSegments,
   makeStationMatcher,
+  pageTrainNumbers,
   normalizeStationName,
   parseRoomCharges,
   timetableFromPage,
@@ -96,6 +98,24 @@ const IZUMO_WEST_TABLE = `
 </table>
 <p>ご注意 運転日</p><p>更新 2026/09/28 10:15</p>
 </body></html>`;
+
+// The westbound Sunrise Izumo in the layout of JR West's own train pages
+// (timetable.jr-odekake.net/train-timetable/{id}), as the probe printed one on
+// 2026-10-19: a 列車番号 cell, then per stop the station, and each time in its
+// own cell followed by a 着 or 発 cell — the label AFTER the time — with the
+// platform after that. The layout is real; these times are the baseline's.
+const JR_WEST_ROWS = [
+  ["東京", null, "21:26", "9"], ["横浜", "21:50", "21:52"], ["熱海", "22:55", "22:57"],
+  ["沼津", null, "23:16"], ["富士", null, "23:32"], ["静岡", null, "23:59"], ["浜松", null, "0:54"],
+  ["姫路", "5:25", "5:26"], ["岡山", "6:27", "6:31", "1"], ["倉敷", null, "6:46"],
+  ["備中高梁", null, "7:15"], ["新見", null, "7:44"], ["米子", null, "9:05"], ["安来", null, "9:14"],
+  ["松江", null, "9:33"], ["宍道", null, "9:47"], ["出雲市", "10:00", null],
+];
+const jrWestTrainPage = (number) => `<html><body><h1>寝台特急 サンライズ出雲 出雲市行</h1>
+<dl><dt>列車番号</dt><dd>${number}</dd><dt>列車種別</dt><dd>寝台特急</dd></dl>
+<table><tr><th>駅名</th><th>着発時刻</th><th>のりば</th></tr>
+${JR_WEST_ROWS.map(([st, arr, dep, track]) => `<tr><td>${st}</td><td>${[arr && `<span>${arr}</span><span>着</span>`, dep && `<span>${dep}</span><span>発</span>`].filter(Boolean).join("<br>")}</td><td>${track ?? ""}</td></tr>`).join("\n")}
+</table><p>備考</p></body></html>`;
 
 // The eastbound Sunrise Seto as a list of "駅 時刻発" lines, full-width digits
 // and the 時/分 spelling included, on a night it starts at Kotohira.
@@ -236,6 +256,40 @@ await check("a 駅/着/発 table yields the westbound Izumo, whole", () => {
   assert.equal(at["bitchu-takahashi"].departure, "07:15");
   assert.equal(at.izumoshi.arrival, "10:00");
   assert.equal(at.izumoshi.departure, null);
+});
+
+await check("JR West's own train page yields the westbound Izumo, labels read after their times", () => {
+  const result = timetableFromPage(jrWestTrainPage("4031M"), train("Sunrise Izumo 4031M"), matchStation);
+  assert.ok(result.stops, `validates: ${result.problems}`);
+  const at = Object.fromEntries(result.stops.map((s) => [s.station, s]));
+  assert.equal(at.tokyo.departure, "21:26");
+  assert.deepEqual([at.yokohama.arrival, at.yokohama.departure], ["21:50", "21:52"]);
+  assert.deepEqual([at.okayama.arrival, at.okayama.departure], ["06:27", "06:31"]);
+  assert.equal(at.izumoshi.arrival, "10:00");
+  // The probe's own capture of the Yamanote line, which the first parser read
+  // as "12:34, 12:34 (arr)": a label cell names the time before it.
+  const yamanote = extractStopRecords("<td>東京</td><td>12:34</td><td>着</td><td>12:35</td><td>発</td><td>4</td>", matchStation);
+  assert.deepEqual(yamanote[0].times, [{ time: "12:34", label: "arr" }, { time: "12:35", label: "dep" }]);
+  // A label before its time still reads as a prefix.
+  const prefix = extractStopRecords("<td>東京</td><td>発</td><td>21:26</td>", matchStation);
+  assert.deepEqual(prefix[0].times, [{ time: "21:26", label: "dep" }]);
+});
+
+await check("a train page naming another train number is refused before its stops are read", () => {
+  assert.deepEqual(pageTrainNumbers(jrWestTrainPage("4031M")), ["4031M"]);
+  const result = timetableFromPage(jrWestTrainPage("5031M"), train("Sunrise Izumo 4031M"), matchStation);
+  assert.deepEqual(result.problems, ["page is train 5031M, not 4031M"]);
+});
+
+await check("links are read with their anchor text, made absolute", () => {
+  const links = extractLinks(
+    '<a href="/train-timetable/123?date=20261022"><span>サンライズ出雲</span> 21:26</a><a href="#top">x</a><a href=\'pdf/a.pdf\'>時刻表</a>',
+    "https://timetable.jr-odekake.net/station-timetable/1",
+  );
+  assert.deepEqual(links, [
+    { href: "https://timetable.jr-odekake.net/train-timetable/123?date=20261022", text: "サンライズ出雲 21:26" },
+    { href: "https://timetable.jr-odekake.net/station-timetable/pdf/a.pdf", text: "時刻表" },
+  ]);
 });
 
 await check("a page for one train does not validate for another", () => {
