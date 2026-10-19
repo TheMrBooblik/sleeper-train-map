@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_srt-special-express-45",
+  "createdAt": "2026-10-19T09:18:49.194Z",
+  "source": "scrape",
+  "sourceDetail": "srt",
+  "kind": "route.add",
+  "title": "New train: Special Express 45 (Bangkok (Krung Thep Aphiwat) – Padang Besar)",
+  "summary": "Route \"srt_Special_Express_45\" appeared in tonight's scrape and is withheld from the map until approved. Via: ",
+  "target": {
+    "routeKey": "srt_Special_Express_45",
+    "agencyId": "SRT",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "Special Express 45",
+    "returnTrain": "Special Express 46",
+    "origin": "Bangkok (Krung Thep Aphiwat)",
+    "destination": "Padang Besar",
+    "operator": "SRT",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "srt_Special_Express_45"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
