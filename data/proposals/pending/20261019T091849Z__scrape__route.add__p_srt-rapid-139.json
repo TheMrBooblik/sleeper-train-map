@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_srt-rapid-139",
+  "createdAt": "2026-10-19T09:18:49.194Z",
+  "source": "scrape",
+  "sourceDetail": "srt",
+  "kind": "route.add",
+  "title": "New train: Rapid 139 (Bangkok (Krung Thep Aphiwat) – Ubon Ratchathani)",
+  "summary": "Route \"srt_Rapid_139\" appeared in tonight's scrape and is withheld from the map until approved. Via: ",
+  "target": {
+    "routeKey": "srt_Rapid_139",
+    "agencyId": "SRT",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "Rapid 139",
+    "returnTrain": "Rapid 140",
+    "origin": "Bangkok (Krung Thep Aphiwat)",
+    "destination": "Ubon Ratchathani",
+    "operator": "SRT",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "srt_Rapid_139"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
