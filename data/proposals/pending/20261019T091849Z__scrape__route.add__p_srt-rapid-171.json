@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_srt-rapid-171",
+  "createdAt": "2026-10-19T09:18:49.194Z",
+  "source": "scrape",
+  "sourceDetail": "srt",
+  "kind": "route.add",
+  "title": "New train: Rapid 171 (Bangkok (Krung Thep Aphiwat) – Su-ngai Kolok)",
+  "summary": "Route \"srt_Rapid_171\" appeared in tonight's scrape and is withheld from the map until approved. Via: Bang Bamru - Sala Ya - Nakhon Pathom - Ban Pong - Ratchaburi - Pak Tho - Phetchaburi - Hua Hin - Wang Phong - Prachuap Khiri Khan - Bang Saphan Yai - Chumphon - Surat Thani - Thung Song Junction - Cha-uat - Phatthalung - Bang Kaeo - Hat Yai Junction - Chana - Pattani - Yala - Ruso - Tanyong Mat - Su",
+  "target": {
+    "routeKey": "srt_Rapid_171",
+    "agencyId": "SRT",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "Rapid 171",
+    "returnTrain": "Rapid 172",
+    "origin": "Bangkok (Krung Thep Aphiwat)",
+    "destination": "Su-ngai Kolok",
+    "operator": "SRT",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "srt_Rapid_171"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
