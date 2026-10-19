@@ -146,6 +146,31 @@ console.log("sitemap keeps the files it is explicitly given");
   }
 }
 
+// --- 7. legacy alias URLs are rewrites, not routes of their own ---------------
+// Each page file under pages/api is one more function bundle in every retained
+// deployment. The per-operator trains URLs are kept as rewrites onto the one
+// generic route; a rewrite whose page file still exists would never fire
+// (afterFiles rewrites lose to a real page), and one whose target is gone 404s.
+console.log("legacy operator-trains URLs resolve through rewrites");
+{
+  const rewrites = await config.rewrites();
+  const list = Array.isArray(rewrites) ? rewrites : rewrites.afterFiles || [];
+  const legacy = list.filter((r) => /^\/api\/[a-z]+-trains$/.test(r.source));
+  const routes = new Set(apiRoutes());
+  if (legacy.length < 5) {
+    fail(`expected the five legacy /api/*-trains rewrites, found ${legacy.length}`);
+  }
+  for (const r of legacy) {
+    const target = r.destination.split("?")[0];
+    if (routes.has(r.source)) {
+      fail(`${r.source} is both a page file and a rewrite — the rewrite never fires`);
+    } else if (!routes.has(target)) {
+      fail(`${r.source} rewrites to ${target}, which is not a route`);
+    }
+  }
+  if (legacy.length >= 5) pass(`${legacy.length} legacy URLs rewrite onto one route`);
+}
+
 console.log(
   failures ? `\n${failures} check(s) failed` : "\nAll bundle-tracing checks passed",
 );
