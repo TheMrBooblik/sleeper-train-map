@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_srt-rapid-169",
+  "createdAt": "2026-10-19T09:18:49.194Z",
+  "source": "scrape",
+  "sourceDetail": "srt",
+  "kind": "route.add",
+  "title": "New train: Rapid 169 (Bangkok (Krung Thep Aphiwat) – Yala)",
+  "summary": "Route \"srt_Rapid_169\" appeared in tonight's scrape and is withheld from the map until approved. Via: ",
+  "target": {
+    "routeKey": "srt_Rapid_169",
+    "agencyId": "SRT",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "Rapid 169",
+    "returnTrain": "Rapid 170",
+    "origin": "Bangkok (Krung Thep Aphiwat)",
+    "destination": "Yala",
+    "operator": "SRT",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "srt_Rapid_169"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
