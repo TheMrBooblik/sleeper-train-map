@@ -3,28 +3,26 @@
 // Japan). The adapter (scripts/adapters/jr-sunrise.mjs) fetches; everything that
 // decides what a page says lives here, so tests run it without a network.
 //
-// Two things are read nightly from JR's own pages:
+// Two things are read nightly from JR West's own documents:
 //
-//   1. The timetable of each train (every stop's time), from JR West's train
-//      timetable pages on timetable.jr-odekake.net.
+//   1. The timetable of each train (every stop's time), from the Sunrise
+//      timetable PDF the guide page links (read as positioned lines by
+//      scripts/lib/pdf-lines.mjs).
 //   2. The berth charges per room type, from JR West's Sunrise pages.
 //
-// The layout of neither page has been seen from the machine this was written
-// on — JR's hosts are unreachable from the dev sandbox, as lefrecce.it and
-// europeansleeper.eu were before them — so the parsers are deliberately
-// layout-agnostic and the validation is deliberately strict:
+// JR's hosts are unreachable from the dev sandbox, so the layouts were learned
+// from the "Probe JR Sunrise source" workflow, and the validation is strict:
+// a train's timetable is taken whole or not at all — every stop the baseline
+// lists must be found, in order, running forward in time with at most one
+// midnight, and no time may sit more than MAX_DRIFT_MINUTES from the
+// baseline's. JR moved the Tokyo departure by 24 minutes in March 2026; a
+// column that disagrees by hours is another train, not a timetable change.
 //
-//   - a page is read as a sequence of text segments in document order, a stop
-//     is a segment that IS one of the train's own station names (not one that
-//     contains it: 富士 must not match 富士川), and the times after it until the
-//     next station-looking segment are that stop's;
-//   - a train's scraped timetable is taken whole or not at all: every stop the
-//     baseline lists must be found, in order, running forward in time with at
-//     most one midnight, and no time may sit more than MAX_DRIFT_MINUTES from
-//     the baseline's. JR moved the Tokyo departure by 24 minutes in March 2026;
-//     a page that disagrees by hours is another train, not a timetable change.
+// JR West's per-train timetable pages (timetable.jr-odekake.net) were the first
+// source tried and are gone from here: no JR page links to them, so their ids
+// could not be found, and the two seeded by hand were other trains.
 //
-// Taking a stop list from one page and times from another would be a row that
+// Taking a stop list from one source and times from another would be a row that
 // contradicts itself (CLAUDE.md, "A row describes one train"), which is why a
 // train that fails validation keeps the baseline for ALL its stops.
 
@@ -108,18 +106,6 @@ export function makeStationMatcher(stations) {
 const ARR = "arr";
 const DEP = "dep";
 
-function labelOf(token) {
-  if (!token) return null;
-  const t = token.toLowerCase().replace(/\.$/, "");
-  if (t === "着" || t === "arr" || t === "arrival" || t === "arrive" || t === "arrives") return ARR;
-  if (t === "発" || t === "dep" || t === "departure" || t === "depart" || t === "departs") return DEP;
-  return null;
-}
-
-// "21:26", "21:26発", "着 6:27", "Arr. 06:27", "Departure 21:26", "21時26分発".
-const TIME_IN_TEXT =
-  /(?:(着|発|arr(?:ival|ives?)?\.?|dep(?:arture|arts?)?\.?)\s*)?(\d{1,2})\s*(?::|時)\s*(\d{2})\s*分?\s*(着|発|arr(?:ival)?\.?|dep(?:arture)?\.?)?/gi;
-
 function hhmm(h, m) {
   const hours = Number(h);
   const minutes = Number(m);
@@ -127,88 +113,10 @@ function hhmm(h, m) {
   return `${String(hours % 24).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
-/** Every time in a text segment, with the arrival/departure label beside it when there is one. */
-export function timesInText(text) {
-  const out = [];
-  for (const m of String(text ?? "").matchAll(TIME_IN_TEXT)) {
-    const time = hhmm(m[2], m[3]);
-    if (!time) continue;
-    out.push({ time, label: labelOf(m[4]) ?? labelOf(m[1]) });
-  }
-  return out;
-}
-
 /** "23:59" → 1439. */
 export function minutesOf(time) {
   const m = /^(\d{1,2}):(\d{2})$/.exec(String(time ?? ""));
   return m ? Number(m[1]) * 60 + Number(m[2]) : null;
-}
-
-// A timetable draws a stop the train passes without calling as レ (or an arrow,
-// or a bar). The station is on the page — it is simply not a stop.
-const PASS_MARK = /^(?:レ|↓|↑|‖|\||\|\||=|通過|pass(?:es)?|—|-)$/i;
-
-// A segment reading like a station name we do not know: letters, no digits,
-// short. It closes the current stop so the times of a station outside this
-// train's pattern (Kotohira on an extension night, say) cannot be credited to
-// the stop before it.
-function looksLikeUnknownStation(seg) {
-  return seg.length <= 16 && !/\d/.test(seg) && /[\p{L}]/u.test(seg) && !labelOf(seg) && !PASS_MARK.test(seg);
-}
-
-/** Split "東京 21:26発" / "東京発 21:26" / "Tokyo 21:26" into its station and the rest. */
-function splitStationSegment(seg, matchStation) {
-  const whole = matchStation(seg);
-  if (whole) return { station: whole, rest: "" };
-  const m = /^(.{1,24}?)\s*(着|発)?\s*(\d{1,2}\s*(?::|時)\s*\d{2}.*)$/u.exec(seg);
-  if (!m) return null;
-  const station = matchStation(m[1]);
-  if (!station) return null;
-  return { station, rest: `${m[2] ?? ""}${m[3]}` };
-}
-
-/**
- * The page as a list of stop records in document order:
- *   [{ station, times: [{ time, label }], pass }]
- * `station` is a configured station id; unknown stations are not recorded (but
- * close the record before them).
- */
-export function extractStopRecords(html, matchStation) {
-  const records = [];
-  let current = null;
-  let pendingLabel = null;
-  for (let seg of htmlSegments(html)) {
-    const split = splitStationSegment(seg, matchStation);
-    if (split) {
-      current = { station: split.station, times: [], pass: false };
-      records.push(current);
-      pendingLabel = null;
-      if (!split.rest) continue;
-      seg = split.rest;
-    }
-    if (!current) continue;
-    const times = timesInText(seg);
-    if (times.length) {
-      for (const t of times) {
-        current.times.push({ time: t.time, label: t.label ?? pendingLabel });
-        pendingLabel = null;
-      }
-      continue;
-    }
-    if (labelOf(seg)) {
-      pendingLabel = labelOf(seg);
-      continue;
-    }
-    if (PASS_MARK.test(seg)) {
-      if (!current.times.length) current.pass = true;
-      continue;
-    }
-    if (looksLikeUnknownStation(seg)) {
-      current = null;
-      pendingLabel = null;
-    }
-  }
-  return records;
 }
 
 /**
@@ -236,9 +144,9 @@ export function resolveRecordTimes(times, role) {
 }
 
 /**
- * Find one train's stops in a page's records, in order. Consecutive records of
+ * Find one train's stops in a column's records, in order. Consecutive records of
  * the same station (an arrival row and a departure row) are merged.
- * Returns { stops, problems }; any problem means the page does not describe
+ * Returns { stops, problems }; any problem means the column does not describe
  * this train.
  */
 export function matchTrainInRecords(records, train) {
@@ -322,20 +230,117 @@ export function validateScrapedStops(scraped, train, { maxDriftMinutes = MAX_DRI
   return problems;
 }
 
-/** Scrape one train out of one page: { stops } when it validates, else { problems }. */
-export function timetableFromPage(html, train, matchStation, opts) {
-  const records = extractStopRecords(html, matchStation);
-  const { stops, problems } = matchTrainInRecords(records, train);
-  if (problems.length) return { problems };
-  const invalid = validateScrapedStops(stops, train, opts);
-  return invalid.length ? { problems: invalid } : { stops };
+// ─── JR West's timetable PDF ─────────────────────────────────────────────────
+//
+// The Sunrise guide links one PDF (pdf/jikokuhyo.pdf) holding all four trains:
+// two tables side by side, each headed by a 列車番号 row whose train-number
+// cells mark the columns. Per row, the station name sits left of the first
+// column, spaced out character by character ("東  京  発"), with a trailing
+// 発 / 着 / 〃 saying whether the times from here on are departures or
+// arrivals (〃 = as above). A time is three or four digits ("2126", "054");
+// anything else in a column (a glyph for "passes", "not on this route", blank)
+// is not a stop. Read as positioned lines (scripts/lib/pdf-lines.mjs) on
+// 2026-10-19; the layout, not the content, is what this depends on.
+
+const PDF_NUMBER_HEADER = "列車番号";
+const PDF_TRAIN_NUMBER = /^\d{3,5}[A-Z]$/;
+const PDF_TIME = /^(\d{1,2})(\d{2})$/;
+const PDF_COLUMN_SLACK = 6;
+
+/** "2126" → "21:26", "054" → "00:54"; anything else → null. */
+export function pdfTime(token) {
+  const m = PDF_TIME.exec(String(token ?? "").trim());
+  return m && String(token).trim().length >= 3 ? hhmm(m[1], m[2]) : null;
 }
 
-/** Train-timetable ids linked from a JR West page (e.g. the Sunrise guide). */
-export function discoverTimetableIds(html) {
-  const ids = new Set();
-  for (const m of String(html ?? "").matchAll(/train-timetable\/(\d{2,7})/g)) ids.add(Number(m[1]));
-  return [...ids];
+/**
+ * The PDF's columns as stop records, one list per column:
+ *   [{ x, header, records: [{ station, times: [{ time, label }], pass: false }] }]
+ * Stations are matched with `matchStation`; rows naming no configured station
+ * are skipped but still carry the 発/着 state down the table.
+ */
+export function pdfColumns(pages, matchStation) {
+  const columns = [];
+  for (const lines of pages ?? []) {
+    const headerAt = lines.findIndex((l) => l.cells.some((c) => c.text.replace(/\s+/g, "") === PDF_NUMBER_HEADER));
+    if (headerAt < 0) continue;
+    const header = lines[headerAt];
+    const halves = header.cells
+      .filter((c) => c.text.replace(/\s+/g, "") === PDF_NUMBER_HEADER)
+      .map((c) => c.x)
+      .sort((a, b) => a - b);
+    halves.forEach((start, h) => {
+      const end = halves[h + 1] ?? Infinity;
+      const cols = header.cells.filter((c) => c.x > start && c.x < end && PDF_TRAIN_NUMBER.test(c.text));
+      if (!cols.length) return;
+      const nameLimit = Math.min(...cols.map((c) => c.x)) - 3;
+      const half = cols.map((c) => ({ x: c.x, header: c.text, records: [] }));
+      let label = null;
+      for (const line of lines.slice(headerAt + 1)) {
+        const mine = line.cells.filter((c) => c.x >= start - 2 && c.x < end - 2);
+        const text = mine.filter((c) => c.x < nameLimit).map((c) => c.text).join("").replace(/\s+/g, "");
+        const mark = /[発着〃]$/.exec(text)?.[0] ?? null;
+        const station = matchStation(mark ? text.slice(0, -1) : text);
+        if (!station) continue;
+        if (mark === "発") label = DEP;
+        else if (mark === "着") label = ARR;
+        for (const col of half) {
+          const cell = mine.find((c) => Math.abs(c.x - col.x) <= PDF_COLUMN_SLACK && pdfTime(c.text));
+          if (cell) col.records.push({ station, times: [{ time: pdfTime(cell.text), label }], pass: false });
+        }
+      }
+      columns.push(...half);
+    });
+  }
+  return columns;
+}
+
+/**
+ * Each configured train's timetable from the PDF: the first column whose
+ * records hold every one of the train's stops, in order, with plausible times
+ * . A column's header is not
+ * trusted to name its train: the Izumo column is headed 5031M, the number it
+ * runs under while coupled to the Seto.
+ * Returns { timetables: { lineName: { stops, column } }, problems: { lineName: [..] } }.
+ */
+export function timetablesFromPdf(pages, config, matchStation, opts) {
+  const columns = pdfColumns(pages, matchStation);
+  const timetables = {};
+  const problems = {};
+  for (const train of config.trains) {
+    const tried = [];
+    for (const [i, col] of columns.entries()) {
+      const { stops, problems: missing } = matchTrainInRecords(col.records, train);
+      const invalid = missing.length ? missing : validateScrapedStops(stops, train, opts);
+      if (!invalid.length) {
+        timetables[train.lineName] = { stops, column: i };
+        break;
+      }
+      tried.push(`column ${i} (${col.header}): ${invalid.slice(0, 2).join(", ")}`);
+    }
+    if (!timetables[train.lineName]) problems[train.lineName] = columns.length ? tried : ["no timetable columns in the PDF"];
+  }
+  return { timetables, problems, columns: columns.length };
+}
+
+/**
+ * Every link on a page as { href, text }, hrefs made absolute against
+ * `baseUrl`. The text is the anchor's own, tags stripped — enough to tell a
+ * "サンライズ出雲" link from the rest of a station's departures.
+ */
+export function extractLinks(html, baseUrl) {
+  const out = [];
+  for (const m of String(html ?? "").matchAll(/<a\b[^>]*?href\s*=\s*["']([^"'#][^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
+    let href;
+    try {
+      href = new URL(decodeEntities(m[1]), baseUrl).href;
+    } catch {
+      continue;
+    }
+    const text = decodeEntities(m[2].replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+    out.push({ href, text });
+  }
+  return out;
 }
 
 // ─── Berth charges ───────────────────────────────────────────────────────────
@@ -564,7 +569,7 @@ export function buildSunriseTrains(config, { timetables = {}, roomCharges, fares
       polyline: polyline.encode(trainPath(config, train)),
       stations,
       ...(fare ? { fare } : {}),
-      // Where tonight's times came from: JR's page (with its address) or the
+      // Where tonight's times came from: JR West's PDF (with its address) or the
       // committed baseline, so a stale timetable is visible in the file itself.
       timetable: official
         ? { source: "official", url: official.url ?? null, checkedAt: today ?? null }
@@ -572,19 +577,4 @@ export function buildSunriseTrains(config, { timetables = {}, roomCharges, fares
     };
   }
   return trains;
-}
-
-/** "2026-09-28" + 3 → "2026-10-01" (UTC calendar arithmetic). */
-export function datePlusDays(iso, days) {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-/** Fill {date} (YYYYMMDD), {isoDate} and {id} in a URL template. */
-export function expandUrlTemplate(template, { date, id } = {}) {
-  return String(template)
-    .replace(/\{date\}/g, String(date ?? "").replace(/-/g, ""))
-    .replace(/\{isoDate\}/g, String(date ?? ""))
-    .replace(/\{id\}/g, String(id ?? ""));
 }

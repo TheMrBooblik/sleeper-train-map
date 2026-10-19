@@ -2,16 +2,11 @@
 // The Sunrise Izumo / Sunrise Seto source (scripts/lib/jr-sunrise.mjs,
 // scripts/adapters/jr-sunrise.mjs) and the booking guide it ships with.
 //
-// The page fixtures below are SYNTHETIC. JR's hosts are unreachable from the
-// machine this was written on, so they are built in the shapes a Japanese
-// railway timetable takes — a 駅 / 着 / 発 table with empty cells and レ for a
-// passed station, "東京 21:26発" lines, an English "Dep. 21:26" list — and
-// the checks pin behaviour that must hold whichever of those JR serves: a
-// station matches only as a whole segment (富士 is not 富士川), a train is taken
-// whole or not at all, and a page for another train cannot validate. What the
-// live pages actually look like is printed by the "Probe JR Sunrise source"
-// workflow; when it shows a real page, commit it under tests/fixtures/ and
-// replace these.
+// The timetable is read from JR West's own Sunrise PDF. Its layout is pinned by
+// tests/fixtures/jr-sunrise/jikokuhyo-lines.mjs — the positioned lines the
+// "Probe JR Sunrise source" workflow printed from the live file on 2026-10-19,
+// with the committed baseline's times. The berth-charge page fixture is still
+// synthetic: the live guide page prints no berth charge (same probe run).
 //
 // Run: npm run verify-jr-sunrise
 
@@ -23,19 +18,21 @@ import {
   MAX_DRIFT_MINUTES,
   acceptRoomCharges,
   buildSunriseTrains,
-  discoverTimetableIds,
-  extractStopRecords,
+  extractLinks,
   fareForTrain,
   htmlSegments,
   makeStationMatcher,
   normalizeStationName,
   parseRoomCharges,
-  timetableFromPage,
-  timesInText,
+  pdfColumns,
+  pdfTime,
+  timetablesFromPdf,
   trainPath,
   validateConfig,
 } from "../scripts/lib/jr-sunrise.mjs";
 import { decodeBody, run } from "../scripts/adapters/jr-sunrise.mjs";
+import { pdfLines } from "../scripts/lib/pdf-lines.mjs";
+import { JIKOKUHYO_LINES } from "./fixtures/jr-sunrise/jikokuhyo-lines.mjs";
 import { validateRegistry } from "../scripts/lib/registry.mjs";
 import {
   BOOKING_GUIDES,
@@ -64,76 +61,6 @@ const check = async (name, fn) => {
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
-// The westbound Sunrise Izumo as a 駅名 / 着 / 発 table: empty cells, passed
-// stations marked レ, and 富士川 (a station this train passes) right after 富士.
-const IZUMO_WEST_TABLE = `
-<html><head><meta charset="utf-8"><title>寝台特急 サンライズ出雲 出雲市行</title></head><body>
-<h1>寝台特急 サンライズ出雲 出雲市行</h1>
-<table>
-<tr><th>駅名</th><th>着</th><th>発</th></tr>
-<tr><td>東京</td><td></td><td>21:26</td></tr>
-<tr><td>品川</td><td>レ</td><td>レ</td></tr>
-<tr><td>横浜</td><td>21:50</td><td>21:52</td></tr>
-<tr><td>熱海</td><td>22:55</td><td>22:57</td></tr>
-<tr><td>沼津</td><td></td><td>23:16</td></tr>
-<tr><td>富士</td><td></td><td>23:32</td></tr>
-<tr><td>富士川</td><td>レ</td><td>レ</td></tr>
-<tr><td>静岡</td><td></td><td>23:59</td></tr>
-<tr><td>浜松</td><td></td><td>0:54</td></tr>
-<tr><td>名古屋</td><td>レ</td><td>レ</td></tr>
-<tr><td>大阪</td><td>レ</td><td>レ</td></tr>
-<tr><td>姫路</td><td>5:25</td><td>5:26</td></tr>
-<tr><td>岡山</td><td>6:27</td><td>6:31</td></tr>
-<tr><td>倉敷</td><td></td><td>6:46</td></tr>
-<tr><td>備中高梁</td><td></td><td>7:15</td></tr>
-<tr><td>新見</td><td></td><td>7:44</td></tr>
-<tr><td>根雨</td><td>レ</td><td>レ</td></tr>
-<tr><td>米子</td><td></td><td>9:05</td></tr>
-<tr><td>安来</td><td></td><td>9:14</td></tr>
-<tr><td>松江</td><td></td><td>9:33</td></tr>
-<tr><td>宍道</td><td></td><td>9:47</td></tr>
-<tr><td>出雲市</td><td>10:00</td><td></td></tr>
-</table>
-<p>ご注意 運転日</p><p>更新 2026/09/28 10:15</p>
-</body></html>`;
-
-// The eastbound Sunrise Seto as a list of "駅 時刻発" lines, full-width digits
-// and the 時/分 spelling included, on a night it starts at Kotohira.
-const SETO_EAST_LINES = `
-<ul>
-<li>琴平 20:25発</li>
-<li>高松 21:17着 21:26発</li>
-<li>坂出 ２１:４３発</li>
-<li>児島 22時03分発</li>
-<li>岡山 22:23着 22:34発</li>
-<li>姫路 23:34発</li>
-<li>三ノ宮 0:10発</li>
-<li>大阪 0:31着 0:33発</li>
-<li>静岡 4:40発</li>
-<li>富士 5:08発</li>
-<li>沼津 5:25発</li>
-<li>熱海 5:43発</li>
-<li>横浜 6:44着</li>
-<li>東京 7:08着</li>
-</ul>`;
-
-// The westbound Sunrise Seto in English, "Dep." / "Arr." beside the time.
-const SETO_WEST_ENGLISH = `
-<dl>
-<dt>Tokyo</dt><dd>Dep. 21:26</dd>
-<dt>Yokohama</dt><dd>Dep. 21:52</dd>
-<dt>Atami</dt><dd>Dep. 22:57</dd>
-<dt>Numazu</dt><dd>Dep. 23:16</dd>
-<dt>Fuji</dt><dd>Dep. 23:32</dd>
-<dt>Shizuoka</dt><dd>Dep. 23:59</dd>
-<dt>Hamamatsu</dt><dd>Dep. 00:54</dd>
-<dt>Himeji</dt><dd>Dep. 05:26</dd>
-<dt>Okayama</dt><dd>Arr. 06:27</dd><dd>Dep. 06:34</dd>
-<dt>Kojima</dt><dd>Dep. 06:51</dd>
-<dt>Sakaide</dt><dd>Dep. 07:12</dd>
-<dt>Takamatsu</dt><dd>Arr. 07:27</dd>
-</dl>`;
-
 const ROOMS_PAGE = `
 <table>
 <tr><th>設備</th><th>寝台料金</th></tr>
@@ -143,9 +70,7 @@ const ROOMS_PAGE = `
 <tr><td>シングル</td><td>7,700円</td></tr>
 <tr><td>ソロ</td><td>6,600円</td></tr>
 <tr><td>ノビノビ座席</td><td>寝台料金不要</td></tr>
-</table>
-<a href="https://timetable.jr-odekake.net/train-timetable/3841?date=20261001">下り</a>
-<a href="/train-timetable/9999">臨時</a>`;
+</table>`;
 
 // ─── 1. The committed baseline ───────────────────────────────────────────────
 
@@ -155,7 +80,8 @@ await check("the config is structurally sound and the registry accepts the entry
   assert.deepEqual(validateRegistry(registry), []);
   assert.equal(entry.official, true);
   assert.equal(entry.params.configPath, "data/sources/jr-sunrise.json");
-  assert.ok(entry.params.timetableUrlTemplate.includes("{id}") && entry.params.timetableUrlTemplate.includes("{date}"));
+  assert.match(entry.params.timetablePdf, /^https:\/\/www\.jr-odekake\.net\/.+\.pdf$/);
+  assert.equal(entry.endpoint, entry.params.timetablePdf, "the dashboard prints the address the adapter reads");
 });
 
 await check("stop patterns differ by direction, as the operator runs them", () => {
@@ -203,7 +129,7 @@ await check("a stop that is not on its corridor is refused, not drawn", () => {
   assert.ok(validateConfig(broken).some((p) => /kojima/.test(p)));
 });
 
-// ─── 2. Reading a timetable page ─────────────────────────────────────────────
+// ─── 2. Reading the timetable PDF ─────────────────────────────────────────────
 
 await check("names fold the way JR writes them", () => {
   assert.equal(normalizeStationName("Izumo-Shi"), normalizeStationName("Izumoshi"));
@@ -214,79 +140,119 @@ await check("names fold the way JR writes them", () => {
   assert.equal(matchStation("富士川"), null, "a station name inside another is not that station");
 });
 
-await check("times are read in every spelling a Japanese timetable uses", () => {
-  assert.deepEqual(timesInText("21:26発"), [{ time: "21:26", label: "dep" }]);
-  assert.deepEqual(timesInText("着 6:27"), [{ time: "06:27", label: "arr" }]);
-  assert.deepEqual(timesInText("22時03分発"), [{ time: "22:03", label: "dep" }]);
-  assert.deepEqual(timesInText("Arr. 06:27"), [{ time: "06:27", label: "arr" }]);
-  assert.deepEqual(htmlSegments("<td>２１:４３</td>"), ["21:43"], "full-width digits fold");
-  assert.deepEqual(timesInText("2026/09/28"), [], "a date is not a time");
+const clone = () => structuredClone(JIKOKUHYO_LINES);
+const at = (stops) => Object.fromEntries(stops.map((s) => [s.station, s]));
+const withoutRow = (pages, x0, firstChar) =>
+  pages.map((lines) =>
+    lines.map((l) => {
+      const start = l.cells.findIndex((c) => c.x === x0 && c.text === firstChar);
+      if (start < 0) return l;
+      const end = x0 < 200 ? 200 : Infinity;
+      return { ...l, cells: l.cells.filter((c) => c.x < x0 - 2 || c.x >= end) };
+    }),
+  );
+
+await check("a PDF time is three or four digits, and nothing else is", () => {
+  assert.equal(pdfTime("2126"), "21:26");
+  assert.equal(pdfTime("054"), "00:54");
+  assert.equal(pdfTime("1000"), "10:00");
+  for (const glyph of ["a", "e", "g", "c", "12", "", null]) assert.equal(pdfTime(glyph), null, `${glyph} is not a time`);
 });
 
-await check("a 駅/着/発 table yields the westbound Izumo, whole", () => {
-  const result = timetableFromPage(IZUMO_WEST_TABLE, train("Sunrise Izumo 4031M"), matchStation);
-  assert.ok(result.stops, `validates: ${result.problems}`);
-  const at = Object.fromEntries(result.stops.map((s) => [s.station, s]));
-  assert.equal(at.tokyo.departure, "21:26");
-  assert.equal(at.tokyo.arrival, null, "an origin has no arrival");
-  assert.deepEqual([at.yokohama.arrival, at.yokohama.departure], ["21:50", "21:52"]);
-  assert.equal(at.fuji.departure, "23:32", "富士川's レ did not become Fuji's");
-  assert.equal(at.hamamatsu.departure, "00:54");
-  assert.deepEqual([at.okayama.arrival, at.okayama.departure], ["06:27", "06:31"]);
-  assert.equal(at["bitchu-takahashi"].departure, "07:15");
-  assert.equal(at.izumoshi.arrival, "10:00");
-  assert.equal(at.izumoshi.departure, null);
+await check("JR West's PDF yields all four trains, each from its own column", () => {
+  const { timetables, problems, columns } = timetablesFromPdf(JIKOKUHYO_LINES, config, matchStation);
+  assert.equal(columns, 4);
+  assert.deepEqual(problems, {});
+  const used = Object.values(timetables).map((t) => t.column);
+  assert.equal(new Set(used).size, 4, "no column stands for two trains");
+
+  const izumoWest = at(timetables["Sunrise Izumo 4031M"].stops);
+  assert.equal(izumoWest.tokyo.departure, "21:26");
+  assert.equal(izumoWest.hamamatsu.departure, "00:54", "a three-digit time is past midnight");
+  // From 大阪 着 on, the left table's times are arrivals, carried down by 〃.
+  assert.deepEqual([izumoWest.himeji.arrival, izumoWest.himeji.departure], ["05:25", null]);
+  assert.equal(izumoWest.okayama.arrival, "06:27");
+  assert.equal(izumoWest.izumoshi.arrival, "10:00");
+
+  const setoWest = at(timetables["Sunrise Seto 5031M"].stops);
+  assert.equal(setoWest.kojima.arrival, "06:52");
+  assert.deepEqual([setoWest.takamatsu.arrival, setoWest.takamatsu.departure], ["07:27", null]);
+
+  const setoEast = at(timetables["Sunrise Seto 5032M"].stops);
+  assert.deepEqual([setoEast.takamatsu.arrival, setoEast.takamatsu.departure], [null, "21:26"]);
+  assert.equal(setoEast.osaka.departure, "00:33");
+  assert.equal(setoEast.tokyo.arrival, "07:08");
+
+  const izumoEast = at(timetables["Sunrise Izumo 4032M"].stops);
+  assert.equal(izumoEast.izumoshi.departure, "18:57");
+  assert.equal(izumoEast.okayama.departure, "22:34");
 });
 
-await check("a page for one train does not validate for another", () => {
-  // The Izumo page lacks every Seto branch stop; the eastbound trains run the
-  // other way round. Neither may borrow it.
-  for (const name of ["Sunrise Seto 5031M", "Sunrise Izumo 4032M", "Sunrise Seto 5032M"]) {
-    const result = timetableFromPage(IZUMO_WEST_TABLE, train(name), matchStation);
-    assert.ok(!result.stops, `${name} must not validate against the westbound Izumo page`);
-  }
+await check("a column's header does not name its train — the stops do", () => {
+  // The Izumo column is headed 5031M, the number it runs under coupled to the
+  // Seto as far as Okayama; trusting the header would give the Izumo the Seto.
+  const columns = pdfColumns(JIKOKUHYO_LINES, matchStation);
+  assert.deepEqual(columns.map((c) => c.header), ["5031M", "5031M", "5032M", "5032M"]);
+  const { timetables } = timetablesFromPdf(JIKOKUHYO_LINES, config, matchStation);
+  assert.equal(timetables["Sunrise Izumo 4031M"].stops.at(-1).station, "izumoshi");
+  assert.equal(timetables["Sunrise Seto 5031M"].stops.at(-1).station, "takamatsu");
 });
 
-await check("a line-per-stop page yields the eastbound Seto, even starting at Kotohira", () => {
-  const result = timetableFromPage(SETO_EAST_LINES, train("Sunrise Seto 5032M"), matchStation);
-  assert.ok(result.stops, `validates: ${result.problems}`);
-  const at = Object.fromEntries(result.stops.map((s) => [s.station, s]));
-  // Kotohira is not a stop we know, so its 20:25 closes nothing onto Takamatsu:
-  // the train still starts where the row says, at 21:26.
-  assert.equal(at.takamatsu.departure, "21:26");
-  assert.equal(at.takamatsu.arrival, null);
-  assert.equal(at.sakaide.departure, "21:43");
-  assert.equal(at.kojima.departure, "22:03");
-  assert.deepEqual([at.osaka.arrival, at.osaka.departure], ["00:31", "00:33"]);
-  assert.equal(at.tokyo.arrival, "07:08");
-});
+await check("a missing stop, a moved train or a PDF with no table is refused, train by train", () => {
+  // 米子 gone from the left table: the westbound Izumo is refused, the Seto is not.
+  const noYonago = timetablesFromPdf(withoutRow(clone(), 14, "米"), config, matchStation);
+  assert.match(noYonago.problems["Sunrise Izumo 4031M"].join(), /yonago not found/);
+  assert.ok(noYonago.timetables["Sunrise Seto 5031M"], "a train the edit does not touch still validates");
 
-await check("an English Dep./Arr. page yields the westbound Seto", () => {
-  const result = timetableFromPage(SETO_WEST_ENGLISH, train("Sunrise Seto 5031M"), matchStation);
-  assert.ok(result.stops, `validates: ${result.problems}`);
-  const at = Object.fromEntries(result.stops.map((s) => [s.station, s]));
-  assert.deepEqual([at.okayama.arrival, at.okayama.departure], ["06:27", "06:34"]);
-  assert.equal(at.takamatsu.arrival, "07:27");
-});
-
-await check("a stop shown as passed, a missing stop or a moved train is refused", () => {
-  const izumo = train("Sunrise Izumo 4031M");
-  const passed = IZUMO_WEST_TABLE.replace("<td>米子</td><td></td><td>9:05</td>", "<td>米子</td><td>レ</td><td>レ</td>");
-  assert.match(timetableFromPage(passed, izumo, matchStation).problems.join(), /yonago is shown as passed/);
-
-  const missing = IZUMO_WEST_TABLE.replace(/<tr><td>安来<\/td>.*?<\/tr>/, "");
-  assert.match(timetableFromPage(missing, izumo, matchStation).problems.join(), /yasugi not found/);
-
-  // Two hours later than the baseline: another train's page, not a retiming.
-  const later = IZUMO_WEST_TABLE.replace("<td>21:26</td>", "<td>23:40</td>");
-  const drift = timetableFromPage(later, izumo, matchStation).problems.join();
-  assert.match(drift, new RegExp(`tokyo departure 23:40 is \\d+ min from the baseline`));
+  // Leaving Tokyo two hours earlier on the left: another train's times, not a retiming.
+  const earlier = clone();
+  for (const line of earlier[0]) for (const c of line.cells) if (c.x < 200 && c.text === "2126") c.text = "1926";
+  const drift = timetablesFromPdf(earlier, config, matchStation);
+  assert.match(drift.problems["Sunrise Izumo 4031M"].join(), /tokyo departure 19:26 is 120 min from the baseline/);
+  assert.ok(drift.timetables["Sunrise Seto 5032M"], "the right table is unaffected");
   assert.ok(MAX_DRIFT_MINUTES >= 30, "a real retiming (24 min in March 2026) must still pass");
+
+  const empty = timetablesFromPdf([[{ y: 10, cells: [{ x: 10, text: "お知らせ" }] }]], config, matchStation);
+  assert.deepEqual(Object.keys(empty.timetables), []);
+  assert.deepEqual(empty.problems["Sunrise Izumo 4031M"], ["no timetable columns in the PDF"]);
 });
 
-await check("timetable ids are discovered from a guide page's links", () => {
-  assert.deepEqual(discoverTimetableIds(ROOMS_PAGE).sort((a, b) => a - b), [3841, 9999]);
-  assert.deepEqual(discoverTimetableIds(null), []);
+await check("a PDF's text comes back as positioned lines, top to bottom", async () => {
+  // A one-page PDF built here: two text runs on one baseline, one below.
+  const stream = "BT /F1 12 Tf 20 150 Td (Tokyo) Tj 80 0 Td (2126) Tj ET BT /F1 12 Tf 20 120 Td (Okayama) Tj ET";
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  let body = "%PDF-1.4\n";
+  const offsets = objects.map((o, i) => {
+    const at = body.length;
+    body += `${i + 1} 0 obj\n${o}\nendobj\n`;
+    return at;
+  });
+  const xref = body.length;
+  body += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, "0")} 00000 n \n`).join("")}`;
+  body += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  const pages = await pdfLines(Buffer.from(body, "latin1"));
+  assert.deepEqual(pages, [
+    [
+      { y: 50, cells: [{ x: 20, text: "Tokyo" }, { x: 100, text: "2126" }] },
+      { y: 80, cells: [{ x: 20, text: "Okayama" }] },
+    ],
+  ]);
+});
+
+await check("links are read with their anchor text, made absolute", () => {
+  const links = extractLinks(
+    '<a href="pdf/jikokuhyo.pdf"><span>ファイル</span>ダウンロード</a><a href="#top">x</a>',
+    "https://www.jr-odekake.net/railroad/train/sunriseseto_izumo/",
+  );
+  assert.deepEqual(links, [
+    { href: "https://www.jr-odekake.net/railroad/train/sunriseseto_izumo/pdf/jikokuhyo.pdf", text: "ファイル ダウンロード" },
+  ]);
 });
 
 await check("a Shift_JIS page decodes, so its station names still match", () => {
@@ -358,12 +324,15 @@ function fakeFetch(pages) {
   };
 }
 
-async function runAdapter(pages) {
+// The PDF arrives as bytes the fake fetch serves; `readPdf` stands in for
+// pdf-lines (whose own reading is checked above) and hands over the lines.
+async function runAdapter(pages, pdfPages = null) {
   const written = {};
   const ctx = {
     today: "2026-09-28",
     rootDir: ROOT,
     fetch: fakeFetch(pages),
+    readPdf: async () => pdfPages,
     write: (file, data) => {
       written[file] = data;
     },
@@ -372,7 +341,7 @@ async function runAdapter(pages) {
   console.log = console.warn = () => {};
   let error = null;
   try {
-    await run({ ...entry, params: { ...entry.params, seedTimetableIds: [1], requestSpacingMs: 0 } }, ctx);
+    await run({ ...entry, params: { ...entry.params, requestSpacingMs: 0 } }, ctx);
   } catch (err) {
     error = err;
   } finally {
@@ -383,22 +352,23 @@ async function runAdapter(pages) {
 
 await check("the adapter takes what validates, keeps the baseline for the rest, and says which", async () => {
   const guide = entry.params.guidePages[0];
-  const tmpl = (id) => entry.params.timetableUrlTemplate.replace("{id}", id).replace(/\?.*$/, "");
-  const { data, error } = await runAdapter({
-    [guide]: ROOMS_PAGE.replace("7,700円", "7,900円"),
-    [tmpl(1)]: IZUMO_WEST_TABLE,
-    [tmpl(3841)]: SETO_EAST_LINES,
-  });
+  // The eastbound Izumo's first stop is gone from this copy, so it alone keeps the baseline.
+  const { data, error } = await runAdapter(
+    { [guide]: ROOMS_PAGE.replace("7,700円", "7,900円"), [entry.params.timetablePdf]: "%PDF-1.4" },
+    withoutRow(clone(), 235, "出 雲 市"),
+  );
   assert.equal(error, null);
   const trains = data.trains;
   assert.equal(Object.keys(trains).length, 4);
-  assert.equal(trains["Sunrise Izumo 4031M"].timetable.source, "official");
-  assert.equal(trains["Sunrise Seto 5032M"].timetable.source, "official");
+  for (const name of ["Sunrise Izumo 4031M", "Sunrise Seto 5031M", "Sunrise Seto 5032M"]) {
+    assert.equal(trains[name].timetable.source, "official", name);
+    assert.equal(data.checks.timetables[name], entry.params.timetablePdf);
+  }
   assert.equal(trains["Sunrise Izumo 4032M"].timetable.source, "baseline");
-  assert.equal(data.checks.timetables["Sunrise Seto 5031M"], "baseline");
-  // The page's times replace the baseline's blanks…
+  assert.equal(data.checks.timetables["Sunrise Izumo 4032M"], "baseline");
+  // The PDF's times replace the baseline's blanks…
   const himeji = trains["Sunrise Izumo 4031M"].stations.find((s) => s.name === "Himeji");
-  assert.equal(himeji.departure, "05:26");
+  assert.equal(himeji.arrival, "05:25");
   // …and tonight's berth charge prices every train.
   assert.equal(trains["Sunrise Izumo 4031M"].fare.classes.singleCabin, 15510 + 7900);
   assert.equal(trains["Sunrise Izumo 4031M"].fare.sampledAt, "2026-09-28");
@@ -409,9 +379,18 @@ await check("the adapter takes what validates, keeps the baseline for the rest, 
 await check("a night where nothing validates still writes the trains, then fails loudly", async () => {
   const { data, error } = await runAdapter({});
   assert.ok(data?.trains?.["Sunrise Izumo 4031M"], "the map keeps the train");
+  assert.match(String(error?.message), /no JR source confirmed/);
+  // A PDF that is not one is a log line, not a crash.
+  const broken = await runAdapter({ [entry.params.timetablePdf]: "<html>" }, null);
+  assert.equal(broken.data.trains["Sunrise Seto 5031M"].timetable.source, "baseline");
+});
+
+await check("a night with no PDF keeps every train on the baseline", async () => {
+  const { data, error } = await runAdapter({});
+  assert.ok(data?.trains?.["Sunrise Izumo 4031M"], "the map keeps the train");
   assert.equal(data.trains["Sunrise Izumo 4031M"].timetable.source, "baseline");
   assert.equal(data.trains["Sunrise Izumo 4031M"].fare.sampledAt, config.fares.checkedAt, "no false 'checked tonight'");
-  assert.match(String(error?.message), /no JR page confirmed/);
+  assert.match(String(error?.message), /no JR source confirmed/);
 });
 
 // ─── 5. The booking guide ────────────────────────────────────────────────────
