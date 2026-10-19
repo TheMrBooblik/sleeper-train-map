@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_srt-rapid-133",
+  "createdAt": "2026-10-19T09:18:49.194Z",
+  "source": "scrape",
+  "sourceDetail": "srt",
+  "kind": "route.add",
+  "title": "New train: Rapid 133 (Bangkok (Krung Thep Aphiwat) – Nong Khai)",
+  "summary": "Route \"srt_Rapid_133\" appeared in tonight's scrape and is withheld from the map until approved. Via: ",
+  "target": {
+    "routeKey": "srt_Rapid_133",
+    "agencyId": "SRT",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "Rapid 133",
+    "returnTrain": "Rapid 134",
+    "origin": "Bangkok (Krung Thep Aphiwat)",
+    "destination": "Nong Khai",
+    "operator": "SRT",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "srt_Rapid_133"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
