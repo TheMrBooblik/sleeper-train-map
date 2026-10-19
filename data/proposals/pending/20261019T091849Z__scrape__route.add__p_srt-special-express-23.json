@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_srt-special-express-23",
+  "createdAt": "2026-10-19T09:18:49.194Z",
+  "source": "scrape",
+  "sourceDetail": "srt",
+  "kind": "route.add",
+  "title": "New train: Special Express 23 (Bangkok (Krung Thep Aphiwat) – Ubon Ratchathani)",
+  "summary": "Route \"srt_Special_Express_23\" appeared in tonight's scrape and is withheld from the map until approved. Via: ",
+  "target": {
+    "routeKey": "srt_Special_Express_23",
+    "agencyId": "SRT",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "Special Express 23",
+    "returnTrain": "Special Express 24",
+    "origin": "Bangkok (Krung Thep Aphiwat)",
+    "destination": "Ubon Ratchathani",
+    "operator": "SRT",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "srt_Special_Express_23"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
