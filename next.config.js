@@ -63,16 +63,16 @@ const except = (...keep) => ALL_DATA.filter((g) => !keep.includes(g));
 // class, so the literal bracketed segment never matches its own name.
 const NO_DATA_ROUTES = ['/api/data-status', '/api/admin', '/api/suggest'];
 
-// Operator trains: one generic route plus the five legacy per-operator aliases,
-// all of which read nothing but public/data/scraped/<source>-trains.json.
-const OPERATOR_TRAIN_ROUTES = [
-  '/api/operator-trains',
-  '/api/nightjet-trains',
-  '/api/cd-trains',
-  '/api/chinese-trains',
-  '/api/italian-trains',
-  '/api/caucasus-trains',
-];
+// Operator trains: one generic route, reading nothing but
+// public/data/scraped/<source>-trains.json.
+const OPERATOR_TRAIN_ROUTES = ['/api/operator-trains'];
+
+// The legacy per-operator URLs (/api/nightjet-trains etc.) used to be five page
+// files of their own, each a thin alias of /api/operator-trains — and so five
+// more function bundles in every retained deployment, each carrying the same
+// trains files. They are rewrites now (see rewrites() below): same URLs, same
+// responses, one function.
+const LEGACY_OPERATOR_TRAIN_SOURCES = ['nightjet', 'cd', 'chinese', 'italian', 'caucasus'];
 
 const outputFileTracingExcludes = {
   // Both halves of the map payload run the same tiered resolver
@@ -155,7 +155,13 @@ const nextConfig = {
   // ISR Writes quota (a hard pause, not a bill). A rewrite to a static page
   // costs no function invocation and no cache write, whatever the URL.
   async rewrites() {
-    return [{ source: "/plan/:path+", destination: "/plan" }];
+    return [
+      { source: "/plan/:path+", destination: "/plan" },
+      ...LEGACY_OPERATOR_TRAIN_SOURCES.map((id) => ({
+        source: `/api/${id}-trains`,
+        destination: `/api/operator-trains?source=${id}`,
+      })),
+    ];
   },
   async redirects() {
     return [
