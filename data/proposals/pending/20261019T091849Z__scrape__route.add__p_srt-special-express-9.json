@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_srt-special-express-9",
+  "createdAt": "2026-10-19T09:18:49.194Z",
+  "source": "scrape",
+  "sourceDetail": "srt",
+  "kind": "route.add",
+  "title": "New train: Special Express 9 (Bangkok (Krung Thep Aphiwat) – Chiang Mai)",
+  "summary": "Route \"srt_Special_Express_9\" appeared in tonight's scrape and is withheld from the map until approved. Via: Don Muang - Rangsit - Ayutthaya - Lopburi - Nakhon Sawan - Phitsanulok - Sila At - Den Chai - Nakhon Lampang - Khun Tan - Lamphun",
+  "target": {
+    "routeKey": "srt_Special_Express_9",
+    "agencyId": "SRT",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "Special Express 9",
+    "returnTrain": "Special Express 10",
+    "origin": "Bangkok (Krung Thep Aphiwat)",
+    "destination": "Chiang Mai",
+    "operator": "SRT",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "srt_Special_Express_9"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
