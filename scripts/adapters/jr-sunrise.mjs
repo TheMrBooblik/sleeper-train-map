@@ -6,13 +6,15 @@
 // pages and replaces what it can confirm:
 //
 //   1. JR West's Sunrise pages (params.guidePages): the berth charge per room
-//      type, and the links to each train's timetable page — so a timetable id
-//      JR renumbers at a timetable change is found again rather than going stale.
-//   2. Each train timetable page (params.timetableUrlTemplate, for the seed ids
-//      plus every id the guide links), dated params.dateOffsetDays ahead.
-//      A page stands for a train only when it lists every one of that train's
-//      stops in order with plausible times (scripts/lib/jr-sunrise.mjs); a train
-//      no page validates keeps the baseline for all of its stops.
+//      type.
+//   2. JR West's own Sunrise timetable PDF (params.timetablePdf, the file the
+//      guide page links as 時刻表), read as positioned lines
+//      (scripts/lib/pdf-lines.mjs). A column stands for a train only when it
+//      lists every one of that train's stops in order with plausible times
+//      (scripts/lib/jr-sunrise.mjs); a train no column validates keeps the
+//      baseline for all of its stops. JR West's per-train timetable pages were
+//      the first source tried: no JR page links to them, and the ids seeded by
+//      hand turned out to be a Nagoya local and the Yamanote line.
 //
 // Never fatal for the map: the trains file is always written, from the baseline
 // where the pages said nothing usable. When NOTHING could be confirmed the run
@@ -29,18 +31,15 @@ import path from "node:path";
 import {
   acceptRoomCharges,
   buildSunriseTrains,
-  datePlusDays,
-  discoverTimetableIds,
-  expandUrlTemplate,
   makeStationMatcher,
   parseRoomCharges,
-  timetableFromPage,
+  timetablesFromPdf,
   validateConfig,
 } from "../lib/jr-sunrise.mjs";
+import { pdfLines } from "../lib/pdf-lines.mjs";
 
 const FETCH_TIMEOUT_MS = 20_000;
 const REQUEST_SPACING_MS = 800;
-const MAX_TIMETABLE_PAGES = 12;
 
 // Identify the client, and ask for Japanese first: JR West serves the
 // timetable in Japanese, which is the spelling the station aliases carry.
@@ -83,6 +82,17 @@ export async function fetchPage(url, fetchImpl = fetch) {
   }
 }
 
+/** The timetable PDF as bytes, or { error } — never thrown. */
+export async function fetchPdf(url, fetchImpl = fetch) {
+  try {
+    const res = await fetchImpl(url, { headers: HEADERS, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    if (!res.ok) return { error: `HTTP ${res.status}` };
+    return { bytes: new Uint8Array(await res.arrayBuffer()) };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
 export async function run(entry, ctx) {
   const params = entry.params ?? {};
   const configPath = path.join(ctx.rootDir, params.configPath ?? "data/sources/jr-sunrise.json");
@@ -93,8 +103,9 @@ export async function run(entry, ctx) {
   }
 
   const fetchImpl = ctx.fetch ?? fetch;
+  // Injected like fetch, so a test can hand over positioned lines without a PDF.
+  const readPdf = ctx.readPdf ?? pdfLines;
   const spacing = params.requestSpacingMs ?? REQUEST_SPACING_MS;
-  const travelDate = datePlusDays(ctx.today, params.dateOffsetDays ?? 3);
   const log = (msg) => console.log(`[scrape] jr-sunrise: ${msg}`);
 
   // 1. The guide pages: berth charges + links to the timetable pages.
@@ -106,41 +117,29 @@ export async function run(entry, ctx) {
     await sleep(spacing);
   }
 
-  // 2. Timetable pages: the seeded ids plus every id a guide page links to.
-  const ids = [
-    ...new Set([...(params.seedTimetableIds ?? []), ...guides.flatMap((g) => discoverTimetableIds(g.html))]),
-  ].slice(0, MAX_TIMETABLE_PAGES);
+  // 2. The timetable PDF: one column per train, validated against the baseline.
   const matchStation = makeStationMatcher(config.stations);
-  const timetables = {};
-  const attempts = Object.fromEntries(config.trains.map((t) => [t.lineName, []]));
-  for (const id of ids) {
-    if (config.trains.every((t) => timetables[t.lineName])) break;
-    const url = expandUrlTemplate(params.timetableUrlTemplate, { id, date: travelDate });
-    const page = await fetchPage(url, fetchImpl);
-    await sleep(spacing);
-    if (!page.html) {
-      log(`${url} → no page (${page.error ?? `HTTP ${page.status}`})`);
-      continue;
-    }
-    for (const train of config.trains) {
-      if (timetables[train.lineName]) continue;
-      const result = timetableFromPage(page.html, train, matchStation);
-      if (result.stops) {
-        timetables[train.lineName] = { stops: result.stops, url };
-      } else {
-        attempts[train.lineName].push(`${id}: ${result.problems.slice(0, 3).join(", ")}`);
+  let timetables = {};
+  const pdfUrl = params.timetablePdf;
+  const pdf = pdfUrl ? await fetchPdf(pdfUrl, fetchImpl) : { error: "no params.timetablePdf" };
+  if (pdf.bytes) {
+    try {
+      const read = timetablesFromPdf(await readPdf(pdf.bytes), config, matchStation);
+      log(`${pdfUrl} → ${pdf.bytes.length} bytes, ${read.columns} timetable column(s)`);
+      timetables = Object.fromEntries(
+        Object.entries(read.timetables).map(([name, t]) => [name, { stops: t.stops, url: pdfUrl }]),
+      );
+      for (const [name, why] of Object.entries(read.problems)) {
+        console.warn(`[scrape] jr-sunrise: ${name}: no PDF column validated — keeping the baseline (${why.join(" | ")})`);
       }
+    } catch (err) {
+      console.warn(`[scrape] jr-sunrise: ${pdfUrl} could not be read as a PDF (${err.message}) — keeping the baseline`);
     }
+  } else {
+    console.warn(`[scrape] jr-sunrise: no timetable PDF (${pdf.error}) — keeping the baseline`);
   }
   for (const train of config.trains) {
-    if (timetables[train.lineName]) {
-      log(`${train.lineName}: timetable from ${timetables[train.lineName].url}`);
-    } else {
-      console.warn(
-        `[scrape] jr-sunrise: ${train.lineName}: no page validated — keeping the baseline` +
-          (attempts[train.lineName].length ? ` (${attempts[train.lineName].join(" | ")})` : ` (${ids.length} page(s) tried)`),
-      );
-    }
+    if (timetables[train.lineName]) log(`${train.lineName}: timetable from the PDF`);
   }
 
   // 3. Berth charges, from whichever guide page prices the rooms.
@@ -162,7 +161,6 @@ export async function run(entry, ctx) {
   const confirmed = Object.keys(timetables).length;
   ctx.write(entry.output, {
     uploadedAt: ctx.today,
-    travelDate,
     checks: {
       timetables: Object.fromEntries(
         config.trains.map((t) => [t.lineName, timetables[t.lineName]?.url ?? "baseline"]),
@@ -171,11 +169,11 @@ export async function run(entry, ctx) {
     },
     trains,
   });
-  log(`stored ${Object.keys(trains).length} trains (${confirmed} timetable(s) confirmed for ${travelDate})`);
+  log(`stored ${Object.keys(trains).length} trains (${confirmed} timetable(s) confirmed from the PDF)`);
 
   if (!confirmed && !rooms.live.length) {
     throw new Error(
-      "wrote the baseline — no JR page confirmed a timetable or a berth charge tonight " +
+      "wrote the baseline — no JR source confirmed a timetable or a berth charge tonight " +
         "(run the 'Probe JR Sunrise source' workflow to see what the pages returned)",
     );
   }
