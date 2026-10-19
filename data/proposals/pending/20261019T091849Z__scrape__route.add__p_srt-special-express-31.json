@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_srt-special-express-31",
+  "createdAt": "2026-10-19T09:18:49.194Z",
+  "source": "scrape",
+  "sourceDetail": "srt",
+  "kind": "route.add",
+  "title": "New train: Special Express 31 (Bangkok (Krung Thep Aphiwat) – Hat Yai Junction)",
+  "summary": "Route \"srt_Special_Express_31\" appeared in tonight's scrape and is withheld from the map until approved. Via: Bang Bamru - Sala Ya - Nakhon Pathom - Ban Pong - Ratchaburi - Phetchaburi - Hua Hin - Prachuap Khiri Khan - Chumphon - Surat Thani - Thung Song Junction - Phatthalung",
+  "target": {
+    "routeKey": "srt_Special_Express_31",
+    "agencyId": "SRT",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "Special Express 31",
+    "returnTrain": "Special Express 32",
+    "origin": "Bangkok (Krung Thep Aphiwat)",
+    "destination": "Hat Yai Junction",
+    "operator": "SRT",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "srt_Special_Express_31"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
