@@ -1,10 +1,10 @@
 {
   "v": 1,
-  "updatedAt": "2026-10-19T09:18:49.188Z",
+  "updatedAt": "2026-10-20T09:26:45.520Z",
   "routes": {
     "3": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Split",
@@ -19,7 +19,7 @@
     },
     "6": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Humenné",
@@ -34,7 +34,7 @@
     },
     "7": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Chop",
@@ -49,7 +49,7 @@
     },
     "8": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Praha hl.n.",
@@ -64,7 +64,7 @@
     },
     "9": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Praha hl.n.",
@@ -79,7 +79,7 @@
     },
     "10": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kraków Gł.",
@@ -94,7 +94,7 @@
     },
     "11": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Iași",
@@ -109,7 +109,7 @@
     },
     "12": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "București Nord",
@@ -124,7 +124,7 @@
     },
     "13": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Suceava Nord",
@@ -139,7 +139,7 @@
     },
     "14": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "București Nord",
@@ -154,7 +154,7 @@
     },
     "15": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Iași",
@@ -169,7 +169,7 @@
     },
     "16": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "București Nord",
@@ -184,7 +184,7 @@
     },
     "19": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "București Nord",
@@ -199,7 +199,7 @@
     },
     "20": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "București Nord",
@@ -214,7 +214,7 @@
     },
     "21": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "București Nord",
@@ -229,7 +229,7 @@
     },
     "22": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Chişinău",
@@ -244,7 +244,7 @@
     },
     "23": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "București Nord",
@@ -259,7 +259,7 @@
     },
     "24": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "București Nord",
@@ -274,7 +274,7 @@
     },
     "25": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Satu Mare",
@@ -289,7 +289,7 @@
     },
     "26": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Constanța",
@@ -304,7 +304,7 @@
     },
     "27": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "İstanbul Halkalı",
@@ -319,7 +319,7 @@
     },
     "28": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "İstanbul Halkalı",
@@ -334,7 +334,7 @@
     },
     "30": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Ankara",
@@ -349,7 +349,7 @@
     },
     "31": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Ankara",
@@ -364,7 +364,7 @@
     },
     "37": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "London Euston",
@@ -379,7 +379,7 @@
     },
     "38": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "London Euston",
@@ -394,7 +394,7 @@
     },
     "39": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "London Euston",
@@ -409,7 +409,7 @@
     },
     "40": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "London Euston",
@@ -424,7 +424,7 @@
     },
     "41": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "London Euston",
@@ -439,7 +439,7 @@
     },
     "42": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "London Paddington",
@@ -454,7 +454,7 @@
     },
     "48": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Osijek",
@@ -469,7 +469,7 @@
     },
     "59": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "București Nord",
@@ -484,7 +484,7 @@
     },
     "60": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Wien Westbf",
@@ -499,7 +499,7 @@
     },
     "62": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Stockholm C",
@@ -514,7 +514,7 @@
     },
     "63": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Stockholm C",
@@ -529,7 +529,7 @@
     },
     "65": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Oslo S",
@@ -544,7 +544,7 @@
     },
     "67": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Brașov",
@@ -559,7 +559,7 @@
     },
     "68": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Rovaniemi",
@@ -574,7 +574,7 @@
     },
     "69": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Oslo S",
@@ -589,7 +589,7 @@
     },
     "70": {
       "firstSeen": "2026-07-14",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": false,
       "fingerprint": {
         "o": "Oslo S",
@@ -604,7 +604,7 @@
     },
     "71": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Trondheim S",
@@ -619,7 +619,7 @@
     },
     "72": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Helsinki / Helsingfors",
@@ -634,7 +634,7 @@
     },
     "73": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Innsbruck Hbf",
@@ -649,22 +649,22 @@
     },
     "77": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Stockholm C",
         "d": "Berlin Gesundbrunnen",
-        "days0": "2026: Mon, Tue, Wed, Thu, Fri, Sun",
+        "days0": "2026: Tue, Wed, Thu, Fri, Sun",
         "days1": "2026: Mon, Tue, Wed, Thu, Fri, Sun",
         "agency": "ST",
         "trains": "300|301",
         "stopsHash": "926203ef"
       },
-      "lastChanged": "2026-10-17"
+      "lastChanged": "2026-10-20"
     },
     "78": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Stockholm C",
@@ -679,7 +679,7 @@
     },
     "79": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Malmö C",
@@ -694,7 +694,7 @@
     },
     "80": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Malmö C",
@@ -709,7 +709,7 @@
     },
     "81": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Umeå C",
@@ -739,7 +739,7 @@
     },
     "86": {
       "firstSeen": "2026-09-08",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "lastChanged": "2026-09-08",
       "approved": false,
       "fingerprint": {
@@ -754,7 +754,7 @@
     },
     "90": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Rovaniemi",
@@ -769,7 +769,7 @@
     },
     "91": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Rovaniemi",
@@ -784,7 +784,7 @@
     },
     "96": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-15",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Lecce",
@@ -799,7 +799,7 @@
     },
     "98": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Helsinki / Helsingfors",
@@ -844,7 +844,7 @@
     },
     "102": {
       "firstSeen": "2026-10-01",
-      "lastSeen": "2026-10-16",
+      "lastSeen": "2026-10-20",
       "lastChanged": "2026-10-01",
       "approved": false,
       "fingerprint": {
@@ -874,7 +874,7 @@
     },
     "106": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-15",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Bolzano / Bozen",
@@ -889,7 +889,7 @@
     },
     "107": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Paris Austerlitz",
@@ -904,7 +904,7 @@
     },
     "108": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Paris Austerlitz",
@@ -919,7 +919,7 @@
     },
     "109": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Albi Ville",
@@ -934,7 +934,7 @@
     },
     "110": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Paris Austerlitz",
@@ -949,7 +949,7 @@
     },
     "111": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Tarbes",
@@ -964,7 +964,7 @@
     },
     "112": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Latour-de-Carol / La Tor de Querol",
@@ -996,7 +996,7 @@
     },
     "114": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Villach Hbf",
@@ -1011,7 +1011,7 @@
     },
     "115": {
       "firstSeen": "2026-09-27",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "lastChanged": "2026-09-27",
       "approved": false,
       "fingerprint": {
@@ -1026,7 +1026,7 @@
     },
     "119": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Rodez",
@@ -1041,7 +1041,7 @@
     },
     "121": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Warszawa Wschodnia",
@@ -1056,7 +1056,7 @@
     },
     "122": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Zakopane",
@@ -1071,7 +1071,7 @@
     },
     "123": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Humenné",
@@ -1086,7 +1086,7 @@
     },
     "124": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Praha hl.n.",
@@ -1101,7 +1101,7 @@
     },
     "125": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kraków Gł.",
@@ -1116,7 +1116,7 @@
     },
     "126": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Przemyśl Gł.",
@@ -1131,7 +1131,7 @@
     },
     "127": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Warszawa Wschodnia",
@@ -1146,7 +1146,7 @@
     },
     "128": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Chelm",
@@ -1161,7 +1161,7 @@
     },
     "129": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Zakopane",
@@ -1176,7 +1176,7 @@
     },
     "130": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Zemun",
@@ -1191,7 +1191,7 @@
     },
     "131": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Varna",
@@ -1206,7 +1206,7 @@
     },
     "133": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Varna",
@@ -1221,7 +1221,7 @@
     },
     "134": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Burgas",
@@ -1236,7 +1236,7 @@
     },
     "135": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Silistra",
@@ -1251,7 +1251,7 @@
     },
     "136": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Bielsko-Biała Główna",
@@ -1266,7 +1266,7 @@
     },
     "137": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Bielsko-Biała Gł.",
@@ -1281,7 +1281,7 @@
     },
     "138": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kraków Gł.",
@@ -1296,7 +1296,7 @@
     },
     "140": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1311,7 +1311,7 @@
     },
     "141": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Lozova",
@@ -1326,7 +1326,7 @@
     },
     "142": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Dobrich",
@@ -1341,7 +1341,7 @@
     },
     "147": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Odesa Holovna",
@@ -1356,7 +1356,7 @@
     },
     "149": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Dnipro Holovny",
@@ -1371,7 +1371,7 @@
     },
     "150": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kharkiv",
@@ -1386,7 +1386,7 @@
     },
     "151": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kharkiv",
@@ -1401,7 +1401,7 @@
     },
     "152": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1416,7 +1416,7 @@
     },
     "153": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1431,7 +1431,7 @@
     },
     "154": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kharkiv",
@@ -1446,7 +1446,7 @@
     },
     "155": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Przemyśl Gł.",
@@ -1461,7 +1461,7 @@
     },
     "156": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kharkiv",
@@ -1476,7 +1476,7 @@
     },
     "158": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Lozova",
@@ -1491,7 +1491,7 @@
     },
     "161": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kharkiv",
@@ -1506,7 +1506,7 @@
     },
     "162": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kharkiv",
@@ -1521,7 +1521,7 @@
     },
     "164": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kharkiv",
@@ -1536,7 +1536,7 @@
     },
     "166": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Ivano-Frankivsk",
@@ -1551,7 +1551,7 @@
     },
     "167": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Dnipro Holovny",
@@ -1566,7 +1566,7 @@
     },
     "168": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1581,7 +1581,7 @@
     },
     "170": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Dnipro Holovny",
@@ -1596,7 +1596,7 @@
     },
     "172": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1611,7 +1611,7 @@
     },
     "173": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1626,7 +1626,7 @@
     },
     "174": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1641,7 +1641,7 @@
     },
     "175": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Ivano-Frankivsk",
@@ -1656,7 +1656,7 @@
     },
     "177": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Sumy",
@@ -1671,7 +1671,7 @@
     },
     "178": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Ivano-Frankivsk",
@@ -1686,7 +1686,7 @@
     },
     "180": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1701,7 +1701,7 @@
     },
     "181": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1716,7 +1716,7 @@
     },
     "182": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1731,7 +1731,7 @@
     },
     "183": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1746,7 +1746,7 @@
     },
     "184": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kharkiv",
@@ -1761,7 +1761,7 @@
     },
     "185": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1776,7 +1776,7 @@
     },
     "186": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1791,7 +1791,7 @@
     },
     "189": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1806,7 +1806,7 @@
     },
     "190": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1821,7 +1821,7 @@
     },
     "191": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Lviv",
@@ -1836,7 +1836,7 @@
     },
     "195": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1851,7 +1851,7 @@
     },
     "196": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Mukacheve",
@@ -1866,7 +1866,7 @@
     },
     "197": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1881,7 +1881,7 @@
     },
     "198": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1896,7 +1896,7 @@
     },
     "199": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1911,7 +1911,7 @@
     },
     "200": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Mykolaiv",
@@ -1926,7 +1926,7 @@
     },
     "201": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Chernivtsi",
@@ -1941,7 +1941,7 @@
     },
     "203": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -1956,7 +1956,7 @@
     },
     "207": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Dnipro Holovny",
@@ -1971,7 +1971,7 @@
     },
     "208": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kharkiv",
@@ -1986,7 +1986,7 @@
     },
     "209": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kovel",
@@ -2001,7 +2001,7 @@
     },
     "210": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Odesa Holovna",
@@ -2016,7 +2016,7 @@
     },
     "211": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Lviv",
@@ -2031,7 +2031,7 @@
     },
     "212": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Lviv",
@@ -2046,7 +2046,7 @@
     },
     "213": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Mykolaiv",
@@ -2061,7 +2061,7 @@
     },
     "218": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Uzhhorod",
@@ -2076,7 +2076,7 @@
     },
     "219": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Chernivtsi",
@@ -2091,7 +2091,7 @@
     },
     "220": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Uzhhorod",
@@ -2106,7 +2106,7 @@
     },
     "221": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Yasinia",
@@ -2121,7 +2121,7 @@
     },
     "222": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kovel",
@@ -2136,7 +2136,7 @@
     },
     "223": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Budapest Keleti",
@@ -2151,7 +2151,7 @@
     },
     "224": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Budapest Keleti",
@@ -2166,7 +2166,7 @@
     },
     "225": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Budapest Keleti",
@@ -2181,7 +2181,7 @@
     },
     "227": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kyiv Pasazhyrskyi",
@@ -2196,37 +2196,37 @@
     },
     "237": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Praha hl.n.",
         "d": "Bruxelles Midi",
         "days0": "2026/10/20-12/10: Tue, Thu, Sun",
-        "days1": "2026/10/19-12/11: Mon, Wed, Fri",
+        "days1": "2026/10/21-12/11: Mon, Wed, Fri",
         "agency": "ES",
         "trains": "452|453",
-        "stopsHash": "b8076700"
+        "stopsHash": "a8b6ca1b"
       },
-      "lastChanged": "2026-10-19"
+      "lastChanged": "2026-10-20"
     },
     "238": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Berlin-Spandau",
         "d": "Paris Gare du Nord",
-        "days0": "2026/10/19-12/11: Mon, Wed, Fri",
+        "days0": "2026/10/21-12/11: Mon, Wed, Fri",
         "days1": "2026/10/20-12/10: Tue, Thu, Sun",
         "agency": "ES",
         "trains": "474|475",
         "stopsHash": "46951d0f"
       },
-      "lastChanged": "2026-10-19"
+      "lastChanged": "2026-10-20"
     },
     "239": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Amsterdam Centraal",
@@ -2241,7 +2241,7 @@
     },
     "240": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Bruxelles Midi / Brussel Zuid",
@@ -2256,7 +2256,7 @@
     },
     "243": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Ankara",
@@ -2271,7 +2271,7 @@
     },
     "245": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Ankara",
@@ -2286,7 +2286,7 @@
     },
     "246": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Ankara",
@@ -2301,7 +2301,7 @@
     },
     "247": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Ankara",
@@ -2316,7 +2316,7 @@
     },
     "248": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "İzmir Basmane",
@@ -2331,7 +2331,7 @@
     },
     "249": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Bistrița Nord",
@@ -2346,7 +2346,7 @@
     },
     "250": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "București Nord",
@@ -2361,7 +2361,7 @@
     },
     "258": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Przemyśl Gł.",
@@ -2376,7 +2376,7 @@
     },
     "259": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kryvyi Rih",
@@ -2391,7 +2391,7 @@
     },
     "261": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Przemyśl Gł.",
@@ -2406,7 +2406,7 @@
     },
     "262": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Paris Austerlitz",
@@ -2421,7 +2421,7 @@
     },
     "263": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Solotvyno",
@@ -2436,7 +2436,7 @@
     },
     "264": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Toulouse Matabiau",
@@ -2451,7 +2451,7 @@
     },
     "265": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Bohumín",
@@ -2466,7 +2466,7 @@
     },
     "266": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Bohumín",
@@ -2481,7 +2481,7 @@
     },
     "267": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kraków Gł.",
@@ -2496,7 +2496,7 @@
     },
     "268": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Kraków Gł.",
@@ -2511,7 +2511,7 @@
     },
     "269": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Dnipro Holovny",
@@ -2543,23 +2543,23 @@
     },
     "es_400": {
       "firstSeen": "2026-08-22",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "autoApproved": "2026-08-22",
       "fingerprint": {
         "o": "Milano Porta Garibaldi",
         "d": "Bruxelles Midi",
         "days0": "2026/10/21-12/11: Wed, Fri, Sun",
-        "days1": "2026/10/19-12/10: Mon, Thu, Sat",
+        "days1": "2026/10/22-12/10: Mon, Thu, Sat",
         "agency": "ES",
         "trains": "400|401",
-        "stopsHash": "b24d72cb"
+        "stopsHash": "058c4de7"
       },
-      "lastChanged": "2026-10-19"
+      "lastChanged": "2026-10-20"
     },
     "cfr_IR-N_12820": {
       "firstSeen": "2026-09-18",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "lastChanged": "2026-09-18",
       "approved": false,
       "fingerprint": {
@@ -2574,7 +2574,7 @@
     },
     "cfr_IR-N_1947": {
       "firstSeen": "2026-09-18",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "lastChanged": "2026-09-18",
       "approved": false,
       "fingerprint": {
@@ -2589,7 +2589,7 @@
     },
     "cfr_IR-N_1960": {
       "firstSeen": "2026-09-18",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "lastChanged": "2026-09-18",
       "approved": false,
       "fingerprint": {
@@ -2604,7 +2604,7 @@
     },
     "cfr_IR-N_1990": {
       "firstSeen": "2026-09-18",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "lastChanged": "2026-09-18",
       "approved": false,
       "fingerprint": {
@@ -2619,7 +2619,7 @@
     },
     "trafiklab_93": {
       "firstSeen": "2026-09-27",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "lastChanged": "2026-09-27",
       "approved": false,
       "fingerprint": {
@@ -2632,85 +2632,9 @@
         "stopsHash": "c6a558b1"
       }
     },
-    "nj_standalone_NJ_457": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Berlin Hbf",
-        "d": "Graz Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 457|NJ 456",
-        "stopsHash": "b3932e1d"
-      },
-      "lastChanged": "2026-10-17"
-    },
-    "nj_standalone_NJ_295": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "München Hbf",
-        "d": "Roma Tiburtina",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 295|NJ 294",
-        "stopsHash": "fcc3e009"
-      },
-      "lastChanged": "2026-09-20"
-    },
-    "nj_standalone_NJ_237": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Stuttgart Hbf",
-        "d": "Venezia Santa Lucia",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 237|NJ 236",
-        "stopsHash": "88cfe4f1"
-      },
-      "lastChanged": "2026-10-08"
-    },
-    "nj_standalone_NJ_239": {
-      "firstSeen": "2026-09-08",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-09-20",
-      "approved": true,
-      "autoApproved": "2026-09-08",
-      "fingerprint": {
-        "o": "München Hbf",
-        "d": "Bologna Centrale",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 239|NJ 238",
-        "stopsHash": "3d11eb63"
-      }
-    },
-    "nj_standalone_NJ_40421": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Amsterdam Centraal",
-        "d": "Wien Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 40421|NJ 40490",
-        "stopsHash": "79a00b24"
-      },
-      "lastChanged": "2026-10-19"
-    },
     "nj_standalone_NJ_40491": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Hamburg Altona",
@@ -2725,7 +2649,7 @@
     },
     "nj_standalone_NJ_449": {
       "firstSeen": "2026-09-08",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "lastChanged": "2026-10-16",
       "approved": true,
       "autoApproved": "2026-09-08",
@@ -2739,9 +2663,131 @@
         "stopsHash": "2319421e"
       }
     },
+    "nj_standalone_NJ_295": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "München Hbf",
+        "d": "Roma Tiburtina",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 295|NJ 294",
+        "stopsHash": "fcc3e009"
+      },
+      "lastChanged": "2026-09-20"
+    },
+    "nj_standalone_NJ_457": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Berlin Hbf",
+        "d": "Graz Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 457|NJ 456",
+        "stopsHash": "b3932e1d"
+      },
+      "lastChanged": "2026-10-17"
+    },
+    "nj_standalone_NJ_237": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Stuttgart Hbf",
+        "d": "Venezia Santa Lucia",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 237|NJ 236",
+        "stopsHash": "9db7db35"
+      },
+      "lastChanged": "2026-10-20"
+    },
+    "nj_standalone_NJ_40421": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Amsterdam Centraal",
+        "d": "Wien Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 40421|NJ 40490",
+        "stopsHash": "beb71fa3"
+      },
+      "lastChanged": "2026-10-20"
+    },
+    "nj_standalone_NJ_421": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Amsterdam Centraal",
+        "d": "Innsbruck Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 421|NJ 420",
+        "stopsHash": "c26caecd"
+      },
+      "lastChanged": "2026-10-20"
+    },
+    "nj_standalone_NJ_429": {
+      "firstSeen": "2026-09-08",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-16",
+      "approved": true,
+      "autoApproved": "2026-09-08",
+      "fingerprint": {
+        "o": "Amsterdam Centraal",
+        "d": "Innsbruck Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 429",
+        "stopsHash": "cfc1780f"
+      }
+    },
+    "nj_standalone_NJ_239": {
+      "firstSeen": "2026-09-08",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-09-20",
+      "approved": true,
+      "autoApproved": "2026-09-08",
+      "fingerprint": {
+        "o": "München Hbf",
+        "d": "Bologna Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 239|NJ 238",
+        "stopsHash": "3d11eb63"
+      }
+    },
+    "nj_standalone_NJ_469": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Bruxelles Midi",
+        "d": "Wien Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 469|NJ 448",
+        "stopsHash": "40f2cf5a"
+      },
+      "lastChanged": "2026-10-16"
+    },
     "nj_standalone_NJ_491": {
       "firstSeen": "2026-09-08",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "lastChanged": "2026-10-11",
       "approved": true,
       "autoApproved": "2026-09-08",
@@ -2757,7 +2803,7 @@
     },
     "nj_standalone_NJ_493": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Hamburg Altona",
@@ -2770,55 +2816,40 @@
       },
       "lastChanged": "2026-10-17"
     },
-    "nj_standalone_NJ_469": {
+    "nj_standalone_NJ_470": {
       "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
-        "o": "Bruxelles Midi",
-        "d": "Wien Hbf",
+        "o": "Zürich HB",
+        "d": "Hamburg Altona",
         "days0": null,
         "days1": null,
         "agency": "ÖBB",
-        "trains": "NJ 469|NJ 448",
-        "stopsHash": "40f2cf5a"
+        "trains": "NJ 470|NJ 471",
+        "stopsHash": "8bfd973e"
       },
-      "lastChanged": "2026-10-16"
+      "lastChanged": "2026-10-20"
     },
-    "nj_standalone_NJ_421": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
+    "nj_standalone_NJ_403": {
+      "firstSeen": "2026-06-16",
+      "lastSeen": "2026-10-20",
       "approved": true,
+      "autoApproved": "2026-06-16",
       "fingerprint": {
         "o": "Amsterdam Centraal",
-        "d": "Innsbruck Hbf",
+        "d": "Zürich HB",
         "days0": null,
         "days1": null,
         "agency": "ÖBB",
-        "trains": "NJ 421|NJ 420",
-        "stopsHash": "a10758ce"
+        "trains": "NJ 403|NJ 402",
+        "stopsHash": "fd9b4d7e"
       },
       "lastChanged": "2026-10-19"
     },
-    "nj_standalone_NJ_429": {
-      "firstSeen": "2026-09-08",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-16",
-      "approved": true,
-      "autoApproved": "2026-09-08",
-      "fingerprint": {
-        "o": "Amsterdam Centraal",
-        "d": "Innsbruck Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 429",
-        "stopsHash": "cfc1780f"
-      }
-    },
     "nj_standalone_NJ_408": {
       "firstSeen": "2026-06-12",
-      "lastSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
       "approved": true,
       "fingerprint": {
         "o": "Berlin Hbf",
@@ -2831,6 +2862,1992 @@
       },
       "autoApproved": "2026-06-13",
       "lastChanged": "2026-10-11"
+    },
+    "nj_standalone_NJ_13467": {
+      "firstSeen": "2026-09-08",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-14",
+      "approved": true,
+      "autoApproved": "2026-09-08",
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Wien Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 13467",
+        "stopsHash": "cd8317c5"
+      }
+    },
+    "nj_standalone_NJ_1237": {
+      "firstSeen": "2026-09-16",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-15",
+      "approved": true,
+      "autoApproved": "2026-09-16",
+      "fingerprint": {
+        "o": "Wien Hbf",
+        "d": "Venezia Santa Lucia",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 1237|NJ 1236",
+        "stopsHash": "27e5f8c9"
+      }
+    },
+    "nj_standalone_NJ_247": {
+      "firstSeen": "2026-09-12",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-09-19",
+      "approved": true,
+      "autoApproved": "2026-09-12",
+      "fingerprint": {
+        "o": "Wien Hbf",
+        "d": "Bologna Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 247|NJ 40238",
+        "stopsHash": "50e7f28f"
+      }
+    },
+    "nj_standalone_NJ_40466": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Wien Hbf",
+        "d": "Venezia Santa Lucia",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 40466|NJ 40236",
+        "stopsHash": "49195639"
+      },
+      "autoApproved": "2026-06-18",
+      "lastChanged": "2026-10-20"
+    },
+    "nj_standalone_NJ_446": {
+      "firstSeen": "2026-09-08",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-09-08",
+      "fingerprint": {
+        "o": "Wien Hbf (Autoreisezuganlage)",
+        "d": "Bregenz Bahnhof",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 446|NJ 447",
+        "stopsHash": "51b7e6d8"
+      }
+    },
+    "nj_standalone_NJ_40294": {
+      "firstSeen": "2026-06-13",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-06-13",
+      "fingerprint": {
+        "o": "Roma Tiburtina",
+        "d": "Wien Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 40294|NJ 40233",
+        "stopsHash": "659489f5"
+      },
+      "lastChanged": "2026-10-18"
+    },
+    "nj_standalone_NJ_235": {
+      "firstSeen": "2026-09-08",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-12",
+      "approved": true,
+      "autoApproved": "2026-09-08",
+      "fingerprint": {
+        "o": "Wien Hbf",
+        "d": "Roma Tiburtina",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 235",
+        "stopsHash": "c80706c2"
+      }
+    },
+    "nj_standalone_NJ_13465": {
+      "firstSeen": "2026-09-08",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-16",
+      "approved": true,
+      "autoApproved": "2026-09-08",
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Graz Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 13465",
+        "stopsHash": "e5276538"
+      }
+    },
+    "nj_standalone_NJ_465": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Graz Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 465|NJ 464",
+        "stopsHash": "26037558"
+      },
+      "autoApproved": "2026-06-18",
+      "lastChanged": "2026-10-20"
+    },
+    "nj_standalone_NJ_467": {
+      "firstSeen": "2026-06-13",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-06-13",
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Wien Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 467|NJ 466",
+        "stopsHash": "e1f8f4e1"
+      },
+      "lastChanged": "2026-10-17"
+    },
+    "nj_standalone_NJ_13466": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Feldkirch Bahnhof",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 13466",
+        "stopsHash": "32d875ce"
+      },
+      "lastChanged": "2026-06-10"
+    },
+    "nj_standalone_NJ_11446": {
+      "firstSeen": "2026-09-08",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-09-08",
+      "fingerprint": {
+        "o": "Wien Hbf (Autoreisezuganlage)",
+        "d": "Bregenz Bahnhof",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 11446|NJ 11447",
+        "stopsHash": "bf9dc23f"
+      }
+    },
+    "nj_standalone_NJ_19946": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Wien Hbf (Autoreisezuganlage)",
+        "d": "Bregenz Bahnhof",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 19946|NJ 19947",
+        "stopsHash": "51b7e6d8"
+      },
+      "lastChanged": "2026-10-16"
+    },
+    "nj_standalone_NJ_13464": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Feldkirch Bahnhof",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "NJ 13464",
+        "stopsHash": "32d875ce"
+      },
+      "lastChanged": "2026-06-10"
+    },
+    "nj_standalone_EN_40462": {
+      "firstSeen": "2026-10-13",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-17",
+      "approved": true,
+      "autoApproved": "2026-10-13",
+      "fingerprint": {
+        "o": "Budapest-Keleti",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "MÁV",
+        "trains": "EN 40462|EN 40467",
+        "stopsHash": "c1d2a981"
+      }
+    },
+    "nj_standalone_EN_40458": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Praha hl.n.",
+        "d": "Zürich HB",
+        "days0": null,
+        "days1": null,
+        "agency": "ČD",
+        "trains": "EN 40458|EN 40459",
+        "stopsHash": "3ed00f21"
+      },
+      "autoApproved": "2026-06-13",
+      "lastChanged": "2026-10-17"
+    },
+    "nj_standalone_EN_1277": {
+      "firstSeen": "2026-10-13",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-16",
+      "approved": true,
+      "autoApproved": "2026-10-13",
+      "fingerprint": {
+        "o": "Warszawa Wschodnia",
+        "d": "Rijeka",
+        "days0": null,
+        "days1": null,
+        "agency": "PKP",
+        "trains": "EN 1277|EN 1276",
+        "stopsHash": "11dc5ab7"
+      }
+    },
+    "nj_standalone_EN_40465": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zürich HB",
+        "d": "Zagreb Glavni Kolod.",
+        "days0": null,
+        "days1": null,
+        "agency": "HŽPP",
+        "trains": "EN 40465",
+        "stopsHash": "842fcae4"
+      },
+      "lastChanged": "2026-10-20"
+    },
+    "nj_standalone_EN_40476": {
+      "firstSeen": "2026-06-11",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Budapest-Nyugati",
+        "d": "Berlin Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "MÁV",
+        "trains": "EN 40476|EN 40457",
+        "stopsHash": "c354d669"
+      },
+      "autoApproved": "2026-06-16",
+      "lastChanged": "2026-10-17"
+    },
+    "nj_standalone_EN_414": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Zagreb Glavni Kolod.",
+        "d": "Stuttgart Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "HŽPP",
+        "trains": "EN 414|EN 40237",
+        "stopsHash": "01456918"
+      },
+      "lastChanged": "2026-10-20"
+    },
+    "nj_standalone_EN_415": {
+      "firstSeen": "2026-10-09",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-09",
+      "approved": true,
+      "autoApproved": "2026-10-09",
+      "fingerprint": {
+        "o": "Salzburg Hbf",
+        "d": "Jesenice(SL)",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 415",
+        "stopsHash": "f390a9a8"
+      }
+    },
+    "nj_standalone_EN_477": {
+      "firstSeen": "2026-10-13",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-16",
+      "approved": true,
+      "autoApproved": "2026-10-13",
+      "fingerprint": {
+        "o": "Kuty",
+        "d": "Budapest-Nyugati",
+        "days0": null,
+        "days1": null,
+        "agency": "ÖBB",
+        "trains": "EN 477",
+        "stopsHash": "e63f33ca"
+      }
+    },
+    "nj_standalone_EN_50462": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Budapest-Keleti",
+        "d": "Stuttgart Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "MÁV",
+        "trains": "EN 50462|EN 50237",
+        "stopsHash": "5a162bf3"
+      },
+      "lastChanged": "2026-10-19"
+    },
+    "nj_standalone_EN_40407": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Warszawa Wschodnia",
+        "d": "München Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "PKP",
+        "trains": "EN 40407|EN 40406",
+        "stopsHash": "6e44b6b7"
+      },
+      "lastChanged": "2026-10-16"
+    },
+    "nj_standalone_EN_40417": {
+      "firstSeen": "2026-06-13",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-06-13",
+      "fingerprint": {
+        "o": "Przemyśl Gł.",
+        "d": "München Hbf",
+        "days0": null,
+        "days1": null,
+        "agency": "PKP",
+        "trains": "EN 40417|EN 40416",
+        "stopsHash": "125a19f3"
+      },
+      "lastChanged": "2026-10-16"
+    },
+    "es_400_from_20261214": {
+      "firstSeen": "2026-08-22",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-08-22",
+      "fingerprint": {
+        "o": "Milano Porta Garibaldi",
+        "d": "Bruxelles Midi",
+        "days0": "2026-12-14 – 2027-09-06: Mon, Wed, Fri",
+        "days1": "2026-12-13 – 2027-09-07: Tue, Thu, Sun",
+        "agency": "ES",
+        "trains": "400|401",
+        "stopsHash": "98f15393"
+      },
+      "lastChanged": "2026-09-13"
+    },
+    "cr_Z_21": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Beijing West(北京西)",
+        "d": "Lhasa(拉萨)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "Z 21|Z 22",
+        "stopsHash": "0f150920"
+      },
+      "lastChanged": "2026-06-10"
+    },
+    "cr_Z_264": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Guangzhou Baiyun(广州白云)",
+        "d": "Lhasa(拉萨)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "Z 264|Z 266",
+        "stopsHash": "c4bdbafc"
+      },
+      "lastChanged": "2026-06-10"
+    },
+    "cr_Z_13": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Shenyang North(沈阳北)",
+        "d": "Guangzhou Baiyun(广州白云)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "Z 13|Z 14",
+        "stopsHash": "459a93ba"
+      },
+      "lastChanged": "2026-06-10"
+    },
+    "cr_Z_501": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Beijing West(北京西)",
+        "d": "Sanya(三亚)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "Z 501|Z 502",
+        "stopsHash": "acfae2f2"
+      },
+      "lastChanged": "2026-07-16"
+    },
+    "cr_Z_111": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Haerbinxi(哈尔滨西)",
+        "d": "Haikou(海口)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "Z 111",
+        "stopsHash": "4acea004"
+      },
+      "lastChanged": "2026-07-16"
+    },
+    "cr_Z_281": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Baotou(包头)",
+        "d": "Hangzhou(杭州)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "Z 281|Z 282",
+        "stopsHash": "c2d0783f"
+      },
+      "lastChanged": "2026-07-16"
+    },
+    "cr_T_109": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Beijing(北京)",
+        "d": "Shanghai(上海)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "T 109|T 110",
+        "stopsHash": "8adfa860"
+      },
+      "lastChanged": "2026-07-16"
+    },
+    "cr_Z_179": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Beijing West(北京西)",
+        "d": "Urumqi(乌鲁木齐)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "Z 179|Z 180",
+        "stopsHash": "c173f953"
+      },
+      "lastChanged": "2026-10-16"
+    },
+    "cr_K_79": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Shanghai Songjiang(上海松江)",
+        "d": "Kunming(昆明)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 79|K 80",
+        "stopsHash": "b06c2365"
+      },
+      "lastChanged": "2026-10-08"
+    },
+    "cr_K_739": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Shanghai Songjiang(上海松江)",
+        "d": "Kunming(昆明)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 739|K 740",
+        "stopsHash": "088747e6"
+      },
+      "lastChanged": "2026-10-10"
+    },
+    "cr_Z_5": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Beijing West(北京西)",
+        "d": "Nanning(南宁)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "Z 5|Z 6",
+        "stopsHash": "92648d4a"
+      },
+      "lastChanged": "2026-06-10"
+    },
+    "cr_Z_285": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Beijing West(北京西)",
+        "d": "Nanning(南宁)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "Z 285|Z 286",
+        "stopsHash": "811d388b"
+      },
+      "lastChanged": "2026-07-16"
+    },
+    "cr_Z_183": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Shenzhendong(深圳东)",
+        "d": "Baotou(包头)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "Z 183|Z 184",
+        "stopsHash": "cf7cff2f"
+      },
+      "lastChanged": "2026-07-16"
+    },
+    "cr_Z_283": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Hangzhou(杭州)",
+        "d": "Baotou(包头)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "Z 283|Z 284",
+        "stopsHash": "91c8a6bf"
+      },
+      "lastChanged": "2026-07-16"
+    },
+    "cr_Z_15": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Beijing(北京)",
+        "d": "Harbin(哈尔滨)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "Z 15|Z 16",
+        "stopsHash": "0002b623"
+      },
+      "lastChanged": "2026-07-16"
+    },
+    "cr_Z_17": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Beijing(北京)",
+        "d": "Qiqihar(齐齐哈尔)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "Z 17|Z 18",
+        "stopsHash": "72a836c3"
+      },
+      "lastChanged": "2026-07-16"
+    },
+    "cr_Z_83": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Beijing(北京)",
+        "d": "Qiqihar(齐齐哈尔)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "Z 83|Z 84",
+        "stopsHash": "699a4de5"
+      },
+      "lastChanged": "2026-08-29"
+    },
+    "cr_Z_203": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Beijing(北京)",
+        "d": "Harbin(哈尔滨)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "Z 203|Z 204",
+        "stopsHash": "b072dc2b"
+      },
+      "lastChanged": "2026-07-16"
+    },
+    "cr_T_17": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Beijing(北京)",
+        "d": "Mudanjiang(牡丹江)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "T 17",
+        "stopsHash": "7741602c"
+      },
+      "lastChanged": "2026-07-16"
+    },
+    "cr_K_117": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Beijing West(北京西)",
+        "d": "Chengdu West(成都西)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 117|K 118",
+        "stopsHash": "0cb63ac1"
+      },
+      "lastChanged": "2026-07-16"
+    },
+    "cr_K_545": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Jiamusi(佳木斯)",
+        "d": "Chengdu West(成都西)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 545|K 546",
+        "stopsHash": "2d926d42"
+      },
+      "lastChanged": "2026-10-08"
+    },
+    "cr_K_1156": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Shanghai(上海)",
+        "d": "Chengdu West(成都西)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 1156|K 284",
+        "stopsHash": "54ca7612"
+      },
+      "lastChanged": "2026-07-16"
+    },
+    "cr_K_599": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Baotou(包头)",
+        "d": "Guangzhou Baiyun(广州白云)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "K 599",
+        "stopsHash": "8ff21ee2"
+      },
+      "lastChanged": "2026-09-18"
+    },
+    "cr_Z_165": {
+      "firstSeen": "2026-07-16",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-16",
+      "fingerprint": {
+        "o": "Shanghai(上海)",
+        "d": "Lhasa(拉萨)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "Z 165",
+        "stopsHash": "e03322da"
+      },
+      "lastChanged": "2026-07-16"
+    },
+    "cr_K_23": {
+      "firstSeen": "2026-06-25",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Beijing(北京)",
+        "d": "Ulaanbaatar",
+        "days0": "Mon, Wed, Fri, Sat",
+        "days1": "Mon, Wed, Fri, Sat",
+        "agency": "CR",
+        "trains": "K 23|K 24",
+        "stopsHash": "1063f5e5"
+      },
+      "lastChanged": "2026-10-08"
+    },
+    "cr_D_5": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing(北京)",
+        "d": "Shanghai(上海)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "D 5|D 6",
+        "stopsHash": "9c7a3f29"
+      },
+      "lastChanged": "2026-09-20"
+    },
+    "cr_D_7": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing(北京)",
+        "d": "Shanghai(上海)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "D 7|D 8",
+        "stopsHash": "4a996630"
+      },
+      "lastChanged": "2026-09-20"
+    },
+    "cr_D_9": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing South(北京南)",
+        "d": "Shanghainan(上海南)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "D 9|D 10",
+        "stopsHash": "cb728282"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_D_11": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing South(北京南)",
+        "d": "Hangzhou(杭州)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "D 11",
+        "stopsHash": "c58aa921"
+      },
+      "lastChanged": "2026-08-29"
+    },
+    "cr_D_12": {
+      "firstSeen": "2026-08-28",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-08-28",
+      "approved": true,
+      "autoApproved": "2026-08-28",
+      "fingerprint": {
+        "o": "Hangzhou(杭州)",
+        "d": "Beijing Fengtai(北京丰台)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "D 12",
+        "stopsHash": "b1180096"
+      }
+    },
+    "cr_D_17": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing(北京)",
+        "d": "Hangzhou(杭州)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "D 17|D 18",
+        "stopsHash": "4d69ad44"
+      },
+      "lastChanged": "2026-08-29"
+    },
+    "cr_D_35": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing West(北京西)",
+        "d": "Guangzhou Baiyun(广州白云)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "D 35|D 36",
+        "stopsHash": "66adbd9c"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_D_15": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing West(北京西)",
+        "d": "Chengdudong(成都东)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "D 15|D 16",
+        "stopsHash": "34e3ed55"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_D_49": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing West(北京西)",
+        "d": "Chengdudong(成都东)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "D 49|D 50",
+        "stopsHash": "75ad3ff6"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_D_117": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing Fengtai(北京丰台)",
+        "d": "Panzhihuanan(攀枝花南)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "D 117|D 118",
+        "stopsHash": "00a11a92"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_D_39": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing West(北京西)",
+        "d": "Xi'an(西安)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "D 39|D 42",
+        "stopsHash": "b68feae5"
+      },
+      "lastChanged": "2026-10-16"
+    },
+    "cr_D_41": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing West(北京西)",
+        "d": "Xi'an(西安)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "D 41|D 44",
+        "stopsHash": "91845321"
+      },
+      "lastChanged": "2026-10-16"
+    },
+    "cr_D_43": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing West(北京西)",
+        "d": "Xi'an(西安)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "D 43",
+        "stopsHash": "2f6b426f"
+      },
+      "lastChanged": "2026-10-16"
+    },
+    "cr_D_25": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing(北京)",
+        "d": "Qingdaobei(青岛北)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "D 25|D 26",
+        "stopsHash": "e4a0afe5"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_K_351": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Shanghai Songjiang(上海松江)",
+        "d": "Chengdu West(成都西)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 351|K 352",
+        "stopsHash": "e2bdd768"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_K_282": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Shanghai(上海)",
+        "d": "Chengdu West(成都西)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "K 282",
+        "stopsHash": "f07ae75a"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_K_511": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Shanghai Songjiang(上海松江)",
+        "d": "Haikou(海口)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 511|K 512",
+        "stopsHash": "513de987"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_K_202": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Guangzhou Baiyun(广州白云)",
+        "d": "Chongqingbei(重庆北)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "K 202",
+        "stopsHash": "e4d07d04"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_K_201": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Langzhong(阆中)",
+        "d": "Guangzhou Baiyun(广州白云)",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "CR",
+        "trains": "K 201",
+        "stopsHash": "6b620bf9"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_K_814": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Guangzhou Baiyun(广州白云)",
+        "d": "Dazhou(达州)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 814|K 813",
+        "stopsHash": "400c6bb9"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_K_1096": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Guangzhou Baiyun(广州白云)",
+        "d": "Chongqingdong(重庆东)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 1096|K 1095",
+        "stopsHash": "98879043"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_K_1172": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Huizhou(惠州)",
+        "d": "Chongqingdong(重庆东)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 1172|K 1171",
+        "stopsHash": "33435c4d"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_K_1453": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing Fengtai(北京丰台)",
+        "d": "Ganzhou(赣州)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 1453|K 1454",
+        "stopsHash": "4dc69a0f"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_K_571": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Beijing Fengtai(北京丰台)",
+        "d": "Xiamenbei(厦门北)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 571|K 572",
+        "stopsHash": "d34c8810"
+      },
+      "lastChanged": "2026-07-18"
+    },
+    "cr_K_998": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Chengdu West(成都西)",
+        "d": "Qiqihar(齐齐哈尔)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 998|K 997",
+        "stopsHash": "b5affd96"
+      },
+      "lastChanged": "2026-10-08"
+    },
+    "cr_K_246": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Chengdu West(成都西)",
+        "d": "Yangzhou(扬州)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 246|K 245",
+        "stopsHash": "54155d00"
+      },
+      "lastChanged": "2026-10-12"
+    },
+    "cr_K_82": {
+      "firstSeen": "2026-07-18",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-18",
+      "fingerprint": {
+        "o": "Guangzhou Baiyun(广州白云)",
+        "d": "Baoji(宝鸡)",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "CR",
+        "trains": "K 82|K 84",
+        "stopsHash": "8def8fea"
+      },
+      "lastChanged": "2026-10-11"
+    },
+    "icn_ICN_719": {
+      "firstSeen": "2026-10-12",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-12",
+      "approved": false,
+      "fingerprint": {
+        "o": "Torino Porta Nuova",
+        "d": "Reggio Di Calabria Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 719|ICN 794",
+        "stopsHash": "a3af82b9"
+      }
+    },
+    "icn_ICN_754": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Lecce",
+        "d": "Torino Porta Nuova",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 754",
+        "stopsHash": "54837796"
+      },
+      "lastChanged": "2026-10-11"
+    },
+    "icn_ICN_758": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Lecce",
+        "d": "Milano Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 758",
+        "stopsHash": "dbba0962"
+      },
+      "lastChanged": "2026-10-17"
+    },
+    "icn_ICN_774": {
+      "firstSeen": "2026-09-28",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-13",
+      "approved": false,
+      "fingerprint": {
+        "o": "Roma Termini",
+        "d": "Trieste Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 774",
+        "stopsHash": "80bbc88a"
+      }
+    },
+    "icn_ICN_795": {
+      "firstSeen": "2026-06-16",
+      "lastSeen": "2026-10-20",
+      "approved": false,
+      "fingerprint": {
+        "o": "Torino Porta Nuova",
+        "d": "Reggio Di Calabria Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 795",
+        "stopsHash": "7fe828ce"
+      },
+      "lastChanged": "2026-06-16"
+    },
+    "icn_ICN_796": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Salerno",
+        "d": "Torino Porta Nuova",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 796|ICN 797",
+        "stopsHash": "e11dbda1"
+      },
+      "lastChanged": "2026-10-20"
+    },
+    "icn_ICN_798": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Salerno",
+        "d": "Torino Porta Nuova",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 798|ICN 799",
+        "stopsHash": "39205757"
+      },
+      "lastChanged": "2026-10-20"
+    },
+    "icn_ICN_1930": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Palermo Centrale",
+        "d": "Messina Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 1930|ICN 1965",
+        "stopsHash": "2710e7ad"
+      },
+      "lastChanged": "2026-10-16"
+    },
+    "icn_ICN_1955": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Roma Termini",
+        "d": "Catania Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 1955|ICN 1960",
+        "stopsHash": "eeff91ca"
+      },
+      "lastChanged": "2026-10-10"
+    },
+    "icn_ICN_1962": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Catania Centrale",
+        "d": "Milano Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 1962|ICN 1963",
+        "stopsHash": "85bc1c8d"
+      },
+      "lastChanged": "2026-10-20"
+    },
+    "icn_ICN_1964": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Palermo Centrale",
+        "d": "Messina Centrale",
+        "days0": null,
+        "days1": null,
+        "agency": "FS",
+        "trains": "ICN 1964",
+        "stopsHash": "f0f042c8"
+      },
+      "lastChanged": "2026-10-18"
+    },
+    "caucasus_GR_1": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Tbilisi Centraluri",
+        "d": "Batumi Centraluri",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "GR",
+        "trains": "GR 1|GR 2",
+        "stopsHash": "30263385"
+      },
+      "lastChanged": "2026-06-10"
+    },
+    "caucasus_ADY_101": {
+      "firstSeen": "2026-06-10",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "fingerprint": {
+        "o": "Baku",
+        "d": "Tbilisi",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "ADY",
+        "trains": "ADY 101|ADY 102",
+        "stopsHash": "06365ea5"
+      },
+      "lastChanged": "2026-06-10"
+    },
+    "caucasus_GR_371": {
+      "firstSeen": "2026-07-14",
+      "lastSeen": "2026-10-20",
+      "approved": false,
+      "fingerprint": {
+        "o": "Tbilisi",
+        "d": "Yerevan",
+        "days0": "Mon, Wed, Fri, Sun",
+        "days1": "Mon, Wed, Fri, Sun",
+        "agency": "SCR",
+        "trains": "GR 371|GR 372",
+        "stopsHash": "0fb75877"
+      },
+      "lastChanged": "2026-07-14"
+    },
+    "jr_Sunrise_Izumo_4031M": {
+      "firstSeen": "2026-10-02",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-02",
+      "approved": false,
+      "fingerprint": {
+        "o": "Tokyo",
+        "d": "Izumoshi",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "JRW",
+        "trains": "Sunrise Izumo 4031M|Sunrise Izumo 4032M",
+        "stopsHash": "372e1fab"
+      }
+    },
+    "jr_Sunrise_Seto_5031M": {
+      "firstSeen": "2026-10-02",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-02",
+      "approved": false,
+      "fingerprint": {
+        "o": "Tokyo",
+        "d": "Takamatsu",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "JRW",
+        "trains": "Sunrise Seto 5031M|Sunrise Seto 5032M",
+        "stopsHash": "7bb1d467"
+      }
+    },
+    "srt_Special_Express_9": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Chiang Mai",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Special Express 9|Special Express 10",
+        "stopsHash": "e072a4db"
+      }
+    },
+    "srt_Special_Express_13": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Chiang Mai",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Special Express 13|Special Express 14",
+        "stopsHash": "da73300f"
+      }
+    },
+    "srt_Special_Express_23": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Ubon Ratchathani",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Special Express 23|Special Express 24",
+        "stopsHash": "0002b623"
+      }
+    },
+    "srt_Special_Express_25": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Nong Khai",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Special Express 25|Special Express 26",
+        "stopsHash": "6250cf5d"
+      }
+    },
+    "srt_Special_Express_31": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Hat Yai Junction",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Special Express 31|Special Express 32",
+        "stopsHash": "97f055e3"
+      }
+    },
+    "srt_Special_Express_37": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Su-ngai Kolok",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Special Express 37|Special Express 38",
+        "stopsHash": "55a90c7d"
+      }
+    },
+    "srt_Special_Express_45": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Padang Besar",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Special Express 45|Special Express 46",
+        "stopsHash": "0002b623"
+      }
+    },
+    "srt_Express_51": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Chiang Mai",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Express 51|Express 52",
+        "stopsHash": "9d75ce2d"
+      }
+    },
+    "srt_Express_83": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Trang",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Express 83|Express 84",
+        "stopsHash": "0002b623"
+      }
+    },
+    "srt_Express_85": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Nakhon Si Thammarat",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Express 85|Express 86",
+        "stopsHash": "0002b623"
+      }
+    },
+    "srt_Rapid_107": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Den Chai",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Rapid 107|Rapid 108",
+        "stopsHash": "0002b623"
+      }
+    },
+    "srt_Rapid_109": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Chiang Mai",
+        "days0": "Daily",
+        "days1": null,
+        "agency": "SRT",
+        "trains": "Rapid 109",
+        "stopsHash": "0002b623"
+      }
+    },
+    "srt_Rapid_133": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Nong Khai",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Rapid 133|Rapid 134",
+        "stopsHash": "0002b623"
+      }
+    },
+    "srt_Rapid_139": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Ubon Ratchathani",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Rapid 139|Rapid 140",
+        "stopsHash": "0002b623"
+      }
+    },
+    "srt_Rapid_167": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Kantang",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Rapid 167|Rapid 168",
+        "stopsHash": "0002b623"
+      }
+    },
+    "srt_Rapid_169": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Yala",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Rapid 169|Rapid 170",
+        "stopsHash": "0002b623"
+      }
+    },
+    "srt_Rapid_171": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Su-ngai Kolok",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Rapid 171|Rapid 172",
+        "stopsHash": "55a90c7d"
+      }
+    },
+    "srt_Rapid_173": {
+      "firstSeen": "2026-10-19",
+      "lastSeen": "2026-10-20",
+      "lastChanged": "2026-10-19",
+      "approved": false,
+      "fingerprint": {
+        "o": "Bangkok (Krung Thep Aphiwat)",
+        "d": "Nakhon Si Thammarat",
+        "days0": "Daily",
+        "days1": "Daily",
+        "agency": "SRT",
+        "trains": "Rapid 173|Rapid 174",
+        "stopsHash": "0002b623"
+      }
+    },
+    "amtrak_Cardinal": {
+      "firstSeen": "2026-07-09",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-09",
+      "fingerprint": {
+        "o": "Ny Moynihan Train Hall At Penn Station",
+        "d": "Chicago Union Station",
+        "days0": "2026: Mon, Wed, Fri, Sun",
+        "days1": null,
+        "agency": "AMTK",
+        "trains": "Cardinal",
+        "stopsHash": "c1ecf522"
+      },
+      "lastChanged": "2026-09-28"
+    },
+    "amtrak_Lake_Shore_Limited": {
+      "firstSeen": "2026-07-09",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-09",
+      "fingerprint": {
+        "o": "Chicago Union Station",
+        "d": "Boston",
+        "days0": "2026: Daily",
+        "days1": null,
+        "agency": "AMTK",
+        "trains": "Lake Shore Limited",
+        "stopsHash": "4df0256a"
+      },
+      "lastChanged": "2026-10-10"
+    },
+    "amtrak_Floridian": {
+      "firstSeen": "2026-07-09",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-09",
+      "fingerprint": {
+        "o": "Chicago Union Station",
+        "d": "Miami Amtrak Station",
+        "days0": "2026: Daily",
+        "days1": null,
+        "agency": "AMTK",
+        "trains": "Floridian",
+        "stopsHash": "94439b23"
+      },
+      "lastChanged": "2026-10-20"
+    },
+    "amtrak_Crescent": {
+      "firstSeen": "2026-07-09",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-09",
+      "fingerprint": {
+        "o": "New Orleans Union Passenger Terminal",
+        "d": "Ny Moynihan Train Hall At Penn Station",
+        "days0": "2026: Daily",
+        "days1": null,
+        "agency": "AMTK",
+        "trains": "Crescent",
+        "stopsHash": "e98fb919"
+      },
+      "lastChanged": "2026-09-18"
+    },
+    "amtrak_Silver_Meteor": {
+      "firstSeen": "2026-07-09",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-09",
+      "fingerprint": {
+        "o": "Miami Amtrak Station",
+        "d": "Ny Moynihan Train Hall At Penn Station",
+        "days0": "2026: Daily",
+        "days1": null,
+        "agency": "AMTK",
+        "trains": "Silver Meteor",
+        "stopsHash": "6a6970d5"
+      },
+      "lastChanged": "2026-09-18"
+    },
+    "amtrak_Sunset_Limited": {
+      "firstSeen": "2026-07-09",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-09",
+      "fingerprint": {
+        "o": "Los Angeles",
+        "d": "New Orleans Union Passenger Terminal",
+        "days0": "2026: Wed, Fri, Sun",
+        "days1": null,
+        "agency": "AMTK",
+        "trains": "Sunset Limited",
+        "stopsHash": "c7b98db8"
+      },
+      "lastChanged": "2026-09-27"
+    },
+    "amtrak_Empire_Builder": {
+      "firstSeen": "2026-07-09",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-09",
+      "fingerprint": {
+        "o": "Chicago Union Station",
+        "d": "Seattle",
+        "days0": "2026: Daily",
+        "days1": null,
+        "agency": "AMTK",
+        "trains": "Empire Builder",
+        "stopsHash": "3c978677"
+      },
+      "lastChanged": "2026-10-08"
+    },
+    "amtrak_California_Zephyr": {
+      "firstSeen": "2026-07-09",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-09",
+      "fingerprint": {
+        "o": "Emeryville",
+        "d": "Chicago Union Station",
+        "days0": "2026: Daily",
+        "days1": null,
+        "agency": "AMTK",
+        "trains": "California Zephyr",
+        "stopsHash": "d289de64"
+      },
+      "lastChanged": "2026-10-19"
+    },
+    "amtrak_City_of_New_Orleans": {
+      "firstSeen": "2026-07-09",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-09",
+      "fingerprint": {
+        "o": "New Orleans Union Passenger Terminal",
+        "d": "Chicago Union Station",
+        "days0": "2026: Daily",
+        "days1": null,
+        "agency": "AMTK",
+        "trains": "City of New Orleans",
+        "stopsHash": "e79f470a"
+      },
+      "lastChanged": "2026-09-19"
+    },
+    "amtrak_Texas_Eagle": {
+      "firstSeen": "2026-07-30",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-30",
+      "fingerprint": {
+        "o": "Los Angeles",
+        "d": "Chicago Union Station",
+        "days0": "2026: Daily",
+        "days1": "2026: Daily",
+        "agency": "AMTK",
+        "trains": "Texas Eagle|Southwest Chief",
+        "stopsHash": "f831fe99"
+      },
+      "lastChanged": "2026-09-30"
+    },
+    "amtrak_Coast_Starlight": {
+      "firstSeen": "2026-07-09",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-09",
+      "fingerprint": {
+        "o": "Seattle",
+        "d": "Los Angeles",
+        "days0": "2026: Daily",
+        "days1": null,
+        "agency": "AMTK",
+        "trains": "Coast Starlight",
+        "stopsHash": "05670782"
+      },
+      "lastChanged": "2026-09-18"
+    },
+    "amtrak_Auto_Train": {
+      "firstSeen": "2026-07-09",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-09",
+      "fingerprint": {
+        "o": "Sanford Amtrak Auto Train Station",
+        "d": "Lorton Amtrak Auto Train Station",
+        "days0": "2026: Daily",
+        "days1": null,
+        "agency": "AMTK",
+        "trains": "Auto Train",
+        "stopsHash": "0002b623"
+      },
+      "lastChanged": "2026-09-18"
+    },
+    "via_Vancouver_-_Toronto": {
+      "firstSeen": "2026-07-09",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-09",
+      "fingerprint": {
+        "o": "Toronto",
+        "d": "Vancouver",
+        "days0": "2026: Wed, Sun",
+        "days1": null,
+        "agency": "VIA",
+        "trains": "Vancouver - Toronto",
+        "stopsHash": "f2712385"
+      },
+      "lastChanged": "2026-09-18"
+    },
+    "via_Winnipeg_-_Churchill": {
+      "firstSeen": "2026-07-09",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-09",
+      "fingerprint": {
+        "o": "Winnipeg",
+        "d": "Churchill",
+        "days0": "2026: Tue, Sun",
+        "days1": null,
+        "agency": "VIA",
+        "trains": "Winnipeg - Churchill",
+        "stopsHash": "d8617199"
+      },
+      "lastChanged": "2026-09-18"
+    },
+    "via_Montréal_-_Halifax": {
+      "firstSeen": "2026-07-09",
+      "lastSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-07-09",
+      "fingerprint": {
+        "o": "Montréal",
+        "d": "Halifax",
+        "days0": "2026: Wed, Fri, Sun",
+        "days1": null,
+        "agency": "VIA",
+        "trains": "Montréal - Halifax",
+        "stopsHash": "39f6e873"
+      },
+      "lastChanged": "2026-09-18"
     },
     "nj_standalone_NJ_471": {
       "firstSeen": "2026-06-16",
@@ -2847,53 +4864,6 @@
         "stopsHash": "d071c1df"
       },
       "lastChanged": "2026-10-19"
-    },
-    "nj_standalone_NJ_403": {
-      "firstSeen": "2026-06-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-06-16",
-      "fingerprint": {
-        "o": "Amsterdam Centraal",
-        "d": "Zürich HB",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 403|NJ 402",
-        "stopsHash": "fd9b4d7e"
-      },
-      "lastChanged": "2026-10-19"
-    },
-    "nj_standalone_NJ_13466": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Feldkirch Bahnhof",
-        "d": "Zürich HB",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 13466",
-        "stopsHash": "32d875ce"
-      },
-      "lastChanged": "2026-06-10"
-    },
-    "nj_standalone_NJ_11446": {
-      "firstSeen": "2026-09-08",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-09-08",
-      "fingerprint": {
-        "o": "Wien Hbf (Autoreisezuganlage)",
-        "d": "Bregenz Bahnhof",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 11446|NJ 447",
-        "stopsHash": "35faab26"
-      }
     },
     "nj_standalone_NJ_464": {
       "firstSeen": "2026-06-10",
@@ -2924,22 +4894,6 @@
         "stopsHash": "094b09f5"
       },
       "lastChanged": "2026-10-12"
-    },
-    "nj_standalone_NJ_467": {
-      "firstSeen": "2026-06-13",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-06-13",
-      "fingerprint": {
-        "o": "Zürich HB",
-        "d": "Wien Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 467|NJ 466",
-        "stopsHash": "e1f8f4e1"
-      },
-      "lastChanged": "2026-10-17"
     },
     "nj_standalone_NJ_19947": {
       "firstSeen": "2026-08-14",
@@ -2973,37 +4927,6 @@
         "stopsHash": "48310db1"
       }
     },
-    "nj_standalone_NJ_13464": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Feldkirch Bahnhof",
-        "d": "Zürich HB",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 13464",
-        "stopsHash": "32d875ce"
-      },
-      "lastChanged": "2026-06-10"
-    },
-    "nj_standalone_NJ_40466": {
-      "firstSeen": "2026-06-11",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Wien Hbf",
-        "d": "Venezia Santa Lucia",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 40466|NJ 40236",
-        "stopsHash": "7c791a75"
-      },
-      "autoApproved": "2026-06-18",
-      "lastChanged": "2026-10-15"
-    },
     "nj_standalone_NJ_40238": {
       "firstSeen": "2026-09-09",
       "lastSeen": "2026-10-19",
@@ -3018,70 +4941,6 @@
         "agency": "ÖBB",
         "trains": "NJ 40238|NJ 247",
         "stopsHash": "d756228f"
-      }
-    },
-    "nj_standalone_NJ_13467": {
-      "firstSeen": "2026-09-08",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-14",
-      "approved": true,
-      "autoApproved": "2026-09-08",
-      "fingerprint": {
-        "o": "Zürich HB",
-        "d": "Wien Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 13467",
-        "stopsHash": "cd8317c5"
-      }
-    },
-    "nj_standalone_NJ_1237": {
-      "firstSeen": "2026-09-16",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-15",
-      "approved": true,
-      "autoApproved": "2026-09-16",
-      "fingerprint": {
-        "o": "Wien Hbf",
-        "d": "Venezia Santa Lucia",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 1237|NJ 1236",
-        "stopsHash": "27e5f8c9"
-      }
-    },
-    "nj_standalone_NJ_235": {
-      "firstSeen": "2026-09-08",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-12",
-      "approved": true,
-      "autoApproved": "2026-09-08",
-      "fingerprint": {
-        "o": "Wien Hbf",
-        "d": "Roma Tiburtina",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 235",
-        "stopsHash": "c80706c2"
-      }
-    },
-    "nj_standalone_NJ_13465": {
-      "firstSeen": "2026-09-08",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-16",
-      "approved": true,
-      "autoApproved": "2026-09-08",
-      "fingerprint": {
-        "o": "Zürich HB",
-        "d": "Graz Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 13465",
-        "stopsHash": "e5276538"
       }
     },
     "nj_standalone_EN_40237": {
@@ -3100,21 +4959,6 @@
       "autoApproved": "2026-06-13",
       "lastChanged": "2026-10-17"
     },
-    "nj_standalone_EN_50462": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Budapest-Keleti",
-        "d": "Stuttgart Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "MÁV",
-        "trains": "EN 50462|EN 50237",
-        "stopsHash": "5a162bf3"
-      },
-      "lastChanged": "2026-10-19"
-    },
     "nj_standalone_EN_40467": {
       "firstSeen": "2026-06-12",
       "lastSeen": "2026-10-19",
@@ -3129,21 +4973,6 @@
         "stopsHash": "ec6a9721"
       },
       "autoApproved": "2026-06-15",
-      "lastChanged": "2026-10-16"
-    },
-    "nj_standalone_EN_40407": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Warszawa Wschodnia",
-        "d": "München Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "PKP",
-        "trains": "EN 40407|EN 40406",
-        "stopsHash": "6e44b6b7"
-      },
       "lastChanged": "2026-10-16"
     },
     "nj_standalone_EN_40457": {
@@ -3175,973 +5004,6 @@
         "stopsHash": "ef970361"
       },
       "lastChanged": "2026-10-18"
-    },
-    "nj_standalone_EN_40465": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Zürich HB",
-        "d": "Zagreb Glavni Kolod.",
-        "days0": null,
-        "days1": null,
-        "agency": "HŽPP",
-        "trains": "EN 40465|EN 40414",
-        "stopsHash": "b9eb3ad6"
-      },
-      "lastChanged": "2026-10-16"
-    },
-    "nj_standalone_EN_477": {
-      "firstSeen": "2026-10-13",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-16",
-      "approved": true,
-      "autoApproved": "2026-10-13",
-      "fingerprint": {
-        "o": "Kuty",
-        "d": "Budapest-Nyugati",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "EN 477",
-        "stopsHash": "e63f33ca"
-      }
-    },
-    "nj_standalone_EN_40417": {
-      "firstSeen": "2026-06-13",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-06-13",
-      "fingerprint": {
-        "o": "Przemyśl Gł.",
-        "d": "München Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "PKP",
-        "trains": "EN 40417|EN 40416",
-        "stopsHash": "125a19f3"
-      },
-      "lastChanged": "2026-10-16"
-    },
-    "nj_standalone_EN_415": {
-      "firstSeen": "2026-10-09",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-09",
-      "approved": true,
-      "autoApproved": "2026-10-09",
-      "fingerprint": {
-        "o": "Salzburg Hbf",
-        "d": "Jesenice(SL)",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "EN 415",
-        "stopsHash": "f390a9a8"
-      }
-    },
-    "nj_standalone_EN_1277": {
-      "firstSeen": "2026-10-13",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-16",
-      "approved": true,
-      "autoApproved": "2026-10-13",
-      "fingerprint": {
-        "o": "Warszawa Wschodnia",
-        "d": "Rijeka",
-        "days0": null,
-        "days1": null,
-        "agency": "PKP",
-        "trains": "EN 1277|EN 1276",
-        "stopsHash": "11dc5ab7"
-      }
-    },
-    "es_400_from_20261214": {
-      "firstSeen": "2026-08-22",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-08-22",
-      "fingerprint": {
-        "o": "Milano Porta Garibaldi",
-        "d": "Bruxelles Midi",
-        "days0": "2026-12-14 – 2027-09-06: Mon, Wed, Fri",
-        "days1": "2026-12-13 – 2027-09-07: Tue, Thu, Sun",
-        "agency": "ES",
-        "trains": "400|401",
-        "stopsHash": "98f15393"
-      },
-      "lastChanged": "2026-09-13"
-    },
-    "cr_Z_21": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Beijing West(北京西)",
-        "d": "Lhasa(拉萨)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "Z 21|Z 22",
-        "stopsHash": "0f150920"
-      },
-      "lastChanged": "2026-06-10"
-    },
-    "cr_Z_264": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Guangzhou Baiyun(广州白云)",
-        "d": "Lhasa(拉萨)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "Z 264|Z 266",
-        "stopsHash": "c4bdbafc"
-      },
-      "lastChanged": "2026-06-10"
-    },
-    "cr_Z_13": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Shenyang North(沈阳北)",
-        "d": "Guangzhou Baiyun(广州白云)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "Z 13|Z 14",
-        "stopsHash": "459a93ba"
-      },
-      "lastChanged": "2026-06-10"
-    },
-    "cr_Z_501": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Beijing West(北京西)",
-        "d": "Sanya(三亚)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "Z 501|Z 502",
-        "stopsHash": "acfae2f2"
-      },
-      "lastChanged": "2026-07-16"
-    },
-    "cr_Z_111": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Haerbinxi(哈尔滨西)",
-        "d": "Haikou(海口)",
-        "days0": "Daily",
-        "days1": null,
-        "agency": "CR",
-        "trains": "Z 111",
-        "stopsHash": "4acea004"
-      },
-      "lastChanged": "2026-07-16"
-    },
-    "cr_Z_281": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Baotou(包头)",
-        "d": "Hangzhou(杭州)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "Z 281|Z 282",
-        "stopsHash": "c2d0783f"
-      },
-      "lastChanged": "2026-07-16"
-    },
-    "cr_T_109": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Beijing(北京)",
-        "d": "Shanghai(上海)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "T 109|T 110",
-        "stopsHash": "8adfa860"
-      },
-      "lastChanged": "2026-07-16"
-    },
-    "cr_Z_179": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Beijing West(北京西)",
-        "d": "Urumqi(乌鲁木齐)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "Z 179|Z 180",
-        "stopsHash": "c173f953"
-      },
-      "lastChanged": "2026-10-16"
-    },
-    "cr_K_79": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Shanghai Songjiang(上海松江)",
-        "d": "Kunming(昆明)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 79|K 80",
-        "stopsHash": "b06c2365"
-      },
-      "lastChanged": "2026-10-08"
-    },
-    "cr_K_739": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Shanghai Songjiang(上海松江)",
-        "d": "Kunming(昆明)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 739|K 740",
-        "stopsHash": "088747e6"
-      },
-      "lastChanged": "2026-10-10"
-    },
-    "cr_Z_5": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Beijing West(北京西)",
-        "d": "Nanning(南宁)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "Z 5|Z 6",
-        "stopsHash": "92648d4a"
-      },
-      "lastChanged": "2026-06-10"
-    },
-    "cr_Z_285": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Beijing West(北京西)",
-        "d": "Nanning(南宁)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "Z 285|Z 286",
-        "stopsHash": "811d388b"
-      },
-      "lastChanged": "2026-07-16"
-    },
-    "cr_Z_183": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Shenzhendong(深圳东)",
-        "d": "Baotou(包头)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "Z 183|Z 184",
-        "stopsHash": "cf7cff2f"
-      },
-      "lastChanged": "2026-07-16"
-    },
-    "cr_Z_283": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Hangzhou(杭州)",
-        "d": "Baotou(包头)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "Z 283|Z 284",
-        "stopsHash": "91c8a6bf"
-      },
-      "lastChanged": "2026-07-16"
-    },
-    "cr_Z_15": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Beijing(北京)",
-        "d": "Harbin(哈尔滨)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "Z 15|Z 16",
-        "stopsHash": "0002b623"
-      },
-      "lastChanged": "2026-07-16"
-    },
-    "cr_Z_17": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Beijing(北京)",
-        "d": "Qiqihar(齐齐哈尔)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "Z 17|Z 18",
-        "stopsHash": "72a836c3"
-      },
-      "lastChanged": "2026-07-16"
-    },
-    "cr_Z_83": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Beijing(北京)",
-        "d": "Qiqihar(齐齐哈尔)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "Z 83|Z 84",
-        "stopsHash": "699a4de5"
-      },
-      "lastChanged": "2026-08-29"
-    },
-    "cr_Z_203": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Beijing(北京)",
-        "d": "Harbin(哈尔滨)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "Z 203|Z 204",
-        "stopsHash": "b072dc2b"
-      },
-      "lastChanged": "2026-07-16"
-    },
-    "cr_T_17": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Beijing(北京)",
-        "d": "Mudanjiang(牡丹江)",
-        "days0": "Daily",
-        "days1": null,
-        "agency": "CR",
-        "trains": "T 17",
-        "stopsHash": "7741602c"
-      },
-      "lastChanged": "2026-07-16"
-    },
-    "cr_K_117": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Beijing West(北京西)",
-        "d": "Chengdu West(成都西)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 117|K 118",
-        "stopsHash": "0cb63ac1"
-      },
-      "lastChanged": "2026-07-16"
-    },
-    "cr_K_545": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Jiamusi(佳木斯)",
-        "d": "Chengdu West(成都西)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 545|K 546",
-        "stopsHash": "2d926d42"
-      },
-      "lastChanged": "2026-10-08"
-    },
-    "cr_K_1156": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Shanghai(上海)",
-        "d": "Chengdu West(成都西)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 1156|K 284",
-        "stopsHash": "54ca7612"
-      },
-      "lastChanged": "2026-07-16"
-    },
-    "cr_K_599": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Baotou(包头)",
-        "d": "Guangzhou Baiyun(广州白云)",
-        "days0": "Daily",
-        "days1": null,
-        "agency": "CR",
-        "trains": "K 599",
-        "stopsHash": "8ff21ee2"
-      },
-      "lastChanged": "2026-09-18"
-    },
-    "cr_Z_165": {
-      "firstSeen": "2026-07-16",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-16",
-      "fingerprint": {
-        "o": "Shanghai(上海)",
-        "d": "Lhasa(拉萨)",
-        "days0": "Daily",
-        "days1": null,
-        "agency": "CR",
-        "trains": "Z 165",
-        "stopsHash": "e03322da"
-      },
-      "lastChanged": "2026-07-16"
-    },
-    "cr_K_23": {
-      "firstSeen": "2026-06-25",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Beijing(北京)",
-        "d": "Ulaanbaatar",
-        "days0": "Mon, Wed, Fri, Sat",
-        "days1": "Mon, Wed, Fri, Sat",
-        "agency": "CR",
-        "trains": "K 23|K 24",
-        "stopsHash": "1063f5e5"
-      },
-      "lastChanged": "2026-10-08"
-    },
-    "cr_D_5": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing(北京)",
-        "d": "Shanghai(上海)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "D 5|D 6",
-        "stopsHash": "9c7a3f29"
-      },
-      "lastChanged": "2026-09-20"
-    },
-    "cr_D_7": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing(北京)",
-        "d": "Shanghai(上海)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "D 7|D 8",
-        "stopsHash": "4a996630"
-      },
-      "lastChanged": "2026-09-20"
-    },
-    "cr_D_9": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing South(北京南)",
-        "d": "Shanghainan(上海南)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "D 9|D 10",
-        "stopsHash": "cb728282"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_D_11": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing South(北京南)",
-        "d": "Hangzhou(杭州)",
-        "days0": "Daily",
-        "days1": null,
-        "agency": "CR",
-        "trains": "D 11",
-        "stopsHash": "c58aa921"
-      },
-      "lastChanged": "2026-08-29"
-    },
-    "cr_D_12": {
-      "firstSeen": "2026-08-28",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-08-28",
-      "approved": true,
-      "autoApproved": "2026-08-28",
-      "fingerprint": {
-        "o": "Hangzhou(杭州)",
-        "d": "Beijing Fengtai(北京丰台)",
-        "days0": "Daily",
-        "days1": null,
-        "agency": "CR",
-        "trains": "D 12",
-        "stopsHash": "b1180096"
-      }
-    },
-    "cr_D_17": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing(北京)",
-        "d": "Hangzhou(杭州)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "D 17|D 18",
-        "stopsHash": "4d69ad44"
-      },
-      "lastChanged": "2026-08-29"
-    },
-    "cr_D_35": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing West(北京西)",
-        "d": "Guangzhou Baiyun(广州白云)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "D 35|D 36",
-        "stopsHash": "66adbd9c"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_D_15": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing West(北京西)",
-        "d": "Chengdudong(成都东)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "D 15|D 16",
-        "stopsHash": "34e3ed55"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_D_49": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing West(北京西)",
-        "d": "Chengdudong(成都东)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "D 49|D 50",
-        "stopsHash": "75ad3ff6"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_D_117": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing Fengtai(北京丰台)",
-        "d": "Panzhihuanan(攀枝花南)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "D 117|D 118",
-        "stopsHash": "00a11a92"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_D_39": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing West(北京西)",
-        "d": "Xi'an(西安)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "D 39|D 42",
-        "stopsHash": "b68feae5"
-      },
-      "lastChanged": "2026-10-16"
-    },
-    "cr_D_41": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing West(北京西)",
-        "d": "Xi'an(西安)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "D 41|D 44",
-        "stopsHash": "91845321"
-      },
-      "lastChanged": "2026-10-16"
-    },
-    "cr_D_43": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing West(北京西)",
-        "d": "Xi'an(西安)",
-        "days0": "Daily",
-        "days1": null,
-        "agency": "CR",
-        "trains": "D 43",
-        "stopsHash": "2f6b426f"
-      },
-      "lastChanged": "2026-10-16"
-    },
-    "cr_D_25": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing(北京)",
-        "d": "Qingdaobei(青岛北)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "D 25|D 26",
-        "stopsHash": "e4a0afe5"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_K_351": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Shanghai Songjiang(上海松江)",
-        "d": "Chengdu West(成都西)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 351|K 352",
-        "stopsHash": "e2bdd768"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_K_282": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Shanghai(上海)",
-        "d": "Chengdu West(成都西)",
-        "days0": "Daily",
-        "days1": null,
-        "agency": "CR",
-        "trains": "K 282",
-        "stopsHash": "f07ae75a"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_K_511": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Shanghai Songjiang(上海松江)",
-        "d": "Haikou(海口)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 511|K 512",
-        "stopsHash": "513de987"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_K_202": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Guangzhou Baiyun(广州白云)",
-        "d": "Chongqingbei(重庆北)",
-        "days0": "Daily",
-        "days1": null,
-        "agency": "CR",
-        "trains": "K 202",
-        "stopsHash": "e4d07d04"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_K_201": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Langzhong(阆中)",
-        "d": "Guangzhou Baiyun(广州白云)",
-        "days0": "Daily",
-        "days1": null,
-        "agency": "CR",
-        "trains": "K 201",
-        "stopsHash": "6b620bf9"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_K_814": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Guangzhou Baiyun(广州白云)",
-        "d": "Dazhou(达州)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 814|K 813",
-        "stopsHash": "400c6bb9"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_K_1096": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Guangzhou Baiyun(广州白云)",
-        "d": "Chongqingdong(重庆东)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 1096|K 1095",
-        "stopsHash": "98879043"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_K_1172": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Huizhou(惠州)",
-        "d": "Chongqingdong(重庆东)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 1172|K 1171",
-        "stopsHash": "33435c4d"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_K_1453": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing Fengtai(北京丰台)",
-        "d": "Ganzhou(赣州)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 1453|K 1454",
-        "stopsHash": "4dc69a0f"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_K_571": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Beijing Fengtai(北京丰台)",
-        "d": "Xiamenbei(厦门北)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 571|K 572",
-        "stopsHash": "d34c8810"
-      },
-      "lastChanged": "2026-07-18"
-    },
-    "cr_K_998": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Chengdu West(成都西)",
-        "d": "Qiqihar(齐齐哈尔)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 998|K 997",
-        "stopsHash": "b5affd96"
-      },
-      "lastChanged": "2026-10-08"
-    },
-    "cr_K_246": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Chengdu West(成都西)",
-        "d": "Yangzhou(扬州)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 246|K 245",
-        "stopsHash": "54155d00"
-      },
-      "lastChanged": "2026-10-12"
-    },
-    "cr_K_82": {
-      "firstSeen": "2026-07-18",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-18",
-      "fingerprint": {
-        "o": "Guangzhou Baiyun(广州白云)",
-        "d": "Baoji(宝鸡)",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "CR",
-        "trains": "K 82|K 84",
-        "stopsHash": "8def8fea"
-      },
-      "lastChanged": "2026-10-11"
-    },
-    "icn_ICN_719": {
-      "firstSeen": "2026-10-12",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-12",
-      "approved": false,
-      "fingerprint": {
-        "o": "Torino Porta Nuova",
-        "d": "Reggio Di Calabria Centrale",
-        "days0": null,
-        "days1": null,
-        "agency": "FS",
-        "trains": "ICN 719|ICN 794",
-        "stopsHash": "a3af82b9"
-      }
-    },
-    "icn_ICN_754": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Lecce",
-        "d": "Torino Porta Nuova",
-        "days0": null,
-        "days1": null,
-        "agency": "FS",
-        "trains": "ICN 754",
-        "stopsHash": "54837796"
-      },
-      "lastChanged": "2026-10-11"
-    },
-    "icn_ICN_758": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Lecce",
-        "d": "Milano Centrale",
-        "days0": null,
-        "days1": null,
-        "agency": "FS",
-        "trains": "ICN 758",
-        "stopsHash": "dbba0962"
-      },
-      "lastChanged": "2026-10-17"
     },
     "icn_ICN_763": {
       "firstSeen": "2026-06-13",
@@ -4203,81 +5065,6 @@
       },
       "lastChanged": "2026-10-04"
     },
-    "icn_ICN_795": {
-      "firstSeen": "2026-06-16",
-      "lastSeen": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Torino Porta Nuova",
-        "d": "Reggio Di Calabria Centrale",
-        "days0": null,
-        "days1": null,
-        "agency": "FS",
-        "trains": "ICN 795",
-        "stopsHash": "7fe828ce"
-      },
-      "lastChanged": "2026-06-16"
-    },
-    "icn_ICN_796": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Salerno",
-        "d": "Torino Porta Nuova",
-        "days0": null,
-        "days1": null,
-        "agency": "FS",
-        "trains": "ICN 796|ICN 797",
-        "stopsHash": "151b797a"
-      },
-      "lastChanged": "2026-10-19"
-    },
-    "icn_ICN_798": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Salerno",
-        "d": "Torino Porta Nuova",
-        "days0": null,
-        "days1": null,
-        "agency": "FS",
-        "trains": "ICN 798|ICN 799",
-        "stopsHash": "5e3e5d5b"
-      },
-      "lastChanged": "2026-10-19"
-    },
-    "icn_ICN_1930": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Palermo Centrale",
-        "d": "Messina Centrale",
-        "days0": null,
-        "days1": null,
-        "agency": "FS",
-        "trains": "ICN 1930|ICN 1965",
-        "stopsHash": "2710e7ad"
-      },
-      "lastChanged": "2026-10-16"
-    },
-    "icn_ICN_1955": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Roma Termini",
-        "d": "Catania Centrale",
-        "days0": null,
-        "days1": null,
-        "agency": "FS",
-        "trains": "ICN 1955|ICN 1960",
-        "stopsHash": "eeff91ca"
-      },
-      "lastChanged": "2026-10-10"
-    },
     "icn_ICN_1958": {
       "firstSeen": "2026-06-10",
       "lastSeen": "2026-10-19",
@@ -4292,621 +5079,6 @@
         "stopsHash": "f0f042c8"
       },
       "lastChanged": "2026-10-19"
-    },
-    "icn_ICN_1962": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Catania Centrale",
-        "d": "Milano Centrale",
-        "days0": null,
-        "days1": null,
-        "agency": "FS",
-        "trains": "ICN 1962|ICN 1963",
-        "stopsHash": "1b9c985f"
-      },
-      "lastChanged": "2026-10-19"
-    },
-    "icn_ICN_1964": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Palermo Centrale",
-        "d": "Messina Centrale",
-        "days0": null,
-        "days1": null,
-        "agency": "FS",
-        "trains": "ICN 1964",
-        "stopsHash": "f0f042c8"
-      },
-      "lastChanged": "2026-10-18"
-    },
-    "caucasus_GR_1": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Tbilisi Centraluri",
-        "d": "Batumi Centraluri",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "GR",
-        "trains": "GR 1|GR 2",
-        "stopsHash": "30263385"
-      },
-      "lastChanged": "2026-06-10"
-    },
-    "caucasus_ADY_101": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "fingerprint": {
-        "o": "Baku",
-        "d": "Tbilisi",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "ADY",
-        "trains": "ADY 101|ADY 102",
-        "stopsHash": "06365ea5"
-      },
-      "lastChanged": "2026-06-10"
-    },
-    "caucasus_GR_371": {
-      "firstSeen": "2026-07-14",
-      "lastSeen": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Tbilisi",
-        "d": "Yerevan",
-        "days0": "Mon, Wed, Fri, Sun",
-        "days1": "Mon, Wed, Fri, Sun",
-        "agency": "SCR",
-        "trains": "GR 371|GR 372",
-        "stopsHash": "0fb75877"
-      },
-      "lastChanged": "2026-07-14"
-    },
-    "jr_Sunrise_Izumo_4031M": {
-      "firstSeen": "2026-10-02",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-02",
-      "approved": false,
-      "fingerprint": {
-        "o": "Tokyo",
-        "d": "Izumoshi",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "JRW",
-        "trains": "Sunrise Izumo 4031M|Sunrise Izumo 4032M",
-        "stopsHash": "372e1fab"
-      }
-    },
-    "jr_Sunrise_Seto_5031M": {
-      "firstSeen": "2026-10-02",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-02",
-      "approved": false,
-      "fingerprint": {
-        "o": "Tokyo",
-        "d": "Takamatsu",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "JRW",
-        "trains": "Sunrise Seto 5031M|Sunrise Seto 5032M",
-        "stopsHash": "7bb1d467"
-      }
-    },
-    "srt_Special_Express_9": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Chiang Mai",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Special Express 9|Special Express 10",
-        "stopsHash": "e072a4db"
-      }
-    },
-    "srt_Special_Express_13": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Chiang Mai",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Special Express 13|Special Express 14",
-        "stopsHash": "da73300f"
-      }
-    },
-    "srt_Special_Express_23": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Ubon Ratchathani",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Special Express 23|Special Express 24",
-        "stopsHash": "0002b623"
-      }
-    },
-    "srt_Special_Express_25": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Nong Khai",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Special Express 25|Special Express 26",
-        "stopsHash": "6250cf5d"
-      }
-    },
-    "srt_Special_Express_31": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Hat Yai Junction",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Special Express 31|Special Express 32",
-        "stopsHash": "97f055e3"
-      }
-    },
-    "srt_Special_Express_37": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Su-ngai Kolok",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Special Express 37|Special Express 38",
-        "stopsHash": "55a90c7d"
-      }
-    },
-    "srt_Special_Express_45": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Padang Besar",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Special Express 45|Special Express 46",
-        "stopsHash": "0002b623"
-      }
-    },
-    "srt_Express_51": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Chiang Mai",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Express 51|Express 52",
-        "stopsHash": "9d75ce2d"
-      }
-    },
-    "srt_Express_83": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Trang",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Express 83|Express 84",
-        "stopsHash": "0002b623"
-      }
-    },
-    "srt_Express_85": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Nakhon Si Thammarat",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Express 85|Express 86",
-        "stopsHash": "0002b623"
-      }
-    },
-    "srt_Rapid_107": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Den Chai",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Rapid 107|Rapid 108",
-        "stopsHash": "0002b623"
-      }
-    },
-    "srt_Rapid_109": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Chiang Mai",
-        "days0": "Daily",
-        "days1": null,
-        "agency": "SRT",
-        "trains": "Rapid 109",
-        "stopsHash": "0002b623"
-      }
-    },
-    "srt_Rapid_133": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Nong Khai",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Rapid 133|Rapid 134",
-        "stopsHash": "0002b623"
-      }
-    },
-    "srt_Rapid_139": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Ubon Ratchathani",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Rapid 139|Rapid 140",
-        "stopsHash": "0002b623"
-      }
-    },
-    "srt_Rapid_167": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Kantang",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Rapid 167|Rapid 168",
-        "stopsHash": "0002b623"
-      }
-    },
-    "srt_Rapid_169": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Yala",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Rapid 169|Rapid 170",
-        "stopsHash": "0002b623"
-      }
-    },
-    "srt_Rapid_171": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Su-ngai Kolok",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Rapid 171|Rapid 172",
-        "stopsHash": "55a90c7d"
-      }
-    },
-    "srt_Rapid_173": {
-      "firstSeen": "2026-10-19",
-      "lastSeen": "2026-10-19",
-      "lastChanged": "2026-10-19",
-      "approved": false,
-      "fingerprint": {
-        "o": "Bangkok (Krung Thep Aphiwat)",
-        "d": "Nakhon Si Thammarat",
-        "days0": "Daily",
-        "days1": "Daily",
-        "agency": "SRT",
-        "trains": "Rapid 173|Rapid 174",
-        "stopsHash": "0002b623"
-      }
-    },
-    "amtrak_Cardinal": {
-      "firstSeen": "2026-07-09",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-09",
-      "fingerprint": {
-        "o": "Ny Moynihan Train Hall At Penn Station",
-        "d": "Chicago Union Station",
-        "days0": "2026: Mon, Wed, Fri, Sun",
-        "days1": null,
-        "agency": "AMTK",
-        "trains": "Cardinal",
-        "stopsHash": "c1ecf522"
-      },
-      "lastChanged": "2026-09-28"
-    },
-    "amtrak_Floridian": {
-      "firstSeen": "2026-07-09",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-09",
-      "fingerprint": {
-        "o": "Miami Amtrak Station",
-        "d": "Chicago Union Station",
-        "days0": "2026: Daily",
-        "days1": null,
-        "agency": "AMTK",
-        "trains": "Floridian",
-        "stopsHash": "7dafca43"
-      },
-      "lastChanged": "2026-10-17"
-    },
-    "amtrak_Lake_Shore_Limited": {
-      "firstSeen": "2026-07-09",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-09",
-      "fingerprint": {
-        "o": "Chicago Union Station",
-        "d": "Boston",
-        "days0": "2026: Daily",
-        "days1": null,
-        "agency": "AMTK",
-        "trains": "Lake Shore Limited",
-        "stopsHash": "4df0256a"
-      },
-      "lastChanged": "2026-10-10"
-    },
-    "amtrak_Crescent": {
-      "firstSeen": "2026-07-09",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-09",
-      "fingerprint": {
-        "o": "New Orleans Union Passenger Terminal",
-        "d": "Ny Moynihan Train Hall At Penn Station",
-        "days0": "2026: Daily",
-        "days1": null,
-        "agency": "AMTK",
-        "trains": "Crescent",
-        "stopsHash": "e98fb919"
-      },
-      "lastChanged": "2026-09-18"
-    },
-    "amtrak_Silver_Meteor": {
-      "firstSeen": "2026-07-09",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-09",
-      "fingerprint": {
-        "o": "Miami Amtrak Station",
-        "d": "Ny Moynihan Train Hall At Penn Station",
-        "days0": "2026: Daily",
-        "days1": null,
-        "agency": "AMTK",
-        "trains": "Silver Meteor",
-        "stopsHash": "6a6970d5"
-      },
-      "lastChanged": "2026-09-18"
-    },
-    "amtrak_Sunset_Limited": {
-      "firstSeen": "2026-07-09",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-09",
-      "fingerprint": {
-        "o": "Los Angeles",
-        "d": "New Orleans Union Passenger Terminal",
-        "days0": "2026: Wed, Fri, Sun",
-        "days1": null,
-        "agency": "AMTK",
-        "trains": "Sunset Limited",
-        "stopsHash": "c7b98db8"
-      },
-      "lastChanged": "2026-09-27"
-    },
-    "amtrak_Empire_Builder": {
-      "firstSeen": "2026-07-09",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-09",
-      "fingerprint": {
-        "o": "Chicago Union Station",
-        "d": "Seattle",
-        "days0": "2026: Daily",
-        "days1": null,
-        "agency": "AMTK",
-        "trains": "Empire Builder",
-        "stopsHash": "3c978677"
-      },
-      "lastChanged": "2026-10-08"
-    },
-    "amtrak_California_Zephyr": {
-      "firstSeen": "2026-07-09",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-09",
-      "fingerprint": {
-        "o": "Emeryville",
-        "d": "Chicago Union Station",
-        "days0": "2026: Daily",
-        "days1": null,
-        "agency": "AMTK",
-        "trains": "California Zephyr",
-        "stopsHash": "d289de64"
-      },
-      "lastChanged": "2026-10-19"
-    },
-    "amtrak_City_of_New_Orleans": {
-      "firstSeen": "2026-07-09",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-09",
-      "fingerprint": {
-        "o": "New Orleans Union Passenger Terminal",
-        "d": "Chicago Union Station",
-        "days0": "2026: Daily",
-        "days1": null,
-        "agency": "AMTK",
-        "trains": "City of New Orleans",
-        "stopsHash": "e79f470a"
-      },
-      "lastChanged": "2026-09-19"
-    },
-    "amtrak_Texas_Eagle": {
-      "firstSeen": "2026-07-30",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-30",
-      "fingerprint": {
-        "o": "Los Angeles",
-        "d": "Chicago Union Station",
-        "days0": "2026: Daily",
-        "days1": "2026: Daily",
-        "agency": "AMTK",
-        "trains": "Texas Eagle|Southwest Chief",
-        "stopsHash": "f831fe99"
-      },
-      "lastChanged": "2026-09-30"
-    },
-    "amtrak_Coast_Starlight": {
-      "firstSeen": "2026-07-09",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-09",
-      "fingerprint": {
-        "o": "Seattle",
-        "d": "Los Angeles",
-        "days0": "2026: Daily",
-        "days1": null,
-        "agency": "AMTK",
-        "trains": "Coast Starlight",
-        "stopsHash": "05670782"
-      },
-      "lastChanged": "2026-09-18"
-    },
-    "amtrak_Auto_Train": {
-      "firstSeen": "2026-07-09",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-09",
-      "fingerprint": {
-        "o": "Sanford Amtrak Auto Train Station",
-        "d": "Lorton Amtrak Auto Train Station",
-        "days0": "2026: Daily",
-        "days1": null,
-        "agency": "AMTK",
-        "trains": "Auto Train",
-        "stopsHash": "0002b623"
-      },
-      "lastChanged": "2026-09-18"
-    },
-    "via_Vancouver_-_Toronto": {
-      "firstSeen": "2026-07-09",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-09",
-      "fingerprint": {
-        "o": "Toronto",
-        "d": "Vancouver",
-        "days0": "2026: Wed, Sun",
-        "days1": null,
-        "agency": "VIA",
-        "trains": "Vancouver - Toronto",
-        "stopsHash": "f2712385"
-      },
-      "lastChanged": "2026-09-18"
-    },
-    "via_Winnipeg_-_Churchill": {
-      "firstSeen": "2026-07-09",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-09",
-      "fingerprint": {
-        "o": "Winnipeg",
-        "d": "Churchill",
-        "days0": "2026: Tue, Sun",
-        "days1": null,
-        "agency": "VIA",
-        "trains": "Winnipeg - Churchill",
-        "stopsHash": "d8617199"
-      },
-      "lastChanged": "2026-09-18"
-    },
-    "via_Montréal_-_Halifax": {
-      "firstSeen": "2026-07-09",
-      "lastSeen": "2026-10-19",
-      "approved": true,
-      "autoApproved": "2026-07-09",
-      "fingerprint": {
-        "o": "Montréal",
-        "d": "Halifax",
-        "days0": "2026: Wed, Fri, Sun",
-        "days1": null,
-        "agency": "VIA",
-        "trains": "Montréal - Halifax",
-        "stopsHash": "39f6e873"
-      },
-      "lastChanged": "2026-09-18"
     },
     "nj_standalone_NJ_409": {
       "firstSeen": "2026-06-10",
@@ -4952,22 +5124,6 @@
         "stopsHash": "218a2675"
       },
       "lastChanged": "2026-10-05"
-    },
-    "nj_standalone_NJ_40294": {
-      "firstSeen": "2026-06-13",
-      "lastSeen": "2026-10-18",
-      "approved": true,
-      "autoApproved": "2026-06-13",
-      "fingerprint": {
-        "o": "Roma Tiburtina",
-        "d": "Wien Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 40294|NJ 40233",
-        "stopsHash": "659489f5"
-      },
-      "lastChanged": "2026-10-18"
     },
     "nj_standalone_NJ_1236": {
       "firstSeen": "2026-09-08",
@@ -5015,21 +5171,6 @@
         "trains": "NJ 447|NJ 11446",
         "stopsHash": "a16885e6"
       }
-    },
-    "nj_standalone_NJ_19946": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-18",
-      "approved": true,
-      "fingerprint": {
-        "o": "Wien Hbf (Autoreisezuganlage)",
-        "d": "Bregenz Bahnhof",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 19946|NJ 19947",
-        "stopsHash": "51b7e6d8"
-      },
-      "lastChanged": "2026-10-16"
     },
     "nj_standalone_EN_1276": {
       "firstSeen": "2026-10-17",
@@ -5095,53 +5236,6 @@
         "stopsHash": "13e42596"
       }
     },
-    "nj_standalone_EN_40462": {
-      "firstSeen": "2026-10-13",
-      "lastSeen": "2026-10-18",
-      "lastChanged": "2026-10-17",
-      "approved": true,
-      "autoApproved": "2026-10-13",
-      "fingerprint": {
-        "o": "Budapest-Keleti",
-        "d": "Zürich HB",
-        "days0": null,
-        "days1": null,
-        "agency": "MÁV",
-        "trains": "EN 40462|EN 40467",
-        "stopsHash": "c1d2a981"
-      }
-    },
-    "nj_standalone_EN_40476": {
-      "firstSeen": "2026-06-11",
-      "lastSeen": "2026-10-18",
-      "approved": true,
-      "fingerprint": {
-        "o": "Budapest-Nyugati",
-        "d": "Berlin Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "MÁV",
-        "trains": "EN 40476|EN 40457",
-        "stopsHash": "c354d669"
-      },
-      "autoApproved": "2026-06-16",
-      "lastChanged": "2026-10-17"
-    },
-    "nj_standalone_EN_414": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-18",
-      "approved": true,
-      "fingerprint": {
-        "o": "Zagreb Glavni Kolod.",
-        "d": "Stuttgart Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "HŽPP",
-        "trains": "EN 414|EN 40237",
-        "stopsHash": "97c2443f"
-      },
-      "lastChanged": "2026-10-16"
-    },
     "icn_ICN_752": {
       "firstSeen": "2026-06-10",
       "lastSeen": "2026-10-18",
@@ -5157,21 +5251,6 @@
       },
       "lastChanged": "2026-10-18"
     },
-    "nj_standalone_NJ_470": {
-      "firstSeen": "2026-06-10",
-      "lastSeen": "2026-10-17",
-      "approved": true,
-      "fingerprint": {
-        "o": "Zürich HB",
-        "d": "Hamburg Altona",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 470|NJ 471",
-        "stopsHash": "10dfc79b"
-      },
-      "lastChanged": "2026-10-17"
-    },
     "nj_standalone_EN_40416": {
       "firstSeen": "2026-06-10",
       "lastSeen": "2026-10-17",
@@ -5185,22 +5264,6 @@
         "trains": "EN 40416|EN 40417",
         "stopsHash": "72cbb073"
       },
-      "lastChanged": "2026-10-17"
-    },
-    "nj_standalone_EN_40458": {
-      "firstSeen": "2026-06-11",
-      "lastSeen": "2026-10-17",
-      "approved": true,
-      "fingerprint": {
-        "o": "Praha hl.n.",
-        "d": "Zürich HB",
-        "days0": null,
-        "days1": null,
-        "agency": "ČD",
-        "trains": "EN 40458|EN 40459",
-        "stopsHash": "3ed00f21"
-      },
-      "autoApproved": "2026-06-13",
       "lastChanged": "2026-10-17"
     },
     "cr_Z_180": {
@@ -5341,22 +5404,6 @@
         "agency": "FS",
         "trains": "ICN 1957|ICN 1958",
         "stopsHash": "3b24e7ad"
-      }
-    },
-    "nj_standalone_NJ_247": {
-      "firstSeen": "2026-09-12",
-      "lastSeen": "2026-10-16",
-      "lastChanged": "2026-09-19",
-      "approved": true,
-      "autoApproved": "2026-09-12",
-      "fingerprint": {
-        "o": "Wien Hbf",
-        "d": "Bologna Centrale",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 247|NJ 40238",
-        "stopsHash": "50e7f28f"
       }
     },
     "cr_D_995": {
@@ -5566,38 +5613,6 @@
         "stopsHash": "cdb81f1d"
       }
     },
-    "nj_standalone_NJ_465": {
-      "firstSeen": "2026-06-11",
-      "lastSeen": "2026-10-15",
-      "approved": true,
-      "fingerprint": {
-        "o": "Zürich HB",
-        "d": "Graz Hbf",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 465",
-        "stopsHash": "a78c698a"
-      },
-      "autoApproved": "2026-06-18",
-      "lastChanged": "2026-10-14"
-    },
-    "nj_standalone_NJ_446": {
-      "firstSeen": "2026-09-08",
-      "lastSeen": "2026-10-15",
-      "lastChanged": "2026-10-15",
-      "approved": true,
-      "autoApproved": "2026-09-08",
-      "fingerprint": {
-        "o": "Wien Hbf (Autoreisezuganlage)",
-        "d": "Bregenz Bahnhof",
-        "days0": null,
-        "days1": null,
-        "agency": "ÖBB",
-        "trains": "NJ 446|NJ 19947",
-        "stopsHash": "f4ec8ff1"
-      }
-    },
     "nj_standalone_ES_453": {
       "firstSeen": "2026-10-14",
       "lastSeen": "2026-10-15",
@@ -5628,21 +5643,6 @@
         "agency": "ÖBB",
         "trains": "ES 475",
         "stopsHash": "05e35ab0"
-      }
-    },
-    "icn_ICN_774": {
-      "firstSeen": "2026-09-28",
-      "lastSeen": "2026-10-15",
-      "lastChanged": "2026-10-13",
-      "approved": false,
-      "fingerprint": {
-        "o": "Roma Termini",
-        "d": "Trieste Centrale",
-        "days0": null,
-        "days1": null,
-        "agency": "FS",
-        "trains": "ICN 774",
-        "stopsHash": "80bbc88a"
       }
     },
     "nj_standalone_NJ_420": {
@@ -6068,28 +6068,6 @@
     }
   },
   "injectedStations": {
-    "Decín Hauptbahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Bruck/Mur Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Treviso Hbf": {
-      "firstSeen": "2026-09-08",
-      "approved": true,
-      "autoApproved": "2026-09-08"
-    },
-    "Brennero/Brenner": {
-      "firstSeen": "2026-08-21",
-      "approved": true,
-      "autoApproved": "2026-08-21"
-    },
-    "Linz/Donau Hbf": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
     "Bruxelles Midi": {
       "firstSeen": "2026-06-10",
       "approved": true
@@ -6108,23 +6086,64 @@
       "approved": true,
       "autoApproved": "2026-10-16"
     },
+    "Linz/Donau Hbf": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Decín Hauptbahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Bruck/Mur Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Treviso Hbf": {
+      "firstSeen": "2026-09-08",
+      "approved": true,
+      "autoApproved": "2026-09-08"
+    },
     "Frankfurt(M) Flughafen Fernbf": {
       "firstSeen": "2026-09-15",
       "approved": true,
       "autoApproved": "2026-09-15"
+    },
+    "Brennero/Brenner": {
+      "firstSeen": "2026-08-21",
+      "approved": true,
+      "autoApproved": "2026-08-21"
     },
     "Frankfurt(Main)Hbf": {
       "firstSeen": "2026-09-13",
       "approved": true,
       "autoApproved": "2026-09-13"
     },
-    "Feldkirch Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
+    "Bischofshofen Bahnhof": {
+      "firstSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-10-20"
     },
     "Buchs SG": {
       "firstSeen": "2026-06-10",
       "approved": true
+    },
+    "Feldkirch Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Bludenz Bahnhof": {
+      "firstSeen": "2026-10-11",
+      "approved": true,
+      "autoApproved": "2026-10-11"
+    },
+    "Landeck-Zams Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Salzburg Süd Bahnhof": {
+      "firstSeen": "2026-08-21",
+      "approved": true,
+      "autoApproved": "2026-08-21"
     },
     "Amstetten": {
       "firstSeen": "2026-06-10",
@@ -6134,20 +6153,11 @@
       "firstSeen": "2026-06-10",
       "approved": true
     },
-    "Salzburg Süd Bahnhof": {
-      "firstSeen": "2026-08-21",
-      "approved": true,
-      "autoApproved": "2026-08-21"
-    },
     "Ötztal Bahnhof": {
       "firstSeen": "2026-06-10",
       "approved": true
     },
     "Imst-Pitztal Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Landeck-Zams Bahnhof": {
       "firstSeen": "2026-06-10",
       "approved": true
     },
@@ -6158,11 +6168,6 @@
     "Langen am Arlberg Bahnhof": {
       "firstSeen": "2026-06-10",
       "approved": true
-    },
-    "Bludenz Bahnhof": {
-      "firstSeen": "2026-10-11",
-      "approved": true,
-      "autoApproved": "2026-10-11"
     },
     "Rankweil Bahnhof": {
       "firstSeen": "2026-06-10",
@@ -6184,40 +6189,12 @@
       "firstSeen": "2026-06-10",
       "approved": true
     },
-    "Spittal-Millstätter See Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Mallnitz-Obervellach Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Bad Gastein Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Bad Hofgastein Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "St.Valentin Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
     "Selzthal Bahnhof": {
       "firstSeen": "2026-09-08",
       "approved": true,
       "autoApproved": "2026-09-08"
     },
-    "Spielfeld-Straß Bahnhof": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Sentilj": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Zagreb Glavni Kolod.": {
+    "St.Valentin Bahnhof": {
       "firstSeen": "2026-06-10",
       "approved": true
     },
@@ -6241,7 +6218,34 @@
       "firstSeen": "2026-06-10",
       "approved": true
     },
-    "Kuty": {
+    "Spielfeld-Straß Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Sentilj": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Jesenice(SL)": {
+      "firstSeen": "2026-10-09",
+      "approved": true,
+      "autoApproved": "2026-10-09"
+    },
+    "Lesce-Bled": {
+      "firstSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-10-20"
+    },
+    "Krsko": {
+      "firstSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-10-20"
+    },
+    "Zagreb Glavni Kolod.": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Sturovo": {
       "firstSeen": "2026-06-10",
       "approved": true
     },
@@ -6249,7 +6253,19 @@
       "firstSeen": "2026-06-10",
       "approved": true
     },
-    "Sturovo": {
+    "Kuty": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Bad Gastein Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Mallnitz-Obervellach Bahnhof": {
+      "firstSeen": "2026-06-10",
+      "approved": true
+    },
+    "Spittal-Millstätter See Bahnhof": {
       "firstSeen": "2026-06-10",
       "approved": true
     },
@@ -6258,10 +6274,15 @@
       "approved": true,
       "autoApproved": "2026-08-29"
     },
-    "Jesenice(SL)": {
-      "firstSeen": "2026-10-09",
+    "Aachen Hauptbahnhof": {
+      "firstSeen": "2026-10-20",
       "approved": true,
-      "autoApproved": "2026-10-09"
+      "autoApproved": "2026-10-20"
+    },
+    "Verviers-Palais": {
+      "firstSeen": "2026-10-20",
+      "approved": true,
+      "autoApproved": "2026-10-20"
     },
     "Roosendaal": {
       "firstSeen": "2026-09-10",
@@ -8227,18 +8248,6 @@
       "firstSeen": "2026-09-20",
       "approved": false
     },
-    "Ora": {
-      "firstSeen": "2026-10-16",
-      "approved": false
-    },
-    "Venezia S.lucia": {
-      "firstSeen": "2026-06-10",
-      "approved": true
-    },
-    "Terontola Cortona": {
-      "firstSeen": "2026-10-16",
-      "approved": false
-    },
     "Chiusi-Chianciano Terme": {
       "firstSeen": "2026-07-30",
       "approved": false
@@ -8247,9 +8256,9 @@
       "firstSeen": "2026-07-30",
       "approved": false
     },
-    "Benevento": {
-      "firstSeen": "2026-10-16",
-      "approved": false
+    "Venezia S.lucia": {
+      "firstSeen": "2026-06-10",
+      "approved": true
     },
     "Cefalu'": {
       "firstSeen": "2026-10-12",
@@ -8882,202 +8891,7 @@
       "approved": true,
       "autoApproved": "2026-07-09"
     },
-    "Miami Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Hollywood Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Fort Lauderdale Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Deerfield Beach Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Delray Beach Amtrak": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "West Palm Beach Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Okeechobee Amtrak": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Sebring Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Winter Haven": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Lakeland": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Tampa": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Lakeland Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Kissimmee Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Orlando": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Winter Park Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Deland": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Palatka Amtrak": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Jacksonville": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Savannah": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Denmark Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Columbia Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Camden Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Hamlet Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Southern Pines Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Cary": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Raleigh Union Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Rocky Mount": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Petersburg Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Richmond Staples Mill Road Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Rockville Amtrak": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Harpers Ferry Amtrak": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Martinsburg Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Cumberland Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Connellsville Amtrak": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Pittsburgh Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Alliance Amtrak": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Cleveland": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Elyria Amtrak": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Sandusky Amtrak Station": {
-      "firstSeen": "2026-07-09",
-      "approved": true,
-      "autoApproved": "2026-07-09"
-    },
-    "Waterloo Amtrak Station": {
+    "South Bend Amtrak Station": {
       "firstSeen": "2026-07-09",
       "approved": true,
       "autoApproved": "2026-07-09"
@@ -9087,12 +8901,27 @@
       "approved": true,
       "autoApproved": "2026-07-09"
     },
-    "South Bend Amtrak Station": {
+    "Waterloo Amtrak Station": {
       "firstSeen": "2026-07-09",
       "approved": true,
       "autoApproved": "2026-07-09"
     },
     "Bryan Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Sandusky Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Elyria Amtrak": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Cleveland": {
       "firstSeen": "2026-07-09",
       "approved": true,
       "autoApproved": "2026-07-09"
@@ -9153,6 +8982,186 @@
       "autoApproved": "2026-07-09"
     },
     "Boston": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Alliance Amtrak": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Pittsburgh Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Connellsville Amtrak": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Cumberland Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Martinsburg Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Harpers Ferry Amtrak": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Rockville Amtrak": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Richmond Staples Mill Road Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Petersburg Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Rocky Mount": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Raleigh Union Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Cary": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Southern Pines Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Hamlet Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Camden Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Columbia Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Denmark Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Savannah": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Jacksonville": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Palatka Amtrak": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Deland": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Winter Park Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Orlando": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Kissimmee Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Lakeland Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Tampa": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Lakeland": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Winter Haven": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Sebring Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Okeechobee Amtrak": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "West Palm Beach Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Delray Beach Amtrak": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Deerfield Beach Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Fort Lauderdale Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Hollywood Amtrak Station": {
+      "firstSeen": "2026-07-09",
+      "approved": true,
+      "autoApproved": "2026-07-09"
+    },
+    "Miami Amtrak Station": {
       "firstSeen": "2026-07-09",
       "approved": true,
       "autoApproved": "2026-07-09"

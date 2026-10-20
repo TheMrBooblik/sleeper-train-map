@@ -356,7 +356,7 @@
   "/trains/palermo-centrale-to-messina-centrale-icn-1958": "/connections/messina-to-palermo",
   "/trains/palermo-centrale-to-messina-centrale-icn-1964": "/connections/messina-to-palermo",
   "/trains/palermo-centrale-to-milano-centrale-ic-notte-1964": "/connections",
-  "/trains/palermo-centrale-to-roma-termini-ic-notte-1958": "/connections",
+  "/trains/palermo-centrale-to-roma-termini-ic-notte-1958": "/connections/palermo-to-rome",
   "/trains/paris-austerlitz-to-aurillac-ic-nuit-3789": "/connections/aurillac-to-paris",
   "/trains/paris-austerlitz-to-briancon-ic-nuit-5789": "/connections/briancon-to-paris",
   "/trains/paris-austerlitz-to-cerbere-ic-nuit-5737": "/connections/cerbere-to-paris",
