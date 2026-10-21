@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-770",
+  "createdAt": "2026-10-21T11:43:27.210Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: ICN 770 (Trieste Centrale – Roma Termini)",
+  "summary": "Material change on an approved route (already live — FYI): operating days (outbound): \"null\" → \"2026: Daily\"; operating days (return): \"null\" → \"2026: Daily\"",
+  "target": {
+    "routeKey": "icn_ICN_770",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "operating days (outbound)": null,
+    "operating days (return)": null
+  },
+  "after": {
+    "operating days (outbound)": "2026: Daily",
+    "operating days (return)": "2026: Daily"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
