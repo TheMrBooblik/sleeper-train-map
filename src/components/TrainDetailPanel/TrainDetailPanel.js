@@ -1925,114 +1925,6 @@ const TrainDetailPanel = ({
                         ))}
                     </div>
 
-                    {/* Pricing — the badge names the fare model; the circled
-                        "?" opens what it means for booking (PricingExplainer). */}
-                    {pricingLabel && pricingBadgeStyle && (
-                      <div className="flex items-start gap-2">
-                        <span className="text-xs text-gray-500 dark:text-zinc-400 uppercase mt-0.5">
-                          Price
-                        </span>
-                        <PricingExplainer
-                          advice={pricingHelp}
-                          label={pricingLabel}
-                          tone="light"
-                          labelClassName="rounded-md px-2 py-0.5 text-xs font-medium"
-                          labelStyle={pricingBadgeStyle}
-                          checkedAt={formatCheckedAt(pricing?.checkedAt)}
-                        />
-                      </div>
-                    )}
-
-                    {/* Official fare per berth class for this train, when its
-                        source quotes them (12306 does). */}
-                    {fareRows.length > 0 && (
-                      <div className="space-y-1" data-testid="fare-classes">
-                        {/* A dynamic fare differs night by night, and the
-                            connection page prices every one: link its
-                            calendar from the heading, so it costs no line. */}
-                        <div className="flex items-baseline justify-between gap-2">
-                          <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
-                            Fares
-                          </div>
-                          {pricing?.type === "dynamic" && trainPageSlug && (
-                            <Link
-                              href={`/connections/${trainPageSlug}${
-                                fareCalendarAnchor(trip.trip_short_name)
-                                  ? `#${fareCalendarAnchor(trip.trip_short_name)}`
-                                  : ""
-                              }`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
-                              data-testid="fare-calendar-link"
-                            >
-                              Fare calendar
-                              <FiArrowRight className="h-3 w-3 shrink-0" aria-hidden />
-                            </Link>
-                          )}
-                        </div>
-                        <ul className="space-y-0.5">
-                          {fareRows.map((f) => (
-                            <li
-                              key={f.key}
-                              className="text-xs text-gray-700 dark:text-zinc-300"
-                            >
-                              {f.label}{" "}
-                              <span className="font-semibold text-gray-900 dark:text-zinc-100">
-                                {f.price}
-                              </span>
-                              {chipDates && f.date && (
-                                <span className="text-gray-500 dark:text-zinc-400">
-                                  {" "}
-                                  · {formatTravelDateShort(f.date)}
-                                </span>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                        {/* A dynamic fare is one night's price: say which —
-                            on each row when the nights differ, else once.
-                            Every other night is on the connection page's
-                            calendar, so the line opens it at this train's. */}
-                        {!chipDates &&
-                          pricing?.type === "dynamic" &&
-                          formatTravelDate(sharedFareDate) && (
-                          <div
-                            className="text-xs text-gray-500 dark:text-zinc-400"
-                            data-testid="fare-travel-date"
-                          >
-                            {trainPageSlug ? (
-                              <Link
-                                href={`/connections/${trainPageSlug}${
-                                  fareCalendarAnchor(trip.trip_short_name)
-                                    ? `#${fareCalendarAnchor(trip.trip_short_name)}`
-                                    : ""
-                                }`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="underline underline-offset-2 hover:text-gray-700 dark:hover:text-zinc-300"
-                                title="See the fare for every night"
-                              >
-                                Lowest fares {formatTravelDate(sharedFareDate)}
-                              </Link>
-                            ) : (
-                              <>Lowest fares {formatTravelDate(sharedFareDate)}</>
-                            )}
-                          </div>
-                        )}
-                        {/* A published tariff's range (SNCF), not a
-                            night's quote: say whose range it is. */}
-                        {fareBasisLabel(dirFare) && (
-                          <div
-                            className="text-xs text-gray-500 dark:text-zinc-400"
-                            data-testid="fare-basis"
-                          >
-                            {fareBasisLabel(dirFare)}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
                     {/* Route */}
                     <div className="space-y-1">
                       <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
@@ -2201,6 +2093,117 @@ const TrainDetailPanel = ({
                           sourceDuration ||
                           officialRow?.durationText ||
                           formatTime(trip.duration)}
+                      </div>
+                    )}
+
+                    {/* Price after the route and times: a card first says
+                        which train it is (the panel lists both directions),
+                        then what it costs, right above the Book button. */}
+                    {/* Pricing — the badge names the fare model; the circled
+                        "?" opens what it means for booking (PricingExplainer). */}
+                    {pricingLabel && pricingBadgeStyle && (
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs text-gray-500 dark:text-zinc-400 uppercase mt-0.5">
+                          Price
+                        </span>
+                        <PricingExplainer
+                          advice={pricingHelp}
+                          label={pricingLabel}
+                          tone="light"
+                          labelClassName="rounded-md px-2 py-0.5 text-xs font-medium"
+                          labelStyle={pricingBadgeStyle}
+                          checkedAt={formatCheckedAt(pricing?.checkedAt)}
+                        />
+                      </div>
+                    )}
+
+                    {/* Official fare per berth class for this train, when its
+                        source quotes them (12306 does). */}
+                    {fareRows.length > 0 && (
+                      <div className="space-y-1" data-testid="fare-classes">
+                        {/* A dynamic fare differs night by night, and the
+                            connection page prices every one: link its
+                            calendar from the heading, so it costs no line. */}
+                        <div className="flex items-baseline justify-between gap-2">
+                          <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
+                            Fares
+                          </div>
+                          {pricing?.type === "dynamic" && trainPageSlug && (
+                            <Link
+                              href={`/connections/${trainPageSlug}${
+                                fareCalendarAnchor(trip.trip_short_name)
+                                  ? `#${fareCalendarAnchor(trip.trip_short_name)}`
+                                  : ""
+                              }`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
+                              data-testid="fare-calendar-link"
+                            >
+                              Fare calendar
+                              <FiArrowRight className="h-3 w-3 shrink-0" aria-hidden />
+                            </Link>
+                          )}
+                        </div>
+                        <ul className="space-y-0.5">
+                          {fareRows.map((f) => (
+                            <li
+                              key={f.key}
+                              className="text-xs text-gray-700 dark:text-zinc-300"
+                            >
+                              {f.label}{" "}
+                              <span className="font-semibold text-gray-900 dark:text-zinc-100">
+                                {f.price}
+                              </span>
+                              {chipDates && f.date && (
+                                <span className="text-gray-500 dark:text-zinc-400">
+                                  {" "}
+                                  · {formatTravelDateShort(f.date)}
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                        {/* A dynamic fare is one night's price: say which —
+                            on each row when the nights differ, else once.
+                            Every other night is on the connection page's
+                            calendar, so the line opens it at this train's. */}
+                        {!chipDates &&
+                          pricing?.type === "dynamic" &&
+                          formatTravelDate(sharedFareDate) && (
+                          <div
+                            className="text-xs text-gray-500 dark:text-zinc-400"
+                            data-testid="fare-travel-date"
+                          >
+                            {trainPageSlug ? (
+                              <Link
+                                href={`/connections/${trainPageSlug}${
+                                  fareCalendarAnchor(trip.trip_short_name)
+                                    ? `#${fareCalendarAnchor(trip.trip_short_name)}`
+                                    : ""
+                                }`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline underline-offset-2 hover:text-gray-700 dark:hover:text-zinc-300"
+                                title="See the fare for every night"
+                              >
+                                Lowest fares {formatTravelDate(sharedFareDate)}
+                              </Link>
+                            ) : (
+                              <>Lowest fares {formatTravelDate(sharedFareDate)}</>
+                            )}
+                          </div>
+                        )}
+                        {/* A published tariff's range (SNCF), not a
+                            night's quote: say whose range it is. */}
+                        {fareBasisLabel(dirFare) && (
+                          <div
+                            className="text-xs text-gray-500 dark:text-zinc-400"
+                            data-testid="fare-basis"
+                          >
+                            {fareBasisLabel(dirFare)}
+                          </div>
+                        )}
                       </div>
                     )}
 
