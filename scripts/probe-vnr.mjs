@@ -18,7 +18,11 @@
 //
 // Read-only: GET requests only, an honest User-Agent, at most MAX_REQUESTS.
 // A block (detectBlock) stops asking that host.
-// Run: node scripts/probe-vnr.mjs [outputDir] [--crawl]   (default: the giotaugiave forms)
+// Run: node scripts/probe-vnr.mjs [outputDir] [--crawl | --forms]
+//   default   what the `vnr` adapter reads: every line's trains, each night
+//             train's fares, and raw answers for tests/fixtures/vnr
+//   --forms   every giotaugiave form field and one search per direction
+//   --crawl   the first discovery crawl of VNR's hosts
 
 import fs from "node:fs";
 import path from "node:path";
@@ -27,6 +31,7 @@ import { HONEST_USER_AGENT, detectBlock } from "./lib/http-block.mjs";
 const args = process.argv.slice(2);
 const outDir = args.find((a) => !a.startsWith("--")) ?? null;
 const CRAWL = args.includes("--crawl");
+const FORMS = args.includes("--forms");
 const MAX_REQUESTS = 80;
 const MAX_TEXT_LOG = 5_000;
 const SPACING_MS = 700;
@@ -409,5 +414,58 @@ async function formsProbe() {
   console.log(`\n# Requests: ${requests}`);
 }
 
+// ─── What the adapter reads ─────────────────────────────────────────────────
+
+async function readerProbe() {
+  const { readTimetables, readFares, makeSession } = await import("./adapters/vnr.mjs");
+  const { isNightTrain, journeyMinutes, nightsOf, makeStationNamer, berthClass } = await import("./lib/vnr.mjs");
+  const registry = JSON.parse(fs.readFileSync(new URL("../data/sources/registry.json", import.meta.url), "utf8"));
+  const entry = registry.find((e) => e.id === "vnr");
+  const config = JSON.parse(fs.readFileSync(new URL(`../${entry.params.configPath}`, import.meta.url), "utf8"));
+  const travel = new Date(Date.now() + (entry.params.dateOffsetDays ?? 7) * 86_400_000).toISOString().slice(0, 10);
+  const date = `${travel.slice(8, 10)}-${travel.slice(5, 7)}-${travel.slice(0, 4)}`;
+  console.log(`# What the vnr adapter reads — ${new Date().toISOString()}, travel ${date}\n`);
+  // Keep a few raw answers, trimmed, for tests/fixtures/vnr.
+  const fixtures = new Map();
+  const counter = { requests: 0, blocked: null };
+  const inner = makeSession({ counter, log: console.log });
+  const call = async (url, form) => {
+    const text = await inner(url, form);
+    const train = form && Object.entries(form).find(([k]) => k.endsWith("ddlMacTau"))?.[1];
+    const keep = (name) => {
+      if (fixtures.has(name)) return;
+      fixtures.set(name, text.replace(/(name="__(?:VIEWSTATE|EVENTVALIDATION)"[^>]*value=")[^"]*/g, "$1TRIMMED"));
+    };
+    if (/giotau\/thongnhat/.test(url) && train === "9175" && /Cự ly/.test(text) && /Sài Gòn/.test(text.slice(text.lastIndexOf("Cự ly")))) keep("giotau-thongnhat-SE1");
+    if (/giave\/thongnhat/.test(url) && train === "9175" && /Giá vé/.test(text) && /AnLT1/.test(text)) keep("giave-thongnhat-SE1");
+    if (/giotau\/diaphuong\.aspx\?option=2&tuyen=5/.test(url) && !form) keep("giotau-laocai-get");
+    if (/giotau\/diaphuong\.aspx\?option=3&tuyen=1/.test(url) && /SNT2/.test(text) && /Nha Trang/.test(text) && /Cự ly/.test(text)) keep("giotau-saigon-return");
+    return text;
+  };
+  const deadline = Date.now() + 20 * 60_000;
+  const { trains, failed, complete } = await readTimetables({ base: entry.params.baseUrl, lines: entry.params.lines, date, call, log: console.log, deadline });
+  console.log(`\n## ${trains.size} train(s) read; failed: ${[...failed].join(" ") || "none"}; complete: ${complete}`);
+  for (const [name, t] of trains) {
+    const a = t.tt.stops[0];
+    const b = t.tt.stops.at(-1);
+    const m = journeyMinutes(t.tt);
+    console.log(`  ${isNightTrain(t.tt, config, name) ? "NIGHT" : "     "} ${name.padEnd(6)} ${t.line} (${t.chieu}) ${a.name} ${a.departure} → ${b.name} ${b.arrival} +${nightsOf(t.tt)}  ${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}  ${t.tt.stops.length} stops`);
+  }
+  const night = new Map([...trains].filter(([name, t]) => isNightTrain(t.tt, config, name)));
+  const fares = await readFares({ base: entry.params.baseUrl, trains: night, date, call, log: console.log, deadline, namer: makeStationNamer(config.stationNames) });
+  console.log(`\n## Fares (${fares.size} of ${night.size} night trains)`);
+  for (const [name, f] of fares) {
+    console.log(`  ${name}: ${JSON.stringify(f.classes)}`);
+    for (const r of f.rows) console.log(`      ${r.code.padEnd(9)} ${String(r.price).padStart(9)}  ${berthClass(r) ?? "-"}  ${r.label}`);
+  }
+  console.log(`\n# Requests: ${counter.requests}${counter.blocked ? `; BLOCKED ${JSON.stringify(counter.blocked)}` : ""}`);
+  for (const [name, html] of fixtures) {
+    console.log(`\n-----FIXTURE ${name} (${html.length} chars)-----`);
+    console.log(html);
+    console.log("-----END FIXTURE-----");
+  }
+}
+
 if (CRAWL) await crawl();
-else await formsProbe();
+else if (FORMS) await formsProbe();
+else await readerProbe();

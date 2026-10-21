@@ -59,6 +59,7 @@ export const OPERATOR_COUNTRY_FALLBACK = {
   CR: ["CN"], // China Railway
   JRW: ["JP"], // JR West (Sunrise Izumo / Seto)
   SRT: ["TH"], // State Railway of Thailand
+  VNR: ["VN"], // Vietnam Railways
   GR: ["GE"], // Georgian Railway (no GE hub — informational only)
   ADY: ["AZ"], // Azerbaijan Railways
   SCR: ["AM"], // South Caucasus Railway (Armenia)

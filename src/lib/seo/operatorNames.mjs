@@ -73,6 +73,9 @@ export const OPERATORS = {
   // Thailand
   SRT: { name: "State Railway of Thailand", slug: "state-railway-of-thailand" },
 
+  // Vietnam
+  VNR: { name: "Vietnam Railways", slug: "vietnam-railways" },
+
   // Caucasus
   GR: { name: "Georgian Railway", slug: "georgian-railway" },
   ADY: { name: "Azerbaijan Railways", slug: "azerbaijan-railways" },

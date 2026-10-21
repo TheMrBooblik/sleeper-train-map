@@ -35,7 +35,7 @@ const CountryCard = ({ code, name, hubCountryCodes = [] }) => (
   </Link>
 );
 
-const ASIA_COUNTRY_CODES = new Set(["CN", "JP", "TH"]);
+const ASIA_COUNTRY_CODES = new Set(["CN", "JP", "TH", "VN"]);
 // One count for the page body, the meta tags and the structured data: the
 // grid below renders every entry of COUNTRIES, and a hardcoded "24+" in the
 // head fell behind it as soon as Asia and North America were added.

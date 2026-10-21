@@ -159,6 +159,10 @@
   "SRT": {
     "bookingPageUrl": "https://dticket.railway.co.th/DTicketPublicWeb/home/Home"
   },
+  "VNR": {
+    "bookingPageUrl": "https://dsvn.vn/",
+    "scheduleUrl": "https://giotaugiave.dsvn.vn/"
+  },
   "GR": {
     "bookingPageUrl": "https://tre.ge/en",
     "scheduleUrl": "https://www.railway.ge/en/passenger-traffic/"

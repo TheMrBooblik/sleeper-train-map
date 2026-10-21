@@ -1,0 +1,229 @@
+{
+  "_comment": [
+    "Vietnam Railways (Đường sắt Việt Nam) night trains, read by scripts/adapters/vnr.mjs.",
+    "A train is kept when its timetable runs through a night (it leaves on one day and arrives on a later one) and takes at least `minMinutes`: every such VNR train carries sleeper coaches (Nằm khoang 4/6 giường), and a day train or a commuter hop drops out on its own, so a new night train is picked up without editing this file. `exclude` lists numbers to leave out anyway.",
+    "MR1/MR2 (Gia Lâm–Beijing West, through sleeping cars) pass the night-train test and are excluded for now: most of their run is China Railway's, whose Beijing–Nanning trains this map already draws from 12306, and a VNR row reaching Beijing would file Chinese stations under Vietnam's hubs.",
+    "Station positions: OpenStreetMap's railway stations, matched by name near where this file expects them (refreshed weekly with the track, osm-vnr-track.json). Until a station has an OSM match it sits at `anchors` (a position published for the town's station, `approx`) or, for a station with no anchor, at a point interpolated by its kilometre post between the two nearest anchored stations on the same train — which is why the anchors include the stations where the line bends (Hương Phố, Đồng Lê, La Hai, Ninh Hoà). Replace an anchor with an official position whenever a source carries one."
+  ],
+  "operator": {
+    "agencyId": "VNR",
+    "name": "Vietnam Railways"
+  },
+  "minMinutes": 300,
+  "exclude": [
+    "MR1",
+    "MR2"
+  ],
+  "pairs": {
+    "_comment": "Return train per outbound train where it is not the next number up (VNR numbers a pair n / n+1, odd from Hà Nội). SNT and SPT are numbered from the south: SNT1 runs Nha Trang → Sài Gòn, SNT2 the other way, so n / n+1 holds for them too."
+  },
+  "frequency": {
+    "_comment": "Days a train runs, by number prefix, where VNR runs it every day. A train not listed here keeps no frequency: its row then says it does not know rather than claiming Daily.",
+    "SE": "Daily",
+    "SNT": "Daily",
+    "SP": "Daily",
+    "NA": "Daily"
+  },
+  "service": {
+    "_comment": "The name a train runs under, by number prefix, printed before its number on cards (`lineName` stays the number VNR sells it under).",
+    "SE": "Reunification Express",
+    "SNT": "Sài Gòn–Nha Trang",
+    "SP": "Hà Nội–Lào Cai",
+    "NA": "Hà Nội–Vinh"
+  },
+  "stationNames": {
+    "_comment": "Timetable spellings → the one name the map uses (VNR's site writes a few stations both ways).",
+    "Thanh Hóa": "Thanh Hoá",
+    "Tuy Hòa": "Tuy Hoà",
+    "Ninh Hòa": "Ninh Hoà",
+    "Biên Hoà": "Biên Hòa"
+  },
+  "anchors": {
+    "_comment": "Positions of the town's station as published in public references, not from a VNR feed (VNR publishes none).",
+    "Hà Nội": {
+      "lat": 21.0245,
+      "lon": 105.8412,
+      "approx": true
+    },
+    "Gia Lâm": {
+      "lat": 21.0466,
+      "lon": 105.8776,
+      "approx": true
+    },
+    "Yên Viên": {
+      "lat": 21.0836,
+      "lon": 105.9157,
+      "approx": true
+    },
+    "Đông Anh": {
+      "lat": 21.1414,
+      "lon": 105.8468,
+      "approx": true
+    },
+    "Phúc Yên": {
+      "lat": 21.2347,
+      "lon": 105.7058,
+      "approx": true
+    },
+    "Vĩnh Yên": {
+      "lat": 21.3063,
+      "lon": 105.6017,
+      "approx": true
+    },
+    "Việt Trì": {
+      "lat": 21.3047,
+      "lon": 105.4277,
+      "approx": true
+    },
+    "Phú Thọ": {
+      "lat": 21.4003,
+      "lon": 105.2329,
+      "approx": true
+    },
+    "Yên Bái": {
+      "lat": 21.7047,
+      "lon": 104.8728,
+      "approx": true
+    },
+    "Lào Cai": {
+      "lat": 22.4886,
+      "lon": 103.9703,
+      "approx": true
+    },
+    "Bắc Giang": {
+      "lat": 21.2752,
+      "lon": 106.1946,
+      "approx": true
+    },
+    "Đồng Đăng": {
+      "lat": 21.9439,
+      "lon": 106.699,
+      "approx": true
+    },
+    "Phủ Lý": {
+      "lat": 20.5428,
+      "lon": 105.9124,
+      "approx": true
+    },
+    "Nam Định": {
+      "lat": 20.4316,
+      "lon": 106.1714,
+      "approx": true
+    },
+    "Ninh Bình": {
+      "lat": 20.2533,
+      "lon": 105.9739,
+      "approx": true
+    },
+    "Bỉm Sơn": {
+      "lat": 20.088,
+      "lon": 105.8615,
+      "approx": true
+    },
+    "Thanh Hoá": {
+      "lat": 19.7966,
+      "lon": 105.7682,
+      "approx": true
+    },
+    "Vinh": {
+      "lat": 18.6828,
+      "lon": 105.6735,
+      "approx": true
+    },
+    "Hương Phố": {
+      "lat": 18.1867,
+      "lon": 105.7044,
+      "approx": true
+    },
+    "Đồng Lê": {
+      "lat": 17.8843,
+      "lon": 106.0244,
+      "approx": true
+    },
+    "Đồng Hới": {
+      "lat": 17.4575,
+      "lon": 106.6007,
+      "approx": true
+    },
+    "Đông Hà": {
+      "lat": 16.8022,
+      "lon": 107.0991,
+      "approx": true
+    },
+    "Huế": {
+      "lat": 16.4563,
+      "lon": 107.5787,
+      "approx": true
+    },
+    "Đà Nẵng": {
+      "lat": 16.0714,
+      "lon": 108.2093,
+      "approx": true
+    },
+    "Tam Kỳ": {
+      "lat": 15.5717,
+      "lon": 108.4775,
+      "approx": true
+    },
+    "Quảng Ngãi": {
+      "lat": 15.1117,
+      "lon": 108.7877,
+      "approx": true
+    },
+    "Diêu Trì": {
+      "lat": 13.8025,
+      "lon": 109.148,
+      "approx": true
+    },
+    "La Hai": {
+      "lat": 13.3773,
+      "lon": 109.1036,
+      "approx": true
+    },
+    "Tuy Hoà": {
+      "lat": 13.0897,
+      "lon": 109.3007,
+      "approx": true
+    },
+    "Ninh Hoà": {
+      "lat": 12.4935,
+      "lon": 109.133,
+      "approx": true
+    },
+    "Nha Trang": {
+      "lat": 12.2484,
+      "lon": 109.1823,
+      "approx": true
+    },
+    "Tháp Chàm": {
+      "lat": 11.5935,
+      "lon": 108.947,
+      "approx": true
+    },
+    "Bình Thuận": {
+      "lat": 10.9878,
+      "lon": 108.086,
+      "approx": true
+    },
+    "Long Khánh": {
+      "lat": 10.933,
+      "lon": 107.244,
+      "approx": true
+    },
+    "Biên Hòa": {
+      "lat": 10.9455,
+      "lon": 106.8183,
+      "approx": true
+    },
+    "Dĩ An": {
+      "lat": 10.903,
+      "lon": 106.77,
+      "approx": true
+    },
+    "Sài Gòn": {
+      "lat": 10.7822,
+      "lon": 106.6775,
+      "approx": true
+    }
+  }
+}

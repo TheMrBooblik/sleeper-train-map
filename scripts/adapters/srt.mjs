@@ -29,9 +29,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { streamZipCsv } from "../lib/gtfs.mjs";
 import { HONEST_USER_AGENT, detectBlock } from "../lib/http-block.mjs";
-import { trackFromOverpass } from "../lib/rail-graph.mjs";
-import { OVERPASS_ENDPOINTS } from "../lib/scrape-helpers.mjs";
-import polyline from "@mapbox/polyline";
+import { bboxTiles, loadOsmTrack as loadTiledOsmTrack } from "../lib/osm-track.mjs";
 import {
   berthFares,
   buildSrtTrains,
@@ -134,105 +132,15 @@ export async function loadNamtang(zipPath) {
 
 // ─── OpenStreetMap track ────────────────────────────────────────────────────
 
-// Every railway line in and around Thailand (Padang Besar is in Malaysia),
-// service sidings left out. Asked as tiles rather than one country-sized
-// query: the first branch run had both public Overpass servers refuse the
-// whole bbox at once (502, 500), which a busy server does to a heavy query.
-const OSM_TRACK_QUERY = (bbox) =>
-  `[out:json][timeout:180];way["railway"="rail"][!"service"](${bbox.join(",")});out geom;`;
-const OSM_TRACK_MAX_AGE_DAYS = 7;
-const OSM_TILE_DEG = 3;
-const OSM_ATTEMPTS = 3;
-const OSM_ENDPOINTS = [...OVERPASS_ENDPOINTS, "https://overpass.private.coffee/api/interpreter"];
-// The whole refresh, every tile and retry: past it the cache (or Namtang) draws tonight.
-const OSM_BUDGET_MS = 20 * 60_000;
+// The weekly, tiled Overpass cache lives in scripts/lib/osm-track.mjs (Vietnam
+// reads it too); this is Thailand's box and file. Every railway line in and
+// around Thailand (Padang Besar is in Malaysia), service sidings left out.
+const SRT_OSM = { file: "osm-srt-track.json", bbox: [5.6, 97.3, 20.6, 106.0] };
 
-/** [south, west, north, east] cut into equal tiles of at most `deg` degrees a side. */
-export function bboxTiles([s, w, n, e], deg = OSM_TILE_DEG) {
-  const rows = Math.max(1, Math.ceil((n - s) / deg - 1e-9));
-  const cols = Math.max(1, Math.ceil((e - w) / deg - 1e-9));
-  const r = (v) => Math.round(v * 1e4) / 1e4;
-  const tiles = [];
-  for (let i = 0; i < rows; i++) {
-    for (let j = 0; j < cols; j++) {
-      tiles.push([r(s + ((n - s) * i) / rows), r(w + ((e - w) * j) / cols), r(s + ((n - s) * (i + 1)) / rows), r(w + ((e - w) * (j + 1)) / cols)]);
-    }
-  }
-  return tiles;
-}
+export { bboxTiles };
 
-async function overpassTile(bbox, { fetchImpl, log, deadline = Infinity, retryMs = 10_000 }) {
-  let last = null;
-  for (let attempt = 0; attempt < OSM_ATTEMPTS; attempt++) {
-    if (Date.now() > deadline) throw new Error(`out of time (${last ?? "no answer"})`);
-    const url = OSM_ENDPOINTS[attempt % OSM_ENDPOINTS.length];
-    if (attempt) await sleep(retryMs * attempt);
-    try {
-      const res = await fetchImpl(url, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain", "User-Agent": HONEST_USER_AGENT },
-        body: OSM_TRACK_QUERY(bbox),
-        signal: AbortSignal.timeout(240_000),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      if (!Array.isArray(json?.elements)) throw new Error("no elements");
-      return json.elements;
-    } catch (err) {
-      last = `${new URL(url).host}: ${err.message}`;
-      log(`OSM track tile ${bbox.join(",")}: ${last}`);
-    }
-  }
-  throw new Error(last ?? "no answer");
-}
-
-/**
- * The track network to route trains along, from a committed cache refreshed
- * weekly from Overpass one tile at a time. Each tile keeps its own date, so a
- * tile Overpass refuses tonight keeps last week's copy and is asked again
- * tomorrow while the others refresh (track rarely moves); a tile never once
- * answered leaves its corner to Namtang's shapes. Ways are merged by id, as
- * a way crossing a tile edge comes back whole in both.
- */
-export async function loadOsmTrack({ rootDir, today, params = {}, fetchImpl = fetch, log = () => {}, retryMs }) {
-  const file = path.join(rootDir, "public/data/scraped", params.file ?? "osm-srt-track.json");
-  const cachedTiles = readJsonSafe(file)?.data?.tiles ?? {};
-  const maxAge = params.maxAgeDays ?? OSM_TRACK_MAX_AGE_DAYS;
-  const ageOf = (t) => (t?.fetchedAt ? (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${t.fetchedAt}T00:00:00Z`)) / 86_400_000 : Infinity);
-  const deadline = Date.now() + (params.budgetMs ?? OSM_BUDGET_MS);
-  const tiles = {};
-  let fetched = 0;
-  let failed = 0;
-  for (const bbox of bboxTiles(params.bbox ?? [5.6, 97.3, 20.6, 106.0], params.tileDeg ?? OSM_TILE_DEG)) {
-    const key = bbox.join(",");
-    const old = cachedTiles[key] ?? null;
-    if (old && ageOf(old) <= maxAge) {
-      tiles[key] = old;
-      continue;
-    }
-    try {
-      const elements = await overpassTile(bbox, { fetchImpl, log, deadline, retryMs });
-      const ways = elements.filter((e) => e.type === "way" && Array.isArray(e.geometry) && e.geometry.length >= 2);
-      const lines = trackFromOverpass({ elements: ways });
-      tiles[key] = { fetchedAt: today, ways: ways.map((w, i) => [w.id, polyline.encode(lines[i])]) };
-      fetched++;
-    } catch (err) {
-      failed++;
-      if (old) tiles[key] = old;
-      log(`OSM track tile ${key}: ${err.message}${old ? ` — keeping the copy from ${old.fetchedAt}` : " — no copy yet"}`);
-    }
-  }
-  if (fetched) fs.writeFileSync(file, JSON.stringify({ uploadedAt: new Date().toISOString(), data: { tiles } }));
-  const byId = new Map();
-  for (const t of Object.values(tiles)) for (const [id, enc] of t.ways ?? []) if (!byId.has(id)) byId.set(id, enc);
-  const held = Object.keys(tiles).length;
-  log(`OSM track: ${byId.size} ways from ${held} tile(s) (${fetched} refreshed tonight, ${failed} refused${held - fetched ? `, ${held - fetched} from the cache` : ""})`);
-  if (!byId.size) {
-    log("OSM track: nothing yet — routing on Namtang's shapes only");
-    return null;
-  }
-  return [...byId.values()].map((enc) => polyline.decode(enc));
-}
+/** The track network to route Thai trains along (see scripts/lib/osm-track.mjs). */
+export const loadOsmTrack = (opts) => loadTiledOsmTrack({ ...opts, params: { ...SRT_OSM, ...(opts?.params ?? {}) } });
 
 // ─── D-Ticket ───────────────────────────────────────────────────────────────
 

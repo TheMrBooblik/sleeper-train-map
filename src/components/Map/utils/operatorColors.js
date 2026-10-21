@@ -63,6 +63,9 @@ export const OPERATOR_BRAND_COLORS = {
   // Thailand
   SRT: "#E36B1E", // State Railway of Thailand – SRT orange
 
+  // Vietnam
+  VNR: "#0E7C3A", // Vietnam Railways (Đường sắt Việt Nam) – VNR green
+
   // Caucasus
   GR: "#D4380D", // Georgian Railway – Georgian red-orange
   ADY: "#0080C8", // ADY (Azerbaijan Railways) – ADY blue
