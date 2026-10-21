@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-1955-palermo-",
+  "createdAt": "2026-10-21T11:43:27.210Z",
+  "source": "scrape",
+  "sourceDetail": "icn",
+  "kind": "route.add",
+  "title": "New train: ICN 1955 (Palermo) (Roma Termini – Palermo Centrale)",
+  "summary": "Route \"icn_ICN_1955_(Palermo)\" appeared in tonight's scrape and is withheld from the map until approved. Via: Latina - Formia-Gaeta - Napoli Centrale - Salerno - Villa S.giovanni - Messina Centrale - Milazzo - Barcellona-Castroreale - Patti-S.piero Patti - Capo D'Orlando-Naso - S.agata Di Militello - Cefalu' - Termini Imerese",
+  "target": {
+    "routeKey": "icn_ICN_1955_(Palermo)",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "ICN 1955 (Palermo)",
+    "returnTrain": "ICN 1958",
+    "origin": "Roma Termini",
+    "destination": "Palermo Centrale",
+    "operator": "FS",
+    "operatingDays": "2026: Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "icn_ICN_1955_(Palermo)"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
