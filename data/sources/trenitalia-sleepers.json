@@ -1,0 +1,16 @@
+{
+  "_comment": "Read by scripts/adapters/trenitalia-gtfs.mjs (registry id `italian`). Every Intercity Notte in Trenitalia's national GTFS is taken — the category is the allowlist, as route_type 105 is for Trafiklab — so a new night train appears without an edit here. stationNames pins the name a station is published under where the feed's own spelling differs from the one the map, the connection pages and their URLs already use (Viaggiatreno's); keyed by GTFS stop_id, which is Viaggiatreno's station code without the S.",
+  "categories": ["ICN"],
+  "variationNumberFrom": 10000,
+  "minNights": 3,
+  "standInClockMinutes": 180,
+  "standInMaxOverlap": 0.1,
+  "simplifyMeters": 30,
+  "stationNames": {
+    "05043": "Bologna Centrale",
+    "11761": "Ricadi-Capo Vaticano",
+    "11789": "Vibo Valentia-Pizzo",
+    "12041": "Barcellona-Castroreale",
+    "12317": "Taormina-Giardini"
+  }
+}

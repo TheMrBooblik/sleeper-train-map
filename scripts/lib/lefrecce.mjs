@@ -1,7 +1,7 @@
 // scripts/lib/lefrecce.mjs
 // Trenitalia fares from lefrecce.it — the JSON backend (BFF) behind the
 // operator's own booking site. Read-only: one ticket search per train, no
-// cart, no login. Used by the viaggiatreno adapter to price Intercity Notte.
+// cart, no login. Used by scripts/lib/icn-fares.mjs to price Intercity Notte.
 //
 // Two facts make this cheap to wire in:
 //   - Viaggiatreno already gives every station its id ("S01700" = Milano

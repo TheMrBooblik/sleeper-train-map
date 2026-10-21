@@ -224,16 +224,16 @@
     "v": 1,
     "id": "italian",
     "label": "Trenitalia ICN",
-    "description": "Official Viaggiatreno API — Intercity Notte timetables",
-    "kind": "json-api",
-    "adapter": "viaggiatreno",
+    "description": "Trenitalia's national GTFS (Mobility Database mdb-3569: the operator's NeTEx from the Italian National Access Point, CCISS, converted to GTFS) — every Intercity Notte for the next ~3 months with its dates, stops, times and shapes.txt track. A train is a (number, first station, last station) unit, so a through-car portion is its own train (ICN 1955 Roma–Catania and ICN 1955 (Palermo)), and a works number running on the nights a timetable train does not (95063 for Roma–Palermo ICN 1959) is folded into the train it replaces. Replaced the Viaggiatreno running-status API, which only knew a train on a day it ran, so the nightly file lost a different third of the trains every night. Fares from lefrecce.it, Trenitalia's booking backend (scripts/lib/icn-fares.mjs).",
+    "kind": "gtfs",
+    "adapter": "trenitalia-gtfs",
     "enabled": true,
     "official": true,
     "critical": false,
     "schedule": "daily",
     "homepage": "https://www.trenitalia.com",
-    "endpoint": "http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno",
-    "docsUrl": null,
+    "endpoint": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-3569/latest.zip",
+    "docsUrl": "https://mobilitydatabase.org/feeds/gtfs/mdb-3569",
     "output": "italian-trains.json",
     "missingResponse": "empty",
     "agencyDefaults": { "agencyId": "FS", "operatorName": "Trenitalia" },
@@ -241,17 +241,13 @@
       "idPrefix": "icn_",
       "agency": { "from": "fixed", "value": "FS" },
       "resolveAliases": false,
-      "withService": false,
+      "withService": true,
       "excludeBotMatched": false,
       "dedupStrategy": "icn"
     },
     "params": {
-      "trainNumbers": [
-        719, 752, 754, 755, 757, 758, 763, 764, 765, 770, 771, 774, 775, 788,
-        789, 794, 795, 796, 797, 798, 799, 1930, 1954, 1955, 1956, 1957, 1958,
-        1959, 1960, 1961, 1962, 1963, 1964, 1965
-      ],
-      "concurrency": 4
+      "feedUrl": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-3569/latest.zip",
+      "configPath": "data/sources/trenitalia-sleepers.json"
     },
     "freshness": { "ttlHours": 25 }
   },

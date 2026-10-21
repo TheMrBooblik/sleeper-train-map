@@ -18,7 +18,7 @@ import {
   searchTimeBefore,
   solutionsRequestBody,
 } from "../scripts/lib/lefrecce.mjs";
-import { fillFareCalendars } from "../scripts/adapters/viaggiatreno.mjs";
+import { fillFareCalendars } from "../scripts/lib/icn-fares.mjs";
 import {
   calendarWindow,
   cheapestNight,

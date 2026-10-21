@@ -499,7 +499,7 @@ for (const [id, cfg] of scheduleOps) {
 
 // ── The merge carries the operator's station code onto the row ─────────────
 // Without this the FS template can never fire on either surface. Guards the
-// shape contract with scripts/adapters/viaggiatreno.mjs: stations[0].code.
+// shape contract with scripts/adapters/trenitalia-gtfs.mjs: stations[0].code.
 {
   const viewMap = {
     r1: {
