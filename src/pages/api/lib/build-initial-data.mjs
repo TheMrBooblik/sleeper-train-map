@@ -353,6 +353,20 @@ function appendSyntheticRoutes(
     if (seasonByTrain[lineName]) row[`previous_service_${dir}`] = seasonByTrain[lineName];
   };
   const paired = new Set();
+  // The row shows a train as its source names it (`lineName`) and looks it up
+  // by its key in the trains file. The two differ only where one number is
+  // several journeys: Trenitalia's ICN 1963 runs Milano → Catania and, as a
+  // through-car portion, Milano → Palermo, keyed "ICN 1963" and "ICN 1963
+  // (Palermo)" but sold as ICN 1963 both. Then the key rides along as
+  // `train_key_{dir}`, which every lookup reads first (rowTrainKey).
+  const label = (key, train) => {
+    const name = typeof train?.lineName === "string" ? train.lineName.trim() : "";
+    return name || key;
+  };
+  const stampLabel = (row, dir, key, train) => {
+    row[`trip_short_name_${dir}`] = label(key, train);
+    if (row[`trip_short_name_${dir}`] !== key) row[`train_key_${dir}`] = key;
+  };
   // Which train is whose return. A corridor can carry this timetable's train
   // and next period's under other numbers, and pairing each train with the
   // first reverse train in feed order joins the wrong ones: nightjet.com lists
@@ -422,10 +436,11 @@ function appendSyntheticRoutes(
       // of from a per-operator feed it would otherwise have to hardcode.
       ...(sourceId ? { timetable_source: sourceId } : {}),
     };
+    stampLabel(entry, 0, lineName, data);
     stampNextRun(entry, 0, lineName, data);
     if (reversePair) {
       const [revName, revData] = reversePair;
-      entry.trip_short_name_1 = revName;
+      stampLabel(entry, 1, revName, revData);
       entry.origin_trip_1 = resolveName(revData.stations[0].name);
       entry.destination_trip_1 = resolveName(
         revData.stations[revData.stations.length - 1].name,
@@ -475,8 +490,9 @@ function appendSyntheticRoutes(
         // opacity with the start date on hover — not as a faded ghost.
         draw_as_active: true,
       };
+      stampLabel(futureEntry, 0, lineName, data);
       if (revFuture?.stations?.length >= 2) {
-        futureEntry.trip_short_name_1 = reversePair[0];
+        stampLabel(futureEntry, 1, reversePair[0], reversePair[1]);
         futureEntry.origin_trip_1 = resolveName(revFuture.stations[0].name);
         futureEntry.destination_trip_1 = resolveName(
           revFuture.stations[revFuture.stations.length - 1].name,
@@ -819,6 +835,17 @@ function stampTimetableSources(viewMap, registry) {
  * timetable_source is that source are touched, so a bare number another
  * operator shares cannot lend its price across.
  */
+/**
+ * The key a row's direction is filed under in its source's trains file: the
+ * label it shows (`trip_short_name_{dir}`), unless one number is several
+ * journeys and the row names the key apart (`train_key_{dir}`, set by
+ * appendSyntheticRoutes — "ICN 1963 (Palermo)" behind a row labelled
+ * "ICN 1963"). Every lookup of a row's train in a trains file goes through it.
+ */
+export function rowTrainKey(row, dir) {
+  return row?.[`train_key_${dir}`] || row?.[`trip_short_name_${dir}`];
+}
+
 export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
   const sources = new Map(
     (registry ?? [])
@@ -832,7 +859,7 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
     if (!trains) continue;
     const fares = [];
     for (const dir of [0, 1]) {
-      const fare = trains[row[`trip_short_name_${dir}`]]?.fare;
+      const fare = trains[rowTrainKey(row, dir)]?.fare;
       if (!Number.isFinite(fare?.fromPrice) || fare.fromPrice <= 0 || !fare.currency) continue;
       fares.push({ ...fare, trainName: row[`trip_short_name_${dir}`] });
       // Each direction keeps its own figure and berth classes: a card about
@@ -861,7 +888,7 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
       // Every night's fare, when the source keeps a calendar (lefrecce does:
       // scripts/lib/fare-calendar.mjs). Read by the connection pages only —
       // the map payload drops it (stripPageOnlyFields).
-      const calendar = trains[row[`trip_short_name_${dir}`]]?.fareCalendar;
+      const calendar = trains[rowTrainKey(row, dir)]?.fareCalendar;
       if (calendar?.nights && Object.keys(calendar.nights).length) {
         row[`fare_calendar_${dir}`] = calendar;
       }
@@ -874,7 +901,7 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
       // resolvePricing stops at it instead of reaching the carrier's
       // operator-pricing default — PKP's says "Domestic tariff", which a
       // München–Przemyśl EuroNight is not.
-      const names = [row.trip_short_name_0, row.trip_short_name_1].filter(Boolean);
+      const names = [rowTrainKey(row, 0), rowTrainKey(row, 1)].filter(Boolean);
       if (names.length && names.every((n) => trains[n] && trains[n].fare === null)) {
         const pricing = { type: null, currency: null, fromPrice: null, source: row.timetable_source };
         row.pricing = pricing;
@@ -928,7 +955,7 @@ export function stampPunctuality(viewMap, operatorTrains, registry) {
     const trains = operatorTrains?.[row.timetable_source];
     if (!trains) continue;
     for (const dir of [0, 1]) {
-      const value = trains[row[`trip_short_name_${dir}`]]?.punctuality;
+      const value = trains[rowTrainKey(row, dir)]?.punctuality;
       if (!value || !Number.isFinite(value.onTimeRate)) continue;
       row[`punctuality_${dir}`] = value;
       stamped++;
@@ -988,7 +1015,7 @@ function stampScheduleOriginCodes(viewMap, operatorTrains, registry) {
     for (const { codes, scope } of perSource) {
       if (!inAgencyScope(row, scope)) continue;
       for (const dir of [0, 1]) {
-        const code = codes.get(row[`trip_short_name_${dir}`]);
+        const code = codes.get(rowTrainKey(row, dir));
         if (code) row[`schedule_origin_code_${dir}`] = code;
       }
     }

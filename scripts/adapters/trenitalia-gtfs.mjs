@@ -338,11 +338,14 @@ export function buildTrenitaliaTrains({ feed, today, config = {}, log = () => {}
     }
   }
 
-  // ── Labels: one train per number keeps the bare number ──
-  // The busiest unit of a number is "ICN n"; another portion of it is named
-  // by the city where it differs. On a tie the shorter portion keeps the bare
-  // number (ICN 1955 Roma → Catania, as Viaggiatreno and the existing icn_
-  // rows had it; Back-on-Track marks the Palermo portion the same way, "(P)").
+  // ── Keys: one train per number keeps the bare number ──
+  // Every portion is shown as its operator sells it, "ICN n" (`lineName`), but
+  // the trains file needs one key per journey: the busiest unit of a number is
+  // keyed "ICN n", another portion by the city where it differs, "ICN 1963
+  // (Palermo)". The row carries that key as `train_key_{dir}`
+  // (appendSyntheticRoutes), which is what fares, codes and the panel look
+  // the train up by. On a tie the shorter portion keeps the bare key (ICN
+  // 1955 Roma → Catania, as Viaggiatreno and the existing icn_ rows had it).
   const byNumber = new Map();
   for (const b of built) {
     if (!byNumber.has(b.number)) byNumber.set(b.number, []);
@@ -356,13 +359,13 @@ export function buildTrenitaliaTrains({ feed, today, config = {}, log = () => {}
         a.destination.localeCompare(b.destination),
     );
     const [main, ...others] = list;
-    main.lineName = `ICN ${main.number}`;
+    main.key = `ICN ${main.number}`;
     for (const o of others) {
       const end =
         o.destination !== main.destination
           ? o.rep.stops[o.rep.stops.length - 1].feed.name
           : o.rep.stops[0].feed.name;
-      o.lineName = `ICN ${o.number} (${cityForStation(end) || end})`;
+      o.key = `ICN ${o.number} (${cityForStation(end) || end})`;
     }
   }
 
@@ -393,12 +396,12 @@ export function buildTrenitaliaTrains({ feed, today, config = {}, log = () => {}
         cfg.simplifyMeters,
       ).map(([lat, lon]) => [Number(lat.toFixed(5)), Number(lon.toFixed(5))]);
     } else {
-      chordOnly.push(b.lineName);
+      chordOnly.push(b.key);
       points = stations.map((s) => [s.location.latitude, s.location.longitude]);
     }
 
-    trains[b.lineName] = {
-      lineName: b.lineName,
+    trains[b.key] = {
+      lineName: `ICN ${b.number}`,
       operator: "Trenitalia",
       frequency: renderServiceDays(b.nights, { horizonStart, horizonEnd }),
       polyline: polyline.encode(points),
@@ -501,11 +504,11 @@ export async function run(entry, ctx) {
   const trains = buildTrenitaliaTrains({ feed, today: ctx.today, config, log, stats });
   const count = Object.keys(trains).length;
   if (!count) throw new Error(`${entry.id}: no Intercity Notte train found in the feed`);
-  for (const t of Object.values(trains)) {
+  for (const [key, t] of Object.entries(trains)) {
     const a = t.stations[0];
     const z = t.stations[t.stations.length - 1];
     log(
-      `${t.lineName}: ${a.name} → ${z.name}, ${t.stations.length} stops, ${t.frequency}` +
+      `${key}: ${a.name} → ${z.name}, ${t.stations.length} stops, ${t.frequency}` +
         (t.operatedAs ? ` (runs as ${t.operatedAs.join("/")} on some nights)` : ""),
     );
   }
