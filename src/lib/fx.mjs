@@ -52,8 +52,17 @@ export function eurHintFor(pricing, table = EUR_RATES) {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** "ECB reference rate of 25 Sep 2026" — for a tooltip on the euro figure. */
-export function eurRateNote(table = EUR_RATES) {
+/**
+ * "ECB reference rate of 25 Sep 2026" — for a tooltip on the euro figure. A
+ * currency the ECB does not publish (the dong) names the rate it came from:
+ * the European Commission's monthly InforEuro rate.
+ */
+export function eurRateNote(table = EUR_RATES, currency = null) {
+  const other = currency ? table?.rateSources?.[currency] : null;
+  if (other?.month) {
+    const [y, mo] = String(other.month).split("-");
+    return `Approximate, at the European Commission's InforEuro rate for ${MONTHS[Number(mo) - 1] ?? mo} ${y}`;
+  }
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(table?.date ?? ""));
   if (!m) return "Approximate, at the ECB reference rate";
   return `Approximate, at the ECB reference rate of ${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}`;

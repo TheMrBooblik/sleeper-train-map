@@ -903,7 +903,7 @@
     "v": 1,
     "id": "ecb-fx",
     "label": "ECB euro reference rates",
-    "description": "The European Central Bank's daily euro foreign exchange reference rates. Not an operator and feeds no route: used only to print an approximate euro figure beside a fare quoted in another currency (src/lib/fx.mjs). A failed fetch keeps the last committed rates.",
+    "description": "The European Central Bank's daily euro foreign exchange reference rates, plus the European Commission's monthly InforEuro rate for a currency the ECB does not publish (the Vietnamese dong). Not an operator and feeds no route: used only to print an approximate euro figure beside a fare quoted in another currency (src/lib/fx.mjs). A failed fetch keeps the last committed rates.",
     "kind": "xml",
     "adapter": "ecb-fx",
     "enabled": true,
@@ -918,7 +918,10 @@
     "missingResponse": "empty",
     "params": {
       "feedUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
-      "requiredCurrencies": ["JPY", "CNY", "USD"]
+      "requiredCurrencies": ["JPY", "CNY", "USD"],
+      "supplements": [
+        { "currency": "VND", "url": "https://ec.europa.eu/budg/inforeuro/api/public/currencies/vnd" }
+      ]
     },
     "freshness": { "ttlHours": 25 }
   }

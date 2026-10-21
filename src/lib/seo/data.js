@@ -42,7 +42,7 @@ import {
   isDynamicPricing,
   pricingForDirection,
 } from "../fareClasses.mjs";
-import { eurHintFor, formatEurApprox } from "../fx.mjs";
+import { eurHintFor, eurRateNote, formatEurApprox } from "../fx.mjs";
 import { fareCalendarDays } from "../fareCalendarView.mjs";
 import { clockKey, journeyTimesTheEnds, nightClock } from "../nightTimes.mjs";
 import { punctualitySummary } from "../punctuality.mjs";
@@ -444,6 +444,8 @@ export function toCardRoute(s) {
     durationText: s.durationText || "",
     fromPrice: s.fromPrice || null,
     fromPriceEur: s.fromPriceEur || "",
+    // Which rate the euro figure used: the dong's is InforEuro's, not the ECB's.
+    fromPriceEurNote: s.fromPriceEur ? eurRateNote(undefined, s.pricing?.currency) : "",
     futureFrom: s.futureFrom || "",
   };
 }
