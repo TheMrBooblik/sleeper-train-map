@@ -18,13 +18,15 @@
 //
 // Read-only: GET requests only, an honest User-Agent, at most MAX_REQUESTS.
 // A block (detectBlock) stops asking that host.
-// Run: node scripts/probe-vnr.mjs [outputDir]
+// Run: node scripts/probe-vnr.mjs [outputDir] [--crawl]   (default: the giotaugiave forms)
 
 import fs from "node:fs";
 import path from "node:path";
 import { HONEST_USER_AGENT, detectBlock } from "./lib/http-block.mjs";
 
-const outDir = process.argv[2] ?? null;
+const args = process.argv.slice(2);
+const outDir = args.find((a) => !a.startsWith("--")) ?? null;
+const CRAWL = args.includes("--crawl");
 const MAX_REQUESTS = 80;
 const MAX_TEXT_LOG = 5_000;
 const SPACING_MS = 700;
@@ -102,7 +104,7 @@ function linksOf(html, base) {
   const out = [];
   for (const m of html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#][^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
     try {
-      const href = new URL(m[1], base).href;
+      const href = new URL(m[1].replace(/&amp;/g, "&"), base).href;
       const text = m[2].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
       out.push({ href, text });
     } catch {}
@@ -160,70 +162,252 @@ function apiStrings(body) {
   return { strings, words };
 }
 
-console.log(`# VNR discovery probe — ${new Date().toISOString()}\n`);
+async function crawl() {
+  console.log(`# VNR discovery probe — ${new Date().toISOString()}\n`);
 
-const queue = SEEDS.map((url) => ({ url, depth: 0 }));
-const scripts = new Set();
+  const queue = SEEDS.map((url) => ({ url, depth: 0 }));
+  const scripts = new Set();
 
-while (queue.length && requests < MAX_REQUESTS) {
-  const { url, depth } = queue.shift();
-  if (seen.has(url)) continue;
-  seen.add(url);
-  const page = await get(url);
-  pages.push(page);
-  save(url, page.body);
-  console.log(`\n## ${url}`);
-  if (page.skipped) { console.log(`skipped: ${page.skipped}`); continue; }
-  if (page.error) { console.log(`error: ${page.error}`); continue; }
-  console.log(`status ${page.status}${page.finalUrl && page.finalUrl !== url ? ` → ${page.finalUrl}` : ""}, ${page.type}, ${page.bytes} bytes`);
-  console.log(`headers ${JSON.stringify(page.headers)}`);
-  if (page.block) console.log(`BLOCKED ${JSON.stringify(page.block)}`);
-  if (!page.body) continue;
-  if (/json/.test(page.type)) {
-    console.log(`json: ${page.body.slice(0, 3_000)}`);
-    continue;
+  while (queue.length && requests < MAX_REQUESTS) {
+    const { url, depth } = queue.shift();
+    if (seen.has(url)) continue;
+    seen.add(url);
+    const page = await get(url);
+    pages.push(page);
+    save(url, page.body);
+    console.log(`\n## ${url}`);
+    if (page.skipped) { console.log(`skipped: ${page.skipped}`); continue; }
+    if (page.error) { console.log(`error: ${page.error}`); continue; }
+    console.log(`status ${page.status}${page.finalUrl && page.finalUrl !== url ? ` → ${page.finalUrl}` : ""}, ${page.type}, ${page.bytes} bytes`);
+    console.log(`headers ${JSON.stringify(page.headers)}`);
+    if (page.block) console.log(`BLOCKED ${JSON.stringify(page.block)}`);
+    if (!page.body) continue;
+    if (/json/.test(page.type)) {
+      console.log(`json: ${page.body.slice(0, 3_000)}`);
+      continue;
+    }
+    const title = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(page.body)?.[1]?.trim();
+    if (title) console.log(`title: ${title.slice(0, 160)}`);
+    const forms = formsOf(page.body);
+    if (forms.length) console.log(`forms: ${JSON.stringify(forms)}`);
+    const base = page.finalUrl || url;
+    const links = linksOf(page.body, base);
+    const interesting = links.filter((l) => INTERESTING.test(l.href) || INTERESTING.test(l.text));
+    console.log(`links: ${links.length}, interesting ${interesting.length}`);
+    for (const l of interesting.slice(0, 60)) console.log(`  - ${l.href}  [${l.text}]`);
+    for (const s of scriptsOf(page.body, base)) scripts.add(s);
+    if (depth < 1) {
+      const host = new URL(base).host;
+      for (const l of interesting.slice(0, 12)) {
+        if (new URL(l.href).host !== host) continue;
+        if (/\.(pdf|jpg|png|zip|xlsx?)$/i.test(l.href)) { console.log(`  (file) ${l.href}`); continue; }
+        queue.push({ url: l.href, depth: depth + 1 });
+      }
+    }
+    const { strings, words } = apiStrings(page.body);
+    if (strings.length) console.log(`inline api-ish strings (${strings.length}): ${strings.slice(0, 80).join("  ")}`);
+    for (const [w, ctx] of words) console.log(`  vn-word ${w}: …${ctx}…`);
   }
-  const title = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(page.body)?.[1]?.trim();
-  if (title) console.log(`title: ${title.slice(0, 160)}`);
-  const forms = formsOf(page.body);
-  if (forms.length) console.log(`forms: ${JSON.stringify(forms)}`);
-  const base = page.finalUrl || url;
-  const links = linksOf(page.body, base);
-  const interesting = links.filter((l) => INTERESTING.test(l.href) || INTERESTING.test(l.text));
-  console.log(`links: ${links.length}, interesting ${interesting.length}`);
-  for (const l of interesting.slice(0, 60)) console.log(`  - ${l.href}  [${l.text}]`);
-  for (const s of scriptsOf(page.body, base)) scripts.add(s);
-  if (depth < 1) {
-    const host = new URL(base).host;
-    for (const l of interesting.slice(0, 12)) {
-      if (new URL(l.href).host !== host) continue;
-      if (/\.(pdf|jpg|png|zip|xlsx?)$/i.test(l.href)) { console.log(`  (file) ${l.href}`); continue; }
-      queue.push({ url: l.href, depth: depth + 1 });
+
+  console.log(`\n# Scripts (${scripts.size})`);
+  for (const src of [...scripts].filter((s) => OWN_HOSTS.test(new URL(s).host)).slice(0, 25)) {
+    const page = await get(src);
+    console.log(`\n## ${src}\n${page.status ?? page.error ?? page.skipped} ${page.bytes ?? 0} bytes`);
+    if (!page.body) continue;
+    save(src, page.body);
+    const { strings, words } = apiStrings(page.body);
+    console.log(`api-ish strings (${strings.length}): ${strings.slice(0, 150).join("  ")}`);
+    for (const [w, ctx] of [...words].slice(0, 80)) console.log(`  vn-word ${w}: …${ctx}…`);
+    // Lazy chunks an SPA loads by name from its runtime.
+    const chunks = [...new Set([...page.body.matchAll(/["'`]([\w.-]*(?:chunk|main|app|runtime)[\w.-]*\.js)["'`]/g)].map((m) => m[1]))];
+    if (chunks.length) console.log(`chunk names: ${chunks.slice(0, 60).join("  ")}`);
+  }
+
+  console.log(`\n# Requests: ${requests}; blocked hosts: ${[...blockedHosts].join(", ") || "none"}`);
+
+  console.log(`\n# Page text (capped at ${MAX_TEXT_LOG} chars each)`);
+  for (const page of pages) {
+    if (!page.body || /javascript|json/.test(page.type ?? "")) continue;
+    console.log(`\n## ${page.url}\n${textOf(page.body).slice(0, MAX_TEXT_LOG)}`);
+  }
+}
+
+// ─── giotaugiave.dsvn.vn: the official times-and-fares site ─────────────────
+//
+// The first crawl (2026-10-21) found it: an ASP.NET WebForms site, no captcha,
+// one form per page — giotau/* for times, giave/* for fares, thongnhat.aspx
+// for the north–south trains and diaphuong.aspx?option=&tuyen= per regional
+// line. Each form is a postback (__VIEWSTATE, __EVENTVALIDATION) over
+// txtNgayDi (date), ddlChieu (direction), ddlMacTau (train), ddlGaDi/ddlGaDen
+// (stations) and btnTraTim (search). This prints every field and option, then
+// the answer to one search with the defaults and one in the other direction.
+
+const GTGV = "https://giotaugiave.dsvn.vn/";
+const FORM_PAGES = [
+  "giotau/thongnhat.aspx",
+  "giave/thongnhat.aspx",
+  "giotau/diaphuong.aspx?option=2&tuyen=5",
+  "giave/diaphuong.aspx?option=2&tuyen=5",
+  "giotau/diaphuong.aspx?option=2&tuyen=1",
+  "giotau/diaphuong.aspx?option=3&tuyen=1",
+  "giave/diaphuong.aspx?option=3&tuyen=1",
+  "giotau/diaphuong.aspx?option=2&tuyen=3",
+];
+
+const decode = (s) =>
+  String(s ?? "")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&nbsp;/g, " ");
+const attr = (tag, name) => decode(new RegExp(`\\b${name}\\s*=\\s*["']([^"']*)["']`, "i").exec(tag)?.[1] ?? "");
+
+/** The page's main form: hidden/text/submit inputs and selects with their options. */
+export function parseAspForm(html) {
+  const form = /<form\b[^>]*>([\s\S]*?)<\/form>/i.exec(html)?.[1] ?? "";
+  const inputs = [];
+  for (const m of form.matchAll(/<input\b[^>]*>/gi)) {
+    inputs.push({ type: attr(m[0], "type") || "text", name: attr(m[0], "name"), value: attr(m[0], "value") });
+  }
+  const selects = [];
+  for (const m of form.matchAll(/<select\b([^>]*)>([\s\S]*?)<\/select>/gi)) {
+    const options = [...m[2].matchAll(/<option\b([^>]*)>([\s\S]*?)<\/option>/gi)].map((o) => ({
+      value: attr(o[1], "value"),
+      text: decode(o[2].replace(/<[^>]+>/g, "")).trim(),
+      selected: /\bselected\b/i.test(o[1]),
+    }));
+    selects.push({ name: attr(m[1], "name"), onchange: attr(m[1], "onchange"), options });
+  }
+  return { inputs, selects };
+}
+
+/** Every table in the page as rows of cell texts (nested tables flattened). */
+export function tablesOf(html) {
+  const out = [];
+  for (const t of html.matchAll(/<table\b[^>]*>([\s\S]*?)<\/table>/gi)) {
+    const rows = [...t[1].matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].map((r) =>
+      [...r[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)].map((c) => decode(c[1].replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim()),
+    );
+    if (rows.length) out.push(rows);
+  }
+  return out;
+}
+
+function makeSession() {
+  const cookies = new Map();
+  return async function call(url, { form = null } = {}) {
+    if (requests >= MAX_REQUESTS) throw new Error("request budget spent");
+    requests += 1;
+    await sleep(SPACING_MS);
+    const headers = { "User-Agent": HONEST_USER_AGENT, Accept: "text/html,*/*;q=0.8", "Accept-Language": "vi,en;q=0.8", Referer: url };
+    if (cookies.size) headers.Cookie = [...cookies].map(([k, v]) => `${k}=${v}`).join("; ");
+    let body;
+    if (form) {
+      headers["Content-Type"] = "application/x-www-form-urlencoded";
+      body = new URLSearchParams(form).toString();
+    }
+    const res = await fetch(url, { method: form ? "POST" : "GET", headers, body, redirect: "follow", signal: AbortSignal.timeout(30_000) });
+    for (const line of typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : []) {
+      const [pair] = line.split(";");
+      const eq = pair.indexOf("=");
+      if (eq > 0) cookies.set(pair.slice(0, eq).trim(), pair.slice(eq + 1).trim());
+    }
+    const text = await res.text();
+    const block = detectBlock({ status: res.status, headers: res.headers, body: text }, { expectJson: false });
+    if (block) throw new Error(`blocked: ${JSON.stringify(block)}`);
+    return { status: res.status, text };
+  };
+}
+
+/** Field values the browser would post: hidden inputs + each select's selected (or first) option. */
+function postbackFields(parsed, overrides = {}) {
+  const fields = {};
+  for (const i of parsed.inputs) {
+    if (!i.name) continue;
+    if (i.type === "hidden") fields[i.name] = i.value;
+    if (i.type === "text" && /txtNgay/i.test(i.name)) fields[i.name] = i.value;
+  }
+  for (const s of parsed.selects) {
+    if (!s.name || /Login/.test(s.name)) continue;
+    fields[s.name] = (s.options.find((o) => o.selected) ?? s.options[0])?.value ?? "";
+  }
+  return { ...fields, ...overrides };
+}
+
+function describeForm(parsed) {
+  for (const i of parsed.inputs) {
+    if (/Login/.test(i.name)) continue;
+    const v = i.type === "hidden" ? `${i.value.length} chars` : JSON.stringify(i.value);
+    console.log(`  input ${i.type} ${i.name} = ${v}`);
+  }
+  for (const s of parsed.selects) {
+    console.log(`  select ${s.name}${s.onchange ? ` onchange=${JSON.stringify(s.onchange.slice(0, 160))}` : ""} (${s.options.length} options)`);
+    console.log(`    ${s.options.slice(0, 80).map((o) => `${o.selected ? "*" : ""}${o.value}=${o.text}`).join(" | ")}`);
+  }
+}
+
+function printAnswer(label, html) {
+  const tables = tablesOf(html)
+    .map((rows) => rows.filter((r) => r.some((c) => c)))
+    .filter((rows) => rows.length >= 2 && rows.some((r) => r.some((c) => /\d{1,2}[:h]\d{2}|\d{1,3}[.,]\d{3}/.test(c))));
+  console.log(`  ${label}: ${tables.length} table(s) with times or prices`);
+  for (const rows of tables.slice(0, 4)) {
+    console.log(`  ┌ ${rows.length} rows`);
+    for (const r of rows.slice(0, 70)) console.log(`  │ ${r.join(" | ").slice(0, 400)}`);
+  }
+  if (!tables.length) {
+    const msg = textOf(html).replace(/^[\s\S]*?(Tra tìm|Giờ tàu Ngày đi|Ngày đi)/, "$1").slice(0, 2_500);
+    console.log(`  text: ${msg}`);
+  }
+}
+
+async function formsProbe() {
+  console.log(`# giotaugiave.dsvn.vn forms — ${new Date().toISOString()}`);
+  for (const rel of FORM_PAGES) {
+    const url = new URL(rel, GTGV).href;
+    const call = makeSession();
+    console.log(`\n## ${url}`);
+    try {
+      const first = await call(url);
+      save(url, first.text);
+      const parsed = parseAspForm(first.text);
+      console.log(`status ${first.status}`);
+      describeForm(parsed);
+      const button = parsed.inputs.find((i) => i.type === "submit" && /btnTraTim/i.test(i.name));
+      if (!button) {
+        console.log("  no btnTraTim — not a search form");
+        continue;
+      }
+      const fields = postbackFields(parsed, { [button.name]: button.value });
+      const answer = await call(url, { form: fields });
+      save(`${url}#search`, answer.text);
+      console.log(`  POST defaults (${Object.entries(fields).filter(([k]) => !k.startsWith("__")).map(([k, v]) => `${k.split("$").pop()}=${v}`).join(", ")}) → ${answer.status}`);
+      printAnswer("answer", answer.text);
+      // The other direction: switch ddlChieu, letting the page repopulate the
+      // trains and stations if the select posts back on change.
+      const chieu = parsed.selects.find((s) => /ddlChieu/i.test(s.name));
+      const other = chieu?.options.find((o) => !o.selected);
+      if (chieu && other) {
+        let page = parseAspForm(answer.text);
+        if (/__doPostBack/.test(chieu.onchange)) {
+          const changed = await call(url, { form: postbackFields(page, { __EVENTTARGET: chieu.name, __EVENTARGUMENT: "", [chieu.name]: other.value }) });
+          page = parseAspForm(changed.text);
+          console.log(`  after choosing ${other.text}:`);
+          describeForm({ inputs: [], selects: page.selects.filter((s) => !/Login/.test(s.name)) });
+        }
+        const back = await call(url, { form: postbackFields(page, { [chieu.name]: other.value, [button.name]: button.value }) });
+        save(`${url}#search-back`, back.text);
+        printAnswer(`answer, ${other.text}`, back.text);
+      }
+    } catch (err) {
+      console.log(`  error: ${err.message}`);
     }
   }
-  const { strings, words } = apiStrings(page.body);
-  if (strings.length) console.log(`inline api-ish strings (${strings.length}): ${strings.slice(0, 80).join("  ")}`);
-  for (const [w, ctx] of words) console.log(`  vn-word ${w}: …${ctx}…`);
+  console.log(`\n# Requests: ${requests}`);
 }
 
-console.log(`\n# Scripts (${scripts.size})`);
-for (const src of [...scripts].filter((s) => OWN_HOSTS.test(new URL(s).host)).slice(0, 25)) {
-  const page = await get(src);
-  console.log(`\n## ${src}\n${page.status ?? page.error ?? page.skipped} ${page.bytes ?? 0} bytes`);
-  if (!page.body) continue;
-  save(src, page.body);
-  const { strings, words } = apiStrings(page.body);
-  console.log(`api-ish strings (${strings.length}): ${strings.slice(0, 150).join("  ")}`);
-  for (const [w, ctx] of [...words].slice(0, 80)) console.log(`  vn-word ${w}: …${ctx}…`);
-  // Lazy chunks an SPA loads by name from its runtime.
-  const chunks = [...new Set([...page.body.matchAll(/["'`]([\w.-]*(?:chunk|main|app|runtime)[\w.-]*\.js)["'`]/g)].map((m) => m[1]))];
-  if (chunks.length) console.log(`chunk names: ${chunks.slice(0, 60).join("  ")}`);
-}
-
-console.log(`\n# Requests: ${requests}; blocked hosts: ${[...blockedHosts].join(", ") || "none"}`);
-
-console.log(`\n# Page text (capped at ${MAX_TEXT_LOG} chars each)`);
-for (const page of pages) {
-  if (!page.body || /javascript|json/.test(page.type ?? "")) continue;
-  console.log(`\n## ${page.url}\n${textOf(page.body).slice(0, MAX_TEXT_LOG)}`);
-}
+if (CRAWL) await crawl();
+else await formsProbe();
