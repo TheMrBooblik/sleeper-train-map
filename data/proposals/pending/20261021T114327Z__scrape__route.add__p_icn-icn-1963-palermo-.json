@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_icn-icn-1963-palermo-",
+  "createdAt": "2026-10-21T11:43:27.210Z",
+  "source": "scrape",
+  "sourceDetail": "icn",
+  "kind": "route.add",
+  "title": "New train: ICN 1963 (Palermo) (Milano Centrale – Palermo Centrale)",
+  "summary": "Route \"icn_ICN_1963_(Palermo)\" appeared in tonight's scrape and is withheld from the map until approved. Via: Piacenza - Fidenza - Parma - Reggio Emilia - Modena - Bologna Centrale - Prato Centrale - Firenze Campo Marte - Salerno - Battipaglia - Agropoli Castellabate - Vallo Della Lucania-Castelnuovo - Ascea - Pisciotta Palinuro - Sapri - Maratea - Scalea S.domenica Talao - Paola - Amantea - Lamezia Terme C",
+  "target": {
+    "routeKey": "icn_ICN_1963_(Palermo)",
+    "agencyId": "FS",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "ICN 1963 (Palermo)",
+    "returnTrain": "ICN 1964",
+    "origin": "Milano Centrale",
+    "destination": "Palermo Centrale",
+    "operator": "FS",
+    "operatingDays": "2026: Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "icn_ICN_1963_(Palermo)"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
