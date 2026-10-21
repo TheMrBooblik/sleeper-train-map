@@ -36,6 +36,9 @@ import {
 } from "./utils/stationNameUtils";
 import {
   shouldHideRouteDueToFutureDate,
+  selectedRoutesWithLines,
+  hasUnknownStart,
+  routeHasNotStartedYet,
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
 } from "./utils/routeStyleUtils";
@@ -43,7 +46,10 @@ import { formatTrainNumber } from "../../lib/operatorAgencies.mjs";
 import {
   selectedCityMatcher,
   stationFirstEndpoints,
+  routesBetweenStations,
+  endpointsInDirection,
 } from "../../lib/stationFirst.mjs";
+import { orderByPromotion } from "../../lib/operatorPromotion.mjs";
 import { splitViaString } from "../../lib/viaSplit.mjs";
 import { useRoutePaths } from "./hooks/useRoutePaths";
 import { useMapMarkers } from "./hooks/useMapMarkers";
@@ -52,7 +58,7 @@ import MapClickHandler from "./components/MapClickHandler";
 import MapViewportTracker from "./components/MapViewportTracker";
 import MarkerTooltipGuard from "./components/MarkerTooltipGuard";
 import { liftForDarkMap } from "../../lib/mapTheme.mjs";
-import { upcomingRun } from "../../lib/nextDeparture.mjs";
+import { upcomingRun, rowNextDeparture } from "../../lib/nextDeparture.mjs";
 
 /** Format "YYYY-MM-DD" → "15 January 2026" for the future-route popup. */
 function formatFutureDate(dateStr) {
@@ -169,6 +175,9 @@ const TrainMap = ({
   const [selectedStationLat, setSelectedStationLat] = useState(null);
   const [selectedStationLon, setSelectedStationLon] = useState(null);
   const [selectedTrainRouteIds, setSelectedTrainRouteIds] = useState([]);
+  // route_id → direction (0/1) when the open routes were picked by clicking a
+  // second station: the direction that runs from the selected station to it.
+  const [pairDirections, setPairDirections] = useState(null);
   const [isTrainDetailPanelOpen, setIsTrainDetailPanelOpen] = useState(false);
   const [hoveredRouteId, setHoveredRouteId] = useState(null);
   const [gtfsRouteFilterStops, setGtfsRouteFilterStops] = useState(null);
@@ -201,19 +210,27 @@ const TrainMap = ({
     setSelectedStationLon(null);
     setStopRouteIds([]);
     setFilteredStops(stops);
+    setPairDirections(null);
   }, [setFilteredStops, stops]);
 
-  const handlePolylineClick = useCallback((routeIds) => {
+  const openRoutes = useCallback((routeIds, directions = null) => {
     const idsArray = Array.isArray(routeIds) ? routeIds : [routeIds];
     startTransition(() => {
       setSelectedTrainRouteIds(idsArray);
+      setPairDirections(directions);
       setIsTrainDetailPanelOpen(true);
     });
   }, []);
 
+  const handlePolylineClick = useCallback(
+    (routeIds) => openRoutes(routeIds),
+    [openRoutes],
+  );
+
   const closeTrainDetailPanel = useCallback(() => {
     setIsTrainDetailPanelOpen(false);
     setSelectedTrainRouteIds([]);
+    setPairDirections(null);
   }, []);
 
   // Hover preview is desktop-only — touch has no meaningful hover state.
@@ -294,6 +311,15 @@ const TrainMap = ({
       null;
     return (route) => {
       if (!route) return null;
+      // Opened by clicking a second station: the train running toward it.
+      const pairDirection = pairDirections?.[String(route.route_id)];
+      if (pairDirection === 0 || pairDirection === 1) {
+        const ends = endpointsInDirection(route, pairDirection, {
+          inFrom: inSelectedCity,
+          splitVia: (via) => splitViaString(via, isKnownStation),
+        });
+        if (ends) return ends;
+      }
       const ends = stationFirstEndpoints(route, {
         inSelectedCity,
         splitVia: (via) => splitViaString(via, isKnownStation),
@@ -301,7 +327,13 @@ const TrainMap = ({
       });
       return ends.fromIsSelected ? ends : null;
     };
-  }, [selected, selectedNormalizedName, cities, stationCoordsByName]);
+  }, [
+    selected,
+    selectedNormalizedName,
+    cities,
+    stationCoordsByName,
+    pairDirections,
+  ]);
 
   /**
    * A name match only counts when the two stations are in the same place.
@@ -317,8 +349,155 @@ const TrainMap = ({
     [stationCoordsByName],
   );
 
-  const handleMarkerClick = useCallback(
+  /**
+   * Every route calling at a clicked station, across its whole city group —
+   * so clicking any marker always shows all routes for the city.
+   */
+  const routeIdsAtStop = useCallback(
     (filteredStop) => {
+      const { stop_id } = filteredStop;
+      const clickedLat = filteredStop?.stop_lat;
+      const clickedLon = filteredStop?.stop_lon;
+      const normalizedStopId = normalizeStationNameForLookup(stop_id);
+      // Direct key lookup first; fallback to fuzzy match when display variants differ.
+      let cityInfo = cities[normalizedStopId] || cities[stop_id];
+      if (!cityInfo) {
+        const match = Object.entries(cities).find(
+          ([key]) =>
+            matchStationNamesBound(stop_id, key) &&
+            isNearbyStationName(clickedLat, clickedLon, key),
+        );
+        if (match) cityInfo = match[1];
+      }
+      const filterName = normalizeStationNameForDisplay(stop_id);
+
+      const allRouteIds = new Set();
+      const addIds = (csv) =>
+        csv.split(",").forEach((id) => {
+          const t = id.trim();
+          if (t) allRouteIds.add(t);
+        });
+
+      // 1. Add from directly-found cityInfo
+      if (cityInfo?.stop_route_ids) addIds(cityInfo.stop_route_ids);
+
+      // 2. Add from BoT grouped stations on the marker (when available)
+      if (filteredStop.isGrouped && filteredStop.groupedStations) {
+        filteredStop.groupedStations.forEach((station) => {
+          const n = normalizeStationNameForLookup(station.stop_id);
+          const info = cities[n] || cities[station.stop_id];
+          if (info?.stop_route_ids) addIds(info.stop_route_ids);
+        });
+      }
+
+      // 3. Find other city entries with the same display city name or fuzzy-matching name.
+      // The fuzzy match covers diacritic variants (e.g. "Przemysl Gl." vs "Przemyśl Gł.")
+      // where NightJet API uses ASCII station names but BoT uses local diacritics.
+      if (filterName) {
+        Object.entries(cities).forEach(([key, city]) => {
+          if (!city?.stop_route_ids) return;
+          // Both tests are name-only, and both produce cross-continent false
+          // positives on their own: the display name buckets "Florence Amtrak
+          // Station" (South Carolina) with Firenze, and the fuzzy matcher pairs
+          // "Bar" (Montenegro) with "Boston Bar" in British Columbia. Either
+          // one used to hand the clicked station that route's entire stop list.
+          if (
+            (normalizeStationNameForDisplay(key) === filterName ||
+              matchStationNamesBound(stop_id, key)) &&
+            isNearbyStationName(clickedLat, clickedLon, key)
+          ) {
+            addIds(city.stop_route_ids);
+          }
+        });
+      }
+      return Array.from(allRouteIds);
+    },
+    [
+      cities,
+      matchStationNamesBound,
+      isNearbyStationName,
+      normalizeStationNameForLookup,
+      normalizeStationNameForDisplay,
+    ],
+  );
+
+  /**
+   * With a station selected, a click on another station in a different city
+   * opens the routes that ride from the first to the second — as if the line
+   * between them had been clicked — rather than switching the selection.
+   * Returns false when no drawn route links the two, so the click falls back
+   * to selecting the new station.
+   */
+  const openRoutesToStop = useCallback(
+    (filteredStop) => {
+      if (!selected || !stopRouteIds?.length || !viewMapData) return false;
+      const inSelectedCity = selectedCityMatcher(
+        selectedNormalizedName,
+        normalizeStationNameForDisplay,
+      );
+      // Another station in the selected city is a new station, not a trip.
+      if (inSelectedCity(filteredStop.stop_id)) return false;
+      const clickedName = normalizeStationNameForDisplay(filteredStop.stop_id);
+      if (!clickedName) return false;
+
+      const atClicked = new Set(routeIdsAtStop(filteredStop));
+      // Only routes the map draws for the selection: a closed season's route
+      // still calls at both stations by name but has no line to "click".
+      const drawn = selectedRoutesWithLines(stopRouteIds, trips, viewMapData);
+      const rows = stopRouteIds
+        .map((id) => String(id).trim())
+        .filter(
+          (id) =>
+            atClicked.has(id) &&
+            drawn.has(id) &&
+            !shouldHideRouteDueToFutureDate(id, trips, viewMapData[id]),
+        )
+        .map((id) => viewMapData[id])
+        .filter(Boolean);
+      if (!rows.length) return false;
+
+      const isKnownStation = (name) =>
+        !!cities?.[normalizeStationNameForLookup(String(name ?? ""))];
+      // Ranked as the bottom bar ranks them, so the route the map frames is
+      // the one the bar would have listed first: trains not running yet last.
+      const isNotRunning = (row) =>
+        hasUnknownStart(row?.route_id, trips) ||
+        (row?.draw_as_active === true && routeHasNotStartedYet(row)) ||
+        Boolean(rowNextDeparture(row));
+      const ranked = orderByPromotion(rows, undefined, { isNotRunning });
+      const between = routesBetweenStations(ranked, {
+        inFrom: inSelectedCity,
+        inTo: selectedCityMatcher(clickedName, normalizeStationNameForDisplay),
+        splitVia: (via) => splitViaString(via, isKnownStation),
+      });
+      if (!between.length) return false;
+
+      const directions = {};
+      between.forEach(({ route, direction }) => {
+        if (direction != null) directions[String(route.route_id)] = direction;
+      });
+      openRoutes(
+        between.map(({ route }) => String(route.route_id)),
+        Object.keys(directions).length ? directions : null,
+      );
+      return true;
+    },
+    [
+      selected,
+      stopRouteIds,
+      viewMapData,
+      trips,
+      cities,
+      selectedNormalizedName,
+      routeIdsAtStop,
+      openRoutes,
+      normalizeStationNameForLookup,
+      normalizeStationNameForDisplay,
+    ],
+  );
+
+  const handleMarkerClick = useCallback(
+    (filteredStop, { fromSearch = false } = {}) => {
       // First real map interaction — lets the welcome tour dismiss itself.
       onStationSelect?.();
       const { stop_id } = filteredStop;
@@ -345,76 +524,21 @@ const TrainMap = ({
         return;
       }
 
+      // A second station on the selected station's routes: open the trains
+      // between the two. A search always selects the station it names.
+      if (!fromSearch && openRoutesToStop(filteredStop)) return;
+
       // New station selected: update filter + routes for this station.
+      // Directions picked toward a second station were relative to the old one.
+      setPairDirections(null);
       setStopId(stop_id);
       setSelectedStationLat(filteredStop.stop_lat);
       setSelectedStationLon(filteredStop.stop_lon);
-      const normalizedStopId = normalizeStationNameForLookup(stop_id);
-      // Direct key lookup first; fallback to fuzzy match when display variants differ.
-      let cityInfo = cities[normalizedStopId] || cities[stop_id];
-      if (!cityInfo) {
-        const match = Object.entries(cities).find(
-          ([key]) =>
-            matchStationNamesBound(stop_id, key) &&
-            isNearbyStationName(clickedLat, clickedLon, key),
-        );
-        if (match) cityInfo = match[1];
-      }
       const filterName = normalizeStationNameForDisplay(stop_id);
       setSelectedStationName(filterName);
-      setSelectedNormalizedName(normalizeStationNameForDisplay(stop_id));
+      setSelectedNormalizedName(filterName);
 
-      // Aggregate routes from all city entries in the same city group.
-      // This ensures clicking any marker always shows all routes for the city.
-      const allRouteIds = new Set();
-
-      // 1. Add from directly-found cityInfo
-      if (cityInfo?.stop_route_ids) {
-        cityInfo.stop_route_ids.split(",").forEach((id) => {
-          const t = id.trim();
-          if (t) allRouteIds.add(t);
-        });
-      }
-
-      // 2. Add from BoT grouped stations on the marker (when available)
-      if (filteredStop.isGrouped && filteredStop.groupedStations) {
-        filteredStop.groupedStations.forEach((station) => {
-          const n = normalizeStationNameForLookup(station.stop_id);
-          const info = cities[n] || cities[station.stop_id];
-          if (info?.stop_route_ids) {
-            info.stop_route_ids.split(",").forEach((id) => {
-              const t = id.trim();
-              if (t) allRouteIds.add(t);
-            });
-          }
-        });
-      }
-
-      // 3. Find other city entries with the same display city name or fuzzy-matching name.
-      // The fuzzy match covers diacritic variants (e.g. "Przemysl Gl." vs "Przemyśl Gł.")
-      // where NightJet API uses ASCII station names but BoT uses local diacritics.
-      if (filterName) {
-        Object.entries(cities).forEach(([key, city]) => {
-          if (!city?.stop_route_ids) return;
-          // Both tests are name-only, and both produce cross-continent false
-          // positives on their own: the display name buckets "Florence Amtrak
-          // Station" (South Carolina) with Firenze, and the fuzzy matcher pairs
-          // "Bar" (Montenegro) with "Boston Bar" in British Columbia. Either
-          // one used to hand the clicked station that route's entire stop list.
-          if (
-            (normalizeStationNameForDisplay(key) === filterName ||
-              matchStationNamesBound(stop_id, key)) &&
-            isNearbyStationName(clickedLat, clickedLon, key)
-          ) {
-            city.stop_route_ids.split(",").forEach((id) => {
-              const t = id.trim();
-              if (t) allRouteIds.add(t);
-            });
-          }
-        });
-      }
-
-      const routeIdsArray = Array.from(allRouteIds);
+      const routeIdsArray = routeIdsAtStop(filteredStop);
       if (routeIdsArray.length > 0) {
         setStopRouteIds(routeIdsArray);
 
@@ -450,8 +574,9 @@ const TrainMap = ({
       selectedStationLat,
       selectedStationLon,
       removeFilter,
+      openRoutesToStop,
+      routeIdsAtStop,
       matchStationNamesBound,
-      isNearbyStationName,
       normalizeStationNameForLookup,
       normalizeStationNameForDisplay,
       onStationSelect,
@@ -464,7 +589,7 @@ const TrainMap = ({
   useEffect(() => {
     if (!searchTarget) return;
     setFlyToTarget({ lat: searchTarget.flyTo.lat, lon: searchTarget.flyTo.lon, zoom: searchTarget.zoom });
-    handleMarkerClick(searchTarget.stop);
+    handleMarkerClick(searchTarget.stop, { fromSearch: true });
     onSearchProcessed?.();
   }, [searchTarget]); // eslint-disable-line react-hooks/exhaustive-deps
 

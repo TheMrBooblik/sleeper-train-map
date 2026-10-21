@@ -3,7 +3,8 @@
 // (src/lib/operatorPromotion.mjs, data/overrides/operator-promotion.json) and
 // how each is named — from the selected station, toward where the train goes
 // (src/lib/stationFirst.mjs) — and that the line tooltip, the route chip and
-// the detail panel name a train the same way. Run: npm run verify-bottom-bar
+// the detail panel name a train the same way; and which trains a click on a
+// second station opens (routesBetweenStations). Run: npm run verify-bottom-bar
 
 import assert from "node:assert";
 import fs from "node:fs";
@@ -12,8 +13,11 @@ import {
   promotionRank,
 } from "../src/lib/operatorPromotion.mjs";
 import {
+  directionBetween,
   disambiguateLabels,
+  endpointsInDirection,
   orderTripsStationFirst,
+  routesBetweenStations,
   selectedCityMatcher,
   stationFirstEndpoints,
   tripDirection,
@@ -195,7 +199,7 @@ check(
 );
 
 check("a one-way row never points against its only train", () => {
-  const r = row("icn_ICN_752"); // Lecce → Milano Centrale, no return row of its own
+  const r = row("icn_ICN_758"); // Lecce → Milano Centrale, no return row of its own
   // From Bologna (intermediate) Lecce is farther, but the train goes to Milano.
   const mid = stationFirstEndpoints(r, {
     inSelectedCity: city("bologna"),
@@ -400,5 +404,70 @@ check(
     );
   },
 );
+
+// ─── A second station: the trains between the two ───────────────────────────
+
+check("the direction that calls at the first station before the second", () => {
+  const es = row("237"); // ES 452 Praha → Bruxelles, 453 back
+  const opts = (from, to) => ({ inFrom: city(from), inTo: city(to) });
+  assert.strictEqual(directionBetween(es, opts("praha", "bruxelles")), 0);
+  assert.strictEqual(directionBetween(es, opts("bruxelles", "praha")), 1);
+  // Two intermediate stops, in both orders.
+  assert.strictEqual(directionBetween(es, opts("dresden", "amsterdam")), 0);
+  assert.strictEqual(directionBetween(es, opts("amsterdam", "dresden")), 1);
+  // A place the stop lists do not name proves nothing about order.
+  assert.strictEqual(directionBetween(es, opts("praha", "nowhere")), null);
+});
+
+check("a one-way row met from its far end is not a ride", () => {
+  const icn = row("icn_ICN_758"); // Lecce → Milano only
+  const opts = (from, to) => ({ inFrom: city(from), inTo: city(to) });
+  assert.strictEqual(directionBetween(icn, opts("bari", "bologna")), 0);
+  assert.strictEqual(directionBetween(icn, opts("bologna", "bari")), -1);
+  assert.deepStrictEqual(
+    routesBetweenStations([icn], opts("bologna", "bari")),
+    [],
+    "the train does not take you from Bologna to Bari",
+  );
+});
+
+check("known directions lead, in the order given; unknown ones follow", () => {
+  const opts = { inFrom: city("praha"), inTo: city("bruxelles") };
+  const mystery = { route_id: "x", origin_trip_0: "A", destination_trip_0: "B" };
+  const between = routesBetweenStations([mystery, row("237")], opts);
+  assert.deepStrictEqual(
+    between.map((b) => [String(b.route.route_id), b.direction]),
+    [
+      ["237", 0],
+      ["x", null],
+    ],
+  );
+});
+
+check("the chip names the train running toward the second station", () => {
+  const es = row("237");
+  // From Dresden toward Prague is ES 453's way, not the farther-end guess.
+  const ends = endpointsInDirection(es, 1, { inFrom: city("dresden") });
+  assert.strictEqual(ends.from, "Dresden Hbf");
+  assert.strictEqual(ends.to, "Praha hl.n.");
+  assert.strictEqual(ends.direction, 1);
+  assert.strictEqual(
+    endpointsInDirection(row("icn_ICN_758"), 1, { inFrom: city("bari") }),
+    null,
+    "a one-way row has no direction 1",
+  );
+});
+
+check("the map opens the trains between two stations before switching", () => {
+  const src = readSrc("components/Map/DynamicMap.js");
+  const body = src.slice(src.indexOf("const handleMarkerClick = useCallback("));
+  const pair = body.indexOf("openRoutesToStop(filteredStop)");
+  const select = body.indexOf("setStopId(stop_id)");
+  assert.ok(pair > 0 && select > pair, "a shared route is tried first");
+  assert.ok(
+    /fromSearch: true/.test(src),
+    "a header search still selects the station it names",
+  );
+});
 
 console.log(`\n[verify-bottom-bar] ${passed} checks passed`);
