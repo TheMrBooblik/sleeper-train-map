@@ -2,7 +2,7 @@
 
 import React, { useMemo, useEffect, useState, useRef } from "react";
 import Link from "../Link";
-import { FiChevronDown, FiExternalLink } from "react-icons/fi";
+import { FiArrowRight, FiChevronDown, FiExternalLink } from "react-icons/fi";
 import { useAgencies } from "../../hooks/requests/useAgencies";
 import { useRoutes } from "../../hooks/requests/useRoutes";
 import { useTrips } from "../../hooks/requests/useTrips";
@@ -41,6 +41,7 @@ import {
   pricingForDirection,
   splitDealFare,
 } from "../../lib/fareClasses.mjs";
+import { fareCalendarAnchor } from "../../lib/fareCalendarView.mjs";
 import {
   formatTrainNumber,
   resolveOperatorComponents,
@@ -101,8 +102,8 @@ function seasonNote(route, dir) {
  * Keep in sync with the sheet's height classes below — Tailwind needs those as
  * static strings, so they can't be derived from these.
  */
-export const MOBILE_SHEET_PEEK_VH = 0.55; // h-[55dvh]
-export const DESKTOP_PANEL_WIDTH_PX = 300; // md:w-[300px]
+export const MOBILE_SHEET_PEEK_VH = 0.65; // h-[65dvh]
+export const DESKTOP_PANEL_WIDTH_PX = 320; // md:w-[320px]
 
 const GTFS_ROUTE_KIND = {
   chop: "chop",
@@ -1211,8 +1212,8 @@ const TrainDetailPanel = ({
       <div
         ref={sheetRef}
         className={`fixed z-[1000] bg-white dark:bg-zinc-900 dark:text-zinc-100 shadow-lg transition-all duration-300 overflow-y-auto overscroll-y-none bottom-0 left-0 right-0 rounded-t-2xl ${
-          expanded ? "h-[88dvh]" : "h-[55dvh]"
-        } pb-[env(safe-area-inset-bottom,0px)] md:top-13 md:right-0 md:bottom-auto md:left-auto md:rounded-none md:h-[calc(100vh-3rem)] md:w-[300px] md:translate-y-0 md:pb-0 ${
+          expanded ? "h-[88dvh]" : "h-[65dvh]"
+        } pb-[env(safe-area-inset-bottom,0px)] md:top-13 md:right-0 md:bottom-auto md:left-auto md:rounded-none md:h-[calc(100vh-3rem)] md:w-[320px] md:translate-y-0 md:pb-0 ${
           isOpen
             ? "translate-y-0 md:translate-x-0"
             : "translate-y-full md:translate-x-full"
@@ -1924,76 +1925,6 @@ const TrainDetailPanel = ({
                         ))}
                     </div>
 
-                    {/* Pricing — the badge names the fare model; the circled
-                        "?" opens what it means for booking (PricingExplainer). */}
-                    {pricingLabel && pricingBadgeStyle && (
-                      <div className="flex items-start gap-2">
-                        <span className="text-xs text-gray-500 dark:text-zinc-400 uppercase mt-0.5">
-                          Price
-                        </span>
-                        <PricingExplainer
-                          advice={pricingHelp}
-                          label={pricingLabel}
-                          tone="light"
-                          labelClassName="rounded-md px-2 py-0.5 text-xs font-medium"
-                          labelStyle={pricingBadgeStyle}
-                          checkedAt={formatCheckedAt(pricing?.checkedAt)}
-                        />
-                      </div>
-                    )}
-
-                    {/* Official fare per berth class for this train, when its
-                        source quotes them (12306 does). */}
-                    {fareRows.length > 0 && (
-                      <div className="space-y-1" data-testid="fare-classes">
-                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
-                          Fares
-                        </div>
-                        <ul className="space-y-0.5">
-                          {fareRows.map((f) => (
-                            <li
-                              key={f.key}
-                              className="text-xs text-gray-700 dark:text-zinc-300"
-                            >
-                              {f.label}{" "}
-                              <span className="font-semibold text-gray-900 dark:text-zinc-100">
-                                {f.price}
-                              </span>
-                              {chipDates && f.date && (
-                                <span className="text-gray-500 dark:text-zinc-400">
-                                  {" "}
-                                  · {formatTravelDateShort(f.date)}
-                                </span>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                        {/* A dynamic fare is one night's price: say which —
-                            on each row when the nights differ, else once. */}
-                        {!chipDates &&
-                          pricing?.type === "dynamic" &&
-                          formatTravelDate(sharedFareDate) && (
-                          <div
-                            className="text-xs text-gray-500 dark:text-zinc-400"
-                            data-testid="fare-travel-date"
-                          >
-                            Lowest fares{" "}
-                            {formatTravelDate(sharedFareDate)}
-                          </div>
-                        )}
-                        {/* A published tariff's range (SNCF), not a
-                            night's quote: say whose range it is. */}
-                        {fareBasisLabel(dirFare) && (
-                          <div
-                            className="text-xs text-gray-500 dark:text-zinc-400"
-                            data-testid="fare-basis"
-                          >
-                            {fareBasisLabel(dirFare)}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
                     {/* Route */}
                     <div className="space-y-1">
                       <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
@@ -2165,63 +2096,112 @@ const TrainDetailPanel = ({
                       </div>
                     )}
 
-                    {/* Frequency — PKP GTFS run-days win; BoT/override fallback */}
-                    {(pkpSchedule?.days ||
-                      esSchedule?.days ||
-                      officialRow?.serviceDays ||
-                      trip.service_id ||
-                      getRouteFrequencyOverride(trip.route_id)) && (
-                      <div className="space-y-1">
-                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
-                          Frequency
-                        </div>
-                        <div className="text-sm">
-                          {(() => {
-                            // PKP is the source of truth for Polish trains.
-                            if (pkpSchedule?.days) return pkpSchedule.days;
-                            const override = getRouteFrequencyOverride(
-                              trip.route_id,
-                            );
-                            if (override) {
-                              return (
-                                <>
-                                  {override.text}
-                                  {override.sourceUrl && (
-                                    <>
-                                      {" "}
-                                      <br />
-                                      <a
-                                        href={override.sourceUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 dark:text-blue-400 hover:underline"
-                                      >
-                                        Details
-                                      </a>
-                                    </>
-                                  )}
-                                </>
-                              );
-                            }
-                            // The feed's own service days, which carry the
-                            // period they apply to; BoT's copy is undated.
-                            return (
-                              esSchedule?.days ||
-                              officialRow?.serviceDays ||
-                              trip.service_id
-                            );
-                          })()}
-                        </div>
+                    {/* Price after the route and times: a card first says
+                        which train it is (the panel lists both directions),
+                        then what it costs, right above the Book button. */}
+                    {/* Pricing — the badge names the fare model itself ("Dynamic
+                        fare"), so it needs no "Price" label; the circled
+                        "?" opens what it means for booking (PricingExplainer). */}
+                    {pricingLabel && pricingBadgeStyle && (
+                      <div className="flex items-start gap-2">
+                        <PricingExplainer
+                          advice={pricingHelp}
+                          label={pricingLabel}
+                          tone="light"
+                          labelClassName="rounded-md px-2 py-0.5 text-xs font-medium"
+                          labelStyle={pricingBadgeStyle}
+                          checkedAt={formatCheckedAt(pricing?.checkedAt)}
+                        />
                       </div>
                     )}
 
-                    {/* Classes Available */}
-                    {trip.classes && (
-                      <div className="space-y-1">
-                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
-                          Classes
+                    {/* Official fare per berth class for this train, when its
+                        source quotes them (12306 does). */}
+                    {fareRows.length > 0 && (
+                      <div className="space-y-1" data-testid="fare-classes">
+                        {/* A dynamic fare differs night by night, and the
+                            connection page prices every one: link its
+                            calendar from the heading, so it costs no line. */}
+                        <div className="flex items-baseline justify-between gap-2">
+                          <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
+                            Fares
+                          </div>
+                          {pricing?.type === "dynamic" && trainPageSlug && (
+                            <Link
+                              href={`/connections/${trainPageSlug}${
+                                fareCalendarAnchor(trip.trip_short_name)
+                                  ? `#${fareCalendarAnchor(trip.trip_short_name)}`
+                                  : ""
+                              }`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
+                              data-testid="fare-calendar-link"
+                            >
+                              Price calendar
+                              <FiArrowRight className="h-3 w-3 shrink-0" aria-hidden />
+                            </Link>
+                          )}
                         </div>
-                        <div className="text-sm capitalize">{trip.classes}</div>
+                        <ul className="space-y-0.5">
+                          {fareRows.map((f) => (
+                            <li
+                              key={f.key}
+                              className="text-xs text-gray-700 dark:text-zinc-300"
+                            >
+                              {f.label}{" "}
+                              <span className="font-semibold text-gray-900 dark:text-zinc-100">
+                                {f.price}
+                              </span>
+                              {chipDates && f.date && (
+                                <span className="text-gray-500 dark:text-zinc-400">
+                                  {" "}
+                                  · {formatTravelDateShort(f.date)}
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                        {/* A dynamic fare is one night's price: say which —
+                            on each row when the nights differ, else once.
+                            Every other night is on the connection page's
+                            calendar, so the line opens it at this train's. */}
+                        {!chipDates &&
+                          pricing?.type === "dynamic" &&
+                          formatTravelDate(sharedFareDate) && (
+                          <div
+                            className="text-xs text-gray-500 dark:text-zinc-400"
+                            data-testid="fare-travel-date"
+                          >
+                            {trainPageSlug ? (
+                              <Link
+                                href={`/connections/${trainPageSlug}${
+                                  fareCalendarAnchor(trip.trip_short_name)
+                                    ? `#${fareCalendarAnchor(trip.trip_short_name)}`
+                                    : ""
+                                }`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline underline-offset-2 hover:text-gray-700 dark:hover:text-zinc-300"
+                                title="See the fare for every night"
+                              >
+                                Lowest fares {formatTravelDate(sharedFareDate)}
+                              </Link>
+                            ) : (
+                              <>Lowest fares {formatTravelDate(sharedFareDate)}</>
+                            )}
+                          </div>
+                        )}
+                        {/* A published tariff's range (SNCF), not a
+                            night's quote: say whose range it is. */}
+                        {fareBasisLabel(dirFare) && (
+                          <div
+                            className="text-xs text-gray-500 dark:text-zinc-400"
+                            data-testid="fare-basis"
+                          >
+                            {fareBasisLabel(dirFare)}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -2454,6 +2434,69 @@ const TrainDetailPanel = ({
                       routeId={trip.route_id}
                       scheduleStops={schedule?.stops}
                     />
+
+                    {/* Frequency and classes sit under the Book button so the
+                        CTA stays inside the first screen of the panel. */}
+                    {/* Frequency — PKP GTFS run-days win; BoT/override fallback */}
+                    {(pkpSchedule?.days ||
+                      esSchedule?.days ||
+                      officialRow?.serviceDays ||
+                      trip.service_id ||
+                      getRouteFrequencyOverride(trip.route_id)) && (
+                      <div className="space-y-1">
+                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
+                          Frequency
+                        </div>
+                        <div className="text-sm">
+                          {(() => {
+                            // PKP is the source of truth for Polish trains.
+                            if (pkpSchedule?.days) return pkpSchedule.days;
+                            const override = getRouteFrequencyOverride(
+                              trip.route_id,
+                            );
+                            if (override) {
+                              return (
+                                <>
+                                  {override.text}
+                                  {override.sourceUrl && (
+                                    <>
+                                      {" "}
+                                      <br />
+                                      <a
+                                        href={override.sourceUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                                      >
+                                        Details
+                                      </a>
+                                    </>
+                                  )}
+                                </>
+                              );
+                            }
+                            // The feed's own service days, which carry the
+                            // period they apply to; BoT's copy is undated.
+                            return (
+                              esSchedule?.days ||
+                              officialRow?.serviceDays ||
+                              trip.service_id
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Classes Available */}
+                    {trip.classes && (
+                      <div className="space-y-1">
+                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
+                          Classes
+                        </div>
+                        <div className="text-sm capitalize">{trip.classes}</div>
+                      </div>
+                    )}
+
 
                     {/* How buying works where it has quirks the Book button
                         cannot explain (booking-guides.json) — closed by

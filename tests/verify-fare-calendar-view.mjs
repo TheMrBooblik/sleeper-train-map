@@ -27,7 +27,7 @@ import {
   pricingForDirection,
   pricingWithoutFigure,
 } from "../src/lib/fareClasses.mjs";
-import { fareCalendarDays } from "../src/lib/fareCalendarView.mjs";
+import { fareCalendarAnchor, fareCalendarDays } from "../src/lib/fareCalendarView.mjs";
 import { resolvePricing } from "../src/lib/pricingResolve.mjs";
 import { resolveRouteBooking } from "../src/lib/routeBooking.mjs";
 import { eurHintFor } from "../src/lib/fx.mjs";
@@ -603,6 +603,26 @@ check("the committed payload: a CTA caption is its train's fare where the button
       `${silenced} quote nothing where the outbound has no fare, ${routeLevel} open no particular train and quote the route; ` +
       `TrainTrip offers: ${offersMoved} now the named train's figure, ${offersDropped} dropped where it has none)`,
   );
+});
+
+check("the panel's fare-date link and the page's calendar agree on the anchor", () => {
+  // The panel reads a feed trip's label, the page the row's; both must land
+  // on the same id or the link opens the page at the top.
+  assert.strictEqual(fareCalendarAnchor("ES 453"), "fares-453");
+  assert.strictEqual(fareCalendarAnchor("453"), "fares-453");
+  assert.strictEqual(fareCalendarAnchor("099"), "fares-99");
+  assert.strictEqual(fareCalendarAnchor("IRN 1954/R 8824"), "fares-1954");
+  assert.strictEqual(fareCalendarAnchor(""), "");
+  assert.strictEqual(fareCalendarAnchor(null), "");
+  // Two calendars on one page with the same id would send the link to the
+  // first: no published pair carries two directions sharing a number.
+  for (const row of Object.values(VIEW_MAP)) {
+    const ids = [row.trip_short_name_0, row.trip_short_name_1]
+      .filter((n, i) => row[`fare_calendar_${i}`])
+      .map(fareCalendarAnchor)
+      .filter(Boolean);
+    assert.strictEqual(new Set(ids).size, ids.length, `${row.route_id}: ${ids}`);
+  }
 });
 
 console.log(`\nverify-fare-calendar-view: ${passed} checks passed`);
