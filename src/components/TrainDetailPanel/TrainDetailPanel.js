@@ -2099,13 +2099,11 @@ const TrainDetailPanel = ({
                     {/* Price after the route and times: a card first says
                         which train it is (the panel lists both directions),
                         then what it costs, right above the Book button. */}
-                    {/* Pricing — the badge names the fare model; the circled
+                    {/* Pricing — the badge names the fare model itself ("Dynamic
+                        fare"), so it needs no "Price" label; the circled
                         "?" opens what it means for booking (PricingExplainer). */}
                     {pricingLabel && pricingBadgeStyle && (
                       <div className="flex items-start gap-2">
-                        <span className="text-xs text-gray-500 dark:text-zinc-400 uppercase mt-0.5">
-                          Price
-                        </span>
                         <PricingExplainer
                           advice={pricingHelp}
                           label={pricingLabel}
@@ -2140,7 +2138,7 @@ const TrainDetailPanel = ({
                               className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
                               data-testid="fare-calendar-link"
                             >
-                              Fare calendar
+                              Price calendar
                               <FiArrowRight className="h-3 w-3 shrink-0" aria-hidden />
                             </Link>
                           )}
