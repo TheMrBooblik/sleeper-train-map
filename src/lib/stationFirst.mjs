@@ -210,3 +210,100 @@ export function orderTripsStationFirst(trips, firstDirection, directionOf) {
     .sort((a, b) => (a.r ?? 0) - (b.r ?? 0) || a.i - b.i)
     .map((x) => x.trip);
 }
+
+/**
+ * The stop list of one direction of a row, in travel order. Direction 1 is
+ * its own list when the row states one, else direction 0 reversed — the
+ * same reading as stationFirstEndpoints above. [] for a direction the row
+ * does not run (a one-way row's direction 1).
+ */
+function directionStops(route, dir, splitVia) {
+  const a = route?.origin_trip_0 || route?.origin_trip_1 || "";
+  const b = route?.destination_trip_0 || route?.destination_trip_1 || "";
+  const via0 = route?.via_0 ? splitVia(route.via_0) || [] : [];
+  const d0 = [a, ...via0, b].filter(Boolean);
+  if (dir === 0) return d0;
+  const a1 = route?.origin_trip_1 || "";
+  const twoWay = Boolean(a1 || route?.trip_short_name_1 || route?.via_1);
+  if (!twoWay) return [];
+  if (!route?.via_1) return [...d0].reverse();
+  const via1 = splitVia(route.via_1) || [];
+  return [a1 || b, ...via1, route?.destination_trip_1 || a].filter(Boolean);
+}
+
+/**
+ * Which direction of a row takes a traveller from one place to another:
+ * 0 or 1 when that direction calls at `from` before `to` (direction 0 when
+ * both do, as on a loop), -1 when the row names both and no direction runs
+ * that way (a one-way row met from its far end), null when its stop lists do
+ * not name both — the route reached the selection through a city-group match,
+ * which proves nothing about order.
+ * @param {object} route viewMap row
+ * @param {object} deps
+ * @param {(name: string) => boolean} deps.inFrom
+ * @param {(name: string) => boolean} deps.inTo
+ * @param {(via: string) => string[]} [deps.splitVia]
+ */
+export function directionBetween(
+  route,
+  { inFrom, inTo, splitVia = defaultSplit },
+) {
+  let namesBoth = false;
+  for (const dir of [0, 1]) {
+    const stops = directionStops(route, dir, splitVia);
+    const iFrom = stops.findIndex((s) => inFrom(s));
+    let iTo = -1;
+    stops.forEach((s, i) => {
+      if (inTo(s)) iTo = i;
+    });
+    if (iFrom < 0 || iTo < 0) continue;
+    namesBoth = true;
+    if (iFrom < iTo) return dir;
+  }
+  return namesBoth ? -1 : null;
+}
+
+/**
+ * The routes a traveller at the selected station could ride to a second
+ * clicked station — what a click on that station means once one is selected
+ * (DynamicMap): the routes the two share, less any proven to run only the
+ * other way. Those whose order is known come first, in the order given
+ * (the caller passes them already ranked, as the bottom bar ranks them).
+ * @param {object[]} routes viewMap rows calling at both stations
+ * @returns {{ route: object, direction: 0|1|null }[]}
+ */
+export function routesBetweenStations(routes, deps) {
+  const out = [];
+  for (const route of routes ?? []) {
+    const direction = directionBetween(route, deps);
+    if (direction === -1) continue;
+    out.push({ route, direction });
+  }
+  return [
+    ...out.filter((r) => r.direction != null),
+    ...out.filter((r) => r.direction == null),
+  ];
+}
+
+/**
+ * A route named for a known direction, from the selected station: the first
+ * stop of that direction in the selected city, to that direction's last stop.
+ * What a route opened by clicking a second station is called, so the chip and
+ * the panel name the train that actually runs toward it. null when that
+ * direction does not name the selected city.
+ */
+export function endpointsInDirection(
+  route,
+  direction,
+  { inFrom, splitVia = defaultSplit },
+) {
+  const stops = directionStops(route, direction, splitVia);
+  const from = stops.find((s) => inFrom(s));
+  if (!from) return null;
+  return {
+    from,
+    to: stops[stops.length - 1],
+    direction,
+    fromIsSelected: true,
+  };
+}
