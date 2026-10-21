@@ -2,7 +2,7 @@
 
 import React, { useMemo, useEffect, useState, useRef } from "react";
 import Link from "../Link";
-import { FiChevronDown, FiExternalLink } from "react-icons/fi";
+import { FiArrowRight, FiChevronDown, FiExternalLink } from "react-icons/fi";
 import { useAgencies } from "../../hooks/requests/useAgencies";
 import { useRoutes } from "../../hooks/requests/useRoutes";
 import { useTrips } from "../../hooks/requests/useTrips";
@@ -1947,8 +1947,29 @@ const TrainDetailPanel = ({
                         source quotes them (12306 does). */}
                     {fareRows.length > 0 && (
                       <div className="space-y-1" data-testid="fare-classes">
-                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
-                          Fares
+                        {/* A dynamic fare differs night by night, and the
+                            connection page prices every one: link its
+                            calendar from the heading, so it costs no line. */}
+                        <div className="flex items-baseline justify-between gap-2">
+                          <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
+                            Fares
+                          </div>
+                          {pricing?.type === "dynamic" && trainPageSlug && (
+                            <Link
+                              href={`/connections/${trainPageSlug}${
+                                fareCalendarAnchor(trip.trip_short_name)
+                                  ? `#${fareCalendarAnchor(trip.trip_short_name)}`
+                                  : ""
+                              }`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
+                              data-testid="fare-calendar-link"
+                            >
+                              Fare calendar
+                              <FiArrowRight className="h-3 w-3 shrink-0" aria-hidden />
+                            </Link>
+                          )}
                         </div>
                         <ul className="space-y-0.5">
                           {fareRows.map((f) => (
