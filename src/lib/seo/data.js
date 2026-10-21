@@ -579,6 +579,8 @@ export function getRouteDetail(routeId) {
         lon: Number.isFinite(s.lon) ? s.lon : null,
         departure: formatAnyTime(s.departure),
         arrival: formatAnyTime(s.arrival),
+        ...(Number.isInteger(s.departureDay) ? { departureDay: s.departureDay } : {}),
+        ...(Number.isInteger(s.arrivalDay) ? { arrivalDay: s.arrivalDay } : {}),
       }));
       // Endpoint times prefer the gated viewMap value over the live feed —
       // and the OTHER endpoint field has to go, or the row and the feed each

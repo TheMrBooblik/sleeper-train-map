@@ -105,7 +105,7 @@ const fold = (s) =>
   String(s ?? "")
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
-    .replace(/[đĐ]/g, "d")
+    .replace(/[đĐðÐ]/g, "d")
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
@@ -321,11 +321,33 @@ export function pairOrder(names, pairs = {}) {
   return out;
 }
 
-const byPrefix = (table, name) => {
-  const s = splitTrainName(name);
-  if (!s || !table) return null;
-  return table[s.prefix] ?? null;
-};
+/** "Daily" for a train the config lists as running every day, else null (unknown). */
+export const frequencyFor = (config, name) => (config?.frequency?.daily ?? []).includes(name) ? "Daily" : null;
+
+/**
+ * Trains with the same stops at the same times are one train sold under two
+ * numbers — on 2026-10-21 the site listed JSE17/JSE18 beside SE17/SE18 with
+ * identical timetables, and only the J numbers had fares. Keep the one with a
+ * fare, else the shorter name. `found` is name → { timetable, fare }.
+ */
+export function dropDuplicateTimetables(found, log = () => {}) {
+  const byKey = new Map();
+  for (const [name, f] of found) {
+    const key = f.timetable.stops.map((s) => `${s.name}@${s.departure}/${s.arrival}`).join(">");
+    const other = byKey.get(key);
+    if (!other) {
+      byKey.set(key, name);
+      continue;
+    }
+    const better = (a, b) => (!!found.get(a).fare !== !!found.get(b).fare ? (found.get(a).fare ? a : b) : a.length <= b.length ? a : b);
+    const keep = better(other, name);
+    const drop = keep === name ? other : name;
+    byKey.set(key, keep);
+    log(`${drop}: same stops and times as ${keep} — kept ${keep}${found.get(keep).fare ? " (the one with fares)" : ""}`);
+  }
+  const kept = new Set(byKey.values());
+  return new Map([...found].filter(([name]) => kept.has(name)));
+}
 
 // ─── Positions ──────────────────────────────────────────────────────────────
 
@@ -483,19 +505,19 @@ export function buildVnrTrains({ config, found, carry = new Set(), positions, pr
       arrival: i === 0 ? null : s.arrival,
       departure: i === last ? null : s.departure,
       // Whole days after the first departure's date, so a stop list can say
-      // "+1" and a 33-hour journey is not read as 9 hours.
-      day: Math.floor((minutesOf(stops[0].departure) + (i === 0 ? s.depMinutes : s.arrMinutes)) / 1440),
+      // "+1" and a 33-hour journey is not read as 9 hours (the planner and
+      // the connection pages measure a ride between two stops from these).
+      arrivalDay: i === 0 ? null : dayOf(stops[0], s.arrMinutes),
+      departureDay: i === last ? null : dayOf(stops[0], s.depMinutes),
       pickup: true,
       dropoff: true,
     }));
-    const service = byPrefix(config.service, name);
     trains[name] = {
       lineName: name,
       trainNo: name,
-      ...(service ? { service } : {}),
       operator: operator.name ?? "Vietnam Railways",
       agency_id: operator.agencyId ?? "VNR",
-      frequency: byPrefix(config.frequency, name),
+      frequency: frequencyFor(config, name),
       durationMinutes: journeyMinutes(live.timetable),
       nights: nightsOf(live.timetable),
       polyline: encoded,
@@ -510,6 +532,9 @@ export function buildVnrTrains({ config, found, carry = new Set(), positions, pr
   }
   return trains;
 }
+
+/** Days after the first departure's date of a moment `minutes` after it. */
+const dayOf = (first, minutes) => Math.floor((minutesOf(first.departure) + minutes) / 1440);
 
 /** Whether two positions are one station (for tests and sanity checks). */
 export const sameStation = (a, b) => haversineKm([a.lat, a.lon], [b.lat, b.lon]) <= 3;

@@ -80,6 +80,12 @@ export function tripDurationMinutes(trip) {
   return minutes > 0 ? minutes : null;
 }
 
+/** A row's own journey time for one direction, where its source stated one. */
+export function rowDurationMinutes(route, direction) {
+  const n = Number(route?.[`duration_minutes_${direction}`]);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
 /** agency_id may be compound ("MÁV/ÖBB", "CFM/CFR"). */
 function splitAgencies(value) {
   return String(value || "")
@@ -196,6 +202,8 @@ export function buildLegs(payload, options = {}) {
           citySlug: entry.slug,
           arrival: toClock(feed?.arrival),
           departure: toClock(feed?.departure),
+          ...(Number.isInteger(feed?.arrivalDay) ? { arrivalDay: feed.arrivalDay } : {}),
+          ...(Number.isInteger(feed?.departureDay) ? { departureDay: feed.departureDay } : {}),
         });
       }
       if (stopList.length < 2) continue;
@@ -232,8 +240,12 @@ export function buildLegs(payload, options = {}) {
         // agree within five minutes on 267 of 318 legs and differ by almost
         // exactly 24 hours on 15 — every one of those a train the clocks read
         // a day short.
+        // A synthetic row whose source dates every stop states the journey
+        // time itself (duration_minutes_*, Vietnam's 33-hour trains).
         durationMinutes:
-          tripDurationMinutes(trip) ?? (timed ? durationBetween(rawDeparture, rawArrival) : null),
+          rowDurationMinutes(route, direction) ??
+          tripDurationMinutes(trip) ??
+          (timed ? durationBetween(rawDeparture, rawArrival) : null),
         // Set by the caller: the journey time is not believable for the ground
         // it covers, so nothing may print it or filter on it.
         durationSuspect: false,
@@ -311,9 +323,17 @@ export function segmentOf(leg, boardIndex, alightIndex) {
   // clocks cannot: computing it here instead read UZ 099 Kyiv → București, a
   // 23-hour journey, as thirteen minutes.
   const wholeRoute = fromEnd && toEnd;
+  // Where both stops say which day after the first departure they fall on,
+  // the ride is measured across those days: Hà Nội → Nha Trang on SE1 is
+  // 24h50, which two clocks read as fifty minutes.
+  const dated =
+    Number.isInteger(board.departureDay) && Number.isInteger(alight.arrivalDay) && board.departure && alight.arrival
+      ? alight.arrivalDay * 1440 + toMinutes(alight.arrival) - (board.departureDay * 1440 + toMinutes(board.departure))
+      : null;
   const durationMinutes = leg.durationSuspect
     ? null
     : (wholeRoute && Number.isFinite(leg.durationMinutes) ? leg.durationMinutes : null) ??
+      (Number.isFinite(dated) && dated > 0 ? dated : null) ??
       (departure && arrival ? durationBetween(departure, arrival) : null);
   return {
     from: board,

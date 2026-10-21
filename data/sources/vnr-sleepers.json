@@ -1,7 +1,7 @@
 {
   "_comment": [
     "Vietnam Railways (Đường sắt Việt Nam) night trains, read by scripts/adapters/vnr.mjs.",
-    "A train is kept when its timetable runs through a night (it leaves on one day and arrives on a later one) and takes at least `minMinutes`: every such VNR train carries sleeper coaches (Nằm khoang 4/6 giường), and a day train or a commuter hop drops out on its own, so a new night train is picked up without editing this file. `exclude` lists numbers to leave out anyway.",
+    "A train is kept when its timetable runs through a night (it leaves on one day and arrives on a later one) and takes at least `minMinutes`: every such VNR train carries sleeper coaches (Nằm khoang 4/6 giường), and a day train or a commuter hop drops out on its own, so a new night train is picked up without editing this file. `exclude` lists numbers to leave out anyway. Two trains with the same stops at the same times are one train sold under two numbers (JSE17 and SE17 on 2026-10-21): the one the fare page sells is kept.",
     "MR1/MR2 (Gia Lâm–Beijing West, through sleeping cars) pass the night-train test and are excluded for now: most of their run is China Railway's, whose Beijing–Nanning trains this map already draws from 12306, and a VNR row reaching Beijing would file Chinese stations under Vietnam's hubs.",
     "Station positions: OpenStreetMap's railway stations, matched by name near where this file expects them (refreshed weekly with the track, osm-vnr-track.json). Until a station has an OSM match it sits at `anchors` (a position published for the town's station, `approx`) or, for a station with no anchor, at a point interpolated by its kilometre post between the two nearest anchored stations on the same train — which is why the anchors include the stations where the line bends (Hương Phố, Đồng Lê, La Hai, Ninh Hoà). Replace an anchor with an official position whenever a source carries one."
   ],
@@ -18,18 +18,25 @@
     "_comment": "Return train per outbound train where it is not the next number up (VNR numbers a pair n / n+1, odd from Hà Nội). SNT and SPT are numbered from the south: SNT1 runs Nha Trang → Sài Gòn, SNT2 the other way, so n / n+1 holds for them too."
   },
   "frequency": {
-    "_comment": "Days a train runs, by number prefix, where VNR runs it every day. A train not listed here keeps no frequency: its row then says it does not know rather than claiming Daily.",
-    "SE": "Daily",
-    "SNT": "Daily",
-    "SP": "Daily",
-    "NA": "Daily"
-  },
-  "service": {
-    "_comment": "The name a train runs under, by number prefix, printed before its number on cards (`lineName` stays the number VNR sells it under).",
-    "SE": "Reunification Express",
-    "SNT": "Sài Gòn–Nha Trang",
-    "SP": "Hà Nội–Lào Cai",
-    "NA": "Hà Nội–Vinh"
+    "_comment": "Trains VNR runs every day, which their rows then say. Every other train keeps no frequency and its row says it does not know rather than claim Daily: the site answers a timetable for any date it is asked about, so a reading for one date is not evidence the train runs every night (SE23/SE24, SE29/SE30, the extra SNT and SP trains are seasonal or run on some days).",
+    "daily": [
+      "SE1",
+      "SE2",
+      "SE3",
+      "SE4",
+      "SE5",
+      "SE6",
+      "SE7",
+      "SE8",
+      "SE19",
+      "SE20",
+      "SE21",
+      "SE22",
+      "SNT1",
+      "SNT2",
+      "SP3",
+      "SP4"
+    ]
   },
   "stationNames": {
     "_comment": "Timetable spellings → the one name the map uses (VNR's site writes a few stations both ways).",
@@ -173,6 +180,11 @@
     "Diêu Trì": {
       "lat": 13.8025,
       "lon": 109.148,
+      "approx": true
+    },
+    "Quy Nhơn": {
+      "lat": 13.7762,
+      "lon": 109.2237,
       "approx": true
     },
     "La Hai": {

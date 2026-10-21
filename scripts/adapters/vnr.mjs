@@ -32,6 +32,7 @@ import { loadOsmTrack } from "../lib/osm-track.mjs";
 import {
   berthFares,
   buildVnrTrains,
+  dropDuplicateTimetables,
   fareRecord,
   formFields,
   isNightTrain,
@@ -282,7 +283,10 @@ export async function run(entry, ctx) {
       }
       found.set(name, { timetable: t.tt, fare: fare ? fareRecord(fare.classes, { sampledAt: ctx.today, travelDate }) : null });
     }
-    if (!found.size) throw new Error("no night train with a berth read");
+    found = dropDuplicateTimetables(found, log);
+    const unpriced = [...found].filter(([, f]) => !f.fare).map(([n]) => n);
+    if (unpriced.length) log(`no fare on ${travelDate} for ${unpriced.join(" ")} — kept with their timetable, last night's fare if any`);
+    if (!found.size) throw new Error("no night train read");
   } catch (err) {
     warning = `giotaugiave.dsvn.vn: ${err.message} — trains carried from last night's file`;
     log(warning);
@@ -310,7 +314,7 @@ export async function run(entry, ctx) {
     const a = t.stations[0];
     const b = t.stations.at(-1);
     log(
-      `${t.lineName}: ${a.name} ${a.departure} → ${b.name} ${b.arrival} (+${b.day}), ${Math.floor(t.durationMinutes / 60)}h${String(t.durationMinutes % 60).padStart(2, "0")}, ${t.stations.length} stops, from ${t.fare ? `${t.fare.fromPrice.toLocaleString("en")} ₫` : "—"}, positions ${JSON.stringify(t.positions)}, line ${JSON.stringify(t.geometry)}`,
+      `${t.lineName}: ${a.name} ${a.departure} → ${b.name} ${b.arrival} (+${b.arrivalDay}), ${Math.floor(t.durationMinutes / 60)}h${String(t.durationMinutes % 60).padStart(2, "0")}, ${t.stations.length} stops, from ${t.fare ? `${t.fare.fromPrice.toLocaleString("en")} ₫` : "—"}, positions ${JSON.stringify(t.positions)}, line ${JSON.stringify(t.geometry)}`,
     );
   }
   ctx.write(entry.output, { uploadedAt: ctx.today, travelDate, trains });

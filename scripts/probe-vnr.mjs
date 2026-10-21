@@ -459,6 +459,23 @@ async function readerProbe() {
     for (const r of f.rows) console.log(`      ${r.code.padEnd(9)} ${String(r.price).padStart(9)}  ${berthClass(r) ?? "-"}  ${r.label}`);
   }
   console.log(`\n# Requests: ${counter.requests}${counter.blocked ? `; BLOCKED ${JSON.stringify(counter.blocked)}` : ""}`);
+  // The ECB publishes no dong rate, so the "≈ €" beside a VND fare needs
+  // another official table. The European Commission's InforEuro publishes the
+  // EU's monthly accounting rate for every currency, VND included.
+  const month = new Date().toISOString().slice(0, 7).split("-");
+  for (const url of [
+    `https://ec.europa.eu/budg/inforeuro/api/public/monthly-rates?lang=EN&year=${month[0]}&month=${Number(month[1])}`,
+    "https://ec.europa.eu/budg/inforeuro/api/public/currencies/vnd",
+  ]) {
+    try {
+      const res = await fetch(url, { headers: { "User-Agent": HONEST_USER_AGENT, Accept: "application/json, */*" }, signal: AbortSignal.timeout(30_000) });
+      const text = await res.text();
+      const at = text.indexOf("VND");
+      console.log(`\n## ${url}\nstatus ${res.status}, ${res.headers.get("content-type")}, ${text.length} chars\n${text.slice(0, 600)}${at > 600 ? `\n… around VND: ${text.slice(Math.max(0, at - 300), at + 300)}` : ""}`);
+    } catch (err) {
+      console.log(`\n## ${url}\nerror: ${err.message}`);
+    }
+  }
   for (const [name, html] of fixtures) {
     console.log(`\n-----FIXTURE ${name} (${html.length} chars)-----`);
     console.log(html);

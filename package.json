@@ -59,6 +59,7 @@
     "verify-trafiklab": "node tests/verify-trafiklab.mjs",
     "verify-jr-sunrise": "node tests/verify-jr-sunrise.mjs",
     "verify-srt": "node tests/verify-srt.mjs",
+    "verify-vnr": "node tests/verify-vnr.mjs",
     "verify-fx": "node tests/verify-fx.mjs",
     "verify-map-theme": "node tests/verify-map-theme.mjs",
     "probe-jr-sunrise": "node scripts/probe-jr-sunrise.mjs",

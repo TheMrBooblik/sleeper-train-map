@@ -28,17 +28,18 @@ export const CURRENCY_SYMBOLS = {
   CNY: "¥",
   JPY: "¥",
   THB: "฿",
+  VND: "₫",
   GEL: "₾",
   AZN: "₼",
   AMD: "֏",
 };
 
-// Currencies whose fares run to four or five digits, where "¥23210" and
-// "฿1453" are hard to read.
+// Currencies whose fares run to four digits or more, where "¥23210",
+// "฿1453" and "₫2096000" are hard to read.
 // Grouped with a fixed comma rather than Intl, because this string is
 // server-rendered on the connection pages and Node's ICU and a browser's do not
 // always agree on separators. Everything else prints exactly as before.
-const GROUPED_CURRENCIES = new Set(["JPY", "THB"]);
+const GROUPED_CURRENCIES = new Set(["JPY", "THB", "VND"]);
 
 /** "¥335.5" — the amount as the operator quotes it, with the currency's symbol. */
 export function formatMoney(amount, currency) {
@@ -88,6 +89,21 @@ export const FARE_CLASS_LABELS = {
   srtFirstUpper: "1st class cabin, upper berth",
   srtFirstLower: "1st class cabin, lower berth",
   srtFirstPrivate: "1st class cabin to yourself",
+  // Vietnam Railways (scripts/lib/vnr.mjs), from giotaugiave.dsvn.vn: what
+  // one adult pays for one berth, whole route, insurance and VAT included. A
+  // soft sleeper is a 4-berth (or 2-berth) cabin, a hard sleeper a 6-berth
+  // one with three tiers; a lower berth costs more than the one above it.
+  // Seats are left out at the source.
+  vnrSoft4Lower: "Soft sleeper, 4-berth cabin, lower berth",
+  vnrSoft4Upper: "Soft sleeper, 4-berth cabin, upper berth",
+  vnrSoft4: "Soft sleeper, berth in 4-berth cabin",
+  vnrSoft3: "Soft sleeper, berth in 3-berth cabin",
+  vnrSoft2: "Soft sleeper, berth in 2-berth cabin",
+  vnrSoft2Vip: "VIP 2-berth cabin, per berth",
+  vnrHard6Lower: "Hard sleeper, 6-berth cabin, bottom berth",
+  vnrHard6Middle: "Hard sleeper, 6-berth cabin, middle berth",
+  vnrHard6Upper: "Hard sleeper, 6-berth cabin, top berth",
+  vnrHard6: "Hard sleeper, berth in 6-berth cabin",
   // European Sleeper (scripts/lib/es-fares.mjs). Every figure is what one
   // adult pays — one bed — except the private compartment: one booking for
   // the whole couchette compartment, up to 5 people. So a 2- or 3-bed cabin
@@ -113,6 +129,11 @@ export const FARE_CLASS_LABELS = {
   flashSaleCouchette: "Flash-sale couchette",
   flashSalePrivate: "Flash-sale private compartment",
 };
+
+// A VNR coach without air-conditioning sells the same berths for less.
+for (const key of Object.keys(FARE_CLASS_LABELS)) {
+  if (key.startsWith("vnr")) FARE_CLASS_LABELS[`${key}Fan`] = `${FARE_CLASS_LABELS[key]}, no air-con`;
+}
 
 /**
  * Classes that are promotional deals sold outside the operator's ordinary

@@ -58,8 +58,12 @@ export function sourceFeedSchedule(trains, trip) {
       name: s.name || "Station",
       arrival: asClock(s.arrival),
       departure: asClock(s.departure),
+      ...(Number.isInteger(s.arrivalDay) ? { arrivalDay: s.arrivalDay } : {}),
+      ...(Number.isInteger(s.departureDay) ? { departureDay: s.departureDay } : {}),
     })),
     days: train.frequency || null,
+    // The source's own journey time where it states one (it can exceed a day).
+    durationMinutes: Number.isInteger(train.durationMinutes) && train.durationMinutes > 0 ? train.durationMinutes : null,
     validFrom: null,
     validUntil: null,
     source: "source-feed",

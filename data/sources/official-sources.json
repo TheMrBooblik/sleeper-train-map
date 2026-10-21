@@ -856,6 +856,39 @@
         }
       ]
     },
+    "VNR": {
+      "website": "https://dsvn.vn",
+      "countries": ["VN"],
+      "integrationStatus": "in-progress",
+      "difficulty": "medium",
+      "notes": "Registry id `vnr`. VNR publishes no GTFS or API; its official times-and-fares site giotaugiave.dsvn.vn (ASP.NET WebForms, no captcha) answers every train's timetable and every berth's fare for a date through its public search, which is what the adapter reads. The ticket shop dsvn.vn has a JSON API (api/banveweb/SearchTauByGaDiGaDenNgayXP …) but its answers are encoded and the site carries reCAPTCHA and browser fingerprinting, so it is not read. Station positions and track come from OpenStreetMap. A community copy of the timetables (github.com/elpwc/VietnamRailwayData, CC BY 4.0, scraped from k.vnticketonline.vn) exists and is not needed.",
+      "sources": [
+        {
+          "name": "Thông tin giờ tàu giá vé (VNR times and fares): giotau/ and giave/ search forms",
+          "url": "https://giotaugiave.dsvn.vn/",
+          "docsUrl": null,
+          "format": "HTML (ASP.NET WebForms postback per line page, train and date)",
+          "provides": ["stops", "times", "fares"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": "2026-10-21",
+          "probeWorkflow": "probe-vnr.yml",
+          "notes": "giotau/thongnhat.aspx (north–south) and giotau/diaphuong.aspx?option=&tuyen= (regional lines): txtNgayDi, ddlChieu, ddlMacTau, ddlGaDi/ddlGaDen → every stop with kilometre post, date, departure and arrival. giave/* takes the same form and answers each kind of place's fare (VND, insurance and VAT included)."
+        },
+        {
+          "name": "dsvn.vn ticket shop API",
+          "url": "https://dsvn.vn/",
+          "docsUrl": null,
+          "format": "JSON with encoded `_data` answers, behind an AngularJS app with reCAPTCHA",
+          "provides": ["times", "fares"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": "2026-10-21",
+          "probeWorkflow": "probe-vnr.yml",
+          "notes": "Deliberately not read: the answers are encoded for the page's own decoder, and the site carries reCAPTCHA and browser fingerprinting. This map never works around either."
+        }
+      ]
+    },
     "JRW": {
       "website": "https://www.westjr.co.jp/global/en/",
       "countries": ["JP"],
