@@ -1,0 +1,28 @@
+{
+  "v": 1,
+  "id": "p_s-stefano-di-camastra",
+  "createdAt": "2026-10-21T11:43:27.211Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "seen.approve",
+  "title": "New station: S.stefano Di Camastra",
+  "summary": "Station \"S.stefano Di Camastra\" was injected by an operator source for the first time. Its marker is hidden until approved (routes through it still render).",
+  "target": {
+    "routeKey": null,
+    "agencyId": null,
+    "resource": null,
+    "stationName": "S.stefano Di Camastra"
+  },
+  "before": null,
+  "after": null,
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "stationName": "S.stefano Di Camastra"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
