@@ -774,8 +774,20 @@
       "countries": ["IT"],
       "integrationStatus": "integrated",
       "difficulty": "medium",
-      "notes": "Integrated via Trenitalia's own Viaggiatreno service. Italy publishes no national rail GTFS, so this is the official surface available.",
+      "notes": "Integrated via Trenitalia's national GTFS — the operator's NeTEx from the Italian National Access Point (CCISS), converted to GTFS and re-hosted by the Mobility Database — for timetables and track geometry, and lefrecce.it (Trenitalia's booking backend) for fares. Viaggiatreno, the previous source, is a running-status API that only knows a train on a day it runs.",
       "sources": [
+        {
+          "name": "Trenitalia national GTFS (Mobility Database mdb-3569)",
+          "url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-3569/latest.zip",
+          "docsUrl": "https://mobilitydatabase.org/feeds/gtfs/mdb-3569",
+          "format": "GTFS (from NeTEx)",
+          "provides": ["trains", "stops", "times", "service days", "shapes"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": "2026-10-21",
+          "probeWorkflow": null,
+          "notes": "Registry id `italian`, adapter trenitalia-gtfs. Feed version 2026-10-15 covered 17 Oct 2026 – 10 Jan 2027: 80 ICN routes, 326 trips, every one with a shape. The MDB entry is marked unofficial because the conversion (BusOne) is a third party's; the data is Trenitalia's NAP NeTEx."
+        },
         {
           "name": "Viaggiatreno REST API",
           "url": "http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno",
@@ -783,10 +795,10 @@
           "format": "JSON API (undocumented)",
           "provides": ["trains", "stops", "times", "realtime"],
           "auth": "none",
-          "status": "integrated",
-          "lastChecked": null,
+          "status": "working",
+          "lastChecked": "2026-10-21",
           "probeWorkflow": null,
-          "notes": "Registry id `italian`. Driven by an explicit ICN train-number list in the registry params."
+          "notes": "The previous timetable source. andamentoTreno answers only for a train running that day, so each night's file held 13–24 of the 34 listed numbers, and a train running under a works number (95063 for ICN 1959) was never found. Still the operator's per-train schedule page (operator-booking.json)."
         }
       ]
     },

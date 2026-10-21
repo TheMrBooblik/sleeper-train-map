@@ -84,6 +84,7 @@
     "verify-price-probe": "node tests/verify-price-probe.mjs",
     "verify-gtfs-probe": "node tests/verify-gtfs-probe.mjs",
     "verify-icn-fares": "node tests/verify-icn-fares.mjs",
+    "verify-trenitalia-gtfs": "node tests/verify-trenitalia-gtfs.mjs",
     "verify-es-fares": "node tests/verify-es-fares.mjs",
     "verify-nj-fares": "node tests/verify-nj-fares.mjs",
     "verify-fare-calendar-view": "node tests/verify-fare-calendar-view.mjs",

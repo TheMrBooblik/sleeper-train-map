@@ -51,6 +51,10 @@ const coords = new Map(
 );
 const coordsOf = (name) => coords.get(name) ?? null;
 const city = (word) => (name) => String(name).toLowerCase().includes(word);
+// A row with its direction-1 fields stripped: the one-way shape 45 rows in the
+// payload have, made from a real row so its stop names carry coordinates.
+const oneWay = (id) =>
+  Object.fromEntries(Object.entries(row(id)).filter(([k]) => !/_1$/.test(k)));
 
 // ─── Order ──────────────────────────────────────────────────────────────────
 
@@ -184,22 +188,24 @@ check(
 );
 
 check(
-  "a city only the return direction serves is still found (ICN 797 via Milano)",
+  "a city only the return direction serves is still found (ICN 798 via Parma)",
   () => {
-    const r = row("icn_ICN_796"); // 796 Salerno→Torino along the coast, 797 back inland via Milano
+    // 797 Torino→Salerno calls at Milano and Roma Ostiense only; 798 back
+    // calls at Roma Tiburtina, Orvieto, Parma and Piacenza on the way north.
+    const r = row("icn_ICN_797");
     const ends = stationFirstEndpoints(r, {
-      inSelectedCity: city("milano"),
+      inSelectedCity: city("parma"),
       coordsOf,
     });
-    assert.strictEqual(ends.from, "Milano Porta Garibaldi");
-    assert.strictEqual(ends.to, "Salerno");
+    assert.strictEqual(ends.from, "Parma");
+    assert.strictEqual(ends.to, "Torino Porta Nuova");
     assert.strictEqual(ends.direction, 1);
-    assert.strictEqual(r[`trip_short_name_${ends.direction}`], "ICN 797");
+    assert.strictEqual(r[`trip_short_name_${ends.direction}`], "ICN 798");
   },
 );
 
 check("a one-way row never points against its only train", () => {
-  const r = row("icn_ICN_758"); // Lecce → Milano Centrale, no return row of its own
+  const r = oneWay("icn_ICN_758"); // Lecce → Milano Centrale, its return (ICN 765) stripped
   // From Bologna (intermediate) Lecce is farther, but the train goes to Milano.
   const mid = stationFirstEndpoints(r, {
     inSelectedCity: city("bologna"),
@@ -336,11 +342,11 @@ check(
 );
 
 check(
-  "from Milano the panel opens on ICN 797, the train the chip named",
+  "from Parma the panel opens on ICN 798, the train the chip named",
   () => {
-    const r = row("icn_ICN_796");
+    const r = row("icn_ICN_797");
     const ends = stationFirstEndpoints(r, {
-      inSelectedCity: city("milano"),
+      inSelectedCity: city("parma"),
       coordsOf,
     });
     // The panel's own synthetic trips for a tripless row, now carrying direction_id.
@@ -354,7 +360,7 @@ check(
       { [r.route_id]: ends.direction },
       (t) => tripDirection(r, t),
     );
-    assert.strictEqual(ordered[0].trip_short_name, "ICN 797");
+    assert.strictEqual(ordered[0].trip_short_name, "ICN 798");
   },
 );
 
@@ -420,7 +426,7 @@ check("the direction that calls at the first station before the second", () => {
 });
 
 check("a one-way row met from its far end is not a ride", () => {
-  const icn = row("icn_ICN_758"); // Lecce → Milano only
+  const icn = oneWay("icn_ICN_758"); // Lecce → Milano only
   const opts = (from, to) => ({ inFrom: city(from), inTo: city(to) });
   assert.strictEqual(directionBetween(icn, opts("bari", "bologna")), 0);
   assert.strictEqual(directionBetween(icn, opts("bologna", "bari")), -1);
@@ -452,7 +458,7 @@ check("the chip names the train running toward the second station", () => {
   assert.strictEqual(ends.to, "Praha hl.n.");
   assert.strictEqual(ends.direction, 1);
   assert.strictEqual(
-    endpointsInDirection(row("icn_ICN_758"), 1, { inFrom: city("bari") }),
+    endpointsInDirection(oneWay("icn_ICN_758"), 1, { inFrom: city("bari") }),
     null,
     "a one-way row has no direction 1",
   );

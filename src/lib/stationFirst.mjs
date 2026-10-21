@@ -120,6 +120,14 @@ export function stationFirstEndpoints(
     const idx = vias.findIndex((s) => inSelectedCity(s));
     if (idx < 0) continue;
     const stop = vias[idx];
+    // Only this direction calls here (ICN 798 at Parma; 797 runs non-stop
+    // from Milano to Roma), so its train is the only one to board: never the
+    // farther end if that is the other direction's. A row that states no stop
+    // list for the other direction says nothing either way.
+    const otherVias = splitVia(lists[1 - dir].via || "") || [];
+    if (otherVias.length && !otherVias.some((s) => inSelectedCity(s))) {
+      return { from: stop, to: end, direction: dir, fromIsSelected: true };
+    }
     const here = coordsOf(stop);
     const toStart = distanceKm(here, coordsOf(start));
     const toEnd = distanceKm(here, coordsOf(end));
