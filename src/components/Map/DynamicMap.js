@@ -37,6 +37,8 @@ import {
 import {
   shouldHideRouteDueToFutureDate,
   selectedRoutesWithLines,
+  hasUnknownStart,
+  routeHasNotStartedYet,
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
 } from "./utils/routeStyleUtils";
@@ -56,7 +58,7 @@ import MapClickHandler from "./components/MapClickHandler";
 import MapViewportTracker from "./components/MapViewportTracker";
 import MarkerTooltipGuard from "./components/MarkerTooltipGuard";
 import { liftForDarkMap } from "../../lib/mapTheme.mjs";
-import { upcomingRun } from "../../lib/nextDeparture.mjs";
+import { upcomingRun, rowNextDeparture } from "../../lib/nextDeparture.mjs";
 
 /** Format "YYYY-MM-DD" → "15 January 2026" for the future-route popup. */
 function formatFutureDate(dateStr) {
@@ -457,8 +459,13 @@ const TrainMap = ({
       const isKnownStation = (name) =>
         !!cities?.[normalizeStationNameForLookup(String(name ?? ""))];
       // Ranked as the bottom bar ranks them, so the route the map frames is
-      // the one the bar would have listed first.
-      const between = routesBetweenStations(orderByPromotion(rows), {
+      // the one the bar would have listed first: trains not running yet last.
+      const isNotRunning = (row) =>
+        hasUnknownStart(row?.route_id, trips) ||
+        (row?.draw_as_active === true && routeHasNotStartedYet(row)) ||
+        Boolean(rowNextDeparture(row));
+      const ranked = orderByPromotion(rows, undefined, { isNotRunning });
+      const between = routesBetweenStations(ranked, {
         inFrom: inSelectedCity,
         inTo: selectedCityMatcher(clickedName, normalizeStationNameForDisplay),
         splitVia: (via) => splitViaString(via, isKnownStation),
