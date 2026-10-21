@@ -457,6 +457,11 @@ const TrainDetailPanel = ({
           route_id: routeId?.toString(),
           agency_id: route.agency_id || "ÖBB",
           trip_short_name: shortName,
+          // The key its train is filed under in the source's trains file,
+          // where one number is several journeys (ICN 1963 to Catania and,
+          // as "ICN 1963 (Palermo)", to Palermo) — what the feeds below are
+          // looked up by, while the card shows the number.
+          train_key: route[`train_key_${suffix}`] || null,
           // The row direction this card describes. Without it every card
           // read as direction 0, so ICN 797's "Official timetable" link was
           // built with 796's origin station (Salerno for a train leaving Torino).
@@ -1331,7 +1336,7 @@ const TrainDetailPanel = ({
                   ? liftForDarkMap(getOperatorBaseColor(trip))
                   : getOperatorBaseColor(trip);
                 const normalizedTrainNumber = normalizeTrainNumber(
-                  trip.trip_short_name,
+                  trip.train_key || trip.trip_short_name,
                 );
                 const numericTrainNumber = extractTrainNumberDigits(
                   trip.trip_short_name,
@@ -1521,7 +1526,11 @@ const TrainDetailPanel = ({
                 const crTrain =
                   chineseTrainData?.trains?.[normalizedTrainNumber] || null;
                 const itTrain =
-                  italianTrainData?.trains?.[normalizedTrainNumber] || null;
+                  italianTrainData?.trains?.[
+                    trip.train_key || trip.trip_short_name
+                  ] ||
+                  italianTrainData?.trains?.[normalizedTrainNumber] ||
+                  null;
                 const caucasusTrain =
                   caucasusTrainData?.trains?.[normalizedTrainNumber] || null;
                 const curatedTrain =

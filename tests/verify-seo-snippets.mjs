@@ -78,7 +78,20 @@ const SNCF_PAIRS = [
   "albi-to-paris", "aurillac-to-paris", "briancon-to-paris", "cerbere-to-paris", "latour-de-carol-to-paris",
   "nice-to-paris", "paris-to-rodez", "paris-to-tarbes", "paris-to-toulouse",
 ];
-const TREATED_PAIRS = [...ES_PAIRS, ...SNCF_PAIRS].sort();
+/** Trenitalia's Intercity Notte corridors: the third stage (October 2026). */
+const FS_PAIRS = [
+  "bolzano-to-rome", "catania-to-milan", "catania-to-rome", "lecce-to-milan", "lecce-to-rome", "lecce-to-turin",
+  "milan-to-palermo", "palermo-to-rome", "reggio-calabria-to-turin", "rome-to-trieste", "salerno-to-turin",
+];
+const TREATED_PAIRS = [...ES_PAIRS, ...SNCF_PAIRS, ...FS_PAIRS].sort();
+/**
+ * Treated pages that did not exist when the baseline was taken: the Sicilian
+ * through trains became their own corridors when the timetable moved to
+ * Trenitalia's GTFS (they ran to Siracusa, and Viaggiatreno saw the Palermo
+ * portions as Messina stubs), and Roma–Palermo ICN 1956/1959 was never on the
+ * map at all. The report sits them out, having no "before" to compare.
+ */
+const TREATED_SINCE_BASELINE = ["catania-to-milan", "catania-to-rome", "milan-to-palermo", "palermo-to-rome"];
 
 console.log(`\nseo snippets — ${pairs.length} published pairs\n`);
 
@@ -141,8 +154,8 @@ check("the sitemap ships every page in the rollout, through the same gate", () =
   assert.match(sitemap, /i < BATCH_1_CONNECTIONS \|\| inRollout\(pair\)/, "batch 1 must keep the rollout's pages");
 });
 
-check("FACTS renders on exactly the European Sleeper and SNCF corridors", () => {
-  assert.deepEqual([...FACTS_AGENCIES], ["ES", "SNCF"]);
+check("FACTS renders on exactly the European Sleeper, SNCF and Trenitalia corridors", () => {
+  assert.deepEqual([...FACTS_AGENCIES], ["ES", "SNCF", "FS"]);
   const treated = pairs.filter((p) => snippetVariantFor(p.agencyIds) === FACTS).map((p) => p.slug);
   assert.deepEqual(treated, TREATED_PAIRS);
   // A compound id counts by its parts, as everywhere else in the repo.
@@ -186,6 +199,20 @@ check("each SNCF page names its Intercités de Nuit and its clock", () => {
     assert.ok(title !== legacyTitle(p.cityA, p.cityB), `${slug} still carries the old title`);
     assert.match(description, /^SNCF IC Nuit \d+/, `${slug}: ${description}`);
     assert.match(description, / leaves .+ \d{2}:\d{2} and reaches .+ \d{2}:\d{2}/, `${slug}: ${description}`);
+  }
+});
+
+check("each Trenitalia page names its Intercity Notte by number, with its clock and price", () => {
+  for (const slug of FS_PAIRS) {
+    const p = pairs.find((x) => x.slug === slug);
+    assert.ok(p, `${slug} is not a published pair`);
+    const { title, description } = connectionSnippet({ ...p, variant: FACTS, today: TODAY });
+    assert.ok(title !== legacyTitle(p.cityA, p.cityB), `${slug} still carries the old title`);
+    // The number Trenitalia sells it under, never the file key a through-car
+    // portion is told apart by ("ICN 1963 (Palermo)").
+    assert.match(description, /^Trenitalia ICN \d+ leaves /, `${slug}: ${description}`);
+    assert.match(description, / leaves .+ \d{2}:\d{2} and reaches .+ \d{2}:\d{2}/, `${slug}: ${description}`);
+    assert.match(description, /Tickets from €\d/, `${slug}: ${description}`);
   }
 });
 
@@ -453,7 +480,13 @@ check("the described direction is the one the title names", () => {
 
 check("the baseline has a 'before' for every treated page, and for most of the rest", () => {
   // A treated page with no row would silently drop out of the readout.
-  for (const slug of TREATED_PAIRS) assert.ok(baseline.pages[slug], `${slug} is treated but absent from the baseline`);
+  for (const slug of TREATED_PAIRS) {
+    if (TREATED_SINCE_BASELINE.includes(slug)) {
+      assert.ok(!baseline.pages[slug], `${slug} is in the baseline after all — take it off TREATED_SINCE_BASELINE`);
+      continue;
+    }
+    assert.ok(baseline.pages[slug], `${slug} is treated but absent from the baseline`);
+  }
   // Pairs newer than the baseline (routes added since 2026-09-20) sit out of
   // the control group; the report says how many. Far fewer than half, or the
   // control stops describing the site.
@@ -511,7 +544,10 @@ check("the report reads its own baseline as no change, on both arms", () => {
       (p) => baseline.pages[p.slug] && !p.upcoming && !p.fromPrice && snippetVariantFor(p.agencyIds) !== FACTS,
     );
     assert.match(run.stdout, new RegExp(`control\\s+before\\s+${unpriced.length}\\s`), run.stdout);
-    for (const slug of TREATED_PAIRS) assert.ok(run.stdout.includes(slug), `${slug} missing from the treatment table`);
+    for (const slug of TREATED_PAIRS) {
+      if (TREATED_SINCE_BASELINE.includes(slug)) continue; // no "before": sits out
+      assert.ok(run.stdout.includes(slug), `${slug} missing from the treatment table`);
+    }
   } finally {
     fs.rmSync(csv, { force: true });
   }

@@ -44,12 +44,16 @@ export const FACTS = "facts";
  * most new to say, since this branch gives them a nightly fare. SNCF's nine
  * Intercités de Nuit corridors are the second stage (October 2026), on the
  * same footing: a published fare range and official stop lists and clocks
- * from SNCF's own feed. Widening the rollout is adding an operator id here;
- * reverting it is emptying the set.
+ * from SNCF's own feed. Trenitalia's eleven Intercity Notte corridors are the
+ * third (October 2026): Trenitalia pays commission like European Sleeper,
+ * every train now comes from its national GTFS with a nightly fare calendar,
+ * and before that its pages were the least reliable on the site — whichever
+ * trains Viaggiatreno happened to see that day. Widening the rollout is
+ * adding an operator id here; reverting it is emptying the set.
  * `npm run seo-snippet-report` reads the same set, so what it calls the
  * treatment is what the build rendered.
  */
-export const FACTS_AGENCIES = new Set(["ES", "SNCF"]);
+export const FACTS_AGENCIES = new Set(["ES", "SNCF", "FS"]);
 
 /**
  * The variant a pair page renders, from the operators of its trains.

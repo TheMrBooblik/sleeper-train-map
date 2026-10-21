@@ -16,6 +16,8 @@ import fs from "node:fs";
 import path from "node:path";
 import polyline from "@mapbox/polyline";
 import { buildTrenitaliaTrains, orderInPairs, romeInstant } from "../scripts/adapters/trenitalia-gtfs.mjs";
+import { rowTrainKey, stampOfficialFares } from "../src/pages/api/lib/build-initial-data.mjs";
+import { getStationTimesForTrain } from "../src/lib/seo/stationTimes.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 let failures = 0;
@@ -201,10 +203,15 @@ check(
   stats.oneOffs.join(", "),
 );
 check(
-  "a number with two portions is two trains; the other portion is named by its city",
+  "a number with two portions is two trains; the other portion is keyed by its city",
   trains["ICN 1955"]?.stations.at(-1).name === "Catania Centrale" &&
     trains["ICN 1955 (Palermo)"]?.stations.at(-1).name === "Palermo Centrale",
   keys.join(", "),
+);
+check(
+  "…and both are shown as the number the operator sells them under",
+  trains["ICN 1955"]?.lineName === "ICN 1955" && trains["ICN 1955 (Palermo)"]?.lineName === "ICN 1955",
+  `${trains["ICN 1955"]?.lineName} / ${trains["ICN 1955 (Palermo)"]?.lineName}`,
 );
 check(
   "station codes are Viaggiatreno's (S + stop_id), which lefrecce and the schedule link address",
@@ -262,6 +269,77 @@ check(
   romeInstant("20261024", "31:24:00") === "2026-10-25T06:24:00.000Z",
   romeInstant("20261024", "31:24:00"),
 );
+
+// ─── One number, two rows: shown alike, looked up apart ────────────────────
+
+console.log("one number on two rows");
+{
+  // The two portions of ICN 1963 priced differently: a row labelled by the
+  // shared number must still read its own train's fare, not the other's.
+  const operatorTrains = {
+    italian: {
+      "ICN 1963": { lineName: "ICN 1963", stations: [{ code: "S01700" }], fare: { fromPrice: 54.9, currency: "EUR" } },
+      "ICN 1963 (Palermo)": { lineName: "ICN 1963", stations: [{ code: "S01700" }], fare: { fromPrice: 65.9, currency: "EUR" } },
+    },
+  };
+  const viewMap = {
+    a: { route_id: "a", timetable_source: "italian", agency_id: "FS", trip_short_name_0: "ICN 1963" },
+    b: {
+      route_id: "b",
+      timetable_source: "italian",
+      agency_id: "FS",
+      trip_short_name_0: "ICN 1963",
+      train_key_0: "ICN 1963 (Palermo)",
+    },
+  };
+  stampOfficialFares(viewMap, {}, operatorTrains, [{ id: "italian", enabled: true, official: true }]);
+  check(
+    "rowTrainKey reads train_key first, the label otherwise",
+    rowTrainKey(viewMap.b, 0) === "ICN 1963 (Palermo)" && rowTrainKey(viewMap.a, 0) === "ICN 1963",
+  );
+  check(
+    "each row takes its own portion's fare, and quotes it under the shown number",
+    viewMap.a.fare_0?.fromPrice === 54.9 &&
+      viewMap.b.fare_0?.fromPrice === 65.9 &&
+      viewMap.b.pricing?.trainName === "ICN 1963",
+    `${viewMap.a.fare_0?.fromPrice} / ${viewMap.b.fare_0?.fromPrice} / ${viewMap.b.pricing?.trainName}`,
+  );
+}
+{
+  const published = JSON.parse(
+    fs.readFileSync(path.join(ROOT, "public/data/published/initial-data.json"), "utf8"),
+  );
+  const rows = Object.values(published.data?.viewMap ?? published.viewMap ?? {}).filter((r) =>
+    String(r.route_id).startsWith("icn_"),
+  );
+  const shown = rows.flatMap((r) => [r.trip_short_name_0, r.trip_short_name_1]).filter(Boolean);
+  check(
+    "no published Intercity Notte row shows a portion's city beside its number",
+    shown.every((n) => /^ICN \d+$/.test(n)),
+    shown.filter((n) => !/^ICN \d+$/.test(n)).join(", "),
+  );
+  const palermo = rows.find((r) => r.train_key_0 === "ICN 1963 (Palermo)" || r.train_key_1 === "ICN 1963 (Palermo)");
+  const trainsFile = JSON.parse(
+    fs.readFileSync(path.join(ROOT, "public/data/scraped/italian-trains.json"), "utf8"),
+  ).data.trains;
+  const dir = palermo?.train_key_0 === "ICN 1963 (Palermo)" ? 0 : 1;
+  check(
+    "the Milano–Palermo row reads the Palermo portion's fare, not the Catania one's",
+    palermo &&
+      palermo[`trip_short_name_${dir}`] === "ICN 1963" &&
+      palermo[`fare_${dir}`]?.fromPrice === trainsFile["ICN 1963 (Palermo)"]?.fare?.fromPrice,
+    palermo ? `${palermo[`fare_${dir}`]?.fromPrice} vs ${trainsFile["ICN 1963 (Palermo)"]?.fare?.fromPrice}` : "no row",
+  );
+  const stops = getStationTimesForTrain("ICN 1963", {
+    origin: "Milano Centrale",
+    destination: "Palermo Centrale",
+  });
+  check(
+    "the connection page finds the Palermo portion's timetable under the shown number",
+    stops?.at(-1)?.name === "Palermo Centrale" && stops.length > 20,
+    `${stops?.length} stops`,
+  );
+}
 
 // ─── The committed trains file ──────────────────────────────────────────────
 
