@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FiExternalLink } from "react-icons/fi";
 import FareCalendar from "./FareCalendar";
-import { formatNight } from "../../lib/fareCalendarView.mjs";
+import { fareCalendarAnchor, formatNight } from "../../lib/fareCalendarView.mjs";
 import { stopsForNight } from "../../lib/nightTimes.mjs";
 
 /**
@@ -108,7 +108,11 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
         />
       ) : (
         fare?.classes?.length > 0 && (
-          <div className="mt-4" data-testid="route-fares">
+          <div
+            id={fareCalendarAnchor(trainNumber) || undefined}
+            className="mt-4 scroll-mt-20"
+            data-testid="route-fares"
+          >
             <div className="text-xs uppercase tracking-wide text-white/40">Fares</div>
             <ul className="mt-2 flex flex-wrap gap-2">
               {fare.classes.map((c) => (

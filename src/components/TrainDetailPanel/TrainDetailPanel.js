@@ -41,6 +41,7 @@ import {
   pricingForDirection,
   splitDealFare,
 } from "../../lib/fareClasses.mjs";
+import { fareCalendarAnchor } from "../../lib/fareCalendarView.mjs";
 import {
   formatTrainNumber,
   resolveOperatorComponents,
@@ -1969,16 +1970,39 @@ const TrainDetailPanel = ({
                           ))}
                         </ul>
                         {/* A dynamic fare is one night's price: say which —
-                            on each row when the nights differ, else once. */}
-                        {!chipDates &&
-                          pricing?.type === "dynamic" &&
-                          formatTravelDate(sharedFareDate) && (
+                            on each row when the nights differ, else once.
+                            Every other night is on the connection page's
+                            calendar, so the line opens it at this train's. */}
+                        {pricing?.type === "dynamic" &&
+                          (chipDates
+                            ? trainPageSlug
+                            : formatTravelDate(sharedFareDate)) && (
                           <div
                             className="text-xs text-gray-500 dark:text-zinc-400"
                             data-testid="fare-travel-date"
                           >
-                            Lowest fares{" "}
-                            {formatTravelDate(sharedFareDate)}
+                            {(() => {
+                              const text = chipDates
+                                ? "Fares for every night"
+                                : `Lowest fares ${formatTravelDate(sharedFareDate)}`;
+                              if (!trainPageSlug) return text;
+                              const anchor = fareCalendarAnchor(
+                                trip.trip_short_name,
+                              );
+                              return (
+                                <Link
+                                  href={`/connections/${trainPageSlug}${
+                                    anchor ? `#${anchor}` : ""
+                                  }`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="underline underline-offset-2 hover:text-gray-700 dark:hover:text-zinc-300"
+                                  title="See the fare for every night"
+                                >
+                                  {text}
+                                </Link>
+                              );
+                            })()}
                           </div>
                         )}
                         {/* A published tariff's range (SNCF), not a
@@ -2162,66 +2186,6 @@ const TrainDetailPanel = ({
                           sourceDuration ||
                           officialRow?.durationText ||
                           formatTime(trip.duration)}
-                      </div>
-                    )}
-
-                    {/* Frequency — PKP GTFS run-days win; BoT/override fallback */}
-                    {(pkpSchedule?.days ||
-                      esSchedule?.days ||
-                      officialRow?.serviceDays ||
-                      trip.service_id ||
-                      getRouteFrequencyOverride(trip.route_id)) && (
-                      <div className="space-y-1">
-                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
-                          Frequency
-                        </div>
-                        <div className="text-sm">
-                          {(() => {
-                            // PKP is the source of truth for Polish trains.
-                            if (pkpSchedule?.days) return pkpSchedule.days;
-                            const override = getRouteFrequencyOverride(
-                              trip.route_id,
-                            );
-                            if (override) {
-                              return (
-                                <>
-                                  {override.text}
-                                  {override.sourceUrl && (
-                                    <>
-                                      {" "}
-                                      <br />
-                                      <a
-                                        href={override.sourceUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-600 dark:text-blue-400 hover:underline"
-                                      >
-                                        Details
-                                      </a>
-                                    </>
-                                  )}
-                                </>
-                              );
-                            }
-                            // The feed's own service days, which carry the
-                            // period they apply to; BoT's copy is undated.
-                            return (
-                              esSchedule?.days ||
-                              officialRow?.serviceDays ||
-                              trip.service_id
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Classes Available */}
-                    {trip.classes && (
-                      <div className="space-y-1">
-                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
-                          Classes
-                        </div>
-                        <div className="text-sm capitalize">{trip.classes}</div>
                       </div>
                     )}
 
@@ -2454,6 +2418,69 @@ const TrainDetailPanel = ({
                       routeId={trip.route_id}
                       scheduleStops={schedule?.stops}
                     />
+
+                    {/* Frequency and classes sit under the Book button so the
+                        CTA stays inside the first screen of the panel. */}
+                    {/* Frequency — PKP GTFS run-days win; BoT/override fallback */}
+                    {(pkpSchedule?.days ||
+                      esSchedule?.days ||
+                      officialRow?.serviceDays ||
+                      trip.service_id ||
+                      getRouteFrequencyOverride(trip.route_id)) && (
+                      <div className="space-y-1">
+                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
+                          Frequency
+                        </div>
+                        <div className="text-sm">
+                          {(() => {
+                            // PKP is the source of truth for Polish trains.
+                            if (pkpSchedule?.days) return pkpSchedule.days;
+                            const override = getRouteFrequencyOverride(
+                              trip.route_id,
+                            );
+                            if (override) {
+                              return (
+                                <>
+                                  {override.text}
+                                  {override.sourceUrl && (
+                                    <>
+                                      {" "}
+                                      <br />
+                                      <a
+                                        href={override.sourceUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                                      >
+                                        Details
+                                      </a>
+                                    </>
+                                  )}
+                                </>
+                              );
+                            }
+                            // The feed's own service days, which carry the
+                            // period they apply to; BoT's copy is undated.
+                            return (
+                              esSchedule?.days ||
+                              officialRow?.serviceDays ||
+                              trip.service_id
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Classes Available */}
+                    {trip.classes && (
+                      <div className="space-y-1">
+                        <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase">
+                          Classes
+                        </div>
+                        <div className="text-sm capitalize">{trip.classes}</div>
+                      </div>
+                    )}
+
 
                     {/* How buying works where it has quirks the Book button
                         cannot explain (booking-guides.json) — closed by

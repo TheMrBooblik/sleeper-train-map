@@ -8,6 +8,7 @@ import {
   monthWindowStart,
   VISIBLE_MONTHS,
   WEEKDAYS,
+  fareCalendarAnchor,
 } from "../../lib/fareCalendarView.mjs";
 
 /** The visitor's own date, "YYYY-MM-DD" — read after mount only (see below). */
@@ -186,7 +187,12 @@ export default function FareCalendar({ calendar, trainNumber, bookingHref, onPic
   const href = datedHref || calendar.bookingHref || bookingHref || null;
 
   return (
-    <div className="mt-4" data-testid="fare-calendar">
+    // The map panel links here by this id; scroll-mt clears the fixed nav.
+    <div
+      id={fareCalendarAnchor(trainNumber) || undefined}
+      className="mt-4 scroll-mt-20"
+      data-testid="fare-calendar"
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <div className="text-xs uppercase tracking-wide text-white/40">
           Fares by night

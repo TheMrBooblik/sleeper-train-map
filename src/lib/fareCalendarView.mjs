@@ -257,6 +257,19 @@ function nightBookingTimes(times) {
 }
 
 /**
+ * The element id a train's fares carry on its connection page, so the map
+ * panel's "Lowest fares for travel on …" line can open the page scrolled to
+ * that train's calendar (`/connections/{pair}#fares-453`). Keyed by the first
+ * run of digits without leading zeros, because the panel and the page read the
+ * label from different places ("ES 453" on a feed trip, "453" on the row);
+ * "" when the label has no number, and then neither side uses an anchor.
+ */
+export function fareCalendarAnchor(trainNumber) {
+  const match = String(trainNumber ?? "").match(/\d+/);
+  return match ? `fares-${Number(match[0])}` : "";
+}
+
+/**
  * The Book link for one night: the calendar's dated template with that night
  * filled in, or null when anything it names is missing (the page then links to
  * the direction's own booking search and says to pick the night there). A
