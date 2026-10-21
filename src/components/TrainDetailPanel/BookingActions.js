@@ -69,58 +69,73 @@ export default function BookingActions({
       ? ""
       : formatTravelDateShort(pricing?.travelDate);
 
+  // A fragment, not a wrapper: the sticky bar below is bounded by its parent,
+  // so it has to be a child of the train's card to stay pinned while the card
+  // is on screen (inside a wrapper of its own it could never leave it).
   return (
-    <div className="space-y-1.5">
-      {/* Fare line (only when we have a concrete price) */}
-      {/* One line of text, not a flex row: as flex items each piece shrank
-          into its own column and wrapped inside itself ("from / €69.99"). As
-          inline text a narrow panel wraps between whole pieces instead. */}
-      {fareLabel && (
-        <div data-testid="fare-line">
-          <span className="mr-1.5 text-xs text-gray-500 dark:text-zinc-400 uppercase">Fare</span>
-          <span className="whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-zinc-100">
-            {fareLabel}
-          </span>
-          {fareClass && (
-            <span className="whitespace-nowrap text-xs text-gray-500 dark:text-zinc-400">
-              {" "}
-              · {fareClass.toLowerCase()}
+    <>
+      {/* The fare and the Book button stay pinned to the bottom of the panel
+          until the card scrolls to them: on a phone the sheet opens at 65% of
+          the screen and the button would otherwise sit below its edge. */}
+      <div
+        className={`space-y-1.5 bg-white dark:bg-zinc-900 ${
+          href
+            ? "sticky bottom-0 z-10 pt-2 -mt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+            : ""
+        }`}
+        data-testid="booking-bar"
+      >
+        {/* Fare line (only when we have a concrete price) */}
+        {/* One line of text, not a flex row: as flex items each piece shrank
+            into its own column and wrapped inside itself ("from / €69.99"). As
+            inline text a narrow panel wraps between whole pieces instead. */}
+        {fareLabel && (
+          <div data-testid="fare-line">
+            <span className="mr-1.5 text-xs text-gray-500 dark:text-zinc-400 uppercase">Fare</span>
+            <span className="whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-zinc-100">
+              {fareLabel}
             </span>
-          )}
-          {fareDate && (
-            <span className="whitespace-nowrap text-xs text-gray-500 dark:text-zinc-400">
-              {" "}
-              · {fareDate}
-            </span>
-          )}
-          {!livePrice && eurHintFor(pricing) && (
-            <span
-              className="block text-xs text-gray-500 dark:text-zinc-400"
-              title={eurRateNote()}
-            >
-              ({eurHintFor(pricing)})
-            </span>
-          )}
-        </div>
-      )}
+            {fareClass && (
+              <span className="whitespace-nowrap text-xs text-gray-500 dark:text-zinc-400">
+                {" "}
+                · {fareClass.toLowerCase()}
+              </span>
+            )}
+            {fareDate && (
+              <span className="whitespace-nowrap text-xs text-gray-500 dark:text-zinc-400">
+                {" "}
+                · {fareDate}
+              </span>
+            )}
+            {!livePrice && eurHintFor(pricing) && (
+              <span
+                className="block text-xs text-gray-500 dark:text-zinc-400"
+                title={eurRateNote()}
+              >
+                ({eurHintFor(pricing)})
+              </span>
+            )}
+          </div>
+        )}
 
-      {/* Primary CTA */}
-      {href && (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group block w-full text-center bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 py-2.5 px-3 rounded-md border border-slate-200 dark:border-zinc-700 hover:bg-slate-200 dark:hover:bg-zinc-700 hover:border-slate-300 dark:hover:border-zinc-600 active:translate-y-px transition-all duration-150 text-sm font-semibold"
-        >
-          <span className="inline-flex items-center gap-1">
-            Book / view details&nbsp;
-            <FiExternalLink
-              className="h-4 w-4 shrink-0 text-slate-500 dark:text-zinc-400 transition-all duration-300 ease-out group-hover:text-slate-800 dark:group-hover:text-zinc-200 translate-x-0.5 -translate-y-px group-hover:translate-x-1 group-hover:-translate-y-0.5"
-              aria-hidden
-            />
-          </span>
-        </a>
-      )}
+        {/* Primary CTA */}
+        {href && (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group block w-full text-center bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 py-2.5 px-3 rounded-md border border-slate-200 dark:border-zinc-700 hover:bg-slate-200 dark:hover:bg-zinc-700 hover:border-slate-300 dark:hover:border-zinc-600 active:translate-y-px transition-all duration-150 text-sm font-semibold"
+          >
+            <span className="inline-flex items-center gap-1">
+              Book / view details&nbsp;
+              <FiExternalLink
+                className="h-4 w-4 shrink-0 text-slate-500 dark:text-zinc-400 transition-all duration-300 ease-out group-hover:text-slate-800 dark:group-hover:text-zinc-200 translate-x-0.5 -translate-y-px group-hover:translate-x-1 group-hover:-translate-y-0.5"
+                aria-hidden
+              />
+            </span>
+          </a>
+        )}
+      </div>
 
       {/* Caption: which stations are prefilled (deep link only), and for
           jointly-operated trains which operator's shop the button opens */}
@@ -183,6 +198,6 @@ export default function BookingActions({
           </span>
         </a>
       )}
-    </div>
+    </>
   );
 }

@@ -102,7 +102,7 @@ function seasonNote(route, dir) {
  * Keep in sync with the sheet's height classes below — Tailwind needs those as
  * static strings, so they can't be derived from these.
  */
-export const MOBILE_SHEET_PEEK_VH = 0.55; // h-[55dvh]
+export const MOBILE_SHEET_PEEK_VH = 0.65; // h-[65dvh]
 export const DESKTOP_PANEL_WIDTH_PX = 300; // md:w-[300px]
 
 const GTFS_ROUTE_KIND = {
@@ -1212,7 +1212,7 @@ const TrainDetailPanel = ({
       <div
         ref={sheetRef}
         className={`fixed z-[1000] bg-white dark:bg-zinc-900 dark:text-zinc-100 shadow-lg transition-all duration-300 overflow-y-auto overscroll-y-none bottom-0 left-0 right-0 rounded-t-2xl ${
-          expanded ? "h-[88dvh]" : "h-[55dvh]"
+          expanded ? "h-[88dvh]" : "h-[65dvh]"
         } pb-[env(safe-area-inset-bottom,0px)] md:top-13 md:right-0 md:bottom-auto md:left-auto md:rounded-none md:h-[calc(100vh-3rem)] md:w-[300px] md:translate-y-0 md:pb-0 ${
           isOpen
             ? "translate-y-0 md:translate-x-0"
