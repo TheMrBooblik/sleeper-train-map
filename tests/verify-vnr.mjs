@@ -180,14 +180,18 @@ console.log("the trains file");
   const stale = buildVnrTrains({ config, found: null, positions, previous: { SE2: { ...trains.SE2, timetable: { checkedAt: "2026-09-01" } } }, today: "2026-10-21" });
   check("…but not one nobody has confirmed for over 30 days", !stale.SE2);
   check("a train the config does not list as daily keeps no frequency (unknown, never a guessed Daily)", frequencyFor(config, "SE23") === null && frequencyFor(config, "SE1") === "Daily");
+  // SE17 as one page times it: eight minutes off at a stop in between.
+  const se17 = { ...se1, stops: se1.stops.map((s, i) => (i === 1 ? { ...s, arrival: "03:29", departure: "03:36" } : s)) };
   const dupes = dropDuplicateTimetables(
     new Map([
-      ["SE17", { timetable: se1, fare: null }],
+      ["SE17", { timetable: se17, fare: null }],
       ["JSE17", { timetable: se1, fare: { fromPrice: 1 } }],
       ["SE2", { timetable: se2, fare: null }],
     ]),
   );
   check("one train sold under two numbers is kept once — the number with fares", eq([...dupes.keys()], ["JSE17", "SE2"]));
+  const late = { ...se1, stops: se1.stops.map((s, i) => (i === se1.stops.length - 1 ? { ...s, arrival: "07:30" } : s)) };
+  check("…but a train arriving at another time is another train", dropDuplicateTimetables(new Map([["SE1", { timetable: se1, fare: null }], ["SE9", { timetable: late, fare: null }]])).size === 2);
 }
 
 console.log("registry and wiring");

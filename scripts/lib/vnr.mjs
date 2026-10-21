@@ -325,15 +325,17 @@ export function pairOrder(names, pairs = {}) {
 export const frequencyFor = (config, name) => (config?.frequency?.daily ?? []).includes(name) ? "Daily" : null;
 
 /**
- * Trains with the same stops at the same times are one train sold under two
- * numbers — on 2026-10-21 the site listed JSE17/JSE18 beside SE17/SE18 with
- * identical timetables, and only the J numbers had fares. Keep the one with a
- * fare, else the shorter name. `found` is name → { timetable, fare }.
+ * Two numbers calling at the same stations, leaving and arriving at the same
+ * times, are one train sold under two numbers. On 2026-10-21 the site listed
+ * JSE17/JSE18 beside SE17/SE18 — the same run, eight minutes apart at Đông Hà
+ * and Huế on one of the two pages — and only the J numbers had fares. Keep
+ * the one with a fare, else the shorter name. `found` is name → { timetable, fare }.
  */
 export function dropDuplicateTimetables(found, log = () => {}) {
   const byKey = new Map();
   for (const [name, f] of found) {
-    const key = f.timetable.stops.map((s) => `${s.name}@${s.departure}/${s.arrival}`).join(">");
+    const stops = f.timetable.stops;
+    const key = `${stops.map((s) => s.name).join(">")}|${stops[0].departure}|${stops.at(-1).arrival}`;
     const other = byKey.get(key);
     if (!other) {
       byKey.set(key, name);
@@ -343,7 +345,7 @@ export function dropDuplicateTimetables(found, log = () => {}) {
     const keep = better(other, name);
     const drop = keep === name ? other : name;
     byKey.set(key, keep);
-    log(`${drop}: same stops and times as ${keep} — kept ${keep}${found.get(keep).fare ? " (the one with fares)" : ""}`);
+    log(`${drop}: same stops, departure and arrival as ${keep} — kept ${keep}${found.get(keep).fare ? " (the one with fares)" : ""}`);
   }
   const kept = new Set(byKey.values());
   return new Map([...found].filter(([name]) => kept.has(name)));
