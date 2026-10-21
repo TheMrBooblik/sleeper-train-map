@@ -1973,36 +1973,30 @@ const TrainDetailPanel = ({
                             on each row when the nights differ, else once.
                             Every other night is on the connection page's
                             calendar, so the line opens it at this train's. */}
-                        {pricing?.type === "dynamic" &&
-                          (chipDates
-                            ? trainPageSlug
-                            : formatTravelDate(sharedFareDate)) && (
+                        {!chipDates &&
+                          pricing?.type === "dynamic" &&
+                          formatTravelDate(sharedFareDate) && (
                           <div
                             className="text-xs text-gray-500 dark:text-zinc-400"
                             data-testid="fare-travel-date"
                           >
-                            {(() => {
-                              const text = chipDates
-                                ? "Fares for every night"
-                                : `Lowest fares ${formatTravelDate(sharedFareDate)}`;
-                              if (!trainPageSlug) return text;
-                              const anchor = fareCalendarAnchor(
-                                trip.trip_short_name,
-                              );
-                              return (
-                                <Link
-                                  href={`/connections/${trainPageSlug}${
-                                    anchor ? `#${anchor}` : ""
-                                  }`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="underline underline-offset-2 hover:text-gray-700 dark:hover:text-zinc-300"
-                                  title="See the fare for every night"
-                                >
-                                  {text}
-                                </Link>
-                              );
-                            })()}
+                            {trainPageSlug ? (
+                              <Link
+                                href={`/connections/${trainPageSlug}${
+                                  fareCalendarAnchor(trip.trip_short_name)
+                                    ? `#${fareCalendarAnchor(trip.trip_short_name)}`
+                                    : ""
+                                }`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline underline-offset-2 hover:text-gray-700 dark:hover:text-zinc-300"
+                                title="See the fare for every night"
+                              >
+                                Lowest fares {formatTravelDate(sharedFareDate)}
+                              </Link>
+                            ) : (
+                              <>Lowest fares {formatTravelDate(sharedFareDate)}</>
+                            )}
                           </div>
                         )}
                         {/* A published tariff's range (SNCF), not a
