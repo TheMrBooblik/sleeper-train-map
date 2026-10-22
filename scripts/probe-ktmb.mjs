@@ -251,7 +251,7 @@ console.log("\n# online.ktmb.com.my (KITS search, before login)");
         continue;
       }
       save(`kits-trips-${from}-${to}.html`, found.html);
-      console.log(`### /Trip/Trip html (${found.html.length} chars)\n${found.html.replace(/\n\s*\n/g, "\n").slice(0, 14_000)}`);
+      console.log(`### /Trip/Trip rows\n${(/<tbody[\s\S]*?<\/tbody>/i.exec(found.html)?.[0] ?? found.html).replace(/\n\s*\n/g, "\n").slice(0, 6_000)}`);
       const tripDatas = [...found.html.matchAll(/data-TripData\s*=\s*"([^"]+)"/gi)].map((m) => m[1].replace(/&#x2B;/gi, "+").replace(/&#x2F;/gi, "/").replace(/&#x3D;/gi, "="));
       console.log(`\n${tripDatas.length} train(s) with a TripData`);
       for (const [i, tripData] of tripDatas.slice(0, 3).entries()) {
@@ -284,6 +284,28 @@ console.log("\n# online.ktmb.com.my (KITS search, before login)");
     console.log(`KITS: ${err.message}`);
   }
   console.log(`KITS: ${kits.requests} request(s)`);
+}
+
+// KTMB's own fare documents: per-class fares are what KITS shows only after
+// login, so what KTMB publishes is the other official place a berth's price
+// can be read. Printed as text (pdftotext, installed by the workflow).
+console.log("\n# KTMB fare documents");
+for (const url of [
+  "https://www.ktmb.com.my/assets/pdf/2025/Tambang%20Fleksi.pdf",
+  "https://www.ktmb.com.my/assets/pdf/2025/APPENDIX%201_TERMS%20AND%20CONDITIONS_%20ETS,%20INTERCITY%20&%20SHUTTLE%20TICKET%20SEP%202025.pdf",
+]) {
+  try {
+    const res = await fetch(url, { headers: { "User-Agent": HONEST_USER_AGENT }, signal: AbortSignal.timeout(60_000) });
+    console.log(`\n## ${url}\nstatus ${res.status}, ${res.headers.get("content-type")}`);
+    if (!res.ok) continue;
+    const file = path.join(dir, "doc.pdf");
+    fs.writeFileSync(file, Buffer.from(await res.arrayBuffer()));
+    const text = execSync(`pdftotext -layout "${file}" -`, { maxBuffer: 64 * 1024 * 1024 }).toString();
+    save(`${path.basename(new URL(url).pathname)}.txt`, text);
+    console.log(text.replace(/\n\s*\n+/g, "\n").slice(0, 25_000));
+  } catch (err) {
+    console.log(`failed: ${err?.message ?? err}`);
+  }
 }
 
 console.log(`\n# done — ${requests} web request(s)`);
