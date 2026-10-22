@@ -489,9 +489,11 @@ check("the baseline has a 'before' for every treated page, and for most of the r
   }
   // Pairs newer than the baseline (routes added since 2026-09-20) sit out of
   // the control group; the report says how many. Far fewer than half, or the
-  // control stops describing the site.
+  // control stops describing the site. 80%: Thailand (October 2026) and
+  // Vietnam (another 20 corridors) took the share from 0.93 to 0.88, and a
+  // new country's pages are exactly the ones the baseline cannot have.
   const covered = pairs.filter((p) => baseline.pages[p.slug]).length;
-  assert.ok(covered >= pairs.length * 0.9, `only ${covered}/${pairs.length} pairs have a baseline`);
+  assert.ok(covered >= pairs.length * 0.8, `only ${covered}/${pairs.length} pairs have a baseline`);
 });
 
 check("the baseline is a frozen snapshot, not a live count", () => {
