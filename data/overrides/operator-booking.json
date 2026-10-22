@@ -159,6 +159,10 @@
   "SRT": {
     "bookingPageUrl": "https://dticket.railway.co.th/DTicketPublicWeb/home/Home"
   },
+  "KTMB": {
+    "bookingPageUrl": "https://online.ktmb.com.my/",
+    "scheduleUrl": "https://www.ktmb.com.my/traintime.html"
+  },
   "VNR": {
     "bookingPageUrl": "https://dsvn.vn/",
     "scheduleUrl": "https://giotaugiave.dsvn.vn/"

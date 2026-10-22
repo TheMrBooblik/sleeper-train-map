@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "KTM Berhad (Malaysia) night trains, read by scripts/adapters/ktmb.mjs.",
+    "The timetable is data.gov.my's GTFS Static for KTMB (api.data.gov.my/gtfs-static/ktmb): every Intercity and ETS trip with its stops, times and positions. trip_id is the train number and route_id the service, so the allowlist is a list of routes and the clock does the rest: a trip on one of `routes` is a night train when it leaves at or after `minDepartureHour` and runs past midnight for at least `minMinutes`. That keeps the Ekspres Rakyat Timuran 26/27 (JB Sentral – Tumpat, KTM's one train with sleeping berths — 'Superior Night Sleep', ADNS) and leaves out the ERT route's midday Merapoh – JB Sentral working (trip 1021, 12:00) as well as the overnight ETS runs to Padang Besar and Hat Yai, which are seated and on another route.",
+    "Station names: the feed writes them in capitals ('JB SENTRAL'); the adapter title-cases them ('JB Sentral', 'Kuala Lipis'). `stationNames` holds the few that title-casing gets wrong."
+  ],
+  "operator": {
+    "agencyId": "KTMB",
+    "name": "KTM Berhad"
+  },
+  "routes": ["ERT"],
+  "minDepartureHour": 17,
+  "minMinutes": 300,
+  "lineNamePrefix": {
+    "ERT": "ERT"
+  },
+  "serviceNames": {
+    "ERT": "Ekspres Rakyat Timuran"
+  },
+  "stationNames": {
+    "_comment": "Feed spelling (any case) → the name the map uses, where title-casing alone is wrong.",
+    "WOODLANDS CIQ": "Woodlands CIQ"
+  }
+}

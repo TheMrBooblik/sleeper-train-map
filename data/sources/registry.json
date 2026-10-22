@@ -409,6 +409,44 @@
   },
   {
     "v": 1,
+    "id": "ktmb",
+    "label": "KTM Berhad (Malaysia)",
+    "description": "Malaysia's night train, the Ekspres Rakyat Timuran 26/27 (JB Sentral – Tumpat, KTM's one service with sleeping berths), from two official sources. The timetable — every stop with its time and position — is data.gov.my's GTFS Static for KTMB (the government's open transport API, no key; redirects to the zip on S3), filtered by data/sources/ktmb-sleepers.json: a trip on an allowlisted route that leaves in the evening and runs past midnight. KTMB's own ticket shop KITS (online.ktmb.com.my) is searched once per train before login to confirm it is on sale at the feed's times; its per-class fares are shown only after login, so no berth price is published. The feed ships no shapes; the line follows OpenStreetMap's track (osm-ktmb-track.json, weekly). Probe workflow: 'Probe KTMB source'.",
+    "kind": "gtfs",
+    "adapter": "ktmb",
+    "enabled": true,
+    "official": true,
+    "trusted": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://www.ktmb.com.my",
+    "endpoint": "https://api.data.gov.my/gtfs-static/ktmb",
+    "docsUrl": "https://developer.data.gov.my/realtime-api/gtfs-static",
+    "output": "ktmb-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "KTMB", "operatorName": "KTM Berhad" },
+    "synthetic": {
+      "idPrefix": "ktmb_",
+      "agency": { "from": "fixed", "value": "KTMB" },
+      "resolveAliases": false,
+      "withService": true,
+      "excludeBotMatched": false,
+      "dedupStrategy": null
+    },
+    "params": {
+      "configPath": "data/sources/ktmb-sleepers.json",
+      "feedUrl": "https://api.data.gov.my/gtfs-static/ktmb",
+      "kits": { "enabled": true, "dateOffsetDays": 7 },
+      "osmTrack": {
+        "file": "osm-ktmb-track.json",
+        "maxAgeDays": 7,
+        "bbox": [1.2, 101.4, 6.4, 104.0]
+      }
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
     "id": "curated",
     "label": "Curated routes",
     "description": "Admin-approved routes from data/canonical/routes/ (added via the review queue) — coverage beyond what any scraper provides",
