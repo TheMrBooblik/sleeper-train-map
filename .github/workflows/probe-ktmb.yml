@@ -47,7 +47,8 @@ jobs:
       - run: npm ci
 
       # pdftotext, for KTMB's fare documents.
-      - run: sudo apt-get install -y -qq poppler-utils
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+        continue-on-error: true
 
       - run: node scripts/probe-ktmb.mjs probe-output
         continue-on-error: true

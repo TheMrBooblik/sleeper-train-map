@@ -202,3 +202,41 @@ export function makeKitsClient({ base = KITS_BASE, fetchImpl = fetch, spacingMs 
     },
   };
 }
+
+const cellText = (html) =>
+  String(html ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/**
+ * The trains in a /Trip/Trip answer, one per `<tr data-HourMinute>` row:
+ * "Express - 26 | 19:30 | 11:25 +1 | 15h 55m | 71 | MYR 56.00". `minFare` is
+ * KITS's "Min. fare" column — the cheapest place on the train in any class,
+ * seats included — so it is never a berth's price on its own.
+ */
+export function parseTripRows(html) {
+  const rows = [];
+  for (const m of String(html ?? "").matchAll(/<tr\b[^>]*data-HourMinute\s*=\s*"(\d{3,4})"[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const cells = [...m[2].matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map((c) => cellText(c[1]));
+    if (cells.length < 6) continue;
+    const name = /^(.*?)\s*-\s*([A-Z]*\d+[A-Z]*)$/i.exec(cells[0]);
+    const dep = /(\d{1,2}:\d{2})/.exec(cells[1]);
+    const arr = /(\d{1,2}:\d{2})(?:\s*\+(\d))?/.exec(cells[2]);
+    const fare = /MYR\s*([\d,]+(?:\.\d+)?)/i.exec(cells[5]);
+    const seats = /(\d+)/.exec(cells[4]);
+    if (!name || !dep || !arr) continue;
+    rows.push({
+      service: name[1].trim(),
+      number: name[2],
+      departure: dep[1].padStart(5, "0"),
+      arrival: arr[1].padStart(5, "0"),
+      nextDay: Number(arr[2] ?? 0),
+      available: seats ? Number(seats[1]) : null,
+      minFare: fare ? Number(fare[1].replace(/,/g, "")) : null,
+      bookable: !/login to view/i.test(cells[6] ?? ""),
+    });
+  }
+  return rows;
+}
