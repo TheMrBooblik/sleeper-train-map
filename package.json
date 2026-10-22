@@ -64,6 +64,7 @@
     "verify-map-theme": "node tests/verify-map-theme.mjs",
     "probe-jr-sunrise": "node scripts/probe-jr-sunrise.mjs",
     "probe-srt": "node scripts/probe-srt.mjs",
+    "probe-ktmb": "node scripts/probe-ktmb.mjs",
     "probe-vnr": "node scripts/probe-vnr.mjs",
     "verify-calendar": "node tests/verify-calendar.mjs",
     "verify-plan": "node tests/verify-plan.mjs",

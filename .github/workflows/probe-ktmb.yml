@@ -1,0 +1,56 @@
+name: Probe KTMB source
+
+# What KTM Berhad's official data (data.gov.my GTFS) and its own sites
+# (ktmb.com.my) serve to an automated client. The dev sandbox reaches none of them,
+# so this discovery crawl is how a reader for them gets written against real
+# answers. It prints status, forms, links and API-looking strings per page,
+# then the page text last.
+#
+# Label a PR `run-probes` to run it from the PR head; it also runs on every
+# push to a PR carrying the label that touches its own files (`synchronize`),
+# because a workflow added in a PR cannot be dispatched until it merges.
+#
+# Read-only: bounded GET requests, an honest User-Agent, nothing committed.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled, synchronize]
+    paths:
+      - scripts/probe-ktmb.mjs
+      - scripts/lib/ktmb.mjs
+      - scripts/lib/gtfs.mjs
+      - scripts/adapters/ktmb.mjs
+      - data/sources/ktmb-sleepers.json
+      - .github/workflows/probe-ktmb.yml
+
+concurrency:
+  group: probe-ktmb-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'run-probes') ||
+      (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'run-probes'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: node scripts/probe-ktmb.mjs probe-output
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ktmb-probe-output
+          path: probe-output/
+          retention-days: 7
