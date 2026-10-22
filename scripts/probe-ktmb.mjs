@@ -26,6 +26,7 @@ import path from "node:path";
 import { execSync } from "node:child_process";
 import { readCsv } from "./lib/gtfs.mjs";
 import { HONEST_USER_AGENT, detectBlock } from "./lib/http-block.mjs";
+import { makeKitsClient } from "./lib/ktmb-kits.mjs";
 
 const outDir = process.argv[2] ?? null;
 const FEED_URL = process.env.KTMB_GTFS_URL || "https://api.data.gov.my/gtfs-static/ktmb";
@@ -231,73 +232,58 @@ const linksOf = (html, base) =>
     }
   }).filter(Boolean))];
 
-console.log("\n# online.ktmb.com.my (KITS booking)");
-// KITS's search is the form on its home page: POST /Trip with the two station
-// ids, each station's opaque StationData blob (the page lists them in
-// `jsStations`), the date as "D MMM YYYY", a passenger count and the
-// antiforgery token. Nothing is booked; login is not touched.
-const KITS = "https://online.ktmb.com.my/";
-const scriptsWithout = (html) =>
-  [...html.matchAll(/<script\b(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) =>
-    m[1].replace(/var jsStations = \[[\s\S]*?\];/, "var jsStations = [/* … */];").replace(/\n\s*\n/g, "\n"),
-  );
-const shop = await get(KITS);
-if (show(shop, { text: false })) {
-  const stations = JSON.parse(/var jsStations = (\[[\s\S]*?\]);/.exec(shop.body)?.[1] ?? "[]");
-  const token = /name="__RequestVerificationToken" type="hidden" value="([^"]+)"/.exec(shop.body)?.[1];
-  console.log(`jsStations: ${stations.length}; token: ${token ? "yes" : "no"}; cookies: ${[...cookies.keys()].join(", ")}`);
-  for (const js of scriptsWithout(shop.body)) if (/btnSubmit|Trip|TimeTable|StationData/.test(js)) console.log(`\n--- inline script (${js.length} chars)\n${js.slice(0, 20_000)}`);
-  const own = [...shop.body.matchAll(/<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi)]
-    .map((m) => new URL(m[1], KITS).href)
-    .filter((u) => /online\.ktmb\.com\.my\/(js|v3\/js)\//.test(u) && !/lightpick|bootstrap|mobile/.test(u));
-  void own;
-  const date = new Date(Date.now() + 7 * 86_400_000);
-  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const onward = `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
-  for (const [from, to] of [["37500", "86300"], ["86300", "37500"]]) {
-    const a = stations.find((s) => s.Id === from);
-    const b = stations.find((s) => s.Id === to);
-    if (!a || !b || !token) {
-      console.log(`${from} → ${to}: station data or token missing`);
-      continue;
-    }
-    const page = await get(new URL("Trip", KITS).href, {
-      form: {
-        FromStationData: a.StationData,
-        ToStationData: b.StationData,
-        FromStationId: from,
-        ToStationId: to,
-        OnwardDate: onward,
-        ReturnDate: "",
-        PassengerCount: "1",
-        __RequestVerificationToken: token,
-      },
-      headers: { Referer: KITS, Origin: "https://online.ktmb.com.my" },
-    });
-    console.log(`\n## POST /Trip ${from} → ${to} on ${onward}`);
-    if (!show(page, { text: false })) continue;
-    if (page.location) console.log(`location: ${page.location}`);
-    save(`trip-${from}-${to}.html`, page.body);
-    console.log(`forms: ${[...page.body.matchAll(/<form\b([^>]*)>/gi)].map((m) => m[1].trim()).join("\n  ")}`);
-    console.log(`inputs: ${[...page.body.matchAll(/<input\b([^>]*)>/gi)].map((m) => m[1].replace(/\s+/g, " ").trim().slice(0, 300)).join("\n  ")}`);
-    // The results page fills itself in: RenderTrip → /Trip/GetTripToken →
-    // /Trip/Trip → /Trip/LayoutV2. Its own scripts say how (once is enough).
-    if (from === "37500") {
-      const tripScripts = [...page.body.matchAll(/<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi)]
-        .map((m) => new URL(m[1], KITS).href)
-        .filter((u) => /online\.ktmb\.com\.my\/js\//.test(u) && !/\/(site|Ajax|Common|Datetime|DynamicDropdown|Form|Popup_v2)\.js/.test(u));
-      console.log(`page scripts: ${tripScripts.join("  ")}`);
-      for (const src of tripScripts) {
-        const js = await get(src, { accept: "*/*" });
-        if (!show(js, { text: false })) continue;
-        save(src, js.body);
-        console.log(js.body.slice(0, 40_000));
+console.log("\n# online.ktmb.com.my (KITS search, before login)");
+// The client the nightly adapter uses (scripts/lib/ktmb-kits.mjs): the search
+// form, POST /Trip, POST /Trip/Trip (the trains), POST /Trip/LayoutV2 (each
+// train's coaches with every place's fare). Nothing is reserved.
+{
+  const kits = makeKitsClient({ log: (m) => console.log(m) });
+  const travel = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+  try {
+    await kits.open();
+    for (const [from, to] of [["37500", "86300"], ["86300", "37500"]]) {
+      console.log(`\n## ${from} → ${to} on ${travel}`);
+      let found;
+      try {
+        found = await kits.search({ from, to, date: travel });
+      } catch (err) {
+        console.log(`search failed: ${err.message}`);
+        continue;
+      }
+      save(`kits-trips-${from}-${to}.html`, found.html);
+      console.log(`### /Trip/Trip html (${found.html.length} chars)\n${found.html.replace(/\n\s*\n/g, "\n").slice(0, 14_000)}`);
+      const tripDatas = [...found.html.matchAll(/data-TripData\s*=\s*"([^"]+)"/gi)].map((m) => m[1].replace(/&#x2B;/gi, "+").replace(/&#x2F;/gi, "/").replace(/&#x3D;/gi, "="));
+      console.log(`\n${tripDatas.length} train(s) with a TripData`);
+      for (const [i, tripData] of tripDatas.slice(0, 3).entries()) {
+        try {
+          const data = await kits.layout({ searchData: found.searchData, tripData });
+          const coaches = data.Coaches ?? [];
+          console.log(`\n### layout ${i}: ${coaches.length} coach(es); top-level keys ${Object.keys(data).join(", ")}`);
+          for (const c of coaches) {
+            const kinds = new Map();
+            for (const seat of c.Seats ?? []) {
+              if (!seat.SeatNo) continue;
+              const k = `${seat.SeatTypeName} | type ${seat.SeatType} | service ${seat.ServiceType} | ${seat.Price}`;
+              const v = kinds.get(k) ?? { n: 0, open: 0 };
+              v.n += 1;
+              if (String(seat.Status) === "1") v.open += 1;
+              kinds.set(k, v);
+            }
+            console.log(`- ${c.CoachLabel} (${c.SeatAvailable} available) keys=${Object.keys(c).filter((k) => k !== "Seats").join(",")}`);
+            for (const [k, v] of kinds) console.log(`    ${k}: ${v.n} place(s), ${v.open} status 1`);
+          }
+          const slim = { ...data, Coaches: coaches.map((c) => ({ ...c, CoachData: "…", Seats: (c.Seats ?? []).filter((x) => x.SeatNo).map((x) => ({ SeatNo: x.SeatNo, Price: x.Price, SeatType: x.SeatType, SeatTypeName: x.SeatTypeName, ServiceType: x.ServiceType, Status: x.Status })) })) };
+          console.log(`raw (slim): ${JSON.stringify(slim).slice(0, 20_000)}`);
+          console.log(`first seat, every field: ${JSON.stringify((coaches[0]?.Seats ?? []).find((x) => x.SeatNo) ?? null)}`);
+        } catch (err) {
+          console.log(`layout ${i} failed: ${err.message}`);
+        }
       }
     }
-    const visible = textOf(page.body);
-    const at = visible.indexOf("FILTER RESULTS");
-    console.log(`\n### text after the filter\n${visible.slice(at, at + 400)}\n…\n${visible.slice(visible.indexOf("Destination"), visible.indexOf("Destination") + 3_000)}`);
+  } catch (err) {
+    console.log(`KITS: ${err.message}`);
   }
+  console.log(`KITS: ${kits.requests} request(s)`);
 }
 
 console.log(`\n# done — ${requests} web request(s)`);
