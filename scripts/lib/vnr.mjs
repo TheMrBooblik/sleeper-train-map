@@ -499,6 +499,7 @@ export const CARRY_MAX_DAYS = 30;
  */
 export function buildVnrTrains({ config, found, carry = new Set(), positions, previous = {}, today, travelDate, osmTrack = null, donors = [], log = () => {} }) {
   const namer = makeStationNamer(config.stationNames);
+  const countryOf = stationCountry(config, namer);
   const operator = config.operator ?? {};
   const graphs = osmTrack?.length ? [["osm", buildRailGraph(osmTrack, { joinMeters: 30 })]] : [];
   const memo = new Map();
@@ -561,12 +562,16 @@ export function buildVnrTrains({ config, found, carry = new Set(), positions, pr
       pickup: true,
       dropoff: true,
     }));
+    // The countries a train runs through, in order, where it crosses a
+    // border (MR1: Vietnam, China), so its pages name both.
+    const countries = [...new Set(placed.map((s) => countryOf(s.name)))];
     trains[name] = {
       lineName: name,
       trainNo: name,
       operator: operator.name ?? "Vietnam Railways",
       agency_id: operator.agencyId ?? "VNR",
       frequency: frequencyFor(config, name),
+      ...(countries.length > 1 ? { countries } : {}),
       durationMinutes: journeyMinutes(live.timetable),
       nights: nightsOf(live.timetable),
       polyline: encoded,

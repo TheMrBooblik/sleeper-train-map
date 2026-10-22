@@ -169,6 +169,7 @@ console.log("the trains file");
   check("daily where the config says so, VNR", t.frequency === "Daily" && t.agency_id === "VNR");
   check("first stop has no arrival, last no departure", t.stations[0].arrival === null && t.stations.at(-1).departure === null);
   check("a line through every stop", polyline.decode(t.polyline).length >= 3);
+  check("a train that stays in Vietnam states no countries of its own", !("countries" in t));
   // Tonight's read failed for SE2: last night's entry is carried.
   const carried = buildVnrTrains({
     config,
@@ -252,6 +253,7 @@ console.log("into China (MR1/MR2)");
   const trains = buildVnrTrains({ config, found: new Map([["MR1", { timetable: mr1, fare: null }]]), positions, today: "2026-10-21", travelDate: "2026-10-28", donors: [z6] });
   const t = trains.MR1;
   check("MR1 is built to Beijing West, two days on, without a fare", t?.stations.at(-1).name === "Beijing West(北京西)" && t.stations.at(-1).arrivalDay === 2 && !t.fare && t.durationMinutes === 35 * 60 + 39);
+  check("…naming both countries it runs through, in order", eq(t.countries, ["VN", "CN"]));
   check("…by its stops' own dates (Bằng Tường the next morning)", t.stations[3].arrivalDay === 1 && t.stations[3].departureDay === 1);
   check("…with the stretch north of Nanning drawn along China Railway's line, through Liuzhou and Wuchang", (t.geometry.siblings ?? 0) >= 3 && polyline.decode(t.polyline).some(([la, lo]) => Math.abs(la - 30.528) < 0.01 && Math.abs(lo - 114.317) < 0.01));
 }

@@ -298,6 +298,12 @@ function countryCodesForRoute(route, allStopNames, operatorIds) {
     }
     if (fallback.length) {
       for (const code of fallback) codes.add(code);
+      // …plus the countries a cross-border train states for itself (MR1,
+      // Hà Nội → Beijing: VN, CN), which its source read off its own stops.
+      for (const tok of Array.isArray(route.countries) ? route.countries : []) {
+        const code = normalizeCountryCode(tok);
+        if (code) codes.add(code);
+      }
     } else {
       // Regular operators: derive the countries from the stations they pass
       // through, using the Back-on-Track stop→country index.

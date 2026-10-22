@@ -360,6 +360,14 @@ function appendSyntheticRoutes(
     const n = Number(train?.durationMinutes);
     if (Number.isInteger(n) && n > 0) row[`duration_minutes_${dir}`] = n;
   };
+  // The countries a cross-border train runs through, when its source says
+  // (Vietnam Railways' MR1 to Beijing: VN, CN). A synthetic operator's
+  // stations are in no country index, so without this its pages would name
+  // only the operator's home country.
+  const stampCountries = (row, train) => {
+    if (!Array.isArray(train?.countries) || !train.countries.length) return;
+    row.countries = [...new Set([...(row.countries ?? []), ...train.countries])];
+  };
   const paired = new Set();
   // The row shows a train as its source names it (`lineName`) and looks it up
   // by its key in the trains file. The two differ only where one number is
@@ -447,6 +455,7 @@ function appendSyntheticRoutes(
     stampLabel(entry, 0, lineName, data);
     stampNextRun(entry, 0, lineName, data);
     stampDuration(entry, 0, data);
+    stampCountries(entry, data);
     if (reversePair) {
       const [revName, revData] = reversePair;
       stampLabel(entry, 1, revName, revData);
@@ -463,6 +472,7 @@ function appendSyntheticRoutes(
       entry.nj_polyline_1 = revData.polyline || null;
       stampNextRun(entry, 1, revName, revData);
       stampDuration(entry, 1, revData);
+      stampCountries(entry, revData);
       paired.add(revName);
     }
     paired.add(lineName);
