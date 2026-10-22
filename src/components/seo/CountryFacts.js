@@ -39,7 +39,7 @@ export default function CountryFacts({ facts, stationCount }) {
         label="Tickets"
         value={fromLabel ? fromLabel.replace(/^from/, "From") : null}
         sub={eurHintFor(facts.minFromPrice) ? `(${eurHintFor(facts.minFromPrice)})` : ""}
-        subTitle={eurRateNote()}
+        subTitle={eurRateNote(undefined, facts.minFromPrice?.currency)}
       />
     </div>
   );

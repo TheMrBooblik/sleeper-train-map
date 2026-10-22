@@ -83,6 +83,10 @@ export function formatDuration(value) {
  * @returns {number} minutes, 0 when unknown
  */
 export function routeDurationMinutes(route, trip) {
+  // A source that dates every stop states the journey time on the row: two
+  // clocks cannot say a 33-hour train is not a 9-hour one.
+  const own = Number(route?.duration_minutes_0);
+  if (Number.isInteger(own) && own > 0) return own;
   const stated = durationToMinutes(trip?.duration);
   if (!route?.official_sources?.length) return stated;
 

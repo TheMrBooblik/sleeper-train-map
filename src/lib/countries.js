@@ -27,6 +27,7 @@ export const COUNTRIES = [
   { code: "SI", name: "Slovenia", center: [46.1, 14.8], zoom: 8 },
   { code: "SK", name: "Slovakia", center: [48.7, 19.7], zoom: 7 },
   { code: "UA", name: "Ukraine", center: [49.0, 32.0], zoom: 5 },
+  { code: "VN", name: "Vietnam", center: [16.0, 106.5], zoom: 5 },
 
   // North America
   { code: "US", name: "United States", center: [39.8, -98.6], zoom: 4 },

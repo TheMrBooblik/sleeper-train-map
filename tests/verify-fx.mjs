@@ -76,6 +76,22 @@ await check("the committed rates cover every currency a published fare is quoted
   assert.match(EUR_RATES.date, /^\d{4}-\d{2}-\d{2}$/);
 });
 
+await check("a currency the ECB does not publish takes InforEuro's month that covers today", async () => {
+  const { parseInforEuro } = await import("../scripts/adapters/ecb-fx.mjs");
+  const answer = [
+    { currencyIso: "VND", refCurrencyIso: "EUR", amount: 29494.04475, dateStart: "01/10/2026", dateEnd: "31/10/2026" },
+    { currencyIso: "VND", refCurrencyIso: "EUR", amount: 30362.6154, dateStart: "01/09/2026", dateEnd: "30/09/2026" },
+  ];
+  assert.deepEqual(parseInforEuro(answer, "VND", "2026-10-21"), { rate: 29494.04475, month: "2026-10" });
+  assert.deepEqual(parseInforEuro(answer, "VND", "2026-09-30"), { rate: 30362.6154, month: "2026-09" });
+  assert.deepEqual(parseInforEuro(answer, "VND", "2026-11-02"), { rate: 29494.04475, month: "2026-10" }, "past the last month: the latest");
+  assert.equal(parseInforEuro("<html>", "VND", "2026-10-21"), null);
+  const table = { date: "2026-10-20", rates: { VND: 29494.04475 }, rateSources: { VND: { source: "InforEuro", month: "2026-10" } } };
+  assert.equal(eurHintFor({ fromPrice: 1246000, currency: "VND" }, table), "≈ €42");
+  assert.match(eurRateNote(table, "VND"), /InforEuro rate for Oct 2026/);
+  assert.match(eurRateNote(table, "JPY"), /ECB/);
+});
+
 await check("the registry runs it nightly, and a bad night keeps the last rates", async () => {
   assert.ok(entry, "registry has an ecb-fx entry");
   assert.deepEqual(validateRegistry(registry), []);

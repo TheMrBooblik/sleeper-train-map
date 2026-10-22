@@ -42,7 +42,7 @@ import {
   isDynamicPricing,
   pricingForDirection,
 } from "../fareClasses.mjs";
-import { eurHintFor, formatEurApprox } from "../fx.mjs";
+import { eurHintFor, eurRateNote, formatEurApprox } from "../fx.mjs";
 import { fareCalendarDays } from "../fareCalendarView.mjs";
 import { clockKey, journeyTimesTheEnds, nightClock } from "../nightTimes.mjs";
 import { punctualitySummary } from "../punctuality.mjs";
@@ -298,6 +298,12 @@ function countryCodesForRoute(route, allStopNames, operatorIds) {
     }
     if (fallback.length) {
       for (const code of fallback) codes.add(code);
+      // …plus the countries a cross-border train states for itself (MR1,
+      // Hà Nội → Beijing: VN, CN), which its source read off its own stops.
+      for (const tok of Array.isArray(route.countries) ? route.countries : []) {
+        const code = normalizeCountryCode(tok);
+        if (code) codes.add(code);
+      }
     } else {
       // Regular operators: derive the countries from the stations they pass
       // through, using the Back-on-Track stop→country index.
@@ -444,6 +450,8 @@ export function toCardRoute(s) {
     durationText: s.durationText || "",
     fromPrice: s.fromPrice || null,
     fromPriceEur: s.fromPriceEur || "",
+    // Which rate the euro figure used: the dong's is InforEuro's, not the ECB's.
+    fromPriceEurNote: s.fromPriceEur ? eurRateNote(undefined, s.pricing?.currency) : "",
     futureFrom: s.futureFrom || "",
   };
 }
@@ -579,6 +587,8 @@ export function getRouteDetail(routeId) {
         lon: Number.isFinite(s.lon) ? s.lon : null,
         departure: formatAnyTime(s.departure),
         arrival: formatAnyTime(s.arrival),
+        ...(Number.isInteger(s.departureDay) ? { departureDay: s.departureDay } : {}),
+        ...(Number.isInteger(s.arrivalDay) ? { arrivalDay: s.arrivalDay } : {}),
       }));
       // Endpoint times prefer the gated viewMap value over the live feed —
       // and the OTHER endpoint field has to go, or the row and the feed each

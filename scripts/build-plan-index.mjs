@@ -87,7 +87,7 @@ export function buildPlanIndex(payload, { generatedAt = "" } = {}) {
     if (!stations) return null;
     const byName = new Map();
     for (const stop of stations) {
-      if (stop?.name) byName.set(stop.name, { arrival: stop.arrival, departure: stop.departure });
+      if (stop?.name) byName.set(stop.name, { arrival: stop.arrival, departure: stop.departure, arrivalDay: stop.arrivalDay, departureDay: stop.departureDay });
     }
     return byName.size ? byName : null;
   };

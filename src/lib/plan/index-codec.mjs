@@ -65,6 +65,12 @@ export function packPlanIndex(index) {
     stops: leg.stops.map((stop) => {
       const base = [intern(stop.station), citySlugIds.get(stop.citySlug) ?? -1];
       if (stop.arrival || stop.departure) base.push(stop.arrival || "", stop.departure || "");
+      // Day offsets after the first departure, only where a source states
+      // them (Vietnam), so every other leg packs exactly as before.
+      if (Number.isInteger(stop.arrivalDay) || Number.isInteger(stop.departureDay)) {
+        if (base.length === 2) base.push("", "");
+        base.push(stop.arrivalDay ?? -1, stop.departureDay ?? -1);
+      }
       return base;
     }),
   }));
@@ -98,7 +104,7 @@ export function hydratePlanIndex(index) {
     ...leg,
     pricing: pricings[p] ?? null,
     durationSuspect: Boolean(ds),
-    stops: leg.stops.map(([nameId, cityId, arrival, departure]) => {
+    stops: leg.stops.map(([nameId, cityId, arrival, departure, arrivalDay, departureDay]) => {
       const city = cities[cityId] ?? { slug: "", name: "" };
       return {
         station: names[nameId] ?? "",
@@ -106,6 +112,8 @@ export function hydratePlanIndex(index) {
         citySlug: city.slug,
         arrival: arrival || "",
         departure: departure || "",
+        ...(Number.isInteger(arrivalDay) && arrivalDay >= 0 ? { arrivalDay } : {}),
+        ...(Number.isInteger(departureDay) && departureDay >= 0 ? { departureDay } : {}),
       };
     }),
   }));

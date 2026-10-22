@@ -358,6 +358,57 @@
   },
   {
     "v": 1,
+    "id": "vnr",
+    "label": "Vietnam Railways",
+    "description": "Vietnam's night trains (Reunification Express SE, Sài Gòn–Nha Trang SNT, Hà Nội–Lào Cai SP, Hà Nội–Vinh NA and the rest) from VNR's own times-and-fares site giotaugiave.dsvn.vn: per line page and direction, every train's timetable for a date a week out (each stop with its kilometre post and departure date), then each night train's fare for every berth between its two ends on that date. Kept: trains that run through a night and take at least five hours. Station positions and the drawn line from OpenStreetMap (osm-vnr-track.json, weekly). The ticket shop dsvn.vn is not read (encoded API answers, reCAPTCHA). Probe workflow: 'Probe VNR source'.",
+    "kind": "html",
+    "adapter": "vnr",
+    "enabled": true,
+    "official": true,
+    "trusted": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://dsvn.vn",
+    "endpoint": "https://giotaugiave.dsvn.vn/",
+    "docsUrl": null,
+    "output": "vnr-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "VNR", "operatorName": "Vietnam Railways" },
+    "synthetic": {
+      "idPrefix": "vnr_",
+      "agency": { "from": "fixed", "value": "VNR" },
+      "resolveAliases": false,
+      "withService": true,
+      "excludeBotMatched": false,
+      "dedupStrategy": null
+    },
+    "params": {
+      "configPath": "data/sources/vnr-sleepers.json",
+      "siblingTracks": [
+        "chinese-trains.json"
+      ],
+      "baseUrl": "https://giotaugiave.dsvn.vn/",
+      "dateOffsetDays": 7,
+      "lines": [
+        "thongnhat.aspx",
+        "diaphuong.aspx?option=2&tuyen=1",
+        "diaphuong.aspx?option=2&tuyen=3",
+        "diaphuong.aspx?option=2&tuyen=5",
+        "diaphuong.aspx?option=3&tuyen=1",
+        "diaphuong.aspx?option=3&tuyen=8",
+        "diaphuong.aspx?option=3&tuyen=9"
+      ],
+      "osmTrack": {
+        "file": "osm-vnr-track.json",
+        "maxAgeDays": 7,
+        "bbox": [8.4, 102.1, 23.4, 109.5],
+        "stations": true
+      }
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
     "id": "curated",
     "label": "Curated routes",
     "description": "Admin-approved routes from data/canonical/routes/ (added via the review queue) — coverage beyond what any scraper provides",
@@ -856,7 +907,7 @@
     "v": 1,
     "id": "ecb-fx",
     "label": "ECB euro reference rates",
-    "description": "The European Central Bank's daily euro foreign exchange reference rates. Not an operator and feeds no route: used only to print an approximate euro figure beside a fare quoted in another currency (src/lib/fx.mjs). A failed fetch keeps the last committed rates.",
+    "description": "The European Central Bank's daily euro foreign exchange reference rates, plus the European Commission's monthly InforEuro rate for a currency the ECB does not publish (the Vietnamese dong). Not an operator and feeds no route: used only to print an approximate euro figure beside a fare quoted in another currency (src/lib/fx.mjs). A failed fetch keeps the last committed rates.",
     "kind": "xml",
     "adapter": "ecb-fx",
     "enabled": true,
@@ -871,7 +922,10 @@
     "missingResponse": "empty",
     "params": {
       "feedUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
-      "requiredCurrencies": ["JPY", "CNY", "USD"]
+      "requiredCurrencies": ["JPY", "CNY", "USD"],
+      "supplements": [
+        { "currency": "VND", "url": "https://ec.europa.eu/budg/inforeuro/api/public/currencies/vnd" }
+      ]
     },
     "freshness": { "ttlHours": 25 }
   }

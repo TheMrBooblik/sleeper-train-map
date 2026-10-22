@@ -71,7 +71,7 @@ export default function RouteFactsGrid({ detail }) {
             {/* A fixed fare's figure is in the badge; its euro equivalent goes
                 on its own small line rather than into the badge itself. */}
             {priceLabel && pricing?.type !== "dynamic" && eurHintFor(pricing) && (
-              <div className="mt-0.5 text-xs text-white/50" title={eurRateNote()}>
+              <div className="mt-0.5 text-xs text-white/50" title={eurRateNote(undefined, pricing?.currency)}>
                 ({eurHintFor(pricing)})
               </div>
             )}
@@ -81,7 +81,7 @@ export default function RouteFactsGrid({ detail }) {
               <div className="mt-1 text-sm font-medium text-white">
                 {dynamicFrom.replace(/^from/, "From")}
                 {eurHintFor(pricing) && (
-                  <span className="font-normal text-white/50" title={eurRateNote()}>
+                  <span className="font-normal text-white/50" title={eurRateNote(undefined, pricing?.currency)}>
                     {" "}({eurHintFor(pricing)})
                   </span>
                 )}

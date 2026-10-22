@@ -54,7 +54,7 @@ export default function RouteCardLink({ route }) {
               <span className="text-primary-green/80">
                 {route.fromPrice}
                 {route.fromPriceEur && (
-                  <span className="text-white/40" title={eurRateNote()}>
+                  <span className="text-white/40" title={route.fromPriceEurNote || eurRateNote()}>
                     {" "}({route.fromPriceEur})
                   </span>
                 )}

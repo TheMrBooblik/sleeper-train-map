@@ -116,7 +116,7 @@ export default function RideCard({ ride, action = null, compact = false, bookabl
             {/* formatFromPrice already reads "from €39". */}
             {formatFromPrice(ride.pricing)}
             {eurHintFor(ride.pricing) && (
-              <span className="font-normal text-white/45" title={eurRateNote()}>
+              <span className="font-normal text-white/45" title={eurRateNote(undefined, ride.pricing?.currency)}>
                 {" "}({eurHintFor(ride.pricing)})
               </span>
             )}

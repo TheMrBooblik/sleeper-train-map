@@ -21,6 +21,19 @@ function stopTime(stop, isFirst, isLast) {
 const stopName = (stop) => (typeof stop === "string" ? stop : stop.name);
 
 /**
+ * "+1" beside a time that falls on a later day than the train's first
+ * departure, where the feed says so (Vietnam's 33-hour trains): the clock
+ * alone reads Hà Nội 21:45 → Sài Gòn 06:30 as one night.
+ */
+function stopDay(stop, isFirst, isLast) {
+  if (typeof stop === "string") return 0;
+  const dep = Number.isInteger(stop.departureDay) ? stop.departureDay : null;
+  const arr = Number.isInteger(stop.arrivalDay) ? stop.arrivalDay : null;
+  const day = isFirst ? dep : isLast ? arr : (stop.arrival ? arr : dep) ?? dep;
+  return day > 0 ? day : 0;
+}
+
+/**
  * Static timetable for one direction of a route: header (train number, endpoints,
  * times, days) + the ordered stop list with per-stop times where the operator feed
  * provides them (otherwise just origin departure / destination arrival).
@@ -184,6 +197,7 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
           const isLast = i === lastIdx;
           const name = stopName(stop);
           const time = stopTime(stop, isFirst, isLast);
+          const day = time ? stopDay(stop, isFirst, isLast) : 0;
           return (
             <li key={`${name}-${i}`} className="flex items-stretch gap-3">
               {/* rail */}
@@ -203,7 +217,16 @@ export default function RouteTimetable({ direction, bookingHref = null }) {
                 >
                   {name}
                 </span>
-                {time && <span className="font-mono text-sm text-white/50">{time}</span>}
+                {time && (
+                  <span className="font-mono text-sm text-white/50">
+                    {time}
+                    {day > 0 && (
+                      <sup className="ml-0.5 text-[10px] text-white/40" title={`${day} day${day > 1 ? "s" : ""} after departure`}>
+                        +{day}
+                      </sup>
+                    )}
+                  </span>
+                )}
               </div>
             </li>
           );

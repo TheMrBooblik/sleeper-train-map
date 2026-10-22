@@ -120,6 +120,11 @@ function cleanStations(entry, timeZone = null) {
         lon: Number.isFinite(lon) ? lon : null,
         arrival: stationClock(s?.arrival || "", timeZone),
         departure: stationClock(s?.departure || "", timeZone),
+        // Days after the train's first departure, where the feed states them
+        // (Vietnam's 33-hour trains): two clocks alone cannot say a ride
+        // between two stops is a day longer than it looks.
+        ...(Number.isInteger(s?.arrivalDay) ? { arrivalDay: s.arrivalDay } : {}),
+        ...(Number.isInteger(s?.departureDay) ? { departureDay: s.departureDay } : {}),
       };
     })
     .filter((s) => s.name);

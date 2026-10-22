@@ -233,6 +233,19 @@ function isKnownFeedTrip(t) {
  * wrap assumes under 24 hours, which holds for every night train that reaches
  * this helper (the longest European Sleeper run is under 20).
  */
+/**
+ * "+1" beside a stop time on a later day than the train's first departure,
+ * where its source says so (Vietnam's trains run up to 38 hours).
+ */
+function DayMark({ day }) {
+  if (!Number.isInteger(day) || day <= 0) return null;
+  return (
+    <sup className="ml-0.5 text-[9px] text-gray-400 dark:text-zinc-500" title={`${day} day${day > 1 ? "s" : ""} after departure`}>
+      +{day}
+    </sup>
+  );
+}
+
 function durationBetween(departure, arrival) {
   const minutes = (value) => {
     const match = /^(\d{1,2}):(\d{2})/.exec(String(value || ""));
@@ -1700,10 +1713,11 @@ const TrainDetailPanel = ({
                 // Same "8h 57m" shape as the corroborated row's own duration,
                 // which this replaces on the same card.
                 const sourceDuration = formatDurationShort(
-                  durationMinutesBetween(
-                    sourceOriginDeparture,
-                    sourceDestinationArrival,
-                  ),
+                  sourceSchedule?.durationMinutes ??
+                    durationMinutesBetween(
+                      sourceOriginDeparture,
+                      sourceDestinationArrival,
+                    ),
                 );
                 const schedule =
                   // PKP GTFS is the source of truth for Polish trains.
@@ -2375,8 +2389,10 @@ const TrainDetailPanel = ({
                                 <div className="text-gray-800 dark:text-zinc-200">{stop.name}</div>
                                 {(stop.arrival || stop.departure) && (
                                   <div className="text-gray-600 dark:text-zinc-400 tabular-nums whitespace-nowrap">
-                                    {stop.arrival || "--"} /{" "}
+                                    {stop.arrival || "--"}
+                                    <DayMark day={stop.arrival ? stop.arrivalDay : null} /> /{" "}
                                     {stop.departure || "--"}
+                                    <DayMark day={stop.departure ? stop.departureDay : null} />
                                   </div>
                                 )}
                               </div>

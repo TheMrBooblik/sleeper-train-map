@@ -352,6 +352,22 @@ function appendSyntheticRoutes(
     row[`next_departure_${dir}`] = date;
     if (seasonByTrain[lineName]) row[`previous_service_${dir}`] = seasonByTrain[lineName];
   };
+  // A journey time the source states outright (`durationMinutes`), because
+  // two endpoint clocks cannot express more than a day: Vietnam's SE1 runs
+  // 32h45 and its clocks read 21:45 → 06:30. Every reader that measures a
+  // row's journey takes this first (routeDurationMinutes, the plan legs).
+  const stampDuration = (row, dir, train) => {
+    const n = Number(train?.durationMinutes);
+    if (Number.isInteger(n) && n > 0) row[`duration_minutes_${dir}`] = n;
+  };
+  // The countries a cross-border train runs through, when its source says
+  // (Vietnam Railways' MR1 to Beijing: VN, CN). A synthetic operator's
+  // stations are in no country index, so without this its pages would name
+  // only the operator's home country.
+  const stampCountries = (row, train) => {
+    if (!Array.isArray(train?.countries) || !train.countries.length) return;
+    row.countries = [...new Set([...(row.countries ?? []), ...train.countries])];
+  };
   const paired = new Set();
   // The row shows a train as its source names it (`lineName`) and looks it up
   // by its key in the trains file. The two differ only where one number is
@@ -438,6 +454,8 @@ function appendSyntheticRoutes(
     };
     stampLabel(entry, 0, lineName, data);
     stampNextRun(entry, 0, lineName, data);
+    stampDuration(entry, 0, data);
+    stampCountries(entry, data);
     if (reversePair) {
       const [revName, revData] = reversePair;
       stampLabel(entry, 1, revName, revData);
@@ -453,6 +471,8 @@ function appendSyntheticRoutes(
       if (withService) entry.service_id_1 = revData.frequency || null;
       entry.nj_polyline_1 = revData.polyline || null;
       stampNextRun(entry, 1, revName, revData);
+      stampDuration(entry, 1, revData);
+      stampCountries(entry, revData);
       paired.add(revName);
     }
     paired.add(lineName);
