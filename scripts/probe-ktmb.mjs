@@ -29,7 +29,7 @@ import { HONEST_USER_AGENT, detectBlock } from "./lib/http-block.mjs";
 
 const outDir = process.argv[2] ?? null;
 const FEED_URL = process.env.KTMB_GTFS_URL || "https://api.data.gov.my/gtfs-static/ktmb";
-const MAX_REQUESTS = 30;
+const MAX_REQUESTS = 40;
 const SPACING_MS = 1_000;
 const MAX_TEXT = 12_000;
 
@@ -168,22 +168,34 @@ if (gtfsOk) {
 // ── 2. KTMB's own sites ──────────────────────────────────────────────────────
 let requests = 0;
 const blocked = new Set();
-async function get(url) {
+const cookies = new Map();
+async function get(url, { form = null, accept = "text/html,application/json,*/*;q=0.8", headers: extra = {} } = {}) {
   const host = new URL(url).host;
   if (blocked.has(host)) return { url, skipped: "host blocked earlier" };
   if (requests >= MAX_REQUESTS) return { url, skipped: "request budget spent" };
   requests += 1;
   await sleep(SPACING_MS);
+  const headers = { "User-Agent": HONEST_USER_AGENT, Accept: accept, "Accept-Language": "en,ms;q=0.8", ...extra };
+  const jar = [...cookies].filter(([k]) => k.startsWith(`${host}|`)).map(([k, v]) => `${k.slice(host.length + 1)}=${v}`);
+  if (jar.length) headers.Cookie = jar.join("; ");
+  let body;
+  if (form) {
+    headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8";
+    body = new URLSearchParams(form).toString();
+  }
   try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": HONEST_USER_AGENT, Accept: "text/html,application/json,*/*;q=0.8", "Accept-Language": "en,ms;q=0.8" },
-      redirect: "follow",
-      signal: AbortSignal.timeout(30_000),
-    });
-    const body = await res.text();
-    const block = detectBlock({ status: res.status, headers: res.headers, body }, { expectJson: false });
+    const res = await fetch(url, { method: form ? "POST" : "GET", headers, body, redirect: "manual", signal: AbortSignal.timeout(30_000) });
+    for (const line of typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : []) {
+      const [pair] = line.split(";");
+      const eq = pair.indexOf("=");
+      if (eq > 0) cookies.set(`${host}|${pair.slice(0, eq).trim()}`, pair.slice(eq + 1).trim());
+    }
+    const text = await res.text();
+    const location = res.headers.get("location");
+    if (location && res.status >= 300 && res.status < 400) return get(new URL(location, url).href, { accept, headers: extra });
+    const block = detectBlock({ status: res.status, headers: res.headers, body: text }, { expectJson: false });
     if (block) blocked.add(host);
-    return { url: res.url || url, status: res.status, type: res.headers.get("content-type") ?? "", body, block };
+    return { url, status: res.status, type: res.headers.get("content-type") ?? "", location, body: text, block };
   } catch (err) {
     return { url, error: String(err?.cause?.code ?? err?.message ?? err) };
   }
@@ -219,49 +231,61 @@ const linksOf = (html, base) =>
     }
   }).filter(Boolean))];
 
-console.log("\n# www.ktmb.com.my");
-const home = await get("https://www.ktmb.com.my/");
-if (show(home, { text: false })) {
-  const links = linksOf(home.body, home.url);
-  console.log(`links (${links.length}): ${links.join("  ")}`);
-  const wanted = links.filter((l) => /ktmb\.com\.my/.test(l) && /intercity|ert|timuran|fare|tambang|traintime|timetable|jadual|ticket|sleeper|price/i.test(l));
-  const seeds = ["https://www.ktmb.com.my/traintime.html"];
-  for (const url of [...new Set([...seeds, ...wanted])].filter((u) => !/\.pdf/i.test(u)).slice(0, 4)) {
-    const page = await get(url);
-    if (!show(page)) continue;
-    if (/traintime/i.test(url)) console.log(`all links: ${linksOf(page.body, page.url).filter((l) => !/\.css|\.js/.test(l)).join("  ")}`);
-    const pdfs = linksOf(page.body, page.url).filter((l) => /\.pdf|\.jpe?g|\.png/i.test(l) && /ert|timuran|intercity|fare|tambang|jadual|timetable/i.test(l));
-    if (pdfs.length) console.log(`documents: ${pdfs.join("  ")}`);
-  }
-}
-
-console.log("\n# online.ktmb.com.my (booking)");
-const shop = await get("https://online.ktmb.com.my/");
+console.log("\n# online.ktmb.com.my (KITS booking)");
+// KITS's search is the form on its home page: POST /Trip with the two station
+// ids, each station's opaque StationData blob (the page lists them in
+// `jsStations`), the date as "D MMM YYYY", a passenger count and the
+// antiforgery token. Nothing is booked; login is not touched.
+const KITS = "https://online.ktmb.com.my/";
+const scriptsWithout = (html) =>
+  [...html.matchAll(/<script\b(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi)].map((m) =>
+    m[1].replace(/var jsStations = \[[\s\S]*?\];/, "var jsStations = [/* … */];").replace(/\n\s*\n/g, "\n"),
+  );
+const shop = await get(KITS);
 if (show(shop, { text: false })) {
-  console.log(`inputs: ${[...shop.body.matchAll(/<input\b([^>]*)>/gi)].map((m) => m[1].replace(/\s+/g, " ").trim().slice(0, 160)).join("\n  ")}`);
-  console.log(`forms: ${[...shop.body.matchAll(/<form\b([^>]*)>/gi)].map((m) => m[1].trim()).join("\n  ")}`);
-  console.log(`scripts: ${[...shop.body.matchAll(/<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi)].map((m) => m[1]).join("  ")}`);
-  for (const m of shop.body.matchAll(/.{0,120}(recaptcha|turnstile|captcha|hcaptcha|login|sign in).{0,120}/gi)) console.log(`  …${m[0].replace(/\s+/g, " ")}…`);
-  for (const m of shop.body.matchAll(/["'`](\/?[A-Za-z0-9_\-./]*(?:Trip|Search|Station|Fare|Price|Seat|api)[A-Za-z0-9_\-./?=]*)["'`]/g)) console.log(`  call-ish: ${m[1]}`);
-  // What the search form posts and how a station is chosen: the form whole,
-  // the markup around one station, and the inline scripts that fill it in.
-  const form = /<form\b[^>]*id="theForm"[\s\S]*?<\/form>/i.exec(shop.body)?.[0] ?? "";
-  console.log(`\n### the search form (${form.length} chars)\n${form.replace(/<option[\s\S]*?<\/option>/gi, "").replace(/\n\s*\n/g, "\n").slice(0, 8_000)}`);
-  for (const name of ["JB SENTRAL", "TUMPAT"]) {
-    const at = shop.body.indexOf(name);
-    if (at >= 0) console.log(`\n### around ${name}\n${shop.body.slice(Math.max(0, at - 700), at + 300)}`);
-  }
-  for (const m of shop.body.matchAll(/<script\b(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi)) {
-    if (!/Trip|StationData|TimeTable|ajax|\$\.post|fetch\(/i.test(m[1])) continue;
-    console.log(`\n--- inline script (${m[1].length} chars)\n${m[1].replace(/\n\s*\n/g, "\n").slice(0, 8_000)}`);
-  }
+  const stations = JSON.parse(/var jsStations = (\[[\s\S]*?\]);/.exec(shop.body)?.[1] ?? "[]");
+  const token = /name="__RequestVerificationToken" type="hidden" value="([^"]+)"/.exec(shop.body)?.[1];
+  console.log(`jsStations: ${stations.length}; token: ${token ? "yes" : "no"}; cookies: ${[...cookies.keys()].join(", ")}`);
+  for (const js of scriptsWithout(shop.body)) if (/btnSubmit|Trip|TimeTable|StationData/.test(js)) console.log(`\n--- inline script (${js.length} chars)\n${js.slice(0, 20_000)}`);
   const own = [...shop.body.matchAll(/<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi)]
-    .map((m) => new URL(m[1], shop.url).href)
-    .filter((u) => /online\.ktmb\.com\.my/.test(u));
-  for (const src of own.slice(0, 6)) {
-    const js = await get(src);
+    .map((m) => new URL(m[1], KITS).href)
+    .filter((u) => /online\.ktmb\.com\.my\/(js|v3\/js)\//.test(u) && !/lightpick|bootstrap|mobile/.test(u));
+  for (const src of own) {
+    const js = await get(src, { accept: "*/*" });
     if (!show(js, { text: false })) continue;
-    for (const m of js.body.matchAll(/.{0,200}(\/Trip|StationData|TimeTable|\$\.(?:ajax|post|get)|fetch\().{0,400}/g)) console.log(`  js: ${m[0].replace(/\s+/g, " ")}`);
+    console.log(js.body.slice(0, 6_000));
+  }
+  const date = new Date(Date.now() + 7 * 86_400_000);
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const onward = `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+  for (const [from, to] of [["37500", "86300"], ["86300", "37500"]]) {
+    const a = stations.find((s) => s.Id === from);
+    const b = stations.find((s) => s.Id === to);
+    if (!a || !b || !token) {
+      console.log(`${from} → ${to}: station data or token missing`);
+      continue;
+    }
+    const page = await get(new URL("Trip", KITS).href, {
+      form: {
+        FromStationData: a.StationData,
+        ToStationData: b.StationData,
+        FromStationId: from,
+        ToStationId: to,
+        OnwardDate: onward,
+        ReturnDate: "",
+        PassengerCount: "1",
+        __RequestVerificationToken: token,
+      },
+      headers: { Referer: KITS, Origin: "https://online.ktmb.com.my" },
+    });
+    console.log(`\n## POST /Trip ${from} → ${to} on ${onward}`);
+    if (!show(page, { text: false })) continue;
+    if (page.location) console.log(`location: ${page.location}`);
+    save(`trip-${from}-${to}.html`, page.body);
+    console.log(`forms: ${[...page.body.matchAll(/<form\b([^>]*)>/gi)].map((m) => m[1].trim()).join("\n  ")}`);
+    console.log(`inputs: ${[...page.body.matchAll(/<input\b([^>]*)>/gi)].map((m) => m[1].replace(/\s+/g, " ").trim().slice(0, 300)).join("\n  ")}`);
+    for (const js of scriptsWithout(page.body)) if (js.length > 40) console.log(`\n--- inline script (${js.length} chars)\n${js.slice(0, 15_000)}`);
+    console.log(`\n### text\n${textOf(page.body).slice(0, 6_000)}`);
   }
 }
 

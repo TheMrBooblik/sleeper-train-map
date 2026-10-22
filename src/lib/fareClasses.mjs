@@ -29,6 +29,7 @@ export const CURRENCY_SYMBOLS = {
   JPY: "¥",
   THB: "฿",
   VND: "₫",
+  MYR: "RM ",
   GEL: "₾",
   AZN: "₼",
   AMD: "֏",

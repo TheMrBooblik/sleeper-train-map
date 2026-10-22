@@ -16,6 +16,7 @@ export const COUNTRIES = [
   { code: "HU", name: "Hungary", center: [47.2, 19.5], zoom: 7 },
   { code: "IT", name: "Italy", center: [42.5, 12.6], zoom: 6 },
   { code: "JP", name: "Japan", center: [35.2, 135.5], zoom: 6 },
+  { code: "MY", name: "Malaysia", center: [4.2, 102.0], zoom: 6 },
   { code: "NL", name: "Netherlands", center: [52.1, 5.3], zoom: 8 },
   { code: "NO", name: "Norway", center: [60.5, 8.5], zoom: 5 },
   { code: "PL", name: "Poland", center: [52.0, 19.0], zoom: 6 },

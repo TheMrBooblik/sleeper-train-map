@@ -63,6 +63,9 @@ export const OPERATOR_BRAND_COLORS = {
   // Thailand
   SRT: "#E36B1E", // State Railway of Thailand – SRT orange
 
+  // Malaysia
+  KTMB: "#1D4F91", // KTM Berhad (Keretapi Tanah Melayu) – KTM blue
+
   // Vietnam
   VNR: "#0E7C3A", // Vietnam Railways (Đường sắt Việt Nam) – VNR green
 
