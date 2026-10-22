@@ -837,7 +837,7 @@ export function getFareOverviewTrains() {
         ),
         nights: Object.entries(calendar.nights).map(([date, entry]) => ({
           date,
-          regular: entry?.none ? null : regularNightAmount(entry?.classes),
+          regular: regularNightAmount(entry),
         })),
       });
     }

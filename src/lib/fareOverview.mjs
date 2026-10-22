@@ -26,7 +26,7 @@
  * module runs in raw node under `npm run verify-fare-overview`.
  */
 import { formatNight, isoPlusDays, weekdayIndex, WEEKDAYS } from "./fareCalendarView.mjs";
-import { FARE_CLASS_LABELS, formatMoney, isCouchetteClass, isDealClass } from "./fareClasses.mjs";
+import { credibleClasses, FARE_CLASS_LABELS, formatMoney, isCouchetteClass, isDealClass } from "./fareClasses.mjs";
 
 const DAY_MS = 86_400_000;
 const isoMs = (iso) => Date.parse(`${iso}T00:00:00Z`);
@@ -61,11 +61,14 @@ export const WEEKEND_HORIZON_DAYS = 16;
 /**
  * The regular fare a night is compared on: its cheapest couchette, else its
  * cheapest other berth — never a deal (a promo price says nothing about when
- * the operator's own fares are low) and never a class without a label (a
- * seat, which this map does not price).
+ * the operator's own fares are low), never a class without a label (a seat,
+ * which this map does not price), and never a berth priced at or below the
+ * night's own seat (credibleClasses).
+ * @param {object} entry  one night of a fare calendar
  */
-export function regularNightAmount(classes) {
-  if (!classes || typeof classes !== "object") return null;
+export function regularNightAmount(entry) {
+  if (!entry || entry.none) return null;
+  const classes = credibleClasses(entry);
   let couchette = null;
   let berth = null;
   for (const [key, value] of Object.entries(classes)) {

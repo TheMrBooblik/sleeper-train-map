@@ -10,8 +10,10 @@
 // the nights that most need it (never checked, nearest first; then the
 // stalest), and the calendar fills over a few nights and stays fresh after.
 //
-// Pure and dependency-free: the adapter does the searching, this decides what
+// Pure (its one import, fareClasses.mjs, is dependency-free): the adapter does the searching, this decides what
 // to search and what the result means. Exported for tests.
+
+import { credibleClasses } from "../../src/lib/fareClasses.mjs";
 
 /** Nights ahead the calendar covers: six weeks, i.e. six rows of a month grid. */
 export const FARE_CALENDAR_DAYS = 42;
@@ -173,7 +175,10 @@ export function cheapestNight(calendar) {
   const dealLandings = {};
   for (const date of Object.keys(calendar?.nights ?? {}).sort()) {
     const entry = calendar.nights[date];
-    for (const [cls, amount] of Object.entries(entry?.classes ?? {})) {
+    // A berth priced at or below its own night's seat is a seat price under a
+    // berth's name (credibleClasses), and must not become the headline fare.
+    const nightClasses = credibleClasses(entry);
+    for (const [cls, amount] of Object.entries(nightClasses)) {
       if (!Number.isFinite(amount) || amount <= 0) continue;
       if (classes[cls] == null || amount < classes[cls]) {
         classes[cls] = amount;
@@ -182,7 +187,7 @@ export function cheapestNight(calendar) {
         else delete dealLandings[cls];
       }
     }
-    const c = cheapestClass(entry?.classes);
+    const c = cheapestClass(nightClasses);
     if (!c) continue;
     if (!best || c[1] < best.fromPrice) {
       best = {

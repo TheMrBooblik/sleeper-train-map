@@ -45,16 +45,21 @@ function trainFrom(id, calendar, today, meta = {}) {
     days: view.days,
     nights: Object.entries(calendar.nights).map(([date, e]) => ({
       date,
-      regular: e?.none ? null : regularNightAmount(e?.classes),
+      regular: regularNightAmount(e),
     })),
   };
 }
 
 console.log("regularNightAmount");
-check("couchette beats a cheaper sleeper", regularNightAmount({ couchette: 80, sleeperBed: 60 }) === 80);
-check("a deal is never the regular fare", regularNightAmount({ couchette: 120, lastMinuteCouchette: 40 }) === 120);
-check("a seat is never a fare", regularNightAmount({ seat: 20, sleeperBed: 90 }) === 90);
-check("nothing priced → null", regularNightAmount({ seat: 20 }) === null && regularNightAmount(null) === null);
+const night = (classes, extra = {}) => ({ classes, ...extra });
+check("couchette beats a cheaper sleeper", regularNightAmount(night({ couchette: 80, sleeperBed: 60 })) === 80);
+check("a deal is never the regular fare", regularNightAmount(night({ couchette: 120, lastMinuteCouchette: 40 })) === 120);
+check("a seat is never a fare", regularNightAmount(night({ seat: 20, sleeperBed: 90 })) === 90);
+check("nothing priced → null", regularNightAmount(night({ seat: 20 })) === null && regularNightAmount(null) === null);
+// NJ 465 Zürich → Graz, 26 Oct 2026: stored couchette €39.9 = the seat; the
+// shop sold seats from €39.90 and couchettes from €54.90.
+check("a berth at the night's seat price is not a fare",
+  regularNightAmount(night({ couchette: 39.9, sleeperBed: 129.9 }, { seat: 39.9 })) === 129.9);
 
 console.log("formatPct");
 check("signs", formatPct(-8.4) === "−8%" && formatPct(12.6) === "+13%" && formatPct(0.2) === "±0%");
