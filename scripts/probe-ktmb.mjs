@@ -250,11 +250,7 @@ if (show(shop, { text: false })) {
   const own = [...shop.body.matchAll(/<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi)]
     .map((m) => new URL(m[1], KITS).href)
     .filter((u) => /online\.ktmb\.com\.my\/(js|v3\/js)\//.test(u) && !/lightpick|bootstrap|mobile/.test(u));
-  for (const src of own) {
-    const js = await get(src, { accept: "*/*" });
-    if (!show(js, { text: false })) continue;
-    console.log(js.body.slice(0, 6_000));
-  }
+  void own;
   const date = new Date(Date.now() + 7 * 86_400_000);
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const onward = `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
@@ -284,8 +280,23 @@ if (show(shop, { text: false })) {
     save(`trip-${from}-${to}.html`, page.body);
     console.log(`forms: ${[...page.body.matchAll(/<form\b([^>]*)>/gi)].map((m) => m[1].trim()).join("\n  ")}`);
     console.log(`inputs: ${[...page.body.matchAll(/<input\b([^>]*)>/gi)].map((m) => m[1].replace(/\s+/g, " ").trim().slice(0, 300)).join("\n  ")}`);
-    for (const js of scriptsWithout(page.body)) if (js.length > 40) console.log(`\n--- inline script (${js.length} chars)\n${js.slice(0, 15_000)}`);
-    console.log(`\n### text\n${textOf(page.body).slice(0, 6_000)}`);
+    // The results page fills itself in: RenderTrip → /Trip/GetTripToken →
+    // /Trip/Trip → /Trip/LayoutV2. Its own scripts say how (once is enough).
+    if (from === "37500") {
+      const tripScripts = [...page.body.matchAll(/<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi)]
+        .map((m) => new URL(m[1], KITS).href)
+        .filter((u) => /online\.ktmb\.com\.my\/js\//.test(u) && !/\/(site|Ajax|Common|Datetime|DynamicDropdown|Form|Popup_v2)\.js/.test(u));
+      console.log(`page scripts: ${tripScripts.join("  ")}`);
+      for (const src of tripScripts) {
+        const js = await get(src, { accept: "*/*" });
+        if (!show(js, { text: false })) continue;
+        save(src, js.body);
+        console.log(js.body.slice(0, 40_000));
+      }
+    }
+    const visible = textOf(page.body);
+    const at = visible.indexOf("FILTER RESULTS");
+    console.log(`\n### text after the filter\n${visible.slice(at, at + 400)}\n…\n${visible.slice(visible.indexOf("Destination"), visible.indexOf("Destination") + 3_000)}`);
   }
 }
 
