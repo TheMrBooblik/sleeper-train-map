@@ -12,6 +12,7 @@ import {
   berthClass,
   berthFares,
   buildVnrTrains,
+  callsAbroad,
   clock,
   dropDuplicateTimetables,
   frequencyFor,
@@ -27,6 +28,8 @@ import {
   selectNamed,
   stationKey,
   stationPositions,
+  utcOffsetFor,
+  makeStationNamer,
 } from "../scripts/lib/vnr.mjs";
 import { FARE_CLASS_LABELS, formatMoney } from "../src/lib/fareClasses.mjs";
 
@@ -77,12 +80,12 @@ console.log("which trains are night trains");
   const na = parseTimetable(ttHtml([["Hà Nội", 0, "22-10-2026", "22:45", "22:45"], ["Vinh", 319, "23-10-2026", "5:35", "5:35"]]));
   const hop = parseTimetable(ttHtml([["Phan Thiết", 0, "22-10-2026", "23:50", "23:50"], ["Bình Thuận", 10, "23-10-2026", "0:20", "0:20"]]));
   const se21 = parseTimetable(ttHtml([["Đà Nẵng", 0, "22-10-2026", "7:55", "7:55"], ["Sài Gòn", 935, "23-10-2026", "4:35", "4:35"]]));
-  const opts = { minMinutes: 300, exclude: ["MR1"] };
+  const opts = { minMinutes: 300, exclude: ["XX1"] };
   check("a day train is not", !isNightTrain(day, opts, "HP1"));
   check("an overnight train of 6h50 is (NA1 Hà Nội–Vinh)", isNightTrain(na, opts, "NA1"));
   check("a half-hour hop across midnight is not", !isNightTrain(hop, opts, "BT61"));
   check("a morning departure arriving next morning is (SE21)", isNightTrain(se21, opts, "SE21"));
-  check("an excluded number is not", !isNightTrain(na, opts, "MR1"));
+  check("an excluded number is not", !isNightTrain(na, opts, "XX1"));
 }
 
 console.log("fares");
@@ -192,6 +195,65 @@ console.log("the trains file");
   check("one train sold under two numbers is kept once — the number with fares", eq([...dupes.keys()], ["JSE17", "SE2"]));
   const late = { ...se1, stops: se1.stops.map((s, i) => (i === se1.stops.length - 1 ? { ...s, arrival: "07:30" } : s)) };
   check("…but a train arriving at another time is another train", dropDuplicateTimetables(new Map([["SE1", { timetable: se1, fare: null }], ["SE9", { timetable: late, fare: null }]])).size === 2);
+}
+
+console.log("into China (MR1/MR2)");
+{
+  const config = JSON.parse(fs.readFileSync(path.join(ROOT, "data/sources/vnr-sleepers.json"), "utf8"));
+  const namer = makeStationNamer(config.stationNames);
+  const utcOffsetOf = utcOffsetFor(config, namer);
+  // MR1 as VNR's timetable writes it (2026): Vietnamese stops in Hà Nội time,
+  // Chinese ones in Beijing time, an hour ahead.
+  const mr1Rows = [
+    ["Gia Lâm", 0, "28-10-2026", "21:20", "21:20"],
+    ["Bắc Giang", 44, "28-10-2026", "22:14", "22:11"],
+    ["Đồng Đăng", 157, "29-10-2026", "2:50", "0:55"],
+    ["Bằng Tường", 176, "29-10-2026", "6:05", "4:31"],
+    ["Sùng Tả", 274, "29-10-2026", "8:01", "7:56"],
+    ["Nam ninh", 396, "29-10-2026", "10:50", "10:06"],
+    ["Quế Lâm Bắc", 783, "29-10-2026", "14:25", "14:18"],
+    ["Hoành Dương", 1118, "29-10-2026", "17:28", "17:22"],
+    ["Trường Sa", 1304, "29-10-2026", "19:32", "19:26"],
+    ["Trịnh Châu", 2202, "30-10-2026", "3:48", "3:42"],
+    ["Bắc Kinh Tây", 2891, "30-10-2026", "9:59", "9:59"],
+  ];
+  const mr1 = parseTimetable(ttHtml(mr1Rows), { utcOffsetOf });
+  check("MR1 reads with its Chinese stops in Beijing time: 35h39, not the 36h39 two clocks say", mr1 && journeyMinutes(mr1) === 35 * 60 + 39 && journeyMinutes(parseTimetable(ttHtml(mr1Rows))) === 36 * 60 + 39);
+  check("…two nights by its own dates, so it is one of ours", nightsOf(mr1) === 2 && isNightTrain(mr1, config, "MR1"));
+  // MR2 southbound: it leaves Pingxiang at 19:20 Beijing time and reaches
+  // Đồng Đăng at 19:05 Hà Nội time, which one clock reads as running backwards.
+  const mr2Rows = [
+    ["Nam Ninh", 0, "29-10-2026", "15:30", "15:30"],
+    ["Bằng Tường", 220, "29-10-2026", "19:20", "18:40"],
+    ["Đồng Đăng", 239, "29-10-2026", "21:30", "19:05"],
+    ["Gia Lâm", 396, "30-10-2026", "1:00", "1:00"],
+  ];
+  check("MR2's border crossing is a timetable once each clock is its station's own", parseTimetable(ttHtml(mr2Rows)) === null && parseTimetable(ttHtml(mr2Rows), { utcOffsetOf }) !== null);
+  check("the Chinese stops take China Railway's own names, and count as abroad", namer("Bắc Kinh Tây") === "Beijing West(北京西)" && namer("Nam ninh") === "Nanning(南宁)" && callsAbroad(mr1, config, namer) && !callsAbroad(parseTimetable(ttHtml([["Hà Nội", 0, "28-10-2026", "22:45", "22:45"], ["Vinh", 319, "29-10-2026", "5:35", "5:35"]])), config, namer));
+  const chinese = JSON.parse(fs.readFileSync(path.join(ROOT, "data/sources/chinese-sleepers.json"), "utf8"));
+  const chineseNames = new Set(chinese.stations.map((st) => `${st.name}(${st.nameZh})`));
+  const named = mr1Rows.map((r) => namer(r[0])).filter((n) => config.anchors[n]?.country === "CN");
+  check("every Chinese stop has an anchor in China, and Nanning and Beijing West are spelled as China Railway's catalogue spells them", named.length === 8 && chineseNames.has("Nanning(南宁)") && named.includes("Nanning(南宁)") && named.includes("Beijing West(北京西)"));
+  const osm = [["Nanning", null, "Nanning", 22.82, 108.32], ["Đồng Đăng", "Đồng Đăng", null, 21.95, 106.70]];
+  const positions = stationPositions([mr1.stops.map((st) => ({ name: namer(st.name), km: st.km }))], config.anchors, osm);
+  check("a fixed anchor (China Railway's own Nanning) is not moved by OSM; a Vietnamese station is", positions.get("Nanning(南宁)").lat === config.anchors["Nanning(南宁)"].lat && positions.get("Đồng Đăng").source === "osm");
+  // North of Nanning the OSM tiles end: the line follows China Railway's own.
+  const z6 = [
+    [22.8089, 108.3664],
+    [24.314, 109.408],
+    [25.328, 110.301],
+    [26.894, 112.598],
+    [28.2008, 113.0134],
+    [30.528, 114.317],
+    [34.7522, 113.6487],
+    [38.045, 114.502],
+    [39.8972, 116.3221],
+  ];
+  const trains = buildVnrTrains({ config, found: new Map([["MR1", { timetable: mr1, fare: null }]]), positions, today: "2026-10-21", travelDate: "2026-10-28", donors: [z6] });
+  const t = trains.MR1;
+  check("MR1 is built to Beijing West, two days on, without a fare", t?.stations.at(-1).name === "Beijing West(北京西)" && t.stations.at(-1).arrivalDay === 2 && !t.fare && t.durationMinutes === 35 * 60 + 39);
+  check("…by its stops' own dates (Bằng Tường the next morning)", t.stations[3].arrivalDay === 1 && t.stations[3].departureDay === 1);
+  check("…with the stretch north of Nanning drawn along China Railway's line, through Liuzhou and Wuchang", (t.geometry.siblings ?? 0) >= 3 && polyline.decode(t.polyline).some(([la, lo]) => Math.abs(la - 30.528) < 0.01 && Math.abs(lo - 114.317) < 0.01));
 }
 
 console.log("registry and wiring");

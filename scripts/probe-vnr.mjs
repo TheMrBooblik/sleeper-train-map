@@ -418,7 +418,7 @@ async function formsProbe() {
 
 async function readerProbe() {
   const { readTimetables, readFares, makeSession } = await import("./adapters/vnr.mjs");
-  const { isNightTrain, journeyMinutes, nightsOf, makeStationNamer, berthClass } = await import("./lib/vnr.mjs");
+  const { isNightTrain, journeyMinutes, nightsOf, makeStationNamer, berthClass, utcOffsetFor } = await import("./lib/vnr.mjs");
   const registry = JSON.parse(fs.readFileSync(new URL("../data/sources/registry.json", import.meta.url), "utf8"));
   const entry = registry.find((e) => e.id === "vnr");
   const config = JSON.parse(fs.readFileSync(new URL(`../${entry.params.configPath}`, import.meta.url), "utf8"));
@@ -443,7 +443,7 @@ async function readerProbe() {
     return text;
   };
   const deadline = Date.now() + 20 * 60_000;
-  const { trains, failed, complete } = await readTimetables({ base: entry.params.baseUrl, lines: entry.params.lines, date, call, log: console.log, deadline });
+  const { trains, failed, complete } = await readTimetables({ base: entry.params.baseUrl, lines: entry.params.lines, date, call, log: console.log, deadline, utcOffsetOf: utcOffsetFor(config, makeStationNamer(config.stationNames)) });
   console.log(`\n## ${trains.size} train(s) read; failed: ${[...failed].join(" ") || "none"}; complete: ${complete}`);
   for (const [name, t] of trains) {
     const a = t.tt.stops[0];

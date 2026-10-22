@@ -27,6 +27,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import polyline from "@mapbox/polyline";
 import { HONEST_USER_AGENT, detectBlock } from "../lib/http-block.mjs";
 import { loadOsmTrack } from "../lib/osm-track.mjs";
 import {
@@ -44,6 +45,8 @@ import {
   selectedOption,
   stationKey,
   stationPositions,
+  callsAbroad,
+  utcOffsetFor,
 } from "../lib/vnr.mjs";
 
 const REQUEST_SPACING_MS = 1_000;
@@ -129,7 +132,7 @@ async function openDirection(call, url, chieu, date) {
 }
 
 /** Pick a train, then its whole run (first station of the list to the farthest one). */
-async function readTimetable(call, url, form, { chieu, date, option }) {
+async function readTimetable(call, url, form, { chieu, date, option, utcOffsetOf }) {
   let answer = await call(url, formFields(form, { txtNgayDi: date, ddlChieu: chieu, ddlMacTau: option.value, search: true }));
   let page = parseAspForm(answer);
   if (selectedOption(selectNamed(page, "ddlMacTau"))?.value !== option.value) throw new Error("the page did not take the train");
@@ -137,11 +140,11 @@ async function readTimetable(call, url, form, { chieu, date, option }) {
   const to = [...(selectNamed(page, "ddlGaDen")?.options ?? [])].sort((a, b) => Number(b.value) - Number(a.value))[0];
   if (!from || !to) throw new Error("no stations listed for it");
   const spans = (tt) => tt && stationKey(tt.stops[0].name) === stationKey(from.text) && stationKey(tt.stops.at(-1).name) === stationKey(to.text);
-  let tt = parseTimetable(answer);
+  let tt = parseTimetable(answer, { utcOffsetOf });
   if (!spans(tt)) {
     answer = await call(url, formFields(page, { txtNgayDi: date, ddlChieu: chieu, ddlMacTau: option.value, ddlGaDi: from.value, ddlGaDen: to.value, search: true }));
     page = parseAspForm(answer);
-    tt = parseTimetable(answer);
+    tt = parseTimetable(answer, { utcOffsetOf });
   }
   if (!spans(tt)) throw new Error(`no timetable from ${from.text} to ${to.text}`);
   return { tt, form: page };
@@ -152,7 +155,7 @@ async function readTimetable(call, url, form, { chieu, date, option }) {
  * line, chieu, id }, `failed` the names listed tonight whose timetable could
  * not be read (they are carried from last night rather than dropped).
  */
-export async function readTimetables({ base, lines, date, call, log, deadline }) {
+export async function readTimetables({ base, lines, date, call, log, deadline, utcOffsetOf }) {
   const out = new Map();
   const failed = new Set();
   for (const line of lines) {
@@ -177,7 +180,7 @@ export async function readTimetables({ base, lines, date, call, log, deadline })
         const name = option.text.replace(/Ð/g, "Đ").trim();
         if (out.has(name)) continue;
         try {
-          const got = await readTimetable(call, url, form, { chieu, date, option });
+          const got = await readTimetable(call, url, form, { chieu, date, option, utcOffsetOf });
           form = got.form;
           out.set(name, { tt: got.tt, line, chieu, id: option.value });
           failed.delete(name);
@@ -192,6 +195,29 @@ export async function readTimetables({ base, lines, date, call, log, deadline })
     }
   }
   return { trains: out, failed, complete: true };
+}
+
+/**
+ * Other sources' lines (`params.siblingTracks`, trains files in
+ * public/data/scraped), for the stretch of an international train beyond the
+ * OSM tiles: MR1/MR2 run north of Nanning on China Railway's line, which
+ * chinese-trains.json already draws. A missing or unreadable file lends
+ * nothing.
+ */
+function siblingLines(rootDir, files = [], log) {
+  const out = [];
+  for (const file of files ?? []) {
+    try {
+      const doc = JSON.parse(fs.readFileSync(path.join(rootDir, "public/data/scraped", file), "utf8"));
+      const trains = doc?.data?.trains ?? doc?.trains ?? {};
+      for (const t of Object.values(trains)) {
+        if (typeof t?.polyline === "string" && t.polyline) out.push(polyline.decode(t.polyline));
+      }
+    } catch (err) {
+      log(`${file}: ${err.message} — no lines borrowed from it`);
+    }
+  }
+  return out;
 }
 
 /** A kept train's fares between its two ends, from the giave/ twin of its line page. */
@@ -267,7 +293,7 @@ export async function run(entry, ctx) {
   let carry = new Set();
   let warning = null;
   try {
-    const { trains: all, failed, complete } = await readTimetables({ base: params.baseUrl, lines: params.lines ?? [], date, call, log, deadline });
+    const { trains: all, failed, complete } = await readTimetables({ base: params.baseUrl, lines: params.lines ?? [], date, call, log, deadline, utcOffsetOf: utcOffsetFor(config, namer) });
     // A train the site listed but did not answer for tonight, or any train
     // when a whole page or the time budget failed, keeps last night's entry.
     carry = complete && ![...failed].some((f) => f.startsWith("page:")) ? failed : new Set(Object.keys(previous));
@@ -278,7 +304,14 @@ export async function run(entry, ctx) {
     for (const [name, t] of night) {
       const fare = fares.get(name);
       if (fare && !Object.keys(fare.classes ?? {}).length) {
-        log(`${name}: sells no berth on ${travelDate} — left out (${fare.rows.map((r) => r.code).join(" ")})`);
+        // An international train's berths are LVQT places, which are never
+        // priced: it stays, without a fare, rather than leave the map.
+        if (!callsAbroad(t.tt, config, namer)) {
+          log(`${name}: sells no berth on ${travelDate} — left out (${fare.rows.map((r) => r.code).join(" ")})`);
+          continue;
+        }
+        log(`${name}: calls abroad and sells only ${fare.rows.map((r) => r.code).join(" ") || "nothing"} on ${travelDate} — kept without a fare`);
+        found.set(name, { timetable: t.tt, fare: null });
         continue;
       }
       found.set(name, { timetable: t.tt, fare: fare ? fareRecord(fare.classes, { sampledAt: ctx.today, travelDate }) : null });
@@ -306,7 +339,7 @@ export async function run(entry, ctx) {
     : Object.values(previous).map((t) => (t.stations ?? []).map((s) => ({ name: s.name, km: s.km ?? null })));
   const positions = stationPositions(stopLists, config.anchors, osmTrack?.stations ?? null, log);
 
-  const trains = buildVnrTrains({ config, found, carry, positions, previous, today: ctx.today, travelDate, osmTrack, log });
+  const trains = buildVnrTrains({ config, found, carry, positions, previous, today: ctx.today, travelDate, osmTrack, donors: siblingLines(ctx.rootDir, params.siblingTracks, log), log });
   if (!Object.keys(trains).length) {
     throw new Error(`no trains built (${warning ?? "the site answered but nothing was kept"})`);
   }

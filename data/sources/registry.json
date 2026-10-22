@@ -384,6 +384,9 @@
     },
     "params": {
       "configPath": "data/sources/vnr-sleepers.json",
+      "siblingTracks": [
+        "chinese-trains.json"
+      ],
       "baseUrl": "https://giotaugiave.dsvn.vn/",
       "dateOffsetDays": 7,
       "lines": [

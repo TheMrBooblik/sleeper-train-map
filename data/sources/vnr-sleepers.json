@@ -2,7 +2,7 @@
   "_comment": [
     "Vietnam Railways (Đường sắt Việt Nam) night trains, read by scripts/adapters/vnr.mjs.",
     "A train is kept when its timetable runs through a night (it leaves on one day and arrives on a later one) and takes at least `minMinutes`: every such VNR train carries sleeper coaches (Nằm khoang 4/6 giường), and a day train or a commuter hop drops out on its own, so a new night train is picked up without editing this file. `exclude` lists numbers to leave out anyway. Two trains with the same stops at the same times are one train sold under two numbers (JSE17 and SE17 on 2026-10-21): the one the fare page sells is kept.",
-    "MR1/MR2 (Gia Lâm–Beijing West, through sleeping cars) pass the night-train test and are excluded for now: most of their run is China Railway's, whose Beijing–Nanning trains this map already draws from 12306, and a VNR row reaching Beijing would file Chinese stations under Vietnam's hubs.",
+    "MR1/MR2 run Gia Lâm → Nanning → Beijing West: the through sleeping cars VNR sells to China, which run with China Railway's Z6/Z5 north of Nanning. Their Chinese stops are written in Vietnamese on VNR's page (Nam Ninh, Bắc Kinh Tây) and take the names China Railway's rows use (`stationNames`), so the two sources share one marker and one city per station and the planner can change trains at Nanning; those stations' anchors carry `country: \"CN\"`. The page times them in Beijing time (UTC+8), an hour ahead of Hà Nội (`utcOffsetMinutes`), which the parser takes into account so the journey does not read an hour longer than it is. An international train sells LVQT berths only, which are never priced, so it is kept without a fare rather than dropped for selling no berth.",
     "Station positions: OpenStreetMap's railway stations, matched by name near where this file expects them (refreshed weekly with the track, osm-vnr-track.json). Until a station has an OSM match it sits at `anchors` (a position published for the town's station, `approx`) or, for a station with no anchor, at a point interpolated by its kilometre post between the two nearest anchored stations on the same train — which is why the anchors include the stations where the line bends (Hương Phố, Đồng Lê, La Hai, Ninh Hoà). Replace an anchor with an official position whenever a source carries one."
   ],
   "operator": {
@@ -10,10 +10,7 @@
     "name": "Vietnam Railways"
   },
   "minMinutes": 300,
-  "exclude": [
-    "MR1",
-    "MR2"
-  ],
+  "exclude": [],
   "pairs": {
     "_comment": "Return train per outbound train where it is not the next number up (VNR numbers a pair n / n+1, odd from Hà Nội). SNT and SPT are numbered from the south: SNT1 runs Nha Trang → Sài Gòn, SNT2 the other way, so n / n+1 holds for them too."
   },
@@ -39,14 +36,27 @@
     ]
   },
   "stationNames": {
-    "_comment": "Timetable spellings → the one name the map uses (VNR's site writes a few stations both ways).",
+    "_comment": "Timetable spellings → the one name the map uses (VNR's site writes a few stations both ways). The Chinese stations of MR1/MR2 take China Railway's own station names (as data/sources/chinese-sleepers.json writes them), so both sources draw one station.",
     "Thanh Hóa": "Thanh Hoá",
     "Tuy Hòa": "Tuy Hoà",
     "Ninh Hòa": "Ninh Hoà",
-    "Biên Hoà": "Biên Hòa"
+    "Biên Hoà": "Biên Hòa",
+    "Bằng Tường": "Pingxiang(凭祥)",
+    "Sùng Tả": "Chongzuo(崇左)",
+    "Nam Ninh": "Nanning(南宁)",
+    "Quế Lâm Bắc": "Guilin North(桂林北)",
+    "Hoành Dương": "Hengyang(衡阳)",
+    "Trường Sa": "Changsha(长沙)",
+    "Trịnh Châu": "Zhengzhou(郑州)",
+    "Bắc Kinh Tây": "Beijing West(北京西)"
+  },
+  "utcOffsetMinutes": {
+    "_comment": "Each country's clock, in minutes ahead of UTC: VNR's page times a station in its own country's time (its anchor's `country`, Vietnam when absent).",
+    "VN": 420,
+    "CN": 480
   },
   "anchors": {
-    "_comment": "Positions of the town's station as published in public references, not from a VNR feed (VNR publishes none).",
+    "_comment": "Positions of the town's station as published in public references, not from a VNR feed (VNR publishes none). The Chinese stations take China Railway's own positions where its rows already draw the station (`fixed`, so OSM does not move them off it), else an approximate one.",
     "Hà Nội": {
       "lat": 21.0245,
       "lon": 105.8412,
@@ -236,6 +246,54 @@
       "lat": 10.7822,
       "lon": 106.6775,
       "approx": true
+    },
+    "Pingxiang(凭祥)": {
+      "lat": 22.0992,
+      "lon": 106.7532,
+      "country": "CN",
+      "approx": true
+    },
+    "Chongzuo(崇左)": {
+      "lat": 22.3906,
+      "lon": 107.3675,
+      "country": "CN",
+      "approx": true
+    },
+    "Nanning(南宁)": {
+      "lat": 22.8089,
+      "lon": 108.3664,
+      "country": "CN",
+      "fixed": true
+    },
+    "Guilin North(桂林北)": {
+      "lat": 25.328,
+      "lon": 110.301,
+      "country": "CN",
+      "fixed": true
+    },
+    "Hengyang(衡阳)": {
+      "lat": 26.894,
+      "lon": 112.598,
+      "country": "CN",
+      "fixed": true
+    },
+    "Changsha(长沙)": {
+      "lat": 28.2008,
+      "lon": 113.0134,
+      "country": "CN",
+      "fixed": true
+    },
+    "Zhengzhou(郑州)": {
+      "lat": 34.7522,
+      "lon": 113.6487,
+      "country": "CN",
+      "fixed": true
+    },
+    "Beijing West(北京西)": {
+      "lat": 39.8972,
+      "lon": 116.3221,
+      "country": "CN",
+      "fixed": true
     }
   }
 }

@@ -17,7 +17,7 @@
 // fingerprinting, and this map never works around either.
 
 import polyline from "@mapbox/polyline";
-import { haversineKm } from "./sibling-path.mjs";
+import { haversineKm, trackPathFromSiblings } from "./sibling-path.mjs";
 import { buildRailGraph, routeThroughStops } from "./rail-graph.mjs";
 
 // ─── Page reading ───────────────────────────────────────────────────────────
@@ -134,11 +134,17 @@ const dayNumber = (iso) => Date.parse(`${iso}T00:00:00Z`) / 86_400_000;
  * date is its departure's; an arrival later in the day than its departure
  * (23:58 in, 00:05 out) was the evening before.
  *
- * Each stop carries `day` (whole days after the first departure's date) and
- * `minutes` (minutes after the first departure), so a 33-hour journey keeps
- * its length.
+ * Each stop carries `depDay`/`arrDay` (whole days after the first
+ * departure's date, by the stop's own dates) and `depMinutes`/`arrMinutes`
+ * (minutes after the first departure), so a 33-hour journey keeps its length.
+ *
+ * Every clock is local to its station. MR1/MR2 run on into China, whose
+ * stations the page times in Beijing time, an hour ahead of Hà Nội's:
+ * `utcOffsetOf(name)` gives a station's offset in minutes, and the minutes are
+ * measured in real time, so the border crossing neither adds an hour nor reads
+ * as running backwards. Without it every station counts as one zone.
  */
-export function parseTimetable(html) {
+export function parseTimetable(html, { utcOffsetOf = () => 0 } = {}) {
   for (const rows of tablesOf(html)) {
     const header = rows.findIndex((r) => r.some((c) => /^Ga/i.test(c)) && r.some((c) => /Cự ly/i.test(c)) && r.some((c) => /Giờ đi/i.test(c)));
     if (header < 0) continue;
@@ -162,12 +168,18 @@ export function parseTimetable(html) {
     }
     if (stops.length < 2) return null;
     const first = stops[0];
-    const t0 = dayNumber(first.date) * 1440 + minutesOf(first.dep);
+    const t0 = dayNumber(first.date) * 1440 + minutesOf(first.dep) - (utcOffsetOf(first.name) ?? 0);
     const out = stops.map((s) => {
-      const depAt = dayNumber(s.date) * 1440 + minutesOf(s.dep);
-      let arrAt = dayNumber(s.date) * 1440 + minutesOf(s.arr);
-      if (arrAt > depAt) arrAt -= 1440;
-      return { name: s.name, km: Number.isFinite(s.km) ? s.km : null, date: s.date, departure: s.dep, arrival: s.arr, depMinutes: depAt - t0, arrMinutes: arrAt - t0 };
+      const offset = utcOffsetOf(s.name) ?? 0;
+      const depAt = dayNumber(s.date) * 1440 + minutesOf(s.dep) - offset;
+      let arrAt = dayNumber(s.date) * 1440 + minutesOf(s.arr) - offset;
+      const depDay = dayNumber(s.date) - dayNumber(first.date);
+      let arrDay = depDay;
+      if (arrAt > depAt) {
+        arrAt -= 1440;
+        arrDay -= 1;
+      }
+      return { name: s.name, km: Number.isFinite(s.km) ? s.km : null, date: s.date, departure: s.dep, arrival: s.arr, depMinutes: depAt - t0, arrMinutes: arrAt - t0, depDay, arrDay };
     });
     // A timetable runs forward: a stop timed before the one above it is a
     // misread, not a train.
@@ -263,6 +275,7 @@ export const journeyMinutes = (tt) => tt.stops[tt.stops.length - 1].arrMinutes;
 /** Nights a timetable spans: dates crossed between first departure and last arrival. */
 export function nightsOf(tt) {
   const last = tt.stops[tt.stops.length - 1];
+  if (Number.isFinite(last.arrDay)) return last.arrDay;
   const lastArrivalDay = Math.floor((dayNumber(tt.firstDate) * 1440 + minutesOf(tt.stops[0].departure) + last.arrMinutes) / 1440);
   return lastArrivalDay - dayNumber(tt.firstDate);
 }
@@ -362,6 +375,28 @@ export function makeStationNamer(stationNames = {}) {
   };
 }
 
+/**
+ * Which country a station is in, by its anchor (`country`, Vietnam when
+ * absent), and that country's UTC offset in minutes from `utcOffsetMinutes`.
+ * Both take the name as the timetable page writes it.
+ */
+export function stationCountry(config, namer = makeStationNamer(config?.stationNames)) {
+  const anchors = config?.anchors ?? {};
+  return (name) => anchors[namer(name)]?.country ?? "VN";
+}
+
+export function utcOffsetFor(config, namer) {
+  const countryOf = stationCountry(config, namer);
+  const offsets = config?.utcOffsetMinutes ?? {};
+  return (name) => offsets[countryOf(name)] ?? offsets.VN ?? 0;
+}
+
+/** Whether a timetable calls at a station outside Vietnam. */
+export function callsAbroad(tt, config, namer) {
+  const countryOf = stationCountry(config, namer);
+  return (tt?.stops ?? []).some((s) => countryOf(s.name) !== "VN");
+}
+
 /** A station name as OSM and VNR might both write it: no "Ga ", no diacritics, no "station". */
 export function stationKey(name) {
   return fold(name)
@@ -382,7 +417,8 @@ export const OSM_MATCH_KM = 25;
 /**
  * Where each station is: OpenStreetMap's station of that name nearest where
  * we expect it, else the anchor, else a point interpolated by kilometre post
- * between the nearest anchored stations on the same train.
+ * between the nearest anchored stations on the same train. A `fixed` anchor
+ * is taken as it is.
  *
  * @param {{name: string, km: number|null}[][]} trains  each train's stops (map names)
  * @param {Record<string, {lat: number, lon: number}>} anchors
@@ -392,7 +428,7 @@ export const OSM_MATCH_KM = 25;
 export function stationPositions(trains, anchors, osmStations = null, log = () => {}) {
   const expected = new Map();
   for (const [name, a] of Object.entries(anchors ?? {})) {
-    if (!name.startsWith("_") && Number.isFinite(a?.lat)) expected.set(name, { lat: a.lat, lon: a.lon, source: "anchor" });
+    if (!name.startsWith("_") && Number.isFinite(a?.lat)) expected.set(name, { lat: a.lat, lon: a.lon, source: "anchor", fixed: a.fixed === true });
   }
   for (const stops of trains) {
     stops.forEach((s, i) => {
@@ -418,6 +454,12 @@ export function stationPositions(trains, anchors, osmStations = null, log = () =
   }
   const out = new Map();
   for (const [name, at] of expected) {
+    // A `fixed` anchor is another source's own position for a station it
+    // also draws (China Railway's Nanning), which OSM must not move off it.
+    if (at.fixed) {
+      out.set(name, { lat: at.lat, lon: at.lon, source: "anchor" });
+      continue;
+    }
     const candidates = byKey.get(stationKey(name)) ?? [];
     let best = null;
     for (const c of candidates) {
@@ -453,12 +495,17 @@ export const CARRY_MAX_DAYS = 30;
  * @param {Set<string>} [args.carry]      names to take from last night's file when tonight did not read them
  * @param {object} [args.previous]        last night's trains, by name
  * @param {[number, number][][]|null} [args.osmTrack]
+ * @param {[number, number][][]} [args.donors]  other sources' lines, for a gap OSM's tiles do not reach (MR1/MR2 north of Nanning)
  */
-export function buildVnrTrains({ config, found, carry = new Set(), positions, previous = {}, today, travelDate, osmTrack = null, log = () => {} }) {
+export function buildVnrTrains({ config, found, carry = new Set(), positions, previous = {}, today, travelDate, osmTrack = null, donors = [], log = () => {} }) {
   const namer = makeStationNamer(config.stationNames);
   const operator = config.operator ?? {};
   const graphs = osmTrack?.length ? [["osm", buildRailGraph(osmTrack, { joinMeters: 30 })]] : [];
   const memo = new Map();
+  const siblingGap = (a, b) => {
+    const { path, filled } = trackPathFromSiblings([a, b], donors);
+    return filled ? path : null;
+  };
   const fresh = (t) => {
     const at = Date.parse(`${t?.timetable?.checkedAt ?? ""}T00:00:00Z`);
     return Number.isFinite(at) && (Date.parse(`${today}T00:00:00Z`) - at) / 86_400_000 <= CARRY_MAX_DAYS;
@@ -488,7 +535,7 @@ export function buildVnrTrains({ config, found, carry = new Set(), positions, pr
       continue;
     }
     const points = placed.map((s) => [positions.get(s.name).lat, positions.get(s.name).lon]);
-    const routed = routeThroughStops(points, graphs, () => null, memo);
+    const routed = routeThroughStops(points, graphs, siblingGap, memo);
     const geometry = routed.sources.reduce((acc, src) => ({ ...acc, [src]: (acc[src] ?? 0) + 1 }), {});
     let encoded = polyline.encode(routed.path);
     // A night without OSM must not make a line worse than last night's.
@@ -509,8 +556,8 @@ export function buildVnrTrains({ config, found, carry = new Set(), positions, pr
       // Whole days after the first departure's date, so a stop list can say
       // "+1" and a 33-hour journey is not read as 9 hours (the planner and
       // the connection pages measure a ride between two stops from these).
-      arrivalDay: i === 0 ? null : dayOf(stops[0], s.arrMinutes),
-      departureDay: i === last ? null : dayOf(stops[0], s.depMinutes),
+      arrivalDay: i === 0 ? null : (s.arrDay ?? dayOf(stops[0], s.arrMinutes)),
+      departureDay: i === last ? null : (s.depDay ?? dayOf(stops[0], s.depMinutes)),
       pickup: true,
       dropoff: true,
     }));
