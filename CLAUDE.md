@@ -53,7 +53,8 @@ npm run verify-bottom-bar && npm run verify-jr-sunrise && npm run verify-fx && \
 npm run verify-schedule-links && npm run verify-es-fares && npm run verify-seo-snippets && npm run verify-sncf-open-data && \
 npm run verify-nj-fares && npm run verify-fare-calendar-view && npm run verify-nj-fare-check && \
 npm run verify-nj-operators && npm run verify-next-departure && npm run verify-map-theme && \
-npm run verify-night-times && npm run verify-srt && npm run verify-vnr && npm run verify-trenitalia-gtfs
+npm run verify-night-times && npm run verify-srt && npm run verify-vnr && npm run verify-trenitalia-gtfs && \
+npm run verify-fare-overview
 ```
 
 ## Architecture Overview
@@ -182,6 +183,10 @@ Everything non-mechanical flows through a proposal queue the admin reviews in `/
 - **A choice made in the form shows its result, not the form again.** On a phone the heading and the form are the whole first screen, and picking "To" used to *clear* the field it was typed in (it only ever appended) while the trip rendered below the fold — the tap read as a reset. Now a plan of two or more cities folds the form into a one-line summary (`TripSummary`: the date and **Change**), "To" shows and replaces the **last** city when reopened, every form change scrolls `#plan-results` into view (`scrollTarget`, consumed in an effect once the result has rendered — the page scrolls an inner `h-dvh` div, so Next's own scroll-to-top does nothing), and extending the trip is an **Add another city** button *after* the itinerary. Two things for someone who knows where they are going: a hop with no train that night offers the next night one runs as one tap (`nextServedNight`; on the first hop it moves the trip, on a later one it adds nights in the city before it), and each ride on a night it could run has a **Book** button (`rideBookingLink`, `src/lib/plan/booking.mjs`) — `resolveRouteBooking` with the stations the traveller boards and leaves at, the seller's `agency_id` (carried on the leg as `agencyId`, since `operatorIds` reads `bot_agency_id` first) and the plan's night as `isoDate` for an operator whose link takes one. An operator's own corridor page (`routePages`) still wins, as on the connection page.
 - Covered by `npm run verify-plan` (51 checks) plus planner cases in `tests/smoke.spec.js`.
 
+### Cheap night trains (`/cheap-night-trains`)
+
+**The fare calendars, read across trains instead of one corridor at a time.** A connection page answers "which night is cheapest on this train"; a flexible traveller asks "which sleeper is cheap in the next few weeks, and when", and nothing answered it — European Sleeper's last-minute and flash deals (not in the operator's own fare finder) were spread over four corridor pages, and the cheapest night of ~70 calendars was only visible by opening each. One static page (`getStaticProps`, rebuilt with every nightly deploy, no `revalidate`) lists every deal on sale, each train's cheapest night (cheapest first, with how many nights sit within 10% of it), each train's cheapest Friday/Saturday night over the next two weekends, and what the calendars say about **when** to travel: each night's regular fare against the same train's median, averaged over trains, by departure weekday and by lead time (deals excluded, so a promo price says nothing about the operator's own pricing; a train needs `MIN_NIGHTS_FOR_STATS` nights and a bucket `MIN_NIGHTS_PER_BUCKET` before a figure is stated). On 22 October 2026: Tuesday −7%, Friday +25%; the coming week +39%, three to six weeks out −6%. The FAQ is built from the same numbers and drops a question the data cannot answer. `getFareOverviewTrains()` (`src/lib/seo/data.js`) reads each calendar through `fareCalendarFor`, so a night's price and Book link are the connection page's own (a deal night books through `deal.href`, the affiliate offer page); the next timetable's preview row (`es_400_from_20261214`) shares its train's calendar and is folded into it. The pure half is `src/lib/fareOverview.mjs`; long lists collapse behind a button but stay in the HTML. Linked from the SEO nav and footer, the map header, every connection page with a calendar, and the sitemap (`daily`, lastmod = the payload's date, which is this page's real one). Covered by `npm run verify-fare-overview`, which also reads the committed payload.
+
 ### Public URL structure (pingwi.com)
 
 The site is served from **`https://pingwi.com`** (moved from `sleeper-train-map.pingwi.com`, Aug 2026). The origin is written in exactly one place, `src/lib/seo/site.js`; everything else builds URLs through `absoluteUrl()`.
@@ -191,6 +196,7 @@ The site is served from **`https://pingwi.com`** (moved from `sleeper-train-map.
 | `/` | Interactive map + SSR'd indexable tour (top ~50 connections, country + operator hubs) |
 | `/plan` | **The trip planner.** Landing page; `/plan/{city}[-to-{city}…]/{date}` is a saved plan (noindex) |
 | `/connections` | Directory of every city pair — the hub-of-hubs |
+| `/cheap-night-trains` | Every deal on sale and each priced train's cheapest night, plus when it is cheaper to travel |
 | `/connections/{cityA}-to-{cityB}` | **The canonical route page type.** One page per *undirected* city pair, carrying every train on the corridor in both directions: facts, corridor map, per-train timetables, booking CTAs, FAQ |
 | `/night-trains/{country}` | Country hub → all its connections |
 | `/night-trains/{country}/from/{city}` | City hub (≥2 routes) |

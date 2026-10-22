@@ -281,6 +281,18 @@ export default function ConnectionPage({
                 </div>
               </div>
             ))}
+            {trains.some((t) => t.directions.some((d) => d.fareCalendar)) && (
+              <p className="mt-6 text-sm text-white/50">
+                Flexible about where you go?{" "}
+                <Link
+                  href="/cheap-night-trains"
+                  className="text-white/70 underline decoration-white/20 underline-offset-4 hover:text-white"
+                >
+                  See the cheapest night on every night train
+                </Link>
+                .
+              </p>
+            )}
           </section>
 
           {/* How buying a ticket works, where the operator's booking has quirks

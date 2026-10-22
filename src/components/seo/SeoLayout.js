@@ -1,6 +1,6 @@
 import Link from "../Link";
 import { useEffect, useRef, useState } from "react";
-import { FaArrowRight, FaBars, FaMapMarkedAlt, FaRegCalendarAlt, FaRoute, FaInfoCircle } from "react-icons/fa";
+import { FaArrowRight, FaBars, FaMapMarkedAlt, FaRegCalendarAlt, FaRoute, FaInfoCircle, FaTag } from "react-icons/fa";
 import PriceDisclaimer from "../PriceDisclaimer";
 
 /**
@@ -14,6 +14,7 @@ const MENU = [
   { href: "/", label: "Open the map", icon: FaMapMarkedAlt },
   { href: "/plan", label: "Plan a trip", icon: FaRegCalendarAlt },
   { href: "/connections", label: "All night train routes", icon: FaRoute },
+  { href: "/cheap-night-trains", label: "Cheap night trains", icon: FaTag },
   { href: "/about", label: "About", icon: FaInfoCircle },
 ];
 
@@ -80,6 +81,12 @@ export default function SeoLayout({ children }) {
                 className="hidden sm:inline text-sm text-white/70 hover:text-white transition-colors"
               >
                 All routes
+              </Link>
+              <Link
+                href="/cheap-night-trains"
+                className="hidden md:inline text-sm text-white/70 hover:text-white transition-colors"
+              >
+                Cheap tickets
               </Link>
               {/* Desktop keeps the call to action; on a phone a green pill next
                   to the wordmark is the loudest thing on a page that is meant to
@@ -161,6 +168,12 @@ export default function SeoLayout({ children }) {
               className="text-sm text-white/40 hover:text-white/70 transition-colors"
             >
               All routes
+            </Link>
+            <Link
+              href="/cheap-night-trains"
+              className="text-sm text-white/40 hover:text-white/70 transition-colors"
+            >
+              Cheap night trains
             </Link>
             <Link
               href="/about"

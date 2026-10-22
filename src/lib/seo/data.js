@@ -43,7 +43,8 @@ import {
   pricingForDirection,
 } from "../fareClasses.mjs";
 import { eurHintFor, eurRateNote, formatEurApprox } from "../fx.mjs";
-import { fareCalendarDays } from "../fareCalendarView.mjs";
+import { datedBookingHref, fareCalendarAnchor, fareCalendarDays } from "../fareCalendarView.mjs";
+import { regularNightAmount } from "../fareOverview.mjs";
 import { clockKey, journeyTimesTheEnds, nightClock } from "../nightTimes.mjs";
 import { punctualitySummary } from "../punctuality.mjs";
 import { buildDatedBookingLink, buildDealsLandingUrl } from "../operatorBooking.js";
@@ -777,4 +778,69 @@ export function getRouteDetail(routeId) {
       destinationName: primary.destination || summary.destination,
     },
   };
+}
+
+/**
+ * Every train direction that carries a fare calendar, in the shape
+ * src/lib/fareOverview.mjs reads: the calendar laid out exactly as its
+ * connection page lays it out (fareCalendarFor, so a night's price and its
+ * Book link are the same on both pages), each priced night's own booking
+ * link, and the raw regular fares the weekday/lead-time figures are measured
+ * on. For /cheap-night-trains.
+ */
+export function getFareOverviewTrains() {
+  const { viewMap } = getPublished();
+  const today = new Date().toISOString().slice(0, 10);
+  const agencies = getAgencies();
+  const trains = [];
+  // One train, one entry: the next timetable's preview row
+  // (es_400_from_20261214) carries its train's calendar too.
+  const seen = new Set();
+  for (const route of Object.values(viewMap)) {
+    for (const dir of [0, 1]) {
+      const calendar = route[`fare_calendar_${dir}`];
+      const label = (route[`trip_short_name_${dir}`] || "").trim();
+      if (!calendar?.nights || !label) continue;
+      const origin = route[`origin_trip_${dir}`] || "";
+      const destination = route[`destination_trip_${dir}`] || "";
+      const view = fareCalendarFor(route, dir, { origin, destination, today });
+      if (!view) continue;
+      const summary = buildSummary(route);
+      if (!summary.pairSlug) continue;
+      const fallback = resolveRouteBooking({
+        agencyId: route.agency_id || "",
+        agencies,
+        agencyUrl: agencies[route.agency_id]?.agency_url ?? null,
+        origin,
+        dest: destination,
+        routeId: String(route.route_id),
+        scheduleStops: [],
+      });
+      const operatorId = splitAgencyIds(route.agency_id || "")[0] || "";
+      const key = [operatorId, label, cityForStation(origin), cityForStation(destination)].join("|");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const anchor = fareCalendarAnchor(label);
+      trains.push({
+        id: `${route.route_id}-${dir}`,
+        trainNumber: formatTrainNumber(label, route.agency_id),
+        operatorId,
+        operatorName: getOperatorMeta(operatorId, agencies).name,
+        originCity: cityForStation(origin) || origin,
+        destinationCity: cityForStation(destination) || destination,
+        currency: view.currency,
+        calendarHref: `/connections/${summary.pairSlug}${anchor ? `#${anchor}` : ""}`,
+        days: view.days.map((day) =>
+          day.state === "priced"
+            ? { ...day, href: datedBookingHref(view.bookingTemplate, day) ?? fallback?.href ?? null }
+            : day,
+        ),
+        nights: Object.entries(calendar.nights).map(([date, entry]) => ({
+          date,
+          regular: entry?.none ? null : regularNightAmount(entry?.classes),
+        })),
+      });
+    }
+  }
+  return { today, trains };
 }

@@ -15,6 +15,7 @@ import {
   FaMoon,
   FaSun,
   FaAdjust,
+  FaTag,
 } from "react-icons/fa";
 
 import Container from "@components/Container";
@@ -323,6 +324,15 @@ const Header = ({
                     Browse all night train routes
                   </Link>
                   <Link
+                    href="/cheap-night-trains"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-sky-400 transition-colors hover:bg-white/10 hover:text-sky-300"
+                  >
+                    <span className="text-sky-400/70">
+                      <FaTag size={14} />
+                    </span>
+                    Cheap night trains
+                  </Link>
+                  <Link
                     href="/about"
                     className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-sky-400 transition-colors hover:bg-white/10 hover:text-sky-300"
                   >
@@ -432,6 +442,14 @@ const Header = ({
               data-tooltip="All night train routes"
             >
               <FaRoute size={14} />
+            </Link>
+            <Link
+              href="/cheap-night-trains"
+              className="icon-toggle-button"
+              aria-label="Cheap night trains: deals and lowest fares"
+              data-tooltip="Cheap night trains"
+            >
+              <FaTag size={14} />
             </Link>
             <Link
               href="/about"
