@@ -362,7 +362,7 @@
   "/trains/new-orleans-union-passenger-terminal-to-chicago-union-station-city-of-new-orleans": "/connections/chicago-to-new-orleans",
   "/trains/new-orleans-union-passenger-terminal-to-los-angeles-sunset-limited": "/connections/los-angeles-to-new-orleans",
   "/trains/new-orleans-union-passenger-terminal-to-ny-moynihan-train-hall-at-penn-station-crescent": "/connections/new-orleans-to-new-york",
-  "/trains/nha-trang-to-hue-se46": "/connections/hue-to-nha-trang",
+  "/trains/nha-trang-to-hue-se46": "/connections",
   "/trains/nha-trang-to-sai-gon-snt1": "/connections/ho-chi-minh-city-to-nha-trang",
   "/trains/nha-trang-to-sai-gon-snt3": "/connections/ho-chi-minh-city-to-nha-trang",
   "/trains/ny-moynihan-train-hall-at-penn-station-to-chicago-union-station-cardinal": "/connections/chicago-to-new-york",
