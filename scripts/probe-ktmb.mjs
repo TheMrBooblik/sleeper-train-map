@@ -23,7 +23,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { downloadGtfs, readCsv } from "./lib/gtfs.mjs";
+import { execSync } from "node:child_process";
+import { readCsv } from "./lib/gtfs.mjs";
 import { HONEST_USER_AGENT, detectBlock } from "./lib/http-block.mjs";
 
 const outDir = process.argv[2] ?? null;
@@ -51,8 +52,17 @@ console.log(`# KTMB probe — ${new Date().toISOString()}`);
 console.log(`\n# GTFS ${FEED_URL}`);
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ktmb-gtfs-"));
 let gtfsOk = false;
+// data.gov.my answers with a redirect to the zip's storage address, and a
+// relative Location defeats downloadGtfs (the first run: "Invalid URL"), so
+// this download follows redirects through fetch and unzips what lands.
 try {
-  await downloadGtfs(FEED_URL, dir);
+  const res = await fetch(FEED_URL, { headers: { "User-Agent": HONEST_USER_AGENT }, redirect: "follow", signal: AbortSignal.timeout(180_000) });
+  console.log(`status ${res.status}, ${res.headers.get("content-type")}, final URL ${res.url}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const zip = Buffer.from(await res.arrayBuffer());
+  console.log(`${zip.length} bytes`);
+  fs.writeFileSync(path.join(dir, "feed.zip"), zip);
+  execSync(`unzip -o -q "${path.join(dir, "feed.zip")}" -d "${dir}"`);
   gtfsOk = true;
 } catch (err) {
   console.log(`download failed: ${err?.message ?? err}`);
@@ -215,10 +225,11 @@ if (show(home, { text: false })) {
   const links = linksOf(home.body, home.url);
   console.log(`links (${links.length}): ${links.join("  ")}`);
   const wanted = links.filter((l) => /ktmb\.com\.my/.test(l) && /intercity|ert|timuran|fare|tambang|traintime|timetable|jadual|ticket|sleeper|price/i.test(l));
-  const seeds = ["https://www.ktmb.com.my/traintime.html", "https://www.ktmb.com.my/Intercity.html", "https://www.ktmb.com.my/Fare.html"];
-  for (const url of [...new Set([...seeds, ...wanted])].slice(0, 14)) {
+  const seeds = ["https://www.ktmb.com.my/traintime.html"];
+  for (const url of [...new Set([...seeds, ...wanted])].filter((u) => !/\.pdf/i.test(u)).slice(0, 4)) {
     const page = await get(url);
     if (!show(page)) continue;
+    if (/traintime/i.test(url)) console.log(`all links: ${linksOf(page.body, page.url).filter((l) => !/\.css|\.js/.test(l)).join("  ")}`);
     const pdfs = linksOf(page.body, page.url).filter((l) => /\.pdf|\.jpe?g|\.png/i.test(l) && /ert|timuran|intercity|fare|tambang|jadual|timetable/i.test(l));
     if (pdfs.length) console.log(`documents: ${pdfs.join("  ")}`);
   }
@@ -232,7 +243,26 @@ if (show(shop, { text: false })) {
   console.log(`scripts: ${[...shop.body.matchAll(/<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi)].map((m) => m[1]).join("  ")}`);
   for (const m of shop.body.matchAll(/.{0,120}(recaptcha|turnstile|captcha|hcaptcha|login|sign in).{0,120}/gi)) console.log(`  …${m[0].replace(/\s+/g, " ")}…`);
   for (const m of shop.body.matchAll(/["'`](\/?[A-Za-z0-9_\-./]*(?:Trip|Search|Station|Fare|Price|Seat|api)[A-Za-z0-9_\-./?=]*)["'`]/g)) console.log(`  call-ish: ${m[1]}`);
-  console.log(textOf(shop.body).slice(0, 4_000));
+  // What the search form posts and how a station is chosen: the form whole,
+  // the markup around one station, and the inline scripts that fill it in.
+  const form = /<form\b[^>]*id="theForm"[\s\S]*?<\/form>/i.exec(shop.body)?.[0] ?? "";
+  console.log(`\n### the search form (${form.length} chars)\n${form.replace(/<option[\s\S]*?<\/option>/gi, "").replace(/\n\s*\n/g, "\n").slice(0, 8_000)}`);
+  for (const name of ["JB SENTRAL", "TUMPAT"]) {
+    const at = shop.body.indexOf(name);
+    if (at >= 0) console.log(`\n### around ${name}\n${shop.body.slice(Math.max(0, at - 700), at + 300)}`);
+  }
+  for (const m of shop.body.matchAll(/<script\b(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi)) {
+    if (!/Trip|StationData|TimeTable|ajax|\$\.post|fetch\(/i.test(m[1])) continue;
+    console.log(`\n--- inline script (${m[1].length} chars)\n${m[1].replace(/\n\s*\n/g, "\n").slice(0, 8_000)}`);
+  }
+  const own = [...shop.body.matchAll(/<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi)]
+    .map((m) => new URL(m[1], shop.url).href)
+    .filter((u) => /online\.ktmb\.com\.my/.test(u));
+  for (const src of own.slice(0, 6)) {
+    const js = await get(src);
+    if (!show(js, { text: false })) continue;
+    for (const m of js.body.matchAll(/.{0,200}(\/Trip|StationData|TimeTable|\$\.(?:ajax|post|get)|fetch\().{0,400}/g)) console.log(`  js: ${m[0].replace(/\s+/g, " ")}`);
+  }
 }
 
 console.log(`\n# done — ${requests} web request(s)`);
