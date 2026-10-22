@@ -3,19 +3,22 @@
 // printed to the job log.
 //
 // The dev sandbox reaches neither api.data.gov.my nor any ktmb.com.my host, so
-// this is how the nightly reader (scripts/adapters/ktmb.mjs) is written and
-// checked against real answers rather than against a blog's timetable. It asks:
-//   1. data.gov.my's GTFS Static for KTMB (api.data.gov.my/gtfs-static/ktmb,
-//      the Ministry of Transport's open API, no key): which files, agencies
-//      and routes it carries, and every trip that runs through a night, stop
-//      by stop — the Ekspres Rakyat Timuran (JB Sentral – Tumpat) is the one
-//      KTM sleeper still running, and this is where its official timetable is.
-//   2. Whether the feed carries fares (fare_attributes / fare_rules / fare
-//      products) — the cheapest honest way to a price.
-//   3. What KTMB's own sites serve to an automated client: www.ktmb.com.my's
-//      intercity/fare pages (plain text, printed) and online.ktmb.com.my, the
-//      booking site (forms, scripts, captcha mentions) — read only, a block
-//      ends that host.
+// this is how the nightly reader (scripts/adapters/ktmb.mjs) was written and
+// is checked against real answers. The first runs (2026-10-22) found:
+//   - api.data.gov.my/gtfs-static/ktmb: 200 after a redirect to the zip on S3
+//     (openapi-malaysia-transport…/ktmb/gtfs_ktmb.zip), ~230 KB: agency,
+//     routes (ERT, SH, ETS, ST, five Komuter lines), trips (trip_id = train
+//     number), stop_times, stops, calendar — no shapes, no fares. ERT 26/27
+//     are the night trains.
+//   - www.ktmb.com.my: plain pages; timetables are PDFs behind script, and
+//     the fare documents (Tambang Fleksi, the Sep 2025 ticket terms) carry no
+//     fare table.
+//   - online.ktmb.com.my (KITS): the search works before login (GET /,
+//     POST /Trip, POST /Trip/Trip) and lists each train with its times and
+//     "Min. fare" (any class); the coach layout with per-place fares
+//     (/Trip/LayoutV2) is offered only after login ("Login to view").
+// This run repeats the feed read and one KITS search each way, and prints
+// KTMB's fare documents as text (pdftotext), so a change shows up here first.
 //
 // Read-only: one zip, bounded GETs, an honest User-Agent, nothing committed.
 // Run: node scripts/probe-ktmb.mjs [outputDir]
