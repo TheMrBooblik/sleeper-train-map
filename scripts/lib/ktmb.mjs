@@ -206,7 +206,11 @@ export function fareRecord(classes, { sampledAt, travelDate, currency = "MYR" })
 export function buildKtmbTrains({ config, feedTrains, fares = new Map(), osmTrack = null, previous = {}, today, travelDate, log = () => {} }) {
   const operator = config.operator ?? {};
   const serviceName = config.serviceNames ?? {};
-  const graphs = osmTrack?.length ? [["osm", buildRailGraph(osmTrack, { joinMeters: 30 })]] : [];
+  // 60 m, where Thailand's OSM graph joins at 30: the Gemas – JB Sentral
+  // double-tracking left KTM's ways in OSM ending a few tens of metres apart
+  // between Kluang and Segamat, and at 30 m the first refresh drew 77 km of
+  // that gap straight; at 60 m every gap of both trains is on track.
+  const graphs = osmTrack?.length ? [["osm", buildRailGraph(osmTrack, { joinMeters: config.osmJoinMeters ?? 60 })]] : [];
   const memo = new Map();
   const prevByNumber = new Map(Object.values(previous).map((t) => [String(t.trainNo ?? ""), t]));
   const fresh = (t) => {
