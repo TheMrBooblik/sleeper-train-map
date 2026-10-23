@@ -1,9 +1,10 @@
 // tests/verify-bottom-bar.mjs
 // The map's bottom bar (TrainBottomBar): which trains lead a station's list
 // (src/lib/operatorPromotion.mjs, data/overrides/operator-promotion.json) and
-// how each is named — from the selected station, toward where the train goes
-// (src/lib/stationFirst.mjs) — and that the line tooltip, the route chip and
-// the detail panel name a train the same way; and which trains a click on a
+// which of a route's two trains it names — the one boarded at the selected
+// station (src/lib/stationFirst.mjs), labelled by where that train starts and
+// ends — and that the line tooltip, the route chip and the detail panel pick
+// the same train; and which trains a click on a
 // second station opens (routesBetweenStations). Run: npm run verify-bottom-bar
 
 import assert from "node:assert";
@@ -20,6 +21,7 @@ import {
   routesBetweenStations,
   selectedCityMatcher,
   stationFirstEndpoints,
+  trainEndpoints,
   tripDirection,
 } from "../src/lib/stationFirst.mjs";
 
@@ -201,6 +203,50 @@ check(
     assert.strictEqual(ends.to, "Torino Porta Nuova");
     assert.strictEqual(ends.direction, 1);
     assert.strictEqual(r[`trip_short_name_${ends.direction}`], "ICN 798");
+  },
+);
+
+check(
+  "the bar names a train by where it really starts and ends, never from the click",
+  () => {
+    // From Brussels, ES 452/453 is the train toward Berlin (direction 1), and
+    // its chip reads Paris – Berlin: where that train starts, where it ends.
+    const r = Object.values(viewMap).find(
+      (x) =>
+        x.agency_id === "ES" &&
+        /Berlin/.test(x.origin_trip_0 || "") &&
+        /Paris/.test(x.destination_trip_0 || ""),
+    );
+    const ends = stationFirstEndpoints(r, {
+      inSelectedCity: city("brux"),
+      coordsOf,
+    });
+    const train = trainEndpoints(r, ends.direction);
+    assert.strictEqual(train.from, r.origin_trip_1);
+    assert.strictEqual(train.to, r.destination_trip_1);
+    assert.ok(/Paris/.test(train.from) && /Berlin/.test(train.to));
+    // Direction 1 of a row stating no return endpoints is direction 0 reversed.
+    assert.deepStrictEqual(
+      trainEndpoints({ origin_trip_0: "A", destination_trip_0: "B" }, 1),
+      { from: "B", to: "A" },
+    );
+    assert.deepStrictEqual(trainEndpoints(r, 0), {
+      from: r.origin_trip_0,
+      to: r.destination_trip_0,
+    });
+    const bar = fs.readFileSync(
+      new URL(
+        "../src/components/TrainBottomBar/TrainBottomBar.js",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    assert.ok(
+      /trainEndpoints\(el, ends\.direction\)/.test(bar) &&
+        /origin: train\.from/.test(bar) &&
+        /destination: train\.to/.test(bar),
+      "the chip prints the train's own endpoints",
+    );
   },
 );
 
