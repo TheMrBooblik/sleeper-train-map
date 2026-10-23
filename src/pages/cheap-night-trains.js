@@ -12,8 +12,6 @@ import { getFareOverviewTrains } from "../lib/seo/data";
 import {
   buildFareOverview,
   fareOverviewFaq,
-  leadSentence,
-  weekdaySentence,
 } from "../lib/fareOverview.mjs";
 import { toEur } from "../lib/fx.mjs";
 import { DEAL_PROGRAMMES } from "../lib/lastMinuteDeals.mjs";
@@ -156,40 +154,6 @@ function DealCard({ deal, hidden = false }) {
   );
 }
 
-/** Seven bars, each how far that weekday sits from a train's typical fare. */
-function WeekdayBars({ weekdays }) {
-  const span = Math.max(5, ...weekdays.map((w) => Math.abs(w.pct)));
-  return (
-    <div className="grid grid-cols-7 gap-1.5 sm:gap-3" role="list" aria-label="Fare by departure weekday">
-      {weekdays.map((w) => {
-        const h = Math.round((Math.abs(w.pct) / span) * 48);
-        const below = w.pct < 0;
-        return (
-          <div key={w.day} role="listitem" className="flex flex-col items-center text-center">
-            <div className="flex h-24 w-full flex-col items-center justify-center">
-              <div className="flex h-12 w-full items-end justify-center">
-                {!below && (
-                  <div className="w-full max-w-[2.5rem] rounded-t bg-white/25" style={{ height: `${h}px` }} />
-                )}
-              </div>
-              <div className="h-px w-full bg-white/30" />
-              <div className="flex h-12 w-full items-start justify-center">
-                {below && (
-                  <div className="w-full max-w-[2.5rem] rounded-b bg-primary-green/70" style={{ height: `${h}px` }} />
-                )}
-              </div>
-            </div>
-            <span className={`text-xs font-semibold ${below ? "text-primary-green" : "text-white/70"}`}>
-              {w.pctText}
-            </span>
-            <span className="text-xs text-white/50">{w.day}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 /**
  * The first `limit` items, and a button for the rest. The rest stay in the
  * HTML (hidden with CSS) so the page is complete without JavaScript.
@@ -271,8 +235,6 @@ export default function CheapNightTrains({ overview, faq }) {
 
   const desc = description(overview);
   const canonical = absoluteUrl(PATH);
-  const weekdayText = weekdaySentence(overview.weekdays, overview.pricedNights);
-  const leadText = leadSentence(overview.lead);
 
   const faqLd = faq.length
     ? {
@@ -316,8 +278,8 @@ export default function CheapNightTrains({ overview, faq }) {
               Every night we check the price of a bed on every night of the coming weeks on{" "}
               {overview.trainCount} night trains run by {listNames(overview.operatorNames)} —{" "}
               {overview.pricedNightsText} priced nights in all. This page puts
-              them side by side: the deals on sale, the cheapest night on each train, and what
-              the prices say about when to travel.
+              them side by side: the deals on sale, the cheapest night on each train, and the
+              cheapest Friday or Saturday for a weekend away.
             </p>
             <p className="mt-2 text-xs text-white/40">
               Prices checked {formatNight(overview.today)}. One adult, one couchette or sleeper
@@ -385,46 +347,6 @@ export default function CheapNightTrains({ overview, faq }) {
                 render={(row, hidden) => <NightRow key={row.id} row={row} hidden={hidden} />}
                 more={(n) => `Show ${n} more train${n === 1 ? "" : "s"}`}
               />
-            </section>
-          )}
-
-          {(overview.weekdays || overview.lead) && (
-            <section className="mt-12" aria-labelledby="when">
-              <h2 id="when" className="text-xl font-semibold text-white">
-                When is a night train cheaper?
-              </h2>
-              <p className="mt-2 max-w-3xl text-sm text-white/60">
-                Each night compared with the same train&apos;s typical (median) regular fare, then
-                averaged over every train — so a €300 sleeper cabin weighs no more than a €50
-                couchette. Deals are left out.
-              </p>
-              {overview.weekdays && (
-                <div className="mt-6 max-w-xl rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                  <h3 className="text-sm font-medium text-white/80">By departure day</h3>
-                  <div className="mt-3">
-                    <WeekdayBars weekdays={overview.weekdays} />
-                  </div>
-                  {weekdayText && <p className="mt-3 text-sm text-white/60">{weekdayText}</p>}
-                </div>
-              )}
-              {overview.lead && (
-                <div className="mt-4 max-w-xl rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                  <h3 className="text-sm font-medium text-white/80">By how far ahead</h3>
-                  <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
-                    {overview.lead.map((b) => (
-                      <div key={b.key} className="rounded-lg bg-white/[0.03] p-2">
-                        <dt className="text-xs text-white/50">{b.label}</dt>
-                        <dd
-                          className={`mt-1 text-lg font-semibold ${b.pct < 0 ? "text-primary-green" : "text-white"}`}
-                        >
-                          {b.pctText}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                  {leadText && <p className="mt-3 text-sm text-white/60">{leadText}</p>}
-                </div>
-              )}
             </section>
           )}
 

@@ -1,7 +1,6 @@
 // tests/verify-fare-overview.mjs
 // /cheap-night-trains (src/lib/fareOverview.mjs): every priced train's
-// cheapest night, every deal on sale, the weekend picks, and the weekday and
-// lead-time figures. A hand-built calendar pins each rule; the committed
+// cheapest night, every deal on sale and the weekend picks. A hand-built calendar pins each rule; the committed
 // payload is checked last, read the way the page reads it.
 //
 // Run: node tests/verify-fare-overview.mjs
@@ -11,11 +10,6 @@ import path from "node:path";
 import {
   buildFareOverview,
   fareOverviewFaq,
-  formatPct,
-  leadSentence,
-  regularNightAmount,
-  weekdaySentence,
-  MIN_NIGHTS_PER_BUCKET,
 } from "../src/lib/fareOverview.mjs";
 import { fareCalendarDays, isoPlusDays, weekdayIndex } from "../src/lib/fareCalendarView.mjs";
 
@@ -43,31 +37,13 @@ function trainFrom(id, calendar, today, meta = {}) {
     currency: view.currency,
     calendarHref: `/connections/a-to-b#fares-1`,
     days: view.days,
-    nights: Object.entries(calendar.nights).map(([date, e]) => ({
-      date,
-      regular: regularNightAmount(e),
-    })),
   };
 }
-
-console.log("regularNightAmount");
-const night = (classes, extra = {}) => ({ classes, ...extra });
-check("couchette beats a cheaper sleeper", regularNightAmount(night({ couchette: 80, sleeperBed: 60 })) === 80);
-check("a deal is never the regular fare", regularNightAmount(night({ couchette: 120, lastMinuteCouchette: 40 })) === 120);
-check("a seat is never a fare", regularNightAmount(night({ seat: 20, sleeperBed: 90 })) === 90);
-check("nothing priced → null", regularNightAmount(night({ seat: 20 })) === null && regularNightAmount(null) === null);
-// NJ 465 Zürich → Graz, 26 Oct 2026: stored couchette €39.9 = the seat; the
-// shop sold seats from €39.90 and couchettes from €54.90.
-check("a berth at the night's seat price is not a fare",
-  regularNightAmount(night({ couchette: 39.9, sleeperBed: 129.9 }, { seat: 39.9 })) === 129.9);
-
-console.log("formatPct");
-check("signs", formatPct(-8.4) === "−8%" && formatPct(12.6) === "+13%" && formatPct(0.2) === "±0%");
 
 // ─── A hand-built pair of calendars ─────────────────────────────────────────
 // 2026-10-22 is a Thursday. Train "cheap" costs 50 on Tuesdays and 70
 // otherwise; "dear" costs 300 on Tuesdays and 420 otherwise, plus one €40
-// last-minute deal on the 24th. Weekday figures must read both alike.
+// last-minute deal on the 24th.
 const TODAY = "2026-10-22";
 function calendar(low, high, extra = {}) {
   const nights = {};
@@ -88,15 +64,14 @@ const dealNight = {
 const trains = [
   trainFrom("cheap", calendar(50, 70), TODAY, { originCity: "Rome" }),
   trainFrom("dear", calendar(300, 420, dealNight), TODAY, { operatorId: "ES", originCity: "Paris" }),
-  // Weekly, so only six nights: too few for the figures, still listed.
+  // One night only: still listed.
   trainFrom("weekly", { currency: "EUR", nights: { "2026-10-30": { classes: { couchette: 90 } } } }, TODAY),
   // Nothing after today: not a train on this page.
   trainFrom("gone", { currency: "EUR", nights: { "2026-10-22": { classes: { couchette: 10 } } } }, TODAY),
 ].filter(Boolean);
 
 console.log("buildFareOverview");
-// The fixture has 12 nights a weekday; the real threshold is for the payload.
-const o = buildFareOverview(trains, { today: TODAY, minNightsPerBucket: 10 });
+const o = buildFareOverview(trains, { today: TODAY });
 check("a past-only calendar is not a train here", !o.cheapest.some((c) => c.id === "gone"));
 check("three trains listed", o.trainCount === 3, String(o.trainCount));
 check("cheapest train first", o.cheapest.map((c) => c.id).join() === "dear,cheap,weekly", o.cheapest.map((c) => c.id).join());
@@ -108,22 +83,11 @@ check("deals summary price", o.dealsFrom === "€40");
 check("weekend picks are Fridays or Saturdays within 16 days",
   o.weekend.every((w) => [4, 5].includes(weekdayIndex(w.night.date)) && w.night.date <= isoPlusDays(TODAY, 16)));
 check("a no-berth night is never offered", !o.cheapest.some((c) => c.night.date === isoPlusDays(TODAY, 3)));
-check("weekday figures measured per train: Tuesday alike for €50 and €300 trains",
-  o.weekdays && o.weekdays.find((w) => w.day === "Tue").pct < -20 && o.weekdays.find((w) => w.day === "Fri").pct === 0,
-  JSON.stringify(o.weekdays));
-check("the deal does not count towards the figures (Saturday not cheap)",
-  o.weekdays.find((w) => w.day === "Sat").pct >= 0);
-check("weekday sentence names the extremes", /Tuesday departures were on average \d+% below/.test(weekdaySentence(o.weekdays, o.pricedNights)));
-
-const thin = buildFareOverview(trains, { today: TODAY });
-check(`fewer than ${MIN_NIGHTS_PER_BUCKET} nights a bucket (the default) → no figures, no sentence`,
-  thin.weekdays === null && thin.lead === null && weekdaySentence(thin.weekdays, 1) === "" && leadSentence(thin.lead) === "");
-
 console.log("fareOverviewFaq");
 const faq = fareOverviewFaq(o);
 check("deal question present when deals are on sale", faq.some((f) => /last-minute/.test(f.q)));
-check("no deal question without deals", !fareOverviewFaq({ ...thin, deals: [] }).some((f) => /last-minute/.test(f.q)));
-check("no weekday question without figures", !fareOverviewFaq(thin).some((f) => /day of the week/.test(f.q)));
+check("no deal question without deals", !fareOverviewFaq({ ...o, deals: [] }).some((f) => /last-minute/.test(f.q)));
+check("no weekday or lead-time question", !faq.some((f) => /day of the week|how far ahead/i.test(f.q)));
 check("answers are plain non-empty strings", faq.every((f) => typeof f.a === "string" && f.a.length > 40 && !/undefined|NaN/.test(f.a)));
 
 // ─── The committed payload ──────────────────────────────────────────────────
@@ -147,8 +111,6 @@ check("every listed night is after the payload's date", real.cheapest.every((c) 
 check("every price prints", real.cheapest.every((c) => /^€\d/.test(c.night.price)), real.cheapest.map((c) => c.night.price).join());
 check("sorted cheapest first", real.cheapest.every((c, i, a) => i === 0 || a[i - 1].night.amount <= c.night.amount));
 check("every deal is European Sleeper's", real.deals.every((d) => d.operatorId === "ES"));
-console.log(`    weekdays: ${real.weekdays?.map((w) => `${w.day} ${w.pctText}`).join(", ") ?? "—"}`);
-console.log(`    lead: ${real.lead?.map((b) => `${b.label} ${b.pctText}`).join(", ") ?? "—"}`);
 
 if (failures) {
   console.log(`\n${failures} check(s) failed`);

@@ -44,7 +44,6 @@ import {
 } from "../fareClasses.mjs";
 import { eurHintFor, eurRateNote, formatEurApprox } from "../fx.mjs";
 import { datedBookingHref, fareCalendarAnchor, fareCalendarDays } from "../fareCalendarView.mjs";
-import { regularNightAmount } from "../fareOverview.mjs";
 import { clockKey, journeyTimesTheEnds, nightClock } from "../nightTimes.mjs";
 import { punctualitySummary } from "../punctuality.mjs";
 import { buildDatedBookingLink, buildDealsLandingUrl } from "../operatorBooking.js";
@@ -784,9 +783,8 @@ export function getRouteDetail(routeId) {
  * Every train direction that carries a fare calendar, in the shape
  * src/lib/fareOverview.mjs reads: the calendar laid out exactly as its
  * connection page lays it out (fareCalendarFor, so a night's price and its
- * Book link are the same on both pages), each priced night's own booking
- * link, and the raw regular fares the weekday/lead-time figures are measured
- * on. For /cheap-night-trains.
+ * Book link are the same on both pages) and each priced night's own booking
+ * link. For /cheap-night-trains.
  */
 /**
  * Fare sources whose figures the cheap-trains page does not rank, because
@@ -850,10 +848,6 @@ export function getFareOverviewTrains() {
             ? { ...day, href: datedBookingHref(view.bookingTemplate, day) ?? fallback?.href ?? null }
             : day,
         ),
-        nights: Object.entries(calendar.nights).map(([date, entry]) => ({
-          date,
-          regular: regularNightAmount(entry),
-        })),
       });
     }
   }
