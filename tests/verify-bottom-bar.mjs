@@ -1,9 +1,10 @@
 // tests/verify-bottom-bar.mjs
 // The map's bottom bar (TrainBottomBar): which trains lead a station's list
 // (src/lib/operatorPromotion.mjs, data/overrides/operator-promotion.json) and
-// how each is named — from the selected station, toward where the train goes
-// (src/lib/stationFirst.mjs) — and that the line tooltip, the route chip and
-// the detail panel name a train the same way; and which trains a click on a
+// which of a route's two trains it names — the one boarded at the selected
+// station (src/lib/stationFirst.mjs), labelled by where that train starts and
+// ends — and that the line tooltip, the route chip and the detail panel pick
+// the same train; and which trains a click on a
 // second station opens (routesBetweenStations). Run: npm run verify-bottom-bar
 
 import assert from "node:assert";
@@ -11,6 +12,7 @@ import fs from "node:fs";
 import {
   orderByPromotion,
   promotionRank,
+  stackPathsByPromotion,
 } from "../src/lib/operatorPromotion.mjs";
 import {
   directionBetween,
@@ -20,6 +22,7 @@ import {
   routesBetweenStations,
   selectedCityMatcher,
   stationFirstEndpoints,
+  trainEndpoints,
   tripDirection,
 } from "../src/lib/stationFirst.mjs";
 
@@ -114,6 +117,68 @@ check(
 );
 
 check(
+  "map lines stack promoted operators on top, rank 1 last, hovered above all",
+  () => {
+    const table = { ES: { rank: 1 }, FS: { rank: 2 } };
+    const rows = {
+      bud: { agency_id: "MÁV" }, // Berlin–Budapest, shares track with ES
+      es: { agency_id: "ES" },
+      icn: { agency_id: "FS" },
+      nj: { agency_id: "ÖBB" },
+      esFuture: { agency_id: "ES" },
+    };
+    const paths = [
+      { key: "es-0", routeId: "es" },
+      { key: "bud-0", routeId: "bud" },
+      { key: "icn-0", routeId: "icn" },
+      { key: "es-1", routeId: "es" },
+      { key: "nj-0", routeId: "nj" },
+      { key: "esFuture-0", routeId: "esFuture", isFuture: true },
+    ];
+    const routeOf = (p) => rows[p.routeId];
+    const keys = (opts) =>
+      stackPathsByPromotion(paths, routeOf, { table, ...opts }).map(
+        (p) => p.key,
+      );
+    // Drawn later = on top: European Sleeper over Trenitalia over the rest;
+    // a faded future timetable is not promoted over a running train.
+    assert.deepStrictEqual(keys(), [
+      "bud-0",
+      "nj-0",
+      "esFuture-0",
+      "icn-0",
+      "es-0",
+      "es-1",
+    ]);
+    // The hovered route rises above even European Sleeper.
+    assert.deepStrictEqual(keys({ raisedRouteId: "bud" }).slice(-1), [
+      "bud-0",
+    ]);
+    assert.deepStrictEqual(stackPathsByPromotion(null, routeOf), []);
+  },
+);
+
+check(
+  "the map draws lines in promotion order and re-raises mounted layers",
+  () => {
+    const src = fs.readFileSync(
+      new URL("../src/components/Map/DynamicMap.js", import.meta.url),
+      "utf8",
+    );
+    assert.ok(
+      /stackPathsByPromotion\(/.test(src),
+      "DynamicMap must order its route lines with stackPathsByPromotion",
+    );
+    // Re-ordering keyed React children never moves a mounted Leaflet layer,
+    // so the order alone only holds for the first mount.
+    assert.ok(
+      /bringToFront\(\)/.test(src),
+      "DynamicMap must bring promoted / hovered layers to the front",
+    );
+  },
+);
+
+check(
   "the bottom bar orders before it dedups, and demotes trains not running yet",
   () => {
     const src = fs.readFileSync(
@@ -201,6 +266,50 @@ check(
     assert.strictEqual(ends.to, "Torino Porta Nuova");
     assert.strictEqual(ends.direction, 1);
     assert.strictEqual(r[`trip_short_name_${ends.direction}`], "ICN 798");
+  },
+);
+
+check(
+  "the bar names a train by where it really starts and ends, never from the click",
+  () => {
+    // From Brussels, ES 452/453 is the train toward Berlin (direction 1), and
+    // its chip reads Paris – Berlin: where that train starts, where it ends.
+    const r = Object.values(viewMap).find(
+      (x) =>
+        x.agency_id === "ES" &&
+        /Berlin/.test(x.origin_trip_0 || "") &&
+        /Paris/.test(x.destination_trip_0 || ""),
+    );
+    const ends = stationFirstEndpoints(r, {
+      inSelectedCity: city("brux"),
+      coordsOf,
+    });
+    const train = trainEndpoints(r, ends.direction);
+    assert.strictEqual(train.from, r.origin_trip_1);
+    assert.strictEqual(train.to, r.destination_trip_1);
+    assert.ok(/Paris/.test(train.from) && /Berlin/.test(train.to));
+    // Direction 1 of a row stating no return endpoints is direction 0 reversed.
+    assert.deepStrictEqual(
+      trainEndpoints({ origin_trip_0: "A", destination_trip_0: "B" }, 1),
+      { from: "B", to: "A" },
+    );
+    assert.deepStrictEqual(trainEndpoints(r, 0), {
+      from: r.origin_trip_0,
+      to: r.destination_trip_0,
+    });
+    const bar = fs.readFileSync(
+      new URL(
+        "../src/components/TrainBottomBar/TrainBottomBar.js",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    assert.ok(
+      /trainEndpoints\(el, ends\.direction\)/.test(bar) &&
+        /origin: train\.from/.test(bar) &&
+        /destination: train\.to/.test(bar),
+      "the chip prints the train's own endpoints",
+    );
   },
 );
 

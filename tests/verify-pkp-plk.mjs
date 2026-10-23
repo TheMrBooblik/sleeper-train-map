@@ -9,6 +9,7 @@
  * and `arrivalTime`/`departureTime` in "HH:MM:SS"; the dictionary is {id, name}
  * with no coordinates. If field names change, update FIELDS in the adapter.
  */
+import fs from "node:fs";
 import assert from "node:assert/strict";
 import {
   normalizeStops,
@@ -257,6 +258,137 @@ assert.equal(
   null,
   "no oriented endpoint match -> null",
 );
+
+// 7b) A candidate must leave and arrive when the row says it does. PLK runs a
+//     day train on the night train's pair (IC 3808 Przemyśl 07:12 →
+//     Świnoujście 18:52 beside EN 430 / IC 28170 at 18:54 → 06:34); taken by
+//     endpoint cities alone, its stop list and times landed on the sleeper's
+//     row. The real train is a through car — PLK 37010 to Poznań, then 28170 —
+//     and is stitched from those two legs at the station they share.
+const ursaRow = {
+  agency_id: "PKP",
+  trip_short_name_0: "EN 430 / IC 28170",
+  origin_trip_0: "Przemyśl Gł.",
+  origin_departure_time_0: "18:54",
+  destination_trip_0: "Świnoujście",
+  destination_arrival_time_0: "06:34",
+};
+const ursaCands = [
+  {
+    number: "3808", // the day train on the same pair
+    stops: [
+      { name: "Przemyśl Główny", arr: null, dep: "07:12" },
+      { name: "Zielona Góra Główna", arr: "15:04", dep: "15:05" },
+      { name: "Świnoujście", arr: "18:52", dep: null },
+    ],
+  },
+  {
+    number: "37010", // EN 430 under its national number, on to Berlin
+    operatingDates: ["2026-10-22", "2026-10-23"],
+    stops: [
+      { name: "Przemyśl Główny", arr: null, dep: "18:55" },
+      { name: "Kraków Główny", arr: "21:21", dep: "21:35" },
+      { name: "Poznań Główny", arr: "02:22", dep: "03:19" },
+      { name: "Rzepin", arr: "04:46", dep: "04:49" },
+      { name: "Berlin Gesundbrunnen", arr: "06:37", dep: null },
+    ],
+  },
+  {
+    number: "28170",
+    operatingDates: ["2026-10-22", "2026-10-23"],
+    stops: [
+      { name: "Chełm", arr: null, dep: "18:18" },
+      { name: "Warszawa Centralna", arr: "21:43", dep: "22:16" },
+      { name: "Poznań Główny", arr: "02:41", dep: "03:14" },
+      { name: "Szczecin Główny", arr: "05:11", dep: "05:13" },
+      { name: "Świnoujście", arr: "06:39", dep: null },
+    ],
+  },
+];
+const ursa = plkScheduleForRow(ursaRow, ursaCands);
+assert.deepEqual(
+  ursa.pkp_schedule_0.map((s) => s.name),
+  [
+    "Przemyśl Główny",
+    "Kraków Główny",
+    "Poznań Główny",
+    "Szczecin Główny",
+    "Świnoujście",
+  ],
+  "through car stitched at Poznań, the day train refused",
+);
+assert.deepEqual(
+  [ursa.pkp_schedule_0[2].arr, ursa.pkp_schedule_0[2].dep],
+  ["02:22", "03:14"],
+  "the junction keeps the first leg's arrival and the second leg's departure",
+);
+assert.equal(ursa.pkp_schedule_0[0].dep, "18:55");
+assert.equal(ursa.pkp_valid_0?.validFrom, "20261022", "dates both legs run");
+assert.equal(
+  plkScheduleForRow(ursaRow, [ursaCands[0]]),
+  null,
+  "a day train alone is no match for the night train's row",
+);
+assert.equal(
+  plkScheduleForRow(ursaRow, [ursaCands[1], ursaCands[2]].map((c) => ({
+    ...c,
+    stops: c.stops.map((s) =>
+      s.name === "Poznań Główny" && c.number === "28170"
+        ? { ...s, dep: "08:00" }
+        : s,
+    ),
+  }))),
+  null,
+  "no stitch when the second leg leaves the junction hours after the first arrives",
+);
+
+// The committed PLK candidates against the committed rows: every row PLK
+// enriches now carries a schedule within the tolerance of its own clocks, and
+// the two through-car rows (EN 430 / IC 28170, TLK 35190/50191) are stitched.
+{
+  const vm = JSON.parse(
+    fs.readFileSync(
+      new URL("../public/data/scraped/backontrack-view_ontd_map.json", import.meta.url),
+      "utf8",
+    ),
+  ).data;
+  const plk = JSON.parse(
+    fs.readFileSync(
+      new URL("../public/data/scraped/pkp-plk-trains.json", import.meta.url),
+      "utf8",
+    ),
+  ).data.candidates;
+  const minutes = (t) => {
+    const m = /^(\d{1,2}):(\d{2})/.exec(t || "");
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  };
+  const gap = (a, b) => {
+    const d = Math.abs(minutes(a) - minutes(b)) % 1440;
+    return Math.min(d, 1440 - d);
+  };
+  let checked = 0;
+  for (const r of Object.values(vm)) {
+    if (!(r.official_sources ?? []).includes("pkp-plk")) continue;
+    for (const d of [0, 1]) {
+      const s = r[`pkp_schedule_${d}`];
+      if (!s?.length) continue;
+      const dep = r[`origin_departure_time_${d}`];
+      const arr = r[`destination_arrival_time_${d}`];
+      if (dep) assert.ok(gap(s[0].dep, dep) <= 90, `route ${r.route_id}/${d} departs ${s[0].dep}, row ${dep}`);
+      if (arr) assert.ok(gap(s.at(-1).arr, arr) <= 90, `route ${r.route_id}/${d} arrives ${s.at(-1).arr}, row ${arr}`);
+      checked += 1;
+    }
+  }
+  assert.ok(checked >= 20, `${checked} enriched directions checked`);
+  const r126 = plkScheduleForRow(vm["126"], plk, canonicalizeStationName);
+  assert.ok(
+    r126.via_0.includes("Poznań Główny") && !r126.via_0.includes("Zielona Góra"),
+    "EN 430 runs via Poznań, not the day train's Zielona Góra",
+  );
+  assert.equal(r126.pkp_schedule_1[0].dep, "21:33", "IC 82170 / EC 431 leaves Świnoujście 21:33");
+  const r10 = plkScheduleForRow(vm["10"], plk, canonicalizeStationName);
+  assert.equal(r10.pkp_schedule_0.at(-1).name, "Hel", "TLK 35190/50191 reaches Hel");
+}
 
 // 8) canonicalizeStationName — PLK ASCII/alternate names → canonical BoT names
 //    via the shared alias table, so international stops match BoT

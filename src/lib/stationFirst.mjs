@@ -143,6 +143,26 @@ export function stationFirstEndpoints(
 }
 
 /**
+ * Where the train of one direction really starts and ends: { from, to }.
+ * The bottom bar names a train this way — "Przemyśl Gł. – Świnoujście", not
+ * "Kraków Gł. – Świnoujście" from a click on Kraków — while
+ * stationFirstEndpoints still decides which of the two trains that is.
+ * Direction 1 is its own endpoints when the row states them, else direction
+ * 0 reversed (the same reading as directionStops below).
+ * @param {object} route viewMap row
+ * @param {0|1} direction
+ */
+export function trainEndpoints(route, direction) {
+  const a = route?.origin_trip_0 || route?.origin_trip_1 || "";
+  const b = route?.destination_trip_0 || route?.destination_trip_1 || "";
+  if (direction !== 1) return { from: a, to: b };
+  return {
+    from: route?.origin_trip_1 || b,
+    to: route?.destination_trip_1 || a,
+  };
+}
+
+/**
  * The bar's text per route, with the train number added only where two
  * routes would otherwise read the same — two different trains from Bologna
  * to Lecce (ICN 754 and ICN 758) must not look like one listed twice.
