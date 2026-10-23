@@ -326,9 +326,11 @@ const describeForPrices = (page) => {
     // The first run (2026-10-23): /TimeTable/Search carries a reCAPTCHA,
     // Easybook's search answers "Your searching is too frequency" with a
     // reCAPTCHA (its page states only "Fare start from RM 56.00", KITS's
-    // any-class minimum), and 12Go answers 202 with a 2 KB challenge page —
-    // all three are bot protection, and this map never works around it. What
-    // is left is whether KITS's own login is guarded too.
+    // any-class minimum), and 12Go answers 202 with an AWS WAF challenge —
+    // all three are bot protection, and this map never works around it.
+    // KITS's login page carries no captcha: a logged-in session is the one
+    // path left to a berth's price (/Trip/LayoutV2), and whether to use an
+    // account for that is the owner's call, not this probe's.
     "https://online.ktmb.com.my/Account/Login",
     `https://12go.asia/en/travel/johor-bahru/tumpat?date=${travel}&type=train`,
   ];
