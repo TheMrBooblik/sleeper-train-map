@@ -33,7 +33,7 @@ import { makeKitsClient } from "./lib/ktmb-kits.mjs";
 
 const outDir = process.argv[2] ?? null;
 const FEED_URL = process.env.KTMB_GTFS_URL || "https://api.data.gov.my/gtfs-static/ktmb";
-const MAX_REQUESTS = 40;
+const MAX_REQUESTS = 50;
 const SPACING_MS = 1_000;
 const MAX_TEXT = 12_000;
 
@@ -289,25 +289,58 @@ console.log("\n# online.ktmb.com.my (KITS search, before login)");
   console.log(`KITS: ${kits.requests} request(s)`);
 }
 
-// KTMB's own fare documents: per-class fares are what KITS shows only after
-// login, so what KTMB publishes is the other official place a berth's price
-// can be read. Printed as text (pdftotext, installed by the workflow).
-console.log("\n# KTMB fare documents");
-for (const url of [
-  "https://www.ktmb.com.my/assets/pdf/2025/Tambang%20Fleksi.pdf",
-  "https://www.ktmb.com.my/assets/pdf/2025/APPENDIX%201_TERMS%20AND%20CONDITIONS_%20ETS,%20INTERCITY%20&%20SHUTTLE%20TICKET%20SEP%202025.pdf",
-]) {
-  try {
-    const res = await fetch(url, { headers: { "User-Agent": HONEST_USER_AGENT }, signal: AbortSignal.timeout(60_000) });
-    console.log(`\n## ${url}\nstatus ${res.status}, ${res.headers.get("content-type")}`);
-    if (!res.ok) continue;
-    const file = path.join(dir, "doc.pdf");
-    fs.writeFileSync(file, Buffer.from(await res.arrayBuffer()));
-    const text = execSync(`pdftotext -layout "${file}" -`, { maxBuffer: 64 * 1024 * 1024 }).toString();
-    save(`${path.basename(new URL(url).pathname)}.txt`, text);
-    console.log(text.replace(/\n\s*\n+/g, "\n").slice(0, 25_000));
-  } catch (err) {
-    console.log(`failed: ${err?.message ?? err}`);
+// Where a berth's price could be read without logging in. KITS shows each
+// place's fare only after login, so this looks, read-only, at the two other
+// public places that might state it: KITS's own timetable page, and the
+// agents KTMB itself names as sellers (Easybook — KTMB's notice
+// "Notis-Easybook" — and 12Go). A block (detectBlock) ends that host.
+console.log("\n# Berth prices without login");
+const around = (text, re, width = 220, max = 25) => {
+  const out = [];
+  for (const m of text.matchAll(re)) {
+    out.push(text.slice(Math.max(0, m.index - width), m.index + width).replace(/\s+/g, " "));
+    if (out.length >= max) break;
+  }
+  return out;
+};
+const describeForPrices = (page) => {
+  if (!show(page, { text: false })) return;
+  const text = textOf(page.body);
+  console.log(`title: ${/<title[^>]*>([\s\S]*?)<\/title>/i.exec(page.body)?.[1]?.trim() ?? ""}`);
+  console.log(`forms: ${[...page.body.matchAll(/<form\b([^>]*)>/gi)].map((m) => m[1].replace(/\s+/g, " ").trim().slice(0, 200)).join("\n  ") || "none"}`);
+  for (const m of page.body.matchAll(/.{0,80}(recaptcha|turnstile|hcaptcha|captcha|cf-chl|challenge-platform).{0,80}/gi)) console.log(`  guard: …${m[0].replace(/\s+/g, " ")}…`);
+  const prices = around(text, /(MYR|RM)\s?\d+(\.\d+)?/g);
+  console.log(`price mentions (${prices.length}):`);
+  for (const p of prices) console.log(`  …${p}…`);
+  for (const p of around(text, /berth|katil|sleep|ADNS|Night/gi, 160, 10)) console.log(`  berth: …${p}…`);
+  const api = [...new Set([...page.body.matchAll(/["'`]((?:https?:\/\/[^"'`\s]+)?\/[A-Za-z0-9_\-./]*(?:api|search|trip|train|fare|price|schedule|seat)[A-Za-z0-9_\-./?=&]*)["'`]/gi)].map((m) => m[1]))];
+  console.log(`api-ish strings (${api.length}): ${api.slice(0, 80).join("  ")}`);
+  const links = linksOf(page.body, page.url).filter((l) => /tumpat|johor|jb-?sentral|ktm|train/i.test(l));
+  console.log(`relevant links (${links.length}): ${links.slice(0, 60).join("  ")}`);
+  console.log(text.slice(0, 3_000));
+  return links;
+};
+{
+  const travel = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+  const [y, m, d] = travel.split("-");
+  const candidates = [
+    "https://online.ktmb.com.my/TimeTable/Search",
+    "https://online.ktmb.com.my/TimeTable",
+    "https://www.easybook.com/en-my/train",
+    `https://www.easybook.com/en-my/train/booking/jbsentral-to-tumpat?d=${d}-${m}-${y}`,
+    "https://www.easybook.com/en-my/train/booking/jb-sentral-to-tumpat",
+    `https://12go.asia/en/travel/johor-bahru/tumpat?date=${travel}&type=train`,
+    "https://12go.asia/en/travel/johor-bahru/kota-bharu?type=train",
+  ];
+  const followed = new Set();
+  for (const url of candidates) {
+    const links = describeForPrices(await get(url)) ?? [];
+    // One hop further on the agent sites: the first page naming Tumpat.
+    const next = links.find((l) => /tumpat/i.test(l) && !followed.has(l) && !candidates.includes(l));
+    if (next && /easybook|12go/.test(next)) {
+      followed.add(next);
+      describeForPrices(await get(next));
+    }
   }
 }
 
