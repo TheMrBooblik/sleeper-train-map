@@ -317,20 +317,20 @@ const describeForPrices = (page) => {
   console.log(`api-ish strings (${api.length}): ${api.slice(0, 80).join("  ")}`);
   const links = linksOf(page.body, page.url).filter((l) => /tumpat|johor|jb-?sentral|ktm|train/i.test(l));
   console.log(`relevant links (${links.length}): ${links.slice(0, 60).join("  ")}`);
-  console.log(text.slice(0, 3_000));
+  console.log(page.body.length < 5_000 ? `raw: ${page.body}` : text.slice(0, 3_000));
   return links;
 };
 {
   const travel = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
-  const [y, m, d] = travel.split("-");
   const candidates = [
-    "https://online.ktmb.com.my/TimeTable/Search",
-    "https://online.ktmb.com.my/TimeTable",
-    "https://www.easybook.com/en-my/train",
-    `https://www.easybook.com/en-my/train/booking/jbsentral-to-tumpat?d=${d}-${m}-${y}`,
-    "https://www.easybook.com/en-my/train/booking/jb-sentral-to-tumpat",
+    // The first run (2026-10-23): /TimeTable/Search carries a reCAPTCHA,
+    // Easybook's search answers "Your searching is too frequency" with a
+    // reCAPTCHA (its page states only "Fare start from RM 56.00", KITS's
+    // any-class minimum), and 12Go answers 202 with a 2 KB challenge page —
+    // all three are bot protection, and this map never works around it. What
+    // is left is whether KITS's own login is guarded too.
+    "https://online.ktmb.com.my/Account/Login",
     `https://12go.asia/en/travel/johor-bahru/tumpat?date=${travel}&type=train`,
-    "https://12go.asia/en/travel/johor-bahru/kota-bharu?type=train",
   ];
   const followed = new Set();
   for (const url of candidates) {
