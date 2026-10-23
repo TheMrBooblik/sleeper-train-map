@@ -12,6 +12,7 @@ import fs from "node:fs";
 import {
   orderByPromotion,
   promotionRank,
+  stackPathsByPromotion,
 } from "../src/lib/operatorPromotion.mjs";
 import {
   directionBetween,
@@ -111,6 +112,68 @@ check(
     assert.deepStrictEqual(
       orderByPromotion(routes, table, { isNotRunning }).map((r) => r.route_id),
       ["es_400", "icn", "nj", "239"],
+    );
+  },
+);
+
+check(
+  "map lines stack promoted operators on top, rank 1 last, hovered above all",
+  () => {
+    const table = { ES: { rank: 1 }, FS: { rank: 2 } };
+    const rows = {
+      bud: { agency_id: "MÁV" }, // Berlin–Budapest, shares track with ES
+      es: { agency_id: "ES" },
+      icn: { agency_id: "FS" },
+      nj: { agency_id: "ÖBB" },
+      esFuture: { agency_id: "ES" },
+    };
+    const paths = [
+      { key: "es-0", routeId: "es" },
+      { key: "bud-0", routeId: "bud" },
+      { key: "icn-0", routeId: "icn" },
+      { key: "es-1", routeId: "es" },
+      { key: "nj-0", routeId: "nj" },
+      { key: "esFuture-0", routeId: "esFuture", isFuture: true },
+    ];
+    const routeOf = (p) => rows[p.routeId];
+    const keys = (opts) =>
+      stackPathsByPromotion(paths, routeOf, { table, ...opts }).map(
+        (p) => p.key,
+      );
+    // Drawn later = on top: European Sleeper over Trenitalia over the rest;
+    // a faded future timetable is not promoted over a running train.
+    assert.deepStrictEqual(keys(), [
+      "bud-0",
+      "nj-0",
+      "esFuture-0",
+      "icn-0",
+      "es-0",
+      "es-1",
+    ]);
+    // The hovered route rises above even European Sleeper.
+    assert.deepStrictEqual(keys({ raisedRouteId: "bud" }).slice(-1), [
+      "bud-0",
+    ]);
+    assert.deepStrictEqual(stackPathsByPromotion(null, routeOf), []);
+  },
+);
+
+check(
+  "the map draws lines in promotion order and re-raises mounted layers",
+  () => {
+    const src = fs.readFileSync(
+      new URL("../src/components/Map/DynamicMap.js", import.meta.url),
+      "utf8",
+    );
+    assert.ok(
+      /stackPathsByPromotion\(/.test(src),
+      "DynamicMap must order its route lines with stackPathsByPromotion",
+    );
+    // Re-ordering keyed React children never moves a mounted Leaflet layer,
+    // so the order alone only holds for the first mount.
+    assert.ok(
+      /bringToFront\(\)/.test(src),
+      "DynamicMap must bring promoted / hovered layers to the front",
     );
   },
 );

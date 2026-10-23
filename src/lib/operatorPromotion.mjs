@@ -55,3 +55,39 @@ export function orderByPromotion(
     )
     .map((x) => x.route);
 }
+
+/**
+ * The map's drawing order for route lines: the same promotion, as stacking.
+ * SVG paints later paths over earlier ones, so where lines share track the
+ * last one drawn is the one you see — European Sleeper's Berlin–Prague line
+ * vanished under the Berlin–Budapest one. Unpromoted lines first, in the order
+ * they came; then promoted ones, worst rank first, so rank 1 ends up on top;
+ * then the `raisedRouteId` (the hovered route), above everything.
+ *
+ * A path marked `isFuture` (a timetable that has not begun, drawn faded) is
+ * not promoted: a ghost line laid over a running train hides the train you
+ * can take tonight behind one you cannot.
+ *
+ * `routeOf(path)` returns the path's viewMap row. Returns a new array.
+ */
+export function stackPathsByPromotion(
+  paths,
+  routeOf,
+  { table = PROMOTION.operators, raisedRouteId = null } = {},
+) {
+  const raised = raisedRouteId == null ? null : String(raisedRouteId);
+  return (paths ?? [])
+    .map((path, i) => {
+      const isRaised = raised !== null && String(path?.routeId) === raised;
+      const rank = path?.isFuture ? Infinity : promotionRank(routeOf?.(path), table);
+      // Higher layer = drawn later. Unpromoted 0; promoted above by rank.
+      const layer = isRaised ? 2 : Number.isFinite(rank) ? 1 : 0;
+      return { path, i, layer, rank };
+    })
+    .sort(
+      (a, b) =>
+        a.layer - b.layer ||
+        (a.layer === 1 && a.rank !== b.rank ? b.rank - a.rank : a.i - b.i),
+    )
+    .map((x) => x.path);
+}
