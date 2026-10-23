@@ -6,7 +6,10 @@
     "maxRequests caps every request to nightjet.com, robots.txt included, spacingSeconds apart; what the cap drops is logged.",
     "shop: the ÖBB shop step — robots.txt, then the anonymous token (where a block will show), and only on a 200 the timetable and offers for maxTrainNights nights, spacingSeconds apart, honest User-Agent and functional headers only. A block ends it; it is never retried or worked around."
   ],
-  "disputed": [],
+  "disputed": [
+    { "train": "NJ 465", "date": "2026-10-26", "shop": { "price": 54.9, "product": "Sparschiene", "compartment": "Liegewagen 4er/6er" }, "note": "owner screenshot: stored couchette 39.9 = stored seat 39.9; shop seat from 39.90, couchette from 54.90" },
+    { "train": "NJ 19946", "date": "2026-11-02", "shop": { "price": 54.9, "product": "Sparschiene", "compartment": "Liegewagen 4er" }, "note": "owner screenshot: stored couchette 39.9, seat 24.9; shop seat from 24.90 (matches), couchette from 54.90" }
+  ],
   "maxRequests": 60,
   "spacingSeconds": 2,
   "anomaliesPerKind": 4,

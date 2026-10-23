@@ -788,6 +788,20 @@ export function getRouteDetail(routeId) {
  * link, and the raw regular fares the weekday/lead-time figures are measured
  * on. For /cheap-night-trains.
  */
+/**
+ * Fare sources whose figures the cheap-trains page does not rank, because
+ * they are known to disagree with the booking page their Book button opens.
+ * nightjet.com's Train Price Search quotes Sparschiene couchettes the ÖBB shop
+ * does not sell at that price: NJ 465 Zürich → Graz on 26 Oct 2026 and
+ * NJ 19946 Wien → Bregenz on 2 Nov 2026 both read €39.90 there (the probe of
+ * 15 Oct read the same €39.90 live), while the shop sold couchettes from
+ * €54.90 on both nights, seats matching to the cent. A page that sorts by
+ * price puts exactly those nights first, so a source stays off it until its
+ * figures are confirmed against the shop; the connection pages keep its
+ * calendar, where a night is one of forty-two rather than the headline.
+ */
+export const UNRANKED_FARE_SOURCES = new Set(["nightjet"]);
+
 export function getFareOverviewTrains() {
   const { viewMap } = getPublished();
   const today = new Date().toISOString().slice(0, 10);
@@ -798,6 +812,7 @@ export function getFareOverviewTrains() {
   const seen = new Set();
   for (const route of Object.values(viewMap)) {
     for (const dir of [0, 1]) {
+      if (UNRANKED_FARE_SOURCES.has(route.timetable_source)) continue;
       const calendar = route[`fare_calendar_${dir}`];
       const label = (route[`trip_short_name_${dir}`] || "").trim();
       if (!calendar?.nights || !label) continue;

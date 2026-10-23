@@ -32,7 +32,7 @@ const SPONSORED = "sponsored nofollow noopener noreferrer";
 
 function description(o) {
   const parts = [
-    `Lowest berth fare for every night of the next six weeks on ${o.trainCount} night trains (Nightjet, European Sleeper, Intercity Notte).`,
+    `Lowest berth fare for every night of the coming weeks on ${o.trainCount} night trains (${listNames(o.operatorNames)}).`,
   ];
   if (o.deals.length) parts.push(`${o.deals.length} deals from ${o.dealsFrom}.`);
   parts.push("Updated daily.");
