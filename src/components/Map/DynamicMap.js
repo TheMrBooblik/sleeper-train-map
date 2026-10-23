@@ -49,7 +49,11 @@ import {
   routesBetweenStations,
   endpointsInDirection,
 } from "../../lib/stationFirst.mjs";
-import { orderByPromotion } from "../../lib/operatorPromotion.mjs";
+import {
+  orderByPromotion,
+  promotionRank,
+  stackPathsByPromotion,
+} from "../../lib/operatorPromotion.mjs";
 import { splitViaString } from "../../lib/viaSplit.mjs";
 import { useRoutePaths } from "./hooks/useRoutePaths";
 import { useMapMarkers } from "./hooks/useMapMarkers";
@@ -912,22 +916,46 @@ const TrainMap = ({
     return Object.keys(out).length ? out : null;
   }, [stationFirstFor, selectedTrainRouteIds, viewMapData]);
 
+  // Drawing order: promoted (affiliate) operators' lines over everyone else's
+  // where they share track, and the hovered route over all of them.
   const visibleRoutePaths = useMemo(() => {
-    if (!hoveredRouteId || routePaths.length === 0) return routePaths;
+    if (routePaths.length === 0) return routePaths;
+    return stackPathsByPromotion(
+      routePaths,
+      (path) => viewMapData?.[String(path.routeId)],
+      { raisedRouteId: hoveredRouteId },
+    );
+  }, [routePaths, viewMapData, hoveredRouteId]);
 
-    // Draw hovered route last so it stays fully visible on top of overlapping lines.
-    const nonHovered = [];
-    const hovered = [];
-    routePaths.forEach((path) => {
-      if (String(path.routeId) === hoveredRouteId) {
-        hovered.push(path);
-      } else {
-        nonHovered.push(path);
+  // The array order above only decides the order layers are first added in:
+  // React re-ordering keyed children never moves a mounted Leaflet layer, so a
+  // line mounted later (a selection cleared, "show routes" toggled) would land
+  // on top of a promoted one, and hovering would raise nothing. So after each
+  // change, bring every path that ranks above "unpromoted" to the front, in
+  // stacking order. Child layers are added in their own effects, which run
+  // before this one.
+  const routeLayersRef = useRef(new Map());
+  const setRouteLayer = useCallback((key, layer) => {
+    if (layer) routeLayersRef.current.set(key, layer);
+    else routeLayersRef.current.delete(key);
+  }, []);
+  useEffect(() => {
+    const raised = hoveredRouteId == null ? null : String(hoveredRouteId);
+    const layers = routeLayersRef.current;
+    visibleRoutePaths.forEach((path) => {
+      const promoted =
+        (raised !== null && String(path.routeId) === raised) ||
+        (!path.isFuture &&
+          Number.isFinite(
+            promotionRank(viewMapData?.[String(path.routeId)]),
+          ));
+      if (!promoted) return;
+      for (const suffix of ["vis", "hit"]) {
+        const layer = layers.get(`${path.key}-${suffix}`);
+        if (layer?._map) layer.bringToFront();
       }
     });
-
-    return [...nonHovered, ...hovered];
-  }, [routePaths, hoveredRouteId]);
+  }, [visibleRoutePaths, viewMapData, hoveredRouteId]);
 
   // Only apply route-dimming preview while the bottom bar route list is active.
   const shouldApplyHoverPreview =
@@ -1043,6 +1071,7 @@ const TrainMap = ({
                 {/* Invisible wide hit trap — large touch/click target without altering visual weight */}
                 <Polyline
                   key={`${path.key}-hit`}
+                  ref={(layer) => setRouteLayer(`${path.key}-hit`, layer)}
                   positions={path.positions}
                   pathOptions={{
                     color: "transparent",
@@ -1116,6 +1145,7 @@ const TrainMap = ({
                 {/* Visual polyline — non-interactive, purely decorative */}
                 <Polyline
                   key={`${path.key}-vis`}
+                  ref={(layer) => setRouteLayer(`${path.key}-vis`, layer)}
                   positions={path.positions}
                   pathOptions={{
                     ...path.pathOptions,
