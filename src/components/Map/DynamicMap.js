@@ -11,7 +11,7 @@ import React, {
 import Leaflet from "leaflet";
 import * as ReactLeaflet from "react-leaflet";
 
-const { MapContainer, Marker, TileLayer, Polyline, Tooltip, useMap } = ReactLeaflet;
+const { MapContainer, Marker, TileLayer, Tooltip, useMap } = ReactLeaflet;
 import "leaflet/dist/leaflet.css";
 
 import Filter from "src/components/Filter";
@@ -60,6 +60,8 @@ import { useMapMarkers } from "./hooks/useMapMarkers";
 import LoadingOverlay from "./components/LoadingOverlay";
 import MapClickHandler from "./components/MapClickHandler";
 import MapViewportTracker from "./components/MapViewportTracker";
+import { nextCullRegion } from "./utils/markerCulling";
+import { DecimatedPolyline } from "./components/DecimatedPolyline";
 import MarkerTooltipGuard from "./components/MarkerTooltipGuard";
 import { liftForDarkMap } from "../../lib/mapTheme.mjs";
 import { upcomingRun, rowNextDeparture } from "../../lib/nextDeparture.mjs";
@@ -190,6 +192,8 @@ const TrainMap = ({
   const cdTrainsCacheRef = useRef(null);
   const [mapZoom, setMapZoom] = useState(null);
   const [mapBounds, setMapBounds] = useState(null);
+  // The part of the world station markers are rendered for (markerCulling.js).
+  const [cullRegion, setCullRegion] = useState(null);
 
   const { routePaths } = useRoutePaths({
     viewMapData,
@@ -250,6 +254,12 @@ const TrainMap = ({
   const handleViewportChange = useCallback(({ zoom, bounds }) => {
     setMapZoom(zoom);
     setMapBounds(bounds);
+  }, []);
+
+  // Same identity while the view stays inside the region, so an ordinary pan
+  // re-renders nothing.
+  const handleViewportSettle = useCallback(({ zoom, bounds }) => {
+    setCullRegion((current) => nextCullRegion(current, bounds, zoom));
   }, []);
 
   // Guard against stale hover state. If the bottom bar is not in the
@@ -846,6 +856,7 @@ const TrainMap = ({
     routeFilteredMode: hasRouteFilter,
     mapZoom,
     mapBounds,
+    cullRegion,
   });
 
   const overallLoading = initialDataLoading;
@@ -970,6 +981,137 @@ const TrainMap = ({
   // client-only (`ssr: false`), so `window` exists on the first render.
   const stickyLineTooltip = useMemo(() => hasFinePointer(), []);
 
+  // The route lines, as elements that keep their identity until something
+  // they show changes. This component re-renders on every zoom (mapZoom and
+  // mapBounds are its state), and a fresh polyline element with a fresh pathOptions
+  // object makes react-leaflet call setStyle on every one of ~600 lines, each
+  // asking the canvas for a redraw — on every zoom step, for nothing.
+  const routeLayers = useMemo(
+    () =>
+      visibleRoutePaths.map((path) => {
+        const resolvedOpacity = shouldApplyHoverPreview
+          ? String(path.routeId) === hoveredRouteId
+            ? 0.95
+            : 0.2
+          : path.pathOptions.opacity;
+        const resolvedWeight = shouldApplyHoverPreview
+          ? String(path.routeId) === hoveredRouteId
+            ? Math.max(
+                path.pathOptions.weight || 1,
+                (path.pathOptions.weight || 4) + 1.5,
+              )
+            : path.pathOptions.weight
+          : path.pathOptions.weight;
+        return (
+          <React.Fragment key={path.key}>
+            {/* Invisible wide hit trap — large touch/click target without altering visual weight */}
+            <DecimatedPolyline
+              key={`${path.key}-hit`}
+              ref={(layer) => setRouteLayer(`${path.key}-hit`, layer)}
+              positions={path.positions}
+              pathOptions={{
+                color: "transparent",
+                weight: 24,
+                opacity: 0,
+                fillOpacity: 0,
+                interactive: true,
+                cursor: "pointer",
+              }}
+              eventHandlers={{
+                click: (e) => {
+                  e.originalEvent.stopPropagation();
+                  handlePolylineClick(path.routeId);
+                },
+              }}
+            >
+              <Tooltip sticky={stickyLineTooltip}>
+                {(() => {
+                  if (path.isBusConnector) {
+                    return path.busFrom && path.busTo
+                      ? `Bus replacement: ${path.busFrom} → ${path.busTo}`
+                      : "Bus replacement";
+                  }
+                  const route = viewMapData
+                    ? Object.values(viewMapData).find(
+                        (r) =>
+                          r?.route_id &&
+                          r.route_id.toString() === String(path.routeId),
+                      )
+                    : null;
+                  if (!route) return `Route ${path.routeId}`;
+
+                  // With a station selected, the train as the traveller
+                  // there boards it — the bottom bar's words for the line.
+                  const ends = stationFirstFor?.(route);
+                  const isDirectionOne = ends
+                    ? ends.direction === 1
+                    : path.key.includes("-1-");
+                  const origin = ends
+                    ? ends.from
+                    : isDirectionOne
+                      ? route.origin_trip_1 || route.origin_trip_0
+                      : route.origin_trip_0 || route.origin_trip_1;
+                  const destination = ends
+                    ? ends.to
+                    : isDirectionOne
+                      ? route.destination_trip_1 || route.destination_trip_0
+                      : route.destination_trip_0 ||
+                        route.destination_trip_1;
+                  const trainNumber = formatTrainNumber(
+                    isDirectionOne
+                      ? route.trip_short_name_1 || route.trip_short_name_0
+                      : route.trip_short_name_0 || route.trip_short_name_1,
+                    route.bot_agency_id || route.agency_id,
+                  );
+
+                  const segment = `${origin || "?"} → ${destination || "?"}`;
+                  const label = trainNumber
+                    ? `${trainNumber}: ${segment}`
+                    : `Route: ${segment}`;
+                  if (!path.isFuture) return label;
+                  // A seasonal train says so: "Summer only, next season
+                  // from 25 Jun 2027" rather than a bare date.
+                  const run = upcomingRun(route);
+                  return run?.seasonal
+                    ? `${label} · ${run.badge}, next season from ${run.nextDepartureText}`
+                    : `${label} · from ${formatFutureDate(path.futureStartDate)}`;
+                })()}
+              </Tooltip>
+            </DecimatedPolyline>
+            {/* Visual polyline — non-interactive, purely decorative */}
+            <DecimatedPolyline
+              key={`${path.key}-vis`}
+              ref={(layer) => setRouteLayer(`${path.key}-vis`, layer)}
+              positions={path.positions}
+              pathOptions={{
+                ...path.pathOptions,
+                // Navy and midnight-blue brands vanish on the dark
+                // basemap; lifted to a visible lightness, same hue.
+                color: isDarkMap
+                  ? liftForDarkMap(path.pathOptions.color)
+                  : path.pathOptions.color,
+                cursor: "pointer",
+                opacity: resolvedOpacity,
+                weight: resolvedWeight,
+                interactive: false,
+              }}
+            />
+          </React.Fragment>
+        );
+      }),
+    [
+      visibleRoutePaths,
+      shouldApplyHoverPreview,
+      hoveredRouteId,
+      isDarkMap,
+      stickyLineTooltip,
+      viewMapData,
+      stationFirstFor,
+      handlePolylineClick,
+      setRouteLayer,
+    ],
+  );
+
   // Every coordinate of the selected route, so the map can frame it clear of
   // the detail panel. `useRoutePaths` already narrows to the selection, but
   // filter by id anyway: a route can contribute several path segments.
@@ -1033,7 +1175,10 @@ const TrainMap = ({
           hasSelection={hasSelection}
           onClearFilter={handleFilterClose}
         />
-        <MapViewportTracker onViewportChange={handleViewportChange} />
+        <MapViewportTracker
+          onViewportChange={handleViewportChange}
+          onViewportSettle={handleViewportSettle}
+        />
         <MarkerTooltipGuard />
         <MapFlyController
           target={flyToTarget}
@@ -1051,118 +1196,7 @@ const TrainMap = ({
         <ZoomControl className="outline-none" />
         <LocationControl />
 
-        {visibleRoutePaths.length > 0 &&
-          visibleRoutePaths.map((path) => {
-            const resolvedOpacity = shouldApplyHoverPreview
-              ? String(path.routeId) === hoveredRouteId
-                ? 0.95
-                : 0.2
-              : path.pathOptions.opacity;
-            const resolvedWeight = shouldApplyHoverPreview
-              ? String(path.routeId) === hoveredRouteId
-                ? Math.max(
-                    path.pathOptions.weight || 1,
-                    (path.pathOptions.weight || 4) + 1.5,
-                  )
-                : path.pathOptions.weight
-              : path.pathOptions.weight;
-            return (
-              <React.Fragment key={path.key}>
-                {/* Invisible wide hit trap — large touch/click target without altering visual weight */}
-                <Polyline
-                  key={`${path.key}-hit`}
-                  ref={(layer) => setRouteLayer(`${path.key}-hit`, layer)}
-                  positions={path.positions}
-                  pathOptions={{
-                    color: "transparent",
-                    weight: 24,
-                    opacity: 0,
-                    fillOpacity: 0,
-                    interactive: true,
-                    cursor: "pointer",
-                  }}
-                  eventHandlers={{
-                    click: (e) => {
-                      e.originalEvent.stopPropagation();
-                      handlePolylineClick(path.routeId);
-                    },
-                  }}
-                >
-                  <Tooltip sticky={stickyLineTooltip}>
-                    {(() => {
-                      if (path.isBusConnector) {
-                        return path.busFrom && path.busTo
-                          ? `Bus replacement: ${path.busFrom} → ${path.busTo}`
-                          : "Bus replacement";
-                      }
-                      const route = viewMapData
-                        ? Object.values(viewMapData).find(
-                            (r) =>
-                              r?.route_id &&
-                              r.route_id.toString() === String(path.routeId),
-                          )
-                        : null;
-                      if (!route) return `Route ${path.routeId}`;
-
-                      // With a station selected, the train as the traveller
-                      // there boards it — the bottom bar's words for the line.
-                      const ends = stationFirstFor?.(route);
-                      const isDirectionOne = ends
-                        ? ends.direction === 1
-                        : path.key.includes("-1-");
-                      const origin = ends
-                        ? ends.from
-                        : isDirectionOne
-                          ? route.origin_trip_1 || route.origin_trip_0
-                          : route.origin_trip_0 || route.origin_trip_1;
-                      const destination = ends
-                        ? ends.to
-                        : isDirectionOne
-                          ? route.destination_trip_1 || route.destination_trip_0
-                          : route.destination_trip_0 ||
-                            route.destination_trip_1;
-                      const trainNumber = formatTrainNumber(
-                        isDirectionOne
-                          ? route.trip_short_name_1 || route.trip_short_name_0
-                          : route.trip_short_name_0 || route.trip_short_name_1,
-                        route.bot_agency_id || route.agency_id,
-                      );
-
-                      const segment = `${origin || "?"} → ${destination || "?"}`;
-                      const label = trainNumber
-                        ? `${trainNumber}: ${segment}`
-                        : `Route: ${segment}`;
-                      if (!path.isFuture) return label;
-                      // A seasonal train says so: "Summer only, next season
-                      // from 25 Jun 2027" rather than a bare date.
-                      const run = upcomingRun(route);
-                      return run?.seasonal
-                        ? `${label} · ${run.badge}, next season from ${run.nextDepartureText}`
-                        : `${label} · from ${formatFutureDate(path.futureStartDate)}`;
-                    })()}
-                  </Tooltip>
-                </Polyline>
-                {/* Visual polyline — non-interactive, purely decorative */}
-                <Polyline
-                  key={`${path.key}-vis`}
-                  ref={(layer) => setRouteLayer(`${path.key}-vis`, layer)}
-                  positions={path.positions}
-                  pathOptions={{
-                    ...path.pathOptions,
-                    // Navy and midnight-blue brands vanish on the dark
-                    // basemap; lifted to a visible lightness, same hue.
-                    color: isDarkMap
-                      ? liftForDarkMap(path.pathOptions.color)
-                      : path.pathOptions.color,
-                    cursor: "pointer",
-                    opacity: resolvedOpacity,
-                    weight: resolvedWeight,
-                    interactive: false,
-                  }}
-                />
-              </React.Fragment>
-            );
-          })}
+        {routeLayers}
         {markers}
       </MapContainer>
 

@@ -12,7 +12,50 @@ import {
 } from "../utils/routeStyleUtils";
 import { createMapIcons, stationHitSize } from "../utils/mapIcons";
 import { thinStationsByViewport } from "../utils/thinStationsByViewport";
+import { isInsideCullRegion } from "../utils/markerCulling";
 import { alwaysShowStations } from "../../../data/alwaysShowStations";
+
+const GROUP_ICON_STYLES = {
+  selected: {
+    bgGradient: "linear-gradient(135deg, #FF9800, #F57C00)",
+    shadow: "0 3px 8px rgba(255, 152, 0, 0.6)",
+  },
+  via: {
+    bgGradient: "linear-gradient(135deg, #4CAF50, #388E3C)",
+    shadow: "0 3px 8px rgba(76, 175, 80, 0.4), 0 0 0 1px rgba(76, 175, 80, 0.2)",
+  },
+  default: {
+    bgGradient: "linear-gradient(135deg, #2196F3, #1976D2)",
+    shadow: "0 3px 8px rgba(33, 150, 243, 0.4), 0 0 0 1px rgba(33, 150, 243, 0.2)",
+  },
+};
+
+// One DivIcon per look, reused across renders. A fresh icon object on every
+// pass made react-leaflet call setIcon on every grouped marker after each zoom,
+// and Leaflet rebuilds an icon's DOM from scratch when it changes.
+const groupIconCache = new Map();
+function groupedStationIcon(variant, groupSize, hitSize) {
+  const key = `${variant}|${groupSize}|${hitSize}`;
+  let icon = groupIconCache.get(key);
+  if (icon) return icon;
+  const { bgGradient, shadow } = GROUP_ICON_STYLES[variant];
+  icon = new Leaflet.DivIcon({
+    className:
+      variant === "selected" ? "grouped-station-dot selected" : "grouped-station-dot",
+    // Hit area around the 20px visual dot — wide on touch, tight for a
+    // mouse (same pointer-aware size as createMapIcons).
+    html: `<div style="width:${hitSize}px;height:${hitSize}px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+      <div style="width:20px;height:20px;background:${bgGradient};border-radius:50%;border:3px solid var(--station-ring, white);box-shadow:${shadow};transition:all 0.3s ease;z-index:1000;position:relative;">
+      <div style="position:absolute;top:-8px;left:-8px;background:linear-gradient(135deg,#FF9800,#F57C00);color:white;border-radius:50%;width:16px;height:16px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:bold;border:2px solid var(--station-ring, white);box-shadow:0 2px 6px rgba(255,152,0,0.5);z-index:2000;">
+        ${groupSize}
+      </div>
+    </div></div>`,
+    iconSize: [hitSize, hitSize],
+    iconAnchor: [hitSize / 2, hitSize / 2],
+  });
+  groupIconCache.set(key, icon);
+  return icon;
+}
 
 /**
  * Hook: builds Back-on-Track station markers (grouped or not, with correct icons).
@@ -36,6 +79,7 @@ export function useMapMarkers({
   routeFilteredMode = false,
   mapZoom = null,
   mapBounds = null,
+  cullRegion = null,
 }) {
   const { defaultIcon, selectedIcon, viaIcon, futureIcon } = useMemo(
     () => createMapIcons(Leaflet),
@@ -62,9 +106,21 @@ export function useMapMarkers({
     // Breda with no markers on it. Those stops stay, faded — see futureIcon.
     const upcomingPreviews = upcomingPreviewRouteIds(viewMapData);
     const isUpcomingPreview = (routeId) => upcomingPreviews.has(String(routeId));
-    const seasonHasPassed = (routeId, route) =>
-      shouldHideRouteDueToFutureDate(routeId, trips, route) &&
-      !isUpcomingPreview(routeId);
+    // Asked for every route of every candidate stop, and the answer depends
+    // only on the route — so answer it once per route per pass, not once per
+    // stop that calls there.
+    const seasonPassedByRoute = new Map();
+    const seasonHasPassed = (routeId, route) => {
+      const key = String(routeId);
+      let passed = seasonPassedByRoute.get(key);
+      if (passed === undefined) {
+        passed =
+          shouldHideRouteDueToFutureDate(key, trips, route) &&
+          !isUpcomingPreview(key);
+        seasonPassedByRoute.set(key, passed);
+      }
+      return passed;
+    };
 
     if (hideIntermediateStations && viewMapData) {
       if (!filteredStops?.length) return [];
@@ -219,12 +275,17 @@ export function useMapMarkers({
 
     // GTFS route-filter markers may not exist in Back-on-Track city metadata.
     // Keep them visible by disabling city-grouping in this mode.
-    let groupedStops = groupCityMarkers(
+    // Grouped first, so a city's marker is kept or culled by where it is
+    // drawn (its anchor station), then only what is near the screen becomes a
+    // Leaflet marker — see markerCulling.js for why that matters.
+    const groupedStops = groupCityMarkers(
       stopsToShow,
       cities,
       routeFilteredMode ? false : isGrouped,
       normalizeStationNameForDisplay,
       normalizeStationNameForLookup,
+    ).filter((stop) =>
+      isInsideCullRegion(cullRegion, stop?.stop_lat, stop?.stop_lon),
     );
 
     const routeIdMap = new Map();
@@ -323,34 +384,11 @@ export function useMapMarkers({
         else if (isViaStationForFilteredRoutes) iconToUse = viaIcon;
 
         if (filteredStop.isGrouped) {
-          const isViaGroup = !isSelected && isViaStationForFilteredRoutes;
-          let bgGradient, shadow;
-          if (isSelected) {
-            bgGradient = "linear-gradient(135deg, #FF9800, #F57C00)";
-            shadow = "0 3px 8px rgba(255, 152, 0, 0.6)";
-          } else if (isViaGroup) {
-            bgGradient = "linear-gradient(135deg, #4CAF50, #388E3C)";
-            shadow = "0 3px 8px rgba(76, 175, 80, 0.4), 0 0 0 1px rgba(76, 175, 80, 0.2)";
-          } else {
-            bgGradient = "linear-gradient(135deg, #2196F3, #1976D2)";
-            shadow = "0 3px 8px rgba(33, 150, 243, 0.4), 0 0 0 1px rgba(33, 150, 243, 0.2)";
-          }
-          const groupIcon = new Leaflet.DivIcon({
-            className: isSelected
-              ? "grouped-station-dot selected"
-              : "grouped-station-dot",
-            // Hit area around the 20px visual dot — wide on touch, tight for a
-            // mouse (same pointer-aware size as createMapIcons).
-            html: `<div style="width:${hitSize}px;height:${hitSize}px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
-              <div style="width:20px;height:20px;background:${bgGradient};border-radius:50%;border:3px solid var(--station-ring, white);box-shadow:${shadow};transition:all 0.3s ease;z-index:1000;position:relative;">
-              <div style="position:absolute;top:-8px;left:-8px;background:linear-gradient(135deg,#FF9800,#F57C00);color:white;border-radius:50%;width:16px;height:16px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:bold;border:2px solid var(--station-ring, white);box-shadow:0 2px 6px rgba(255,152,0,0.5);z-index:2000;">
-                ${filteredStop.groupSize}
-              </div>
-            </div></div>`,
-            iconSize: [hitSize, hitSize],
-            iconAnchor: [hitSize / 2, hitSize / 2],
-          });
-          iconToUse = groupIcon;
+          iconToUse = groupedStationIcon(
+            isSelected ? "selected" : isViaStationForFilteredRoutes ? "via" : "default",
+            filteredStop.groupSize,
+            hitSize,
+          );
         }
 
         return (
@@ -405,6 +443,7 @@ export function useMapMarkers({
     routeFilteredMode,
     mapZoom,
     mapBounds,
+    cullRegion,
     defaultIcon,
     selectedIcon,
     viaIcon,
