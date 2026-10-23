@@ -73,6 +73,9 @@ export const OPERATORS = {
   // Thailand
   SRT: { name: "State Railway of Thailand", slug: "state-railway-of-thailand" },
 
+  // Malaysia
+  KTMB: { name: "KTM Berhad", slug: "ktm-berhad" },
+
   // Vietnam
   VNR: { name: "Vietnam Railways", slug: "vietnam-railways" },
 

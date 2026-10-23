@@ -1,0 +1,7 @@
+service_id,date,exception_type
+komuter_weekday,20260825,2
+komuter_weekend,20260825,1
+komuter_weekday,20260831,2
+komuter_weekend,20260831,1
+komuter_weekday,20260916,2
+komuter_weekend,20260916,1
