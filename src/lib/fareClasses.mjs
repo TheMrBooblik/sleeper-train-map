@@ -166,6 +166,27 @@ export const COUCHETTE_CLASS_KEYS = new Set([
 ]);
 export const isCouchetteClass = (key) => COUCHETTE_CLASS_KEYS.has(key);
 
+/**
+ * A night's classes without any berth priced at or below that night's own
+ * seat (`entry.seat`, Nightjet's cheapest seated place). A berth is a ticket
+ * plus a berth supplement, so one that costs no more than the seat is a seat
+ * price under a berth's name: NJ 465 Zürich → Graz on 26 October 2026 was
+ * stored as a €39.90 couchette, while ÖBB's shop sold seats from €39.90 and
+ * couchettes from €54.90. The scrape keeps such a figure as read and names it
+ * in its seat-check log (berthsAtOrBelowSeat, scripts/lib/nj-fares.mjs); every
+ * reader of a night's price goes through here, so none of them quotes it.
+ * A night with no seat price (every other source) is returned unchanged.
+ */
+export function credibleClasses(entry) {
+  const classes = entry?.classes;
+  if (!classes || typeof classes !== "object") return {};
+  const seat = entry.seat;
+  if (!Number.isFinite(seat)) return classes;
+  return Object.fromEntries(
+    Object.entries(classes).filter(([, amount]) => !(Number.isFinite(amount) && amount <= seat)),
+  );
+}
+
 export function fareClassLabel(key) {
   return (key && FARE_CLASS_LABELS[key]) || "";
 }

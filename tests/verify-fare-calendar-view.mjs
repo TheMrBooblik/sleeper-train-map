@@ -17,6 +17,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  credibleClasses,
   COUCHETTE_CLASS_KEYS,
   directionFare,
   FARE_CLASS_LABELS,
@@ -28,6 +29,7 @@ import {
   pricingWithoutFigure,
 } from "../src/lib/fareClasses.mjs";
 import { fareCalendarAnchor, fareCalendarDays } from "../src/lib/fareCalendarView.mjs";
+import { cheapestNight } from "../scripts/lib/fare-calendar.mjs";
 import { resolvePricing } from "../src/lib/pricingResolve.mjs";
 import { resolveRouteBooking } from "../src/lib/routeBooking.mjs";
 import { eurHintFor } from "../src/lib/fx.mjs";
@@ -407,6 +409,24 @@ check("FareCalendar renders the marks, the reasons, the products and the heading
   assert.ok(/c\.key === night\.cellClass/.test(src), "the action bar quotes the class the cell prints");
 });
 
+check("a berth priced at or below its night's seat is never a cell or a class", () => {
+  // NJ 465 Zürich → Graz, 26 Oct 2026: stored couchette €39.9, seat €39.9;
+  // ÖBB's shop sold seats from €39.90 and couchettes from €54.90.
+  const nights = {
+    "2026-10-26": { classes: { couchette: 39.9, sleeperBed: 129.9 }, seat: 39.9 },
+    "2026-10-27": { classes: { couchette: 39.9 }, seat: 39.9 },
+    "2026-10-28": { classes: { couchette: 54.9, sleeperBed: 129.9 }, seat: 39.9 },
+  };
+  const view = fareCalendarDays({ currency: "EUR", nights }, { today: "2026-10-25" });
+  const [suspect, only, fine] = view.days;
+  assert.strictEqual(suspect.amount, 129.9, "the sleeper, not the seat price");
+  assert.ok(!suspect.classes.some((c) => c.key === "couchette"));
+  assert.strictEqual(only.state, "unknown", "no credible berth: not priced, and not 'no berth on sale' either");
+  assert.strictEqual(fine.amount, 54.9);
+  assert.strictEqual(view.cheapestDate, "2026-10-28");
+  assert.strictEqual(cheapestNight({ currency: "EUR", nights }).fromPrice, 54.9, "nor the headline fare");
+});
+
 check("the committed payload: every cell is the night's cheapest couchette, else marked", () => {
   const counts = {};
   for (const row of Object.values(VIEW_MAP)) {
@@ -421,7 +441,8 @@ check("the committed payload: every cell is the night's cheapest couchette, else
       c.calendars++;
       for (const day of view.days) {
         if (day.state !== "priced") continue;
-        const rows = fareClassRows({ classes: calendar.nights[day.date].classes, currency: calendar.currency });
+        // A berth at or below its night's seat is not a price (credibleClasses).
+        const rows = fareClassRows({ classes: credibleClasses(calendar.nights[day.date]), currency: calendar.currency });
         const couchettes = rows.filter((r) => isCouchetteClass(r.key));
         if (couchettes.length) {
           assert.strictEqual(day.amount, couchettes[0].amount, `${row.route_id} ${day.date}`);

@@ -63,6 +63,9 @@ function generateSiteMap() {
   // their /connections/ parent (see next.config.js).
   try {
     entries.push(urlEntry(`${SITE_URL}/connections`, lastmod, "weekly", "0.9"));
+    // Rebuilt from the fare calendars every night, so the payload's date is
+    // this page's real lastmod (unlike a route page's, see lastmod.mjs).
+    entries.push(urlEntry(`${SITE_URL}/cheap-night-trains`, lastmod, "daily", "0.9"));
 
     for (const hub of getAllCountryHubs()) {
       entries.push(

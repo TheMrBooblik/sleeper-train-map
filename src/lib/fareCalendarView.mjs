@@ -6,9 +6,12 @@
  * { currency, nights: { "2026-10-19": { classes: { couchette: 53.6, … },
  * checkedAt, offers?: { couchette: "Sparschiene" }, seat? } |
  * { none: true, checkedAt, reason?: "noBerth" | "noJourney", seat? } } }.
- * A night's `seat` (Nightjet's cheapest seated-coach price) is kept by the
- * scrape for verification only and is never read here: this map prices
- * sleeping places, and a seat figure on a sleeper calendar is the wrong number.
+ * A night's `seat` (Nightjet's cheapest seated-coach price) is never shown:
+ * this map prices sleeping places, and a seat figure on a sleeper calendar is
+ * the wrong number. It is read only to leave out a berth priced at or below
+ * it (credibleClasses, src/lib/fareClasses.mjs) — a seat price under a
+ * berth's name. A night left with no berth is "unknown", not "none": a
+ * berth may well be on sale, we just do not know its price.
  *
  * Dependency-free `.mjs`, and every date is handled as a "YYYY-MM-DD" string
  * with UTC arithmetic and fixed name tables — no Intl, no local clock. The
@@ -17,7 +20,7 @@
  * whole-page hydration failure (the planner met exactly that, see
  * src/lib/plan/format.mjs).
  */
-import { fareClassRows, formatMoney, isCouchetteClass } from "./fareClasses.mjs";
+import { credibleClasses, fareClassRows, formatMoney, isCouchetteClass } from "./fareClasses.mjs";
 import { dealsSummary, isDealClass, nightDeal } from "./lastMinuteDeals.mjs";
 import { nightClock } from "./nightTimes.mjs";
 
@@ -140,12 +143,16 @@ export function fareCalendarDays(
     d <= dates[dates.length - 1];
     d = isoPlusDays(d, 1)
   ) {
-    const entry = nights[d];
+    const raw = nights[d];
     // `entry.classes` only: a night's `seat` sits beside it and is never a
     // class (fareClassRows also skips any class without a label, "seat" too).
+    // A night whose every berth was priced at or below its seat is a night
+    // whose berth price we do not know.
+    const credible = raw && !raw.none ? credibleClasses(raw) : null;
+    const entry = credible && !Object.keys(credible).length && Object.keys(raw.classes ?? {}).length ? null : raw;
     const classes =
       entry && !entry.none
-        ? fareClassRows({ classes: entry.classes, currency }, { from: dynamic })
+        ? fareClassRows({ classes: credible, currency }, { from: dynamic })
         : [];
     // Cheapest first, so the first couchette is the cheapest couchette.
     const cell = classes.find((c) => isCouchetteClass(c.key)) ?? classes[0] ?? null;

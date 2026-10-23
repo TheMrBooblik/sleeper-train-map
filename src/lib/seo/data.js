@@ -43,7 +43,7 @@ import {
   pricingForDirection,
 } from "../fareClasses.mjs";
 import { eurHintFor, eurRateNote, formatEurApprox } from "../fx.mjs";
-import { fareCalendarDays } from "../fareCalendarView.mjs";
+import { datedBookingHref, fareCalendarAnchor, fareCalendarDays } from "../fareCalendarView.mjs";
 import { clockKey, journeyTimesTheEnds, nightClock } from "../nightTimes.mjs";
 import { punctualitySummary } from "../punctuality.mjs";
 import { buildDatedBookingLink, buildDealsLandingUrl } from "../operatorBooking.js";
@@ -777,4 +777,79 @@ export function getRouteDetail(routeId) {
       destinationName: primary.destination || summary.destination,
     },
   };
+}
+
+/**
+ * Every train direction that carries a fare calendar, in the shape
+ * src/lib/fareOverview.mjs reads: the calendar laid out exactly as its
+ * connection page lays it out (fareCalendarFor, so a night's price and its
+ * Book link are the same on both pages) and each priced night's own booking
+ * link. For /cheap-night-trains.
+ */
+/**
+ * Fare sources whose figures the cheap-trains page does not rank, because
+ * they are known to disagree with the booking page their Book button opens.
+ * nightjet.com's Train Price Search quotes Sparschiene couchettes the ÖBB shop
+ * does not sell at that price: NJ 465 Zürich → Graz on 26 Oct 2026 and
+ * NJ 19946 Wien → Bregenz on 2 Nov 2026 both read €39.90 there (the probe of
+ * 15 Oct read the same €39.90 live), while the shop sold couchettes from
+ * €54.90 on both nights, seats matching to the cent. A page that sorts by
+ * price puts exactly those nights first, so a source stays off it until its
+ * figures are confirmed against the shop; the connection pages keep its
+ * calendar, where a night is one of forty-two rather than the headline.
+ */
+export const UNRANKED_FARE_SOURCES = new Set(["nightjet"]);
+
+export function getFareOverviewTrains() {
+  const { viewMap } = getPublished();
+  const today = new Date().toISOString().slice(0, 10);
+  const agencies = getAgencies();
+  const trains = [];
+  // One train, one entry: the next timetable's preview row
+  // (es_400_from_20261214) carries its train's calendar too.
+  const seen = new Set();
+  for (const route of Object.values(viewMap)) {
+    for (const dir of [0, 1]) {
+      if (UNRANKED_FARE_SOURCES.has(route.timetable_source)) continue;
+      const calendar = route[`fare_calendar_${dir}`];
+      const label = (route[`trip_short_name_${dir}`] || "").trim();
+      if (!calendar?.nights || !label) continue;
+      const origin = route[`origin_trip_${dir}`] || "";
+      const destination = route[`destination_trip_${dir}`] || "";
+      const view = fareCalendarFor(route, dir, { origin, destination, today });
+      if (!view) continue;
+      const summary = buildSummary(route);
+      if (!summary.pairSlug) continue;
+      const fallback = resolveRouteBooking({
+        agencyId: route.agency_id || "",
+        agencies,
+        agencyUrl: agencies[route.agency_id]?.agency_url ?? null,
+        origin,
+        dest: destination,
+        routeId: String(route.route_id),
+        scheduleStops: [],
+      });
+      const operatorId = splitAgencyIds(route.agency_id || "")[0] || "";
+      const key = [operatorId, label, cityForStation(origin), cityForStation(destination)].join("|");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const anchor = fareCalendarAnchor(label);
+      trains.push({
+        id: `${route.route_id}-${dir}`,
+        trainNumber: formatTrainNumber(label, route.agency_id),
+        operatorId,
+        operatorName: getOperatorMeta(operatorId, agencies).name,
+        originCity: cityForStation(origin) || origin,
+        destinationCity: cityForStation(destination) || destination,
+        currency: view.currency,
+        calendarHref: `/connections/${summary.pairSlug}${anchor ? `#${anchor}` : ""}`,
+        days: view.days.map((day) =>
+          day.state === "priced"
+            ? { ...day, href: datedBookingHref(view.bookingTemplate, day) ?? fallback?.href ?? null }
+            : day,
+        ),
+      });
+    }
+  }
+  return { today, trains };
 }
