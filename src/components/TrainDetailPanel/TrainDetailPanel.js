@@ -14,6 +14,7 @@ import {
   sourceFeedSchedule,
 } from "../../lib/sourceFeedSchedule.mjs";
 import { cityForStation } from "../../lib/seo/cities.mjs";
+import { OPERATORS } from "../../lib/seo/operatorNames.mjs";
 import {
   checkRegioJetPrahaChop,
   checkRegioJetPrahaPrzemysl,
@@ -1592,6 +1593,9 @@ const TrainDetailPanel = ({
                   (operatorComponents.length > 1
                     ? operatorComponents.map((c) => c.name).join(" + ")
                     : agency?.agency_name) ||
+                  // An operator Back-on-Track's agency table never listed
+                  // (KTMB, SRT, VNR, JR West): the name its hub page uses.
+                  OPERATORS[operatorAgencyId]?.name ||
                   "Operator";
                 // Synthetic trips without a route row default agency_id="ÖBB",
                 // but the actual operator can differ (partner EuroNight trains).

@@ -1,0 +1,7 @@
+route_id,service_id,trip_id,direction_id
+ETS,ets,1004,0
+ERT,intercity,1021,1
+ERT,intercity,26,0
+ERT,intercity,27,1
+ETS,ets,9238,0
+ETS,ets,9256,0

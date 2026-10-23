@@ -1,0 +1,7 @@
+service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date
+ets,1,1,1,1,1,1,1,20260818,20261106
+intercity,1,1,1,1,1,1,1,20260818,20261106
+komuter_utara,1,1,1,1,1,1,1,20260818,20261106
+komuter_weekday,1,1,1,1,1,0,0,20260818,20261106
+komuter_weekend,0,0,0,0,0,1,1,20260822,20261106
+shuttle_selatan,1,1,1,1,1,1,1,20260818,20261106

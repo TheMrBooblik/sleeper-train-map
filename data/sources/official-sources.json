@@ -856,6 +856,39 @@
         }
       ]
     },
+    "KTMB": {
+      "website": "https://www.ktmb.com.my",
+      "countries": ["MY"],
+      "integrationStatus": "in-progress",
+      "difficulty": "easy",
+      "notes": "Registry id `ktmb`. Malaysia's one sleeper service is the Ekspres Rakyat Timuran 26/27 (JB Sentral – Tumpat, 'Superior Night Sleep' berths). The timetable is data.gov.my's GTFS Static for KTMB, filtered by data/sources/ktmb-sleepers.json; KITS confirms each train is on sale at the feed's times. Per-class fares (a berth against a seat) are shown by KITS only after login, so no berth price is published; KITS's 'Min. fare' (cheapest place in any class) is kept on the train as `kits.minFare` and never shown as a berth. KTMB's fare documents (Tambang Fleksi, the Sep 2025 ticket terms) carry no fare table. The feed has no shapes: the line follows OpenStreetMap track.",
+      "sources": [
+        {
+          "name": "data.gov.my GTFS Static — KTMB",
+          "url": "https://api.data.gov.my/gtfs-static/ktmb",
+          "docsUrl": "https://developer.data.gov.my/realtime-api/gtfs-static",
+          "format": "GTFS (redirects to openapi-malaysia-transport.s3.ap-southeast-1.amazonaws.com/ktmb/gtfs_ktmb.zip; ~230 KB)",
+          "provides": ["stops", "times", "days"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": "2026-10-22",
+          "probeWorkflow": "probe-ktmb.yml",
+          "notes": "Komuter, ETS and Intercity: routes ERT (Ekspres Rakyat Timuran), SH (Shuttle Timur), ETS, ST (Shuttle Tebrau) and five Komuter lines. trip_id is the train number; no trip_short_name, no shapes, no fares. calendar.txt carries the feed's validity window (18 Aug – 6 Nov 2026 on the first read), not a season."
+        },
+        {
+          "name": "KITS (KTMB online ticketing): POST /Trip → /Trip/Trip",
+          "url": "https://online.ktmb.com.my/",
+          "docsUrl": null,
+          "format": "HTML form + JSON (antiforgery token, session cookie)",
+          "provides": ["times"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": "2026-10-22",
+          "probeWorkflow": "probe-ktmb.yml",
+          "notes": "Before login KITS lists each train with departure, arrival, seats left and 'Min. fare' (any class). The coach layout with every place's fare (/Trip/LayoutV2) needs a train's TripData, which the results page gives only to a logged-in user ('Login to view'), so berth fares are not read."
+        }
+      ]
+    },
     "VNR": {
       "website": "https://dsvn.vn",
       "countries": ["VN"],

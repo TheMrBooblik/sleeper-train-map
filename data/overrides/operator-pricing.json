@@ -16,6 +16,7 @@
   "CR": { "type": "fixed", "currency": "CNY", "fromPrice": null, "source": "draft", "note": "China Railway government tariff" },
   "JRW": { "type": "fixed", "currency": "JPY", "fromPrice": null, "source": "draft", "note": "JR distance tariff: basic fare + limited express charge + berth charge" },
   "SRT": { "type": "fixed", "currency": "THB", "fromPrice": null, "source": "draft", "note": "SRT distance tariff: fare + train-type supplement + air-conditioning + berth charge" },
+  "KTMB": { "type": "fixed", "currency": "MYR", "fromPrice": null, "source": "draft", "note": "KTM Intercity: a fare per class and distance (KTMB's flexi fare applies to ETS only, per its Sep 2025 ticket terms); KITS shows per-class fares only after login" },
   "VNR": { "type": "dynamic", "currency": "VND", "fromPrice": null, "source": "draft", "note": "Vietnam Railways: a fare per train, berth and distance that VNR moves by date and demand (dearer around Tết and summer weekends)" },
   "GR": { "type": "fixed", "currency": "GEL", "fromPrice": null, "source": "draft" },
   "ADY": { "type": "fixed", "currency": "AZN", "fromPrice": null, "source": "draft" },

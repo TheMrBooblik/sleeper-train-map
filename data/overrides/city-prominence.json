@@ -45,6 +45,11 @@
       "reason": "State Railway of Thailand — same reason as JP: real data, wrong market for a European hub list. Leads the Asia tab on its own merits.",
       "scope": "global"
     },
+    "MY": {
+      "weight": 0.1,
+      "reason": "KTM Berhad — same reason as TH: real data, wrong market for a European hub list. Competes in the Asia tab on its own merits.",
+      "scope": "global"
+    },
     "VN": {
       "weight": 0.1,
       "reason": "Vietnam Railways — same reason as TH: real data, wrong market for a European hub list. Competes in the Asia tab on its own merits.",
