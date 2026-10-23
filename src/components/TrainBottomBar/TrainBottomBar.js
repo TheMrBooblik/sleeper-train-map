@@ -24,6 +24,7 @@ import {
   disambiguateLabels,
   selectedCityMatcher,
   stationFirstEndpoints,
+  trainEndpoints,
 } from "../../lib/stationFirst.mjs";
 
 // A chip has room for a name, not a station's full title: the city a
@@ -113,8 +114,8 @@ const TrainBottomBar = ({
       )
     : [];
 
-  // Is this station in the city the user picked? The same test the via hint
-  // below has always used, so the two cannot disagree about "here".
+  // Is this station in the city the user picked? The same test DynamicMap
+  // uses (selectedCityMatcher), so the two cannot disagree about "here".
   const inSelectedCity = selectedCityMatcher(
     selectedNormalizedName,
     normalizeStationNameForDisplay,
@@ -152,48 +153,25 @@ const TrainBottomBar = ({
     const routeKey = `${stationArr[0]}-${stationArr[1]}`;
 
     if (!routeMap.has(routeKey)) {
-      // From the selected city's own station to where the train takes you
-      // (src/lib/stationFirst.mjs): a click on Milan reads "Milano – Bruxelles".
+      // Which of the two trains: the one a traveller boards here
+      // (src/lib/stationFirst.mjs), so the chip names the train the detail
+      // panel opens on. Named by where that train really starts and ends — a
+      // click on Kraków reads "Przemyśl Gł. – Świnoujście", not "Kraków".
       const ends = stationFirstEndpoints(el, {
         inSelectedCity,
         splitVia: (via) => splitViaString(via, isKnownStation),
         coordsOf,
       });
-
-      // Get the via stations
-      const viaStationsRaw = stationArr[1] === stopId ? el?.via_1 : el?.via_0;
-
-      // Filter via stations to only show stations in the selected city.
-      // normalizeStationNameForDisplay handles local↔English equivalences (Wien→Vienna, etc.),
-      // with a substring fallback for cities not in the known list.
-      // Only needed when the label could not start at the selected station.
-      let viaText = "";
-      if (!ends.fromIsSelected && viaStationsRaw && selectedNormalizedName) {
-        // A station whose own name holds " - " must not be shown as two
-        // places ("Rocamadour" + "Padirac" for one SNCF stop).
-        const viaList = splitViaString(viaStationsRaw, isKnownStation);
-        const filteredVia = viaList.filter((station) => {
-          const normalizedVia = normalizeStationNameForDisplay(station.trim());
-          return (
-            normalizedVia === selectedNormalizedName ||
-            station.toLowerCase().includes(selectedNormalizedName.toLowerCase())
-          );
-        });
-
-        if (filteredVia.length > 0) {
-          viaText = filteredVia.join(" - ");
-        }
-      }
+      const train = trainEndpoints(el, ends.direction);
 
       routeMap.set(routeKey, {
-        origin: ends.from,
-        destination: ends.to,
+        origin: train.from,
+        destination: train.to,
         trainNumber: (
           el?.[`trip_short_name_${ends.direction}`] ||
           el?.trip_short_name_0 ||
           ""
         ).trim(),
-        viaText: viaText,
         notRunning: isNotRunning(el),
         // "summer only" for a seasonal train out of season, which is what
         // tells it apart from one that has never run.
@@ -277,12 +255,6 @@ const TrainBottomBar = ({
                       {chipName(route.origin)}
                     </strong>
                     &nbsp;-&nbsp;
-                    {route.viaText ? (
-                      <span className="truncate">
-                        ({abbreviateStationName(route.viaText)})
-                      </span>
-                    ) : null}
-                    {route.viaText && <>&nbsp;-&nbsp;</>}
                     <strong className="truncate">
                       {chipName(route.destination)}
                     </strong>

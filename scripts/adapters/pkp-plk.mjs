@@ -290,13 +290,139 @@ export function mergePlkIntoBundle(
   return { byTrainKey: out, enrichedCount };
 }
 
+// A PLK candidate is the row's train only if it leaves and arrives when the
+// row says it does. Endpoint cities alone are not enough: PLK runs day trains
+// on the same pairs (IC 3808 Przemyśl 07:12 → Świnoujście 18:52 beside the
+// night train EN 430 / IC 28170 at 18:54 → 06:34), and an endpoint-only match
+// put the day train's stop list and times on the sleeper's row. Matches on the
+// rows' own corridors are within 56 minutes (Back-on-Track lagging a timetable
+// change); the day trains it took instead were 6–12 hours out.
+export const PLK_TIME_TOLERANCE_MINUTES = 90;
+// Longest wait at the junction where a through car changes trains (Poznań:
+// EN 430 arrives 02:22, IC 28170 leaves 03:14).
+export const PLK_MAX_TRANSFER_MINUTES = 180;
+
+function clockMinutes(value) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(value ?? "").trim());
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+/** Circular distance between two clocks, or null when either is unknown. */
+function clockGap(a, b) {
+  const x = clockMinutes(a);
+  const y = clockMinutes(b);
+  if (x == null || y == null) return null;
+  const d = Math.abs(x - y) % 1440;
+  return Math.min(d, 1440 - d);
+}
+
+/** A clock the row does not state cannot disagree with it. */
+function agreesWithRow(clock, rowClock) {
+  const gap = clockGap(clock, rowClock);
+  return gap == null || gap <= PLK_TIME_TOLERANCE_MINUTES;
+}
+
+/** Station-level fold (not city-level: Kraków Płaszów is not Kraków Główny). */
+function stationKey(name) {
+  return String(name || "")
+    .toLowerCase()
+    .replace(/ł/g, "l")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+
+/**
+ * A through car is two PLK trains: the first leg from the row's origin to the
+ * station where the car changes trains, the second from there to the row's
+ * destination (EN 430 / IC 28170: PLK 37010 Przemyśl → Poznań Główny, then
+ * 28170 Poznań → Świnoujście). PLK files them under national numbers the label
+ * may not carry (EN 430 is 37010), so the legs are found by where and when
+ * they run: the first leaves the origin at the row's departure, the second
+ * reaches the destination at the row's arrival, and the second leaves a
+ * station they share no earlier than the first arrives there, within
+ * PLK_MAX_TRANSFER_MINUTES. Returns { stops, operatingDates, preferred } or
+ * null.
+ */
+function stitchedThroughCar(list, { o, z, dep, arr, keys }) {
+  const firsts = list.filter(
+    (c) =>
+      normalizeCity(c.stops[0]?.name) === o &&
+      normalizeCity(c.stops[c.stops.length - 1]?.name) !== z &&
+      clockGap(c.stops[0]?.dep, dep) != null &&
+      agreesWithRow(c.stops[0]?.dep, dep),
+  );
+  const seconds = list.filter(
+    (c) =>
+      normalizeCity(c.stops[c.stops.length - 1]?.name) === z &&
+      normalizeCity(c.stops[0]?.name) !== o &&
+      clockGap(c.stops[c.stops.length - 1]?.arr, arr) != null &&
+      agreesWithRow(c.stops[c.stops.length - 1]?.arr, arr),
+  );
+
+  let best = null;
+  for (const a of firsts) {
+    for (const b of seconds) {
+      if (a === b) continue;
+      // Change trains at the last station both legs serve, where the second
+      // leg leaves after the first gets in.
+      let junction = null;
+      for (let i = a.stops.length - 1; i >= 1 && !junction; i -= 1) {
+        const key = stationKey(a.stops[i].name);
+        for (let j = 0; j < b.stops.length - 1; j += 1) {
+          if (stationKey(b.stops[j].name) !== key) continue;
+          const inAt = clockMinutes(a.stops[i].arr);
+          const outAt = clockMinutes(b.stops[j].dep);
+          if (inAt == null || outAt == null) continue;
+          const wait = (outAt - inAt + 1440) % 1440;
+          if (wait <= PLK_MAX_TRANSFER_MINUTES) {
+            junction = { i, j };
+            break;
+          }
+        }
+      }
+      if (!junction) continue;
+      const preferred =
+        (keys.has(String(a.number)) ? 1 : 0) +
+        (keys.has(String(b.number)) ? 1 : 0);
+      const gap =
+        clockGap(a.stops[0].dep, dep) +
+        clockGap(b.stops[b.stops.length - 1].arr, arr);
+      if (
+        !best ||
+        preferred > best.preferred ||
+        (preferred === best.preferred && gap < best.gap)
+      ) {
+        const { i, j } = junction;
+        const bDates = new Set(b.operatingDates ?? []);
+        best = {
+          preferred,
+          gap,
+          stops: [
+            ...a.stops.slice(0, i),
+            { ...a.stops[i], dep: b.stops[j].dep ?? null },
+            ...b.stops.slice(j + 1),
+          ],
+          operatingDates: (a.operatingDates ?? []).filter((d) => bDates.has(d)),
+          legs: [String(a.number), String(b.number)],
+        };
+      }
+    }
+  }
+  return best;
+}
+
 /**
  * Build PLK station-list enrichment for one Back-on-Track PKP row. Matches a PLK
  * candidate per direction by ORIENTED endpoints (first stop == origin, last ==
  * destination) so per-direction times are correct, preferring a same-number
- * candidate. Returns { pkp_schedule_0/1, pkp_valid_0/1, via_0/1 } to set — via_
- * drives the BoT-coordinate map dots + line (PLK has no geometry of its own).
- * Callers apply this only to rows the GTFS bundle can't resolve.
+ * candidate — and only one that leaves and arrives when the row says it does
+ * (PLK_TIME_TOLERANCE_MINUTES). With no such train, a through car is stitched
+ * from two legs (stitchedThroughCar). Returns { pkp_schedule_0/1, pkp_valid_0/1,
+ * via_0/1 } to set — via_ drives the BoT-coordinate map dots + line (PLK has no
+ * geometry of its own). Callers apply this only to rows the GTFS bundle can't
+ * resolve.
  * @param {object} row  a Back-on-Track view-map row
  * @param {{number?: string, stops: object[], operatingDates?: string[]}[]} candidates
  * @returns {object|null} partial row fields, or null when nothing matched
@@ -312,6 +438,8 @@ export function plkScheduleForRow(row, candidates, canonicalize = (s) => s) {
     const z = normalizeCity(row[`destination_trip_${d}`]);
     if (!o || !z) continue;
     const keys = new Set(extractKeysFromTripLabel(row[`trip_short_name_${d}`]));
+    const dep = row[`origin_departure_time_${d}`];
+    const arr = row[`destination_arrival_time_${d}`];
 
     let best = null;
     let bestPreferred = false;
@@ -319,6 +447,8 @@ export function plkScheduleForRow(row, candidates, canonicalize = (s) => s) {
       // Oriented match keeps the arrival/departure times for THIS direction.
       if (normalizeCity(c.stops[0]?.name) !== o) continue;
       if (normalizeCity(c.stops[c.stops.length - 1]?.name) !== z) continue;
+      if (!agreesWithRow(c.stops[0]?.dep, dep)) continue;
+      if (!agreesWithRow(c.stops[c.stops.length - 1]?.arr, arr)) continue;
       const preferred = keys.has(String(c.number));
       if (
         !best ||
@@ -329,6 +459,7 @@ export function plkScheduleForRow(row, candidates, canonicalize = (s) => s) {
         bestPreferred = preferred;
       }
     }
+    if (!best) best = stitchedThroughCar(list, { o, z, dep, arr, keys });
     if (!best) continue;
 
     // Canonicalize PLK names to Back-on-Track form (data/overrides/station-
