@@ -10,9 +10,12 @@
 // run late but end before midnight. Their stops, calendars, exceptions and
 // shapes are whole.
 //
-// The booking API's answers below are synthetic, in the shape the fare reader
-// assumes (scripts/lib/rj-fares.mjs explains it); the "Probe RegioJet source"
-// workflow prints the real ones.
+// REAL_SEAT_CLASSES is GET /consts/seatClasses as the "Probe RegioJet source"
+// workflow printed it on 2026-10-23 (key and English title), and the
+// connection answer below carries the classes and prices that run read for
+// RJ 1021 on 30 October (C0 €23.90, TRAIN_COUCHETTE_RELAX €65.90,
+// TRAIN_COUCHETTE_BUSINESS_4 €176). The search answers are synthetic, in the
+// shape the probe printed.
 //
 // Run: node tests/verify-regiojet.mjs
 
@@ -161,7 +164,59 @@ check("couchettes by compartment", eq(cls("X", "Couchette 6 beds"), { kind: "cou
 check("sleepers by cabin", cls("Z", "Sleeper 2-bed compartment").classKey === "sleeperDouble" && cls("B", "Lůžkový vůz").classKey === "sleeperBed");
 check("ladies-only left out", cls("L", "Ladies couchette").kind === "excluded" && cls("D", "Dámské lehátko").kind === "excluded");
 check("seats are seats", cls("TRAIN_LOW_COST", "Low cost").kind === "seat" && cls("R", "Relax").kind === "seat");
-check("every class key has a label", ["couchette6", "couchette4", "sleeperDouble", "sleeperBed"].every((k) => fareClassLabel(k)));
+const REAL_SEAT_CLASSES = [
+  ["TRAIN_LOW_COST", "Low cost (2nd cl.)", "seat"],
+  ["C0", "Standard (2nd cl.)", "seat"],
+  ["TRAIN_STANDARD_PL", "Standard (2nd cl.)", "seat"],
+  ["TRAIN_STANDARD_PLUS", "Standard PLUS", "seat"],
+  ["C1", "Relax (2nd cl.)", "seat"],
+  ["C2", "Business (1st cl.)", "seat"],
+  ["TRAIN_1ST_CLASS", "Business (1st cl.)", "seat"],
+  ["TRAIN_2ND_CLASS", "Low cost (2nd cl.) ", "seat"],
+  ["TRAIN_COUCHETTE_BUSINESS_4", "Private compartment", "privateCouchette"],
+  ["TRAIN_COUCHETTE_STANDARD", "Couchette", "couchette"],
+  ["TRAIN_COUCHETTE_RELAX", "Berth", "couchette"],
+  ["TRAIN_COUCHETTE_RELAX_FOR_WOMEN", "Berth - only women", "excluded"],
+  ["TRAIN_COUCHETTE_BUSINESS", "Private compartment", "privateCouchette"],
+  ["BUS_STANDARD", "Standard (bus)", "seat"],
+  ["BUS_RELAX", "Relax (bus)", "seat"],
+  ["TRAIN_R23_LOW_COST", "Low cost (2nd cl.) ", "seat"],
+  ["TRAIN_R23_BUSINESS", "Business (1st cl.)", "seat"],
+  ["TRAIN_R8_STANDARD", "Standard (2nd cl.)", "seat"],
+  ["TRAIN_COUCHETTE_RELAX_3", "Sleeping for men and women", "sleeperTriple"],
+  ["TRAIN_COUCHETTE_RELAX_3_WOMEN", "Sleeping for women", "excluded"],
+  ["NO", "- no seat class -", "seat"],
+];
+const wrong = REAL_SEAT_CLASSES.filter(([key, title, want]) => {
+  const got = classifySeatClass({ key, title });
+  return (got.classKey ?? got.kind) !== want;
+});
+check(
+  "RegioJet's real seat classes, each read as what it sells",
+  !wrong.length,
+  wrong.map(([k, t, w]) => `${k} "${t}" → ${JSON.stringify(classifySeatClass({ key: k, title: t }))}, want ${w}`).join("; "),
+);
+check(
+  "a sleeping car 'for men and women' is mixed, not women-only (every RegioJet key says COUCHETTE)",
+  classifySeatClass({ key: "TRAIN_COUCHETTE_RELAX_3", title: "Sleeping for men and women" }).classKey === "sleeperTriple",
+);
+check("every class key has a label", ["couchette", "couchette6", "couchette4", "privateCouchette", "sleeperTriple", "sleeperDouble", "sleeperBed"].every((k) => fareClassLabel(k)));
+const real1021 = berthClasses(
+  {
+    priceClasses: [
+      { seatClassKey: "C0", price: 23.9, freeSeatsCount: 30, bookable: true },
+      { seatClassKey: "TRAIN_COUCHETTE_RELAX", price: 65.9, freeSeatsCount: 8, bookable: true },
+      { seatClassKey: "TRAIN_COUCHETTE_RELAX_FOR_WOMEN", price: 65.9, freeSeatsCount: 4, bookable: true },
+      { seatClassKey: "TRAIN_COUCHETTE_BUSINESS_4", price: 176, freeSeatsCount: 2, bookable: true },
+    ],
+  },
+  new Map(REAL_SEAT_CLASSES.map(([key, title]) => [key, { title }])),
+);
+check(
+  "RJ 1021 on 30 Oct read as the probe read it",
+  eq(real1021.classes, { couchette: 65.9, privateCouchette: 176 }) && real1021.seat === 23.9,
+  JSON.stringify(real1021),
+);
 const routes = {
   routes: [
     { id: "a", departureTime: "2026-10-30T21:46:00.000+01:00", arrivalTime: "2026-10-31T11:38:00.000+02:00", transfersCount: 0, vehicleTypes: ["TRAIN"] },

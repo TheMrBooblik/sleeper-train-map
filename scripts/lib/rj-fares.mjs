@@ -104,19 +104,34 @@ function berthsIn(text) {
  * key our fare readers label (src/lib/fareClasses.mjs). Anything that names
  * neither a couchette nor a bed is a seat — the safe side, since a seat is
  * never quoted.
+ *
+ * The title decides before the key: every RegioJet night-train key says
+ * COUCHETTE (GET /consts/seatClasses, 2026-10-23), the 3-bed sleeping car
+ * included — TRAIN_COUCHETTE_RELAX_3 is titled "Sleeping for men and women".
+ * A key's trailing digit is its compartment size where the title gives none.
+ * And "women" alone is not women-only: "for men and women" is the mixed
+ * compartment, "Berth - only women" / "Sleeping for women" are not.
  */
 export function classifySeatClass({ key = "", title = "", description = "" } = {}) {
+  const t = fold(title);
   const text = fold(`${key} ${title} ${description}`).replace(/_/g, " ");
-  if (/\b(ladies|lady|women|woman|female|damsk|dams|zensk|zena)/.test(text)) return { kind: "excluded", classKey: null };
-  if (/couchette|lehatk|lehotk|lehatkov|liegewagen/.test(text)) {
-    if (/private|whole compartment|cele kupe|family|rodinn/.test(text)) return { kind: "couchette", classKey: "privateCouchette" };
-    const n = berthsIn(text);
-    return { kind: "couchette", classKey: n === 6 ? "couchette6" : n === 4 ? "couchette4" : "couchette" };
+  const keySize = String(key).match(/_(\d)(?:_|$)/);
+  const size = berthsIn(t) ?? (keySize ? Number(keySize[1]) : null);
+  const mixed = /\bmen and wom[ae]n\b|\bwom[ae]n and men\b/.test(text);
+  if (/\b(ladies|lady|female|damsk\w*|zensk\w*)\b/.test(text) || (/\bwom[ae]n\b/.test(text) && !mixed)) {
+    return { kind: "excluded", classKey: null };
   }
-  if (/sleeper|sleeping|luzk|lozk|\bbed\b|schlaf|\blit\b/.test(text)) {
-    const n = berthsIn(text);
-    return { kind: "sleeper", classKey: n === 1 ? "sleeperSingle" : n === 2 ? "sleeperDouble" : n === 3 ? "sleeperTriple" : "sleeperBed" };
-  }
+  const couchette = (n) => ({ kind: "couchette", classKey: n === 6 ? "couchette6" : n === 4 ? "couchette4" : "couchette" });
+  const sleeper = { kind: "sleeper", classKey: size === 1 ? "sleeperSingle" : size === 2 ? "sleeperDouble" : size === 3 ? "sleeperTriple" : "sleeperBed" };
+  const COUCHETTE = /couchette|berth|lehatk|lehotk|liegewagen/;
+  const SLEEPER = /sleeping|sleeper|luzk|lozk|schlaf|\bbed\b|\blit\b/;
+  if (/private|whole compartment|cele kupe|family|rodinn/.test(t)) return { kind: "couchette", classKey: "privateCouchette" };
+  // The title first ("Lehátko 4 lůžka" is a couchette however many berths it
+  // names), then the key and description.
+  if (COUCHETTE.test(t)) return couchette(berthsIn(t));
+  if (SLEEPER.test(t)) return sleeper;
+  if (COUCHETTE.test(text)) return /private|whole compartment/.test(text) ? { kind: "couchette", classKey: "privateCouchette" } : couchette(berthsIn(t));
+  if (SLEEPER.test(text)) return sleeper;
   return { kind: "seat", classKey: null };
 }
 
