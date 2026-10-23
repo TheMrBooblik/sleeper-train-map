@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "RegioJet night trains, read by scripts/adapters/regiojet-gtfs.mjs from RegioJet's own two GTFS feeds (ybus.sa.cz/gtfe/, the 'interstate' domestic file and the 'international' one).",
+    "There is no list of train numbers: a rail trip in either feed is a night train when it leaves at or after `minDepartureHour` and runs past midnight for at least `minMinutes`. On 23 October 2026 that kept RJ 1020/1021 (Praha – Košice, with through cars to Čop) and RJ 1022/1023 (Praha – Przemyśl), both in the international feed, and left out every day train and the domestic R trains that reach their terminus before midnight. A summer service published later is picked up the night it appears; `exclude` names a number to leave out anyway.",
+    "Station names: the feed writes them in Czech, 'town, station' ('Košice, žst.', 'Krakov, Hlavní nádraží'). The adapter normalises them and runs them through data/overrides/station-aliases.json, and accepts a name only where a dataset stop of that name lies within `matchKm` of the feed's own coordinate. `stationNames` pins a spelling where that is not enough."
+  ],
+  "operator": {
+    "agencyId": "RJ",
+    "name": "RegioJet"
+  },
+  "lineNamePrefix": "RJ",
+  "minDepartureHour": 17,
+  "minMinutes": 300,
+  "matchKm": 3,
+  "exclude": [],
+  "stationNames": {
+    "_comment": "Feed spelling (exact) → the name the map uses, where normalising and the alias table are not enough."
+  }
+}

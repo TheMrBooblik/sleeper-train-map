@@ -16,10 +16,6 @@ import {
 import { cityForStation } from "../../lib/seo/cities.mjs";
 import { OPERATORS } from "../../lib/seo/operatorNames.mjs";
 import {
-  checkRegioJetPrahaChop,
-  checkRegioJetPrahaPrzemysl,
-} from "../Map/utils/routeStyleUtils";
-import {
   getOperatorBaseColor,
   hexWithAlpha,
 } from "../Map/utils/operatorColors";
@@ -106,52 +102,10 @@ function seasonNote(route, dir) {
 export const MOBILE_SHEET_PEEK_VH = 0.65; // h-[65dvh]
 export const DESKTOP_PANEL_WIDTH_PX = 320; // md:w-[320px]
 
-const GTFS_ROUTE_KIND = {
-  chop: "chop",
-  premysl: "premysl",
-};
-
-const GTFS_TIMETABLE_FILE_BY_KIND = {
-  [GTFS_ROUTE_KIND.chop]: "/data/gtfs/rjChopTimetable.json",
-  [GTFS_ROUTE_KIND.premysl]: "/data/gtfs/rjPremyslTimetable.json",
-};
-
-function detectGtfsRouteKindFromRoutes(selectedRouteIds, routes) {
-  if (!selectedRouteIds?.length || !routes) return null;
-
-  for (const routeId of selectedRouteIds) {
-    const route = routes[routeId];
-    if (!route) continue;
-    if (checkRegioJetPrahaChop(route)) return GTFS_ROUTE_KIND.chop;
-    if (checkRegioJetPrahaPrzemysl(route)) return GTFS_ROUTE_KIND.premysl;
-  }
-
-  return null;
-}
-
 function isECTrip(relevantTrips) {
   return relevantTrips?.some((trip) =>
     /^\s*EC\s+\d+/i.test(trip.trip_short_name || ""),
   );
-}
-
-function detectGtfsRouteKindFromTrips(relevantTrips) {
-  if (!relevantTrips?.length) return null;
-
-  const trainNumbers = new Set(
-    relevantTrips
-      .map((trip) => (trip.trip_short_name || "").toString().trim())
-      .filter(Boolean),
-  );
-
-  if (trainNumbers.has("RJ 1020") || trainNumbers.has("RJ 1021")) {
-    return GTFS_ROUTE_KIND.chop;
-  }
-  if (trainNumbers.has("RJ 1022") || trainNumbers.has("RJ 1023")) {
-    return GTFS_ROUTE_KIND.premysl;
-  }
-
-  return null;
 }
 
 /**
@@ -320,9 +274,6 @@ const TrainDetailPanel = ({
     enabled: !tripsData,
   });
   const trips = tripsData || fetchedTrips;
-  const [gtfsTimetableData, setGtfsTimetableData] = useState(null);
-  const [gtfsLoadFailed, setGtfsLoadFailed] = useState(false);
-  const [gtfsLoading, setGtfsLoading] = useState(false);
   const [nightjetData, setNightjetData] = useState(null);
   const [nightjetLoadFailed, setNightjetLoadFailed] = useState(false);
   const [nightjetLoading, setNightjetLoading] = useState(false);
@@ -557,67 +508,6 @@ const TrainDetailPanel = ({
       .sort((a, b) => b.n - a.n || a.i - b.i)
       .map((x) => x.trip);
   }, [tripsToRender, selectedStation, firstDirectionByRoute, routes]);
-
-  const gtfsRouteKind = useMemo(() => {
-    const fromRoutes = detectGtfsRouteKindFromRoutes(selectedRouteIds, routes);
-    if (fromRoutes) return fromRoutes;
-    return detectGtfsRouteKindFromTrips(relevantTrips);
-  }, [selectedRouteIds, routes, relevantTrips]);
-
-  const timetableByTrainNumber = useMemo(() => {
-    if (!gtfsTimetableData?.trips?.length) return new Map();
-    const next = new Map();
-    gtfsTimetableData.trips.forEach((trip) => {
-      const fullKey = normalizeTrainNumber(trip.trainNumber);
-      const numericKey = extractTrainNumberDigits(trip.trainNumber);
-
-      if (fullKey) {
-        next.set(fullKey, trip);
-      }
-      if (numericKey) {
-        next.set(numericKey, trip);
-      }
-    });
-    return next;
-  }, [gtfsTimetableData]);
-
-  useEffect(() => {
-    if (!isOpen || !gtfsRouteKind) {
-      setGtfsTimetableData(null);
-      setGtfsLoadFailed(false);
-      setGtfsLoading(false);
-      return;
-    }
-
-    let active = true;
-    const loadGtfsTimetable = async () => {
-      setGtfsLoading(true);
-      try {
-        setGtfsLoadFailed(false);
-        const url = GTFS_TIMETABLE_FILE_BY_KIND[gtfsRouteKind];
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`Failed to load ${url}`);
-        }
-        const data = await response.json();
-        if (active) {
-          setGtfsTimetableData(data);
-        }
-      } catch (_error) {
-        if (active) {
-          setGtfsTimetableData(null);
-          setGtfsLoadFailed(true);
-        }
-      } finally {
-        if (active) setGtfsLoading(false);
-      }
-    };
-
-    loadGtfsTimetable();
-    return () => {
-      active = false;
-    };
-  }, [isOpen, gtfsRouteKind]);
 
   useEffect(() => {
     if (!isOpen || !isECTrip(relevantTrips)) {
@@ -1271,7 +1161,6 @@ const TrainDetailPanel = ({
               tripsLoading ||
               nightjetLoading ||
               cdLoading ||
-              gtfsLoading ||
               chineseLoading ||
               italianLoading ||
               caucasusLoading ||
@@ -1291,11 +1180,6 @@ const TrainDetailPanel = ({
             </div>
           ) : (
             <>
-              {gtfsLoadFailed && gtfsRouteKind && (
-                <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded p-2">
-                  Detailed stop schedule is currently unavailable.
-                </div>
-              )}
               {nightjetLoadFailed && fallbackTrips.length > 0 && (
                 <div className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded p-2">
                   NightJet timetable is currently unavailable.
@@ -1665,27 +1549,10 @@ const TrainDetailPanel = ({
                   naStations?.[naStations.length - 1]?.departure ||
                   null;
 
-                const detailedSchedule =
-                  timetableByTrainNumber.get(normalizedTrainNumber) ||
-                  timetableByTrainNumber.get(numericTrainNumber) ||
-                  null;
                 const cdSchedule =
                   cdScheduleByTrainNumber.get(numericTrainNumber) ||
                   cdScheduleByTrainNumber.get(normalizedTrainNumber) ||
                   null;
-                const endpointMatchedSchedule =
-                  !detailedSchedule && gtfsTimetableData?.trips?.length
-                    ? gtfsTimetableData.trips.find((candidate) => {
-                        const stops = candidate?.stops || [];
-                        if (stops.length < 2) return false;
-                        const firstStop = stops[0]?.name;
-                        const lastStop = stops[stops.length - 1]?.name;
-                        return (
-                          matchesEndpoint(firstStop, trip.trip_origin) &&
-                          matchesEndpoint(lastStop, trip.trip_headsign)
-                        );
-                      }) || null
-                    : null;
                 const nightjetSchedule =
                   nightjetScheduleByTrainNumber.get(normalizedTrainNumber) ||
                   null;
@@ -1726,8 +1593,6 @@ const TrainDetailPanel = ({
                 const schedule =
                   // PKP GTFS is the source of truth for Polish trains.
                   pkpSchedule ||
-                  detailedSchedule ||
-                  endpointMatchedSchedule ||
                   nightjetSchedule ||
                   crSchedule ||
                   itSchedule ||

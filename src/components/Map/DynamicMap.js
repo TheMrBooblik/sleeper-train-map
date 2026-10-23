@@ -39,8 +39,6 @@ import {
   selectedRoutesWithLines,
   hasUnknownStart,
   routeHasNotStartedYet,
-  checkRegioJetPrahaChop,
-  checkRegioJetPrahaPrzemysl,
 } from "./utils/routeStyleUtils";
 import { formatTrainNumber } from "../../lib/operatorAgencies.mjs";
 import {
@@ -180,8 +178,6 @@ const TrainMap = ({
   const [pairDirections, setPairDirections] = useState(null);
   const [isTrainDetailPanelOpen, setIsTrainDetailPanelOpen] = useState(false);
   const [hoveredRouteId, setHoveredRouteId] = useState(null);
-  const [gtfsRouteFilterStops, setGtfsRouteFilterStops] = useState(null);
-  const gtfsStopsCacheRef = useRef(new Map());
   const [cdRouteFilterStops, setCdRouteFilterStops] = useState(null);
   const cdTrainsCacheRef = useRef(null);
   const [mapZoom, setMapZoom] = useState(null);
@@ -658,76 +654,6 @@ const TrainMap = ({
     normalizeStationNameForLookup,
   ]);
 
-  // For selected RegioJet routes, use GTFS timetable stops as marker source.
-  // This keeps map stations aligned with GTFS details while preserving BoT fallback.
-  useEffect(() => {
-    if (!hasRouteFilter || !viewMapData) {
-      setGtfsRouteFilterStops(null);
-      return;
-    }
-
-    const activeId = String(selectedTrainRouteIds[0]);
-    const activeRoute = Object.values(viewMapData).find(
-      (r) => r?.route_id?.toString() === activeId,
-    );
-    if (!activeRoute) {
-      setGtfsRouteFilterStops(null);
-      return;
-    }
-
-    let filePath = null;
-    if (checkRegioJetPrahaChop(activeRoute)) {
-      filePath = "/data/gtfs/rjChopTimetable.json";
-    } else if (checkRegioJetPrahaPrzemysl(activeRoute)) {
-      filePath = "/data/gtfs/rjPremyslTimetable.json";
-    }
-
-    if (!filePath) {
-      setGtfsRouteFilterStops(null);
-      return;
-    }
-
-    let cancelled = false;
-    const buildStopsFromGtfs = (json) => {
-      const unique = new Map();
-      (json?.trips || []).forEach((trip) => {
-        (trip?.stops || []).forEach((stop) => {
-          const key = `${stop.stopId || stop.name}-${stop.lat}-${stop.lon}`;
-          if (!unique.has(key) && stop?.name && stop?.lat && stop?.lon) {
-            unique.set(key, {
-              stop_id: stop.name,
-              stop_lat: stop.lat,
-              stop_lon: stop.lon,
-            });
-          }
-        });
-      });
-      return Array.from(unique.values());
-    };
-
-    const loadGtfsStops = async () => {
-      try {
-        if (gtfsStopsCacheRef.current.has(filePath)) {
-          setGtfsRouteFilterStops(gtfsStopsCacheRef.current.get(filePath));
-          return;
-        }
-        const response = await fetch(filePath);
-        if (!response.ok) throw new Error(`Failed to load ${filePath}`);
-        const json = await response.json();
-        const mapped = buildStopsFromGtfs(json);
-        gtfsStopsCacheRef.current.set(filePath, mapped);
-        if (!cancelled) setGtfsRouteFilterStops(mapped);
-      } catch {
-        if (!cancelled) setGtfsRouteFilterStops(null);
-      }
-    };
-
-    loadGtfsStops();
-    return () => {
-      cancelled = true;
-    };
-  }, [hasRouteFilter, selectedTrainRouteIds, viewMapData]);
-
   // For selected EC/EN routes, use CD timetable stops as marker source.
   // Station names from cd.cz are matched against BoT stops data for coordinates.
   useEffect(() => {
@@ -825,7 +751,7 @@ const TrainMap = ({
   }, [hasRouteFilter, selectedTrainRouteIds, trips, stops, normalizeStationNameForLookup]);
 
   const markers = useMapMarkers({
-    filteredStops: cdRouteFilterStops || gtfsRouteFilterStops || routeFilterStops || filteredStops,
+    filteredStops: cdRouteFilterStops || routeFilterStops || filteredStops,
     stops,
     cities,
     viewMapData,

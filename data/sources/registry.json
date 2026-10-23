@@ -922,24 +922,59 @@
   },
   {
     "v": 1,
-    "id": "regiojet-gtfs",
-    "label": "RegioJet (GTFS timetables)",
-    "description": "Checked-in artifacts public/data/gtfs/rj*.json. Regenerate manually: npm run parse-gtfs.",
+    "id": "regiojet",
+    "label": "RegioJet (official GTFS)",
+    "description": "RegioJet's own two GTFS feeds on its booking system's host (ybus.sa.cz/gtfe/): the 'interstate' domestic file and the 'international' one, both read and merged nightly. No list of numbers: a rail trip leaving in the evening and running past midnight for 5 h or more is a night train (data/sources/regiojet-sleepers.json), so RJ 1020/1021 (Praha – Košice, through cars to Čop) and RJ 1022/1023 (Praha – Przemyśl) are read today and a newly published summer train is picked up the night it appears. Enriches Back-on-Track's RegioJet rows with the operator's own stop list, times, endpoints and service days, and keeps each stop's pickup/drop-off rule (RegioJet sells no domestic journey on these trains). Fares: the feed's stop and zone ids are RegioJet's booking-system STATION and CITY ids, so every night of the next six weeks is priced between the train's two ends on RegioJet's public booking API (brn-ybus-pubapi.sa.cz/restapi: search, then the connection's price classes), berths only — couchettes and sleepers, one standard adult, no seats or ladies-only compartments (scripts/lib/rj-fares.mjs). The feed's shapes are the station chain; Back-on-Track's rows keep their hand-traced lines, and a row this source creates borrows track from them and PKP's GTFS. Probe: npm run probe-regiojet (label run-probes).",
     "kind": "gtfs",
-    "adapter": null,
-    "runner": "external",
-    "command": "npm run parse-gtfs",
-    "enabled": false,
-    "official": false,
+    "adapter": "regiojet-gtfs",
+    "enabled": true,
+    "official": true,
+    "trusted": false,
     "critical": false,
-    "schedule": "manual",
-    "homepage": "https://mkuran.pl/gtfs/",
-    "endpoint": "gtfs-data/regiojet/ (local GTFS drop — npm run parse-gtfs)",
+    "schedule": "daily",
+    "homepage": "https://www.regiojet.com",
+    "endpoint": "https://ybus.sa.cz/gtfe/international/google_transit.zip",
     "docsUrl": null,
-    "output": null,
-    "synthetic": null,
-    "params": {},
-    "freshness": null
+    "output": "regiojet-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "RJ", "operatorName": "RegioJet" },
+    "synthetic": {
+      "idPrefix": "regiojet_",
+      "agency": { "from": "fixed", "value": "RJ" },
+      "resolveAliases": false,
+      "withService": true,
+      "excludeBotMatched": true,
+      "botMatchAgencies": ["RJ"],
+      "dedupStrategy": null
+    },
+    "enrich": {
+      "strategy": "trainsByNumber",
+      "agencyIds": ["RJ"],
+      "updateVia": true,
+      "setTimes": true,
+      "updateEndpoints": true,
+      "updateServiceDays": true,
+      "stamp": true
+    },
+    "params": {
+      "configPath": "data/sources/regiojet-sleepers.json",
+      "feeds": [
+        { "id": "international", "url": "https://ybus.sa.cz/gtfe/international/google_transit.zip" },
+        { "id": "interstate", "url": "https://ybus.sa.cz/gtfe/google_transit.zip" }
+      ],
+      "siblingTracks": [
+        "public/data/rjChopPolyline.json",
+        "public/data/rj1038Polyline.json",
+        "public/data/enHumennePolyline.json",
+        "public/data/zemplinPolyline.json",
+        "public/data/przemyslSwinoujsciePolyline.json",
+        "public/data/gtfs/pkpTrainShapes.json",
+        "public/data/scraped/cd-trains.json",
+        "public/data/scraped/nightjet-trains.json"
+      ],
+      "fares": { "enabled": true, "requestsPerRun": 360, "nearDays": 7 }
+    },
+    "freshness": { "ttlHours": 25 }
   },
   {
     "v": 1,

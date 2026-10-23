@@ -113,8 +113,8 @@ export function routeStationKeys(viewMap) {
  * from the GTFS bundle's own stop list and expects to find those stations in
  * stops, so without their names here five Berlin–Warszawa corridor stops
  * (Zbąszynek, Świebodzin, Opalenica, Nowy Tomyśl, Frankfurt/Oder) would lose
- * their markers. attachRjGtfsToViewMap carries its own extraStops, so RegioJet
- * needs nothing here.
+ * their markers. RegioJet's official stop lists are written onto its rows at
+ * scrape time (the `regiojet` enrichment), so it needs nothing here.
  *
  * @param {{stops?: object[], viewMap?: Record<string, object>}} payload
  * @param {Iterable<string>} [extraStationNames]

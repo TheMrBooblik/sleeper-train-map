@@ -187,14 +187,14 @@ check("the committed payload: no direction quotes another train's figure", () =>
 // ─── 2. A cell is the night's couchette, and says so when it is not ────────
 
 check("isCouchetteClass: per-person couchette places, deal couchettes included, never the private compartment", () => {
-  for (const key of ["couchette", "couchetteSecond", "couchetteFirst", "lastMinuteCouchette", "flashSaleCouchette"]) {
+  for (const key of ["couchette", "couchette6", "couchette4", "couchetteSecond", "couchetteFirst", "lastMinuteCouchette", "flashSaleCouchette"]) {
     assert.ok(isCouchetteClass(key), key);
     assert.ok(FARE_CLASS_LABELS[key], `${key} has a label, so it can be printed`);
   }
   for (const key of ["privateCouchette", "lastMinutePrivate", "flashSalePrivate", "sleeperBed", "sleeperCabin", "sleeperTriple", "seat"]) {
     assert.ok(!isCouchetteClass(key), key);
   }
-  assert.strictEqual(COUCHETTE_CLASS_KEYS.size, 5);
+  assert.strictEqual(COUCHETTE_CLASS_KEYS.size, 7);
 });
 
 // A Nightjet calendar with the three shapes the payload holds: a couchette

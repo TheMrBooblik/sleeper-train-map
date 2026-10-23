@@ -37,7 +37,7 @@ const asClock = (value) => {
  * other feeds produce ({ tripId, stops: [{ name, arrival, departure }], days }),
  * or null when the source's file does not carry the train.
  *
- * Looked up by the row's own label only. The trains file is the one this row
+ * Looked up by the row's own key or label only. The trains file is the one this row
  * was built from, so the label cannot belong to another operator's train — the
  * bare-number collision the per-operator feeds each have to guard against.
  *
@@ -45,13 +45,16 @@ const asClock = (value) => {
  * @param {{trip_short_name?: string}} trip
  */
 export function sourceFeedSchedule(trains, trip) {
+  // A synthetic row shows a train as its source names it ("RJ 1040") and
+  // keeps the key it is filed under ("1040") as `train_key` — read first.
+  const key = String(trip?.train_key ?? "").trim();
   const label = String(trip?.trip_short_name ?? "").trim();
-  if (!trains || !label) return null;
-  const train = trains[label];
+  if (!trains || !(key || label)) return null;
+  const train = (key && trains[key]) || trains[label];
   const stations = Array.isArray(train?.stations) ? train.stations : [];
   if (stations.length < 2) return null;
   return {
-    tripId: label,
+    tripId: label || key,
     stops: stations.map((s, i) => ({
       stopId: s.code || s.name || String(i),
       sequence: i + 1,

@@ -462,22 +462,34 @@
     },
     "RJ": {
       "website": "https://regiojet.com",
-      "countries": ["CZ", "SK", "UA"],
-      "integrationStatus": "source-discovered",
-      "difficulty": "medium",
-      "notes": "Two routes in. The Czech infrastructure manager (Správa železnic) publishes the whole national timetable — every operator, RegioJet included — as CZPTT XML through the CIS JŘ portal. RegioJet's own booking API is already used for price probes (scripts/adapters/regiojet-api.mjs), so that surface is known to work.",
+      "countries": ["CZ", "SK", "PL", "UA"],
+      "integrationStatus": "integrated",
+      "difficulty": "easy",
+      "notes": "Integrated as the `regiojet` registry source. RegioJet publishes its own timetable as two GTFS feeds and keeps them current; both are read nightly and every rail trip leaving in the evening and running past midnight is a night train (RJ 1020/1021 Praha–Košice–Čop, RJ 1022/1023 Praha–Przemyśl in October 2026). The feeds' stop and zone ids are the booking API's STATION and CITY ids, which is what lets the fare calendar price each night with no name lookup.",
       "sources": [
         {
-          "name": "CIS JŘ — national rail timetable (CZPTT XML)",
-          "url": "https://portal.cisjr.cz/pub/draha/celostatni/szdc/",
-          "docsUrl": "https://portal.cisjr.cz/",
-          "format": "XML (CZPTT)",
-          "provides": ["trains", "stops", "times", "calendar"],
+          "name": "RegioJet GTFS — international",
+          "url": "https://ybus.sa.cz/gtfe/international/google_transit.zip",
+          "docsUrl": null,
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar", "pickup/drop-off rules"],
           "auth": "none",
-          "status": "discovered",
-          "lastChecked": null,
-          "probeWorkflow": null,
-          "notes": "Official and complete for Czech rail — one integration would cover RJ, ČD and Leo Express. CZPTT is a European standard dialect but needs its own parser."
+          "status": "working",
+          "lastChecked": "2026-10-23",
+          "probeWorkflow": "probe-regiojet.yml",
+          "notes": "Every train and coach crossing a border, the night trains among them. shapes.txt is the station chain (one point per stop), so the line is not taken from it."
+        },
+        {
+          "name": "RegioJet GTFS — interstate (domestic)",
+          "url": "https://ybus.sa.cz/gtfe/google_transit.zip",
+          "docsUrl": null,
+          "format": "GTFS",
+          "provides": ["routes", "trips", "stops", "stop_times", "calendar"],
+          "auth": "none",
+          "status": "working",
+          "lastChecked": "2026-10-23",
+          "probeWorkflow": "probe-regiojet.yml",
+          "notes": "Domestic Czech lines (R8 Brno–Bohumín, R23 Kolín–Ústí, buses). No night train in it on 2026-10-23; read anyway so one that appears is picked up."
         },
         {
           "name": "RegioJet public booking API",
@@ -488,8 +500,20 @@
           "auth": "none",
           "status": "working",
           "lastChecked": null,
+          "probeWorkflow": "probe-regiojet.yml",
+          "notes": "The fare calendar (scripts/lib/rj-fares.mjs): one search per train and night between its two ends, then the matched connection's price classes; berths only."
+        },
+        {
+          "name": "CIS JŘ — national rail timetable (CZPTT XML)",
+          "url": "https://portal.cisjr.cz/pub/draha/celostatni/szdc/",
+          "docsUrl": "https://portal.cisjr.cz/",
+          "format": "XML (CZPTT)",
+          "provides": ["trains", "stops", "times", "calendar"],
+          "auth": "none",
+          "status": "discovered",
+          "lastChecked": null,
           "probeWorkflow": null,
-          "notes": "Already called by the weekly price probe, so the endpoint is known good — it just isn't wired to timetables yet."
+          "notes": "Official and complete for Czech rail — one integration would cover ČD and Leo Express too. Not needed for RegioJet now that its own GTFS is read."
         }
       ]
     },

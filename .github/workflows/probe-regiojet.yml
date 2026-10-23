@@ -1,0 +1,57 @@
+name: Probe RegioJet source
+
+# What RegioJet's two GTFS feeds (ybus.sa.cz/gtfe/) and its public booking API
+# (brn-ybus-pubapi.sa.cz/restapi) serve to an automated client. The dev sandbox
+# reaches neither, so this is how the fare reader (scripts/lib/rj-fares.mjs) is
+# checked against real answers: the night trains built from the feeds, every
+# seat class with its verdict, and per train one search, the connection matched
+# as ours and the berth prices read from it.
+#
+# Label a PR `run-probes` to run it from the PR head; it also runs on every
+# push to a PR carrying the label that touches its own files (`synchronize`),
+# because a workflow added in a PR cannot be dispatched until it merges.
+#
+# Read-only: bounded GET requests, an honest User-Agent, nothing committed.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled, synchronize]
+    paths:
+      - scripts/probe-regiojet.mjs
+      - scripts/lib/regiojet.mjs
+      - scripts/lib/rj-fares.mjs
+      - scripts/adapters/regiojet-gtfs.mjs
+      - data/sources/regiojet-sleepers.json
+      - .github/workflows/probe-regiojet.yml
+
+concurrency:
+  group: probe-regiojet-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'run-probes') ||
+      (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'run-probes'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: node scripts/probe-regiojet.mjs probe-output
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regiojet-probe-output
+          path: probe-output/
+          retention-days: 7

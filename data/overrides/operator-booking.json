@@ -36,10 +36,34 @@
   },
   "RJ": {
     "urlTemplate": "https://regiojet.com/?fromLocationId={origin}&fromLocationType=CITY&toLocationId={dest}&toLocationType=CITY",
+    "urlDateSuffix": "&departureDate={date}",
+    "dateFormat": "yyyy-MM-dd",
     "requireStationMapping": true,
     "stationNames": {
       "Praha hl.n.": "10202003",
-      "Chop": "7122881001"
+      "Pardubice hl.n.": "372842000",
+      "Olomouc hl.n.": "10202031",
+      "Ostrava hl.n.": "10202000",
+      "Ostrava-Svinov": "10202000",
+      "Havířov": "372842004",
+      "Čadca": "508808002",
+      "Žilina": "10202038",
+      "Vrútky": "49584000",
+      "Ružomberok": "10202037",
+      "Liptovský Mikuláš": "10202036",
+      "Štrba": "49584002",
+      "Poprad Tatry": "10202035",
+      "Spišská Nová Ves": "1762994000",
+      "Margecany": "2317706000",
+      "Kysak": "1762994001",
+      "Košice": "10202033",
+      "Chop": "7122881001",
+      "Kraków Gł.": "1225791000",
+      "Kraków Główny": "1225791000",
+      "Rzeszow Gł.": "5990055007",
+      "Rzeszów Główny": "5990055007",
+      "Przemyśl Gł.": "5990055004",
+      "Przemyśl Główny": "5990055004"
     }
   },
   "SNCF": {

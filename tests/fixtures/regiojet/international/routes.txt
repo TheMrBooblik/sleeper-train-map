@@ -1,0 +1,4 @@
+agency_id,route_id,route_short_name,route_long_name,route_type,route_desc,route_url,route_color,route_text_color,network_id,bikes_allowed,route_sort_order
+372883000,8870969001,RJ,Praha - Košice,2,Vlaková linka: Praha – Havířov – Žilina – Košice,,ffff00,000000,,,
+372883000,8534213024,RJ,Praha - Přemyšl,2,Vlaková linka: Praha - Přemyšl,,ffff00,000000,,,
+372883000,8185007005,RJ,Praha - Chop,2,Vlaková linka: Praha - Čop,,ffff00,000000,,,

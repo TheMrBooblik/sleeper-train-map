@@ -1,0 +1,3 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_lang,agency_phone,agency_fare_url,agency_email
+1724944000,RegioJet a. s.,https://www.regiojet.sk,Europe/Prague,cs,+421220502020,https://brn-ybus-online.sa.cz,
+372883000,RegioJet a.s.,https://www.regiojet.cz,Europe/Prague,cs,,https://brn-ybus-online.sa.cz,

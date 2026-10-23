@@ -8,7 +8,6 @@ import {
 } from "../../lib/viaSplit.mjs";
 import { attachPkpGtfsPolylinesToViewMap } from "../../lib/pkpGtfsMerge";
 import { hydratePkpBundle } from "../../lib/pkpTrainKeyExtract";
-import { attachRjGtfsToViewMap } from "../../lib/rjGtfsMerge";
 import { mergeRouteGeometry } from "../../pages/api/lib/payload-projection.mjs";
 import {
   applyReplacementsToRouteData,
@@ -132,18 +131,16 @@ async function fetchOptionalJson(url) {
 /**
  * Everything the map can improve itself with *after* it is already on screen:
  * the encoded route polylines (~1.05 MB, and showRoutes starts false anyway)
- * plus the PKP and RegioJet GTFS bundles. Fetched as one background stage so a
+ * plus the PKP GTFS bundle. Fetched as one background stage so a
  * visitor on a slow connection sees stations in one round trip instead of
  * waiting on ~2.5 MB of everything.
  */
 async function fetchEnrichments() {
-  const [geometry, pkpBundle, rjChop, rjPremysl] = await Promise.all([
+  const [geometry, pkpBundle] = await Promise.all([
     fetchOptionalJson("/api/route-geometry"),
     fetchOptionalJson("/data/gtfs/pkpTrainShapes.json"),
-    fetchOptionalJson("/data/gtfs/rjChopTimetable.json"),
-    fetchOptionalJson("/data/gtfs/rjPremyslTimetable.json"),
   ]);
-  return { geometry, pkpBundle, rjChop, rjPremysl };
+  return { geometry, pkpBundle };
 }
 
 /**
@@ -152,10 +149,10 @@ async function fetchEnrichments() {
  * again with the background stage's results.
  *
  * @param {{stops?: object[]|object, viewMap?: object, trips?: object}} core
- * @param {{geometry?: object, pkpBundle?: object, rjChop?: object, rjPremysl?: object}} enrichments
+ * @param {{geometry?: object, pkpBundle?: object}} enrichments
  */
 function assemble(core, enrichments = {}) {
-  const { geometry, pkpBundle, rjChop, rjPremysl } = enrichments;
+  const { geometry, pkpBundle } = enrichments;
 
   let viewMapRaw = core.viewMap || {};
 
@@ -178,25 +175,6 @@ function assemble(core, enrichments = {}) {
     ? core.stops
     : Object.values(core.stops || {});
   stopsArray = enrichStationsWithCoordinates(stopsArray, stationCoordinates);
-
-  // Merge RJ GTFS into viewMap: enriches via lists and adds missing stop records.
-  if (rjChop && rjPremysl) {
-    try {
-      const existingIds = new Set(
-        stopsArray.map((s) => (s.stop_id || "").toLowerCase()),
-      );
-      const { viewMap: rjViewMap, extraStops } = attachRjGtfsToViewMap(
-        viewMapRaw,
-        rjChop,
-        rjPremysl,
-        existingIds,
-      );
-      viewMapRaw = rjViewMap;
-      stopsArray = [...stopsArray, ...extraStops];
-    } catch (e) {
-      console.warn("[useInitialData] RJ GTFS merge failed:", e);
-    }
-  }
 
   // BoT sometimes names the wrong terminus (Leo Express Frankfurt
   // Flughafen vs Süd). Rewrite before cities and booking see the names.

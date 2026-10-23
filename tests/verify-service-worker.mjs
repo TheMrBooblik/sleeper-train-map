@@ -83,7 +83,7 @@ ok("admin, suggest and proposals paths excluded");
 // The regression: everything *under* /data is data, not the admin page.
 for (const p of [
   "/data/gtfs/pkpTrainShapes.json",
-  "/data/gtfs/rjChopTimetable.json",
+  "/data/rj1038Polyline.json",
   "/data/rjChopPolyline.json",
   "/data/enHumennePolyline.json",
 ]) {

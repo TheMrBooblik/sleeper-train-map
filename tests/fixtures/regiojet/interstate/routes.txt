@@ -1,0 +1,3 @@
+agency_id,route_id,route_short_name,route_long_name,route_type,route_desc,route_url,route_color,route_text_color,network_id,bikes_allowed,route_sort_order
+372883000,8641841014,RJ,Brno - Bohumín,2,Vlaková linka: R8 Brno – Bohumín,,ffff00,000000,,,
+372883000,8267152003,RJ,Ústí n.L. - Kolín,2,Vlaková linka: R23 Kolín – Ústí n.L.,,ffff00,000000,,,
