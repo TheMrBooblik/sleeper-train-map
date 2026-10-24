@@ -68,6 +68,7 @@
     "probe-srt": "node scripts/probe-srt.mjs",
     "probe-ktmb": "node scripts/probe-ktmb.mjs",
     "probe-vnr": "node scripts/probe-vnr.mjs",
+    "probe-uty": "node scripts/probe-uty.mjs",
     "verify-calendar": "node tests/verify-calendar.mjs",
     "verify-plan": "node tests/verify-plan.mjs",
     "verify-canonical-routes": "node tests/verify-canonical-routes.mjs",

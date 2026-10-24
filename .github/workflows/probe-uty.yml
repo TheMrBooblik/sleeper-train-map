@@ -1,0 +1,56 @@
+name: Probe UTY source
+
+# What Uzbekistan Railways' (O'zbekiston temir yo'llari, UTY) ticket shop
+# eticket.railway.uz serves to an automated client: robots.txt, the shop's page
+# and the API paths its bundles call, the station list, and the public search
+# (before login) on the night-train corridors with every car's tariffs. The dev
+# sandbox cannot reach railway.uz, so this is how the reader gets written
+# against real answers.
+#
+# Label a PR `run-probes` to run it from the PR head; it also runs on every
+# push to a PR carrying the label that touches its own files (`synchronize`),
+# because a workflow added in a PR cannot be dispatched until it merges.
+#
+# Read-only: bounded requests, an honest User-Agent, nothing booked or committed.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled, synchronize]
+    paths:
+      - scripts/probe-uty.mjs
+      - scripts/lib/uty.mjs
+      - scripts/adapters/uty.mjs
+      - data/sources/uty-sleepers.json
+      - .github/workflows/probe-uty.yml
+
+concurrency:
+  group: probe-uty-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'run-probes') ||
+      (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'run-probes'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: node scripts/probe-uty.mjs probe-output
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: uty-probe-output
+          path: probe-output/
+          retention-days: 7
