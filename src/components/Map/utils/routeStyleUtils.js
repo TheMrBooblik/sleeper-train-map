@@ -24,6 +24,42 @@ import { localToday, rowNextDeparture } from "../../../lib/nextDeparture.mjs";
 const SERVICE_ID_CALENDAR_RANGE_RE =
   /(\d{4})\/(\d{1,2})\/(\d{1,2})\s*-\s*(?:(\d{4})\/)?(\d{1,2})\/(\d{1,2})/;
 
+/**
+ * A route's trips, from an index built once per trips table.
+ *
+ * Every per-route question in this file (season closed? cadence? opening
+ * date?) used to answer itself with `Object.values(trips).filter(...)` — a
+ * scan of the whole table for one route. The marker hook asks the season
+ * question for every route of every station on every zoom, so with ~360
+ * stations on screen over Poland a single zoom ran that scan tens of thousands
+ * of times: ~0.6 s of main thread a zoom on a desktop CPU, over 2 s on a
+ * phone-class one, which is the map "lagging" whenever it moved. The table is
+ * replaced, never mutated (useInitialData assembles a new one), so its
+ * identity is a safe cache key and a WeakMap lets an old one go.
+ *
+ * @param {Record<string, object>|object[]} trips
+ * @param {string|number} routeId
+ * @returns {object[]} never mutate — it is the cached array
+ */
+const tripsByRouteCache = new WeakMap();
+const NO_TRIPS = Object.freeze([]);
+export function tripsForRoute(trips, routeId) {
+  if (!trips || routeId == null || typeof trips !== "object") return NO_TRIPS;
+  let index = tripsByRouteCache.get(trips);
+  if (!index) {
+    index = new Map();
+    for (const trip of Object.values(trips)) {
+      const key = trip?.route_id?.toString();
+      if (key == null) continue;
+      let list = index.get(key);
+      if (!list) index.set(key, (list = []));
+      list.push(trip);
+    }
+    tripsByRouteCache.set(trips, index);
+  }
+  return index.get(routeId.toString()) ?? NO_TRIPS;
+}
+
 export function parseBoTServiceIdDateRange(serviceId) {
   if (!serviceId || typeof serviceId !== "string") return null;
   const m = serviceId.match(SERVICE_ID_CALENDAR_RANGE_RE);
@@ -62,9 +98,7 @@ export function isRouteOutsideServiceIdSeason(routeId, trips, route = undefined)
   if (routeSeasonHasClosed(route)) return true;
   if (!trips || routeId == null) return false;
 
-  const routeTrips = Object.values(trips).filter(
-    (trip) => trip.route_id?.toString() === routeId.toString(),
-  );
+  const routeTrips = tripsForRoute(trips, routeId);
   if (routeTrips.length === 0) return false;
 
   const today = new Date();
@@ -172,9 +206,7 @@ const CONCRETE_DATE_RE = /\d{4}-\d{2}-\d{2}|\d{4}\/\d{1,2}\/\d{1,2}/;
 
 export function hasUnknownStart(routeId, trips) {
   if (!trips || routeId == null) return false;
-  const routeTrips = Object.values(trips).filter(
-    (trip) => trip.route_id?.toString() === routeId.toString(),
-  );
+  const routeTrips = tripsForRoute(trips, routeId);
   if (routeTrips.length === 0) return false;
   const blob = routeTrips
     .map((t) => `${t.irregularities || ""} ${t.service_id || ""}`)
@@ -377,9 +409,7 @@ export function getRouteStyleFromFrequency(routeId, trips, route = null) {
   // default and be drawn solid however rarely they run.
   const routeTrips =
     trips && routeId
-      ? Object.values(trips).filter(
-          (trip) => trip.route_id?.toString() === routeId.toString(),
-        )
+      ? tripsForRoute(trips, routeId)
       : [];
   const fromRow =
     routeTrips.length === 0 && route
@@ -859,9 +889,7 @@ export function getFutureRouteStartDate(routeId, trips, route = undefined) {
 function futureStartFromTrips(routeId, trips) {
   if (!trips || !routeId) return null;
 
-  const routeTrips = Object.values(trips).filter(
-    (trip) => trip.route_id?.toString() === routeId.toString(),
-  );
+  const routeTrips = tripsForRoute(trips, routeId);
   if (routeTrips.length === 0) return null;
 
   const today = new Date();

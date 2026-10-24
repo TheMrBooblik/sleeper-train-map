@@ -42,6 +42,7 @@
     "verify-return-branches": "node tests/verify-return-branches.mjs",
     "verify-marker-thinning": "node tests/verify-marker-thinning.mjs",
     "verify-marker-grouping": "node tests/verify-marker-grouping.mjs",
+    "verify-map-interaction": "node tests/verify-map-interaction.mjs",
     "verify-proposals": "node tests/verify-proposals-apply.mjs",
     "verify-classify": "node tests/verify-classify.mjs",
     "verify-enrich": "node tests/verify-enrich-view-map.mjs",
@@ -113,6 +114,7 @@
   },
   "dependencies": {
     "@mapbox/polyline": "^1.2.1",
+    "@react-leaflet/core": "^2.1.0",
     "@tailwindcss/postcss": "^4.0.8",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
