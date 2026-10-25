@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-nj-13466",
+  "createdAt": "2026-10-25T12:28:14.576Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: NJ 13466 (Wien Hbf – Zürich HB)",
+  "summary": "Material change on an approved route (already live — FYI): origin: \"Feldkirch Bahnhof\" → \"Wien Hbf\"; train numbers: \"NJ 13466\" → \"NJ 13466|NJ 13467\"",
+  "target": {
+    "routeKey": "nj_standalone_NJ_13466",
+    "agencyId": "ÖBB",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "origin": "Feldkirch Bahnhof",
+    "train numbers": "NJ 13466"
+  },
+  "after": {
+    "origin": "Wien Hbf",
+    "train numbers": "NJ 13466|NJ 13467"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
