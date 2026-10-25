@@ -1,0 +1,45 @@
+{
+  "v": 1,
+  "id": "p_price-nj-standalone-nj-449",
+  "createdAt": "2026-10-25T12:29:39.438Z",
+  "source": "probe",
+  "sourceDetail": "nightjet",
+  "kind": "price.update",
+  "title": "Price: nj_standalone_NJ_449 from 79.9 EUR",
+  "summary": "First sampled fare: 79.9 EUR (sample date 2027-02-08).",
+  "target": {
+    "routeKey": "nj_standalone_NJ_449",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "fromPrice": 79.9,
+    "currency": "EUR"
+  },
+  "apply": {
+    "type": "price.update",
+    "payload": {
+      "routeKey": "nj_standalone_NJ_449",
+      "price": {
+        "fromPrice": 79.9,
+        "currency": "EUR",
+        "source": "probe:nightjet",
+        "sampledAt": "2026-10-25T12:29:39.438Z",
+        "sampleDate": "2027-02-08",
+        "evidenceUrl": "https://www.nightjet.com/nj-booking-ocp/destinations/offers/NJ%20449/8800004/8103000/1795474800000?forward=true&max=3"
+      }
+    }
+  },
+  "evidence": {
+    "urls": [
+      "https://www.nightjet.com/nj-booking-ocp/destinations/offers/NJ%20449/8800004/8103000/1795474800000?forward=true&max=3"
+    ],
+    "excerpt": "",
+    "fetchedAt": null
+  },
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
