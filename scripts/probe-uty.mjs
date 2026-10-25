@@ -27,7 +27,10 @@ import path from "node:path";
 import { HONEST_USER_AGENT, detectBlock } from "./lib/http-block.mjs";
 
 const outDir = process.argv[2] ?? null;
-const ORIGIN = "https://eticket.railway.uz";
+// The shop moved: since October 2026 eticket.railway.uz answers every path with
+// a 301 to eticket.uzrailpass.uz (first run, 2026-10-25).
+const LEGACY_ORIGIN = "https://eticket.railway.uz";
+const ORIGIN = "https://eticket.uzrailpass.uz";
 const MAX_REQUESTS = 60;
 const SPACING_MS = 1_500;
 const DATE_OFFSET_DAYS = 7;
@@ -56,6 +59,7 @@ const SAMPLES = [
 ];
 
 let requests = 0;
+let csrfRefused = false;
 const cookies = new Map();
 const blockedHosts = new Set();
 
@@ -124,8 +128,10 @@ function describe(label, page) {
 /**
  * A search POST. A 403 whose answer is JSON and which sets an XSRF-TOKEN
  * cookie is the CSRF handshake (the first call a browser makes gets the same),
- * not a refusal: it is retried once with the server's own token. Anything else
- * detectBlock calls a block is final for the host.
+ * not a refusal: it is retried once with the server's own token. A 403 reading
+ * Spring Security's "An expected CSRF token cannot be found" (the first run's
+ * answer) is a missing token, not a WAF: reported, and the host stays open.
+ * Anything else detectBlock calls a block is final for the host.
  */
 async function api(pathname, json, { lang = "uz", label = pathname } = {}) {
   const url = `${ORIGIN}${pathname}`;
@@ -136,6 +142,11 @@ async function api(pathname, json, { lang = "uz", label = pathname } = {}) {
     console.log("  403 with a fresh XSRF-TOKEN cookie — the CSRF handshake; retrying once with the server's token");
     res = await request(url, { method: "POST", json, lang });
     if (!describe(`POST ${label} (retry)`, res)) return null;
+  }
+  if (res.status === 403 && /csrf token/i.test(res.body) && !/<html/i.test(res.body)) {
+    console.log(`  CSRF refused (no block): ${res.body.slice(0, 200)}; cookies sent: ${[...cookies.keys()].join(", ") || "none"}`);
+    csrfRefused = true;
+    return null;
   }
   if (res.block) {
     blockedHosts.add(new URL(url).host);
@@ -156,17 +167,33 @@ const travel = ymd(new Date(Date.now() + DATE_OFFSET_DAYS * 86_400_000));
 
 console.log(`# UTY eticket probe — ${new Date().toISOString()}, travel date ${travel}`);
 
-// 1. robots.txt and the shop's own page: status, cookies, scripts.
+// 0. The old address, to record where it points now.
+const legacy = await request(`${LEGACY_ORIGIN}/uz/home`, { accept: "text/html,*/*" });
+describe(`${LEGACY_ORIGIN}/uz/home`, legacy);
+
+// 1. robots.txt and the shop's own page: status, cookies, scripts. Redirects
+// are followed by hand (at most three, same site only) so each hop's cookies
+// are seen.
 const robots = await request(`${ORIGIN}/robots.txt`, { accept: "text/plain,*/*" });
 if (describe("robots.txt", robots)) console.log(robots.body.slice(0, 2_000));
 
-let home = await request(`${ORIGIN}/uz/home`, { accept: "text/html,*/*" });
+async function getFollowing(url) {
+  let page = await request(url, { accept: "text/html,*/*" });
+  for (let hop = 0; hop < 3 && page.location && [301, 302, 303, 307, 308].includes(page.status); hop++) {
+    describe(`${page.url} (redirect)`, page);
+    const next = new URL(page.location, page.url).href;
+    if (!/(^|\.)(uzrailpass|railway)\.uz$/.test(new URL(next).hostname)) break;
+    page = await request(next, { accept: "text/html,*/*" });
+  }
+  return page;
+}
+let home = await getFollowing(`${ORIGIN}/uz/home`);
 if (home.error && /TIMEOUT|ECONNRESET|ETIMEDOUT/i.test(home.error)) {
   console.log(`first attempt: ${home.error} — retrying once in 30 s`);
   await sleep(30_000);
-  home = await request(`${ORIGIN}/uz/home`, { accept: "text/html,*/*" });
+  home = await getFollowing(`${ORIGIN}/uz/home`);
 }
-if (!describe("/uz/home", home)) process.exit(0);
+if (!describe(`home ${home.url}`, home)) process.exit(0);
 if (home.block) {
   console.log(home.body.slice(0, 1_500));
   process.exit(0);
@@ -179,10 +206,11 @@ for (const m of home.body.matchAll(/.{0,120}(recaptcha|captcha|turnstile|ddos-gu
 // 2. The SPA's own bundles, searched for the API paths it calls — the route
 // (stop list) call in particular, which the open-source clients do not name.
 const srcs = [...home.body.matchAll(/<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi)]
-  .map((m) => new URL(m[1], `${ORIGIN}/uz/home`).href)
+  .map((m) => new URL(m[1], home.url).href)
   .filter((s) => s.startsWith(ORIGIN));
 console.log(`\n# Scripts: ${srcs.join("  ")}`);
 const apiPaths = new Set();
+const bundles = new Map();
 const seen = new Set();
 for (let i = 0; i < srcs.length && seen.size < 10; i++) {
   const src = srcs[i];
@@ -191,6 +219,7 @@ for (let i = 0; i < srcs.length && seen.size < 10; i++) {
   const js = await request(src, { accept: "*/*" });
   if (!describe(src, js) || js.block) continue;
   save(src, js.body);
+  bundles.set(src, js.body);
   for (const m of js.body.matchAll(/["'`](\/?api\/v\d+\/[A-Za-z0-9_\-/{}$.]+)["'`]/g)) apiPaths.add(m[1]);
   for (const m of js.body.matchAll(/["'`]((?:handbook|trains?|route|stations?|schedule|timetable)\/[A-Za-z0-9_\-/{}$.]+)["'`]/g)) apiPaths.add(m[1]);
   // Lazy chunks the main bundle names (webpack): fetch the ones whose names say
@@ -203,15 +232,26 @@ console.log(`\n# API paths named in the bundles (${apiPaths.size}):`);
 for (const p of [...apiPaths].sort()) console.log(`  ${p}`);
 const routeish = [...apiPaths].filter((p) => /route|stop|schedule|timetable|marshrut/i.test(p));
 console.log(`route-like: ${routeish.join("  ") || "none"}`);
-for (const p of routeish) {
-  // Print the code around each use, so the body it posts can be read.
-  for (const file of fs.existsSync(outDir ?? "") ? fs.readdirSync(outDir) : []) {
-    if (!file.endsWith(".js.txt")) continue;
-    const text = fs.readFileSync(path.join(outDir, file), "utf8");
-    for (const m of text.matchAll(new RegExp(`.{0,400}${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}.{0,600}`, "g"))) {
-      console.log(`  --- ${file}: …${m[0]}…`);
+// The code around each use, so the body it posts and the headers it sets can
+// be read: the CSRF token's origin (does the server set it, or the page?),
+// the search and station calls, and anything route-like.
+const escape = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const contexts = [
+  ["csrf", /.{0,500}(?:xsrf|csrf).{0,500}/gi, 12],
+  ["trains/list", new RegExp(`.{0,400}trains/list.{0,800}`, "g"), 4],
+  ["stations/list", new RegExp(`.{0,300}stations/list.{0,500}`, "g"), 2],
+  ...routeish.map((p) => [p, new RegExp(`.{0,400}${escape(p)}.{0,800}`, "g"), 3]),
+];
+for (const [label, re, max] of contexts) {
+  console.log(`\n### code around ${label}`);
+  let n = 0;
+  for (const [src, text] of bundles) {
+    for (const m of text.matchAll(re)) {
+      if (n++ >= max) break;
+      console.log(`  --- ${src.split("/").pop()}: …${m[0]}…`);
     }
   }
+  if (!n) console.log("  (not found)");
 }
 
 // 3. Stations: the whole list in each language the shop offers.
@@ -239,6 +279,10 @@ const codeFor = (v) => (/^\d+$/.test(v) ? v : stationNames.get(v.toLowerCase().r
 // 4. Searches. The first answer is printed whole; the rest as a digest of
 // every train: number, brand/type, times, and every car type's tariffs.
 console.log(`\n# Searches for ${travel}`);
+if (csrfRefused && !cookies.has("XSRF-TOKEN")) {
+  console.log("skipped: the station list was refused for want of a CSRF token and no XSRF-TOKEN cookie was ever set — read the code around csrf above first");
+  SAMPLES.length = 0;
+}
 let printedWhole = false;
 for (const [fromRaw, toRaw] of SAMPLES) {
   const from = codeFor(fromRaw);
