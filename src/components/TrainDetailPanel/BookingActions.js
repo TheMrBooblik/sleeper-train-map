@@ -88,9 +88,10 @@ export default function BookingActions({
             </span>
             {!livePrice && eurHintFor(pricing) && (
               <span
-                className="block text-xs text-gray-500 dark:text-zinc-400"
+                className="whitespace-nowrap text-xs text-gray-500 dark:text-zinc-400"
                 title={eurRateNote(undefined, pricing?.currency)}
               >
+                {" "}
                 ({eurHintFor(pricing)})
               </span>
             )}
