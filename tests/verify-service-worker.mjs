@@ -159,6 +159,27 @@ expect(
 );
 ok("bounded by the nightly scrape cycle, and safe on a missing header");
 
+// ─── 4b. A versioned file replaces its older versions ───────────────────────
+console.log("4b) versioned data files");
+
+const { isOlderVersion } = sandbox;
+if (typeof isOlderVersion !== "function") {
+  fail("sw.js no longer defines isOlderVersion()");
+} else {
+  const fresh = url("/data/published/plan-index.json?v=build-2");
+  expect(isOlderVersion(url("/data/published/plan-index.json?v=build-1"), fresh), true,
+    "the previous build's plan index is dropped once the new one is stored");
+  expect(isOlderVersion(url("/data/published/plan-index.json"), fresh), true,
+    "the unversioned copy from before the build id is dropped too");
+  expect(isOlderVersion(url("/data/published/plan-index.json?v=build-2"), fresh), false,
+    "the copy just stored is kept");
+  expect(isOlderVersion(url("/data/gtfs/pkpTrainShapes.json"), fresh), false,
+    "another file is never touched");
+  expect(isOlderVersion(url("/data/published/plan-index.json?v=build-1"), url("/data/published/plan-index.json")), false,
+    "an unversioned fetch prunes nothing");
+  ok("one copy per versioned file");
+}
+
 // ─── 5. The cache version moved with the strategy ───────────────────────────
 console.log("5) constants");
 
