@@ -26,9 +26,15 @@
 //   - One corridor over seven dates gives each train's nights (Toshkent → Xiva:
 //     056 Tue/Wed/Fri/Sat, 125 Mon/Tue/Fri/Sat, 076 Mon). The digits name the
 //     train; the letter after them changes by date (125Ч, 125Ф).
-// This run prints the station search's raw answer, and searches from Toshkent
-// to every station whose code is known: a night train answers a search exactly
-// when it serves both stations, so those searches are its official stop list.
+//   - Round four: Toshkent to every known station, both ways, answers each
+//     night train serving that station with the time there — the stop list
+//     the adapter builds. The station search is a name prefix search
+//     ({"data":{"stations":[{"code","name"}]}}, 204 for no hit or under three
+//     letters) and found OLOT 2900831, SHOVOT 2900844, SARIOSIYO 2900868,
+//     DENOV 2900780, MISKIN 2900104; 2900001 is TOSHKENT MARKAZIY, 2900002
+//     TOSHKENT JANUBIY. InforEuro has the so'm (13 406.81 per € for Oct 2026).
+// This run looks up the codes still missing by spelling variants, and asks
+// whether a search from one Tashkent station lists only that station's trains.
 //
 // Read-only: GETs plus the page's own search POSTs, an honest User-Agent, at
 // most MAX_REQUESTS, 1.5 s apart, nothing booked. A block (detectBlock) stops
@@ -46,7 +52,7 @@ const SPACING_MS = 1_500;
 const DATE_OFFSET_DAYS = 7;
 
 // Station searches: the far ends of the night trains, plus the internationals.
-const STATION_QUERIES = ["Olot", "Shovot", "Qo'ng'irot", "Qung'irot", "Sariosiyo", "Denov", "Kattaqo'rg'on", "Miskin", "Beruniy", "Qorako'l", "Moskva", "Olmaota", "Dushanbe", "Sh", "Toshkent"];
+const STATION_QUERIES = ["Qon", "Qun", "Qo‘ng", "QO`NG", "Kung", "Кунг", "Кўнғ", "Kat", "Ber", "To‘r", "Tor", "Qor", "Qar", "Boy", "Uch", "Xaz", "Jay", "Dov", "Ter", "Shahr", "Kit", "Ург", "Олм", "Алма", "Душ", "Каз", "Вол"];
 // Codes known from open-source clients of the shop (mrmuminov/railway_finder).
 const KNOWN = {
   Guliston: "2900850", Jizzax: "2900720", Samarqand: "2900700", Navoiy: "2900930", Buxoro: "2900800",
@@ -169,27 +175,14 @@ const digest = (trains) => {
     console.log(`  - ${t.number} ${t.type}/${t.brand} ${t.originRoute?.depStationName} → ${t.originRoute?.arvStationName} | ${t.departureDate} → ${t.arrivalDate} (${t.timeOnWay}) | ${t.subRoute?.depStationName}→${t.subRoute?.arvStationName} | ${cars || "no places"}${t.comment ? ` | comment ${t.comment}` : ""}`);
   }
 };
-// 3. Toshkent to every known station, one date, both ways: which night
-// trains answer for which station, and at what time.
-for (const [name, code] of Object.entries(KNOWN)) {
-  for (const [from, to] of [["2900000", code], [code, "2900000"]]) {
+// 3. Which Tashkent station: the same corridors from the city code and from
+// each station's own code.
+for (const from of ["2900000", "2900001", "2900002"]) {
+  for (const to of ["2900255", "2900700", "2900680"]) {
     const answer = await call("POST", "/api/v3/handbook/trains/list", { directions: { forward: { date: day(DATE_OFFSET_DAYS), depStationCode: from, arvStationCode: to } } }, `search ${from}-${to}`);
     const trains = answer?.data?.directions?.forward?.trains ?? [];
-    console.log(`  ${from === "2900000" ? `Toshkent → ${name}` : `${name} → Toshkent`}: ${trains.length} train(s)`);
-    digest(trains);
+    console.log(`  ${from} → ${to}: ${trains.map((t) => `${t.number} ${t.departureDate.slice(11)} (${t.originRoute?.depStationName})`).join(", ") || "none"}`);
   }
-}
-
-// 4. The shop's own currency rates (the page shows prices in other
-// currencies), and the European Commission's monthly rate for the so'm, for
-// an "≈ €" beside a fare.
-const rates = await call("GET", "/api/v1/payment/currency-rates", null, "currency-rates");
-console.log(`  ${JSON.stringify(rates).slice(0, 1_500)}`);
-try {
-  const res = await fetch("https://ec.europa.eu/budg/inforeuro/api/public/currencies/uzs", { headers: { "User-Agent": HONEST_USER_AGENT, Accept: "application/json" }, signal: AbortSignal.timeout(30_000) });
-  console.log(`\n## InforEuro UZS\nstatus ${res.status}\n${(await res.text()).slice(0, 1_500)}`);
-} catch (err) {
-  console.log(`\n## InforEuro UZS\nerror ${err.message}`);
 }
 
 console.log(`\n# Requests: ${requests}; blocked hosts: ${[...blockedHosts].join(", ") || "none"}; cookies: ${[...cookies.keys()].join(", ")}`);
