@@ -24,7 +24,7 @@
 
 export const ES_API_BASE = "https://europeansleeperprod-api.azurewebsites.net/api";
 const USER_AGENT =
-  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://github.com/TheMrBooblik/sleeper-train-map)";
+  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://pingwi.com)";
 
 /** Passenger type 72 = Adult. 44 (Interrail) and 73 (Child) are never asked for. */
 export const ADULT = 72;

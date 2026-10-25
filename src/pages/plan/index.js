@@ -7,6 +7,7 @@ import SeoLayout from "@components/seo/SeoLayout";
 import Breadcrumbs from "@components/seo/Breadcrumbs";
 import CityCombobox from "@components/plan/CityCombobox";
 import DateField from "@components/plan/DateField";
+import JourneyOptions from "@components/plan/JourneyOptions";
 import PlanItinerary from "@components/plan/PlanItinerary";
 import RideCard from "@components/plan/RideCard";
 import SharePlan from "@components/plan/SharePlan";
@@ -14,9 +15,11 @@ import SharePlan from "@components/plan/SharePlan";
 import { usePlanIndex } from "../../hooks/requests/usePlanIndex";
 import {
   departuresFrom,
+  directDestinations,
   findJourneys,
   nextServedNight,
   resolvePlan,
+  spliceJourney,
   titleFromSlug,
 } from "../../lib/plan/search.mjs";
 import {
@@ -177,22 +180,72 @@ export default function PlanPage({ seoCities, initialPlan }) {
     return departuresFrom(planner, { from: cities[0], date });
   }, [planner, cities, date, hasDate]);
 
-  // Mode 2 with no direct train: the honest answer is a chain of nights, so
-  // offer the chains rather than an empty result.
+  // Mode 2: two cities. With no direct train that night the honest answer is a
+  // change somewhere on the way, so offer those rather than an empty result —
+  // and when nothing at all connects on the chosen night, the ones that leave
+  // in the following week. With a direct train, only a change that gets there
+  // sooner is worth a mention, and the search already drops the rest.
   const journeys = useMemo(() => {
-    if (!planner || !plan || cities.length !== 2 || plan.complete || !hasDate) return [];
-    return findJourneys(planner, { from: cities[0], to: cities[1], date, maxLegs: 3, limit: 6 });
+    const none = { list: [], later: false };
+    if (!planner || !plan || cities.length !== 2 || !hasDate) return none;
+    const query = { from: cities[0], to: cities[1], date, maxLegs: 3, limit: 6 };
+    const tonight = findJourneys(planner, query).filter(
+      (j) => !plan.complete || j.hops.length > 1,
+    );
+    if (tonight.length || plan.complete) return { list: tonight, later: false };
+    return { list: findJourneys(planner, { ...query, flexNights: 6 }), later: true };
   }, [planner, plan, cities, date, hasDate]);
 
-  // The way out of "not this night", per hop: the next night a train runs.
+  // Mode 3: a longer plan with a hop no train serves. The same search fills
+  // the gap, starting after the train you arrive on.
+  const hopJourneys = useMemo(() => {
+    if (!planner || !plan || cities.length < 3) return [];
+    return plan.hops.map((hop) => {
+      if (hop.served) return [];
+      const query = {
+        from: hop.from.slug,
+        to: hop.to.slug,
+        date: hop.date,
+        after: hop.after,
+        maxLegs: 3,
+        limit: 3,
+      };
+      const found = findJourneys(planner, query).filter((j) => j.hops.length > 1);
+      return found.length ? found : findJourneys(planner, { ...query, flexNights: 6 });
+    });
+  }, [planner, plan, cities]);
+
+  // The way out of "not this night", per hop: the next night a train runs —
+  // and leaves after the previous one gets in.
   const nextNights = useMemo(() => {
     if (!planner || !plan) return [];
     return plan.hops.map((hop) =>
       !hop.served && hop.rides.length > 0
-        ? nextServedNight(planner, { from: hop.from.slug, to: hop.to.slug, date: hop.date })
+        ? nextServedNight(planner, {
+            from: hop.from.slug,
+            to: hop.to.slug,
+            date: hop.date,
+            after: hop.after,
+          })
         : null,
     );
   }, [planner, plan]);
+
+  // No train runs straight through at all, but a change does: the answer is
+  // the change, so the plan shows only that. An empty "no night train" hop
+  // above it was the loudest thing on the page and said the opposite.
+  const changeOnly =
+    cities.length === 2 && Boolean(plan) && !plan.hops[0]?.best && journeys.list.length > 0;
+
+  /** The plan with a found journey in place of one of its hops. */
+  const hrefForJourney = useCallback(
+    (hop, journey) =>
+      buildPlanHref(spliceJourney({ cities, date, stays }, hop.index, journey, hop.date)),
+    [cities, date, stays],
+  );
+  const bringToPlan = useCallback(() => {
+    scrollTarget.current = "plan-results";
+  }, []);
 
   useEffect(() => {
     const id = scrollTarget.current;
@@ -211,6 +264,24 @@ export default function PlanPage({ seoCities, initialPlan }) {
   const originCity = planner?.cityBySlug.get(cities[0]) || null;
   const lastCity = cities.length ? cities[cities.length - 1] : "";
   const lastCityRecord = planner?.cityBySlug.get(lastCity) || null;
+
+  // Where a train goes straight from the city a hop leaves: those come first
+  // in "To" and say "direct"; the rest say nothing, since reaching them takes
+  // a change. A train count beside a destination answered a question about
+  // the destination rather than about getting there.
+  const toOrigin = cities.length >= 2 ? cities[cities.length - 2] : cities[0];
+  const directFromToOrigin = useMemo(
+    () => directDestinations(planner, toOrigin),
+    [planner, toOrigin],
+  );
+  const directFromLast = useMemo(
+    () => directDestinations(planner, lastCity),
+    [planner, lastCity],
+  );
+  const describeFrom = useCallback(
+    (direct) => (city) => (direct.has(city.slug) ? "direct" : ""),
+    [],
+  );
   const isPlan = cities.length >= 2;
   const canonicalPath = buildPlanHref({ cities, date: parsed.date, stays });
   // /plan is a landing page worth indexing. Every parameterised plan under it is
@@ -286,7 +357,10 @@ export default function PlanPage({ seoCities, initialPlan }) {
             <CityCombobox
               label="From"
               value={originCity || (cities[0] ? { name: titleFromSlug(cities[0]) } : null)}
-              cities={planner?.cities ?? []}
+              // Not the city the first train goes to: a trip from Vienna to
+              // Vienna is not one, and offering it reads as the picker not
+              // knowing what was already chosen.
+              cities={(planner?.cities ?? []).filter((c) => c.slug !== cities[1])}
               disabled={isLoading}
               onSelect={(city) => {
                 if (!city) return go({ cities: [] });
@@ -310,7 +384,12 @@ export default function PlanPage({ seoCities, initialPlan }) {
                     ? lastCityRecord || { name: titleFromSlug(lastCity) }
                     : null
                 }
-                cities={planner?.cities ?? []}
+                // Not the city this hop leaves from — "From" when there are two.
+                // Picking it used to be silently ignored, so the list offered a
+                // choice that did nothing.
+                cities={(planner?.cities ?? []).filter((c) => c.slug !== toOrigin)}
+                preferred={directFromToOrigin}
+                describe={describeFrom(directFromToOrigin)}
                 disabled={isLoading}
                 placeholder={isPlan ? "City or station" : "Leave empty to see everywhere you could go"}
                 onSelect={(city) => {
@@ -510,6 +589,26 @@ export default function PlanPage({ seoCities, initialPlan }) {
             aria-labelledby="plan-title"
             aria-live="polite"
           >
+            {changeOnly ? (
+              <div>
+                <h2 id="plan-title" className="text-xl font-semibold text-white">
+                  With a change of train
+                </h2>
+                <p className="mt-1 text-sm text-white/45">
+                  {journeys.later
+                    ? `No sleeper runs straight through, and nothing connects on ${formatPlanDate(date)}. These are the first ways after it.`
+                    : "No sleeper runs straight through. Pick a route — each change is checked against both trains' times."}
+                </p>
+                <div className="mt-4">
+                  <JourneyOptions
+                    journeys={journeys.list}
+                    hrefFor={(journey) => hrefForJourney(plan.hops[0], journey)}
+                    onChoose={bringToPlan}
+                  />
+                </div>
+              </div>
+            ) : (
+            <>
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <h2 id="plan-title" className="text-xl font-semibold text-white">
                 Your trip · {plan.nights} {plan.nights === 1 ? "night" : "nights"}
@@ -545,13 +644,65 @@ export default function PlanPage({ seoCities, initialPlan }) {
                   nextStays[hop.index - 1] = (nextStays[hop.index - 1] || 0) + next.nightsLater;
                   return go({ stays: nextStays }, { replace: true });
                 }}
+                hopJourneys={cities.length === 2 ? [journeys.list] : hopJourneys}
+                hrefForHopJourney={hrefForJourney}
+                onChooseJourney={bringToPlan}
+                inlineJourneys={cities.length > 2}
               />
             </div>
+            </>
+            )}
+
+            {/* A two-city plan with no direct train and no chain either. Saying
+                nothing reads as a page that failed to load; the search really
+                did run and really did come back empty. */}
+            {cities.length === 2 && !plan.complete && journeys.list.length === 0 && !isLoading && (
+              <div className="mt-8 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-5">
+                <p className="text-white/70">
+                  We couldn&apos;t find a way from {cityLabel(planner, cities[0])} to{" "}
+                  {cityLabel(planner, cities[1])} by night train with up to two changes, even
+                  leaving up to a week later.
+                </p>
+                <p className="mt-2 text-sm text-white/45">
+                  Sleeper networks don&apos;t cover every corridor — a day train for part of
+                  the way is often the answer. Try a nearer destination, or{" "}
+                  <Link
+                    href={buildPlanHref({ cities: [cities[0]], date: parsed.date })}
+                    className="underline underline-offset-4 hover:text-white"
+                  >
+                    see where {cityLabel(planner, cities[0])}&apos;s night trains do reach
+                  </Link>
+                  .
+                </p>
+              </div>
+            )}
+
+            {cities.length === 2 && journeys.list.length > 0 && !changeOnly && (
+              <div className="mt-10" id="plan-changes">
+                <h3 className="text-lg font-semibold text-white">
+                  {plan.complete ? "Or with a change" : "Ways to get there with a change"}
+                </h3>
+                <p className="mt-1 text-sm text-white/45">
+                  {plan.complete
+                    ? "These get in sooner than the direct train."
+                    : journeys.later
+                      ? `Nothing connects if you leave on ${formatPlanDate(date)}. These are the first ways through after it.`
+                      : "No single night train covers this on your night. These connect — each change is checked against both trains' times, and a wait of a night or two is included where the onward train does not run every day."}
+                </p>
+                <div className="mt-4">
+                  <JourneyOptions
+                    journeys={journeys.list}
+                    hrefFor={(journey) => hrefForJourney(plan.hops[0], journey)}
+                    onChoose={bringToPlan}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Extending the trip comes AFTER the trip, not before it: the
                 first thing someone who picked two cities wants to see is the
-                train between them. */}
-            <div className="mt-6">
+                train between them — or the change that replaces it. */}
+            <div className="mt-8">
               {addingCity ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
                   <CityCombobox
@@ -560,6 +711,8 @@ export default function PlanPage({ seoCities, initialPlan }) {
                     // Not the city the trip already ends in, which the
                     // unfiltered list offers first whenever it is a big hub.
                     cities={(planner?.cities ?? []).filter((c) => c.slug !== lastCity)}
+                    preferred={directFromLast}
+                    describe={describeFrom(directFromLast)}
                     disabled={isLoading}
                     autoFocus
                     placeholder="Add another night"
@@ -588,61 +741,6 @@ export default function PlanPage({ seoCities, initialPlan }) {
                 </button>
               )}
             </div>
-
-            {/* A two-city plan with no direct train and no chain either. Saying
-                nothing reads as a page that failed to load; the search really
-                did run and really did come back empty. */}
-            {cities.length === 2 && !plan.complete && journeys.length === 0 && !isLoading && (
-              <div className="mt-8 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-5">
-                <p className="text-white/70">
-                  We couldn&apos;t chain night trains from {cityLabel(planner, cities[0])} to{" "}
-                  {cityLabel(planner, cities[1])} within three nights either.
-                </p>
-                <p className="mt-2 text-sm text-white/45">
-                  Sleeper networks don&apos;t cover every corridor — a day train for part of
-                  the way is often the answer. Try a nearer destination, or{" "}
-                  <Link
-                    href={buildPlanHref({ cities: [cities[0]], date: parsed.date })}
-                    className="underline underline-offset-4 hover:text-white"
-                  >
-                    see where {cityLabel(planner, cities[0])}&apos;s night trains do reach
-                  </Link>
-                  .
-                </p>
-              </div>
-            )}
-
-            {journeys.length > 0 && (
-              <div className="mt-10">
-                <h3 className="text-lg font-semibold text-white">
-                  Ways to get there by sleeper
-                </h3>
-                <p className="mt-1 text-sm text-white/45">
-                  No single night train covers this. These chains do — each hop is one
-                  night on a train.
-                </p>
-                <ul className="mt-4 grid grid-cols-1 gap-3">
-                  {journeys.map((journey) => (
-                    <li key={journey.cities.join(">")}>
-                      <Link
-                        href={buildPlanHref({ cities: journey.cities, date: parsed.date })}
-                        onClick={() => {
-                          scrollTarget.current = "plan-results";
-                        }}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 transition-colors hover:border-primary-green/40"
-                      >
-                        <span className="text-white">
-                          {journey.cities.map((slug) => cityLabel(planner, slug)).join(" → ")}
-                        </span>
-                        <span className="text-sm text-white/45">
-                          {journey.nights} {journey.nights === 1 ? "night" : "nights"}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
 
             <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6">
               <SharePlan href={canonicalPath} />
@@ -768,6 +866,12 @@ function DataHonesty() {
         <li>
           Times come from operator feeds where we have them and from the route's endpoints
           otherwise, so an intermediate stop may show no time at all rather than a guessed one.
+        </li>
+        <li>
+          <strong className="font-medium text-white/70">Changes</strong> are checked against
+          both trains&apos; times, with at least 30 minutes between them. Where a stop&apos;s time
+          is not published we say so instead of promising the trains meet, and we only change
+          trains in cities where night trains start or end.
         </li>
         <li>
           We only suggest rides of <strong className="font-medium text-white/70">four hours

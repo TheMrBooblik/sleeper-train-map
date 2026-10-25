@@ -32,7 +32,7 @@ import { renderCalendar } from "../../src/pages/api/lib/calendar.mjs";
 
 const GEOMETRY_CACHE_FILE = "route-geometry.json";
 const USER_AGENT =
-  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://github.com/TheMrBooblik/sleeper-train-map)";
+  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://pingwi.com)";
 
 // ONCF internal station identifiers used by the schedule search
 // (code_r 0093 = rail, 0011 = Supratours coaches — rail only here).

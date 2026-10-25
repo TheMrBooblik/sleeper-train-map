@@ -21,6 +21,11 @@ export default function CityCombobox({
   placeholder = "City or station",
   disabled = false,
   autoFocus = false,
+  // Slugs to offer first (a direct train reaches them), and what to print
+  // beside a city in place of its train count. `describe` returning "" prints
+  // nothing.
+  preferred = null,
+  describe = null,
 }) {
   const id = useId();
   const [query, setQuery] = useState("");
@@ -32,8 +37,8 @@ export default function CityCombobox({
   // The input shows the committed city until the user starts typing over it.
   const display = open ? query : value?.name || "";
   const results = useMemo(
-    () => (open ? rankCities(cities ?? [], query) : []),
-    [open, cities, query],
+    () => (open ? rankCities(cities ?? [], query, undefined, { preferred }) : []),
+    [open, cities, query, preferred],
   );
 
   useEffect(() => {
@@ -150,9 +155,17 @@ export default function CityCombobox({
                     <span aria-hidden="true">{getFlagEmoji(city.country) || "🚂"}</span>
                     <span className="truncate">{city.name}</span>
                   </span>
-                  <span className="shrink-0 text-xs text-white/35">
-                    {city.legCount} {city.legCount === 1 ? "train" : "trains"}
-                  </span>
+                  {describe ? (
+                    describe(city) && (
+                      <span className="shrink-0 text-xs font-medium text-primary-green">
+                        {describe(city)}
+                      </span>
+                    )
+                  ) : (
+                    <span className="shrink-0 text-xs text-white/35">
+                      {city.legCount} {city.legCount === 1 ? "train" : "trains"}
+                    </span>
+                  )}
                 </button>
               </li>
             ))}

@@ -51,7 +51,7 @@ function shapeOf(value, depth = 0) {
 
 /** A descriptive agent, as the repo's other probes use — identification, not disguise. */
 const USER_AGENT =
-  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://github.com/TheMrBooblik/sleeper-train-map)";
+  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://pingwi.com)";
 
 /**
  * When the endpoint answers but rejects us, ask what it would accept.

@@ -39,7 +39,7 @@ import { constantsRoutes, endpointsFor } from "./lib/es-fare-calendar.mjs";
 
 const SITE = "https://www.europeansleeper.eu";
 const USER_AGENT =
-  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://github.com/TheMrBooblik/sleeper-train-map)";
+  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://pingwi.com)";
 const outDir = process.argv[2] ?? null;
 const root = process.cwd();
 const today = new Date().toISOString().slice(0, 10);

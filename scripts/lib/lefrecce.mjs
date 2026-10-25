@@ -16,7 +16,7 @@
 
 export const LEFRECCE_BASE = "https://www.lefrecce.it/Channels.Website.BFF.WEB/website";
 const USER_AGENT =
-  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://github.com/TheMrBooblik/sleeper-train-map)";
+  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://pingwi.com)";
 
 /** "S01700" → 830001700 (lefrecce's location id); null when not a Viaggiatreno code. */
 export function lefrecceLocationId(viaggiatrenoCode) {
