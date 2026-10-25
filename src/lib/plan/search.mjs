@@ -16,8 +16,9 @@
 
 import { indexLegsByCity, isShortHop, MIN_TRIP_MINUTES, segmentOf } from "./legs.mjs";
 import { availabilityFor, isOfferable, STATUS_RANK } from "./availability.mjs";
-import { addDays, clampStay, hopDates } from "./url.mjs";
+import { addDays, clampStay, daysBetween } from "./url.mjs";
 import { suggestionScore } from "./prominence.mjs";
+import { arrivalDayOffset, connectionBetween, segmentTimes } from "./timeline.mjs";
 
 /** Wrap a raw index (legs + cities) with the lookups the search needs. */
 export function createPlanner(index) {
@@ -25,7 +26,15 @@ export function createPlanner(index) {
   const cities = index?.cities ?? [];
   const byCity = indexLegsByCity(legs);
   const cityBySlug = new Map(cities.map((c) => [c.slug, c]));
-  return { legs, cities, byCity, cityBySlug, generatedAt: index?.generatedAt || "" };
+  return {
+    legs,
+    cities,
+    byCity,
+    cityBySlug,
+    generatedAt: index?.generatedAt || "",
+    // Date-independent rides out of each city, filled in by the journey search.
+    ridesFromCity: new Map(),
+  };
 }
 
 /**
@@ -46,8 +55,20 @@ function rideFor(leg, boardIndex, alightIndex, date) {
     pricing: leg.pricing,
     date,
     ...segment,
+    // When you are actually on board, in minutes after midnight of `date` —
+    // what a change of trains is checked against (timeline.mjs).
+    times: segmentTimes(leg, boardIndex, alightIndex),
     availability: availabilityFor(leg, date),
   };
+}
+
+/**
+ * The calendar date you step off a ride: its night plus however many mornings
+ * it runs into. Unknown → the usual sleeper's next morning.
+ */
+export function rideArrivalDate(ride) {
+  if (!ride?.date) return "";
+  return addDays(ride.date, Math.max(1, arrivalDayOffset(ride.times) ?? 1));
 }
 
 /**
@@ -184,12 +205,20 @@ export function ridesBetween(planner, { from, to, date, includeUnavailable = tru
  *
  * @returns {{date: string, nightsLater: number, status: string}|null}
  */
-export function nextServedNight(planner, { from, to, date, within = 60 } = {}) {
+export function nextServedNight(planner, { from, to, date, within = 60, after = null } = {}) {
   if (!from || !to || !date) return null;
   for (let n = 1; n <= within; n++) {
     const night = addDays(date, n);
     const { rides } = ridesBetween(planner, { from, to, date: night });
-    const ride = rides.find((r) => isOfferable(r.availability.status));
+    // `after` is the train you arrive on: a night is only an answer if the
+    // onward train leaves after you get there.
+    const ride = rides.find(
+      (r) =>
+        isOfferable(r.availability.status) &&
+        (!after ||
+          connectionBetween(after.arrival, r.times?.departure, daysBetween(after.date, night))
+            .status !== "missed"),
+    );
     if (ride) return { date: night, nightsLater: n, status: ride.availability.status };
   }
   return null;
@@ -198,25 +227,61 @@ export function nextServedNight(planner, { from, to, date, within = 60 } = {}) {
 /**
  * Resolve a chain of cities the user has already chosen into dated hops.
  *
- * This is what a saved plan renders: the cities are fixed, one night per hop,
- * and each hop departs the day after the previous one arrives plus any
- * stopover nights. A hop with no train is reported as a hop with no train —
- * the plan stays intact and says where it breaks.
+ * This is what a saved plan renders: the cities are fixed, one train per hop,
+ * and each hop leaves on the night after the previous train gets in plus any
+ * stopover nights. "After it gets in" is read off that train's own clock: the
+ * usual sleeper arrives the next morning, so the next one leaves that evening;
+ * a 32-hour Reunification Express arrives the morning after that. A hop with no
+ * train is reported as a hop with no train — the plan stays intact and says
+ * where it breaks.
+ *
+ * Each hop after the first also says how the change works (`connection`): a
+ * train that has left before you arrive is ranked last and does not count as
+ * serving the hop, which is what used to put a 05:39 departure after a 09:39
+ * arrival in the same plan.
  *
  * @param {ReturnType<createPlanner>} planner
- * @param {{cities: string[], date: string, stays?: number[]}} plan
+ * `after` is the train you arrive in the first city on, when this plan is a
+ * stretch of a longer one (a journey filling a gap): its first hop is then a
+ * change like any other.
+ *
+ * @param {{cities: string[], date: string, stays?: number[], after?: object|null}} plan
  * @returns {{hops: object[], complete: boolean, nights: number, endDate: string}}
  */
-export function resolvePlan(planner, { cities = [], date, stays = [] } = {}) {
+export function resolvePlan(planner, { cities = [], date, stays = [], after: arrivingOn = null } = {}) {
   const hopCount = Math.max(0, cities.length - 1);
-  const dates = hopDates(date, hopCount, stays);
   const hops = [];
 
   for (let i = 0; i < hopCount; i++) {
     const from = cities[i];
     const to = cities[i + 1];
-    const hopDate = dates[i];
+    const previous = hops[i - 1] || null;
+    const arrivedOn = previous?.best || null;
+    const hopDate = previous
+      ? addDays(
+          arrivedOn ? rideArrivalDate(arrivedOn) : addDays(previous.date, 1),
+          clampStay(stays[i - 1] ?? 0),
+        )
+      : date;
     const { rides, onlyShortHops } = ridesBetween(planner, { from, to, date: hopDate });
+
+    const after = arrivedOn
+      ? { date: arrivedOn.date, arrival: arrivedOn.times?.arrival }
+      : i === 0
+        ? arrivingOn
+        : null;
+    if (after) {
+      const nightsApart = daysBetween(after.date, hopDate);
+      for (const ride of rides) {
+        ride.connection = connectionBetween(after.arrival, ride.times?.departure, nightsApart);
+      }
+      // Stable: the order ridesBetween chose stands among the trains you can make.
+      rides.sort(
+        (a, b) =>
+          Number(a.connection.status === "missed") - Number(b.connection.status === "missed"),
+      );
+    }
+
     hops.push({
       index: i,
       from: planner.cityBySlug.get(from) || { slug: from, name: titleFromSlug(from) },
@@ -225,12 +290,19 @@ export function resolvePlan(planner, { cities = [], date, stays = [] } = {}) {
       stayNights: i > 0 ? clampStay(stays[i - 1] ?? 0) : 0,
       rides,
       best: rides[0] || null,
+      // How the change from the previous train works, for the best train here.
+      connection: after ? rides[0]?.connection ?? null : null,
+      // The train you arrive on, for "when does the next one leave".
+      after,
       // True when the only trains on this corridor are under four hours: the
       // hop is real but it is a day-train distance, and the UI says so rather
       // than presenting it as a night on a sleeper.
       onlyShortHops,
-      // A hop is served when at least one train could plausibly run it.
-      served: rides.some((r) => isOfferable(r.availability.status)),
+      // A hop is served when at least one train could plausibly run it — and
+      // has not left before you get there.
+      served: rides.some(
+        (r) => isOfferable(r.availability.status) && r.connection?.status !== "missed",
+      ),
     });
   }
 
@@ -241,12 +313,15 @@ export function resolvePlan(planner, { cities = [], date, stays = [] } = {}) {
   // 22:16 is a four-hour evening ride, and counting it as a night of sleeper
   // travel is the planner telling a traveller they have a bed booked.
   const sleeperNights = hops.filter((h) => h.best?.isOvernight).length;
+  const last = hops[hopCount - 1];
+  const endDate = last ? (last.best ? rideArrivalDate(last.best) : addDays(last.date, 1)) : date;
   return {
     hops,
     complete: hops.length > 0 && hops.every((h) => h.served),
-    nights: hopCount + stopoverNights,
+    nights: hopCount ? daysBetween(date, endDate) : 0,
+    stopoverNights,
     sleeperNights,
-    endDate: hopCount ? addDays(dates[hopCount - 1], 1) : date,
+    endDate,
   };
 }
 
@@ -275,75 +350,224 @@ export function isInterchange(planner, slug) {
 }
 
 /**
- * Suggest chains of nights from one city to another, including the direct one.
+ * Every ride out of a city worth changing onto, whatever the night: built once
+ * per city and kept on the planner, because the journey search asks the same
+ * city for several nights and from several directions.
+ */
+function ridesFromCity(planner, slug) {
+  const cached = planner.ridesFromCity?.get(slug);
+  if (cached) return cached;
+  const out = [];
+  for (const { leg, index } of planner.byCity.get(slug) || []) {
+    for (let j = index + 1; j < leg.stops.length; j++) {
+      const segment = segmentOf(leg, index, j);
+      if (!segment || segment.to.citySlug === slug) continue;
+      // A chain is never stitched from half-hour hops — see MIN_TRIP_MINUTES.
+      if (isShortHop(segment.durationMinutes)) continue;
+      out.push({ leg, boardIndex: index, alightIndex: j, toSlug: segment.to.citySlug });
+    }
+  }
+  planner.ridesFromCity?.set(slug, out);
+  return out;
+}
+
+/**
+ * Journeys from one city to another with changes of train, including the
+ * direct one.
  *
- * A breadth-first walk over the city graph, bounded by maxLegs. Availability is
- * checked per hop on that hop's own date, so a two-night route is judged on the
- * two nights it would actually use rather than on the departure date twice.
+ * A night-train network is sparse — Paris has no sleeper to Vienna or Prague at
+ * all — so the honest answer to most pairs is a change somewhere in between,
+ * and the search exists to find the ones that actually connect:
+ *
+ *   - Each change is checked against the two trains' own clocks (timeline.mjs):
+ *     the onward train must leave at least MIN_CHANGE_MINUTES after you get in.
+ *     Where a stop's time is not published the change is kept as possible
+ *     rather than confirmed, never as certain.
+ *   - You may wait at a change. Most sleepers run two or three nights a week,
+ *     so "the next night" alone dead-ends the search on the first city whose
+ *     onward train does not run tomorrow; up to `maxWaitNights` extra nights in
+ *     the city are tried, and the plan carries them as stopover nights.
+ *   - `flexNights` lets the first train leave that many nights later — for when
+ *     nothing at all leaves on the chosen night.
+ *   - `after` ({date, arrival}, a hop's own `after`) is the train you arrive on
+ *     when the search fills a gap in a longer plan: the first onward train has
+ *     to leave after it gets in, like every other change.
+ *   - Changes happen only where trains start or end (isInterchange), and a
+ *     journey that arrives no earlier than one with fewer trains is dropped.
+ *     That rule is what removed Brussels → Vienna → Lviv → Budapest and
+ *     Amsterdam → Vienna → Munich → Rome, which the old breadth-first walk
+ *     offered beside the routes they are worse versions of.
+ *
+ * Each journey comes back resolved exactly as its plan URL resolves (cities,
+ * first night, stopover nights), so following it shows what the card showed.
  *
  * @param {ReturnType<createPlanner>} planner
- * @param {{from: string, to: string, date: string, maxLegs?: number, limit?: number}} query
- * @returns {object[]} journeys, direct first, then fewest nights
+ * @param {{from: string, to: string, date: string, maxLegs?: number, limit?: number,
+ *          maxWaitNights?: number, flexNights?: number, after?: object|null}} query
+ * @returns {object[]} soonest arrival day first, then fewest changes
  */
-export function findJourneys(planner, { from, to, date, maxLegs = 3, limit = 12 } = {}) {
-  if (!from || !to || from === to) return [];
+export function findJourneys(
+  planner,
+  {
+    from,
+    to,
+    date,
+    maxLegs = 3,
+    limit = 12,
+    maxWaitNights = 2,
+    flexNights = 0,
+    after = null,
+  } = {},
+) {
+  if (!from || !to || from === to || !date) return [];
 
-  const journeys = [];
-  const seen = new Set();
-  /** @type {{cities: string[], date: string}[]} */
-  let frontier = [{ cities: [from], date }];
+  const availability = new Map();
+  const offerable = (leg, night) => {
+    const key = `${leg.id}@${night}`;
+    if (!availability.has(key)) {
+      availability.set(key, isOfferable(availabilityFor(leg, night).status));
+    }
+    return availability.get(key);
+  };
+
+  /** A partial journey: where it is, when it got there, how. */
+  let frontier = [{ cities: [from], steps: [] }];
+  const arrivals = [];
+  // Earliest arrival per city over every shallower level: reaching a city later
+  // with more trains can only lead to worse journeys.
+  const earliestAt = new Map();
 
   for (let depth = 0; depth < maxLegs && frontier.length; depth++) {
     const next = [];
     for (const path of frontier) {
       const tail = path.cities[path.cities.length - 1];
-      const { destinations } = departuresFrom(planner, {
-        from: tail,
-        date: path.date,
-        includeUnavailable: false,
-      });
+      const previous =
+        path.steps[path.steps.length - 1] ||
+        (after ? { night: after.date, times: { arrival: after.arrival }, arrivedBefore: true } : null);
+      // The gap a longer plan asks to fill already has its night.
+      const firstNight =
+        previous && !previous.arrivedBefore
+          ? addDays(previous.night, Math.max(1, arrivalDayOffset(previous.times) ?? 1))
+          : date;
+      const window = path.steps.length ? maxWaitNights : flexNights;
+      const templates = ridesFromCity(planner, tail);
 
-      for (const destination of destinations) {
-        const slug = destination.city.slug;
-        // No revisiting: a night train trip that returns to a city it already
-        // slept in is a worse answer than the shorter path that stopped there.
-        if (path.cities.includes(slug)) continue;
-        const cities = [...path.cities, slug];
+      for (let wait = 0; wait <= window; wait++) {
+        const night = addDays(firstNight, wait);
+        for (const template of templates) {
+          const { leg, toSlug } = template;
+          // No revisiting: a trip that returns to a city it already passed
+          // through is a worse answer than the one that stopped there.
+          if (path.cities.includes(toSlug)) continue;
+          const arrives = toSlug === to;
+          if (!arrives && (depth + 1 >= maxLegs || !isInterchange(planner, toSlug))) continue;
+          // Staying on the same train is not a change.
+          if (previous && previous.leg === leg && previous.alightIndex === template.boardIndex) {
+            continue;
+          }
+          if (!offerable(leg, night)) continue;
 
-        if (slug === to) {
-          const key = cities.join(">");
-          if (seen.has(key)) continue;
-          seen.add(key);
-          journeys.push(buildJourney(planner, cities, date));
-          continue;
-        }
-        // Only keep growing a path that could still be shorter than maxLegs,
-        // and only through a city you can actually change trains in.
-        if (depth + 1 < maxLegs && isInterchange(planner, slug)) {
-          next.push({ cities, date: addDays(path.date, 1) });
+          const times = segmentTimes(leg, template.boardIndex, template.alightIndex);
+          let connection = null;
+          if (previous) {
+            connection = connectionBetween(
+              previous.times?.arrival,
+              times?.departure,
+              daysBetween(previous.night, night),
+            );
+            if (connection.status === "missed") continue;
+          }
+
+          const step = { ...template, night, times, connection };
+          const arrivalAt = absoluteArrival(step);
+          const candidate = {
+            cities: [...path.cities, toSlug],
+            steps: [...path.steps, step],
+            arrivalAt,
+          };
+          if (arrives) {
+            arrivals.push(candidate);
+            continue;
+          }
+          const seen = earliestAt.get(toSlug);
+          if (seen != null && seen <= arrivalAt) continue;
+          next.push(candidate);
         }
       }
     }
-    // Breadth-first over a graph this dense needs a cap, or the third level is
-    // tens of thousands of paths for an answer nobody scrolls to. Biggest hubs
-    // first, so the cap drops the least promising paths rather than the tail of
-    // whatever order the legs happened to be in.
-    next.sort(
-      (a, b) =>
-        (planner.cityBySlug.get(b.cities[b.cities.length - 1])?.terminusCount ?? 0) -
-        (planner.cityBySlug.get(a.cities[a.cities.length - 1])?.terminusCount ?? 0),
-    );
-    frontier = next.slice(0, 400);
+
+    // Keep the two earliest arrivals per city: onward options depend only on
+    // when you get there, and a second label survives a no-revisit clash.
+    next.sort((a, b) => a.arrivalAt - b.arrivalAt);
+    const perCity = new Map();
+    const kept = [];
+    for (const candidate of next) {
+      const slug = candidate.cities[candidate.cities.length - 1];
+      const count = perCity.get(slug) ?? 0;
+      if (count >= 2) continue;
+      perCity.set(slug, count + 1);
+      kept.push(candidate);
+    }
+    for (const candidate of kept) {
+      const slug = candidate.cities[candidate.cities.length - 1];
+      if (!earliestAt.has(slug) || earliestAt.get(slug) > candidate.arrivalAt) {
+        earliestAt.set(slug, candidate.arrivalAt);
+      }
+    }
+    frontier = kept.slice(0, 400);
   }
 
+  // A journey is worth showing only if nothing with fewer (or as many) trains
+  // gets there earlier on the same cities — and only once per city chain.
+  arrivals.sort((a, b) => a.steps.length - b.steps.length || a.arrivalAt - b.arrivalAt);
+  const best = new Map();
+  const chosen = [];
+  let fewerTrainsArrive = Infinity;
+  let currentLegs = 0;
+  let thisLevelBest = Infinity;
+  for (const candidate of arrivals) {
+    if (candidate.steps.length !== currentLegs) {
+      fewerTrainsArrive = Math.min(fewerTrainsArrive, thisLevelBest);
+      currentLegs = candidate.steps.length;
+      thisLevelBest = Infinity;
+    }
+    if (candidate.arrivalAt >= fewerTrainsArrive) continue;
+    thisLevelBest = Math.min(thisLevelBest, candidate.arrivalAt);
+    const key = candidate.cities.join(">");
+    if (best.has(key)) continue;
+    best.set(key, candidate);
+    chosen.push(candidate);
+  }
+
+  const journeys = [];
+  for (const candidate of chosen) {
+    const journey = buildJourney(planner, candidate, after);
+    if (journey) journeys.push(journey);
+  }
   journeys.sort(
     (a, b) =>
+      daysBetween(b.endDate, a.endDate) ||
       a.hops.length - b.hops.length ||
       (a.complete === b.complete ? 0 : a.complete ? -1 : 1) ||
-      a.nights - b.nights ||
+      unconfirmedCount(a) - unconfirmedCount(b) ||
+      a.arrivalAt - b.arrivalAt ||
       interchangeWeight(planner, b) - interchangeWeight(planner, a),
   );
   return journeys.slice(0, limit);
+}
+
+/** Minutes since the epoch, roughly, at which a step gets in — for ranking. */
+function absoluteArrival(step) {
+  const lo = step.times?.arrival?.[0];
+  const base = daysBetween("2000-01-01", step.night) * 24 * 60;
+  return base + (Number.isFinite(lo) ? lo : 24 * 60 + 9 * 60);
+}
+
+/** Hops whose train runs on days we cannot confirm, or whose change we cannot. */
+function unconfirmedCount(journey) {
+  return journey.hops.filter(
+    (h) => h.best?.availability?.status !== "runs" || (h.connection && h.connection.status !== "ok"),
+  ).length;
 }
 
 /** Prefer a change in a big hub over a change in a one-train terminus. */
@@ -353,7 +577,61 @@ function interchangeWeight(planner, journey) {
     .reduce((sum, slug) => sum + (planner.cityBySlug.get(slug)?.legCount ?? 0), 0);
 }
 
-function buildJourney(planner, cities, date) {
-  const resolved = resolvePlan(planner, { cities, date });
-  return { cities, date, ...resolved };
+/**
+ * Turn a found path into the plan its URL would resolve to: first night plus
+ * the stopover nights that reproduce each later night. Null when the plan
+ * cannot reproduce the path (resolvePlan put a hop later than the search did).
+ */
+function buildJourney(planner, candidate, after) {
+  const { cities, steps } = candidate;
+  const date = steps[0].night;
+  const stays = [];
+  let resolved = resolvePlan(planner, { cities, date, stays, after });
+  for (let i = 1; i < steps.length; i++) {
+    const gap = daysBetween(resolved.hops[i].date, steps[i].night);
+    if (gap < 0) return null;
+    stays[i - 1] = gap;
+    if (gap > 0) resolved = resolvePlan(planner, { cities, date, stays, after });
+  }
+  if (!resolved.hops.every((hop) => hop.best && hop.connection?.status !== "missed")) return null;
+  const last = resolved.hops[resolved.hops.length - 1].best;
+  return {
+    cities,
+    date,
+    stays: stays.some((n) => n > 0) ? stays : [],
+    arrivalAt: absoluteArrival({ night: last.date, times: last.times }),
+    ...resolved,
+  };
+}
+
+/**
+ * Put a found journey into a plan in place of one of its hops.
+ *
+ * `[A, B, C]` with the journey A → X → B inserted for hop 0 becomes
+ * `[A, X, B, C]`, the stopover nights in X carried, the nights after B kept,
+ * and — when the journey leaves later than the hop did — the wait added to the
+ * night before it (or to the trip's first night, for hop 0).
+ *
+ * @param {{cities: string[], date: string, stays?: number[]}} plan
+ * @param {number} hopIndex
+ * @param {{cities: string[], date: string, stays?: number[]}} journey
+ * @param {string} hopDate - the night the plan had this hop on
+ * @returns {{cities: string[], date: string, stays: number[]}}
+ */
+export function spliceJourney(plan, hopIndex, journey, hopDate) {
+  const cities = [...(plan.cities || [])];
+  const stays = [...(plan.stays || [])];
+  const between = journey.cities.slice(1, -1);
+  const hops = Math.max(0, cities.length - 1);
+  while (stays.length < hops - 1) stays.push(0);
+  const later = Math.max(0, daysBetween(hopDate, journey.date));
+  const journeyStays = between.map((_, i) => clampStay(journey.stays?.[i] ?? 0));
+
+  let date = plan.date;
+  if (hopIndex === 0) date = later ? addDays(plan.date, later) : plan.date;
+  else stays[hopIndex - 1] = clampStay((stays[hopIndex - 1] ?? 0) + later);
+
+  cities.splice(hopIndex + 1, 0, ...between);
+  stays.splice(hopIndex, 0, ...journeyStays);
+  return { cities, date, stays: stays.slice(0, Math.max(0, cities.length - 2)) };
 }

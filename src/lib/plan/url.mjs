@@ -207,8 +207,25 @@ export function addDays(iso, days) {
 }
 
 /**
- * The departure date of each hop: the first from the plan, each later one a day
- * after the previous hop's morning arrival, plus any stopover nights.
+ * Whole days from one ISO date to another (negative when `b` is earlier), read
+ * as calendar dates for the same reason as addDays.
+ * @param {string} a @param {string} b @returns {number}
+ */
+export function daysBetween(a, b) {
+  if (!isPlanDate(a) || !isPlanDate(b)) return 0;
+  const toDay = (iso) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return Date.UTC(y, m - 1, d) / 86_400_000;
+  };
+  return Math.round(toDay(b) - toDay(a));
+}
+
+/**
+ * The departure date of each hop assuming every train arrives the next morning:
+ * the first from the plan, each later one a day after the previous, plus any
+ * stopover nights. resolvePlan dates hops from each train's real arrival day
+ * instead (a two-night train pushes the next hop a day further); this is the
+ * same rule for the common one-night case, kept for callers with no trains.
  * @param {string} startDate @param {number} hopCount @param {number[]} stays
  * @returns {string[]}
  */

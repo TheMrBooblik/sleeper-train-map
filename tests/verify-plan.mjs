@@ -13,6 +13,7 @@ import path from "node:path";
 import {
   addDays,
   buildPlanHref,
+  daysBetween,
   buildPlanPath,
   clampStay,
   decodeStays,
@@ -40,8 +41,15 @@ import {
   isInterchange,
   nextServedNight,
   resolvePlan,
+  rideArrivalDate,
   ridesBetween,
+  spliceJourney,
 } from "../src/lib/plan/search.mjs";
+import {
+  connectionBetween,
+  legTimeline,
+  MIN_CHANGE_MINUTES,
+} from "../src/lib/plan/timeline.mjs";
 import { rideBookingLink } from "../src/lib/plan/booking.mjs";
 import { hydratePlanIndex, packPlanIndex } from "../src/lib/plan/index-codec.mjs";
 import { formatPlanDate } from "../src/lib/plan/format.mjs";
@@ -503,6 +511,214 @@ check("a hop with no train is reported, not silently dropped", () => {
   assert.equal(plan.hops[0].best, null);
   assert.equal(plan.hops[0].served, false);
   assert.equal(plan.complete, false);
+});
+
+// ── Changing trains ──────────────────────────────────────────────────────────
+
+/** A minimal leg: stops as [city, arrival, departure, arrivalDay?, departureDay?]. */
+function toyLeg(id, stops, extra = {}) {
+  return {
+    id,
+    routeId: id,
+    direction: 0,
+    train: id,
+    operatorIds: ["XX"],
+    agencyId: "XX",
+    stops: stops.map(([city, arrival = "", departure = "", arrivalDay, departureDay]) => ({
+      station: city,
+      city,
+      citySlug: city.toLowerCase(),
+      arrival,
+      departure,
+      ...(Number.isInteger(arrivalDay) ? { arrivalDay } : {}),
+      ...(Number.isInteger(departureDay) ? { departureDay } : {}),
+    })),
+    departure: stops[0][2] || "",
+    arrival: stops[stops.length - 1][1] || "",
+    durationMinutes: null,
+    durationSuspect: false,
+    service: "",
+    serviceText: "Daily",
+    days: ["mon", "tue", "wed", "thu", "fri", "sat", "sun"],
+    validFrom: "",
+    validUntil: "",
+    cadence: "",
+    serviceNote: "",
+    irregularity: "",
+    pairSlug: "",
+    pricing: null,
+    ...extra,
+  };
+}
+
+function toyPlanner(legs) {
+  const cities = new Map();
+  for (const leg of legs) {
+    leg.stops.forEach((stop, i) => {
+      const c = cities.get(stop.citySlug) || {
+        slug: stop.citySlug, name: stop.city, country: "", legCount: 0, terminusCount: 0,
+      };
+      c.legCount++;
+      if (i === 0 || i === leg.stops.length - 1) c.terminusCount++;
+      cities.set(stop.citySlug, c);
+    });
+  }
+  return createPlanner({ legs, cities: [...cities.values()] });
+}
+
+check("a stop after midnight is placed on the morning after the train's night", () => {
+  // NJ 19947 calls at Innsbruck at 00:47 on the night of the 7th — which is the
+  // morning of the 8th. Read as "the 7th" it is a train that left before a
+  // traveller arriving on the 7th got there, or one they could never make.
+  const leg = toyLeg("night", [["Zurich", "", "21:00"], ["Innsbruck", "", "00:47"], ["Vienna", "06:48", ""]]);
+  const timeline = legTimeline(leg);
+  assert.deepEqual(timeline[0].departure, [21 * 60, 21 * 60]);
+  assert.deepEqual(timeline[1].departure, [24 * 60 + 47, 24 * 60 + 47]);
+  assert.deepEqual(timeline[2].arrival, [30 * 60 + 48, 30 * 60 + 48]);
+  // A stop with no clock lies between its known neighbours, never at a guess.
+  const vague = toyLeg("vague", [["Zurich", "", "21:00"], ["Innsbruck"], ["Vienna", "06:48", ""]]);
+  assert.deepEqual(legTimeline(vague)[1].departure, [21 * 60, 30 * 60 + 48]);
+  // A stated journey time outranks the clocks: 26h30, not 2h30.
+  const long = toyLeg("long", [["Chicago", "", "18:00"], ["New York", "20:30", ""]], { durationMinutes: 26 * 60 + 30 });
+  assert.equal(legTimeline(long)[1].arrival[0], 18 * 60 + 26 * 60 + 30);
+  // A source that dates its stops is taken at its word.
+  const dated = toyLeg("se1", [["Hanoi", "", "21:45", undefined, 0], ["Saigon", "06:30", "", 2]]);
+  assert.equal(legTimeline(dated)[1].arrival[0], 2 * 1440 + 6 * 60 + 30);
+});
+
+check("a connection onto a train that has left is missed, not offered", () => {
+  const arrive = [33 * 60 + 39, 33 * 60 + 39]; // 09:39 the morning after
+  assert.equal(connectionBetween(arrive, [5 * 60 + 39, 5 * 60 + 39], 1).status, "missed");
+  const ok = connectionBetween(arrive, [20 * 60 + 5, 20 * 60 + 5], 1);
+  assert.equal(ok.status, "ok");
+  assert.equal(ok.waitMinutes, 20 * 60 + 5 - (9 * 60 + 39));
+  // Too tight to make.
+  assert.equal(connectionBetween(arrive, [9 * 60 + 39 + MIN_CHANGE_MINUTES - 1, 9 * 60 + 39 + MIN_CHANGE_MINUTES - 1], 1).status, "missed");
+  // An unpublished time can only make a change possible, never certain.
+  assert.equal(connectionBetween(arrive, [0, 2 * 1440], 1).status, "unconfirmed");
+});
+
+check("a plan's next hop leaves after the previous train gets in, however long it runs", () => {
+  // SE1 runs two nights; the onward train cannot leave the morning after the first.
+  const planner = toyPlanner([
+    toyLeg("se1", [["Hanoi", "", "21:45", undefined, 0], ["Saigon", "06:30", "", 2]]),
+    toyLeg("on", [["Saigon", "", "20:00"], ["Phnom", "08:00", ""]]),
+  ]);
+  const plan = resolvePlan(planner, { cities: ["hanoi", "saigon", "phnom"], date: "2026-11-06" });
+  assert.equal(plan.hops[1].date, "2026-11-08");
+  assert.equal(rideArrivalDate(plan.hops[0].best), "2026-11-08");
+  assert.equal(plan.hops[1].connection.status, "ok");
+  assert.equal(plan.endDate, "2026-11-09");
+  assert.equal(plan.nights, 3);
+});
+
+check("a plan ranks a train you can make above one that has left", () => {
+  const planner = toyPlanner([
+    toyLeg("in", [["Amsterdam", "", "17:40"], ["Vienna", "09:39", ""]]),
+    // Leaves Vienna at 05:39 on its own night — before you arrive.
+    toyLeg("early", [["Vienna", "", "05:39"], ["Rome", "15:00", ""]]),
+    toyLeg("late", [["Vienna", "", "20:05"], ["Rome", "10:05", ""]]),
+  ]);
+  const plan = resolvePlan(planner, { cities: ["amsterdam", "vienna", "rome"], date: "2026-11-06" });
+  assert.equal(plan.hops[1].best.legId, "late");
+  assert.equal(plan.hops[1].rides.at(-1).connection.status, "missed");
+  assert.equal(plan.hops[1].served, true);
+
+  const onlyEarly = toyPlanner([
+    toyLeg("in", [["Amsterdam", "", "17:40"], ["Vienna", "09:39", ""]]),
+    toyLeg("early", [["Vienna", "", "05:39"], ["Rome", "15:00", ""]]),
+  ]);
+  const broken = resolvePlan(onlyEarly, { cities: ["amsterdam", "vienna", "rome"], date: "2026-11-06" });
+  assert.equal(broken.hops[1].served, false, "a train that has left does not serve the hop");
+  const next = nextServedNight(onlyEarly, {
+    from: "vienna", to: "rome", date: broken.hops[1].date, after: broken.hops[1].after,
+  });
+  assert.equal(next.date, "2026-11-08");
+  // Filling that gap with a change starts after the train you arrive on too.
+  const gap = findJourneys(planner, {
+    from: "vienna", to: "rome", date: plan.hops[1].date, after: plan.hops[1].after,
+  });
+  assert.ok(gap.length > 0);
+  assert.ok(gap.every((j) => j.hops[0].best.legId === "late"), "never the train that has left");
+});
+
+check("the journey search waits for a train that runs, and says so in the plan", () => {
+  // Munich → Rome runs only on Sundays; arriving Saturday morning, the search
+  // waits a night in Munich rather than reporting no way through.
+  const planner = toyPlanner([
+    toyLeg("ams-muc", [["Amsterdam", "", "17:40"], ["Munich", "06:13", ""]]),
+    toyLeg("muc-rom", [["Munich", "", "19:59"], ["Rome", "10:05", ""]], { days: ["sun"], serviceText: "Sun" }),
+  ]);
+  const [journey] = findJourneys(planner, { from: "amsterdam", to: "rome", date: "2026-11-06" });
+  assert.ok(journey, "a journey with a wait should be found");
+  assert.deepEqual(journey.cities, ["amsterdam", "munich", "rome"]);
+  assert.deepEqual(journey.stays, [1]);
+  assert.equal(journey.hops[1].date, "2026-11-08");
+  // Its URL resolves to the plan the card showed.
+  const back = resolvePlan(planner, { cities: journey.cities, date: journey.date, stays: journey.stays });
+  assert.deepEqual(back.hops.map((h) => h.date), journey.hops.map((h) => h.date));
+  assert.ok(back.complete);
+  // Without the wait there is nothing.
+  assert.equal(findJourneys(planner, { from: "amsterdam", to: "rome", date: "2026-11-06", maxWaitNights: 0 }).length, 0);
+});
+
+check("every change in a found journey connects, and none is a worse copy of a shorter one", () => {
+  for (const [from, to] of [
+    ["amsterdam", "rome"], ["brussels", "budapest"], ["berlin", "rome"], ["amsterdam", "vienna"],
+  ]) {
+    const journeys = findJourneys(planner, { from, to, date: "2026-11-06", limit: 12 });
+    assert.ok(journeys.length > 0, `${from} → ${to}`);
+    for (const journey of journeys) {
+      assert.deepEqual(
+        resolvePlan(planner, journey).hops.map((h) => h.date),
+        journey.hops.map((h) => h.date),
+        `${journey.cities.join(">")} must resolve as its URL does`,
+      );
+      for (const hop of journey.hops.slice(1)) {
+        assert.notEqual(hop.connection?.status, "missed", `${journey.cities.join(">")} misses at ${hop.from.slug}`);
+      }
+      for (const other of journeys) {
+        if (other.hops.length < journey.hops.length) {
+          assert.ok(
+            other.arrivalAt > journey.arrivalAt,
+            `${journey.cities.join(">")} arrives no earlier than ${other.cities.join(">")}`,
+          );
+        }
+      }
+    }
+  }
+});
+
+check("Paris has no sleeper to Vienna, and a change in Germany still gets you there", () => {
+  // The case that made "plan with changes" a feature request: no train from
+  // Paris reaches Vienna, Prague or Warsaw, and the search said so and stopped.
+  const days = Array.from({ length: 20 }, (_, i) => addDays("2026-11-02", 3 * i));
+  const reached = days.some((date) =>
+    findJourneys(planner, { from: "paris", to: "vienna", date, flexNights: 6 }).some(
+      (j) => j.cities.length >= 3 && j.complete,
+    ),
+  );
+  assert.ok(reached, "Paris → Vienna should chain through another city");
+});
+
+check("a journey spliced into a plan keeps the hops around it", () => {
+  const plan = { cities: ["paris", "vienna", "budapest"], date: "2026-11-06", stays: [2] };
+  // Paris → Berlin → Vienna, leaving two nights after the hop had it.
+  const journey = { cities: ["paris", "berlin", "vienna"], date: "2026-11-08", stays: [1] };
+  assert.deepEqual(spliceJourney(plan, 0, journey, "2026-11-06"), {
+    cities: ["paris", "berlin", "vienna", "budapest"],
+    date: "2026-11-08",
+    stays: [1, 2],
+  });
+  // On a later hop the wait goes to the city before it, not to the trip's start.
+  const later = { cities: ["london", "paris", "vienna"], date: "2026-11-05", stays: [] };
+  assert.deepEqual(spliceJourney(later, 1, journey, "2026-11-06"), {
+    cities: ["london", "paris", "berlin", "vienna"],
+    date: "2026-11-05",
+    stays: [2, 1],
+  });
+  assert.equal(daysBetween("2026-11-06", "2026-11-08"), 2);
+  assert.equal(daysBetween("2026-12-31", "2027-01-01"), 1);
 });
 
 // ── The index the planner ships ──────────────────────────────────────────────
