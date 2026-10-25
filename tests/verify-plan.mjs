@@ -73,6 +73,7 @@ import {
   topStartCitiesByRegion,
 } from "../src/lib/plan/regions.mjs";
 import { rankCities } from "../src/lib/plan/citySearch.mjs";
+import { journeyFare } from "../src/lib/plan/journeyFare.mjs";
 import CITY_PROMINENCE from "../data/overrides/city-prominence.json" with { type: "json" };
 import { slugify } from "../src/lib/seo/slugify.mjs";
 import { cityForStation } from "../src/lib/seo/cities.mjs";
@@ -738,6 +739,26 @@ check("\"To\" offers the cities a direct train reaches first", () => {
   assert.equal(rankCities(others, "vienna", 8, { preferred: direct })[0].slug, "vienna");
   // Without a preference the ranking is exactly the old one.
   assert.deepEqual(rankCities(others, "ber"), rankCities(others, "ber", 8, { preferred: null }));
+});
+
+check("a journey's fare adds up its trains, and only what is published", () => {
+  const ride = (fromPrice, currency = "EUR", type = "dynamic") => ({ pricing: { fromPrice, currency, type } });
+  // Cents, not floats: 40 + 69.9 is 109.90, not 109.90000000000001.
+  assert.deepEqual(journeyFare([ride(40), ride(69.9)]), {
+    parts: ["€40", "€69.90"], total: "€109.90", from: true, complete: true,
+  });
+  assert.equal(journeyFare([ride(0.1), ride(0.2)]).total, "€0.30");
+  // A train with no fare is a gap, never a zero.
+  const gap = journeyFare([ride(40), { pricing: { type: "dynamic" } }]);
+  assert.deepEqual(gap.parts, ["€40", "?"]);
+  assert.equal(gap.total, null);
+  // Two currencies are not summed.
+  assert.equal(journeyFare([ride(40), ride(720, "CNY", "fixed")]).total, null);
+  // A fixed tariff is the price, not a floor.
+  assert.equal(journeyFare([ride(720, "CNY", "fixed"), ride(480, "CNY", "fixed")]).from, false);
+  assert.equal(journeyFare([ride(720, "CNY", "fixed"), ride(480, "CNY", "fixed")]).total, "¥1200");
+  // Nothing priced at all: say nothing rather than "? + ?".
+  assert.equal(journeyFare([null, { pricing: null }]), null);
 });
 
 // ── The index the planner ships ──────────────────────────────────────────────
