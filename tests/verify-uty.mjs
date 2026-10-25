@@ -184,6 +184,25 @@ const carried = buildUtyTrains({ config, found: null, previous: trains, today: "
 check("an unreachable shop carries last night's trains", Object.keys(carried).length === Object.keys(trains).length && carried["080Ф"].timetable.source === "previous");
 check("…for at most 30 days", !Object.keys(buildUtyTrains({ config, found: null, previous: trains, today: "2026-12-01" })).length);
 
+// The night 071Ф lost its stops (branch refresh, 2026-10-25): sweep dates
+// that hold a run's first day but not the day after it reaches the hub. Here
+// the fixture's 2026-11-01 is the second sweep date: 126Ф leaves Xiva on it
+// and reaches Toshkent on the 2nd, outside the sweep.
+let today2 = null;
+for (let i = 0; i < 7 && !today2; i++) {
+  const t = new Date(Date.parse("2026-10-20T00:00:00Z") + i * 86_400_000).toISOString().slice(0, 10);
+  if (eq(sweepDates({ today: t, hasPrevious: true }), ["2026-10-31", "2026-11-01"])) today2 = t;
+}
+const second = await readNight({ client: fakeClient(sweep.answers), config, today: today2, previous: trains });
+check(
+  "a run caught only on the second sweep date keeps last night's stop list",
+  !second.found.has("126Ф") && second.skipped.some((x) => x.startsWith("126Ф (only part")),
+  JSON.stringify(second.skipped),
+);
+check("…while a run that reaches the hub the same day is read afresh (125Ч)", second.found.has("125Ч"));
+const kept126 = buildUtyTrains({ config, found: second.found, previous: trains, today: today2 })["126Ф"];
+check("…and the kept train has all its stops", kept126?.stations.length === trains["126Ф"].stations.length && kept126.timetable.source === "previous");
+
 console.log("the client");
 const calls = [];
 const fakeFetch = (handler) => async (url, init) => {

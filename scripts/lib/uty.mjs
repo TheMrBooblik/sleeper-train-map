@@ -551,6 +551,20 @@ export async function readNight({ client, config, today, offsetDays = 7, previou
       skipped.push(`${number} (${sample.originName} → ${sample.terminusName}: an end is not a configured station)`);
       continue;
     }
+    // Complete only when the sweep holds every date this run's stops answer
+    // on: the date it leaves its first station and, when it reaches the hub
+    // after midnight, the date after. A run caught on the second sweep date
+    // only answers for its stops before midnight; last night's stop list is
+    // kept then rather than replaced with a shorter one (a first night, with
+    // nothing to keep, takes what it has).
+    const hubStop = built.stops.find((s) => s.code === hub);
+    const hubNextDay = built.originClock + (hubStop.arrMinutes ?? hubStop.depMinutes ?? 0) >= 1440;
+    const originDates = all.filter((o) => o.fromCode === origin.code).map((o) => o.date);
+    const complete = originDates.some((d) => !hubNextDay || dates.includes(addDays(d, 1)));
+    if (!complete && prevByNumber.has(number)) {
+      skipped.push(`${number} (only part of a run in tonight's dates — last night's stop list kept)`);
+      continue;
+    }
     const t = {
       number,
       brand: sample.brand,
