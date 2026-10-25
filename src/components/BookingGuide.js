@@ -101,17 +101,59 @@ function Sections({ sections, t }) {
   );
 }
 
+const NOTICE_TONES = {
+  dark: {
+    wrap: "rounded-2xl border border-amber-300/30 bg-amber-300/[0.06] p-5 sm:p-6",
+    heading: "text-xs font-medium uppercase tracking-wide text-amber-200/80",
+    text: "mt-2 text-base font-semibold text-white text-pretty",
+    note: "mt-2 text-sm leading-relaxed text-white/60 text-pretty",
+    sources: "text-xs text-white/40",
+    link: "underline underline-offset-2 hover:text-white/70",
+  },
+  light: {
+    wrap: "rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-800/60 dark:bg-amber-950/40",
+    heading: "text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300",
+    text: "mt-1 text-sm font-medium text-gray-900 dark:text-zinc-100",
+    note: "mt-1 text-xs leading-relaxed text-gray-600 dark:text-zinc-400",
+  },
+};
+
+/**
+ * A guide that is a warning rather than a how-to (`notice`): who may ride at
+ * all, before anything about buying. One heading, its answer in one line, and
+ * a smaller note under it — short enough to sit at the top of the page and of
+ * the panel's card, open, where a closed box would hide the one thing it says.
+ */
+function Notice({ guide, tone, className }) {
+  const t = NOTICE_TONES[tone] ?? NOTICE_TONES.dark;
+  const { heading, text, note } = guide.notice;
+  return (
+    <aside className={`${t.wrap} ${className}`} aria-label={heading} data-testid="booking-notice">
+      <p className={t.heading}>{heading}</p>
+      <p className={t.text}>{text}</p>
+      {note && <p className={t.note}>{note}</p>}
+      {t.sources && (
+        <Sources
+          sources={guide.sources}
+          furtherReading={guide.furtherReading}
+          checkedAt={guide.checkedAt}
+          t={t}
+        />
+      )}
+    </aside>
+  );
+}
+
 export default function BookingGuide({ guide, tone = "dark", compact = false, className = "" }) {
   if (!guide) return null;
+  if (guide.notice) return <Notice guide={guide} tone={tone} className={className} />;
   const t = TONES[tone] ?? TONES.dark;
 
   if (compact) {
     return (
       <details className={`group ${t.wrap} ${className}`}>
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 [&::-webkit-details-marker]:hidden">
-          <span className={t.title}>
-            {guide.panelTitle || "Before you book: how tickets work on this train"}
-          </span>
+          <span className={t.title}>Before you book: how tickets work on this train</span>
           <span aria-hidden className="text-gray-400 dark:text-zinc-500 transition-transform group-open:rotate-45">
             +
           </span>

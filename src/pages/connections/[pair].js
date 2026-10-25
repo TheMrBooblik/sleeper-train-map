@@ -190,6 +190,10 @@ export default function ConnectionPage({
               {!upcomingNotice &&
                 ` Trains run in both directions — ${cityA} to ${cityB} and ${cityB} to ${cityA}.`}
             </p>
+
+            {/* A warning about who may ride (booking-guides.json `notice`)
+                comes before the trains it applies to. */}
+            {bookingGuide?.notice && <BookingGuide guide={bookingGuide} className="mt-6 max-w-2xl" />}
           </header>
 
           {(countries.length > 0 || operators.length > 0) && (
@@ -298,7 +302,7 @@ export default function ConnectionPage({
           {/* How buying a ticket works, where the operator's booking has quirks
               the Book button cannot explain (the Sunrise's one-month, 10:00 JST
               sale and its "1 adult" twin rooms). */}
-          {bookingGuide && <BookingGuide guide={bookingGuide} className="mt-12" />}
+          {bookingGuide && !bookingGuide.notice && <BookingGuide guide={bookingGuide} className="mt-12" />}
 
           <div className="mt-10">
             <Link

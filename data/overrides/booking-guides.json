@@ -2,7 +2,7 @@
   "_readme": [
     "How buying a ticket actually works on a train whose booking has quirks a Book button cannot explain.",
     "A guide applies to every route of the operators in `agencyIds` (src/lib/bookingGuide.mjs resolves it, compound ids like \"JRW/JRC\" included). It renders on the connection pages and in the map's detail panel (src/components/BookingGuide.js), and its `faq` joins the page's FAQPage structured data — so every line must be true of every route the guide applies to, and prices must say when they were quoted.",
-    "`panelTitle` (optional) names the closed box in the map panel; without it the box reads \"Before you book: how tickets work on this train\".",
+    "A guide with `notice` ({ heading, text, note }) is a warning, not a how-to: it renders as a short callout at the top of the connection page and of the map panel's card, in place of the long guide. `text` is the answer to `heading` in one line; `note` sits under it in smaller type.",
     "`bookingAnswer` replaces the generic \"compare the trains above and book directly\" answer to the page's own how-to-book question.",
     "Write it in our own words from the operator's own pages and published rules, and cite those in `sources`. A traveller's post is credited and linked under `furtherReading`, never retold: their account, their tips and the way they tell it are theirs, and a link sends readers to them."
   ],
@@ -122,39 +122,11 @@
     },
     "baku-tbilisi": {
       "agencyIds": ["ADY"],
-      "title": "Who can ride the Baku–Tbilisi train",
-      "panelTitle": "Before you book: who can cross the border on this train",
-      "summary": "The overnight train between Baku and Tbilisi has been running again since 25 May 2026, but it is not open to everyone. It can carry you across the Azerbaijan–Georgia border only if you are an Azerbaijani citizen or hold a passport that lets you enter Azerbaijan without a visa. If you would need a visa, an e-visa included, the border will not let you through on this train yet.",
-      "highlights": [
-        "Only Azerbaijani citizens and foreigners who may enter Azerbaijan visa-free can travel on this train, in either direction.",
-        "If your passport needs an Azerbaijani e-visa (US, UK, EU, Australian and New Zealand citizens among others), you will not be let through the border on this train.",
-        "The train is a narrow exception: for everyone else, Azerbaijan's land borders remain closed to entry.",
-        "Check your nationality's entry rules with Azerbaijan's State Migration Service before you buy a ticket."
-      ],
-      "sections": [
-        {
-          "heading": "Who may travel",
-          "points": [
-            "Azerbaijan reopened rail entry and exit with Georgia on 25 May 2026 for its own citizens and for foreign nationals entitled to visa-free entry.",
-            "Holding an e-visa, or any other visa, does not qualify you. The reopening covers visa-free entry only.",
-            "Reopening the train did not reopen the land border in general. Anyone outside those two groups still cannot enter Azerbaijan overland, by train or by road."
-          ]
-        },
-        {
-          "heading": "If you need an e-visa",
-          "points": [
-            "For now the way between Tbilisi and Baku for e-visa travellers is by air.",
-            "The restriction is set by the Azerbaijani government and has been extended several times, so check the State Migration Service for the current rules shortly before you travel."
-          ]
-        },
-        {
-          "heading": "Once you are in Azerbaijan",
-          "points": [
-            "A foreigner staying in Azerbaijan for more than 15 days must register at their place of stay. Hotels usually do this for their guests; registration is free.",
-            "A visa-free stay may not exceed 90 days, unless an international agreement for your nationality says otherwise."
-          ]
-        }
-      ],
+      "notice": {
+        "heading": "Before you book: who can cross the border on this train",
+        "text": "Azerbaijani citizens and foreigners who may enter Azerbaijan visa-free.",
+        "note": "Need an e-visa for Azerbaijan (US, UK, EU, Australia, New Zealand and others)? You can't take this train yet: the border won't let you through. Fly between Tbilisi and Baku instead."
+      },
       "faq": [
         {
           "q": "Can foreigners take the night train between Baku and Tbilisi?",
@@ -169,10 +141,6 @@
         {
           "label": "State Migration Service of Azerbaijan — Baku–Tbilisi–Baku train: rules for foreign passengers",
           "url": "https://migration.gov.az/en/news_detail/16833"
-        },
-        {
-          "label": "State Migration Service of Azerbaijan — registration at the place of stay",
-          "url": "https://migration.gov.az/en/news_detail/15892"
         }
       ],
       "furtherReading": [
