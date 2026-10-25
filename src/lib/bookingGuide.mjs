@@ -76,6 +76,7 @@ export function guideProps(guide) {
   return {
     id: guide.id,
     title: guide.title ?? "",
+    panelTitle: guide.panelTitle ?? "",
     summary: guide.summary ?? "",
     highlights: guide.highlights ?? [],
     sections: (guide.sections ?? []).filter((s) => s?.heading && s.points?.length),

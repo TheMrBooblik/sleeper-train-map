@@ -109,7 +109,9 @@ export default function BookingGuide({ guide, tone = "dark", compact = false, cl
     return (
       <details className={`group ${t.wrap} ${className}`}>
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-2.5 py-2 [&::-webkit-details-marker]:hidden">
-          <span className={t.title}>Before you book: how tickets work on this train</span>
+          <span className={t.title}>
+            {guide.panelTitle || "Before you book: how tickets work on this train"}
+          </span>
           <span aria-hidden className="text-gray-400 dark:text-zinc-500 transition-transform group-open:rotate-45">
             +
           </span>

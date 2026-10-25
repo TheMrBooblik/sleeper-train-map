@@ -474,6 +474,29 @@ await check("the guide folds into a page's FAQ without duplicating a question", 
   for (const f of BOOKING_GUIDES.guides.sunrise.faq) assert.ok(f.q.endsWith("?") && f.a.length > 40);
 });
 
+await check("Baku–Tbilisi: the entry restriction reaches the train, from official sources, in our own words", () => {
+  const guide = guideProps(getBookingGuide({ agencyId: "ADY" }));
+  assert.equal(guide?.id, "baku-tbilisi");
+  const host = (url) => new URL(url).hostname;
+  assert.match(guide.panelTitle, /who can cross the border/, "the panel box names the restriction, not ticketing");
+  assert.equal(guideProps(getBookingGuide({ agencyId: "JRW" })).panelTitle, "", "Sunrise keeps the default box title");
+  const text = JSON.stringify({ ...guide, sources: [], furtherReading: [] });
+  assert.match(text, /visa-free/);
+  assert.match(text, /e-visa/);
+  assert.ok(guide.sources.length && guide.sources.every((s) => host(s.url) === "migration.gov.az"));
+  assert.ok(guide.furtherReading.some((s) => host(s.url) === "wander-lush.org"), "the travel blog is credited, not retold");
+  assert.doesNotMatch(text, /will not be permitted to pass through border checkpoints/, "no quoted sentence from the blog");
+  const faq = withBookingGuideFaq([], getBookingGuide({ agencyId: "ADY" }));
+  assert.ok(faq.some((f) => /e-visa/.test(f.q)));
+  for (const f of faq) assert.ok(f.q.endsWith("?") && f.a.length > 40);
+  // Every line must be true of every route it applies to: ADY runs this one route.
+  const published = readJson("public/data/published/initial-data.json");
+  const adyRoutes = Object.values(published.data.viewMap).filter((r) =>
+    /\bADY\b/.test(`${r.bot_agency_id || ""} ${r.agency_id || ""}`),
+  );
+  assert.deepEqual(adyRoutes.map((r) => r.route_long_name), ["Baku – Tbilisi"]);
+});
+
 // ─── 6. What the pipeline published ──────────────────────────────────────────
 
 await check("the published payload carries both routes, priced, with their stations", () => {
