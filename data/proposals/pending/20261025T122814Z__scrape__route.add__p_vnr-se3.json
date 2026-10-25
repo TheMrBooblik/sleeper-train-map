@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_vnr-se3",
+  "createdAt": "2026-10-25T12:28:14.577Z",
+  "source": "scrape",
+  "sourceDetail": "vnr",
+  "kind": "route.add",
+  "title": "New train: SE3 (Hà Nội – Sài Gòn)",
+  "summary": "Route \"vnr_SE3\" appeared in tonight's scrape and is withheld from the map until approved. Via: Phủ Lý - Nam Định - Ninh Bình - Thanh Hoá - Vinh - Đồng Hới - Đông Hà - Huế - Đà Nẵng - Tam Kỳ - Quảng Ngãi - Bồng Sơn - Diêu Trì - Tuy Hoà - Nha Trang - Tháp Chàm - Long Khánh - Biên Hòa - Dĩ An",
+  "target": {
+    "routeKey": "vnr_SE3",
+    "agencyId": "VNR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "SE3",
+    "returnTrain": "SE4",
+    "origin": "Hà Nội",
+    "destination": "Sài Gòn",
+    "operator": "VNR",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "vnr_SE3"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
