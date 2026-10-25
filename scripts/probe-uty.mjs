@@ -20,8 +20,15 @@
 //     (originRoute), brand, and per car type (Plaskartli / Kupe / SV / Umumiy /
 //     O'rindiqli) the tariff in so'm by service class (3П, 2К, 1Л, …). A
 //     train with no place left on sale has no `cars`.
-// This run reads the route and station-board calls and looks up the station
-// codes the night trains' far ends need.
+//   - The route call (handbook/trains/route) and the station boards
+//     (handbook/stations/schedule/{code}) answer 401: they need a login, which
+//     this map never does, so no call here reads them again.
+//   - One corridor over seven dates gives each train's nights (Toshkent → Xiva:
+//     056 Tue/Wed/Fri/Sat, 125 Mon/Tue/Fri/Sat, 076 Mon). The digits name the
+//     train; the letter after them changes by date (125Ч, 125Ф).
+// This run prints the station search's raw answer, and searches from Toshkent
+// to every station whose code is known: a night train answers a search exactly
+// when it serves both stations, so those searches are its official stop list.
 //
 // Read-only: GETs plus the page's own search POSTs, an honest User-Agent, at
 // most MAX_REQUESTS, 1.5 s apart, nothing booked. A block (detectBlock) stops
@@ -34,28 +41,18 @@ import { HONEST_USER_AGENT, detectBlock } from "./lib/http-block.mjs";
 
 const outDir = process.argv[2] ?? null;
 const ORIGIN = "https://eticket.uzrailpass.uz";
-const MAX_REQUESTS = 80;
+const MAX_REQUESTS = 60;
 const SPACING_MS = 1_500;
 const DATE_OFFSET_DAYS = 7;
 
 // Station searches: the far ends of the night trains, plus the internationals.
-const STATION_QUERIES = ["Olot", "Shovot", "Qo'ng'irot", "Sariosiyo", "Toshkent", "Andijon", "Moskva", "Olma", "Dushanbe", "Qozon", "Volgograd", "Kitob"];
-// Route calls: one train per night corridor, both directions where known.
-const ROUTES = ["080Ф", "080Ь", "054Ф", "056Ж", "058З", "072Ф", "082Ф", "125Ч", "126Ф", "127Ф", "129Ф", "124Ф", "712Ф"];
-// Station boards.
-const BOARDS = ["2900000", "2900172"];
-// Searches whose far end is looked up by name above.
-const SEARCHES = [
-  ["2900000", "Olot"],
-  ["2900000", "Shovot"],
-  ["2900000", "Qo'ng'irot"],
-  ["2900000", "Sariosiyo"],
-  ["2900000", "Moskva"],
-  ["2900000", "Olma"],
-  ["2900000", "Dushanbe"],
-];
-// One corridor on seven consecutive nights: which nights each train runs.
-const WEEK = ["2900000", "2900172"];
+const STATION_QUERIES = ["Olot", "Shovot", "Qo'ng'irot", "Qung'irot", "Sariosiyo", "Denov", "Kattaqo'rg'on", "Miskin", "Beruniy", "Qorako'l", "Moskva", "Olmaota", "Dushanbe", "Sh", "Toshkent"];
+// Codes known from open-source clients of the shop (mrmuminov/railway_finder).
+const KNOWN = {
+  Guliston: "2900850", Jizzax: "2900720", Samarqand: "2900700", Navoiy: "2900930", Buxoro: "2900800",
+  Qarshi: "2900750", Termiz: "2900255", Urganch: "2900790", Xiva: "2900172", Nukus: "2900970",
+  Andijon: "2900680", Namangan: "2900940", "Qo'qon": "2900880", "Marg'ilon": "2900920", Pop: "2900693",
+};
 
 let requests = 0;
 const cookies = new Map();
@@ -159,67 +156,40 @@ const token = await call("GET", "/api/v1/csrf-token");
 console.log(`  answer: ${JSON.stringify(token).slice(0, 300)}; cookies now: ${[...cookies.keys()].join(", ")}`);
 
 // 2. Station codes by name.
-const codes = new Map();
 console.log("\n# Stations");
 for (const q of STATION_QUERIES) {
   const answer = await call("POST", "/api/v1/handbook/stations/list", { name: q }, `stations ${q}`);
-  const list = Array.isArray(answer?.data) ? answer.data : Array.isArray(answer) ? answer : [];
-  console.log(`  ${q}: ${list.length} hit(s); keys ${JSON.stringify(Object.keys(list[0] ?? {}))}`);
-  for (const s of list.slice(0, 12)) console.log(`    ${JSON.stringify(s).slice(0, 300)}`);
-  const first = list[0];
-  if (first) codes.set(q, String(first.code ?? first.stationCode ?? first.id ?? ""));
+  console.log(`  raw: ${JSON.stringify(answer).slice(0, 1_500)}`);
 }
 
-// 3. Routes: the first answer whole, the rest as a digest.
-console.log("\n# Routes");
-let printedRoute = false;
-for (const number of ROUTES) {
-  const answer = await call("POST", "/api/v1/handbook/trains/route", { number }, `route ${number}`);
-  const data = answer?.data ?? answer;
-  if (!printedRoute && data) {
-    console.log(`<<<ROUTE ${number}\n${JSON.stringify(answer, null, 1).slice(0, 30_000)}\n>>>ROUTE`);
-    printedRoute = true;
-  } else {
-    console.log(`  ${number}: ${JSON.stringify(data).slice(0, 2_500)}`);
-  }
-}
-// The bare number, and the other route call the page names.
-const bare = await call("POST", "/api/v1/handbook/trains/route", { number: "080" }, "route 080 (bare)");
-console.log(`  ${JSON.stringify(bare).slice(0, 1_500)}`);
-const other = await call("POST", "/api/v1/trains/route", { trainNumber: "080Ф" }, "trains/route 080Ф");
-console.log(`  ${JSON.stringify(other).slice(0, 3_000)}`);
-
-// 4. Station boards.
-console.log("\n# Station boards");
-for (const code of BOARDS) {
-  const answer = await call("GET", `/api/v1/handbook/stations/schedule/${code}`, null, `board ${code}`);
-  console.log(`  ${JSON.stringify(answer).slice(0, 12_000)}`);
-}
-
-// 5. Searches to the far ends, a week out: digest per train with every tariff.
+// One line per train: number, ends, times, every car type with its tariffs.
 const digest = (trains) => {
   for (const t of trains) {
     const cars = (t.cars ?? []).map((c) => `${c.type}[${(c.tariffs ?? []).map((x) => `${x.classServiceType}:${x.tariff}`).join(",")}]`).join(" ");
     console.log(`  - ${t.number} ${t.type}/${t.brand} ${t.originRoute?.depStationName} → ${t.originRoute?.arvStationName} | ${t.departureDate} → ${t.arrivalDate} (${t.timeOnWay}) | ${t.subRoute?.depStationName}→${t.subRoute?.arvStationName} | ${cars || "no places"}${t.comment ? ` | comment ${t.comment}` : ""}`);
   }
 };
-console.log(`\n# Searches for ${day(DATE_OFFSET_DAYS)}`);
-for (const [from, toName] of SEARCHES) {
-  const to = /^\d+$/.test(toName) ? toName : codes.get(toName);
-  if (!to) { console.log(`\n${from} → ${toName}: code unknown — skipped`); continue; }
-  const answer = await call("POST", "/api/v3/handbook/trains/list", { directions: { forward: { date: day(DATE_OFFSET_DAYS), depStationCode: from, arvStationCode: to } } }, `search ${from}-${to}`);
-  const trains = answer?.data?.directions?.forward?.trains ?? [];
-  console.log(`  ${from} → ${toName} (${to}): ${trains.length} train(s)`);
-  digest(trains);
+// 3. Toshkent to every known station, one date, both ways: which night
+// trains answer for which station, and at what time.
+for (const [name, code] of Object.entries(KNOWN)) {
+  for (const [from, to] of [["2900000", code], [code, "2900000"]]) {
+    const answer = await call("POST", "/api/v3/handbook/trains/list", { directions: { forward: { date: day(DATE_OFFSET_DAYS), depStationCode: from, arvStationCode: to } } }, `search ${from}-${to}`);
+    const trains = answer?.data?.directions?.forward?.trains ?? [];
+    console.log(`  ${from === "2900000" ? `Toshkent → ${name}` : `${name} → Toshkent`}: ${trains.length} train(s)`);
+    digest(trains);
+  }
 }
 
-// 6. One corridor, seven nights.
-console.log(`\n# ${WEEK[0]} → ${WEEK[1]} on seven consecutive dates`);
-for (let i = 0; i < 7; i++) {
-  const date = day(DATE_OFFSET_DAYS + i);
-  const answer = await call("POST", "/api/v3/handbook/trains/list", { directions: { forward: { date, depStationCode: WEEK[0], arvStationCode: WEEK[1] } } }, `week ${date}`);
-  const trains = answer?.data?.directions?.forward?.trains ?? [];
-  console.log(`  ${date} (${new Date(`${date}T00:00:00Z`).toUTCString().slice(0, 3)}): ${trains.map((t) => `${t.number} ${t.departureDate.slice(11)}`).join(", ") || "none"}`);
+// 4. The shop's own currency rates (the page shows prices in other
+// currencies), and the European Commission's monthly rate for the so'm, for
+// an "≈ €" beside a fare.
+const rates = await call("GET", "/api/v1/payment/currency-rates", null, "currency-rates");
+console.log(`  ${JSON.stringify(rates).slice(0, 1_500)}`);
+try {
+  const res = await fetch("https://ec.europa.eu/budg/inforeuro/api/public/currencies/uzs", { headers: { "User-Agent": HONEST_USER_AGENT, Accept: "application/json" }, signal: AbortSignal.timeout(30_000) });
+  console.log(`\n## InforEuro UZS\nstatus ${res.status}\n${(await res.text()).slice(0, 1_500)}`);
+} catch (err) {
+  console.log(`\n## InforEuro UZS\nerror ${err.message}`);
 }
 
 console.log(`\n# Requests: ${requests}; blocked hosts: ${[...blockedHosts].join(", ") || "none"}; cookies: ${[...cookies.keys()].join(", ")}`);
