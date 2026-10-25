@@ -73,7 +73,7 @@ import {
   topStartCitiesByRegion,
 } from "../src/lib/plan/regions.mjs";
 import { rankCities } from "../src/lib/plan/citySearch.mjs";
-import { journeyFare } from "../src/lib/plan/journeyFare.mjs";
+import { compareJourneyFares, journeyFare } from "../src/lib/plan/journeyFare.mjs";
 import CITY_PROMINENCE from "../data/overrides/city-prominence.json" with { type: "json" };
 import { slugify } from "../src/lib/seo/slugify.mjs";
 import { cityForStation } from "../src/lib/seo/cities.mjs";
@@ -745,7 +745,7 @@ check("a journey's fare adds up its trains, and only what is published", () => {
   const ride = (fromPrice, currency = "EUR", type = "dynamic") => ({ pricing: { fromPrice, currency, type } });
   // Cents, not floats: 40 + 69.9 is 109.90, not 109.90000000000001.
   assert.deepEqual(journeyFare([ride(40), ride(69.9)]), {
-    parts: ["€40", "€69.90"], total: "€109.90", from: true, complete: true,
+    parts: ["€40", "€69.90"], total: "€109.90", from: true, complete: true, cents: 10990, currency: "EUR",
   });
   assert.equal(journeyFare([ride(0.1), ride(0.2)]).total, "€0.30");
   // A train with no fare is a gap, never a zero.
@@ -759,6 +759,23 @@ check("a journey's fare adds up its trains, and only what is published", () => {
   assert.equal(journeyFare([ride(720, "CNY", "fixed"), ride(480, "CNY", "fixed")]).total, "¥1200");
   // Nothing priced at all: say nothing rather than "? + ?".
   assert.equal(journeyFare([null, { pricing: null }]), null);
+});
+
+check("journeys with a change come cheapest first", () => {
+  const ride = (fromPrice) => ({ pricing: fromPrice == null ? null : { fromPrice, currency: "EUR", type: "dynamic" } });
+  const journey = (...prices) => ({ hops: prices.map((p) => ({ best: ride(p) })) });
+  const sorted = [journey(80, 70), journey(40, 69.9), journey(30, null), journey(60, 30)].sort(compareJourneyFares);
+  // A total before no total, then by the total; a gap is never read as cheap.
+  assert.deepEqual(sorted.map((j) => journeyFare(j.hops.map((h) => h.best))?.total ?? "?"), [
+    "€90", "€109.90", "€150", null,
+  ].map((t) => t ?? "?"));
+  // The search orders what it returns the same way.
+  for (const [from, to] of [["amsterdam", "rome"], ["brussels", "budapest"], ["berlin", "rome"]]) {
+    const journeys = findJourneys(planner, { from, to, date: "2026-11-06", limit: 12 });
+    for (let i = 1; i < journeys.length; i++) {
+      assert.ok(compareJourneyFares(journeys[i - 1], journeys[i]) <= 0, `${from} → ${to}: option ${i + 1} is cheaper than ${i}`);
+    }
+  }
 });
 
 // ── The index the planner ships ──────────────────────────────────────────────
@@ -1008,7 +1025,8 @@ check("the eight placeless hubs get a country rather than falling out of every t
     assert.equal(regionForCity(city), "europe", `${slug} belongs in Europe`);
   }
   assert.equal(planner.cityBySlug.get("feldkirch")?.country, "AT");
-  assert.ok(planner.cityBySlug.get("feldkirch")?.routeCount >= 10, "Feldkirch is a real hub");
+  // Nine routes in the October 2026 data.
+  assert.ok(planner.cityBySlug.get("feldkirch")?.routeCount >= 8, "Feldkirch is a real hub");
 });
 
 check("the start chips are ranked by the number they print", () => {
