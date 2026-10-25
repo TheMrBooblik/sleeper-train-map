@@ -35,7 +35,7 @@ import {
 } from "./sncf-open-data.mjs";
 
 const USER_AGENT =
-  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://github.com/TheMrBooblik/sleeper-train-map)";
+  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://pingwi.com)";
 const TIMEOUT_MS = 90_000;
 export const PUNCTUALITY_CARRY_MAX_DAYS = 45;
 

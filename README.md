@@ -34,7 +34,7 @@ Ensure you have the following installed:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/TheMrBooblik/sleeper-train-map.git
+   git clone <repository-url> sleeper-train-map
    cd sleeper-train-map
    ```
 

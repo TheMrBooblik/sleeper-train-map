@@ -7,7 +7,7 @@ import { FETCH_TIMEOUT_MS, OVERPASS_ENDPOINTS } from "./scrape-helpers.mjs";
 
 export const KYFW_BASE = "https://kyfw.12306.cn";
 export const USER_AGENT =
-  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://github.com/TheMrBooblik/sleeper-train-map)";
+  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://pingwi.com)";
 
 const DEFAULT_HEADERS = {
   "User-Agent": USER_AGENT,

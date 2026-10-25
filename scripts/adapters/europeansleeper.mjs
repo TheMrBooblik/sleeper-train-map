@@ -501,7 +501,7 @@ export function feedCoordIndex(gtfs) {
 }
 
 const TIMETABLE_USER_AGENT =
-  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://github.com/TheMrBooblik/sleeper-train-map)";
+  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://pingwi.com)";
 
 /**
  * The operator's published timetable, or [] when it cannot be read.
