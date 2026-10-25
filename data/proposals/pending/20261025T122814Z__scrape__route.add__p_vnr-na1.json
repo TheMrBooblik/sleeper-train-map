@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_vnr-na1",
+  "createdAt": "2026-10-25T12:28:14.577Z",
+  "source": "scrape",
+  "sourceDetail": "vnr",
+  "kind": "route.add",
+  "title": "New train: NA1 (Hà Nội – Vinh)",
+  "summary": "Route \"vnr_NA1\" appeared in tonight's scrape and is withheld from the map until approved. Via: Chợ Sy",
+  "target": {
+    "routeKey": "vnr_NA1",
+    "agencyId": "VNR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "NA1",
+    "returnTrain": "NA2",
+    "origin": "Hà Nội",
+    "destination": "Vinh",
+    "operator": "VNR",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "vnr_NA1"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
