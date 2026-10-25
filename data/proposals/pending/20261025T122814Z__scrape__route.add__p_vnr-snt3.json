@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_vnr-snt3",
+  "createdAt": "2026-10-25T12:28:14.577Z",
+  "source": "scrape",
+  "sourceDetail": "vnr",
+  "kind": "route.add",
+  "title": "New train: SNT3 (Nha Trang – Sài Gòn)",
+  "summary": "Route \"vnr_SNT3\" appeared in tonight's scrape and is withheld from the map until approved. Via: Biên Hòa - Dĩ An",
+  "target": {
+    "routeKey": "vnr_SNT3",
+    "agencyId": "VNR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "SNT3",
+    "returnTrain": "SNT4",
+    "origin": "Nha Trang",
+    "destination": "Sài Gòn",
+    "operator": "VNR",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "vnr_SNT3"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
