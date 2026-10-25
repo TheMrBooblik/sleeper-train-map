@@ -1,23 +1,29 @@
 // scripts/probe-uty.mjs
-// What O'zbekiston temir yo'llari's (Uzbekistan Railways, UTY) own ticket shop,
-// eticket.railway.uz, serves to an automated client, printed to the job log.
+// What O'zbekiston temir yo'llari's (Uzbekistan Railways, UTY) own ticket shop
+// serves to an automated client, printed to the job log.
 //
-// The dev sandbox cannot reach railway.uz or eticket.railway.uz (403 at the
-// egress proxy), so this is how a reader for them gets written against real
-// answers. What is known before the first run, from open-source clients of the
-// same site (mrmuminov/railway_finder, AydosJs/railway-bot):
-//   - POST /api/v3/handbook/trains/list
-//       {"directions":{"forward":{"date":"YYYY-MM-DD","depStationCode":"2900000","arvStationCode":"2900800"}}}
-//     answers data.directions.forward.trains[], each with cars[] → tariffs[]
-//     (price in so'm, freeSeats) — the search the shop's own page makes
-//     **before login**. The site's reCAPTCHA is on the login page; login,
-//     seat maps, orders and payment are never touched here.
-//   - POST /api/v1/handbook/stations/list {"name":""} — every station's code.
-//   - Calls carry a double-submit CSRF pair: an XSRF-TOKEN cookie and the same
-//     value as an X-XSRF-TOKEN header. This probe uses the cookie the server
-//     itself sets, as the shop's page does; it never mints one.
+// The dev sandbox cannot reach the shop (403 at the egress proxy), so this is
+// how its reader gets written against real answers. What the runs found:
+//   - 2026-10-25: eticket.railway.uz answers every path with a 301 to
+//     eticket.uzrailpass.uz, an Angular app. Its bundle names every call the
+//     page makes; the ones read here are the public, before-login ones:
+//       GET  /api/v1/csrf-token                 (the page calls it on load; sets XSRF-TOKEN)
+//       POST /api/v1/handbook/stations/list     {name}            station search (204 for "")
+//       POST /api/v3/handbook/trains/list       {directions:{forward:{date,depStationCode,arvStationCode}}}
+//       POST /api/v1/handbook/trains/route      {number}          a train's route
+//       GET  /api/v1/handbook/stations/schedule/{code}            a station's departures
+//     reCAPTCHA is attached by the page's interceptor to login, registration
+//     and ticket-check calls only; a 429 is the shop's "user_blocked".
+//   - The search answers every train between two stations with its type,
+//     number (a letter suffix per direction: 080Ф out, 080Ь back), departure
+//     and arrival ("dd.MM.yyyy HH:mm", Tashkent time), the train's own ends
+//     (originRoute), brand, and per car type (Plaskartli / Kupe / SV / Umumiy /
+//     O'rindiqli) the tariff in so'm by service class (3П, 2К, 1Л, …). A
+//     train with no place left on sale has no `cars`.
+// This run reads the route and station-board calls and looks up the station
+// codes the night trains' far ends need.
 //
-// Read-only: GETs plus the site's own search POSTs, an honest User-Agent, at
+// Read-only: GETs plus the page's own search POSTs, an honest User-Agent, at
 // most MAX_REQUESTS, 1.5 s apart, nothing booked. A block (detectBlock) stops
 // the run for that host.
 // Run: node scripts/probe-uty.mjs [outputDir]
@@ -27,39 +33,31 @@ import path from "node:path";
 import { HONEST_USER_AGENT, detectBlock } from "./lib/http-block.mjs";
 
 const outDir = process.argv[2] ?? null;
-// The shop moved: since October 2026 eticket.railway.uz answers every path with
-// a 301 to eticket.uzrailpass.uz (first run, 2026-10-25).
-const LEGACY_ORIGIN = "https://eticket.railway.uz";
 const ORIGIN = "https://eticket.uzrailpass.uz";
-const MAX_REQUESTS = 60;
+const MAX_REQUESTS = 80;
 const SPACING_MS = 1_500;
 const DATE_OFFSET_DAYS = 7;
 
-// Searches to make: [from, to] by station code where already known, else by
-// name, resolved through stations/list. Both directions of the corridors the
-// night trains are reported on, plus one short one (Toshkent → Samarqand) to
-// see whether a long train is answered for a stretch of its route, and one
-// international (Toshkent → Moskva) to see whether the shop sells those.
-const SAMPLES = [
-  ["2900000", "2900172"], // Toshkent → Xiva
-  ["2900172", "2900000"],
-  ["2900000", "2900790"], // Toshkent → Urganch
-  ["2900000", "2900970"], // Toshkent → Nukus
-  ["2900000", "2900255"], // Toshkent → Termiz
-  ["2900255", "2900000"],
+// Station searches: the far ends of the night trains, plus the internationals.
+const STATION_QUERIES = ["Olot", "Shovot", "Qo'ng'irot", "Sariosiyo", "Toshkent", "Andijon", "Moskva", "Olma", "Dushanbe", "Qozon", "Volgograd", "Kitob"];
+// Route calls: one train per night corridor, both directions where known.
+const ROUTES = ["080Ф", "080Ь", "054Ф", "056Ж", "058З", "072Ф", "082Ф", "125Ч", "126Ф", "127Ф", "129Ф", "124Ф", "712Ф"];
+// Station boards.
+const BOARDS = ["2900000", "2900172"];
+// Searches whose far end is looked up by name above.
+const SEARCHES = [
   ["2900000", "Olot"],
   ["2900000", "Shovot"],
   ["2900000", "Qo'ng'irot"],
-  ["2900680", "2900172"], // Andijon → Xiva
-  ["2900680", "2900255"], // Andijon → Termiz
-  ["2900000", "2900700"], // Toshkent → Samarqand
-  ["2900000", "2900800"], // Toshkent → Buxoro
+  ["2900000", "Sariosiyo"],
   ["2900000", "Moskva"],
-  ["2900000", "Olmaota"],
+  ["2900000", "Olma"],
+  ["2900000", "Dushanbe"],
 ];
+// One corridor on seven consecutive nights: which nights each train runs.
+const WEEK = ["2900000", "2900172"];
 
 let requests = 0;
-let csrfRefused = false;
 const cookies = new Map();
 const blockedHosts = new Set();
 
@@ -87,6 +85,7 @@ async function request(url, { method = "GET", json = null, accept = "application
     "User-Agent": HONEST_USER_AGENT,
     Accept: accept,
     "Accept-Language": lang,
+    "X-Custom-Language": lang,
     "device-type": "BROWSER",
     Origin: ORIGIN,
     Referer: `${ORIGIN}/${lang}/home`,
@@ -102,8 +101,8 @@ async function request(url, { method = "GET", json = null, accept = "application
     const res = await fetch(url, { method, headers, body, redirect: "manual", signal: AbortSignal.timeout(30_000) });
     const setCookies = rememberCookies(res);
     const text = await res.text();
-    const block = detectBlock({ status: res.status, headers: res.headers, body: text }, { expectJson: Boolean(json) });
-    return { url, status: res.status, type: res.headers.get("content-type") ?? "", location: res.headers.get("location"), body: text, block, setCookies, server: res.headers.get("server") };
+    const block = detectBlock({ status: res.status, headers: res.headers, body: text }, { expectJson: true });
+    return { url, status: res.status, type: res.headers.get("content-type") ?? "", location: res.headers.get("location"), body: text, block, setCookies };
   } catch (err) {
     return { url, error: String(err?.cause?.code ?? err?.message ?? err) };
   }
@@ -112,48 +111,34 @@ async function request(url, { method = "GET", json = null, accept = "application
 function save(name, body) {
   if (!outDir || !body) return;
   fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(path.join(outDir, `${slug(name)}.txt`), body);
+  fs.writeFileSync(path.join(outDir, `${slug(name)}.json`), body);
 }
 
 function describe(label, page) {
   console.log(`\n## ${label}`);
   if (page.skipped) return console.log(`skipped: ${page.skipped}`), false;
   if (page.error) return console.log(`error: ${page.error}`), false;
-  console.log(`status ${page.status}, ${page.type}, ${page.body.length} chars, server ${page.server}${page.location ? `, location ${page.location}` : ""}`);
+  console.log(`status ${page.status}, ${page.type}, ${page.body.length} chars${page.location ? `, location ${page.location}` : ""}`);
   if (page.setCookies?.length) console.log(`set-cookie names: ${page.setCookies.map((c) => c.split("=")[0]).join(", ")}`);
   if (page.block) console.log(`BLOCK SIGNAL ${JSON.stringify(page.block)}`);
   return true;
 }
 
-/**
- * A search POST. A 403 whose answer is JSON and which sets an XSRF-TOKEN
- * cookie is the CSRF handshake (the first call a browser makes gets the same),
- * not a refusal: it is retried once with the server's own token. A 403 reading
- * Spring Security's "An expected CSRF token cannot be found" (the first run's
- * answer) is a missing token, not a WAF: reported, and the host stays open.
- * Anything else detectBlock calls a block is final for the host.
- */
-async function api(pathname, json, { lang = "uz", label = pathname } = {}) {
-  const url = `${ORIGIN}${pathname}`;
-  let res = await request(url, { method: "POST", json, lang });
-  if (!describe(`POST ${label}`, res)) return null;
-  const handshake = res.status === 403 && res.setCookies?.some((c) => /^XSRF-TOKEN=/i.test(c)) && /json/i.test(res.type);
-  if (handshake) {
-    console.log("  403 with a fresh XSRF-TOKEN cookie — the CSRF handshake; retrying once with the server's token");
-    res = await request(url, { method: "POST", json, lang });
-    if (!describe(`POST ${label} (retry)`, res)) return null;
-  }
+/** A call; JSON back or null. A 403 that is Spring's CSRF message is reported, not a block. */
+async function call(method, pathname, json = null, label = `${method} ${pathname}`) {
+  const res = await request(`${ORIGIN}${pathname}`, { method, json });
+  if (!describe(label, res)) return null;
   if (res.status === 403 && /csrf token/i.test(res.body) && !/<html/i.test(res.body)) {
-    console.log(`  CSRF refused (no block): ${res.body.slice(0, 200)}; cookies sent: ${[...cookies.keys()].join(", ") || "none"}`);
-    csrfRefused = true;
+    console.log(`  CSRF refused: ${res.body.slice(0, 200)}`);
     return null;
   }
   if (res.block) {
-    blockedHosts.add(new URL(url).host);
+    blockedHosts.add(new URL(res.url).host);
     console.log(`  body: ${res.body.slice(0, 600).replace(/\s+/g, " ")}`);
     return null;
   }
-  save(`${label}`, res.body);
+  save(label, res.body);
+  if (!res.body) return null;
   try {
     return JSON.parse(res.body);
   } catch {
@@ -163,156 +148,78 @@ async function api(pathname, json, { lang = "uz", label = pathname } = {}) {
 }
 
 const ymd = (d) => d.toISOString().slice(0, 10);
-const travel = ymd(new Date(Date.now() + DATE_OFFSET_DAYS * 86_400_000));
+const day = (n) => ymd(new Date(Date.now() + n * 86_400_000));
 
-console.log(`# UTY eticket probe — ${new Date().toISOString()}, travel date ${travel}`);
+console.log(`# UTY eticket probe — ${new Date().toISOString()}`);
 
-// 0. The old address, to record where it points now.
-const legacy = await request(`${LEGACY_ORIGIN}/uz/home`, { accept: "text/html,*/*" });
-describe(`${LEGACY_ORIGIN}/uz/home`, legacy);
+// 1. The page, then the token call it makes on load.
+const home = await request(`${ORIGIN}/uz/home`, { accept: "text/html,*/*" });
+if (!describe("/uz/home", home) || home.block) process.exit(0);
+const token = await call("GET", "/api/v1/csrf-token");
+console.log(`  answer: ${JSON.stringify(token).slice(0, 300)}; cookies now: ${[...cookies.keys()].join(", ")}`);
 
-// 1. robots.txt and the shop's own page: status, cookies, scripts. Redirects
-// are followed by hand (at most three, same site only) so each hop's cookies
-// are seen.
-const robots = await request(`${ORIGIN}/robots.txt`, { accept: "text/plain,*/*" });
-if (describe("robots.txt", robots)) console.log(robots.body.slice(0, 2_000));
-
-async function getFollowing(url) {
-  let page = await request(url, { accept: "text/html,*/*" });
-  for (let hop = 0; hop < 3 && page.location && [301, 302, 303, 307, 308].includes(page.status); hop++) {
-    describe(`${page.url} (redirect)`, page);
-    const next = new URL(page.location, page.url).href;
-    if (!/(^|\.)(uzrailpass|railway)\.uz$/.test(new URL(next).hostname)) break;
-    page = await request(next, { accept: "text/html,*/*" });
-  }
-  return page;
+// 2. Station codes by name.
+const codes = new Map();
+console.log("\n# Stations");
+for (const q of STATION_QUERIES) {
+  const answer = await call("POST", "/api/v1/handbook/stations/list", { name: q }, `stations ${q}`);
+  const list = Array.isArray(answer?.data) ? answer.data : Array.isArray(answer) ? answer : [];
+  console.log(`  ${q}: ${list.length} hit(s); keys ${JSON.stringify(Object.keys(list[0] ?? {}))}`);
+  for (const s of list.slice(0, 12)) console.log(`    ${JSON.stringify(s).slice(0, 300)}`);
+  const first = list[0];
+  if (first) codes.set(q, String(first.code ?? first.stationCode ?? first.id ?? ""));
 }
-let home = await getFollowing(`${ORIGIN}/uz/home`);
-if (home.error && /TIMEOUT|ECONNRESET|ETIMEDOUT/i.test(home.error)) {
-  console.log(`first attempt: ${home.error} — retrying once in 30 s`);
-  await sleep(30_000);
-  home = await getFollowing(`${ORIGIN}/uz/home`);
-}
-if (!describe(`home ${home.url}`, home)) process.exit(0);
-if (home.block) {
-  console.log(home.body.slice(0, 1_500));
-  process.exit(0);
-}
-save("home", home.body);
-console.log(`cookies now: ${[...cookies.keys()].join(", ") || "none"}`);
-console.log("recaptcha / captcha mentions:");
-for (const m of home.body.matchAll(/.{0,120}(recaptcha|captcha|turnstile|ddos-guard).{0,120}/gi)) console.log(`  …${m[0].replace(/\s+/g, " ")}…`);
 
-// 2. The SPA's own bundles, searched for the API paths it calls — the route
-// (stop list) call in particular, which the open-source clients do not name.
-const srcs = [...home.body.matchAll(/<script\b[^>]*src\s*=\s*["']([^"']+)["']/gi)]
-  .map((m) => new URL(m[1], home.url).href)
-  .filter((s) => s.startsWith(ORIGIN));
-console.log(`\n# Scripts: ${srcs.join("  ")}`);
-const apiPaths = new Set();
-const bundles = new Map();
-const seen = new Set();
-for (let i = 0; i < srcs.length && seen.size < 10; i++) {
-  const src = srcs[i];
-  if (seen.has(src)) continue;
-  seen.add(src);
-  const js = await request(src, { accept: "*/*" });
-  if (!describe(src, js) || js.block) continue;
-  save(src, js.body);
-  bundles.set(src, js.body);
-  for (const m of js.body.matchAll(/["'`](\/?api\/v\d+\/[A-Za-z0-9_\-/{}$.]+)["'`]/g)) apiPaths.add(m[1]);
-  for (const m of js.body.matchAll(/["'`]((?:handbook|trains?|route|stations?|schedule|timetable)\/[A-Za-z0-9_\-/{}$.]+)["'`]/g)) apiPaths.add(m[1]);
-  // Lazy chunks the main bundle names (webpack): fetch the ones whose names say
-  // they are about trains or routes, a handful at most.
-  for (const m of js.body.matchAll(/["']([0-9a-z_-]*(?:train|route|search|schedule|home)[0-9a-z_-]*\.[0-9a-f]{8,}\.js)["']/gi)) {
-    srcs.push(new URL(m[1], src).href);
+// 3. Routes: the first answer whole, the rest as a digest.
+console.log("\n# Routes");
+let printedRoute = false;
+for (const number of ROUTES) {
+  const answer = await call("POST", "/api/v1/handbook/trains/route", { number }, `route ${number}`);
+  const data = answer?.data ?? answer;
+  if (!printedRoute && data) {
+    console.log(`<<<ROUTE ${number}\n${JSON.stringify(answer, null, 1).slice(0, 30_000)}\n>>>ROUTE`);
+    printedRoute = true;
+  } else {
+    console.log(`  ${number}: ${JSON.stringify(data).slice(0, 2_500)}`);
   }
 }
-console.log(`\n# API paths named in the bundles (${apiPaths.size}):`);
-for (const p of [...apiPaths].sort()) console.log(`  ${p}`);
-const routeish = [...apiPaths].filter((p) => /route|stop|schedule|timetable|marshrut/i.test(p));
-console.log(`route-like: ${routeish.join("  ") || "none"}`);
-// The code around each use, so the body it posts and the headers it sets can
-// be read: the CSRF token's origin (does the server set it, or the page?),
-// the search and station calls, and anything route-like.
-const escape = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const contexts = [
-  ["csrf", /.{0,500}(?:xsrf|csrf).{0,500}/gi, 12],
-  ["trains/list", new RegExp(`.{0,400}trains/list.{0,800}`, "g"), 4],
-  ["stations/list", new RegExp(`.{0,300}stations/list.{0,500}`, "g"), 2],
-  ...routeish.map((p) => [p, new RegExp(`.{0,400}${escape(p)}.{0,800}`, "g"), 3]),
-];
-for (const [label, re, max] of contexts) {
-  console.log(`\n### code around ${label}`);
-  let n = 0;
-  for (const [src, text] of bundles) {
-    for (const m of text.matchAll(re)) {
-      if (n++ >= max) break;
-      console.log(`  --- ${src.split("/").pop()}: …${m[0]}…`);
-    }
-  }
-  if (!n) console.log("  (not found)");
+// The bare number, and the other route call the page names.
+const bare = await call("POST", "/api/v1/handbook/trains/route", { number: "080" }, "route 080 (bare)");
+console.log(`  ${JSON.stringify(bare).slice(0, 1_500)}`);
+const other = await call("POST", "/api/v1/trains/route", { trainNumber: "080Ф" }, "trains/route 080Ф");
+console.log(`  ${JSON.stringify(other).slice(0, 3_000)}`);
+
+// 4. Station boards.
+console.log("\n# Station boards");
+for (const code of BOARDS) {
+  const answer = await call("GET", `/api/v1/handbook/stations/schedule/${code}`, null, `board ${code}`);
+  console.log(`  ${JSON.stringify(answer).slice(0, 12_000)}`);
 }
 
-// 3. Stations: the whole list in each language the shop offers.
-const stationsByCode = new Map();
-const stationNames = new Map();
-for (const lang of ["uz", "ru", "en"]) {
-  const answer = await api("/api/v1/handbook/stations/list", { name: "" }, { lang, label: `stations-${lang}` });
-  const list = Array.isArray(answer?.data) ? answer.data : Array.isArray(answer?.data?.stations) ? answer.data.stations : Array.isArray(answer) ? answer : [];
-  console.log(`  ${lang}: ${list.length} stations; top-level keys ${JSON.stringify(Object.keys(answer ?? {}))}; item keys ${JSON.stringify(Object.keys(list[0] ?? {}))}`);
-  if (lang === "uz") console.log(`  first: ${JSON.stringify(list.slice(0, 3))}`);
-  for (const s of list) {
-    const code = String(s.code ?? s.stationCode ?? s.id ?? "");
-    const name = String(s.name ?? s.stationName ?? s.title ?? "");
-    if (!code) continue;
-    if (!stationsByCode.has(code)) stationsByCode.set(code, {});
-    stationsByCode.get(code)[lang] = name;
-    stationNames.set(name.toLowerCase().replace(/[‘’ʻʼ`']/g, "'"), code);
-  }
-}
-console.log(`\n# Station table (${stationsByCode.size}), code\tuz\tru\ten`);
-for (const [code, names] of [...stationsByCode].sort()) console.log(`  ${code}\t${names.uz ?? ""}\t${names.ru ?? ""}\t${names.en ?? ""}`);
-
-const codeFor = (v) => (/^\d+$/.test(v) ? v : stationNames.get(v.toLowerCase().replace(/[‘’ʻʼ`']/g, "'")) ?? null);
-
-// 4. Searches. The first answer is printed whole; the rest as a digest of
-// every train: number, brand/type, times, and every car type's tariffs.
-console.log(`\n# Searches for ${travel}`);
-if (csrfRefused && !cookies.has("XSRF-TOKEN")) {
-  console.log("skipped: the station list was refused for want of a CSRF token and no XSRF-TOKEN cookie was ever set — read the code around csrf above first");
-  SAMPLES.length = 0;
-}
-let printedWhole = false;
-for (const [fromRaw, toRaw] of SAMPLES) {
-  const from = codeFor(fromRaw);
-  const to = codeFor(toRaw);
-  console.log(`\n${fromRaw} (${from}) → ${toRaw} (${to})`);
-  if (!from || !to) { console.log("  station code unknown — skipped"); continue; }
-  const answer = await api(
-    "/api/v3/handbook/trains/list",
-    { directions: { forward: { date: travel, depStationCode: from, arvStationCode: to } } },
-    { label: `trains-${from}-${to}` },
-  );
-  const trains = answer?.data?.directions?.forward?.trains ?? [];
-  if (!printedWhole && trains.length) {
-    console.log(`\n<<<ANSWER ${from}-${to}\n${JSON.stringify(answer, null, 1).slice(0, 40_000)}\n>>>ANSWER`);
-    printedWhole = true;
-  } else if (!trains.length) {
-    console.log(`  no trains; answer: ${JSON.stringify(answer).slice(0, 1_000)}`);
-  }
-  console.log(`  ${trains.length} trains; train keys ${JSON.stringify(Object.keys(trains[0] ?? {}))}`);
+// 5. Searches to the far ends, a week out: digest per train with every tariff.
+const digest = (trains) => {
   for (const t of trains) {
-    const head = { ...t };
-    delete head.cars;
-    console.log(`  - ${JSON.stringify(head).slice(0, 1_200)}`);
-    for (const c of t.cars ?? []) {
-      const tariffs = (c.tariffs ?? []).map((x) => `${x.classServiceType ?? x.class ?? ""}:${x.tariff}(${x.freeSeats})`).join(" ");
-      const rest = { ...c };
-      delete rest.tariffs;
-      console.log(`      car ${JSON.stringify(rest).slice(0, 500)} | ${tariffs}`);
-    }
+    const cars = (t.cars ?? []).map((c) => `${c.type}[${(c.tariffs ?? []).map((x) => `${x.classServiceType}:${x.tariff}`).join(",")}]`).join(" ");
+    console.log(`  - ${t.number} ${t.type}/${t.brand} ${t.originRoute?.depStationName} → ${t.originRoute?.arvStationName} | ${t.departureDate} → ${t.arrivalDate} (${t.timeOnWay}) | ${t.subRoute?.depStationName}→${t.subRoute?.arvStationName} | ${cars || "no places"}${t.comment ? ` | comment ${t.comment}` : ""}`);
   }
+};
+console.log(`\n# Searches for ${day(DATE_OFFSET_DAYS)}`);
+for (const [from, toName] of SEARCHES) {
+  const to = /^\d+$/.test(toName) ? toName : codes.get(toName);
+  if (!to) { console.log(`\n${from} → ${toName}: code unknown — skipped`); continue; }
+  const answer = await call("POST", "/api/v3/handbook/trains/list", { directions: { forward: { date: day(DATE_OFFSET_DAYS), depStationCode: from, arvStationCode: to } } }, `search ${from}-${to}`);
+  const trains = answer?.data?.directions?.forward?.trains ?? [];
+  console.log(`  ${from} → ${toName} (${to}): ${trains.length} train(s)`);
+  digest(trains);
+}
+
+// 6. One corridor, seven nights.
+console.log(`\n# ${WEEK[0]} → ${WEEK[1]} on seven consecutive dates`);
+for (let i = 0; i < 7; i++) {
+  const date = day(DATE_OFFSET_DAYS + i);
+  const answer = await call("POST", "/api/v3/handbook/trains/list", { directions: { forward: { date, depStationCode: WEEK[0], arvStationCode: WEEK[1] } } }, `week ${date}`);
+  const trains = answer?.data?.directions?.forward?.trains ?? [];
+  console.log(`  ${date} (${new Date(`${date}T00:00:00Z`).toUTCString().slice(0, 3)}): ${trains.map((t) => `${t.number} ${t.departureDate.slice(11)}`).join(", ") || "none"}`);
 }
 
 console.log(`\n# Requests: ${requests}; blocked hosts: ${[...blockedHosts].join(", ") || "none"}; cookies: ${[...cookies.keys()].join(", ")}`);
