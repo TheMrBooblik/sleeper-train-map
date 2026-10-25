@@ -34,6 +34,8 @@ function money(amount, currency) {
  *   total: string|null,   // the sum, or null when it cannot be stated
  *   from: boolean,        // any fare is a floor ("from")
  *   complete: boolean,    // every train has a fare in one currency
+ *   cents: number|null,   // the total in cents, for ordering journeys
+ *   currency: string|null,
  * }} null when no train on the journey has a fare at all
  */
 export function journeyFare(rides = []) {
@@ -57,5 +59,24 @@ export function journeyFare(rides = []) {
     total: complete ? money(totalCents / 100, currency) : null,
     from: fares.some((f) => f?.dynamic),
     complete,
+    cents: totalCents,
+    currency: complete ? currency : null,
   };
+}
+
+/**
+ * Orders journeys cheapest first: a journey with a total before one without,
+ * totals compared in cents. Totals in different currencies are not compared
+ * by value (no rate is applied here), only grouped, so the order stays a
+ * consistent one. Returns 0 where price says nothing, for the caller's own
+ * tie-break.
+ */
+export function compareJourneyFares(a, b) {
+  const fa = journeyFare(a?.hops?.map((h) => h.best) ?? []);
+  const fb = journeyFare(b?.hops?.map((h) => h.best) ?? []);
+  const ca = fa?.cents ?? null;
+  const cb = fb?.cents ?? null;
+  if (ca == null || cb == null) return (ca == null) - (cb == null);
+  if (fa.currency !== fb.currency) return fa.currency < fb.currency ? -1 : 1;
+  return ca - cb;
 }

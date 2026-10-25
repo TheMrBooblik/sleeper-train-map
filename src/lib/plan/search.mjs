@@ -19,6 +19,7 @@ import { availabilityFor, isOfferable, STATUS_RANK } from "./availability.mjs";
 import { addDays, clampStay, daysBetween } from "./url.mjs";
 import { suggestionScore } from "./prominence.mjs";
 import { arrivalDayOffset, connectionBetween, segmentTimes } from "./timeline.mjs";
+import { compareJourneyFares } from "./journeyFare.mjs";
 
 /** Wrap a raw index (legs + cities) with the lookups the search needs. */
 export function createPlanner(index) {
@@ -416,7 +417,7 @@ export function directDestinations(planner, slug) {
  * @param {ReturnType<createPlanner>} planner
  * @param {{from: string, to: string, date: string, maxLegs?: number, limit?: number,
  *          maxWaitNights?: number, flexNights?: number, after?: object|null}} query
- * @returns {object[]} soonest arrival day first, then fewest changes
+ * @returns {object[]} cheapest total first, then soonest arrival day, then fewest changes
  */
 export function findJourneys(
   planner,
@@ -556,8 +557,11 @@ export function findJourneys(
     const journey = buildJourney(planner, candidate, after);
     if (journey) journeys.push(journey);
   }
+  // Cheapest first: with a change of train the total is what a traveller
+  // compares. Where price cannot tell two apart, the soonest arrival leads.
   journeys.sort(
     (a, b) =>
+      compareJourneyFares(a, b) ||
       daysBetween(b.endDate, a.endDate) ||
       a.hops.length - b.hops.length ||
       (a.complete === b.complete ? 0 : a.complete ? -1 : 1) ||
