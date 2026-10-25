@@ -137,6 +137,27 @@ flaky.search = async (from, to, date) => {
 const partial = await readNight({ client: flaky, config, today: "2026-10-25", previous: {} });
 check("a date that fails leaves the days unknown, never shortened", partial.found.get("080Ф")?.frequency === null && partial.failures > 0);
 
+// Kupe and SV sold out on the nearest date, on sale the day after: each class
+// is priced from the nearest date that sells it (the real answer, with those
+// two cars taken out of the first date's copy).
+const termizAnswer = sweep.answers["2900000>2900255"];
+const soldOut = JSON.parse(JSON.stringify(termizAnswer));
+for (const t of soldOut.data.directions.forward.trains) t.cars = (t.cars ?? []).filter((c) => !["Kupe", "SV"].includes(c.type));
+const twoDays = {
+  requests: 0,
+  blocked: null,
+  async search(from, to, date) {
+    const answer = from === "2900000" && to === "2900255" ? (date === "2026-11-01" ? soldOut : date === "2026-11-02" ? termizAnswer : null) : date === sweep.date ? sweep.answers[`${from}>${to}`] : null;
+    return answer ? readSearch(answer).map((t) => ({ ...t, fromCode: from, toCode: to, date })) : [];
+  },
+};
+const priced = (await readNight({ client: twoDays, config, today: "2026-10-25", previous: {} })).found.get("080Ф")?.fare;
+check(
+  "a class sold out on the nearest date is priced from the next date that sells it",
+  eq(priced?.classes, { utyPlatskart: 216700, utyKupe: 304210, utySv: 552040 }) && priced.travelDate === "2026-11-01",
+  JSON.stringify(priced),
+);
+
 console.log("days");
 check("serviceDays", serviceDays(["2026-11-03", "2026-11-04", "2026-11-06", "2026-11-07"]) === "Tue, Wed, Fri, Sat" && serviceDays(Object.keys(week.dates)) === "Daily");
 const xivaDays = Object.entries(week.dates).filter(([, trains]) => trains.some(([n]) => n === "056Ч")).map(([d]) => d);

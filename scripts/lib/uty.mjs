@@ -592,10 +592,24 @@ export async function readNight({ client, config, today, offsetDays = 7, previou
     }
     for (const [number, list] of seen) {
       const r = { dates: list.map((o) => o.date), answered, fare: null, travelDate: null };
-      const priced = list.find((o) => Object.keys(o.classes).length);
-      if (priced) {
-        r.fare = fareRecord(priced.classes, { sampledAt: today, travelDate: priced.date });
-        r.travelDate = priced.date;
+      // A class sold out on the nearest date is priced from the next date
+      // that sells it: the tariff is per class and distance, so each class
+      // keeps the figure of the nearest date it is on sale.
+      const classes = {};
+      let travelDate = null;
+      for (const o of [...list].sort((x, y) => x.date.localeCompare(y.date))) {
+        for (const [key, value] of Object.entries(o.classes)) {
+          if (classes[key] == null) {
+            classes[key] = value;
+            travelDate ??= o.date;
+          } else if (classes[key] !== value) {
+            log(`${number}: ${key} ${classes[key]} on the nearest date, ${value} on ${o.date}`);
+          }
+        }
+      }
+      if (travelDate) {
+        r.fare = fareRecord(classes, { sampledAt: today, travelDate });
+        r.travelDate = travelDate;
       }
       runs.set(`${number}@${from}>${to}`, r);
     }
