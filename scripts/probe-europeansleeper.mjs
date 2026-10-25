@@ -16,7 +16,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const USER_AGENT =
-  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://github.com/TheMrBooblik/sleeper-train-map)";
+  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://pingwi.com)";
 const TARGETS = [
   "https://www.europeansleeper.eu/timetable",
   "https://www.europeansleeper.eu/en/timetable",

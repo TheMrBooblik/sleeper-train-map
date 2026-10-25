@@ -28,7 +28,7 @@
 
 const SITE = "https://www.europeansleeper.eu";
 const USER_AGENT =
-  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://github.com/TheMrBooblik/sleeper-train-map)";
+  "Mozilla/5.0 (compatible; sleeper-train-map/1.0; +https://pingwi.com)";
 
 const DAY_MS = 86_400_000;
 const isoMs = (iso) => Date.parse(`${iso}T00:00:00Z`);
