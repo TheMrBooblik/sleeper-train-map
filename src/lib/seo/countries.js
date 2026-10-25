@@ -61,6 +61,7 @@ export const OPERATOR_COUNTRY_FALLBACK = {
   SRT: ["TH"], // State Railway of Thailand
   KTMB: ["MY"], // KTM Berhad (Malaysia)
   VNR: ["VN"], // Vietnam Railways
+  UTY: ["UZ"], // Uzbekistan Railways (O'zbekiston temir yo'llari)
   GR: ["GE"], // Georgian Railway (no GE hub — informational only)
   ADY: ["AZ"], // Azerbaijan Railways
   SCR: ["AM"], // South Caucasus Railway (Armenia)

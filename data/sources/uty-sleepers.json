@@ -1,0 +1,32 @@
+{
+  "_comment": "Uzbekistan Railways (UTY) night trains, read from the public train search of UTY's ticket shop eticket.uzrailpass.uz (see scripts/lib/uty.mjs). `hub` is the station every domestic night train calls at; the adapter searches hub → station and station → hub for every station below, and a train answering such a search serves that station. `code` is the shop's own station code (from its station search, probed 2026-10-25); `lat`/`lon` the OpenStreetMap node named in `osm` (© OpenStreetMap contributors, ODbL). `aliases` are the other spellings the shop's answers use for a train's ends. A station added here becomes a stop on every train serving it the next night; one without a position cannot be added.",
+  "operator": { "name": "Uzbekistan Railways", "agencyId": "UTY" },
+  "hub": "2900002",
+  "minMinutes": 300,
+  "sleeperBrands": ["Yo'lovchi", "Tezyurar"],
+  "stations": [
+    { "code": "2900002", "name": "Toshkent Janubiy", "lat": 41.259, "lon": 69.2263, "osm": "node/8321581319", "aliases": ["Toshkent janubiy", "Toshkkent janubiy", "TOSHKENT JANUBIY", "Ташкент-Южный"] },
+    { "code": "2900850", "name": "Guliston", "lat": 40.49617, "lon": 68.76487, "osm": "node/8343551120" },
+    { "code": "2900720", "name": "Jizzax", "lat": 40.09821, "lon": 67.84245, "osm": "node/8327788744" },
+    { "code": "2900700", "name": "Samarqand", "lat": 39.68596, "lon": 66.929, "osm": "node/2279305298" },
+    { "code": "2900930", "name": "Navoiy", "lat": 40.07297, "lon": 65.3963, "osm": "node/1238436292" },
+    { "code": "2900800", "name": "Buxoro", "lat": 39.72249, "lon": 64.54841, "osm": "node/8328285677", "aliases": ["Bukhara"] },
+    { "code": "2900831", "name": "Olot", "lat": 39.41216, "lon": 63.79684, "osm": "node/1588243859" },
+    { "code": "2900750", "name": "Qarshi", "lat": 38.8214, "lon": 65.77702, "osm": "node/1555410151" },
+    { "code": "2900796", "name": "Shahrisabz", "lat": 39.09028, "lon": 66.83745, "osm": "node/245607879" },
+    { "code": "2900868", "name": "Sariosiyo", "lat": 38.36716, "lon": 68.00872, "osm": "node/245671297" },
+    { "code": "2900255", "name": "Termiz", "lat": 37.25114, "lon": 67.28607, "osm": "node/1584479577", "aliases": ["Termez"] },
+    { "code": "2900104", "name": "Miskin", "lat": 41.3801, "lon": 61.26408, "osm": "node/2396470761" },
+    { "code": "2900790", "name": "Urganch", "lat": 41.5365, "lon": 60.63215, "osm": "node/1585865853", "aliases": ["Urgench"] },
+    { "code": "2900172", "name": "Xiva", "lat": 41.37715, "lon": 60.3766, "osm": "node/5793725055", "aliases": ["Khiva"] },
+    { "code": "2900844", "name": "Shovot", "lat": 41.70716, "lon": 60.27572, "osm": "node/1584776372" },
+    { "code": "2900970", "name": "Nukus", "lat": 42.43778, "lon": 59.64271, "osm": "node/1584776373" },
+    { "code": "2900885", "name": "Qo'ng'irot", "lat": 43.04074, "lon": 58.84133, "osm": "node/1583746274", "aliases": ["Qung'irot", "Qungirod", "Kungrad"] },
+    { "code": "2900105", "name": "Uchquduq", "lat": 42.1175, "lon": 63.65708, "osm": "node/1592211596", "aliases": ["Uchquduq 2"] },
+    { "code": "2900693", "name": "Pop", "lat": 40.8573, "lon": 71.14944, "osm": "node/1587386136" },
+    { "code": "2900940", "name": "Namangan", "lat": 40.99959, "lon": 71.64403, "osm": "node/301722995" },
+    { "code": "2900880", "name": "Qo'qon", "lat": 40.51901, "lon": 70.92847, "osm": "node/1587385859", "aliases": ["Qoqon", "Kokand"] },
+    { "code": "2900920", "name": "Marg'ilon", "lat": 40.44258, "lon": 71.72309, "osm": "node/246213673", "aliases": ["Margilon"] },
+    { "code": "2900680", "name": "Andijon", "lat": 40.76296, "lon": 72.35057, "osm": "node/296078271", "aliases": ["Andijon 1", "Andijan"] }
+  ]
+}

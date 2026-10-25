@@ -4,7 +4,6 @@ import React from "react";
 import { FiExternalLink, FiZap } from "react-icons/fi";
 import { resolveRouteBooking } from "../../lib/routeBooking.mjs";
 import { formatFromPrice } from "../../lib/operatorPricing";
-import { fareClassLabel } from "../../lib/fareClasses.mjs";
 import { abbreviateStationName } from "../Map/utils/stationNameUtils";
 import { eurHintFor, eurRateNote } from "../../lib/fx.mjs";
 
@@ -57,11 +56,9 @@ export default function BookingActions({
   // Fare to show next to the button: prefer a live price once available,
   // otherwise fall back to the curated fixed "from" price.
   const fareLabel = livePrice || formatFromPrice(pricing);
-  // Which berth that "from" buys — a sleeper's cheapest fare is a specific
-  // bed, and "from ¥335.5" alone reads as the price of any of them.
-  const fareClass = livePrice ? "" : fareClassLabel(pricing?.seatClass);
-  // No night here: the fare rows above already date each price, and the
-  // bar stays one short line beside the button.
+  // No class and no night here: the fare rows above already name and date
+  // each price, and the bar stays one short line beside the button (a class
+  // like "platskart, open sleeper car" ran past the panel's edge).
 
   // A fragment, not a wrapper: the sticky bar below is bounded by its parent,
   // so it has to be a child of the train's card to stay pinned while the card
@@ -89,12 +86,6 @@ export default function BookingActions({
             <span className="whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-zinc-100">
               {fareLabel}
             </span>
-            {fareClass && (
-              <span className="whitespace-nowrap text-xs text-gray-500 dark:text-zinc-400">
-                {" "}
-                · {fareClass.toLowerCase()}
-              </span>
-            )}
             {!livePrice && eurHintFor(pricing) && (
               <span
                 className="block text-xs text-gray-500 dark:text-zinc-400"

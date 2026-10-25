@@ -79,6 +79,9 @@ export const OPERATORS = {
   // Vietnam
   VNR: { name: "Vietnam Railways", slug: "vietnam-railways" },
 
+  // Uzbekistan. Not "UZ", which is Ukrainian Railways' agency id above.
+  UTY: { name: "Uzbekistan Railways", slug: "uzbekistan-railways" },
+
   // Caucasus
   GR: { name: "Georgian Railway", slug: "georgian-railway" },
   ADY: { name: "Azerbaijan Railways", slug: "azerbaijan-railways" },
