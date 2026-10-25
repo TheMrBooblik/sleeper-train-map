@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import RideCard from "./RideCard";
 import AvailabilityBadge from "./AvailabilityBadge";
+import JourneyOptions, { ChangeNote } from "./JourneyOptions";
 import { formatPlanDate } from "../../lib/plan/format.mjs";
 
 function StayStepper({ nights, onChange, city }) {
@@ -39,8 +40,9 @@ function StayStepper({ nights, onChange, city }) {
  * The plan, as nights.
  *
  * A sleeper journey is measured in nights, not in changes, so each hop is one
- * night and the dates follow from the first: the next train can leave on the
- * morning of arrival at the earliest. A hop with no train is shown as a hop
+ * night and the dates follow from the first: the next train leaves on the day
+ * the previous one gets in at the earliest, and between the two the plan says
+ * how long the change is — or that the train on that night has already left. A hop with no train is shown as a hop
  * with no train — the plan stays on screen and says where it breaks, because
  * "no results" for a four-city trip hides which of the three legs was the
  * problem.
@@ -81,6 +83,12 @@ export default function PlanItinerary({
   onRemoveCity,
   nextNights = [],
   onTryNight = null,
+  hopJourneys = [],
+  hrefForHopJourney = null,
+  onChooseJourney = undefined,
+  // A two-city plan shows its changes in a fuller section of its own; a longer
+  // one shows them under the hop that needs them.
+  inlineJourneys = true,
 }) {
   const [expanded, setExpanded] = useState({});
 
@@ -89,8 +97,15 @@ export default function PlanItinerary({
       {plan.hops.map((hop) => {
         const alternatives = hop.rides.slice(1);
         const isOpen = expanded[hop.index];
+        // No train runs this hop at all, but a change does: show the change in
+        // its place rather than a "no night train" box above it.
+        const changesInstead =
+          !hop.best && inlineJourneys && hrefForHopJourney && hopJourneys[hop.index]?.length > 0;
         return (
           <li key={`${hop.from.slug}-${hop.to.slug}-${hop.index}`} className="flex flex-col gap-3">
+            {hop.index > 0 && (
+              <ChangeNote hop={hop} previousHop={plan.hops[hop.index - 1]} />
+            )}
             {hop.index > 0 && (
               <StayStepper
                 nights={hop.stayNights}
@@ -164,7 +179,7 @@ export default function PlanItinerary({
                   </div>
                 )}
               </>
-            ) : (
+            ) : changesInstead ? null : (
               <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-white/70">
@@ -173,8 +188,25 @@ export default function PlanItinerary({
                   <AvailabilityBadge availability={{ status: "no", reason: "" }} />
                 </div>
                 <p className="mt-2 text-sm text-white/45">
-                  Try adding a stop in between, or check a day train for this leg.
+                  {hopJourneys[hop.index]?.length
+                    ? `But you can get there with a change — see ${inlineJourneys ? "below" : "the options below"}.`
+                    : "Try adding a stop in between, or check a day train for this leg."}
                 </p>
+              </div>
+            )}
+            {inlineJourneys && hrefForHopJourney && hopJourneys[hop.index]?.length > 0 && (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.015] p-4">
+                <p className="mb-3 text-sm text-white/60">
+                  {changesInstead
+                    ? `No sleeper runs straight through — change on the way:`
+                    : `With a change on the way from ${hop.from.name} to ${hop.to.name}:`}
+                </p>
+                <JourneyOptions
+                  journeys={hopJourneys[hop.index]}
+                  hrefFor={(journey) => hrefForHopJourney(hop, journey)}
+                  onChoose={onChooseJourney}
+                  compact
+                />
               </div>
             )}
           </li>
