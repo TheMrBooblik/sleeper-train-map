@@ -60,5 +60,9 @@ Ensure you have the following installed:
 - Thanks to: [OpenStreetMap](https://www.openstreetmap.org/) for the map data.
 - Deployment powered by [Vercel](https://vercel.com/).
 
+## License
+
+Licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0-only). If you run a modified version as a public service, you must offer its users the source of your version. Third-party data keeps its own licenses — see [NOTICE](NOTICE).
+
 ---
 Feel free to explore and enhance the project!

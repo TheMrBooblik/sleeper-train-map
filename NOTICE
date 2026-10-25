@@ -1,0 +1,42 @@
+Pingwi Sleeper Train Map
+Copyright (C) 2025-2026 TheMrBooblik and contributors
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, version 3 of the License (AGPL-3.0-only). See LICENSE.
+
+Under section 13 of the AGPL, if you run a modified version of this program as
+a service that users interact with over a network, you must offer those users
+the Corresponding Source of your modified version.
+
+The license covers this repository's code. The timetable, station and fare data
+it collects come from third parties under their own terms (for example
+Back-on-Track, operators' open-data portals, the Mobility Database and
+OpenStreetMap, © OpenStreetMap contributors, ODbL); their licenses apply to
+that data, not this one.
+
+-------------------------------------------------------------------------------
+
+Portions of this project derive from next-leaflet-starter by Colby Fayock
+(https://github.com/colbyfayock/next-leaflet-starter), used under the MIT
+License, whose notice is reproduced here as that license requires:
+
+  Copyright (c) Colby Fayock
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.

@@ -2,7 +2,7 @@
   "name": "next-leaflet-starter",
   "homepage": "https://pingwi.com",
   "version": "0.1.0",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "author": "Colby Fayock <hello@colbyfayock.com>",
   "scripts": {
     "dev": "next dev",
