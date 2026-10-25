@@ -3,7 +3,7 @@
   "homepage": "https://pingwi.com",
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
-  "author": "Colby Fayock <hello@colbyfayock.com>",
+  "author": "Pingwi (https://pingwi.com)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
