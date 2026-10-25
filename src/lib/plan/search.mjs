@@ -372,6 +372,18 @@ function ridesFromCity(planner, slug) {
 }
 
 /**
+ * Every city a night train reaches from `slug` without a change, whatever the
+ * night — what the "To" picker offers first and marks "direct". The same
+ * rides the journey search starts from, so a city marked direct is one the
+ * search can answer with a single train.
+ * @returns {Set<string>}
+ */
+export function directDestinations(planner, slug) {
+  if (!planner || !slug) return new Set();
+  return new Set(ridesFromCity(planner, slug).map((r) => r.toSlug));
+}
+
+/**
  * Journeys from one city to another with changes of train, including the
  * direct one.
  *

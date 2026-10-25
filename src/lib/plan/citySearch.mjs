@@ -27,14 +27,25 @@ export function normalizeQuery(value) {
  * the unprompted list it sits. With no query there is nothing to match on, so
  * the list is simply what we would suggest.
  *
+ * `preferred` (slugs) is the destinations a direct train reaches from where
+ * the hop starts. They come first — in the unprompted list, and among typed
+ * matches too, except that an exact name still wins: typing "Lviv" means Lviv
+ * whether or not a train runs there straight.
+ *
  * @param {object[]} cities
  * @param {string} query
  * @param {number} [limit]
+ * @param {{preferred?: Set<string>|null}} [options]
  * @returns {object[]}
  */
-export function rankCities(cities, query, limit = MAX_RESULTS) {
+export function rankCities(cities, query, limit = MAX_RESULTS, { preferred = null } = {}) {
   const q = normalizeQuery(query).trim();
-  if (!q) return [...(cities ?? [])].sort(bySuggestionScore).slice(0, limit);
+  const rest = (city) => (preferred?.has(city.slug) ? 0 : 1);
+  if (!q) {
+    return [...(cities ?? [])]
+      .sort((a, b) => rest(a) - rest(b) || bySuggestionScore(a, b))
+      .slice(0, limit);
+  }
 
   const scored = [];
   for (const city of cities ?? []) {
@@ -48,7 +59,11 @@ export function rankCities(cities, query, limit = MAX_RESULTS) {
     scored.push({ city, score });
   }
   scored.sort(
-    (a, b) => a.score - b.score || suggestionScore(b.city) - suggestionScore(a.city),
+    (a, b) =>
+      Number(a.score !== 0) - Number(b.score !== 0) ||
+      rest(a.city) - rest(b.city) ||
+      a.score - b.score ||
+      suggestionScore(b.city) - suggestionScore(a.city),
   );
   return scored.slice(0, limit).map((s) => s.city);
 }

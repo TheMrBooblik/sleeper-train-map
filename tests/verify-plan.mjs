@@ -41,6 +41,7 @@ import {
   isInterchange,
   nextServedNight,
   resolvePlan,
+  directDestinations,
   rideArrivalDate,
   ridesBetween,
   spliceJourney,
@@ -719,6 +720,24 @@ check("a journey spliced into a plan keeps the hops around it", () => {
   });
   assert.equal(daysBetween("2026-11-06", "2026-11-08"), 2);
   assert.equal(daysBetween("2026-12-31", "2027-01-01"), 1);
+});
+
+check("\"To\" offers the cities a direct train reaches first", () => {
+  const direct = directDestinations(planner, "paris");
+  assert.ok(direct.has("berlin"), "ES 475 runs Paris → Berlin");
+  assert.ok(!direct.has("vienna"), "nothing runs Paris → Vienna straight");
+  const others = planner.cities.filter((c) => c.slug !== "paris");
+  const unprompted = rankCities(others, "", 8, { preferred: direct });
+  assert.ok(unprompted.every((c) => direct.has(c.slug)), "the default list leads with direct cities");
+  // Typed: among matches a direct city comes first...
+  const ber = rankCities(others, "ber", 8, { preferred: direct });
+  assert.equal(ber[0].slug, "berlin");
+  const firstIndirect = ber.findIndex((c) => !direct.has(c.slug));
+  assert.ok(ber.slice(firstIndirect).every((c) => !direct.has(c.slug)), "no direct city after an indirect one");
+  // ...but an exact name still wins: a change is a way there too.
+  assert.equal(rankCities(others, "vienna", 8, { preferred: direct })[0].slug, "vienna");
+  // Without a preference the ranking is exactly the old one.
+  assert.deepEqual(rankCities(others, "ber"), rankCities(others, "ber", 8, { preferred: null }));
 });
 
 // ── The index the planner ships ──────────────────────────────────────────────

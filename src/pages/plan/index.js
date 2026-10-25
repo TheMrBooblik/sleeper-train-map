@@ -15,6 +15,7 @@ import SharePlan from "@components/plan/SharePlan";
 import { usePlanIndex } from "../../hooks/requests/usePlanIndex";
 import {
   departuresFrom,
+  directDestinations,
   findJourneys,
   nextServedNight,
   resolvePlan,
@@ -263,6 +264,24 @@ export default function PlanPage({ seoCities, initialPlan }) {
   const originCity = planner?.cityBySlug.get(cities[0]) || null;
   const lastCity = cities.length ? cities[cities.length - 1] : "";
   const lastCityRecord = planner?.cityBySlug.get(lastCity) || null;
+
+  // Where a train goes straight from the city a hop leaves: those come first
+  // in "To" and say "direct"; the rest say nothing, since reaching them takes
+  // a change. A train count beside a destination answered a question about
+  // the destination rather than about getting there.
+  const toOrigin = cities.length >= 2 ? cities[cities.length - 2] : cities[0];
+  const directFromToOrigin = useMemo(
+    () => directDestinations(planner, toOrigin),
+    [planner, toOrigin],
+  );
+  const directFromLast = useMemo(
+    () => directDestinations(planner, lastCity),
+    [planner, lastCity],
+  );
+  const describeFrom = useCallback(
+    (direct) => (city) => (direct.has(city.slug) ? "direct" : ""),
+    [],
+  );
   const isPlan = cities.length >= 2;
   const canonicalPath = buildPlanHref({ cities, date: parsed.date, stays });
   // /plan is a landing page worth indexing. Every parameterised plan under it is
@@ -368,9 +387,9 @@ export default function PlanPage({ seoCities, initialPlan }) {
                 // Not the city this hop leaves from — "From" when there are two.
                 // Picking it used to be silently ignored, so the list offered a
                 // choice that did nothing.
-                cities={(planner?.cities ?? []).filter(
-                  (c) => c.slug !== (isPlan ? cities[cities.length - 2] : cities[0]),
-                )}
+                cities={(planner?.cities ?? []).filter((c) => c.slug !== toOrigin)}
+                preferred={directFromToOrigin}
+                describe={describeFrom(directFromToOrigin)}
                 disabled={isLoading}
                 placeholder={isPlan ? "City or station" : "Leave empty to see everywhere you could go"}
                 onSelect={(city) => {
@@ -692,6 +711,8 @@ export default function PlanPage({ seoCities, initialPlan }) {
                     // Not the city the trip already ends in, which the
                     // unfiltered list offers first whenever it is a big hub.
                     cities={(planner?.cities ?? []).filter((c) => c.slug !== lastCity)}
+                    preferred={directFromLast}
+                    describe={describeFrom(directFromLast)}
                     disabled={isLoading}
                     autoFocus
                     placeholder="Add another night"
