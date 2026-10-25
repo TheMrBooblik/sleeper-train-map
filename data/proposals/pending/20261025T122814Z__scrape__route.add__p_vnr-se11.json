@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_vnr-se11",
+  "createdAt": "2026-10-25T12:28:14.577Z",
+  "source": "scrape",
+  "sourceDetail": "vnr",
+  "kind": "route.add",
+  "title": "New train: SE11 (Hà Nội – Sài Gòn)",
+  "summary": "Route \"vnr_SE11\" appeared in tonight's scrape and is withheld from the map until approved. Via: Phủ Lý - Nam Định - Ninh Bình - Vinh - Yên Trung - Hương Phố - Đồng Lê - Đồng Hới - Đông Hà - Huế - Đà Nẵng - Trà Kiệu - Tam Kỳ - Núi Thành - Quảng Ngãi - Đức Phổ - Bồng Sơn - Diêu Trì - Nha Trang - Tháp Chàm - Sông Mao - Bình Thuận - Long Khánh - Biên Hòa - Dĩ An",
+  "target": {
+    "routeKey": "vnr_SE11",
+    "agencyId": "VNR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "SE11",
+    "returnTrain": "SE12",
+    "origin": "Hà Nội",
+    "destination": "Sài Gòn",
+    "operator": "VNR",
+    "operatingDays": null
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "vnr_SE11"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
