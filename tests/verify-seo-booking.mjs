@@ -47,6 +47,58 @@ const published = JSON.parse(
   check(!!r?.dealsUrl && !!r?.dealsLabel, "ES: last-minute deals link present on the corridor page too");
 }
 
+// ── CFR: international trains book on CFR's international shop ──────────────
+// bilete.cfrcalatori.ro answers domestic searches well but not cross-border
+// ones; CFR sells those on bileteinternationale.cfrcalatori.ro, whose search
+// cannot be prefilled from a link we have confirmed, so each international
+// route is a `routePages` entry (no preselection). Checked against every CFR
+// row in the payload, so a new international CFR row without an entry fails
+// here rather than shipping a domestic search for a train to Budapest.
+{
+  const INTERNATIONAL = "https://bileteinternationale.cfrcalatori.ro/en/booking/search";
+  const cfrRows = Object.values(published.data.viewMap).filter((row) =>
+    String(row.agency_id || "").split("/").includes("CFR"),
+  );
+  check(cfrRows.length > 0, "CFR: the payload carries CFR rows");
+  let international = 0;
+  let domestic = 0;
+  for (const row of cfrRows) {
+    const countries = [0, 1]
+      .flatMap((d) => [row[`origin_country_${d}`], row[`destination_country_${d}`]])
+      .filter(Boolean);
+    const crossesBorder = countries.some((c) => c !== "RO");
+    const r = resolveRouteBooking({
+      agencyId: row.agency_id,
+      agencies,
+      agencyUrl: agencies[row.agency_id]?.agency_url ?? null,
+      origin: row.origin_trip_0,
+      dest: row.destination_trip_0,
+      routeId: String(row.route_id),
+      scheduleStops: [],
+    });
+    const label = `CFR route ${row.route_id} (${row.origin_trip_0} → ${row.destination_trip_0})`;
+    if (crossesBorder) {
+      international++;
+      check(r?.href === INTERNATIONAL, `${label}: international, must book on ${INTERNATIONAL} (got ${r?.href})`);
+      check(r?.preselects === false, `${label}: the international shop does not preselect`);
+    } else {
+      domestic++;
+      check(
+        r?.href?.startsWith("https://bilete.cfrcalatori.ro/") && r?.preselects === true,
+        `${label}: domestic, must keep the preselecting bilete.cfrcalatori.ro search (got ${r?.href})`,
+      );
+    }
+  }
+  check(international >= 6, `CFR: expected at least 6 international rows, found ${international}`);
+  check(domestic > 0, "CFR: expected domestic rows");
+  for (const routeId of Object.keys(OPERATOR_BOOKING.CFR.routePages || {})) {
+    check(
+      cfrRows.some((row) => String(row.route_id) === routeId),
+      `CFR.routePages[${routeId}] names no CFR row in the payload`,
+    );
+  }
+}
+
 // ── European Sleeper deep link, where no corridor page is curated ───────────
 {
   const r = resolveRouteBooking({

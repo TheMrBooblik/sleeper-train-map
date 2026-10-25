@@ -224,6 +224,14 @@
     "stationNames": {
       "București Nord": "București (toate stațiile)"
     },
+    "routePages": {
+      "12": "https://bileteinternationale.cfrcalatori.ro/en/booking/search",
+      "16": "https://bileteinternationale.cfrcalatori.ro/en/booking/search",
+      "22": "https://bileteinternationale.cfrcalatori.ro/en/booking/search",
+      "28": "https://bileteinternationale.cfrcalatori.ro/en/booking/search",
+      "59": "https://bileteinternationale.cfrcalatori.ro/en/booking/search",
+      "67": "https://bileteinternationale.cfrcalatori.ro/en/booking/search"
+    },
     "scheduleUrlTemplate": "https://bilete.cfrcalatori.ro/en-GB/Train/{train}?Date={date}"
   },
   "ES": {
