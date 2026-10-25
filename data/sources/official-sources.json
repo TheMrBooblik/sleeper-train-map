@@ -886,6 +886,18 @@
           "lastChecked": "2026-10-22",
           "probeWorkflow": "probe-ktmb.yml",
           "notes": "Before login KITS lists each train with departure, arrival, seats left and 'Min. fare' (any class). The coach layout with every place's fare (/Trip/LayoutV2) needs a train's TripData, which the results page gives only to a logged-in user ('Login to view'), so berth fares are not read."
+        },
+        {
+          "name": "Easybook / 12Go (agents selling KTMB tickets)",
+          "url": "https://www.easybook.com/en-my/train/booking/jbsentral-to-tumpat",
+          "docsUrl": null,
+          "format": "HTML search results",
+          "provides": ["fares"],
+          "auth": "none",
+          "status": "broken",
+          "lastChecked": "2026-10-23",
+          "probeWorkflow": "probe-ktmb.yml",
+          "notes": "Probed for a berth price without login. Easybook's search answers with a reCAPTCHA ('Your searching is too frequency') and states only 'Fare start from RM 56.00', KITS's any-class minimum; 12Go answers 202 with an AWS WAF challenge. KITS's /TimeTable/Search carries a reCAPTCHA too. Not read: this map never works around bot protection."
         }
       ]
     },
