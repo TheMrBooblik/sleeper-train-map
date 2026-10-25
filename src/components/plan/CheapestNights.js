@@ -55,7 +55,14 @@ function NightRow({ result, onChoose, highlight }) {
         }`}
       >
         <span className="min-w-0">
-          <span className="block font-medium text-white">{formatPlanDate(result.date)}</span>
+          <span className="block font-medium text-white">
+            {formatPlanDate(result.date)}
+            {/* Sold only from the operator's deal page, which is where the
+                plan's button goes. */}
+            {option.hops.some((h) => h.best?.deal) && (
+              <span className="ml-1.5 text-xs font-normal text-amber-300">⚡ deal</span>
+            )}
+          </span>
           <span className="block truncate text-xs text-white/45">{routeLine(option)}</span>
         </span>
         <FullPrice fare={option.fare} />

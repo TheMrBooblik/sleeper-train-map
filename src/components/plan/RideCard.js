@@ -32,6 +32,8 @@ export function serviceSummary(serviceText) {
   return month ? `${days} · until ${Number(until[3])} ${month}` : days;
 }
 
+const DEAL_PROGRAMMES = { lastMinute: "Last-minute deal", flashSale: "Flash sale" };
+
 /** "22:34" + "06:01" → "+1", so an arrival is never read as the same evening. */
 function dayOffsetLabel(departure, arrival) {
   if (!departure || !arrival) return "";
@@ -160,25 +162,55 @@ export default function RideCard({ ride, action = null, compact = false, bookabl
           {action}
           {/* Outbound booking links may carry referral tags — the same rel as
               the connection page's BookingCta. */}
-          {booking && (
+          {/* A deal night's price is sold only from the deal's own page, so
+              that is the button; the ordinary search stays one tap away. */}
+          {booking?.deal ? (
             <a
-              href={booking.href}
+              href={booking.deal.href}
               target="_blank"
               rel="sponsored nofollow noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full bg-primary-green px-4 py-1.5 text-sm font-semibold text-black transition-colors hover:bg-primary-green-light"
+              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-amber-300 px-4 py-1.5 text-sm font-semibold text-black transition-colors hover:bg-amber-200"
             >
-              Book
+              <span aria-hidden="true">⚡</span>
+              Get this deal
               <FiExternalLink className="h-3.5 w-3.5" aria-hidden />
             </a>
+          ) : (
+            booking && (
+              <a
+                href={booking.href}
+                target="_blank"
+                rel="sponsored nofollow noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary-green px-4 py-1.5 text-sm font-semibold text-black transition-colors hover:bg-primary-green-light"
+              >
+                Book
+                <FiExternalLink className="h-3.5 w-3.5" aria-hidden />
+              </a>
+            )
           )}
         </div>
       </div>
-      {booking && (
+      {booking?.deal ? (
         <p className="mt-2 text-right text-xs text-white/35">
-          {booking.preselects
-            ? "Opens with your stations filled in"
-            : `Opens ${booking.sellerName || "the operator"}'s booking page`}
+          {DEAL_PROGRAMMES[booking.deal.programme] || "A deal"} sold on{" "}
+          {booking.sellerName || operator || "the operator"}&apos;s own page, not in its normal search ·{" "}
+          <a
+            href={booking.href}
+            target="_blank"
+            rel="sponsored nofollow noopener noreferrer"
+            className="underline underline-offset-2 hover:text-white"
+          >
+            regular fares
+          </a>
         </p>
+      ) : (
+        booking && (
+          <p className="mt-2 text-right text-xs text-white/35">
+            {booking.preselects
+              ? "Opens with your stations filled in"
+              : `Opens ${booking.sellerName || "the operator"}'s booking page`}
+          </p>
+        )
       )}
 
       {availability?.reason && availability.status !== "runs" && (

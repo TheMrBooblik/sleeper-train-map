@@ -18,14 +18,14 @@
  * Pure and dependency-free beyond fareClasses.mjs and url.mjs.
  */
 
-import { credibleClasses, pricingWithoutFigure } from "../fareClasses.mjs";
+import { credibleClasses, isDealClass, pricingWithoutFigure } from "../fareClasses.mjs";
 import { addDays, daysBetween, isPlanDate } from "./url.mjs";
 
-/** The cheapest credible berth a calendar night sells, or null. */
+/** The cheapest credible berth a calendar night sells, as [class, amount], or null. */
 function cheapestBerth(entry) {
   let best = null;
-  for (const amount of Object.values(credibleClasses(entry))) {
-    if (Number.isFinite(amount) && amount > 0 && (best == null || amount < best)) best = amount;
+  for (const [cls, amount] of Object.entries(credibleClasses(entry))) {
+    if (Number.isFinite(amount) && amount > 0 && (best == null || amount < best[1])) best = [cls, amount];
   }
   return best;
 }
@@ -33,6 +33,11 @@ function cheapestBerth(entry) {
 /**
  * A row's `fare_calendar_{dir}` as a leg's `nightFares`, or null when it
  * prices nothing.
+ *
+ * Where a night's cheapest berth is a European Sleeper deal (a last-minute or
+ * flash-sale couchette, sold only from its own landing page), `deals` keeps
+ * that page by night index — the Book button has to go there, since the
+ * ordinary search does not sell the deal at all.
  * @param {{currency?: string, nights?: object}} calendar
  */
 export function nightFaresFromCalendar(calendar) {
@@ -41,16 +46,27 @@ export function nightFaresFromCalendar(calendar) {
   const start = dates[0];
   const length = daysBetween(start, dates[dates.length - 1]) + 1;
   const prices = Array.from({ length }, () => null);
+  const deals = {};
   let priced = 0;
   for (const date of dates) {
     const entry = calendar.nights[date];
-    const amount = entry?.none ? 0 : cheapestBerth(entry);
+    const cheapest = entry?.none ? null : cheapestBerth(entry);
+    const amount = entry?.none ? 0 : cheapest?.[1] ?? null;
     if (amount == null) continue;
-    prices[daysBetween(start, date)] = amount;
+    const i = daysBetween(start, date);
+    prices[i] = amount;
     if (amount > 0) priced++;
+    if (cheapest && isDealClass(cheapest[0]) && entry.deal?.landing) {
+      deals[i] = { landing: entry.deal.landing, programme: entry.deal.programme || "" };
+    }
   }
   if (!priced) return null;
-  return { start, currency: calendar.currency || "", prices };
+  return {
+    start,
+    currency: calendar.currency || "",
+    prices,
+    ...(Object.keys(deals).length ? { deals } : {}),
+  };
 }
 
 /**
@@ -88,6 +104,16 @@ export function pricingOnNight(leg, date) {
     currency: leg.nightFares.currency || pricing?.currency || "",
     travelDate: date,
   };
+}
+
+/**
+ * The deal a night's price is, where it is one: `{ landing, programme }`, the
+ * operator's page that sells it. Null otherwise.
+ */
+export function dealOnNight(leg, date) {
+  const nightFares = leg?.nightFares;
+  if (!nightFares?.deals || !isPlanDate(date)) return null;
+  return nightFares.deals[daysBetween(nightFares.start, date)] ?? null;
 }
 
 /** The last night a leg's calendar covers, or "" without one. */

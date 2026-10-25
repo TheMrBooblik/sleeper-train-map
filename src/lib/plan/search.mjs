@@ -20,7 +20,7 @@ import { addDays, clampStay, daysBetween } from "./url.mjs";
 import { suggestionScore } from "./prominence.mjs";
 import { arrivalDayOffset, connectionBetween, segmentTimes } from "./timeline.mjs";
 import { compareJourneyFares } from "./journeyFare.mjs";
-import { pricingOnNight } from "./nightFares.mjs";
+import { dealOnNight, pricingOnNight } from "./nightFares.mjs";
 
 /** Wrap a raw index (legs + cities) with the lookups the search needs. */
 export function createPlanner(index) {
@@ -54,8 +54,11 @@ function rideFor(leg, boardIndex, alightIndex, date) {
     operatorIds: leg.operatorIds,
     agencyId: leg.agencyId || "",
     pairSlug: leg.pairSlug,
-    // That night's own fare where the operator's calendar has one.
+    // That night's own fare where the operator's calendar has one — and the
+    // page that sells it, where that fare is a deal the ordinary search
+    // does not sell.
     pricing: pricingOnNight(leg, date),
+    deal: dealOnNight(leg, date),
     date,
     ...segment,
     // When you are actually on board, in minutes after midnight of `date` —

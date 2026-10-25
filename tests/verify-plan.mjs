@@ -77,7 +77,7 @@ import {
 } from "../src/lib/plan/regions.mjs";
 import { rankCities } from "../src/lib/plan/citySearch.mjs";
 import { compareJourneyFares, journeyFare } from "../src/lib/plan/journeyFare.mjs";
-import { nightFaresFromCalendar, pricingOnNight } from "../src/lib/plan/nightFares.mjs";
+import { dealOnNight, nightFaresFromCalendar, pricingOnNight } from "../src/lib/plan/nightFares.mjs";
 import {
   cheapestOnNight,
   departuresAnyNight,
@@ -823,13 +823,26 @@ check("a night is priced from the operator's own calendar, never from a seat", (
     nights: {
       "2026-11-02": { classes: { couchette: 59.99, sleeperBed: 99 } },
       "2026-11-03": { none: true },
-      "2026-11-05": { classes: { lastMinuteCouchette: 40, couchette: 79.99 } },
+      "2026-11-05": {
+        classes: { lastMinuteCouchette: 40, couchette: 79.99 },
+        deal: { landing: "/last-minutes-brussels-prague", programme: "lastMinute" },
+      },
+      // A deal that is not the night's cheapest place is not the night's price.
+      "2026-11-07": {
+        classes: { lastMinutePrivate: 160, couchette: 59.99 },
+        deal: { landing: "/last-minutes-brussels-prague", programme: "lastMinute" },
+      },
       // A berth at its own seat's price is a seat price under a berth's name.
       "2026-11-06": { classes: { couchette: 39.9, sleeperBed: 89.9 }, seat: 39.9 },
     },
   };
   const nightFares = nightFaresFromCalendar(calendar);
-  assert.deepEqual(nightFares, { start: "2026-11-02", currency: "EUR", prices: [59.99, 0, null, 40, 89.9] });
+  assert.deepEqual(nightFares, {
+    start: "2026-11-02",
+    currency: "EUR",
+    prices: [59.99, 0, null, 40, 89.9, 59.99],
+    deals: { 3: { landing: "/last-minutes-brussels-prague", programme: "lastMinute" } },
+  });
   assert.equal(nightFaresFromCalendar({ currency: "EUR", nights: { "2026-11-02": { none: true } } }), null);
 
   const leg = { pricing: { type: "dynamic", fromPrice: 40, currency: "EUR", travelDate: "2026-11-05" }, nightFares };
@@ -845,6 +858,26 @@ check("a night is priced from the operator's own calendar, never from a seat", (
   assert.equal(pricingOnNight(leg, "2026-12-20").nightUnknown, true);
   // A train with no calendar is untouched.
   assert.equal(pricingOnNight({ pricing: leg.pricing }, "2026-11-04"), leg.pricing);
+
+  // The €40 night is a deal, sold only from its own page — so that is where
+  // the plan's button goes; the ordinary search would open €79.99.
+  assert.deepEqual(dealOnNight(leg, "2026-11-05"), { landing: "/last-minutes-brussels-prague", programme: "lastMinute" });
+  assert.equal(dealOnNight(leg, "2026-11-07"), null);
+  assert.equal(dealOnNight(leg, "2026-11-02"), null);
+  const dealRide = {
+    agencyId: "ES",
+    operatorIds: ["ES"],
+    routeId: "es_452",
+    from: { station: "Bruxelles Midi" },
+    to: { station: "Praha hl.n." },
+    date: "2026-11-05",
+    deal: dealOnNight(leg, "2026-11-05"),
+  };
+  const booked = rideBookingLink(dealRide);
+  assert.match(booked.deal.href, /^https:\/\/deals\.europeansleeper\.eu\/c\?.*u=%2Flast-minutes-brussels-prague$/);
+  assert.equal(booked.deal.programme, "lastMinute");
+  assert.ok(booked.href && booked.href !== booked.deal.href, "the regular fares stay one tap away");
+  assert.equal(rideBookingLink({ ...dealRide, deal: null }).deal, null);
 });
 
 check("the index carries nightly fares, and none from a source no page ranks", () => {
@@ -865,6 +898,20 @@ check("the index carries nightly fares, and none from a source no page ranks", (
   const ride = ridesBetween(planner, { from, to, date: night }).rides.find((r) => r.legId === leg.id);
   assert.equal(ride.pricing.fromPrice, leg.nightFares.prices[i]);
   assert.equal(ride.pricing.travelDate, night);
+
+  // A deal night in the published data books through the deal's page.
+  const dealLeg = withFares.find((l) => l.nightFares.deals);
+  if (dealLeg) {
+    const at = Number(Object.keys(dealLeg.nightFares.deals)[0]);
+    const dealNight = addDays(dealLeg.nightFares.start, at);
+    const dealRide = ridesBetween(planner, {
+      from: dealLeg.stops[0].citySlug,
+      to: dealLeg.stops[dealLeg.stops.length - 1].citySlug,
+      date: dealNight,
+    }).rides.find((r) => r.legId === dealLeg.id);
+    assert.equal(dealRide.deal.landing, dealLeg.nightFares.deals[at].landing);
+    assert.ok(rideBookingLink(dealRide).deal.href.includes(encodeURIComponent(dealRide.deal.landing)));
+  }
 });
 
 check("the cheapest night is the night its plan prices, and no headline outranks a real night", () => {
