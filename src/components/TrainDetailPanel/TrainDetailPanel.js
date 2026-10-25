@@ -1420,6 +1420,11 @@ const TrainDetailPanel = ({
                   tripRoute?.bot_agency_id || bookingAgencyId;
                 const agency =
                   agencies[operatorAgencyId] || agencies[bookingAgencyId];
+                const tripBookingGuide = guideProps(
+                  getBookingGuide({
+                    agencyIds: [bookingAgencyId, tripRoute?.bot_agency_id].filter(Boolean),
+                  }),
+                );
                 // "Official timetable": the operator's own schedule page for
                 // THIS train, so it follows who operates it, not who sells it.
                 // Per-direction — Ukrainian Railways numbers the two legs 35
@@ -1989,6 +1994,13 @@ const TrainDetailPanel = ({
                       )}
                     </div>
 
+                    {/* Who may ride at all (a booking guide's `notice`, e.g.
+                        the Baku–Tbilisi border rule): open and near the top,
+                        since it decides whether the rest of the card matters. */}
+                    {tripBookingGuide?.notice && (
+                      <BookingGuide guide={tripBookingGuide} tone="light" />
+                    )}
+
                     {/* Bus replacement notice */}
                     {busConnectors.length > 0 && (
                       <div className="space-y-1">
@@ -2530,15 +2542,9 @@ const TrainDetailPanel = ({
                     {/* How buying works where it has quirks the Book button
                         cannot explain (booking-guides.json) — closed by
                         default so the card does not grow a page of prose. */}
-                    <BookingGuide
-                      guide={guideProps(
-                        getBookingGuide({
-                          agencyIds: [bookingAgencyId, tripRoute?.bot_agency_id].filter(Boolean),
-                        }),
-                      )}
-                      tone="light"
-                      compact
-                    />
+                    {!tripBookingGuide?.notice && (
+                      <BookingGuide guide={tripBookingGuide} tone="light" compact />
+                    )}
 
                     {/* Community corrections feed the admin review queue */}
                     <button

@@ -474,6 +474,37 @@ await check("the guide folds into a page's FAQ without duplicating a question", 
   for (const f of BOOKING_GUIDES.guides.sunrise.faq) assert.ok(f.q.endsWith("?") && f.a.length > 40);
 });
 
+await check("Baku–Tbilisi: a ✓/✗ notice says who may cross the border, from official sources, in our own words", () => {
+  const guide = guideProps(getBookingGuide({ agencyId: "ADY" }));
+  const host = (url) => new URL(url).hostname;
+  assert.equal(guide?.id, "baku-tbilisi");
+  assert.ok(guide.notice, "rendered as a notice, at the top of the page and the card");
+  assert.match(guide.notice.heading, /who can cross the border/i);
+  assert.deepEqual(
+    guide.notice.items.map((i) => [i.ok, i.text]),
+    [
+      [true, "Azerbaijani citizens"],
+      [true, "Foreigners who can enter Azerbaijan visa-free"],
+      [false, "Anyone who needs an e-visa"],
+    ],
+  );
+  for (const i of guide.notice.items) assert.ok(i.text.split(" ").length <= 7, `"${i.text}" is read at a glance`);
+  assert.equal(guide.sections.length, 0, "a notice carries no long guide");
+  assert.equal(guideProps(getBookingGuide({ agencyId: "JRW" })).notice, null, "Sunrise stays a how-to guide");
+  assert.ok(guide.sources.length && guide.sources.every((s) => host(s.url) === "migration.gov.az"));
+  const text = JSON.stringify({ ...guide, sources: [], furtherReading: [] });
+  assert.doesNotMatch(text, /will not be permitted to pass through border checkpoints/, "no quoted sentence from the blog");
+  const faq = withBookingGuideFaq([], getBookingGuide({ agencyId: "ADY" }));
+  assert.ok(faq.some((f) => /e-visa/.test(f.q)));
+  for (const f of faq) assert.ok(f.q.endsWith("?") && f.a.length > 40);
+  // Every line must be true of every route it applies to: ADY runs this one route.
+  const published = readJson("public/data/published/initial-data.json");
+  const adyRoutes = Object.values(published.data.viewMap).filter((r) =>
+    /\bADY\b/.test(`${r.bot_agency_id || ""} ${r.agency_id || ""}`),
+  );
+  assert.deepEqual(adyRoutes.map((r) => r.route_long_name), ["Baku – Tbilisi"]);
+});
+
 // ─── 6. What the pipeline published ──────────────────────────────────────────
 
 await check("the published payload carries both routes, priced, with their stations", () => {
