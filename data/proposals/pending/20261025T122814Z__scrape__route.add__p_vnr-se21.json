@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_vnr-se21",
+  "createdAt": "2026-10-25T12:28:14.577Z",
+  "source": "scrape",
+  "sourceDetail": "vnr",
+  "kind": "route.add",
+  "title": "New train: SE21 (Đà Nẵng – Sài Gòn)",
+  "summary": "Route \"vnr_SE21\" appeared in tonight's scrape and is withheld from the map until approved. Via: Trà Kiệu - Tam Kỳ - Núi Thành - Quảng Ngãi - Đức Phổ - Bồng Sơn - Diêu Trì - La Hai - Tuy Hoà - Giã - Ninh Hoà - Nha Trang - Tháp Chàm - Sông Mao - Bình Thuận - Long Khánh - Biên Hòa - Dĩ An",
+  "target": {
+    "routeKey": "vnr_SE21",
+    "agencyId": "VNR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "SE21",
+    "returnTrain": "SE22",
+    "origin": "Đà Nẵng",
+    "destination": "Sài Gòn",
+    "operator": "VNR",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "vnr_SE21"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
