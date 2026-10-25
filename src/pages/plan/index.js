@@ -7,7 +7,7 @@ import SeoLayout from "@components/seo/SeoLayout";
 import Breadcrumbs from "@components/seo/Breadcrumbs";
 import CityCombobox from "@components/plan/CityCombobox";
 import DateField from "@components/plan/DateField";
-import JourneyOptions from "@components/plan/JourneyOptions";
+import JourneyOptions, { FareSum } from "@components/plan/JourneyOptions";
 import PlanItinerary from "@components/plan/PlanItinerary";
 import RideCard from "@components/plan/RideCard";
 import SharePlan from "@components/plan/SharePlan";
@@ -622,6 +622,11 @@ export default function PlanPage({ seoCities, initialPlan }) {
                 {formatPlanDate(date)} → {formatPlanDate(plan.endDate)}
               </p>
             </div>
+            {/* What the whole trip costs, when it has more than one train —
+                the same sum the change options showed before it was picked. */}
+            {plan.hops.length > 1 && (
+              <FareSum rides={plan.hops.map((hop) => hop.best)} className="mt-2" />
+            )}
 
             <div className="mt-6">
               <PlanItinerary
