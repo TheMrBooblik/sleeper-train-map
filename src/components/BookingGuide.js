@@ -20,6 +20,8 @@
  * readers to, not a page the guide's statements rest on.
  */
 
+import { FiCheck, FiX } from "react-icons/fi";
+
 const TONES = {
   dark: {
     wrap: "rounded-xl border border-white/10 bg-white/[0.02] p-5 sm:p-6",
@@ -103,42 +105,54 @@ function Sections({ sections, t }) {
 
 const NOTICE_TONES = {
   dark: {
-    wrap: "rounded-2xl border border-amber-300/30 bg-amber-300/[0.06] p-5 sm:p-6",
-    heading: "text-xs font-medium uppercase tracking-wide text-amber-200/80",
-    text: "mt-2 text-base font-semibold text-white text-pretty",
-    note: "mt-2 text-sm leading-relaxed text-white/60 text-pretty",
+    wrap: "rounded-2xl border border-amber-300/30 bg-amber-300/[0.06] p-5",
+    heading: "text-sm font-semibold text-amber-200",
+    item: "text-base text-white",
+    hint: "text-sm text-white/50",
+    yes: "text-emerald-400",
+    no: "text-red-400",
     sources: "text-xs text-white/40",
     link: "underline underline-offset-2 hover:text-white/70",
   },
   light: {
     wrap: "rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-800/60 dark:bg-amber-950/40",
-    heading: "text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300",
-    text: "mt-1 text-sm font-medium text-gray-900 dark:text-zinc-100",
-    note: "mt-1 text-xs leading-relaxed text-gray-600 dark:text-zinc-400",
+    heading: "text-xs font-semibold text-amber-800 dark:text-amber-300",
+    item: "text-sm text-gray-900 dark:text-zinc-100",
+    hint: "text-xs text-gray-500 dark:text-zinc-400",
+    yes: "text-emerald-600 dark:text-emerald-400",
+    no: "text-red-600 dark:text-red-400",
   },
 };
 
 /**
  * A guide that is a warning rather than a how-to (`notice`): who may ride at
- * all, before anything about buying. One heading, its answer in one line, and
- * a smaller note under it — short enough to sit at the top of the page and of
- * the panel's card, open, where a closed box would hide the one thing it says.
+ * all, as a ✓/✗ checklist read at a glance — short enough to sit open at the
+ * top of the page and of the panel's card, where a closed box would hide the
+ * one thing it says.
  */
 function Notice({ guide, tone, className }) {
   const t = NOTICE_TONES[tone] ?? NOTICE_TONES.dark;
-  const { heading, text, note } = guide.notice;
+  const { heading, items } = guide.notice;
   return (
     <aside className={`${t.wrap} ${className}`} aria-label={heading} data-testid="booking-notice">
       <p className={t.heading}>{heading}</p>
-      <p className={t.text}>{text}</p>
-      {note && <p className={t.note}>{note}</p>}
+      <ul className="mt-2 space-y-1.5">
+        {items.map((item) => (
+          <li key={item.text} className="flex gap-2">
+            {item.ok ? (
+              <FiCheck aria-label="Yes" className={`mt-[0.2em] h-4 w-4 shrink-0 ${t.yes}`} />
+            ) : (
+              <FiX aria-label="No" className={`mt-[0.2em] h-4 w-4 shrink-0 ${t.no}`} />
+            )}
+            <span className="min-w-0">
+              <span className={`block ${t.item}`}>{item.text}</span>
+              {item.hint && <span className={`block ${t.hint}`}>{item.hint}</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
       {t.sources && (
-        <Sources
-          sources={guide.sources}
-          furtherReading={guide.furtherReading}
-          checkedAt={guide.checkedAt}
-          t={t}
-        />
+        <Sources sources={guide.sources} furtherReading={guide.furtherReading} checkedAt={guide.checkedAt} t={t} />
       )}
     </aside>
   );

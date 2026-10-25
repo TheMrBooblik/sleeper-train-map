@@ -67,6 +67,14 @@ export function withBookingGuideFaq(faq, guide) {
   return out;
 }
 
+/** A notice's checklist, with incomplete items dropped; null when nothing is left. */
+function noticeProps(notice) {
+  const items = (notice?.items ?? [])
+    .filter((i) => i?.text)
+    .map((i) => ({ ok: i.ok === true, text: i.text, hint: i.hint ?? "" }));
+  return notice?.heading && items.length ? { heading: notice.heading, items } : null;
+}
+
 /**
  * Just what a page needs to render and serialise — no internal keys.
  * @param {object|null} guide
@@ -76,9 +84,7 @@ export function guideProps(guide) {
   return {
     id: guide.id,
     title: guide.title ?? "",
-    notice: guide.notice?.heading && guide.notice?.text
-      ? { heading: guide.notice.heading, text: guide.notice.text, note: guide.notice.note ?? "" }
-      : null,
+    notice: noticeProps(guide.notice),
     summary: guide.summary ?? "",
     highlights: guide.highlights ?? [],
     sections: (guide.sections ?? []).filter((s) => s?.heading && s.points?.length),
