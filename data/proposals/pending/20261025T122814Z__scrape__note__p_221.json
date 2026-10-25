@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_221",
+  "createdAt": "2026-10-25T12:28:14.575Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: 006 L (Yasinia – Dnipro Holovny)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Zaporizhzhia 1\" → \"Dnipro Holovny\"",
+  "target": {
+    "routeKey": "221",
+    "agencyId": "UZ",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Zaporizhzhia 1"
+  },
+  "after": {
+    "destination": "Dnipro Holovny"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
