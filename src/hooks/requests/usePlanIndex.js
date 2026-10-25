@@ -14,14 +14,29 @@ import { createPlanner } from "../../lib/plan/search.mjs";
  * The file is under /data/, so next.config.js already gives it a real cache
  * lifetime and public/sw.js already serves it stale-while-revalidate: a repeat
  * visit pays nothing for it.
+ *
+ * That cache is also why the URL carries the deployment's build id. The page's
+ * code and the index change together — a deploy that teaches the planner to
+ * read deal nights ships an index that has them — and under one fixed URL the
+ * browser (an hour) and the service worker kept handing the NEW page the OLD
+ * index: the first preview of the deal button showed a plain Book button to
+ * anyone who had opened the planner in the hour before. A new build is a new
+ * URL, so both caches miss exactly once per deployment, which is the nightly
+ * data commit anyway.
  */
 const SOURCE = "/data/published/plan-index.json";
 const cache = { planner: null, inFlight: null };
 
+/** The index URL for this build: "?v=<buildId>", or bare where there is none. */
+export function planIndexUrl(buildId) {
+  return buildId ? `${SOURCE}?v=${encodeURIComponent(buildId)}` : SOURCE;
+}
+
 function loadPlanner() {
   if (cache.planner) return Promise.resolve(cache.planner);
   if (!cache.inFlight) {
-    cache.inFlight = fetch(SOURCE)
+    const buildId = typeof window !== "undefined" ? window.__NEXT_DATA__?.buildId : "";
+    cache.inFlight = fetch(planIndexUrl(buildId))
       .then((response) => {
         if (!response.ok) throw new Error(`plan index ${response.status}`);
         return response.json();

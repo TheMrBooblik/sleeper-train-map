@@ -14,10 +14,16 @@
  * .mjs and dependency-light so tests/verify-plan.mjs can call it in raw node.
  */
 import { resolveRouteBooking } from "../routeBooking.mjs";
+import { buildDealsLandingUrl } from "../operatorBooking.js";
 
 /**
+ * Where the night's price is a deal (a European Sleeper last-minute or flash
+ * sale couchette), `deal` is the page that sells it: the ordinary search does
+ * not sell the deal, so a Book button there would quote €40 and open €119.99.
+ *
  * @param {object} ride - a ride from search.mjs (rideFor)
- * @returns {{href: string, preselects: boolean, sellerName: string|null}|null}
+ * @returns {{href: string, preselects: boolean, sellerName: string|null,
+ *            deal: {href: string, programme: string}|null}|null}
  */
 export function rideBookingLink(ride) {
   if (!ride) return null;
@@ -31,9 +37,11 @@ export function rideBookingLink(ride) {
     isoDate: ride.date || undefined,
   });
   if (!booking?.href) return null;
+  const dealHref = ride.deal?.landing ? buildDealsLandingUrl(agencyId, ride.deal.landing) : null;
   return {
     href: booking.href,
     preselects: booking.preselects,
     sellerName: booking.sellerName,
+    deal: dealHref ? { href: dealHref, programme: ride.deal.programme || "" } : null,
   };
 }

@@ -98,10 +98,35 @@ function needsNoRefresh(response) {
   return Number.isFinite(age) && age >= 0 && age < REVALIDATE_AFTER_MS;
 }
 
+/**
+ * Whether two cached URLs are versions of one file: the same path, a `v` query
+ * on the one just fetched, and a different query. The plan index is fetched as
+ * "?v=<buildId>" so a deploy is a new URL; without this every nightly build
+ * would leave another 650 KB copy behind.
+ */
+function isOlderVersion(cachedUrl, freshUrl) {
+  return (
+    freshUrl.searchParams.has("v") &&
+    cachedUrl.pathname === freshUrl.pathname &&
+    cachedUrl.search !== freshUrl.search
+  );
+}
+
+async function dropOtherVersions(cache, req) {
+  const fresh = new URL(req.url);
+  if (!fresh.searchParams.has("v")) return;
+  const keys = await cache.keys();
+  await Promise.all(
+    keys.filter((key) => isOlderVersion(new URL(key.url), fresh)).map((key) => cache.delete(key)),
+  );
+}
+
 /** Fetch, storing a copy for next time. The write is kept alive by the caller. */
 function fetchAndStore(event, cache, req) {
   return fetch(req).then((res) => {
-    if (res.ok) event.waitUntil(cache.put(req, res.clone()));
+    if (res.ok) {
+      event.waitUntil(cache.put(req, res.clone()).then(() => dropOtherVersions(cache, req)));
+    }
     return res;
   });
 }

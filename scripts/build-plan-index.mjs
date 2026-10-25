@@ -33,7 +33,8 @@ import { buildPairSlug } from "../src/lib/seo/slugify.mjs";
 import { cityForStation } from "../src/lib/seo/cities.mjs";
 import { getStationTimesForTrain } from "../src/lib/seo/stationTimes.mjs";
 import { resolvePricing } from "../src/lib/pricingResolve.mjs";
-import { pricingForDirection } from "../src/lib/fareClasses.mjs";
+import { pricingForDirection, UNRANKED_FARE_SOURCES } from "../src/lib/fareClasses.mjs";
+import { nightFaresFromCalendar } from "../src/lib/plan/nightFares.mjs";
 import { normalizeCountryCode, OPERATOR_COUNTRY_FALLBACK } from "../src/lib/seo/countries.js";
 import OPERATOR_PRICING from "../data/overrides/operator-pricing.json" with { type: "json" };
 import { stripDisabledRoutes } from "../src/pages/api/lib/build-initial-data.mjs";
@@ -96,6 +97,14 @@ export function buildPlanIndex(payload, { generatedAt = "" } = {}) {
   const pricingFor = (route, direction) =>
     pricingForDirection(route, direction, resolvePricing(route, OPERATOR_PRICING));
 
+  // Per night, from the train's own fare calendar — except a source whose
+  // figures are known to disagree with the shop its Book button opens, since
+  // the planner sorts nights by these and would put exactly those first.
+  const nightFaresFor = (route, direction) =>
+    UNRANKED_FARE_SOURCES.has(route.timetable_source)
+      ? null
+      : nightFaresFromCalendar(route[`fare_calendar_${direction}`]);
+
   // Station → ISO-2. Two sources, because neither covers everything: the raw
   // Back-on-Track stop index knows its own 29k stations, and the rows carry
   // `origin_country_*` stamps for endpoints — which is the only source for a
@@ -151,6 +160,7 @@ export function buildPlanIndex(payload, { generatedAt = "" } = {}) {
     pairSlugFor,
     stopTimesFor,
     pricingFor,
+    nightFaresFor,
     countryForStation,
   });
 

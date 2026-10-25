@@ -6,13 +6,15 @@
  *   /plan/amsterdam/2026-09-18                     …on a given night
  *   /plan/amsterdam-to-vienna                      a corridor
  *   /plan/amsterdam-to-vienna/2026-09-18           a corridor on a given night
+ *   /plan/amsterdam-to-vienna/2026-11              …its cheapest nights in a month
  *   /plan/amsterdam-to-berlin-to-prague-to-vienna/2026-09-18
  *                                                  a multi-night trip
  *
  * The URL *is* the saved plan: no account, no cookie, nothing about the person
  * stored anywhere. That is only true if the path holds the whole plan, so
  * anything a reader needs to reproduce what the author saw lives here — the
- * cities, in order, and the first departure date. `?stay=` carries the optional
+ * cities, in order, and the first departure date — or the month to look for
+ * the cheapest night in, or nothing for "any time". `?stay=` carries the optional
  * stopover nights, a refinement of a plan rather than its identity.
  *
  * Dependency-free and .mjs for the same reason as slugify.mjs: the build, the
@@ -24,6 +26,7 @@
 const CITY_SEPARATOR = "-to-";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MONTH_RE = /^\d{4}-\d{2}$/;
 
 /**
  * Split a corridor segment into city slugs.
@@ -64,7 +67,8 @@ export function splitCorridor(segment, knownSlugs) {
  *
  * @param {string[]|string|undefined} slug - router params.slug
  * @param {Set<string>} [knownSlugs] - city slugs the dataset actually has
- * @returns {{cities: string[], date: string|null, extra: string[]}}
+ * @returns {{cities: string[], date: string|null, month: string|null, extra: string[]}}
+ *   `month` only where no night is given: a night is the more specific ask.
  *   `extra` is any trailing segment that is neither a corridor nor a date; a
  *   caller uses it to decide between "render this plan" and "404".
  */
@@ -75,12 +79,18 @@ export function parsePlanPath(slug, knownSlugs) {
 
   let cities = [];
   let date = null;
+  let month = null;
   const extra = [];
 
   for (const segment of segments) {
     if (DATE_RE.test(segment)) {
       if (date) extra.push(segment);
       else date = segment;
+      continue;
+    }
+    if (isPlanMonth(segment)) {
+      if (month) extra.push(segment);
+      else month = segment;
       continue;
     }
     if (cities.length === 0) {
@@ -90,7 +100,7 @@ export function parsePlanPath(slug, knownSlugs) {
     extra.push(segment);
   }
 
-  return { cities, date, extra };
+  return { cities, date, month: date ? null : month, extra };
 }
 
 /**
@@ -127,20 +137,24 @@ function safeDecode(segment) {
  * Write a plan back to a path. The inverse of parsePlanPath for every plan the
  * planner can produce.
  *
- * @param {{cities?: string[], date?: string|null}} plan
+ * @param {{cities?: string[], date?: string|null, month?: string|null}} plan
+ *   a night wins over a month; neither is "any time"
  * @returns {string} an absolute site path, always starting "/plan"
  */
-export function buildPlanPath({ cities = [], date = null } = {}) {
+export function buildPlanPath({ cities = [], date = null, month = null } = {}) {
   const clean = cities.map((c) => String(c || "").trim().toLowerCase()).filter(Boolean);
   const parts = ["/plan"];
   if (clean.length) parts.push(clean.join(CITY_SEPARATOR));
-  if (date && DATE_RE.test(date) && clean.length) parts.push(date);
+  if (clean.length) {
+    if (date && DATE_RE.test(date)) parts.push(date);
+    else if (isPlanMonth(month)) parts.push(month);
+  }
   return parts.join("/");
 }
 
 /**
  * The full href for a plan, including the stopover refinement.
- * @param {{cities?: string[], date?: string|null, stays?: number[]}} plan
+ * @param {{cities?: string[], date?: string|null, month?: string|null, stays?: number[]}} plan
  * @returns {string}
  */
 export function buildPlanHref(plan = {}) {
@@ -179,6 +193,36 @@ export function clampStay(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return 0;
   return Math.min(30, Math.max(0, Math.trunc(n)));
+}
+
+/** "2026-11" — a month to look for the cheapest night in. */
+export function isPlanMonth(value) {
+  if (!MONTH_RE.test(String(value || ""))) return false;
+  const m = Number(String(value).slice(5, 7));
+  return m >= 1 && m <= 12;
+}
+
+/** The month a night falls in: "2026-11-06" → "2026-11". */
+export function monthOf(iso) {
+  return isPlanDate(iso) ? iso.slice(0, 7) : "";
+}
+
+/** A month `n` months on: ("2026-11", 2) → "2027-01". */
+export function addMonths(month, n) {
+  if (!isPlanMonth(month)) return month;
+  const [y, m] = month.split("-").map(Number);
+  const total = y * 12 + (m - 1) + Number(n || 0);
+  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}`;
+}
+
+/** Every night of a month, from `from` on when it falls inside it. */
+export function nightsInMonth(month, from = "") {
+  if (!isPlanMonth(month)) return [];
+  const out = [];
+  for (let night = `${month}-01`; monthOf(night) === month; night = addDays(night, 1)) {
+    if (!from || night >= from) out.push(night);
+  }
+  return out;
 }
 
 /** @param {string} value @returns {boolean} */

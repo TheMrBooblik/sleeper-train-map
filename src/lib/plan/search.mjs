@@ -20,6 +20,7 @@ import { addDays, clampStay, daysBetween } from "./url.mjs";
 import { suggestionScore } from "./prominence.mjs";
 import { arrivalDayOffset, connectionBetween, segmentTimes } from "./timeline.mjs";
 import { compareJourneyFares } from "./journeyFare.mjs";
+import { dealOnNight, pricingOnNight } from "./nightFares.mjs";
 
 /** Wrap a raw index (legs + cities) with the lookups the search needs. */
 export function createPlanner(index) {
@@ -53,7 +54,11 @@ function rideFor(leg, boardIndex, alightIndex, date) {
     operatorIds: leg.operatorIds,
     agencyId: leg.agencyId || "",
     pairSlug: leg.pairSlug,
-    pricing: leg.pricing,
+    // That night's own fare where the operator's calendar has one — and the
+    // page that sells it, where that fare is a deal the ordinary search
+    // does not sell.
+    pricing: pricingOnNight(leg, date),
+    deal: dealOnNight(leg, date),
     date,
     ...segment,
     // When you are actually on board, in minutes after midnight of `date` —
@@ -123,12 +128,26 @@ export function departuresFrom(planner, {
 }
 
 /** Best first: confirmed over unconfirmed, then a night's sleep over an evening
- *  hop, then the whole route, then the earlier departure. */
+ *  hop, then the whole route, then the cheaper fare, then the earlier departure. */
 function compareRides(a, b) {
   const rank = STATUS_RANK[a.availability.status] - STATUS_RANK[b.availability.status];
   if (rank) return rank;
   if (a.isOvernight !== b.isOvernight) return a.isOvernight ? -1 : 1;
   if (a.isWholeRoute !== b.isWholeRoute) return a.isWholeRoute ? -1 : 1;
+  // Two trains alike in every other way: the cheaper one, where both state a
+  // fare in one currency.
+  const priceA = Number(a.pricing?.fromPrice);
+  const priceB = Number(b.pricing?.fromPrice);
+  if (
+    a.pricing?.fromPrice != null &&
+    b.pricing?.fromPrice != null &&
+    Number.isFinite(priceA) &&
+    Number.isFinite(priceB) &&
+    (a.pricing.currency || "") === (b.pricing.currency || "") &&
+    priceA !== priceB
+  ) {
+    return priceA - priceB;
+  }
   const depA = a.departure || "99:99";
   const depB = b.departure || "99:99";
   if (depA !== depB) return depA < depB ? -1 : 1;
@@ -148,7 +167,7 @@ function compareRides(a, b) {
  * than a stop it passes through at three in the morning), then how much of the
  * night-train network that city sees.
  */
-function compareDestinations(a, b) {
+export function compareDestinations(a, b) {
   const rank =
     STATUS_RANK[a.best.availability.status] - STATUS_RANK[b.best.availability.status];
   if (rank) return rank;
