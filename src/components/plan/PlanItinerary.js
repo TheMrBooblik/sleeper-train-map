@@ -97,6 +97,10 @@ export default function PlanItinerary({
       {plan.hops.map((hop) => {
         const alternatives = hop.rides.slice(1);
         const isOpen = expanded[hop.index];
+        // No train runs this hop at all, but a change does: show the change in
+        // its place rather than a "no night train" box above it.
+        const changesInstead =
+          !hop.best && inlineJourneys && hrefForHopJourney && hopJourneys[hop.index]?.length > 0;
         return (
           <li key={`${hop.from.slug}-${hop.to.slug}-${hop.index}`} className="flex flex-col gap-3">
             {hop.index > 0 && (
@@ -175,7 +179,7 @@ export default function PlanItinerary({
                   </div>
                 )}
               </>
-            ) : (
+            ) : changesInstead ? null : (
               <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-white/70">
@@ -193,7 +197,9 @@ export default function PlanItinerary({
             {inlineJourneys && hrefForHopJourney && hopJourneys[hop.index]?.length > 0 && (
               <div className="rounded-2xl border border-white/10 bg-white/[0.015] p-4">
                 <p className="mb-3 text-sm text-white/60">
-                  With a change on the way from {hop.from.name} to {hop.to.name}:
+                  {changesInstead
+                    ? `No sleeper runs straight through — change on the way:`
+                    : `With a change on the way from ${hop.from.name} to ${hop.to.name}:`}
                 </p>
                 <JourneyOptions
                   journeys={hopJourneys[hop.index]}

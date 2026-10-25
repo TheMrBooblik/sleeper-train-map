@@ -230,6 +230,12 @@ export default function PlanPage({ seoCities, initialPlan }) {
     );
   }, [planner, plan]);
 
+  // No train runs straight through at all, but a change does: the answer is
+  // the change, so the plan shows only that. An empty "no night train" hop
+  // above it was the loudest thing on the page and said the opposite.
+  const changeOnly =
+    cities.length === 2 && Boolean(plan) && !plan.hops[0]?.best && journeys.list.length > 0;
+
   /** The plan with a found journey in place of one of its hops. */
   const hrefForJourney = useCallback(
     (hop, journey) =>
@@ -564,6 +570,26 @@ export default function PlanPage({ seoCities, initialPlan }) {
             aria-labelledby="plan-title"
             aria-live="polite"
           >
+            {changeOnly ? (
+              <div>
+                <h2 id="plan-title" className="text-xl font-semibold text-white">
+                  With a change of train
+                </h2>
+                <p className="mt-1 text-sm text-white/45">
+                  {journeys.later
+                    ? `No sleeper runs straight through, and nothing connects on ${formatPlanDate(date)}. These are the first ways after it.`
+                    : "No sleeper runs straight through. Pick a route — each change is checked against both trains' times."}
+                </p>
+                <div className="mt-4">
+                  <JourneyOptions
+                    journeys={journeys.list}
+                    hrefFor={(journey) => hrefForJourney(plan.hops[0], journey)}
+                    onChoose={bringToPlan}
+                  />
+                </div>
+              </div>
+            ) : (
+            <>
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <h2 id="plan-title" className="text-xl font-semibold text-white">
                 Your trip · {plan.nights} {plan.nights === 1 ? "night" : "nights"}
@@ -605,6 +631,8 @@ export default function PlanPage({ seoCities, initialPlan }) {
                 inlineJourneys={cities.length > 2}
               />
             </div>
+            </>
+            )}
 
             {/* A two-city plan with no direct train and no chain either. Saying
                 nothing reads as a page that failed to load; the search really
@@ -630,7 +658,7 @@ export default function PlanPage({ seoCities, initialPlan }) {
               </div>
             )}
 
-            {cities.length === 2 && journeys.list.length > 0 && (
+            {cities.length === 2 && journeys.list.length > 0 && !changeOnly && (
               <div className="mt-10" id="plan-changes">
                 <h3 className="text-lg font-semibold text-white">
                   {plan.complete ? "Or with a change" : "Ways to get there with a change"}
