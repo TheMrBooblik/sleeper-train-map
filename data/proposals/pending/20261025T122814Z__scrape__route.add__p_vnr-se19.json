@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_vnr-se19",
+  "createdAt": "2026-10-25T12:28:14.577Z",
+  "source": "scrape",
+  "sourceDetail": "vnr",
+  "kind": "route.add",
+  "title": "New train: SE19 (Hà Nội – Đà Nẵng)",
+  "summary": "Route \"vnr_SE19\" appeared in tonight's scrape and is withheld from the map until approved. Via: Nam Định - Ninh Bình - Thanh Hoá - Vinh - Đồng Hới - Đông Hà - Huế",
+  "target": {
+    "routeKey": "vnr_SE19",
+    "agencyId": "VNR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "SE19",
+    "returnTrain": "SE20",
+    "origin": "Hà Nội",
+    "destination": "Đà Nẵng",
+    "operator": "VNR",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "vnr_SE19"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
