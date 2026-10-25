@@ -177,6 +177,21 @@ export const COUCHETTE_CLASS_KEYS = new Set([
 export const isCouchetteClass = (key) => COUCHETTE_CLASS_KEYS.has(key);
 
 /**
+ * Fare sources whose figures no page ranks by price (the cheap-trains page,
+ * the planner's cheapest nights), because
+ * they are known to disagree with the booking page their Book button opens.
+ * nightjet.com's Train Price Search quotes Sparschiene couchettes the ÖBB shop
+ * does not sell at that price: NJ 465 Zürich → Graz on 26 Oct 2026 and
+ * NJ 19946 Wien → Bregenz on 2 Nov 2026 both read €39.90 there (the probe of
+ * 15 Oct read the same €39.90 live), while the shop sold couchettes from
+ * €54.90 on both nights, seats matching to the cent. A page that sorts by
+ * price puts exactly those nights first, so a source stays off it until its
+ * figures are confirmed against the shop; the connection pages keep its
+ * calendar, where a night is one of forty-two rather than the headline.
+ */
+export const UNRANKED_FARE_SOURCES = new Set(["nightjet"]);
+
+/**
  * A night's classes without any berth priced at or below that night's own
  * seat (`entry.seat`, Nightjet's cheapest seated place). A berth is a ticket
  * plus a berth supplement, so one that costs no more than the seat is a seat

@@ -52,7 +52,7 @@ function operatorLabel(operatorIds = []) {
  * Back-on-Track times only the two endpoints and 292 of the 541 legs have no
  * operator feed to fill the stops between.
  */
-export default function RideCard({ ride, action = null, compact = false, bookable = false }) {
+export default function RideCard({ ride, action = null, compact = false, bookable = false, nightLabel = "" }) {
   const { from, to, departure, arrival, durationMinutes, availability } = ride;
   const offset = dayOffsetLabel(departure, arrival);
   const operator = operatorLabel(ride.operatorIds);
@@ -74,7 +74,15 @@ export default function RideCard({ ride, action = null, compact = false, bookabl
             {from.station} → {to.station}
           </p>
         </div>
-        <AvailabilityBadge availability={availability} />
+        {/* With no night chosen the card is about one night of many, so it
+            names that night rather than saying "runs this night". */}
+        {nightLabel ? (
+          <span className="inline-flex items-center rounded-full border border-primary-green/30 bg-primary-green/10 px-2.5 py-0.5 text-xs text-primary-green">
+            {nightLabel}
+          </span>
+        ) : (
+          <AvailabilityBadge availability={availability} />
+        )}
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">

@@ -58,10 +58,12 @@ export function packPlanIndex(index) {
     return id;
   };
 
-  const legs = index.legs.map(({ pricing, durationSuspect, ...leg }) => ({
+  const legs = index.legs.map(({ pricing, durationSuspect, nightFares, ...leg }) => ({
     ...leg,
     p: internPricing(pricing),
     ...(durationSuspect ? { ds: 1 } : {}),
+    // A train's price per night as [start, currency, prices].
+    ...(nightFares ? { nf: [nightFares.start, nightFares.currency, nightFares.prices] } : {}),
     stops: leg.stops.map((stop) => {
       const base = [intern(stop.station), citySlugIds.get(stop.citySlug) ?? -1];
       if (stop.arrival || stop.departure) base.push(stop.arrival || "", stop.departure || "");
@@ -100,10 +102,11 @@ export function hydratePlanIndex(index) {
   );
 
   const pricings = index.pricings ?? [];
-  const legs = index.legs.map(({ p, ds, ...leg }) => ({
+  const legs = index.legs.map(({ p, ds, nf, ...leg }) => ({
     ...leg,
     pricing: pricings[p] ?? null,
     durationSuspect: Boolean(ds),
+    ...(nf ? { nightFares: { start: nf[0], currency: nf[1], prices: nf[2] } } : {}),
     stops: leg.stops.map(([nameId, cityId, arrival, departure, arrivalDay, departureDay]) => {
       const city = cities[cityId] ?? { slug: "", name: "" };
       return {

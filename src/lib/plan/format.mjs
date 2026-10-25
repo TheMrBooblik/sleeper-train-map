@@ -47,3 +47,23 @@ export function formatPlanDateLong(iso) {
   const short = WEEKDAYS[(probe.getUTCDay() + 6) % 7];
   return `${LONG_DAYS[short]} ${d} ${LONG_MONTHS[MONTHS[m - 1]]} ${y}`;
 }
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/**
+ * "2026-11" → "November" (or "Nov" short), with the year where it is not the
+ * year of `today` — a month chip in October reads "Jan 2027".
+ */
+export function formatPlanMonth(month, { short = false, today = "" } = {}) {
+  const match = /^(\d{4})-(\d{2})$/.exec(String(month || ""));
+  if (!match) return "";
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  if (m < 1 || m > 12) return "";
+  const name = short ? MONTHS[m - 1] : MONTH_NAMES[m - 1];
+  const thisYear = Number(String(today).slice(0, 4));
+  return thisYear && thisYear === y ? name : `${name} ${y}`;
+}

@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 
 import SeoLayout from "@components/seo/SeoLayout";
 import Breadcrumbs from "@components/seo/Breadcrumbs";
+import CheapestNights from "@components/plan/CheapestNights";
 import CityCombobox from "@components/plan/CityCombobox";
 import DateField from "@components/plan/DateField";
 import JourneyOptions, { FareSum } from "@components/plan/JourneyOptions";
@@ -26,10 +27,18 @@ import {
   buildPlanHref,
   decodeStays,
   isPlanDate,
+  isPlanMonth,
+  monthOf,
   parsePlanPath,
   planPartsFromPath,
 } from "../../lib/plan/url.mjs";
-import { formatPlanDate } from "../../lib/plan/format.mjs";
+import { formatPlanDate, formatPlanMonth } from "../../lib/plan/format.mjs";
+import {
+  cheapestOnNight,
+  departuresAnyNight,
+  flexibleNights,
+  summarizeNights,
+} from "../../lib/plan/flexible.mjs";
 import { byStartCityScore, prominenceLookup } from "../../lib/plan/prominence.mjs";
 import {
   DEFAULT_REGION,
@@ -126,26 +135,32 @@ export default function PlanPage({ seoCities, initialPlan }) {
     if (!router.isReady) return;
     const { slug, stay } = planPartsFromPath(router.asPath);
     const next = parsePlanPath(slug, knownSlugs);
-    setParsed({ cities: next.cities, date: next.date });
+    setParsed({ cities: next.cities, date: next.date, month: next.month });
     setStays(decodeStays(stay));
   }, [router.isReady, router.asPath, knownSlugs]);
 
   const cities = parsed.cities;
-  const date = isPlanDate(parsed.date) ? parsed.date : today;
+  // No night in the URL is "any time": the planner tries every night and shows
+  // the cheapest. A month narrows that to its nights.
+  const date = isPlanDate(parsed.date) ? parsed.date : null;
+  const month = !date && isPlanMonth(parsed.month) ? parsed.month : null;
   const hasDate = Boolean(date);
 
   /** Every navigation goes through here, so the URL is always the whole plan. */
   const go = useCallback(
     (next, { replace = false } = {}) => {
+      // A night and a month are one choice: setting either replaces both.
+      const when = "date" in next || "month" in next;
       const href = buildPlanHref({
         cities: next.cities ?? cities,
-        date: next.date ?? parsed.date ?? (today || null),
+        date: when ? next.date ?? null : parsed.date,
+        month: when ? next.month ?? null : parsed.month,
         stays: next.stays ?? stays,
       });
       const method = replace ? router.replace : router.push;
       method.call(router, href, undefined, { shallow: true, scroll: false });
     },
-    [router, cities, parsed.date, stays, today],
+    [router, cities, parsed.date, parsed.month, stays],
   );
 
   // Where to bring the reader after a change they made. On a phone the form
@@ -175,10 +190,23 @@ export default function PlanPage({ seoCities, initialPlan }) {
     return resolvePlan(planner, { cities, date, stays });
   }, [planner, cities, date, stays, hasDate]);
 
+  // The nights an undated trip is tried on: the next three months, or a month.
+  const flexNights = useMemo(
+    () => (hasDate || !today ? [] : flexibleNights({ today, month })),
+    [hasDate, today, month],
+  );
+
   const explore = useMemo(() => {
-    if (!planner || cities.length !== 1 || !hasDate) return null;
-    return departuresFrom(planner, { from: cities[0], date });
-  }, [planner, cities, date, hasDate]);
+    if (!planner || cities.length !== 1) return null;
+    if (hasDate) return departuresFrom(planner, { from: cities[0], date });
+    if (!flexNights.length) return null;
+    return { destinations: departuresAnyNight(planner, { from: cities[0], nights: flexNights }) };
+  }, [planner, cities, date, hasDate, flexNights]);
+
+  // A trip with no night: every night tried, a few at a time so a phone stays
+  // responsive while three months of journeys are searched.
+  const flexible = useCheapestNights(planner, cities, stays, flexNights);
+  const flexibleSummary = useMemo(() => summarizeNights(flexible.results), [flexible.results]);
 
   // Mode 2: two cities. With no direct train that night the honest answer is a
   // change somewhere on the way, so offer those rather than an empty result —
@@ -259,7 +287,7 @@ export default function PlanPage({ seoCities, initialPlan }) {
     if (top < 80 || top > window.innerHeight * 0.6) {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  }, [plan, explore]);
+  }, [plan, explore, flexible.done]);
 
   const originCity = planner?.cityBySlug.get(cities[0]) || null;
   const lastCity = cities.length ? cities[cities.length - 1] : "";
@@ -283,13 +311,13 @@ export default function PlanPage({ seoCities, initialPlan }) {
     [],
   );
   const isPlan = cities.length >= 2;
-  const canonicalPath = buildPlanHref({ cities, date: parsed.date, stays });
+  const canonicalPath = buildPlanHref({ cities, date, month, stays });
   // /plan is a landing page worth indexing. Every parameterised plan under it is
   // one of an unbounded number of URLs that differ only by a date, which is a
   // crawl trap, and its content already lives on the /connections pages it
   // links to. So exactly one URL in this space is indexable.
-  const isLanding = cities.length === 0 && !parsed.date;
-  const heading = headingFor(planner, cities, parsed.date);
+  const isLanding = cities.length === 0 && !parsed.date && !parsed.month;
+  const heading = headingFor(planner, cities, { date, month, today });
 
   return (
     <SeoLayout>
@@ -346,7 +374,13 @@ export default function PlanPage({ seoCities, initialPlan }) {
         {isPlan && !editing ? (
           <TripSummary
             names={cities.map((slug) => cityLabel(planner, slug))}
-            date={date}
+            when={
+              date
+                ? formatPlanDate(date)
+                : month
+                  ? formatPlanMonth(month, { today })
+                  : "Any time"
+            }
             onEdit={() => setEditing(true)}
           />
         ) : (
@@ -406,12 +440,11 @@ export default function PlanPage({ seoCities, initialPlan }) {
             <div className={`min-w-0 ${cities.length >= 1 ? "sm:col-span-2" : ""}`}>
               {today && (
                 <DateField
-                  value={date}
+                  date={date}
+                  month={month}
                   today={today}
-                  onChange={(value) =>
-                    isPlan
-                      ? commit({ date: value }, { replace: true })
-                      : go({ date: value }, { replace: true })
+                  onChange={(when) =>
+                    isPlan ? commit(when, { replace: true }) : go(when, { replace: true })
                   }
                 />
               )}
@@ -544,11 +577,13 @@ export default function PlanPage({ seoCities, initialPlan }) {
                   ? `${explore.destinations.length} places you could wake up in`
                   : "No night trains we know of"}
               </h2>
-              <p className="text-sm text-white/40">{formatPlanDate(date)}</p>
+              <p className="text-sm text-white/40">
+                {date ? formatPlanDate(date) : month ? formatPlanMonth(month, { today }) : "Any night, next 3 months"}
+              </p>
             </div>
 
             {explore.destinations.length === 0 ? (
-              <EmptyExplore city={cityLabel(planner, cities[0])} date={date} />
+              <EmptyExplore city={cityLabel(planner, cities[0])} date={date} month={month} today={today} />
             ) : (
               // grid-cols-1, not a bare `grid`: an implicit column is sized
               // `auto`, which floors the track at the item's min-content, and a
@@ -557,13 +592,23 @@ export default function PlanPage({ seoCities, initialPlan }) {
               // — the date field's fault one level up. Tailwind's grid-cols-1 is
               // `repeat(1, minmax(0, 1fr))`, and that minmax(0, …) is the fix.
               <div className="mt-5 grid grid-cols-1 gap-3">
-                {explore.destinations.map(({ city, best, rides }) => (
+                {explore.destinations.map(({ city, best, rides, date: night }) => (
                   <RideCard
                     key={city.slug}
                     ride={best}
+                    // Any time: the card shows the destination's cheapest
+                    // night (or its first, with no price per night), so it
+                    // says which night that is.
+                    nightLabel={
+                      night
+                        ? `${best.pricing?.travelDate === night ? "Cheapest" : "Next"}: ${formatPlanDate(night)}`
+                        : ""
+                    }
                     action={
                       <Link
-                        href={buildPlanHref({ cities: [...cities, city.slug], date: parsed.date, stays })}
+                        // The same "when" as here: any time stays any time,
+                        // and the trip page then finds its cheapest night.
+                        href={buildPlanHref({ cities: [...cities, city.slug], date, month, stays })}
                         // The link is far down the list; the plan it opens
                         // renders at the top. Bring the reader to it.
                         onClick={() => {
@@ -571,13 +616,36 @@ export default function PlanPage({ seoCities, initialPlan }) {
                         }}
                         className="rounded-full bg-primary-green px-3.5 py-1.5 text-sm font-medium text-black transition-colors hover:bg-primary-green-light"
                       >
-                        {rides.length > 1 ? `Go here (${rides.length} trains)` : "Go here"}
+                        {rides?.length > 1 ? `Go here (${rides.length} trains)` : "Go here"}
                       </Link>
                     }
                   />
                 ))}
               </div>
             )}
+          </section>
+        )}
+
+        {/* ── A trip with no night: its cheapest nights ───────────────── */}
+        {isPlan && !hasDate && planner && today && (
+          <section
+            id="plan-results"
+            className="mt-8 scroll-mt-24"
+            aria-labelledby="plan-title"
+            aria-live="polite"
+          >
+            <CheapestNights
+              results={flexible.results}
+              summary={flexibleSummary}
+              month={month}
+              today={today}
+              pending={!flexible.done}
+              onPickMonth={(m) => commit({ date: null, month: m }, { replace: true })}
+              onChoose={bringToPlan}
+            />
+            <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6">
+              <SharePlan href={canonicalPath} />
+            </div>
           </section>
         )}
 
@@ -622,6 +690,13 @@ export default function PlanPage({ seoCities, initialPlan }) {
                 {formatPlanDate(date)} → {formatPlanDate(plan.endDate)}
               </p>
             </div>
+            <button
+              type="button"
+              onClick={() => commit({ date: null, month: monthOf(date) }, { replace: true })}
+              className="mt-1 text-sm text-primary-green underline-offset-4 hover:underline"
+            >
+              Cheapest nights in {formatPlanMonth(monthOf(date), { today })} →
+            </button>
             {/* What the whole trip costs, when it has more than one train —
                 the same sum the change options showed before it was picked. */}
             {plan.hops.length > 1 && (
@@ -769,13 +844,52 @@ export default function PlanPage({ seoCities, initialPlan }) {
 }
 
 /**
+ * The cheapest way to make a trip on each of `nights`, worked out a few nights
+ * at a time: three months of journeys with changes is about a third of a
+ * second on a laptop and several times that on a phone, which is too long to
+ * hold the page still for.
+ *
+ * @returns {{results: {date: string, option: object|null}[], done: boolean}}
+ */
+function useCheapestNights(planner, cities, stays, nights) {
+  const key =
+    planner && cities.length >= 2 && nights.length
+      ? `${cities.join(">")}|${stays.join(",")}|${nights[0]}|${nights.length}`
+      : "";
+  const [state, setState] = useState({ key: "", results: [], done: true });
+  const inputs = useRef({ planner, cities, stays, nights });
+  inputs.current = { planner, cities, stays, nights };
+
+  useEffect(() => {
+    if (!key) return undefined;
+    const { planner: p, cities: c, stays: st, nights: n } = inputs.current;
+    const results = [];
+    let i = 0;
+    let timer = null;
+    const step = () => {
+      const end = Math.min(n.length, i + 8);
+      for (; i < end; i++) {
+        results.push({ date: n[i], option: cheapestOnNight(p, { cities: c, stays: st, date: n[i] }) });
+      }
+      if (i < n.length) timer = setTimeout(step, 0);
+      else setState({ key, results, done: true });
+    };
+    timer = setTimeout(step, 0);
+    return () => clearTimeout(timer);
+  }, [key]);
+
+  if (!key) return { results: [], done: true };
+  return state.key === key ? state : { results: [], done: false };
+}
+
+/**
  * The trip, collapsed to one line once there is a trip to show.
  *
  * The full form is three fields and a row of date chips — on a phone, the whole
  * first screen. With two cities chosen the reader has answered it; what they
  * want next is the train, so the form folds away and "Change" brings it back.
  */
-function TripSummary({ names, date, onEdit }) {
+function TripSummary({ names, when, onEdit }) {
   return (
     <section
       aria-label="Trip"
@@ -784,8 +898,7 @@ function TripSummary({ names, date, onEdit }) {
       {/* The cities are the heading right above, so this line is the one
           thing the heading does not say: when. */}
       <p className="min-w-0 truncate text-sm text-white/55">
-        Departing{" "}
-        <span className="font-medium text-white">{date ? formatPlanDate(date) : "—"}</span>
+        Departing <span className="font-medium text-white">{when}</span>
         <span className="sr-only"> · {names.join(" → ")}</span>
       </p>
       <button
@@ -800,11 +913,15 @@ function TripSummary({ names, date, onEdit }) {
 }
 
 /** The heading, which has to work before the index has loaded. */
-function headingFor(planner, cities, date) {
+function headingFor(planner, cities, { date = null, month = null, today = "" } = {}) {
   if (cities.length === 0) return { plain: "Where could you go tonight?", rich: "Where could you go tonight?" };
   const names = cities.map((slug) => cityLabel(planner, slug));
   if (cities.length === 1) {
-    const when = date ? ` on ${formatPlanDate(date)}` : " tonight";
+    const when = date
+      ? ` on ${formatPlanDate(date)}`
+      : month
+        ? ` in ${formatPlanMonth(month, { today })}`
+        : "";
     return {
       plain: `Night trains from ${names[0]}`,
       rich: (
@@ -830,11 +947,16 @@ function headingFor(planner, cities, date) {
   };
 }
 
-function EmptyExplore({ city, date }) {
+function EmptyExplore({ city, date, month, today }) {
+  const when = date
+    ? `on ${formatPlanDate(date)}`
+    : month
+      ? `in ${formatPlanMonth(month, { today })}`
+      : "in the next three months";
   return (
     <div className="mt-5 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] p-6">
       <p className="text-white/70">
-        We have no sleeper leaving {city} on {formatPlanDate(date)}.
+        We have no sleeper leaving {city} {when}.
       </p>
       <p className="mt-2 text-sm text-white/45">
         Try another night — many routes run only two or three times a week — or{" "}
@@ -913,7 +1035,7 @@ export async function getStaticProps() {
   return {
     props: {
       seoCities: getTopStartCities(),
-      initialPlan: { cities: [], date: null, stays: [] },
+      initialPlan: { cities: [], date: null, month: null, stays: [] },
     },
   };
 }

@@ -19,7 +19,10 @@ import {
   decodeStays,
   encodeStays,
   hopDates,
+  addMonths,
   isPlanDate,
+  isPlanMonth,
+  nightsInMonth,
   parsePlanPath,
   planPartsFromPath,
   splitCorridor,
@@ -74,6 +77,16 @@ import {
 } from "../src/lib/plan/regions.mjs";
 import { rankCities } from "../src/lib/plan/citySearch.mjs";
 import { compareJourneyFares, journeyFare } from "../src/lib/plan/journeyFare.mjs";
+import { nightFaresFromCalendar, pricingOnNight } from "../src/lib/plan/nightFares.mjs";
+import {
+  cheapestOnNight,
+  departuresAnyNight,
+  flexibleNights,
+  monthChoices,
+  monthGrid,
+  summarizeNights,
+} from "../src/lib/plan/flexible.mjs";
+import { UNRANKED_FARE_SOURCES } from "../src/lib/fareClasses.mjs";
 import CITY_PROMINENCE from "../data/overrides/city-prominence.json" with { type: "json" };
 import { slugify } from "../src/lib/seo/slugify.mjs";
 import { cityForStation } from "../src/lib/seo/cities.mjs";
@@ -775,6 +788,116 @@ check("journeys with a change come cheapest first", () => {
     for (let i = 1; i < journeys.length; i++) {
       assert.ok(compareJourneyFares(journeys[i - 1], journeys[i]) <= 0, `${from} → ${to}: option ${i + 1} is cheaper than ${i}`);
     }
+  }
+});
+
+// ── Any time, or a month: the cheapest night ─────────────────────────────────
+
+check("a month is a plan's 'when' too, and a night outranks it", () => {
+  assert.deepEqual(parsePlanPath(["paris-to-vienna", "2026-11"]), {
+    cities: ["paris", "vienna"], date: null, month: "2026-11", extra: [],
+  });
+  assert.equal(buildPlanHref({ cities: ["paris", "vienna"], month: "2026-11" }), "/plan/paris-to-vienna/2026-11");
+  // No night and no month is "any time": the bare corridor.
+  assert.equal(buildPlanHref({ cities: ["paris", "vienna"] }), "/plan/paris-to-vienna");
+  // A night is the more specific ask.
+  assert.equal(buildPlanPath({ cities: ["paris"], date: "2026-11-06", month: "2026-12" }), "/plan/paris/2026-11-06");
+  assert.equal(parsePlanPath(["paris", "2026-12", "2026-11-06"]).month, null);
+  assert.equal(isPlanMonth("2026-13"), false);
+  assert.equal(addMonths("2026-11", 2), "2027-01");
+  assert.equal(nightsInMonth("2026-02").length, 28);
+  assert.deepEqual(nightsInMonth("2026-10", "2026-10-30"), ["2026-10-30", "2026-10-31"]);
+  assert.deepEqual(monthChoices("2026-10-25", 3), ["2026-10", "2026-11", "2026-12"]);
+  assert.equal(flexibleNights({ today: "2026-10-25" }).length, 92);
+  assert.deepEqual(flexibleNights({ today: "2026-11-29", month: "2026-11" }), ["2026-11-29", "2026-11-30"]);
+  // A Monday-first grid: November 2026 starts on a Sunday.
+  const grid = monthGrid("2026-11", []);
+  assert.equal(grid.slice(0, 6).every((c) => c === null), true);
+  assert.equal(grid[6].date, "2026-11-01");
+  assert.equal(grid.length % 7, 0);
+});
+
+check("a night is priced from the operator's own calendar, never from a seat", () => {
+  const calendar = {
+    currency: "EUR",
+    nights: {
+      "2026-11-02": { classes: { couchette: 59.99, sleeperBed: 99 } },
+      "2026-11-03": { none: true },
+      "2026-11-05": { classes: { lastMinuteCouchette: 40, couchette: 79.99 } },
+      // A berth at its own seat's price is a seat price under a berth's name.
+      "2026-11-06": { classes: { couchette: 39.9, sleeperBed: 89.9 }, seat: 39.9 },
+    },
+  };
+  const nightFares = nightFaresFromCalendar(calendar);
+  assert.deepEqual(nightFares, { start: "2026-11-02", currency: "EUR", prices: [59.99, 0, null, 40, 89.9] });
+  assert.equal(nightFaresFromCalendar({ currency: "EUR", nights: { "2026-11-02": { none: true } } }), null);
+
+  const leg = { pricing: { type: "dynamic", fromPrice: 40, currency: "EUR", travelDate: "2026-11-05" }, nightFares };
+  assert.deepEqual(pricingOnNight(leg, "2026-11-02"), {
+    type: "dynamic", fromPrice: 59.99, currency: "EUR", travelDate: "2026-11-02",
+  });
+  // No berth on sale: the fare model, no figure.
+  assert.deepEqual(pricingOnNight(leg, "2026-11-03"), { type: "dynamic" });
+  // A night the calendar says nothing about keeps the headline, marked so
+  // nothing ranks the night by it.
+  assert.equal(pricingOnNight(leg, "2026-11-04").fromPrice, 40);
+  assert.equal(pricingOnNight(leg, "2026-11-04").nightUnknown, true);
+  assert.equal(pricingOnNight(leg, "2026-12-20").nightUnknown, true);
+  // A train with no calendar is untouched.
+  assert.equal(pricingOnNight({ pricing: leg.pricing }, "2026-11-04"), leg.pricing);
+});
+
+check("the index carries nightly fares, and none from a source no page ranks", () => {
+  const withFares = planner.legs.filter((leg) => leg.nightFares);
+  assert.ok(withFares.length > 0, "some legs carry a fare calendar");
+  const ranked = new Set(withFares.map((leg) => leg.routeId));
+  for (const route of Object.values(payload.viewMap)) {
+    if (UNRANKED_FARE_SOURCES.has(route.timetable_source)) {
+      assert.ok(!ranked.has(String(route.route_id)), `${route.route_id} is ${route.timetable_source}'s`);
+    }
+  }
+  // A dated ride quotes its night, which is what the plan prints.
+  const leg = withFares[0];
+  const i = leg.nightFares.prices.findIndex((p) => p > 0);
+  const night = addDays(leg.nightFares.start, i);
+  const from = leg.stops[0].citySlug;
+  const to = leg.stops[leg.stops.length - 1].citySlug;
+  const ride = ridesBetween(planner, { from, to, date: night }).rides.find((r) => r.legId === leg.id);
+  assert.equal(ride.pricing.fromPrice, leg.nightFares.prices[i]);
+  assert.equal(ride.pricing.travelDate, night);
+});
+
+check("the cheapest night is the night its plan prices, and no headline outranks a real night", () => {
+  const nights = flexibleNights({ today: planner.legs.find((l) => l.nightFares).nightFares.start });
+  for (const cities of [["brussels", "prague"], ["milan", "palermo"], ["paris", "vienna"]]) {
+    const results = nights.map((date) => ({ date, option: cheapestOnNight(planner, { cities, date }) }));
+    const summary = summarizeNights(results);
+    assert.ok(summary.running > 0, `${cities.join(" → ")} runs on some night`);
+    for (const { date, option } of summary.cheapest) {
+      // Opening the night is resolving its plan: the same trains, the same sum.
+      const plan = resolvePlan(planner, option);
+      assert.equal(plan.hops.length, option.hops.length);
+      assert.equal(journeyFare(plan.hops.map((h) => h.best))?.total, option.fare.total, `${cities} ${date}`);
+      // Ranked only on prices that are that night's own.
+      assert.ok(option.hops.every((h) => !h.best.pricing?.nightUnknown), `${cities} ${date} ranked by a headline`);
+    }
+    for (let i = 1; i < summary.cheapest.length; i++) {
+      assert.ok(summary.cheapest[i - 1].option.rank.cents <= summary.cheapest[i].option.rank.cents);
+    }
+  }
+  // Paris has no sleeper to Vienna; any time still finds the change.
+  const paris = nights.map((date) => cheapestOnNight(planner, { cities: ["paris", "vienna"], date })).filter(Boolean);
+  assert.ok(paris.some((o) => o.cities.length === 3), "Paris → Vienna with a change");
+});
+
+check("any time from one city: each destination at its cheapest night", () => {
+  const nights = flexibleNights({ today: "2026-10-26", nights: 30 });
+  const destinations = departuresAnyNight(planner, { from: "milan", nights });
+  assert.ok(destinations.length > 0);
+  for (const d of destinations) {
+    assert.ok(nights.includes(d.date), `${d.city.slug} names a night in the window`);
+    assert.equal(d.best.date, d.date, `${d.city.slug}'s ride is for that night`);
+    assert.ok(d.nightCount >= 1);
   }
 });
 

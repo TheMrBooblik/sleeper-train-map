@@ -174,6 +174,39 @@ test.describe('Planner Smoke Tests', () => {
     await expect(page.getByRole('combobox', { name: 'To', exact: true })).toHaveValue('Vienna');
   });
 
+  test('a trip with no night lists its cheapest nights, and a month is a grid', async ({ page }) => {
+    // "Any time" is the default: the planner tries every night of the next
+    // three months and shows the cheapest. A month narrows it to a grid.
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto('/plan/brussels-to-prague');
+    const results = page.locator('#plan-results');
+    const nights = results.locator('ol > li a');
+    await expect(nights.first()).toBeVisible({ timeout: 30000 });
+    await expect(results.getByRole('heading', { level: 2 })).toHaveText(/Cheapest nights|When it runs/);
+    await expect(page.getByText('Departing Any time')).toBeVisible();
+    // Each night opens that night's plan.
+    expect(await nights.first().getAttribute('href')).toMatch(/\/plan\/brussels-to-[a-z-]+\/\d{4}-\d{2}-\d{2}/);
+
+    // Nothing reaches past a 320px screen. The page scrolls an inner div, so
+    // ask every element rather than the document (see the test above).
+    const overflow = await page.evaluate(() => {
+      let worst = 0;
+      for (const el of document.querySelectorAll('body *')) {
+        const r = el.getBoundingClientRect();
+        if (r.width && r.right > window.innerWidth + 0.5) worst = Math.max(worst, r.right - window.innerWidth);
+      }
+      return worst;
+    });
+    expect(overflow).toBe(0);
+
+    const months = results.getByRole('button', { name: /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/ });
+    if (await months.count()) {
+      await months.first().click();
+      await expect(page).toHaveURL(/\/plan\/brussels-to-prague\/\d{4}-\d{2}$/);
+      await expect(results.locator('.grid-cols-7').first()).toBeVisible();
+    }
+  });
+
   test('a shared plan URL resolves on a cold load', async ({ page }) => {
     await page.goto('/plan/amsterdam-to-vienna/2026-09-18');
     await expect(page.getByRole('heading', { level: 1 })).toContainText(

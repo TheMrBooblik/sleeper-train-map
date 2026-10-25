@@ -41,6 +41,7 @@ import {
   directionFareSummary,
   isDynamicPricing,
   pricingForDirection,
+  UNRANKED_FARE_SOURCES,
 } from "../fareClasses.mjs";
 import { eurHintFor, eurRateNote, formatEurApprox } from "../fx.mjs";
 import { datedBookingHref, fareCalendarAnchor, fareCalendarDays } from "../fareCalendarView.mjs";
@@ -786,19 +787,9 @@ export function getRouteDetail(routeId) {
  * Book link are the same on both pages) and each priced night's own booking
  * link. For /cheap-night-trains.
  */
-/**
- * Fare sources whose figures the cheap-trains page does not rank, because
- * they are known to disagree with the booking page their Book button opens.
- * nightjet.com's Train Price Search quotes Sparschiene couchettes the ÖBB shop
- * does not sell at that price: NJ 465 Zürich → Graz on 26 Oct 2026 and
- * NJ 19946 Wien → Bregenz on 2 Nov 2026 both read €39.90 there (the probe of
- * 15 Oct read the same €39.90 live), while the shop sold couchettes from
- * €54.90 on both nights, seats matching to the cent. A page that sorts by
- * price puts exactly those nights first, so a source stays off it until its
- * figures are confirmed against the shop; the connection pages keep its
- * calendar, where a night is one of forty-two rather than the headline.
- */
-export const UNRANKED_FARE_SOURCES = new Set(["nightjet"]);
+// Kept beside the other fare readers so the planner's index build (raw node)
+// reads the same list; see fareClasses.mjs.
+export { UNRANKED_FARE_SOURCES };
 
 export function getFareOverviewTrains() {
   const { viewMap } = getPublished();
