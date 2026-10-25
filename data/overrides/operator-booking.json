@@ -163,6 +163,9 @@
     "bookingPageUrl": "https://online.ktmb.com.my/",
     "scheduleUrl": "https://www.ktmb.com.my/traintime.html"
   },
+  "UTY": {
+    "bookingPageUrl": "https://eticket.uzrailpass.uz/en/home"
+  },
   "VNR": {
     "bookingPageUrl": "https://dsvn.vn/",
     "scheduleUrl": "https://giotaugiave.dsvn.vn/"

@@ -18,6 +18,7 @@
   "SRT": { "type": "fixed", "currency": "THB", "fromPrice": null, "source": "draft", "note": "SRT distance tariff: fare + train-type supplement + air-conditioning + berth charge" },
   "KTMB": { "type": "fixed", "currency": "MYR", "fromPrice": null, "source": "draft", "note": "KTM Intercity: a fare per class and distance (KTMB's flexi fare applies to ETS only, per its Sep 2025 ticket terms); KITS shows per-class fares only after login" },
   "VNR": { "type": "dynamic", "currency": "VND", "fromPrice": null, "source": "draft", "note": "Vietnam Railways: a fare per train, berth and distance that VNR moves by date and demand (dearer around Tết and summer weekends)" },
+  "UTY": { "type": "fixed", "currency": "UZS", "fromPrice": null, "source": "draft", "note": "Uzbekistan Railways: a distance tariff per class (platskart, kupe, SV); the shop's search quoted the same fare for every train on one stretch (Toshkent – Samarqand platskart 142,980 so'm on five trains, 2026-11-01)" },
   "GR": { "type": "fixed", "currency": "GEL", "fromPrice": null, "source": "draft" },
   "ADY": { "type": "fixed", "currency": "AZN", "fromPrice": null, "source": "draft" },
   "SCR": { "type": "fixed", "currency": "AMD", "fromPrice": null, "source": "draft" },

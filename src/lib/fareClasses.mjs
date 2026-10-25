@@ -30,6 +30,7 @@ export const CURRENCY_SYMBOLS = {
   THB: "฿",
   VND: "₫",
   MYR: "RM ",
+  UZS: "UZS ",
   GEL: "₾",
   AZN: "₼",
   AMD: "֏",
@@ -40,7 +41,7 @@ export const CURRENCY_SYMBOLS = {
 // Grouped with a fixed comma rather than Intl, because this string is
 // server-rendered on the connection pages and Node's ICU and a browser's do not
 // always agree on separators. Everything else prints exactly as before.
-const GROUPED_CURRENCIES = new Set(["JPY", "THB", "VND"]);
+const GROUPED_CURRENCIES = new Set(["JPY", "THB", "VND", "UZS"]);
 
 /** "¥335.5" — the amount as the operator quotes it, with the currency's symbol. */
 export function formatMoney(amount, currency) {
@@ -105,6 +106,15 @@ export const FARE_CLASS_LABELS = {
   vnrHard6Middle: "Hard sleeper, 6-berth cabin, middle berth",
   vnrHard6Upper: "Hard sleeper, 6-berth cabin, top berth",
   vnrHard6: "Hard sleeper, berth in 6-berth cabin",
+  // Uzbekistan Railways (scripts/lib/uty.mjs), from the eticket shop's public
+  // search: one adult, one berth, whole journey, the cheapest berth of each
+  // car type. Platskart is the open car of six-berth bays, kupe a closed
+  // 4-berth compartment, SV a 2-berth one. Seats and the unreserved common
+  // car (umumiy) are left out at the source.
+  utyPlatskart: "Platskart, open sleeper car",
+  utyKupe: "Kupe, berth in 4-berth compartment",
+  utySv: "SV, berth in 2-berth compartment",
+  utyLux: "Lux, berth in 2-berth compartment",
   // European Sleeper (scripts/lib/es-fares.mjs). Every figure is what one
   // adult pays — one bed — except the private compartment: one booking for
   // the whole couchette compartment, up to 5 people. So a 2- or 3-bed cabin

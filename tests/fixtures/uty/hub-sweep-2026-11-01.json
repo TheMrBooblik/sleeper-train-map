@@ -1,0 +1,5354 @@
+{
+ "_comment": "Answers of eticket.uzrailpass.uz POST /api/v3/handbook/trains/list for 2026-11-01, captured by probe-uty on 2026-10-25 (GitHub Actions run 40189621737) and re-serialised from its per-train log lines: every field the reader uses (number, type, brand, both ends, departure and arrival, car types and tariffs) is the shop's, free-seat counts are not kept. Searched from the city code 2900000.",
+ "date": "2026-11-01",
+ "answers": {
+  "2900000>2900850": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "710Ф",
+        "departureDate": "01.11.2026 08:37",
+        "timeOnWay": "01:04",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 09:41",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "GULISTON",
+         "arvStationCode": "2900850"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1В",
+            "tariff": 362190
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TK",
+        "number": "716Ф",
+        "departureDate": "01.11.2026 08:58",
+        "timeOnWay": "01:04",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Qarshi"
+        },
+        "arrivalDate": "01.11.2026 10:02",
+        "brand": "Nasaf",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "GULISTON",
+         "arvStationCode": "2900850"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 198180
+           },
+           {
+            "classServiceType": "1В",
+            "tariff": 362190
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "054Ф",
+        "departureDate": "01.11.2026 16:00",
+        "timeOnWay": "01:12",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Qo'ng'irot"
+        },
+        "arrivalDate": "01.11.2026 17:12",
+        "brand": "Tezyurar",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "GULISTON",
+         "arvStationCode": "2900850"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 113280
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 142130
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "712Ф",
+        "departureDate": "01.11.2026 20:32",
+        "timeOnWay": "01:04",
+        "originRoute": {
+         "depStationName": "Toshkent Shimoliy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 21:36",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "GULISTON",
+         "arvStationCode": "2900850"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 198180
+           },
+           {
+            "classServiceType": "2В",
+            "tariff": 134930
+           },
+           {
+            "classServiceType": "2В",
+            "tariff": 134930
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "082Ф",
+        "departureDate": "01.11.2026 21:12",
+        "timeOnWay": "01:17",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Sariosiyo"
+        },
+        "arrivalDate": "01.11.2026 22:29",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "GULISTON",
+         "arvStationCode": "2900850"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 113280
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 142130
+           }
+          ]
+         },
+         {
+          "type": "SV",
+          "tariffs": [
+           {
+            "classServiceType": "1Л",
+            "tariff": 226910
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "080Ф",
+        "departureDate": "01.11.2026 21:13",
+        "timeOnWay": "01:16",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Termez"
+        },
+        "arrivalDate": "01.11.2026 22:29",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "GULISTON",
+         "arvStationCode": "2900850"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Umumiy",
+          "tariffs": [
+           {
+            "classServiceType": "3О",
+            "tariff": 69710
+           }
+          ]
+         },
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 113280
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 142130
+           }
+          ]
+         },
+         {
+          "type": "SV",
+          "tariffs": [
+           {
+            "classServiceType": "1Л",
+            "tariff": 226910
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "058З",
+        "departureDate": "01.11.2026 21:45",
+        "timeOnWay": "01:16",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Shovot"
+        },
+        "arrivalDate": "01.11.2026 23:01",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "GULISTON",
+         "arvStationCode": "2900850"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 113280
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 142130
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "129Ф",
+        "departureDate": "01.11.2026 23:43",
+        "timeOnWay": "01:12",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Termiz"
+        },
+        "arrivalDate": "02.11.2026 00:55",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "GULISTON",
+         "arvStationCode": "2900850"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 113280
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "YTH",
+        "number": "768Ф",
+        "departureDate": "01.11.2026 07:55",
+        "timeOnWay": "00:52",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Samarqand"
+        },
+        "arrivalDate": "01.11.2026 08:47",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "GULISTON",
+         "arvStationCode": "2900850"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YLCh",
+        "number": "072Ф",
+        "departureDate": "01.11.2026 22:34",
+        "timeOnWay": "01:13",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Olot"
+        },
+        "arrivalDate": "01.11.2026 23:47",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "GULISTON",
+         "arvStationCode": "2900850"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "125Ч",
+        "departureDate": "01.11.2026 22:35",
+        "timeOnWay": "01:12",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Urganch"
+        },
+        "arrivalDate": "01.11.2026 23:47",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "GULISTON",
+         "arvStationCode": "2900850"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900850>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "126Ф",
+        "departureDate": "01.11.2026 04:07",
+        "timeOnWay": "01:16",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Andijan"
+        },
+        "arrivalDate": "01.11.2026 05:23",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "GULISTON",
+         "depStationCode": "2900850",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 142130
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "130Ф",
+        "departureDate": "01.11.2026 05:17",
+        "timeOnWay": "01:16",
+        "originRoute": {
+         "depStationName": "Termiz",
+         "arvStationName": "Andijon"
+        },
+        "arrivalDate": "01.11.2026 06:33",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "GULISTON",
+         "depStationCode": "2900850",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 113280
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 142130
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "YLCh",
+        "number": "071Ф",
+        "departureDate": "01.11.2026 05:47",
+        "timeOnWay": "01:16",
+        "originRoute": {
+         "depStationName": "Olot",
+         "arvStationName": "Toshkkent  janubiy"
+        },
+        "arrivalDate": "01.11.2026 07:03",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "GULISTON",
+         "depStationCode": "2900850",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 113280
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 142130
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "054Щ",
+        "departureDate": "01.11.2026 06:12",
+        "timeOnWay": "01:16",
+        "originRoute": {
+         "depStationName": "Qo'ng'irot",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 07:28",
+        "brand": "Tezyurar",
+        "subRoute": {
+         "depStationName": "GULISTON",
+         "depStationCode": "2900850",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 113280
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 142130
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "056Ж",
+        "departureDate": "01.11.2026 07:06",
+        "timeOnWay": "01:16",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 08:22",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "GULISTON",
+         "depStationCode": "2900850",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 113280
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "080Ь",
+        "departureDate": "01.11.2026 08:24",
+        "timeOnWay": "01:16",
+        "originRoute": {
+         "depStationName": "Termiz",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 09:40",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "GULISTON",
+         "depStationCode": "2900850",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Umumiy",
+          "tariffs": [
+           {
+            "classServiceType": "3О",
+            "tariff": 69710
+           }
+          ]
+         },
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 113280
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 142130
+           }
+          ]
+         },
+         {
+          "type": "SV",
+          "tariffs": [
+           {
+            "classServiceType": "1Л",
+            "tariff": 226910
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "082Г",
+        "departureDate": "01.11.2026 08:24",
+        "timeOnWay": "01:16",
+        "originRoute": {
+         "depStationName": "Sariosiyo",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 09:40",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "GULISTON",
+         "depStationCode": "2900850",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 113280
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 142130
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "703Ф",
+        "departureDate": "01.11.2026 11:10",
+        "timeOnWay": "01:09",
+        "originRoute": {
+         "depStationName": "Qarshi",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 12:19",
+        "brand": "Nasaf",
+        "subRoute": {
+         "depStationName": "GULISTON",
+         "depStationCode": "2900850",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "2В",
+            "tariff": 134930
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "709Ф",
+        "departureDate": "01.11.2026 21:57",
+        "timeOnWay": "01:09",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 23:06",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "GULISTON",
+         "depStationCode": "2900850",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1В",
+            "tariff": 362190
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "711Ф",
+        "departureDate": "01.11.2026 11:10",
+        "timeOnWay": "01:09",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 12:19",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "GULISTON",
+         "depStationCode": "2900850",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "767Ф",
+        "departureDate": "01.11.2026 19:19",
+        "timeOnWay": "00:53",
+        "originRoute": {
+         "depStationName": "Samarqand",
+         "arvStationName": "Toshkent"
+        },
+        "arrivalDate": "01.11.2026 20:12",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "GULISTON",
+         "depStationCode": "2900850",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "715Ф",
+        "departureDate": "01.11.2026 22:45",
+        "timeOnWay": "01:09",
+        "originRoute": {
+         "depStationName": "Qarshi",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 23:54",
+        "brand": "Nasaf",
+        "subRoute": {
+         "depStationName": "GULISTON",
+         "depStationCode": "2900850",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900000>2900720": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "127Ф",
+        "departureDate": "01.11.2026 01:10",
+        "timeOnWay": "02:24",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Qung'irot"
+        },
+        "arrivalDate": "01.11.2026 03:34",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "JIZZAX",
+         "arvStationCode": "2900720"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 129190
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "710Ф",
+        "departureDate": "01.11.2026 08:37",
+        "timeOnWay": "02:04",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 10:41",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "JIZZAX",
+         "arvStationCode": "2900720"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1В",
+            "tariff": 468750
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TK",
+        "number": "716Ф",
+        "departureDate": "01.11.2026 08:58",
+        "timeOnWay": "02:04",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Qarshi"
+        },
+        "arrivalDate": "01.11.2026 11:02",
+        "brand": "Nasaf",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "JIZZAX",
+         "arvStationCode": "2900720"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 251240
+           },
+           {
+            "classServiceType": "1В",
+            "tariff": 468750
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "054Ф",
+        "departureDate": "01.11.2026 16:00",
+        "timeOnWay": "02:35",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Qo'ng'irot"
+        },
+        "arrivalDate": "01.11.2026 18:35",
+        "brand": "Tezyurar",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "JIZZAX",
+         "arvStationCode": "2900720"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 129190
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 166320
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "712Ф",
+        "departureDate": "01.11.2026 20:32",
+        "timeOnWay": "02:04",
+        "originRoute": {
+         "depStationName": "Toshkent Shimoliy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 22:36",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "JIZZAX",
+         "arvStationCode": "2900720"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 251240
+           },
+           {
+            "classServiceType": "2В",
+            "tariff": 169810
+           },
+           {
+            "classServiceType": "2В",
+            "tariff": 169810
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "082Ф",
+        "departureDate": "01.11.2026 21:12",
+        "timeOnWay": "02:36",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Sariosiyo"
+        },
+        "arrivalDate": "01.11.2026 23:48",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "JIZZAX",
+         "arvStationCode": "2900720"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 129190
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 166320
+           }
+          ]
+         },
+         {
+          "type": "SV",
+          "tariffs": [
+           {
+            "classServiceType": "1Л",
+            "tariff": 275500
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "080Ф",
+        "departureDate": "01.11.2026 21:13",
+        "timeOnWay": "02:35",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Termez"
+        },
+        "arrivalDate": "01.11.2026 23:48",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "JIZZAX",
+         "arvStationCode": "2900720"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Umumiy",
+          "tariffs": [
+           {
+            "classServiceType": "3О",
+            "tariff": 80640
+           }
+          ]
+         },
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 129190
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 166320
+           }
+          ]
+         },
+         {
+          "type": "SV",
+          "tariffs": [
+           {
+            "classServiceType": "1Л",
+            "tariff": 275500
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "058З",
+        "departureDate": "01.11.2026 21:45",
+        "timeOnWay": "02:35",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Shovot"
+        },
+        "arrivalDate": "02.11.2026 00:20",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "JIZZAX",
+         "arvStationCode": "2900720"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 129190
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 166320
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "YLCh",
+        "number": "124Ф",
+        "departureDate": "01.11.2026 00:10",
+        "timeOnWay": "02:27",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Volgograd"
+        },
+        "arrivalDate": "01.11.2026 02:37",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "JIZZAX",
+         "arvStationCode": "2900720"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "768Ф",
+        "departureDate": "01.11.2026 07:55",
+        "timeOnWay": "01:42",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Samarqand"
+        },
+        "arrivalDate": "01.11.2026 09:37",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "JIZZAX",
+         "arvStationCode": "2900720"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YLCh",
+        "number": "072Ф",
+        "departureDate": "01.11.2026 22:34",
+        "timeOnWay": "02:27",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Olot"
+        },
+        "arrivalDate": "02.11.2026 01:01",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "JIZZAX",
+         "arvStationCode": "2900720"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "125Ч",
+        "departureDate": "01.11.2026 22:35",
+        "timeOnWay": "02:26",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Urganch"
+        },
+        "arrivalDate": "02.11.2026 01:01",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "JIZZAX",
+         "arvStationCode": "2900720"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "129Ф",
+        "departureDate": "01.11.2026 23:43",
+        "timeOnWay": "02:26",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Termiz"
+        },
+        "arrivalDate": "02.11.2026 02:09",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "JIZZAX",
+         "arvStationCode": "2900720"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900720>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "126Ф",
+        "departureDate": "01.11.2026 02:52",
+        "timeOnWay": "02:31",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Andijan"
+        },
+        "arrivalDate": "01.11.2026 05:23",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "JIZZAX",
+         "depStationCode": "2900720",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 166320
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "130Ф",
+        "departureDate": "01.11.2026 04:01",
+        "timeOnWay": "02:32",
+        "originRoute": {
+         "depStationName": "Termiz",
+         "arvStationName": "Andijon"
+        },
+        "arrivalDate": "01.11.2026 06:33",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "JIZZAX",
+         "depStationCode": "2900720",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 129190
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 166320
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "YLCh",
+        "number": "071Ф",
+        "departureDate": "01.11.2026 04:26",
+        "timeOnWay": "02:37",
+        "originRoute": {
+         "depStationName": "Olot",
+         "arvStationName": "Toshkkent  janubiy"
+        },
+        "arrivalDate": "01.11.2026 07:03",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "JIZZAX",
+         "depStationCode": "2900720",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 166320
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "054Щ",
+        "departureDate": "01.11.2026 04:49",
+        "timeOnWay": "02:39",
+        "originRoute": {
+         "depStationName": "Qo'ng'irot",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 07:28",
+        "brand": "Tezyurar",
+        "subRoute": {
+         "depStationName": "JIZZAX",
+         "depStationCode": "2900720",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 129190
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 166320
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "056Ж",
+        "departureDate": "01.11.2026 05:31",
+        "timeOnWay": "02:51",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 08:22",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "JIZZAX",
+         "depStationCode": "2900720",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 129190
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "080Ь",
+        "departureDate": "01.11.2026 06:51",
+        "timeOnWay": "02:49",
+        "originRoute": {
+         "depStationName": "Termiz",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 09:40",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "JIZZAX",
+         "depStationCode": "2900720",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Umumiy",
+          "tariffs": [
+           {
+            "classServiceType": "3О",
+            "tariff": 80640
+           }
+          ]
+         },
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 129190
+           }
+          ]
+         },
+         {
+          "type": "SV",
+          "tariffs": [
+           {
+            "classServiceType": "1Л",
+            "tariff": 275500
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "082Г",
+        "departureDate": "01.11.2026 06:51",
+        "timeOnWay": "02:49",
+        "originRoute": {
+         "depStationName": "Sariosiyo",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 09:40",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "JIZZAX",
+         "depStationCode": "2900720",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 129190
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 166320
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "703Ф",
+        "departureDate": "01.11.2026 09:49",
+        "timeOnWay": "02:30",
+        "originRoute": {
+         "depStationName": "Qarshi",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 12:19",
+        "brand": "Nasaf",
+        "subRoute": {
+         "depStationName": "JIZZAX",
+         "depStationCode": "2900720",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "2В",
+            "tariff": 169810
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "709Ф",
+        "departureDate": "01.11.2026 20:28",
+        "timeOnWay": "02:38",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 23:06",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "JIZZAX",
+         "depStationCode": "2900720",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1В",
+            "tariff": 468750
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "711Ф",
+        "departureDate": "01.11.2026 09:49",
+        "timeOnWay": "02:30",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 12:19",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "JIZZAX",
+         "depStationCode": "2900720",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "767Ф",
+        "departureDate": "01.11.2026 18:28",
+        "timeOnWay": "01:44",
+        "originRoute": {
+         "depStationName": "Samarqand",
+         "arvStationName": "Toshkent"
+        },
+        "arrivalDate": "01.11.2026 20:12",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "JIZZAX",
+         "depStationCode": "2900720",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "715Ф",
+        "departureDate": "01.11.2026 21:30",
+        "timeOnWay": "02:24",
+        "originRoute": {
+         "depStationName": "Qarshi",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 23:54",
+        "brand": "Nasaf",
+        "subRoute": {
+         "depStationName": "JIZZAX",
+         "depStationCode": "2900720",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900000>2900700": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "127Ф",
+        "departureDate": "01.11.2026 01:10",
+        "timeOnWay": "04:15",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Qung'irot"
+        },
+        "arrivalDate": "01.11.2026 05:25",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 142980
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "710Ф",
+        "departureDate": "01.11.2026 08:37",
+        "timeOnWay": "03:09",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 11:46",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1В",
+            "tariff": 566450
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TK",
+        "number": "716Ф",
+        "departureDate": "01.11.2026 08:58",
+        "timeOnWay": "03:13",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Qarshi"
+        },
+        "arrivalDate": "01.11.2026 12:11",
+        "brand": "Nasaf",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 300560
+           },
+           {
+            "classServiceType": "1В",
+            "tariff": 566450
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "054Ф",
+        "departureDate": "01.11.2026 16:00",
+        "timeOnWay": "04:14",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Qo'ng'irot"
+        },
+        "arrivalDate": "01.11.2026 20:14",
+        "brand": "Tezyurar",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 142980
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "712Ф",
+        "departureDate": "01.11.2026 20:32",
+        "timeOnWay": "03:09",
+        "originRoute": {
+         "depStationName": "Toshkent Shimoliy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 23:41",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 300560
+           },
+           {
+            "classServiceType": "2В",
+            "tariff": 200060
+           },
+           {
+            "classServiceType": "2В",
+            "tariff": 200060
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "082Ф",
+        "departureDate": "01.11.2026 21:12",
+        "timeOnWay": "03:57",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Sariosiyo"
+        },
+        "arrivalDate": "02.11.2026 01:09",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 142980
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 188820
+           }
+          ]
+         },
+         {
+          "type": "SV",
+          "tariffs": [
+           {
+            "classServiceType": "1Л",
+            "tariff": 320060
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "080Ф",
+        "departureDate": "01.11.2026 21:13",
+        "timeOnWay": "03:56",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Termez"
+        },
+        "arrivalDate": "02.11.2026 01:09",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Umumiy",
+          "tariffs": [
+           {
+            "classServiceType": "3О",
+            "tariff": 90390
+           }
+          ]
+         },
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 142980
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 188820
+           }
+          ]
+         },
+         {
+          "type": "SV",
+          "tariffs": [
+           {
+            "classServiceType": "1Л",
+            "tariff": 320060
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "058З",
+        "departureDate": "01.11.2026 21:45",
+        "timeOnWay": "03:57",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Shovot"
+        },
+        "arrivalDate": "02.11.2026 01:42",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 142980
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 188820
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "YLCh",
+        "number": "124Ф",
+        "departureDate": "01.11.2026 00:10",
+        "timeOnWay": "04:20",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Volgograd"
+        },
+        "arrivalDate": "01.11.2026 04:30",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "778Ф",
+        "departureDate": "01.11.2026 06:10",
+        "timeOnWay": "02:13",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 08:23",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "774Ф",
+        "departureDate": "01.11.2026 06:33",
+        "timeOnWay": "02:13",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Shahrisabz"
+        },
+        "arrivalDate": "01.11.2026 08:46",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "В-СКОР",
+        "number": "752Ж",
+        "departureDate": "01.11.2026 07:00",
+        "timeOnWay": "02:13",
+        "originRoute": {
+         "depStationName": "Manguberdi Toshkent Центральный ",
+         "arvStationName": "Xiva"
+        },
+        "arrivalDate": "01.11.2026 09:13",
+        "brand": "Jaloliddin",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "766Ф",
+        "departureDate": "01.11.2026 07:30",
+        "timeOnWay": "02:13",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 09:43",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "768Ф",
+        "departureDate": "01.11.2026 07:55",
+        "timeOnWay": "02:30",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Samarqand"
+        },
+        "arrivalDate": "01.11.2026 10:25",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "770Ф",
+        "departureDate": "01.11.2026 08:30",
+        "timeOnWay": "02:19",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 10:49",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "772Ф",
+        "departureDate": "01.11.2026 19:48",
+        "timeOnWay": "02:25",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 22:13",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YLCh",
+        "number": "072Ф",
+        "departureDate": "01.11.2026 22:34",
+        "timeOnWay": "03:47",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Olot"
+        },
+        "arrivalDate": "02.11.2026 02:21",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "125Ч",
+        "departureDate": "01.11.2026 22:35",
+        "timeOnWay": "03:46",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Urganch"
+        },
+        "arrivalDate": "02.11.2026 02:21",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "129Ф",
+        "departureDate": "01.11.2026 23:43",
+        "timeOnWay": "03:47",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Termiz"
+        },
+        "arrivalDate": "02.11.2026 03:30",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "SAMARQAND",
+         "arvStationCode": "2900700"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900700>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "126Ф",
+        "departureDate": "01.11.2026 01:30",
+        "timeOnWay": "03:53",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Andijan"
+        },
+        "arrivalDate": "01.11.2026 05:23",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 188820
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "130Ф",
+        "departureDate": "01.11.2026 02:40",
+        "timeOnWay": "03:53",
+        "originRoute": {
+         "depStationName": "Termiz",
+         "arvStationName": "Andijon"
+        },
+        "arrivalDate": "01.11.2026 06:33",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 142980
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "054Щ",
+        "departureDate": "01.11.2026 03:20",
+        "timeOnWay": "04:08",
+        "originRoute": {
+         "depStationName": "Qo'ng'irot",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 07:28",
+        "brand": "Tezyurar",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 142980
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 188820
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "056Ж",
+        "departureDate": "01.11.2026 04:10",
+        "timeOnWay": "04:12",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 08:22",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 142980
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "080Ь",
+        "departureDate": "01.11.2026 05:29",
+        "timeOnWay": "04:11",
+        "originRoute": {
+         "depStationName": "Termiz",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 09:40",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Umumiy",
+          "tariffs": [
+           {
+            "classServiceType": "3О",
+            "tariff": 90390
+           }
+          ]
+         },
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 142980
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "082Г",
+        "departureDate": "01.11.2026 05:29",
+        "timeOnWay": "04:11",
+        "originRoute": {
+         "depStationName": "Sariosiyo",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 09:40",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 142980
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 188820
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "703Ф",
+        "departureDate": "01.11.2026 08:10",
+        "timeOnWay": "04:09",
+        "originRoute": {
+         "depStationName": "Qarshi",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 12:19",
+        "brand": "Nasaf",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "2В",
+            "tariff": 200060
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "YLCh",
+        "number": "071Ф",
+        "departureDate": "01.11.2026 02:45",
+        "timeOnWay": "04:18",
+        "originRoute": {
+         "depStationName": "Olot",
+         "arvStationName": "Toshkkent  janubiy"
+        },
+        "arrivalDate": "01.11.2026 07:03",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "771Ф",
+        "departureDate": "01.11.2026 05:21",
+        "timeOnWay": "02:21",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 07:42",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "711Ф",
+        "departureDate": "01.11.2026 08:10",
+        "timeOnWay": "04:09",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 12:19",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "В-СКОР",
+        "number": "751М",
+        "departureDate": "01.11.2026 13:01",
+        "timeOnWay": "02:21",
+        "originRoute": {
+         "depStationName": "Manguberdi Xiva",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 15:22",
+        "brand": "Jaloliddin",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "769Ф",
+        "departureDate": "01.11.2026 16:56",
+        "timeOnWay": "02:21",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 19:17",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "В-СКОР",
+        "number": "753М",
+        "departureDate": "01.11.2026 17:16",
+        "timeOnWay": "02:20",
+        "originRoute": {
+         "depStationName": "МАНГУБЕРДИ ХИВА",
+         "arvStationName": "ТОШКЕНТ-ЙУЛО"
+        },
+        "arrivalDate": "01.11.2026 19:36",
+        "brand": "ЖАЛОЛИДДИН",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "767Ф",
+        "departureDate": "01.11.2026 17:40",
+        "timeOnWay": "02:32",
+        "originRoute": {
+         "depStationName": "Samarqand",
+         "arvStationName": "Toshkent"
+        },
+        "arrivalDate": "01.11.2026 20:12",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "765Ф",
+        "departureDate": "01.11.2026 18:15",
+        "timeOnWay": "02:15",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 20:30",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "773Ф",
+        "departureDate": "01.11.2026 18:49",
+        "timeOnWay": "02:15",
+        "originRoute": {
+         "depStationName": "Shahrisabz",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 21:04",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "709Ф",
+        "departureDate": "01.11.2026 19:23",
+        "timeOnWay": "03:43",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 23:06",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "777Ф",
+        "departureDate": "01.11.2026 20:01",
+        "timeOnWay": "02:15",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 22:16",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "715Ф",
+        "departureDate": "01.11.2026 20:24",
+        "timeOnWay": "03:30",
+        "originRoute": {
+         "depStationName": "Qarshi",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 23:54",
+        "brand": "Nasaf",
+        "subRoute": {
+         "depStationName": "SAMARQAND",
+         "depStationCode": "2900700",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900000>2900930": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "712Ф",
+        "departureDate": "01.11.2026 20:32",
+        "timeOnWay": "04:54",
+        "originRoute": {
+         "depStationName": "Toshkent Shimoliy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "02.11.2026 01:26",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NAVOIY",
+         "arvStationCode": "2900930"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 372900
+           },
+           {
+            "classServiceType": "2В",
+            "tariff": 246550
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "058З",
+        "departureDate": "01.11.2026 21:45",
+        "timeOnWay": "06:10",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Shovot"
+        },
+        "arrivalDate": "02.11.2026 03:55",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NAVOIY",
+         "arvStationCode": "2900930"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 164180
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 221800
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "YLCh",
+        "number": "072Ф",
+        "departureDate": "01.11.2026 22:34",
+        "timeOnWay": "06:38",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Olot"
+        },
+        "arrivalDate": "02.11.2026 05:12",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NAVOIY",
+         "arvStationCode": "2900930"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 164180
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "YLCh",
+        "number": "124Ф",
+        "departureDate": "01.11.2026 00:10",
+        "timeOnWay": "06:31",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Volgograd"
+        },
+        "arrivalDate": "01.11.2026 06:41",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NAVOIY",
+         "arvStationCode": "2900930"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "127Ф",
+        "departureDate": "01.11.2026 01:10",
+        "timeOnWay": "06:12",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Qung'irot"
+        },
+        "arrivalDate": "01.11.2026 07:22",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NAVOIY",
+         "arvStationCode": "2900930"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "778Ф",
+        "departureDate": "01.11.2026 06:10",
+        "timeOnWay": "03:22",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 09:32",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NAVOIY",
+         "arvStationCode": "2900930"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "766Ф",
+        "departureDate": "01.11.2026 07:30",
+        "timeOnWay": "03:28",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 10:58",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NAVOIY",
+         "arvStationCode": "2900930"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "770Ф",
+        "departureDate": "01.11.2026 08:30",
+        "timeOnWay": "03:28",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 11:58",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NAVOIY",
+         "arvStationCode": "2900930"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "710Ф",
+        "departureDate": "01.11.2026 08:37",
+        "timeOnWay": "04:57",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 13:34",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NAVOIY",
+         "arvStationCode": "2900930"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "054Ф",
+        "departureDate": "01.11.2026 16:00",
+        "timeOnWay": "06:13",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Qo'ng'irot"
+        },
+        "arrivalDate": "01.11.2026 22:13",
+        "brand": "Tezyurar",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NAVOIY",
+         "arvStationCode": "2900930"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "772Ф",
+        "departureDate": "01.11.2026 19:48",
+        "timeOnWay": "03:34",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 23:22",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NAVOIY",
+         "arvStationCode": "2900930"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "125Ч",
+        "departureDate": "01.11.2026 22:35",
+        "timeOnWay": "06:37",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Urganch"
+        },
+        "arrivalDate": "02.11.2026 05:12",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NAVOIY",
+         "arvStationCode": "2900930"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900930>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "YLCh",
+        "number": "071Ф",
+        "departureDate": "01.11.2026 00:24",
+        "timeOnWay": "06:39",
+        "originRoute": {
+         "depStationName": "Olot",
+         "arvStationName": "Toshkkent  janubiy"
+        },
+        "arrivalDate": "01.11.2026 07:03",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "NAVOIY",
+         "depStationCode": "2900930",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "054Щ",
+        "departureDate": "01.11.2026 01:12",
+        "timeOnWay": "06:16",
+        "originRoute": {
+         "depStationName": "Qo'ng'irot",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 07:28",
+        "brand": "Tezyurar",
+        "subRoute": {
+         "depStationName": "NAVOIY",
+         "depStationCode": "2900930",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "056Ж",
+        "departureDate": "01.11.2026 02:15",
+        "timeOnWay": "06:07",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 08:22",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "NAVOIY",
+         "depStationCode": "2900930",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "771Ф",
+        "departureDate": "01.11.2026 04:12",
+        "timeOnWay": "03:30",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 07:42",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "NAVOIY",
+         "depStationCode": "2900930",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "711Ф",
+        "departureDate": "01.11.2026 06:21",
+        "timeOnWay": "05:58",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 12:19",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "NAVOIY",
+         "depStationCode": "2900930",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "769Ф",
+        "departureDate": "01.11.2026 15:47",
+        "timeOnWay": "03:30",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 19:17",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "NAVOIY",
+         "depStationCode": "2900930",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "765Ф",
+        "departureDate": "01.11.2026 17:00",
+        "timeOnWay": "03:30",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 20:30",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "NAVOIY",
+         "depStationCode": "2900930",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "709Ф",
+        "departureDate": "01.11.2026 17:56",
+        "timeOnWay": "05:10",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 23:06",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "NAVOIY",
+         "depStationCode": "2900930",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "777Ф",
+        "departureDate": "01.11.2026 18:52",
+        "timeOnWay": "03:24",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 22:16",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "NAVOIY",
+         "depStationCode": "2900930",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "126Ф",
+        "departureDate": "01.11.2026 23:01",
+        "timeOnWay": "06:22",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Andijan"
+        },
+        "arrivalDate": "02.11.2026 05:23",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "NAVOIY",
+         "depStationCode": "2900930",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900000>2900800": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "712Ф",
+        "departureDate": "01.11.2026 20:32",
+        "timeOnWay": "05:55",
+        "originRoute": {
+         "depStationName": "Toshkent Shimoliy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "02.11.2026 02:27",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "BUXORO",
+         "arvStationCode": "2900800"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 421050
+           },
+           {
+            "classServiceType": "2В",
+            "tariff": 276820
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "058З",
+        "departureDate": "01.11.2026 21:45",
+        "timeOnWay": "07:27",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Shovot"
+        },
+        "arrivalDate": "02.11.2026 05:12",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "BUXORO",
+         "arvStationCode": "2900800"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 177990
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 243750
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "YLCh",
+        "number": "072Ф",
+        "departureDate": "01.11.2026 22:34",
+        "timeOnWay": "07:54",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Olot"
+        },
+        "arrivalDate": "02.11.2026 06:28",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "BUXORO",
+         "arvStationCode": "2900800"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 177990
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "YLCh",
+        "number": "124Ф",
+        "departureDate": "01.11.2026 00:10",
+        "timeOnWay": "07:37",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Volgograd"
+        },
+        "arrivalDate": "01.11.2026 07:47",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "BUXORO",
+         "arvStationCode": "2900800"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "127Ф",
+        "departureDate": "01.11.2026 01:10",
+        "timeOnWay": "07:23",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Qung'irot"
+        },
+        "arrivalDate": "01.11.2026 08:33",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "BUXORO",
+         "arvStationCode": "2900800"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "778Ф",
+        "departureDate": "01.11.2026 06:10",
+        "timeOnWay": "04:00",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 10:10",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "BUXORO",
+         "arvStationCode": "2900800"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "В-СКОР",
+        "number": "752Ж",
+        "departureDate": "01.11.2026 07:00",
+        "timeOnWay": "03:54",
+        "originRoute": {
+         "depStationName": "Manguberdi Toshkent Центральный ",
+         "arvStationName": "Xiva"
+        },
+        "arrivalDate": "01.11.2026 10:54",
+        "brand": "Jaloliddin",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "BUXORO",
+         "arvStationCode": "2900800"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "766Ф",
+        "departureDate": "01.11.2026 07:30",
+        "timeOnWay": "04:09",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 11:39",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "BUXORO",
+         "arvStationCode": "2900800"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "770Ф",
+        "departureDate": "01.11.2026 08:30",
+        "timeOnWay": "04:06",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 12:36",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "BUXORO",
+         "arvStationCode": "2900800"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "710Ф",
+        "departureDate": "01.11.2026 08:37",
+        "timeOnWay": "05:58",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "01.11.2026 14:35",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "BUXORO",
+         "arvStationCode": "2900800"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "054Ф",
+        "departureDate": "01.11.2026 16:00",
+        "timeOnWay": "07:15",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Qo'ng'irot"
+        },
+        "arrivalDate": "01.11.2026 23:15",
+        "brand": "Tezyurar",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "BUXORO",
+         "arvStationCode": "2900800"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "772Ф",
+        "departureDate": "01.11.2026 19:48",
+        "timeOnWay": "04:13",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "02.11.2026 00:01",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "BUXORO",
+         "arvStationCode": "2900800"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "125Ч",
+        "departureDate": "01.11.2026 22:35",
+        "timeOnWay": "07:53",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Urganch"
+        },
+        "arrivalDate": "02.11.2026 06:28",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "BUXORO",
+         "arvStationCode": "2900800"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900800>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "054Щ",
+        "departureDate": "01.11.2026 00:02",
+        "timeOnWay": "07:26",
+        "originRoute": {
+         "depStationName": "Qo'ng'irot",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 07:28",
+        "brand": "Tezyurar",
+        "subRoute": {
+         "depStationName": "BUXORO",
+         "depStationCode": "2900800",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "056Ж",
+        "departureDate": "01.11.2026 01:09",
+        "timeOnWay": "07:13",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 08:22",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "BUXORO",
+         "depStationCode": "2900800",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "771Ф",
+        "departureDate": "01.11.2026 03:34",
+        "timeOnWay": "04:08",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 07:42",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "BUXORO",
+         "depStationCode": "2900800",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "711Ф",
+        "departureDate": "01.11.2026 05:21",
+        "timeOnWay": "06:58",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 12:19",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "BUXORO",
+         "depStationCode": "2900800",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "В-СКОР",
+        "number": "751М",
+        "departureDate": "01.11.2026 10:57",
+        "timeOnWay": "04:25",
+        "originRoute": {
+         "depStationName": "Manguberdi Xiva",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 15:22",
+        "brand": "Jaloliddin",
+        "subRoute": {
+         "depStationName": "BUXORO",
+         "depStationCode": "2900800",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "769Ф",
+        "departureDate": "01.11.2026 15:09",
+        "timeOnWay": "04:08",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 19:17",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "BUXORO",
+         "depStationCode": "2900800",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "В-СКОР",
+        "number": "753М",
+        "departureDate": "01.11.2026 15:35",
+        "timeOnWay": "04:01",
+        "originRoute": {
+         "depStationName": "МАНГУБЕРДИ ХИВА",
+         "arvStationName": "ТОШКЕНТ-ЙУЛО"
+        },
+        "arrivalDate": "01.11.2026 19:36",
+        "brand": "ЖАЛОЛИДДИН",
+        "subRoute": {
+         "depStationName": "BUXORO",
+         "depStationCode": "2900800",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "765Ф",
+        "departureDate": "01.11.2026 16:22",
+        "timeOnWay": "04:08",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 20:30",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "BUXORO",
+         "depStationCode": "2900800",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "709Ф",
+        "departureDate": "01.11.2026 16:55",
+        "timeOnWay": "06:11",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 23:06",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "BUXORO",
+         "depStationCode": "2900800",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "YTH",
+        "number": "777Ф",
+        "departureDate": "01.11.2026 18:14",
+        "timeOnWay": "04:02",
+        "originRoute": {
+         "depStationName": "Buxoro",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 22:16",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "BUXORO",
+         "depStationCode": "2900800",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "126Ф",
+        "departureDate": "01.11.2026 21:55",
+        "timeOnWay": "07:28",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Andijan"
+        },
+        "arrivalDate": "02.11.2026 05:23",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "BUXORO",
+         "depStationCode": "2900800",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900000>2900750": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "YTH",
+        "number": "774Ф",
+        "departureDate": "01.11.2026 06:33",
+        "timeOnWay": "03:34",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Shahrisabz"
+        },
+        "arrivalDate": "01.11.2026 10:07",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "QARSHI",
+         "arvStationCode": "2900750"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 642000
+           },
+           {
+            "classServiceType": "2Е",
+            "tariff": 429000
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TK",
+        "number": "716Ф",
+        "departureDate": "01.11.2026 08:58",
+        "timeOnWay": "05:01",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Qarshi"
+        },
+        "arrivalDate": "01.11.2026 13:59",
+        "brand": "Nasaf",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "QARSHI",
+         "arvStationCode": "2900750"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 372900
+           },
+           {
+            "classServiceType": "1В",
+            "tariff": 711820
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "712Ф",
+        "departureDate": "01.11.2026 20:32",
+        "timeOnWay": "05:46",
+        "originRoute": {
+         "depStationName": "Toshkent Shimoliy",
+         "arvStationName": "Buxoro"
+        },
+        "arrivalDate": "02.11.2026 02:18",
+        "brand": "Sharq",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "QARSHI",
+         "arvStationCode": "2900750"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "2В",
+            "tariff": 246550
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "082Ф",
+        "departureDate": "01.11.2026 21:12",
+        "timeOnWay": "06:22",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Sariosiyo"
+        },
+        "arrivalDate": "02.11.2026 03:34",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "QARSHI",
+         "arvStationCode": "2900750"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 171090
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 232610
+           }
+          ]
+         },
+         {
+          "type": "SV",
+          "tariffs": [
+           {
+            "classServiceType": "1Л",
+            "tariff": 408400
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "080Ф",
+        "departureDate": "01.11.2026 21:13",
+        "timeOnWay": "06:21",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Termez"
+        },
+        "arrivalDate": "02.11.2026 03:34",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "QARSHI",
+         "arvStationCode": "2900750"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Umumiy",
+          "tariffs": [
+           {
+            "classServiceType": "3О",
+            "tariff": 109810
+           }
+          ]
+         },
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 171090
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 232610
+           }
+          ]
+         },
+         {
+          "type": "SV",
+          "tariffs": [
+           {
+            "classServiceType": "1Л",
+            "tariff": 408400
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "129Ф",
+        "departureDate": "01.11.2026 23:43",
+        "timeOnWay": "06:23",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Termiz"
+        },
+        "arrivalDate": "02.11.2026 06:06",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "QARSHI",
+         "arvStationCode": "2900750"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900750>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "130Ф",
+        "departureDate": "01.11.2026 00:27",
+        "timeOnWay": "06:06",
+        "originRoute": {
+         "depStationName": "Termiz",
+         "arvStationName": "Andijon"
+        },
+        "arrivalDate": "01.11.2026 06:33",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "QARSHI",
+         "depStationCode": "2900750",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 171090
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "080Ь",
+        "departureDate": "01.11.2026 03:08",
+        "timeOnWay": "06:32",
+        "originRoute": {
+         "depStationName": "Termiz",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 09:40",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "QARSHI",
+         "depStationCode": "2900750",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Umumiy",
+          "tariffs": [
+           {
+            "classServiceType": "3О",
+            "tariff": 109810
+           }
+          ]
+         },
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 171090
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "703Ф",
+        "departureDate": "01.11.2026 05:40",
+        "timeOnWay": "06:39",
+        "originRoute": {
+         "depStationName": "Qarshi",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 12:19",
+        "brand": "Nasaf",
+        "subRoute": {
+         "depStationName": "QARSHI",
+         "depStationCode": "2900750",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "2В",
+            "tariff": 246550
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "YTH",
+        "number": "773Ф",
+        "departureDate": "01.11.2026 17:29",
+        "timeOnWay": "03:35",
+        "originRoute": {
+         "depStationName": "Shahrisabz",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 21:04",
+        "brand": "Afrosiyob",
+        "subRoute": {
+         "depStationName": "QARSHI",
+         "depStationCode": "2900750",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 642000
+           },
+           {
+            "classServiceType": "2Е",
+            "tariff": 429000
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "082Г",
+        "departureDate": "01.11.2026 03:08",
+        "timeOnWay": "06:32",
+        "originRoute": {
+         "depStationName": "Sariosiyo",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "01.11.2026 09:40",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "QARSHI",
+         "depStationCode": "2900750",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "715Ф",
+        "departureDate": "01.11.2026 18:40",
+        "timeOnWay": "05:14",
+        "originRoute": {
+         "depStationName": "Qarshi",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 23:54",
+        "brand": "Nasaf",
+        "subRoute": {
+         "depStationName": "QARSHI",
+         "depStationCode": "2900750",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900000>2900255": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "080Ф",
+        "departureDate": "01.11.2026 21:13",
+        "timeOnWay": "14:04",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Termez"
+        },
+        "arrivalDate": "02.11.2026 11:17",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "TERMIZ",
+         "arvStationCode": "2900255"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Umumiy",
+          "tariffs": [
+           {
+            "classServiceType": "3О",
+            "tariff": 141410
+           }
+          ]
+         },
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 216700
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 304210
+           }
+          ]
+         },
+         {
+          "type": "SV",
+          "tariffs": [
+           {
+            "classServiceType": "1Л",
+            "tariff": 552040
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "129Ф",
+        "departureDate": "01.11.2026 23:43",
+        "timeOnWay": "13:53",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Termiz"
+        },
+        "arrivalDate": "02.11.2026 13:36",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "TERMIZ",
+         "arvStationCode": "2900255"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900255>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "080Ь",
+        "departureDate": "01.11.2026 19:14",
+        "timeOnWay": "14:26",
+        "originRoute": {
+         "depStationName": "Termiz",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "02.11.2026 09:40",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TERMIZ",
+         "depStationCode": "2900255",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Umumiy",
+          "tariffs": [
+           {
+            "classServiceType": "3О",
+            "tariff": 141410
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900000>2900790": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "В-СКОР",
+        "number": "752Ж",
+        "departureDate": "01.11.2026 07:00",
+        "timeOnWay": "07:12",
+        "originRoute": {
+         "depStationName": "Manguberdi Toshkent Центральный ",
+         "arvStationName": "Xiva"
+        },
+        "arrivalDate": "01.11.2026 14:12",
+        "brand": "Jaloliddin",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "URGENCH",
+         "arvStationCode": "2900790"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 970000
+           },
+           {
+            "classServiceType": "2Е",
+            "tariff": 750000
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "058З",
+        "departureDate": "01.11.2026 21:45",
+        "timeOnWay": "13:40",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Shovot"
+        },
+        "arrivalDate": "02.11.2026 11:25",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "URGENCH",
+         "arvStationCode": "2900790"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 245140
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "YLCh",
+        "number": "124Ф",
+        "departureDate": "01.11.2026 00:10",
+        "timeOnWay": "14:29",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Volgograd"
+        },
+        "arrivalDate": "01.11.2026 14:39",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "URGENCH",
+         "arvStationCode": "2900790"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "125Ч",
+        "departureDate": "01.11.2026 22:35",
+        "timeOnWay": "14:11",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Urganch"
+        },
+        "arrivalDate": "02.11.2026 12:46",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "URGENCH",
+         "arvStationCode": "2900790"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900790>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "В-СКОР",
+        "number": "751М",
+        "departureDate": "01.11.2026 07:40",
+        "timeOnWay": "07:42",
+        "originRoute": {
+         "depStationName": "Manguberdi Xiva",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 15:22",
+        "brand": "Jaloliddin",
+        "subRoute": {
+         "depStationName": "URGENCH",
+         "depStationCode": "2900790",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 970000
+           },
+           {
+            "classServiceType": "2Е",
+            "tariff": 750000
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "В-СКОР",
+        "number": "753М",
+        "departureDate": "01.11.2026 11:32",
+        "timeOnWay": "08:04",
+        "originRoute": {
+         "depStationName": "МАНГУБЕРДИ ХИВА",
+         "arvStationName": "ТОШКЕНТ-ЙУЛО"
+        },
+        "arrivalDate": "01.11.2026 19:36",
+        "brand": "ЖАЛОЛИДДИН",
+        "subRoute": {
+         "depStationName": "URGENCH",
+         "depStationCode": "2900790",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "126Ф",
+        "departureDate": "01.11.2026 16:23",
+        "timeOnWay": "13:00",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Andijan"
+        },
+        "arrivalDate": "02.11.2026 05:23",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "URGENCH",
+         "depStationCode": "2900790",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "056Ж",
+        "departureDate": "01.11.2026 19:23",
+        "timeOnWay": "12:59",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "02.11.2026 08:22",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "URGENCH",
+         "depStationCode": "2900790",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900000>2900172": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "В-СКОР",
+        "number": "752Ж",
+        "departureDate": "01.11.2026 07:00",
+        "timeOnWay": "07:42",
+        "originRoute": {
+         "depStationName": "Manguberdi Toshkent Центральный ",
+         "arvStationName": "Xiva"
+        },
+        "arrivalDate": "01.11.2026 14:42",
+        "brand": "Jaloliddin",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "XIVA",
+         "arvStationCode": "2900172"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 1006000
+           },
+           {
+            "classServiceType": "2Е",
+            "tariff": 780000
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900172>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "В-СКОР",
+        "number": "751М",
+        "departureDate": "01.11.2026 07:10",
+        "timeOnWay": "08:12",
+        "originRoute": {
+         "depStationName": "Manguberdi Xiva",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 15:22",
+        "brand": "Jaloliddin",
+        "subRoute": {
+         "depStationName": "XIVA",
+         "depStationCode": "2900172",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "O'rindiqli",
+          "tariffs": [
+           {
+            "classServiceType": "1С",
+            "tariff": 1006000
+           },
+           {
+            "classServiceType": "2Е",
+            "tariff": 780000
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "В-СКОР",
+        "number": "753М",
+        "departureDate": "01.11.2026 11:00",
+        "timeOnWay": "08:36",
+        "originRoute": {
+         "depStationName": "МАНГУБЕРДИ ХИВА",
+         "arvStationName": "ТОШКЕНТ-ЙУЛО"
+        },
+        "arrivalDate": "01.11.2026 19:36",
+        "brand": "ЖАЛОЛИДДИН",
+        "subRoute": {
+         "depStationName": "XIVA",
+         "depStationCode": "2900172",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "126Ф",
+        "departureDate": "01.11.2026 15:33",
+        "timeOnWay": "13:50",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Andijan"
+        },
+        "arrivalDate": "02.11.2026 05:23",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "XIVA",
+         "depStationCode": "2900172",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "056Ж",
+        "departureDate": "01.11.2026 18:30",
+        "timeOnWay": "13:52",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "02.11.2026 08:22",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "XIVA",
+         "depStationCode": "2900172",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900000>2900970": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "YLCh",
+        "number": "124Ф",
+        "departureDate": "01.11.2026 00:10",
+        "timeOnWay": "19:00",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Volgograd"
+        },
+        "arrivalDate": "01.11.2026 19:10",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NUKUS",
+         "arvStationCode": "2900970"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "127Ф",
+        "departureDate": "01.11.2026 01:10",
+        "timeOnWay": "18:40",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Qung'irot"
+        },
+        "arrivalDate": "01.11.2026 19:50",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NUKUS",
+         "arvStationCode": "2900970"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "054Ф",
+        "departureDate": "01.11.2026 16:00",
+        "timeOnWay": "16:18",
+        "originRoute": {
+         "depStationName": "Toshkent janubiy",
+         "arvStationName": "Qo'ng'irot"
+        },
+        "arrivalDate": "02.11.2026 08:18",
+        "brand": "Tezyurar",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "NUKUS",
+         "arvStationCode": "2900970"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900970>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "054Щ",
+        "departureDate": "01.11.2026 15:13",
+        "timeOnWay": "16:15",
+        "originRoute": {
+         "depStationName": "Qo'ng'irot",
+         "arvStationName": "Toshkent janubiy"
+        },
+        "arrivalDate": "02.11.2026 07:28",
+        "brand": "Tezyurar",
+        "subRoute": {
+         "depStationName": "NUKUS",
+         "depStationCode": "2900970",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900000>2900680": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "126Ф",
+        "departureDate": "01.11.2026 06:18",
+        "timeOnWay": "06:41",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Andijan"
+        },
+        "arrivalDate": "01.11.2026 12:59",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "ANDIJON",
+         "arvStationCode": "2900680"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 157100
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 210660
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "130Ф",
+        "departureDate": "01.11.2026 08:10",
+        "timeOnWay": "06:29",
+        "originRoute": {
+         "depStationName": "Termiz",
+         "arvStationName": "Andijon"
+        },
+        "arrivalDate": "01.11.2026 14:39",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "ANDIJON",
+         "arvStationCode": "2900680"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 210660
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "730З",
+        "departureDate": "01.11.2026 07:20",
+        "timeOnWay": "04:22",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Andijon"
+        },
+        "arrivalDate": "01.11.2026 11:42",
+        "brand": "NU",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "ANDIJON",
+         "arvStationCode": "2900680"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900680>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "YTH",
+        "number": "731Г",
+        "departureDate": "01.11.2026 07:20",
+        "timeOnWay": "04:52",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Toshkent Shimoliy"
+        },
+        "arrivalDate": "01.11.2026 12:12",
+        "brand": "NU",
+        "subRoute": {
+         "depStationName": "ANDIJON",
+         "depStationCode": "2900680",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "729Ь",
+        "departureDate": "01.11.2026 15:33",
+        "timeOnWay": "04:22",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 19:55",
+        "brand": "NU",
+        "subRoute": {
+         "depStationName": "ANDIJON",
+         "depStationCode": "2900680",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "125Ч",
+        "departureDate": "01.11.2026 15:50",
+        "timeOnWay": "06:08",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Urganch"
+        },
+        "arrivalDate": "01.11.2026 21:58",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "ANDIJON",
+         "depStationCode": "2900680",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "129Ф",
+        "departureDate": "01.11.2026 16:34",
+        "timeOnWay": "06:04",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Termiz"
+        },
+        "arrivalDate": "01.11.2026 22:38",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "ANDIJON",
+         "depStationCode": "2900680",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900000>2900940": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": []
+     }
+    }
+   },
+   "error": null
+  },
+  "2900940>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": []
+     }
+    }
+   },
+   "error": null
+  },
+  "2900000>2900880": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "126Ф",
+        "departureDate": "01.11.2026 06:18",
+        "timeOnWay": "04:54",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Andijan"
+        },
+        "arrivalDate": "01.11.2026 11:12",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "QOQON",
+         "arvStationCode": "2900880"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 136100
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 177680
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "130Ф",
+        "departureDate": "01.11.2026 08:10",
+        "timeOnWay": "04:40",
+        "originRoute": {
+         "depStationName": "Termiz",
+         "arvStationName": "Andijon"
+        },
+        "arrivalDate": "01.11.2026 12:50",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "QOQON",
+         "arvStationCode": "2900880"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 177680
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "730З",
+        "departureDate": "01.11.2026 07:20",
+        "timeOnWay": "03:06",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Andijon"
+        },
+        "arrivalDate": "01.11.2026 10:26",
+        "brand": "NU",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "QOQON",
+         "arvStationCode": "2900880"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900880>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "YTH",
+        "number": "731Г",
+        "departureDate": "01.11.2026 08:35",
+        "timeOnWay": "03:37",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Toshkent Shimoliy"
+        },
+        "arrivalDate": "01.11.2026 12:12",
+        "brand": "NU",
+        "subRoute": {
+         "depStationName": "QOQON",
+         "depStationCode": "2900880",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "729Ь",
+        "departureDate": "01.11.2026 16:48",
+        "timeOnWay": "03:07",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 19:55",
+        "brand": "NU",
+        "subRoute": {
+         "depStationName": "QOQON",
+         "depStationCode": "2900880",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "125Ч",
+        "departureDate": "01.11.2026 17:33",
+        "timeOnWay": "04:25",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Urganch"
+        },
+        "arrivalDate": "01.11.2026 21:58",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "QOQON",
+         "depStationCode": "2900880",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "129Ф",
+        "departureDate": "01.11.2026 18:15",
+        "timeOnWay": "04:23",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Termiz"
+        },
+        "arrivalDate": "01.11.2026 22:38",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "QOQON",
+         "depStationCode": "2900880",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900000>2900920": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "126Ф",
+        "departureDate": "01.11.2026 06:18",
+        "timeOnWay": "05:45",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Andijan"
+        },
+        "arrivalDate": "01.11.2026 12:03",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "MARGILON",
+         "arvStationCode": "2900920"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 150090
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 199740
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "130Ф",
+        "departureDate": "01.11.2026 08:10",
+        "timeOnWay": "05:36",
+        "originRoute": {
+         "depStationName": "Termiz",
+         "arvStationName": "Andijon"
+        },
+        "arrivalDate": "01.11.2026 13:46",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "MARGILON",
+         "arvStationCode": "2900920"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 199740
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "730З",
+        "departureDate": "01.11.2026 07:20",
+        "timeOnWay": "03:42",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Andijon"
+        },
+        "arrivalDate": "01.11.2026 11:02",
+        "brand": "NU",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "MARGILON",
+         "arvStationCode": "2900920"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900920>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "YTH",
+        "number": "731Г",
+        "departureDate": "01.11.2026 08:00",
+        "timeOnWay": "04:12",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Toshkent Shimoliy"
+        },
+        "arrivalDate": "01.11.2026 12:12",
+        "brand": "NU",
+        "subRoute": {
+         "depStationName": "MARGILON",
+         "depStationCode": "2900920",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "125Ч",
+        "departureDate": "01.11.2026 16:43",
+        "timeOnWay": "05:15",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Urganch"
+        },
+        "arrivalDate": "01.11.2026 21:58",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "MARGILON",
+         "depStationCode": "2900920",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "129Ф",
+        "departureDate": "01.11.2026 17:26",
+        "timeOnWay": "05:12",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Termiz"
+        },
+        "arrivalDate": "01.11.2026 22:38",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "MARGILON",
+         "depStationCode": "2900920",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900000>2900693": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "TY",
+        "number": "126Ф",
+        "departureDate": "01.11.2026 06:18",
+        "timeOnWay": "04:00",
+        "originRoute": {
+         "depStationName": "Xiva",
+         "arvStationName": "Andijan"
+        },
+        "arrivalDate": "01.11.2026 10:18",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "POP",
+         "arvStationCode": "2900693"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Plaskartli",
+          "tariffs": [
+           {
+            "classServiceType": "3П",
+            "tariff": 129190
+           }
+          ]
+         },
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 166320
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "130Ф",
+        "departureDate": "01.11.2026 08:10",
+        "timeOnWay": "04:03",
+        "originRoute": {
+         "depStationName": "Termiz",
+         "arvStationName": "Andijon"
+        },
+        "arrivalDate": "01.11.2026 12:13",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "POP",
+         "arvStationCode": "2900693"
+        },
+        "providerType": "EXPRESS",
+        "cars": [
+         {
+          "type": "Kupe",
+          "tariffs": [
+           {
+            "classServiceType": "2К",
+            "tariff": 166320
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "type": "TY",
+        "number": "730З",
+        "departureDate": "01.11.2026 07:20",
+        "timeOnWay": "02:36",
+        "originRoute": {
+         "depStationName": "Toshkent Markaziy",
+         "arvStationName": "Andijon"
+        },
+        "arrivalDate": "01.11.2026 09:56",
+        "brand": "NU",
+        "subRoute": {
+         "depStationName": "TOSHKENT",
+         "depStationCode": "2900000",
+         "arvStationName": "POP",
+         "arvStationCode": "2900693"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  },
+  "2900693>2900000": {
+   "data": {
+    "directions": {
+     "forward": {
+      "trains": [
+       {
+        "type": "СКРСТ",
+        "number": "731ФГ",
+        "departureDate": "01.11.2026 09:06",
+        "timeOnWay": "04:01",
+        "originRoute": {
+         "depStationName": "АНДИЖОН 1",
+         "arvStationName": "ТОШКЕНТ-ЙУЛО"
+        },
+        "arrivalDate": "01.11.2026 13:07",
+        "brand": null,
+        "subRoute": {
+         "depStationName": "POP",
+         "depStationCode": "2900693",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "729Ь",
+        "departureDate": "01.11.2026 17:18",
+        "timeOnWay": "02:37",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Toshkent Markaziy"
+        },
+        "arrivalDate": "01.11.2026 19:55",
+        "brand": "NU",
+        "subRoute": {
+         "depStationName": "POP",
+         "depStationCode": "2900693",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "125Ч",
+        "departureDate": "01.11.2026 18:10",
+        "timeOnWay": "03:48",
+        "originRoute": {
+         "depStationName": "Andijon 1",
+         "arvStationName": "Urganch"
+        },
+        "arrivalDate": "01.11.2026 21:58",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "POP",
+         "depStationCode": "2900693",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       },
+       {
+        "type": "TY",
+        "number": "129Ф",
+        "departureDate": "01.11.2026 18:52",
+        "timeOnWay": "03:46",
+        "originRoute": {
+         "depStationName": "Andijon",
+         "arvStationName": "Termiz"
+        },
+        "arrivalDate": "01.11.2026 22:38",
+        "brand": "Yo'lovchi",
+        "subRoute": {
+         "depStationName": "POP",
+         "depStationCode": "2900693",
+         "arvStationName": "TOSHKENT",
+         "arvStationCode": "2900000"
+        },
+        "providerType": "EXPRESS"
+       }
+      ]
+     }
+    }
+   },
+   "error": null
+  }
+ }
+}

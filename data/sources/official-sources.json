@@ -856,6 +856,39 @@
         }
       ]
     },
+    "UTY": {
+      "website": "https://railway.uz",
+      "countries": ["UZ"],
+      "integrationStatus": "in-progress",
+      "difficulty": "medium",
+      "notes": "Registry id `uty`. Uzbekistan Railways publishes no GTFS (none in the Mobility Database) and no open timetable. Its ticket shop eticket.railway.uz moved to eticket.uzrailpass.uz (301 since October 2026); only the public train search is read, the call the shop's page makes before login. Stop lists are built from searches to and from Toshkent Janubiy, where every domestic night train calls (scripts/lib/uty.mjs); days and whole-journey berth fares from searches between each train's ends over seven dates. The route call and the station boards need a login and are not read. International trains (Moscow, Kazan, Volgograd, Almaty, Dushanbe) run beyond the configured stations and are left out for now.",
+      "sources": [
+        {
+          "name": "UTY eticket: POST /api/v3/handbook/trains/list (public search)",
+          "url": "https://eticket.uzrailpass.uz/en/home",
+          "docsUrl": null,
+          "format": "JSON (XSRF-TOKEN cookie from GET /api/v1/csrf-token, echoed as X-XSRF-TOKEN)",
+          "provides": ["stops", "times", "days", "fares"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": "2026-10-25",
+          "probeWorkflow": "probe-uty.yml",
+          "notes": "Every train between two stations on a date: type, number (a letter per direction and variant, 080Ф / 080Ь), departure and arrival (dd.MM.yyyy HH:mm, Tashkent time), the train's own ends, brand, and per car type (Plaskartli, Kupe, SV, Umumiy, O'rindiqli) the tariff in so'm by service class; a train with nothing left on sale has no car list. Station codes from POST /api/v1/handbook/stations/list {name} (a prefix search, 204 for no hit). reCAPTCHA guards only login, registration and ticket checks; a 429 is the shop's 'user_blocked'."
+        },
+        {
+          "name": "UTY eticket: POST /api/v1/handbook/trains/route, GET /api/v1/handbook/stations/schedule/{code}",
+          "url": "https://eticket.uzrailpass.uz/en/home",
+          "docsUrl": null,
+          "format": "JSON",
+          "provides": ["stops", "times"],
+          "auth": "account",
+          "status": "discovered",
+          "lastChecked": "2026-10-25",
+          "probeWorkflow": "probe-uty.yml",
+          "notes": "A train's full route and a station's departures. Both answer 401 without a login (probe, 2026-10-25), so neither is read: this map does not log in."
+        }
+      ]
+    },
     "KTMB": {
       "website": "https://www.ktmb.com.my",
       "countries": ["MY"],

@@ -447,6 +447,44 @@
   },
   {
     "v": 1,
+    "id": "uty",
+    "label": "Uzbekistan Railways",
+    "description": "Uzbekistan's night trains (Toshkent – Xiva, Urganch, Shovot, Qo'ng'irot, Termiz, Sariosiyo, Olot; Andijon – Xiva, Termiz, Qo'ng'irot) from UTY's own ticket shop eticket.uzrailpass.uz (eticket.railway.uz redirects there): only its public train search, the call the shop's page makes before login. A train answers a search between two stations exactly when it serves both, so searches from Toshkent Janubiy — where every domestic night train calls — to every station in data/sources/uty-sleepers.json and back give each train its stops and the official time at each; searches between each train's own ends over seven dates give its days and the whole journey's fare for every berth (platskart, kupe, SV) in so'm. The route and station-board calls need a login and are never read. Kept: trains that run through a night, take at least five hours and sell a berth. The line follows OpenStreetMap's track (osm-uty-track.json, weekly). Probe workflow: 'Probe UTY source'.",
+    "kind": "json-api",
+    "adapter": "uty",
+    "enabled": true,
+    "official": true,
+    "trusted": false,
+    "critical": false,
+    "schedule": "daily",
+    "homepage": "https://railway.uz",
+    "endpoint": "https://eticket.uzrailpass.uz",
+    "docsUrl": null,
+    "output": "uty-trains.json",
+    "missingResponse": "empty",
+    "agencyDefaults": { "agencyId": "UTY", "operatorName": "Uzbekistan Railways" },
+    "synthetic": {
+      "idPrefix": "uty_",
+      "agency": { "from": "fixed", "value": "UTY" },
+      "resolveAliases": false,
+      "withService": true,
+      "excludeBotMatched": false,
+      "dedupStrategy": null
+    },
+    "params": {
+      "configPath": "data/sources/uty-sleepers.json",
+      "baseUrl": "https://eticket.uzrailpass.uz",
+      "dateOffsetDays": 7,
+      "osmTrack": {
+        "file": "osm-uty-track.json",
+        "maxAgeDays": 7,
+        "bbox": [37.1, 55.9, 45.6, 73.2]
+      }
+    },
+    "freshness": { "ttlHours": 25 }
+  },
+  {
+    "v": 1,
     "id": "curated",
     "label": "Curated routes",
     "description": "Admin-approved routes from data/canonical/routes/ (added via the review queue) — coverage beyond what any scraper provides",
@@ -962,7 +1000,8 @@
       "feedUrl": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml",
       "requiredCurrencies": ["JPY", "CNY", "USD"],
       "supplements": [
-        { "currency": "VND", "url": "https://ec.europa.eu/budg/inforeuro/api/public/currencies/vnd" }
+        { "currency": "VND", "url": "https://ec.europa.eu/budg/inforeuro/api/public/currencies/vnd" },
+        { "currency": "UZS", "url": "https://ec.europa.eu/budg/inforeuro/api/public/currencies/uzs" }
       ]
     },
     "freshness": { "ttlHours": 25 }

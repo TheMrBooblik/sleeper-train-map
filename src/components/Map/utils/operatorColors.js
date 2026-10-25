@@ -69,6 +69,9 @@ export const OPERATOR_BRAND_COLORS = {
   // Vietnam
   VNR: "#0E7C3A", // Vietnam Railways (Đường sắt Việt Nam) – VNR green
 
+  // Uzbekistan
+  UTY: "#0099B5", // Uzbekistan Railways (O'zbekiston temir yo'llari) – UTY teal
+
   // Caucasus
   GR: "#D4380D", // Georgian Railway – Georgian red-orange
   ADY: "#0080C8", // ADY (Azerbaijan Railways) – ADY blue
