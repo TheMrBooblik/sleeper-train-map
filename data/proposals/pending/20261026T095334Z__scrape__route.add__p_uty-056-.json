@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_uty-056-",
+  "createdAt": "2026-10-26T09:53:34.886Z",
+  "source": "scrape",
+  "sourceDetail": "uty",
+  "kind": "route.add",
+  "title": "New train: 056Ж (Xiva – Toshkent Janubiy)",
+  "summary": "Route \"uty_056Ж\" appeared in tonight's scrape and is withheld from the map until approved. Via: Urganch - Buxoro - Navoiy - Samarqand - Jizzax - Guliston",
+  "target": {
+    "routeKey": "uty_056Ж",
+    "agencyId": "UTY",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "056Ж",
+    "returnTrain": "056Ч",
+    "origin": "Xiva",
+    "destination": "Toshkent Janubiy",
+    "operator": "UTY",
+    "operatingDays": "Wed, Thu, Sat, Sun"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "uty_056Ж"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
