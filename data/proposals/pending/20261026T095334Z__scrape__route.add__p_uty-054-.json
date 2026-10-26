@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_uty-054-",
+  "createdAt": "2026-10-26T09:53:34.886Z",
+  "source": "scrape",
+  "sourceDetail": "uty",
+  "kind": "route.add",
+  "title": "New train: 054Ф (Toshkent Janubiy – Qo'ng'irot)",
+  "summary": "Route \"uty_054Ф\" appeared in tonight's scrape and is withheld from the map until approved. Via: Guliston - Jizzax - Samarqand - Navoiy - Buxoro - Miskin - Nukus",
+  "target": {
+    "routeKey": "uty_054Ф",
+    "agencyId": "UTY",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "054Ф",
+    "returnTrain": "054Щ",
+    "origin": "Toshkent Janubiy",
+    "destination": "Qo'ng'irot",
+    "operator": "UTY",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "uty_054Ф"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
