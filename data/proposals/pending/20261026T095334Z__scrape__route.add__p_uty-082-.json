@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_uty-082-",
+  "createdAt": "2026-10-26T09:53:34.886Z",
+  "source": "scrape",
+  "sourceDetail": "uty",
+  "kind": "route.add",
+  "title": "New train: 082Г (Sariosiyo – Toshkent Janubiy)",
+  "summary": "Route \"uty_082Г\" appeared in tonight's scrape and is withheld from the map until approved. Via: Qarshi - Samarqand - Jizzax - Guliston",
+  "target": {
+    "routeKey": "uty_082Г",
+    "agencyId": "UTY",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "082Г",
+    "returnTrain": "082Ф",
+    "origin": "Sariosiyo",
+    "destination": "Toshkent Janubiy",
+    "operator": "UTY",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "uty_082Г"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
