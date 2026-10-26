@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_uty-058-",
+  "createdAt": "2026-10-26T09:53:34.886Z",
+  "source": "scrape",
+  "sourceDetail": "uty",
+  "kind": "route.add",
+  "title": "New train: 058З (Toshkent Janubiy – Shovot)",
+  "summary": "Route \"uty_058З\" appeared in tonight's scrape and is withheld from the map until approved. Via: Guliston - Jizzax - Samarqand - Navoiy - Buxoro - Urganch",
+  "target": {
+    "routeKey": "uty_058З",
+    "agencyId": "UTY",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "058З",
+    "returnTrain": "058Ь",
+    "origin": "Toshkent Janubiy",
+    "destination": "Shovot",
+    "operator": "UTY",
+    "operatingDays": "Mon, Thu, Sun"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "uty_058З"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
