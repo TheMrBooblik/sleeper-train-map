@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_uty-080-",
+  "createdAt": "2026-10-26T09:53:34.886Z",
+  "source": "scrape",
+  "sourceDetail": "uty",
+  "kind": "route.add",
+  "title": "New train: 080Ф (Toshkent Janubiy – Termiz)",
+  "summary": "Route \"uty_080Ф\" appeared in tonight's scrape and is withheld from the map until approved. Via: Guliston - Jizzax - Samarqand - Qarshi",
+  "target": {
+    "routeKey": "uty_080Ф",
+    "agencyId": "UTY",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "080Ф",
+    "returnTrain": "080Ь",
+    "origin": "Toshkent Janubiy",
+    "destination": "Termiz",
+    "operator": "UTY",
+    "operatingDays": "Daily"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "uty_080Ф"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
