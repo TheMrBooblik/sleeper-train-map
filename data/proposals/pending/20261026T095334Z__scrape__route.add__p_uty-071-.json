@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_uty-071-",
+  "createdAt": "2026-10-26T09:53:34.886Z",
+  "source": "scrape",
+  "sourceDetail": "uty",
+  "kind": "route.add",
+  "title": "New train: 071Ф (Olot – Toshkent Janubiy)",
+  "summary": "Route \"uty_071Ф\" appeared in tonight's scrape and is withheld from the map until approved. Via: Buxoro - Navoiy - Samarqand - Jizzax - Guliston",
+  "target": {
+    "routeKey": "uty_071Ф",
+    "agencyId": "UTY",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "071Ф",
+    "returnTrain": "072Ф",
+    "origin": "Olot",
+    "destination": "Toshkent Janubiy",
+    "operator": "UTY",
+    "operatingDays": "Mon, Thu, Sat"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "uty_071Ф"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
