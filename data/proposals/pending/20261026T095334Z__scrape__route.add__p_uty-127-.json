@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_uty-127-",
+  "createdAt": "2026-10-26T09:53:34.886Z",
+  "source": "scrape",
+  "sourceDetail": "uty",
+  "kind": "route.add",
+  "title": "New train: 127Ф (Andijon – Qo'ng'irot)",
+  "summary": "Route \"uty_127Ф\" appeared in tonight's scrape and is withheld from the map until approved. Via: Namangan - Pop - Toshkent Janubiy - Jizzax - Samarqand - Navoiy - Buxoro - Miskin - Nukus",
+  "target": {
+    "routeKey": "uty_127Ф",
+    "agencyId": "UTY",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "127Ф",
+    "returnTrain": "128Ф",
+    "origin": "Andijon",
+    "destination": "Qo'ng'irot",
+    "operator": "UTY",
+    "operatingDays": "Tue, Wed, Sat"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "uty_127Ф"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
