@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_uty-125-",
+  "createdAt": "2026-10-26T09:53:34.886Z",
+  "source": "scrape",
+  "sourceDetail": "uty",
+  "kind": "route.add",
+  "title": "New train: 125Ф (Andijon – Xiva)",
+  "summary": "Route \"uty_125Ф\" appeared in tonight's scrape and is withheld from the map until approved. Via: Marg'ilon - Qo'qon - Pop - Toshkent Janubiy - Guliston - Jizzax - Samarqand - Navoiy - Buxoro - Urganch",
+  "target": {
+    "routeKey": "uty_125Ф",
+    "agencyId": "UTY",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "125Ф",
+    "returnTrain": "126Ф",
+    "origin": "Andijon",
+    "destination": "Xiva",
+    "operator": "UTY",
+    "operatingDays": "Mon, Tue, Fri, Sat"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "uty_125Ф"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
