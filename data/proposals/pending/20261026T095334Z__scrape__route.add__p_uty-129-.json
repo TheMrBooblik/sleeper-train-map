@@ -1,0 +1,35 @@
+{
+  "v": 1,
+  "id": "p_uty-129-",
+  "createdAt": "2026-10-26T09:53:34.886Z",
+  "source": "scrape",
+  "sourceDetail": "uty",
+  "kind": "route.add",
+  "title": "New train: 129Ф (Andijon – Termiz)",
+  "summary": "Route \"uty_129Ф\" appeared in tonight's scrape and is withheld from the map until approved. Via: Marg'ilon - Qo'qon - Pop - Toshkent Janubiy - Guliston - Jizzax - Samarqand - Qarshi",
+  "target": {
+    "routeKey": "uty_129Ф",
+    "agencyId": "UTY",
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": {
+    "train": "129Ф",
+    "returnTrain": "130Ф",
+    "origin": "Andijon",
+    "destination": "Termiz",
+    "operator": "UTY",
+    "operatingDays": "Mon, Tue, Wed, Fri, Sun"
+  },
+  "apply": {
+    "type": "seen.approve",
+    "payload": {
+      "routeKey": "uty_129Ф"
+    }
+  },
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
