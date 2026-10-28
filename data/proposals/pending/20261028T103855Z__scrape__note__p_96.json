@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_96",
+  "createdAt": "2026-10-28T10:38:55.335Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Disappeared: IC Notte 788|IC Notte 789",
+  "summary": "Route \"96\" (Lecce – Roma Termini) has been missing from the sources for 7 days and is no longer shown. No action needed if the train was discontinued.",
+  "target": {
+    "routeKey": "96",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
