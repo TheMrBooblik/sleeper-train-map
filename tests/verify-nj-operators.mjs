@@ -587,7 +587,7 @@ await check("committed payload: partner rows priced by no one, ÖBB's rows uncha
   const przemysl = vm.nj_standalone_EN_40417 ?? vm.nj_standalone_EN_40416;
   assert.equal(przemysl.agency_id, "PKP", "München–Przemyśl is PKP's");
   // Zagreb–Stuttgart is HŽPP's train, sold only in ÖBB's shop.
-  const zagreb = vm.nj_standalone_EN_414;
+  const zagreb = Object.values(vm).find((r) => [0, 1].some((d) => r[`trip_short_name_${d}`] === "EN 414"));
   assert.equal(zagreb.agency_id, "HŽPP/ÖBB");
   assert.equal(zagreb.bot_agency_id, undefined);
   assert.equal(zagreb.pricing?.type, "dynamic");
