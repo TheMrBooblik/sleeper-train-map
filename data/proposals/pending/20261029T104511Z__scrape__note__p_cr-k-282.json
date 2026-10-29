@@ -1,0 +1,31 @@
+{
+  "v": 1,
+  "id": "p_cr-k-282",
+  "createdAt": "2026-10-29T10:45:11.512Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: K 282 (Shanghai(上海) – 成都龙泉驿)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Chengdu West(成都西)\" → \"成都龙泉驿\"; operating days (return): \"null\" → \"Daily\"; train numbers: \"K 282\" → \"K 282|K 284\"",
+  "target": {
+    "routeKey": "cr_K_282",
+    "agencyId": "CR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Chengdu West(成都西)",
+    "operating days (return)": null,
+    "train numbers": "K 282"
+  },
+  "after": {
+    "destination": "成都龙泉驿",
+    "operating days (return)": "Daily",
+    "train numbers": "K 282|K 284"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
