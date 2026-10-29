@@ -100,10 +100,14 @@ export const NJ_FARE_NEAR_DAYS = 7;
  * they get no calendar, no headline fare and no weekly probe proposal, and
  * their pages send the reader to the carrier (agency_id, scripts/adapters/
  * nightjet.mjs). Keyed on the partner flag, never on an "EN " prefix.
- * @param {{ operator?: string }|null|undefined} train
+ *
+ * The exception is a partner whose trains only ÖBB sells (`soldBy`, scripts/
+ * lib/operator-agencies.mjs): HŽPP's own shop sells no international ticket,
+ * so the price in ÖBB's shop is the price, and the Book button opens it.
+ * @param {{ operator?: string, soldBy?: string }|null|undefined} train
  */
 export function njPricesTrain(train) {
-  return Boolean(train) && train.operator !== "EuroNight";
+  return Boolean(train) && (train.operator !== "EuroNight" || Boolean(train.soldBy));
 }
 
 /** What every request to the price search sends: JSON, and who is asking. */

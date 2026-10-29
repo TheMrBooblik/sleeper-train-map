@@ -20,7 +20,13 @@
 // - `publishedBy`: the registry source that publishes this carrier's trains
 //   itself. nightjet.com sells European Sleeper's ES 452/453/475 too, and a
 //   second copy of the route under the shop's name is not what the map wants:
-//   the reading source leaves such trains out.
+//   the reading source leaves such trains out;
+// - `soldBy`: the home carrier, when this carrier's trains on the shop are
+//   sold only there. HŽPP runs Zagreb–Stuttgart and Zagreb–Zürich, but its own
+//   e-shop sells domestic tickets only: the one place to book them is ÖBB's.
+//   Such a train is attributed to both ("HŽPP/ÖBB" — a compound books by link
+//   quality, and ÖBB's journey link wins) and priced by the shop
+//   (sellerOf; scripts/lib/nj-fares.mjs njPricesTrain).
 //
 // A keyword matches whole words of the folded text: "PKP Intercity" is two
 // consecutive words, and a trailing `*` matches a word stem ("Polnisch*" →
@@ -71,7 +77,7 @@ export function readOperatorText(value) {
 }
 
 const MIN_STEM_LENGTH = 4;
-const CARRIER_KEYS = new Set(["agency", "match", "lines", "publishedBy"]);
+const CARRIER_KEYS = new Set(["agency", "match", "lines", "publishedBy", "soldBy"]);
 const LINE_PREFIX = /^[A-Za-z]{1,6}$/;
 
 function compileKeyword(keyword) {
@@ -138,6 +144,15 @@ export function validateOperatorAgencies(config) {
         errors.push(`${tag}.publishedBy must be a registry source id`);
       } else if (carrier.agency === config.home) {
         errors.push(`${tag}.publishedBy: the home carrier's trains are this source's own`);
+      }
+    }
+    if (carrier.soldBy != null) {
+      if (carrier.soldBy !== config.home) {
+        errors.push(`${tag}.soldBy must be the home carrier "${config.home}" — only the shop this mapping reads can sell its trains`);
+      } else if (carrier.agency === config.home) {
+        errors.push(`${tag}.soldBy: the home carrier sells its own trains`);
+      } else if (carrier.publishedBy != null) {
+        errors.push(`${tag}: a carrier another source publishes is not sold here`);
       }
     }
     if (!validId(carrier.agency)) {
@@ -209,6 +224,7 @@ export function compileOperatorAgencies(config) {
       keywords: c.match.map(compileKeyword),
       lines: (c.lines ?? []).map((l) => l.toUpperCase()),
       publishedBy: c.publishedBy ?? null,
+      soldBy: c.soldBy ?? null,
     })),
   };
 }
@@ -309,4 +325,15 @@ export function agencyForLineName(lineName, compiled) {
  */
 export function publishedElsewhere(agency, compiled) {
   return compiled.carriers.find((c) => c.agency === agency)?.publishedBy ?? null;
+}
+
+/**
+ * Who sells this carrier's trains, when it is not the carrier itself: the
+ * home carrier for a carrier listed with `soldBy`, else null.
+ * @param {unknown} agency
+ * @param {ReturnType<typeof compileOperatorAgencies>} compiled
+ * @returns {string|null}
+ */
+export function sellerOf(agency, compiled) {
+  return compiled.carriers.find((c) => c.agency === agency)?.soldBy ?? null;
 }
