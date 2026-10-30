@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_cr-k-1156",
+  "createdAt": "2026-10-30T10:53:38.062Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: K 1156 (Shanghai(上海) – 成都龙泉驿)",
+  "summary": "Material change on an approved route (already live — FYI): destination: \"Chengdu West(成都西)\" → \"成都龙泉驿\"",
+  "target": {
+    "routeKey": "cr_K_1156",
+    "agencyId": "CR",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "destination": "Chengdu West(成都西)"
+  },
+  "after": {
+    "destination": "成都龙泉驿"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
