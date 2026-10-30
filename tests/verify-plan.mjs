@@ -79,6 +79,7 @@ import { rankCities } from "../src/lib/plan/citySearch.mjs";
 import { compareJourneyFares, journeyFare } from "../src/lib/plan/journeyFare.mjs";
 import { dealOnNight, nightFaresFromCalendar, pricingOnNight } from "../src/lib/plan/nightFares.mjs";
 import {
+  cheapestDestinationsFirst,
   cheapestOnNight,
   departuresAnyNight,
   flexibleNights,
@@ -945,6 +946,37 @@ check("any time from one city: each destination at its cheapest night", () => {
     assert.ok(nights.includes(d.date), `${d.city.slug} names a night in the window`);
     assert.equal(d.best.date, d.date, `${d.city.slug}'s ride is for that night`);
     assert.ok(d.nightCount >= 1);
+  }
+});
+
+check("where could you go: cheapest first, across currencies, the rest in their own order", () => {
+  const ride = (fromPrice, currency = "EUR", extra = {}) => ({
+    pricing: fromPrice == null ? null : { fromPrice, currency, type: "dynamic", ...extra },
+  });
+  const dest = (slug, best) => ({ city: { slug }, best });
+  const table = { rates: { CZK: 25 } };
+  const sorted = cheapestDestinationsFirst(
+    [
+      dest("unpriced-a", ride(null)),
+      dest("eur-70", ride(69.9)),
+      dest("czk-1000", ride(1000, "CZK")), // ≈ €40
+      dest("headline-only", ride(10, "EUR", { nightUnknown: true })),
+      dest("eur-40", ride(40)),
+      dest("no-rate", ride(500, "XYZ")),
+      dest("unpriced-b", ride(null)),
+    ],
+    table,
+  ).map((d) => d.city.slug);
+  // €40 and ≈€40 tie, so their incoming order stands; a figure that is not
+  // this night's, or has no rate, cannot rank and keeps its place among the rest.
+  assert.deepEqual(sorted, ["czk-1000", "eur-40", "eur-70", "unpriced-a", "headline-only", "no-rate", "unpriced-b"]);
+
+  // On the real index: every priced destination comes before every unpriced one.
+  const nights = flexibleNights({ today: planner.legs.find((l) => l.nightFares).nightFares.start, nights: 30 });
+  const prague = cheapestDestinationsFirst(departuresAnyNight(planner, { from: "prague", nights }));
+  const firstUnpriced = prague.findIndex((d) => d.best.pricing?.fromPrice == null);
+  if (firstUnpriced >= 0) {
+    assert.ok(prague.slice(firstUnpriced).every((d) => d.best.pricing?.fromPrice == null || d.best.pricing.nightUnknown));
   }
 });
 

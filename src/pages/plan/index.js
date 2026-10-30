@@ -34,6 +34,7 @@ import {
 } from "../../lib/plan/url.mjs";
 import { formatPlanDate, formatPlanMonth } from "../../lib/plan/format.mjs";
 import {
+  cheapestDestinationsFirst,
   cheapestOnNight,
   departuresAnyNight,
   flexibleNights,
@@ -198,9 +199,18 @@ export default function PlanPage({ seoCities, initialPlan }) {
 
   const explore = useMemo(() => {
     if (!planner || cities.length !== 1) return null;
-    if (hasDate) return departuresFrom(planner, { from: cities[0], date });
+    // Cheapest first, on a night or any time: a traveller who has not picked
+    // a destination is often picking by what it costs.
+    if (hasDate) {
+      const found = departuresFrom(planner, { from: cities[0], date });
+      return { ...found, destinations: cheapestDestinationsFirst(found.destinations) };
+    }
     if (!flexNights.length) return null;
-    return { destinations: departuresAnyNight(planner, { from: cities[0], nights: flexNights }) };
+    return {
+      destinations: cheapestDestinationsFirst(
+        departuresAnyNight(planner, { from: cities[0], nights: flexNights }),
+      ),
+    };
   }, [planner, cities, date, hasDate, flexNights]);
 
   // A trip with no night: every night tried, a few at a time so a phone stays
@@ -579,6 +589,7 @@ export default function PlanPage({ seoCities, initialPlan }) {
               </h2>
               <p className="text-sm text-white/40">
                 {date ? formatPlanDate(date) : month ? formatPlanMonth(month, { today }) : "Any night, next 3 months"}
+                {explore.destinations.length > 1 && " · cheapest first"}
               </p>
             </div>
 

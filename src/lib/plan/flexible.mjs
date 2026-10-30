@@ -16,6 +16,7 @@
 import { addDays, addMonths, monthOf, nightsInMonth } from "./url.mjs";
 import { isOfferable } from "./availability.mjs";
 import { journeyFare } from "./journeyFare.mjs";
+import { toEur } from "../fx.mjs";
 import { compareDestinations, departuresFrom, findJourneys, resolvePlan } from "./search.mjs";
 
 /**
@@ -218,4 +219,31 @@ export function departuresAnyNight(planner, { from, nights = [] } = {}) {
     }
   }
   return [...byCity.values()].sort(compareDestinations);
+}
+
+/**
+ * A ride's price in euros, for ordering destinations whose trains sell in
+ * different currencies (Prague's list mixes European Sleeper's euros with
+ * ČD's koruna). Null when the ride cannot rank: no figure, a headline that is
+ * not this night's (pricedForNight), or a currency with no rate.
+ */
+export function rideEuroPrice(ride, table) {
+  if (!pricedForNight(ride)) return null;
+  const amount = Number(ride.pricing.fromPrice);
+  const currency = ride.pricing.currency || "";
+  if (!currency) return null;
+  return currency === "EUR" ? amount : toEur(amount, currency, table);
+}
+
+/**
+ * "Where could you go from Prague", cheapest first: a destination whose train
+ * states a fare comes before one that does not, by that fare; everything that
+ * price cannot separate keeps the order it came in (what we can stand behind,
+ * a night's sleep, a train that ends there — compareDestinations).
+ */
+export function cheapestDestinationsFirst(destinations = [], table) {
+  return destinations
+    .map((destination, i) => ({ destination, i, eur: rideEuroPrice(destination.best, table) }))
+    .sort((a, b) => (a.eur == null) - (b.eur == null) || (a.eur ?? 0) - (b.eur ?? 0) || a.i - b.i)
+    .map((entry) => entry.destination);
 }
