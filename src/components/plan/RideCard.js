@@ -122,11 +122,13 @@ export default function RideCard({ ride, action = null, compact = false, bookabl
             pricing MODEL as advice a traveller can act on. The figure takes the
             same slot the day a probe produces one — see pricingResolve.mjs. */}
         {formatFromPrice(ride.pricing) ? (
-          <span className="text-sm font-medium text-primary-green">
+          // Large: on a list of destinations the fare is what most people
+          // pick by, and the list is sorted by it.
+          <span className="text-lg font-semibold tabular-nums text-primary-green">
             {/* formatFromPrice already reads "from €39". */}
             {formatFromPrice(ride.pricing)}
             {eurHintFor(ride.pricing) && (
-              <span className="font-normal text-white/45" title={eurRateNote(undefined, ride.pricing?.currency)}>
+              <span className="text-sm font-normal text-white/45" title={eurRateNote(undefined, ride.pricing?.currency)}>
                 {" "}({eurHintFor(ride.pricing)})
               </span>
             )}
