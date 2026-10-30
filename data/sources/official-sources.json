@@ -465,7 +465,7 @@
       "countries": ["CZ", "SK", "UA"],
       "integrationStatus": "integrated",
       "difficulty": "easy",
-      "notes": "Integrated from RegioJet's own GTFS (registry `regiojet` + the `regiojet-gtfs` panel step): both night routes, rows 7 and 261, are enriched from it nightly. The feed has no fares and only one shape point per stop. CIS JŘ remains the way to cover ČD and Leo Express in the same pass; the booking API is the way to fares.",
+      "notes": "Integrated from RegioJet's own GTFS (registry `regiojet` + the `regiojet-gtfs` panel step): both night routes, rows 7 and 261, are enriched from it nightly. The feed has no fares and only one shape point per stop; fares come from RegioJet's booking API nightly. CIS JŘ remains the way to cover ČD and Leo Express in the same pass.",
       "sources": [
         {
           "name": "RegioJet GTFS — international",
@@ -510,10 +510,10 @@
           "format": "JSON API (undocumented)",
           "provides": ["trains", "times", "prices"],
           "auth": "none",
-          "status": "working",
-          "lastChecked": null,
+          "status": "integrated",
+          "lastChecked": "2026-10-30",
           "probeWorkflow": null,
-          "notes": "scripts/adapters/regiojet-api.mjs can probe it, but no registry entry declares that probe yet, so nothing calls it."
+          "notes": "Read nightly by the regiojet source's fare pass (scripts/lib/rj-fares.mjs): /routes/search/simple between booking CITY ids answers three nights per call, /routes/{id}/simple each night's priceClasses. The legacy scripts/adapters/regiojet-api.mjs probe is not wired."
         }
       ]
     },
