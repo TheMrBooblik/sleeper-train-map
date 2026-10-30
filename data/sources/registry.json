@@ -85,7 +85,7 @@
           { "agency": "PKP", "match": ["PKP", "PKP Intercity", "Polnisch*", "Polish", "Polskie Koleje"] },
           { "agency": "ČD", "match": ["ČD", "České dráhy", "Tschechisch*", "Czech"] },
           { "agency": "MÁV", "match": ["MÁV", "MÁV-START", "Ungarisch*", "Hungarian", "Magyar Államvasutak"] },
-          { "agency": "HŽPP", "match": ["HŽPP", "HŽ", "HŽ Putnički prijevoz", "Kroatisch*", "Croatian", "Hrvatske željeznice"] },
+          { "agency": "HŽPP", "match": ["HŽPP", "HŽ", "HŽ Putnički prijevoz", "Kroatisch*", "Croatian", "Hrvatske željeznice"], "soldBy": "ÖBB" },
           { "agency": "ZSSK", "match": ["ZSSK", "Slowakisch*", "Slovak", "Železničná spoločnosť Slovensko"] },
           { "agency": "ES", "match": ["European Sleeper"], "lines": ["ES"], "publishedBy": "europeansleeper" },
           { "agency": "ÖBB", "match": ["ÖBB", "OEBB", "Österreichisch*", "Oesterreichisch*", "Austrian", "Nightjet"] }

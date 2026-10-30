@@ -36,6 +36,7 @@ import {
   compileOperatorAgencies,
   publishedElsewhere,
   readOperatorText,
+  sellerOf,
 } from "../lib/operator-agencies.mjs";
 import { sameTrainAsRow } from "../../src/lib/sameTrain.mjs";
 import {
@@ -373,6 +374,8 @@ export function backOnTrackAgencies(viewMap, idPrefix, trains = null) {
  *   not home ("bot": "HŽPP/ÖBB" → HŽPP — never the compound, which would
  *   book through ÖBB's shop by link quality).
  * - Failing that, home ("home"), reported as a problem.
+ * - A carrier only the home carrier sells (`soldBy`) is attributed to both,
+ *   "HŽPP/ÖBB", and the train carries `soldBy` (njPricesTrain prices it).
  *
  * Mutates the trains; returns a report for the log and source-health.
  * @param {Record<string, object>} trains
@@ -384,41 +387,46 @@ export function assignTrainAgencies(trains, { compiled, previous = null, botAgen
     report.counts[from] = (report.counts[from] ?? 0) + 1;
     report.byAgency[agency] = (report.byAgency[agency] ?? 0) + 1;
   };
+  // A partner's carrier, attributed together with its seller when only the
+  // home carrier sells it ("HŽPP/ÖBB": sellerOf).
+  const assign = (train, carrier, from) => {
+    const seller = from === "home" ? null : sellerOf(carrier, compiled);
+    train.agency_id = seller ? `${carrier}/${seller}` : carrier;
+    train.agencyFrom = from;
+    if (seller) train.soldBy = seller;
+    else delete train.soldBy;
+    count(from, train.agency_id);
+  };
   for (const [key, train] of Object.entries(trains ?? {})) {
     const verdict = agencyForOperatorText(train.operatorText, compiled);
     const partner = train.operator === "EuroNight";
     if (!partner) {
-      train.agency_id = compiled.home;
-      train.agencyFrom = "home";
+      assign(train, compiled.home, "home");
       if (verdict.status === "matched" || verdict.status === "ambiguous") {
         report.notes.push(`${key} is a Nightjet but its operator text names ${verdict.all.join(", ")} ("${train.operatorText}") — kept ${compiled.home}`);
       }
-      count("home", compiled.home);
       continue;
     }
     if (verdict.status === "matched" || verdict.status === "ambiguous" || verdict.status === "home") {
-      train.agency_id = verdict.agency;
-      train.agencyFrom = "operator";
+      assign(train, verdict.agency, "operator");
       if (verdict.status === "ambiguous") {
         report.notes.push(`${key}: "${train.operatorText}" names ${verdict.all.join(", ")} — took ${verdict.agency}, named first`);
       }
-      count("operator", verdict.agency);
       continue;
     }
     const byLine = agencyForLineName(key, compiled);
     if (byLine) {
-      train.agency_id = byLine;
-      train.agencyFrom = "line";
-      count("line", byLine);
+      assign(train, byLine, "line");
       continue;
     }
     const before = previous?.[key];
     if (verdict.status === "missing" && before?.agencyFrom === "operator" && before.agency_id) {
-      train.agency_id = before.agency_id;
-      train.agencyFrom = "operator";
+      // Last night's id may carry its seller ("HŽPP/ÖBB"); the carrier is the
+      // part that is not home.
+      const carrier = carrierInAgencyId(before.agency_id, compiled) ?? before.agency_id;
+      assign(train, carrier, "operator");
       if (before.operatorText) train.operatorText = before.operatorText;
-      report.notes.push(`${key}: no operator text tonight — kept last night's ${before.agency_id}`);
-      count("operator", before.agency_id);
+      report.notes.push(`${key}: no operator text tonight — kept last night's ${carrier}`);
       continue;
     }
     const fromBot = carrierInAgencyId(botAgencies.get(key), compiled);
@@ -427,15 +435,11 @@ export function assignTrainAgencies(trains, { compiled, previous = null, botAgen
         ? "no operator text"
         : `operator text "${train.operatorText}" names no carrier in params.operatorAgencies`;
     if (fromBot) {
-      train.agency_id = fromBot;
-      train.agencyFrom = "bot";
+      assign(train, fromBot, "bot");
       report.problems.push(`${key}: ${what} — using Back-on-Track's ${fromBot}`);
-      count("bot", fromBot);
     } else {
-      train.agency_id = compiled.home;
-      train.agencyFrom = "home";
+      assign(train, compiled.home, "home");
       report.problems.push(`${key}: ${what} and no Back-on-Track carrier — using ${compiled.home}`);
-      count("home", compiled.home);
     }
   }
   return report;

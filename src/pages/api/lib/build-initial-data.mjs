@@ -761,7 +761,8 @@ export function buildInitialData({
   for (const [key, price] of Object.entries(routePrices ?? {})) {
     const row = filteredViewMap[key];
     if (!row || !Number.isFinite(price?.fromPrice)) continue;
-    const operatorDefault = OPERATOR_PRICING[(row.agency_id || "").trim()] ?? null;
+    const operatorDefault =
+      OPERATOR_PRICING[(row.agency_id || "").trim()] ?? (seller ? OPERATOR_PRICING[seller] : null) ?? null;
     const pricing = {
       type: operatorDefault?.type ?? null,
       currency: price.currency ?? operatorDefault?.currency ?? "EUR",
@@ -877,6 +878,10 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
   for (const [key, row] of Object.entries(viewMap)) {
     const trains = sources.get(row.timetable_source);
     if (!trains) continue;
+    // A train sold only by another operator's shop (`soldBy`: HŽPP's
+    // EuroNights in ÖBB's) takes that shop's fare model; the joint id
+    // ("HŽPP/ÖBB") has no record of its own.
+    const seller = [0, 1].map((d) => trains[rowTrainKey(row, d)]?.soldBy).find(Boolean) ?? null;
     const fares = [];
     for (const dir of [0, 1]) {
       const fare = trains[rowTrainKey(row, dir)]?.fare;
@@ -922,8 +927,16 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
       // operator-pricing default — PKP's says "Domestic tariff", which a
       // München–Przemyśl EuroNight is not.
       const names = [rowTrainKey(row, 0), rowTrainKey(row, 1)].filter(Boolean);
+      // A train its seller's shop prices but has not priced yet keeps that
+      // seller's fare model, without a figure.
       if (names.length && names.every((n) => trains[n] && trains[n].fare === null)) {
-        const pricing = { type: null, currency: null, fromPrice: null, source: row.timetable_source };
+        const model = seller ? OPERATOR_PRICING[seller] : null;
+        const pricing = {
+          type: model?.type ?? null,
+          currency: model?.type ? (model.currency ?? null) : null,
+          fromPrice: null,
+          source: row.timetable_source,
+        };
         row.pricing = pricing;
         for (const [tripKey, trip] of Object.entries(trips ?? {})) {
           if (String(trip.route_id) === String(key)) trips[tripKey] = { ...trip, pricing };
@@ -934,7 +947,8 @@ export function stampOfficialFares(viewMap, trips, operatorTrains, registry) {
     // Never compare across currencies; the first direction's currency decides.
     const sameCurrency = fares.filter((f) => f.currency === fares[0].currency);
     const cheapest = sameCurrency.reduce((a, b) => (b.fromPrice < a.fromPrice ? b : a));
-    const operatorDefault = OPERATOR_PRICING[(row.agency_id || "").trim()] ?? null;
+    const operatorDefault =
+      OPERATOR_PRICING[(row.agency_id || "").trim()] ?? (seller ? OPERATOR_PRICING[seller] : null) ?? null;
     const pricing = {
       type: operatorDefault?.type ?? null,
       currency: cheapest.currency,

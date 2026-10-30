@@ -34,6 +34,7 @@ import {
   foldOperatorWords,
   publishedElsewhere,
   readOperatorText,
+  sellerOf,
   validateOperatorAgencies,
 } from "../scripts/lib/operator-agencies.mjs";
 import { validateRegistry } from "../scripts/lib/registry.mjs";
@@ -253,7 +254,7 @@ await check("assignTrainAgencies: text, then prefix, then last night, then Back-
     "EN 40417": "PKP/operator",
     "EN 40459": "ČD/operator",
     "ES 452": "ES/line",
-    "EN 40237": "HŽPP/operator", // no text tonight: last night's stated carrier
+    "EN 40237": "HŽPP/ÖBB/operator", // no text tonight: last night's stated carrier, sold by ÖBB
     "EN 40457": "MÁV/bot", // text naming no listed carrier is not carried over
     "EN 442": "ÖBB/home",
     "EN 415": "ÖBB/home",
@@ -263,11 +264,45 @@ await check("assignTrainAgencies: text, then prefix, then last night, then Back-
   assert.ok(report.problems.some((p) => p.startsWith("EN 442: no operator text and no Back-on-Track carrier")));
   assert.equal(report.problems.length, 3, report.problems.join("; "));
   assert.equal(trains["EN 40237"].operatorText, "Operated by Kroatische Bahn HŽPP");
+  assert.equal(trains["EN 40237"].soldBy, "ÖBB");
+  assert.equal(trains["EN 40417"].soldBy, undefined, "PKP sells its own");
+});
+
+await check("soldBy: HŽPP's trains are sold only in ÖBB's shop, so they book and are priced there", () => {
+  assert.equal(sellerOf("HŽPP", COMPILED), "ÖBB", "the committed registry says so");
+  assert.equal(sellerOf("PKP", COMPILED), null);
+  assert.equal(sellerOf("ÖBB", COMPILED), null);
+  const base = { home: "ÖBB", carriers: [{ agency: "ÖBB", match: ["ÖBB"] }] };
+  const bad = (carrier) => validateOperatorAgencies({ ...base, carriers: [...base.carriers, carrier] });
+  assert.deepEqual(bad({ agency: "HŽPP", match: ["HŽPP"], soldBy: "ÖBB" }), []);
+  assert.ok(bad({ agency: "HŽPP", match: ["HŽPP"], soldBy: "PKP" }).some((e) => e.includes("soldBy")));
+  assert.ok(bad({ agency: "ES", match: ["European Sleeper"], publishedBy: "europeansleeper", soldBy: "ÖBB" }).length);
+
+  // Last night's joint id is read back to its carrier, never doubled.
+  const trains = { "EN 414": train("EuroNight", ["Zagreb Glavni Kolod.", "Stuttgart Hbf"]) };
+  const previous = { "EN 414": { agency_id: "HŽPP/ÖBB", agencyFrom: "operator", soldBy: "ÖBB" } };
+  assignTrainAgencies(trains, { compiled: COMPILED, previous });
+  assert.equal(trains["EN 414"].agency_id, "HŽPP/ÖBB");
+  assert.equal(njPricesTrain(trains["EN 414"]), true, "the fare pass prices it");
+
+  // The row books in ÖBB's shop: a joint id books by link quality.
+  const vm = {
+    nj_standalone_EN_414: { route_id: "nj_standalone_EN_414", agency_id: "HŽPP/ÖBB", timetable_source: "nightjet", trip_short_name_0: "EN 414", trip_short_name_1: "EN 40237" },
+  };
+  const unpriced = { "EN 414": { soldBy: "ÖBB", fare: null }, "EN 40237": { soldBy: "ÖBB", fare: null } };
+  stampOfficialFares(vm, {}, { nightjet: unpriced }, [{ id: "nightjet", enabled: true, official: true }]);
+  assert.equal(vm.nj_standalone_EN_414.pricing.type, "dynamic", "unpriced yet: ÖBB's fare model, no figure");
+  assert.equal(vm.nj_standalone_EN_414.pricing.fromPrice, null);
+  const priced = { "EN 414": { soldBy: "ÖBB", fare: { fromPrice: 59.9, currency: "EUR", seatClass: "couchette" } }, "EN 40237": { soldBy: "ÖBB", fare: null } };
+  stampOfficialFares(vm, {}, { nightjet: priced }, [{ id: "nightjet", enabled: true, official: true }]);
+  assert.equal(vm.nj_standalone_EN_414.pricing.type, "dynamic");
+  assert.equal(vm.nj_standalone_EN_414.pricing.fromPrice, 59.9);
 });
 
 await check("the fare pass and the probe leave partner trains to their carrier", async () => {
   assert.equal(njPricesTrain({ operator: "Nightjet" }), true);
   assert.equal(njPricesTrain({ operator: "EuroNight" }), false);
+  assert.equal(njPricesTrain({ operator: "EuroNight", soldBy: "ÖBB" }), true);
   assert.equal(njPricesTrain(null), false);
 
   const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "nj-operators-"));
@@ -493,13 +528,16 @@ await check("committed data: partner trains carry one carrier, no nightjet.com p
   const listed = new Set(CONFIG.carriers.map((c) => c.agency));
   let partners = 0;
   for (const [key, t] of Object.entries(trains)) {
-    assert.ok(listed.has(t.agency_id), `${key} carrier ${t.agency_id}`);
-    assert.equal(publishedElsewhere(t.agency_id, COMPILED), null, `${key} belongs to another source`);
-    if (t.operator === "EuroNight") {
+    const carrier = t.soldBy ? t.agency_id.replace(`/${t.soldBy}`, "") : t.agency_id;
+    assert.ok(listed.has(carrier), `${key} carrier ${t.agency_id}`);
+    assert.equal(publishedElsewhere(carrier, COMPILED), null, `${key} belongs to another source`);
+    if (t.soldBy) assert.equal(t.agency_id, `${carrier}/${sellerOf(carrier, COMPILED)}`, `${key} is sold by its seller`);
+    if (t.operator === "EuroNight" && !t.soldBy) {
       partners++;
+      assert.equal(sellerOf(t.agency_id, COMPILED), null, `${key} carrier ${t.agency_id} is sold by ÖBB`);
       assert.equal(t.fare, null, `${key} fare`);
       assert.equal(t.fareCalendar, undefined, `${key} calendar`);
-    } else {
+    } else if (t.operator !== "EuroNight") {
       assert.equal(t.agency_id, CONFIG.home, `${key} is ÖBB's`);
     }
   }
@@ -510,7 +548,11 @@ await check("committed data: partner trains carry one carrier, no nightjet.com p
 await check("committed payload: partner rows priced by no one, ÖBB's rows unchanged, no duplicate ES row, ČD's EN 442 back", () => {
   const vm = readJson("public/data/published/initial-data.json").data.viewMap;
   const trains = readJson("public/data/scraped/nightjet-trains.json").data.trains;
-  const isPartner = (row) => [0, 1].some((d) => trains[row[`trip_short_name_${d}`]]?.operator === "EuroNight");
+  const isPartner = (row) =>
+    [0, 1].some((d) => {
+      const t = trains[row[`trip_short_name_${d}`]];
+      return t?.operator === "EuroNight" && !t.soldBy;
+    });
   let partnerRows = 0;
   let njPriced = 0;
   for (const row of Object.values(vm)) {
@@ -529,7 +571,7 @@ await check("committed payload: partner rows priced by no one, ÖBB's rows uncha
         return from && from !== "home";
       });
       if (stated) assert.equal(row.bot_agency_id, undefined, `${row.route_id} carries ${row.bot_agency_id}`);
-    } else if (row.pricing?.fromPrice != null) {
+    } else if (row.pricing?.fromPrice != null && !String(row.agency_id).includes("/")) {
       njPriced++;
       assert.equal(row.agency_id, "ÖBB");
     }
@@ -544,6 +586,11 @@ await check("committed payload: partner rows priced by no one, ÖBB's rows uncha
   assert.ok(!polylines.has(vm[6].nj_polyline ?? vm[6].nj_polyline_0), "row 6 draws no nightjet.com line");
   const przemysl = vm.nj_standalone_EN_40417 ?? vm.nj_standalone_EN_40416;
   assert.equal(przemysl.agency_id, "PKP", "München–Przemyśl is PKP's");
+  // Zagreb–Stuttgart is HŽPP's train, sold only in ÖBB's shop.
+  const zagreb = Object.values(vm).find((r) => [0, 1].some((d) => r[`trip_short_name_${d}`] === "EN 414"));
+  assert.equal(zagreb.agency_id, "HŽPP/ÖBB");
+  assert.equal(zagreb.bot_agency_id, undefined);
+  assert.equal(zagreb.pricing?.type, "dynamic");
 });
 
 console.log(`\nverify-nj-operators: ${passed} checks passed`);
