@@ -1,12 +1,39 @@
 #!/usr/bin/env node
+// RegioJet night-train timetables for the detail panel and the browser-side
+// via merge (src/lib/rjGtfsMerge.js): public/data/gtfs/rjChopTimetable.json and
+// rjPremyslTimetable.json.
+//
+// Reads RegioJet's own international GTFS (https://ybus.sa.cz/gtfe/international/
+// google_transit.zip, no key) — the same feed the `regiojet` registry source
+// enriches the map rows from. Runs nightly as the registry's external step
+// `regiojet-gtfs`, right after that source has unpacked the feed into
+// gtfs-data/regiojet-unpacked/, so the two always read one download.
+//
+// Trains are picked by NUMBER and oriented endpoints from
+// data/sources/regiojet-sleepers.json, never by route_id: between two feed
+// drops the Přemyšl route moved from 8393687006 to 8534213024 and its trains
+// from 1038/1039 to 1022/1023, and a hard-coded id kept publishing a timetable
+// that had expired in June. A file whose trains are missing from the feed is
+// not written (and the run fails), so yesterday's file stays rather than an
+// empty one.
+//
+//   npm run parse-gtfs                    # reuse/download the feed
+//   npm run parse-gtfs -- path/to/unpacked  # an already-unpacked feed
 
 const fs = require("node:fs");
 const path = require("node:path");
 
-const TARGET_ROUTE_IDS = new Set(["8185007005", "8393687006"]);
-const OUTPUT_FILES = {
-  "8185007005": "rjChopTimetable.json",
-  "8393687006": "rjPremyslTimetable.json",
+const FEED_URL = "https://ybus.sa.cz/gtfe/international/google_transit.zip";
+const ALLOWLIST = path.join("data", "sources", "regiojet-sleepers.json");
+// Where the `regiojet` source unpacks the same feed (gtfs-sleeper adapter).
+const SHARED_DIR = path.join("gtfs-data", "regiojet-unpacked");
+// A feed the adapter unpacked this long ago is still tonight's.
+const SHARED_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+
+// Output file → the train numbers it carries (both directions of one row).
+const OUTPUTS = {
+  "rjChopTimetable.json": { routeName: "Praha - Chop", trains: ["1020", "1021"] },
+  "rjPremyslTimetable.json": { routeName: "Praha - Přemyšl", trains: ["1022", "1023"] },
 };
 
 function parseCsvLine(line) {
@@ -109,13 +136,55 @@ function buildServiceDays(calendarRow) {
   };
 }
 
-function main() {
+function foldName(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/\p{Mn}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+// Same rule as buildSleeperTrains' named entries: "Čop" matches "Čop, žst.".
+function startsWithCity(stationName, city) {
+  const station = foldName(stationName);
+  const wanted = foldName(city);
+  return Boolean(wanted) && (station === wanted || station.startsWith(`${wanted} `));
+}
+
+function trainNumberOf(trip) {
+  return String(trip.trip_short_name || "").replace(/^\s*RJ\s*/i, "").trim();
+}
+
+function todayCompact(now = new Date()) {
+  return now.toISOString().slice(0, 10).replace(/-/g, "");
+}
+
+async function resolveFeedDir(root, inputDirArg) {
+  if (inputDirArg) return path.resolve(root, inputDirArg);
+  const shared = path.join(root, SHARED_DIR);
+  const zip = path.join(shared, "feed.zip");
+  if (
+    fs.existsSync(path.join(shared, "trips.txt")) &&
+    fs.existsSync(zip) &&
+    Date.now() - fs.statSync(zip).mtimeMs < SHARED_MAX_AGE_MS
+  ) {
+    console.log(`Reusing ${SHARED_DIR}/ (unpacked by the regiojet source)`);
+    return shared;
+  }
+  const { downloadGtfs } = await import("./lib/gtfs.mjs");
+  console.log(`Downloading ${FEED_URL}`);
+  await downloadGtfs(FEED_URL, shared);
+  return shared;
+}
+
+async function main() {
   const root = process.cwd();
-  const inputDirArg = process.argv[2];
-  const inputDir = inputDirArg
-    ? path.resolve(root, inputDirArg)
-    : path.join(root, "gtfs-data", "regiojet");
+  const inputDir = await resolveFeedDir(root, process.argv[2]);
   const outputDir = path.join(root, "public", "data", "gtfs");
+
+  const allowlist = JSON.parse(fs.readFileSync(path.join(root, ALLOWLIST), "utf8")).routes;
+  const entryByTrain = new Map(allowlist.map((e) => [String(e.name), e]));
 
   const stops = readCsv(path.join(inputDir, "stops.txt"));
   const routes = readCsv(path.join(inputDir, "routes.txt"));
@@ -131,6 +200,11 @@ function main() {
       parentStops.set(stop.stop_id, stop);
     }
   });
+  const resolveStop = (stopId) => {
+    const childStop = allStops.get(stopId);
+    const parentId = childStop?.parent_station || "";
+    return (parentId ? parentStops.get(parentId) : null) || childStop || null;
+  };
 
   const routesById = new Map();
   routes.forEach((route) => {
@@ -142,49 +216,73 @@ function main() {
     calendarByServiceId.set(row.service_id, row);
   });
 
-  const targetTrips = trips.filter((trip) => TARGET_ROUTE_IDS.has(trip.route_id));
-  const tripsById = new Map();
-  targetTrips.forEach((trip) => {
-    tripsById.set(trip.trip_id, trip);
-  });
-
   const stopTimesByTripId = new Map();
   stopTimes.forEach((row) => {
-    if (!tripsById.has(row.trip_id)) return;
     const list = stopTimesByTripId.get(row.trip_id) || [];
     list.push(row);
     stopTimesByTripId.set(row.trip_id, list);
   });
+  for (const list of stopTimesByTripId.values()) {
+    list.sort(
+      (a, b) =>
+        Number.parseInt(a.stop_sequence || "0", 10) -
+        Number.parseInt(b.stop_sequence || "0", 10),
+    );
+  }
+
+  // A trip is the allowlisted train when its number matches AND it runs
+  // between that entry's endpoints: 1020/1021 is also the Praha–Košice train,
+  // under another route, the same night. Expired services are left out.
+  const today = todayCompact();
+  const isAllowlistedTrip = (trip) => {
+    const entry = entryByTrain.get(trainNumberOf(trip));
+    if (!entry) return false;
+    const service = calendarByServiceId.get(trip.service_id);
+    if (service?.end_date && service.end_date < today) return false;
+    const sts = stopTimesByTripId.get(trip.trip_id) || [];
+    if (sts.length < 2) return false;
+    const first = resolveStop(sts[0].stop_id)?.stop_name;
+    const last = resolveStop(sts[sts.length - 1].stop_id)?.stop_name;
+    return startsWithCity(first, entry.from) && startsWithCity(last, entry.to);
+  };
 
   fs.mkdirSync(outputDir, { recursive: true });
 
-  TARGET_ROUTE_IDS.forEach((routeId) => {
-    const routeTrips = targetTrips.filter((trip) => trip.route_id === routeId);
-    if (routeTrips.length === 0) return;
+  const missing = [];
+  for (const [fileName, spec] of Object.entries(OUTPUTS)) {
+    const wanted = new Set(spec.trains);
+    const routeTrips = trips
+      .filter((trip) => wanted.has(trainNumberOf(trip)) && isAllowlistedTrip(trip))
+      .sort(
+        (a, b) =>
+          trainNumberOf(a).localeCompare(trainNumberOf(b)) ||
+          String(calendarByServiceId.get(a.service_id)?.start_date || "").localeCompare(
+            String(calendarByServiceId.get(b.service_id)?.start_date || ""),
+          ),
+      );
 
-    const routeInfo = routesById.get(routeId) || {};
+    const absent = spec.trains.filter(
+      (n) => !routeTrips.some((trip) => trainNumberOf(trip) === n),
+    );
+    if (absent.length) {
+      missing.push(`${fileName}: ${absent.join(", ")}`);
+      continue;
+    }
+
+    const routeInfo = routesById.get(routeTrips[0].route_id) || {};
     const result = {
-      routeId,
-      routeName: routeInfo.route_long_name || "",
+      routeId: routeInfo.route_id || "",
+      routeName: spec.routeName,
       routeShortName: routeInfo.route_short_name || "",
       routeType: routeInfo.route_type || "",
+      source: FEED_URL,
       trips: [],
     };
 
     routeTrips.forEach((trip) => {
-      const tripStopTimes = (stopTimesByTripId.get(trip.trip_id) || []).sort(
-        (a, b) =>
-          Number.parseInt(a.stop_sequence || "0", 10) -
-          Number.parseInt(b.stop_sequence || "0", 10),
-      );
-
       const service = buildServiceDays(calendarByServiceId.get(trip.service_id));
-      const stopsForTrip = tripStopTimes.map((stopTime) => {
-        const childStop = allStops.get(stopTime.stop_id);
-        const parentId = childStop?.parent_station || "";
-        const parentStop = parentId ? parentStops.get(parentId) : null;
-        const resolvedStop = parentStop || childStop || null;
-
+      const stopsForTrip = (stopTimesByTripId.get(trip.trip_id) || []).map((stopTime) => {
+        const resolvedStop = resolveStop(stopTime.stop_id);
         return {
           stopId: stopTime.stop_id,
           name: resolvedStop?.stop_name || stopTime.stop_id,
@@ -215,10 +313,19 @@ function main() {
       });
     });
 
-    const outputPath = path.join(outputDir, OUTPUT_FILES[routeId]);
+    const outputPath = path.join(outputDir, fileName);
     fs.writeFileSync(outputPath, JSON.stringify(result, null, 2) + "\n", "utf8");
-    console.log(`Wrote ${outputPath}`);
-  });
+    console.log(`Wrote ${outputPath} (${result.trips.length} trips)`);
+  }
+
+  if (missing.length) {
+    throw new Error(
+      `RegioJet feed no longer carries ${missing.join("; ")} — kept the committed file(s); check ${ALLOWLIST}`,
+    );
+  }
 }
 
-main();
+main().catch((err) => {
+  console.error(err.message);
+  process.exitCode = 1;
+});

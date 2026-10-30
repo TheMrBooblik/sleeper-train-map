@@ -463,10 +463,34 @@
     "RJ": {
       "website": "https://regiojet.com",
       "countries": ["CZ", "SK", "UA"],
-      "integrationStatus": "source-discovered",
-      "difficulty": "medium",
-      "notes": "Two routes in. The Czech infrastructure manager (Správa železnic) publishes the whole national timetable — every operator, RegioJet included — as CZPTT XML through the CIS JŘ portal. RegioJet's own booking API is already used for price probes (scripts/adapters/regiojet-api.mjs), so that surface is known to work.",
+      "integrationStatus": "integrated",
+      "difficulty": "easy",
+      "notes": "Integrated from RegioJet's own GTFS (registry `regiojet` + the `regiojet-gtfs` panel step): both night routes, rows 7 and 261, are enriched from it nightly. The feed has no fares and only one shape point per stop. CIS JŘ remains the way to cover ČD and Leo Express in the same pass; the booking API is the way to fares.",
       "sources": [
+        {
+          "name": "RegioJet GTFS — international",
+          "url": "https://ybus.sa.cz/gtfe/international/google_transit.zip",
+          "docsUrl": null,
+          "format": "GTFS",
+          "provides": ["trains", "stops", "times", "calendar"],
+          "auth": "none",
+          "status": "integrated",
+          "lastChecked": "2026-10-30",
+          "probeWorkflow": null,
+          "notes": "Registry id `regiojet`. Every cross-border RegioJet train and coach; the night trains are 1020/1021 Praha–Čop (with the Košice train under the same number) and 1022/1023 Praha–Przemyśl. calendar.txt weekdays plus calendar_dates exceptions, runs to the December timetable change. shapes.txt is one point per stop. A stop's zone_id is RegioJet's booking CITY id."
+        },
+        {
+          "name": "RegioJet GTFS — interstate (domestic)",
+          "url": "https://ybus.sa.cz/gtfe/google_transit.zip",
+          "docsUrl": null,
+          "format": "GTFS",
+          "provides": ["trains", "stops", "times", "calendar"],
+          "auth": "none",
+          "status": "working",
+          "lastChecked": "2026-10-30",
+          "probeWorkflow": null,
+          "notes": "Domestic Czech trains and coaches (R8 Brno–Bohumín, R23 Kolín–Ústí n.L., coach lines). No night train, so nothing reads it yet; it is the feed for day connections onto the night trains in the planner."
+        },
         {
           "name": "CIS JŘ — national rail timetable (CZPTT XML)",
           "url": "https://portal.cisjr.cz/pub/draha/celostatni/szdc/",
@@ -489,7 +513,7 @@
           "status": "working",
           "lastChecked": null,
           "probeWorkflow": null,
-          "notes": "Already called by the weekly price probe, so the endpoint is known good — it just isn't wired to timetables yet."
+          "notes": "scripts/adapters/regiojet-api.mjs can probe it, but no registry entry declares that probe yet, so nothing calls it."
         }
       ]
     },

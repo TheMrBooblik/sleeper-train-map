@@ -3,6 +3,7 @@
   "routeName": "Praha - Chop",
   "routeShortName": "RJ",
   "routeType": "2",
+  "source": "https://ybus.sa.cz/gtfe/international/google_transit.zip",
   "trips": [
     {
       "tripId": "8185010076",
@@ -158,8 +159,8 @@
         {
           "stopId": "8185008132",
           "name": "Olomouc, hl.n.",
-          "lat": 49.589993,
-          "lon": 17.278225,
+          "lat": 49.591988,
+          "lon": 17.275579,
           "arrival": "03:26 (+1)",
           "departure": "03:28 (+1)",
           "sequence": 27
@@ -221,8 +222,8 @@
         {
           "stopId": "8185008132",
           "name": "Olomouc, hl.n.",
-          "lat": 49.589993,
-          "lon": 17.278225,
+          "lat": 49.591988,
+          "lon": 17.275579,
           "arrival": "00:03 (+1)",
           "departure": "00:06 (+1)",
           "sequence": 5

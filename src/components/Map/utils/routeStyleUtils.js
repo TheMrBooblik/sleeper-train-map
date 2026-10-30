@@ -511,7 +511,8 @@ export function checkRegioJetPrahaChop(route) {
 }
 
 /**
- * Whether the route is RegioJet 1038/1039 (Praha – Przemyśl).
+ * Whether the route is RegioJet 1022/1023 (Praha – Przemyśl), numbered
+ * 1038/1039 until RegioJet renumbered it in June 2026.
  * Uses a pre-computed polyline built from EN 443 (Praha→Kraków) + IC 8358 (Kraków→Przemyśl).
  * @param {Object} route - View map route object
  * @returns {boolean}
@@ -524,10 +525,10 @@ export function checkRegioJetPrahaPrzemysl(route) {
   const agency = (route.agency_id || "").toUpperCase();
   if (
     agency === "RJ" &&
-    (trip0 === "1038" ||
-      trip0 === "1039" ||
-      trip1 === "1038" ||
-      trip1 === "1039")
+    (trip0 === "1022" ||
+      trip0 === "1023" ||
+      trip1 === "1022" ||
+      trip1 === "1023")
   ) {
     return true;
   }

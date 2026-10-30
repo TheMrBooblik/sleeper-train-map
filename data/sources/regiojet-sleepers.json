@@ -1,0 +1,10 @@
+{
+  "note": "RegioJet night trains, one entry per direction, keyed by Back-on-Track's own bare train number so the trainsByNumber enrichment lands each on its row (7 = Praha–Chop 1020/1021, 261 = Praha–Przemyśl 1022/1023). Every entry is a NAMED ORIENTED pair because one train number is two trips in this feed: 1020/1021 runs as the Praha–Košice train under route 8870969001 and, the same night under the same number, as the Praha–Čop portion under route 8185007005 (board in CZ/SK, alight only at Čop, and the reverse). Naming the Čop terminus selects the portion Back-on-Track's row describes. from/to are the feed's own spellings, matched accent-folded and prefix-wise, so \"Čop\" matches \"Čop, žst.\". Route ids are NOT used: the Přemyšl route moved from 8393687006 to 8534213024 and its trains from 1038/1039 to 1022/1023 between two feed drops, which is what left the old hand-run parser publishing a timetable that no longer existed.",
+  "source": "https://ybus.sa.cz/gtfe/international/google_transit.zip",
+  "routes": [
+    { "name": "1021", "from": "Praha", "to": "Čop" },
+    { "name": "1020", "from": "Čop", "to": "Praha" },
+    { "name": "1023", "from": "Praha", "to": "Přemyšl" },
+    { "name": "1022", "from": "Přemyšl", "to": "Praha" }
+  ]
+}
