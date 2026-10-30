@@ -1,0 +1,168 @@
+{
+ "id": "8730441899",
+ "departureStationId": 372825000,
+ "departureStationName": "MS",
+ "departureCityId": 10202003,
+ "departureTime": "2026-11-20T21:45:00.000+01:00",
+ "arrivalStationId": 7122901004,
+ "arrivalStationName": "Railway Station",
+ "arrivalCityId": 7122881001,
+ "arrivalTime": "2026-11-21T10:38:00.000+02:00",
+ "freeSeatsCount": 171,
+ "priceFrom": 23.9,
+ "priceTo": 176.0,
+ "priceClasses": [
+  {
+   "seatClassKey": "C0",
+   "conditions": {
+    "descriptions": {
+     "cancel": "more than 2 days before departure: 0 %, less than 2 days: not possible",
+     "cancelShort": "> 2 days: 0 %, < 2 days: not possible",
+     "rebook": "more than 2 days before departure: by cancellation for 0 EUR, less than 2 days: not possible",
+     "rebookShort": null,
+     "expiration": "24 minutes (10/30/26, 10:42 PM GMT+1)"
+    },
+    "code": null,
+    "refundToOriginalSourcePossible": false,
+    "cancelCharge": null,
+    "cancelCharges": []
+   },
+   "services": [
+    "typy_vozidel_zasuvka",
+    "typy_vozidel_wifi_ano",
+    "typy_vozidel_chlazene_napoje",
+    "typy_vozidel_denni_tisk",
+    "typy_vozidel_klimatizace",
+    "typy_vozidel_teple_napoje_zdarma",
+    "typy_vozidel_obcerstveni",
+    "typy_vozidel_stevardka"
+   ],
+   "freeSeatsCount": 98,
+   "price": 23.9,
+   "creditPrice": 23.7,
+   "priceSource": "8911857184<372825000-7122901004-8887746086>",
+   "customerNotifications": [
+    "Connection RJ 1021 in the section Košice - Čop is numbered RJ 1222 and RJ 122."
+   ],
+   "actionPrice": null,
+   "tariffs": [
+    "REGULAR"
+   ],
+   "tariffNotifications": null,
+   "bookable": true
+  },
+  {
+   "seatClassKey": "TRAIN_COUCHETTE_RELAX",
+   "conditions": {
+    "descriptions": {
+     "cancel": "more than 2 days before departure: 0 %, less than 2 days: not possible",
+     "cancelShort": "> 2 days: 0 %, < 2 days: not possible",
+     "rebook": "more than 2 days before departure: by cancellation for 0 EUR, less than 2 days: not possible",
+     "rebookShort": null,
+     "expiration": "24 minutes (10/30/26, 10:42 PM GMT+1)"
+    },
+    "code": null,
+    "refundToOriginalSourcePossible": false,
+    "cancelCharge": null,
+    "cancelCharges": []
+   },
+   "services": [],
+   "freeSeatsCount": 26,
+   "price": 65.9,
+   "creditPrice": 65.9,
+   "priceSource": "8887746039<372825000-7122901004-8887746039>",
+   "customerNotifications": [
+    "Connection RJ 1021 in the section Košice - Čop is numbered RJ 1222 and RJ 122."
+   ],
+   "actionPrice": {
+    "id": 2500397000,
+    "code": null,
+    "name": "rj_spaci_vozy",
+    "url": "https://regiojet.com/services/services-on-board-of-trains/sleeping-cars",
+    "description": "Sleeping car",
+    "showIcon": false
+   },
+   "tariffs": [
+    "REGULAR"
+   ],
+   "tariffNotifications": null,
+   "bookable": true
+  },
+  {
+   "seatClassKey": "TRAIN_COUCHETTE_RELAX_FOR_WOMEN",
+   "conditions": {
+    "descriptions": {
+     "cancel": "more than 2 days before departure: 0 %, less than 2 days: not possible",
+     "cancelShort": "> 2 days: 0 %, < 2 days: not possible",
+     "rebook": "more than 2 days before departure: by cancellation for 0 EUR, less than 2 days: not possible",
+     "rebookShort": null,
+     "expiration": "24 minutes (10/30/26, 10:42 PM GMT+1)"
+    },
+    "code": null,
+    "refundToOriginalSourcePossible": false,
+    "cancelCharge": null,
+    "cancelCharges": []
+   },
+   "services": [],
+   "freeSeatsCount": 27,
+   "price": 65.9,
+   "creditPrice": 65.9,
+   "priceSource": "8887746039<372825000-7122901004-8887746039>",
+   "customerNotifications": [
+    "Connection RJ 1021 in the section Košice - Čop is numbered RJ 1222 and RJ 122."
+   ],
+   "actionPrice": {
+    "id": 2500397000,
+    "code": null,
+    "name": "rj_spaci_vozy",
+    "url": "https://regiojet.com/services/services-on-board-of-trains/sleeping-cars",
+    "description": "Sleeping car",
+    "showIcon": false
+   },
+   "tariffs": [
+    "REGULAR"
+   ],
+   "tariffNotifications": null,
+   "bookable": true
+  },
+  {
+   "seatClassKey": "TRAIN_COUCHETTE_BUSINESS_4",
+   "conditions": {
+    "descriptions": {
+     "cancel": "more than 2 days before departure: 0 %, less than 2 days: not possible",
+     "cancelShort": "> 2 days: 0 %, < 2 days: not possible",
+     "rebook": "more than 2 days before departure: by cancellation for 0 EUR, less than 2 days: not possible",
+     "rebookShort": null,
+     "expiration": "24 minutes (10/30/26, 10:42 PM GMT+1)"
+    },
+    "code": null,
+    "refundToOriginalSourcePossible": false,
+    "cancelCharge": null,
+    "cancelCharges": []
+   },
+   "services": [],
+   "freeSeatsCount": 20,
+   "price": 176.0,
+   "creditPrice": 175.2,
+   "priceSource": "8911857184<372825000-7122901004-8887746050>",
+   "customerNotifications": [
+    "Connection RJ 1021 in the section Košice - Čop is numbered RJ 1222 and RJ 122."
+   ],
+   "actionPrice": {
+    "id": 2500397000,
+    "code": null,
+    "name": "rj_spaci_vozy",
+    "url": "https://regiojet.com/services/services-on-board-of-trains/sleeping-cars",
+    "description": "Sleeping car",
+    "showIcon": false
+   },
+   "tariffs": [
+    "REGULAR"
+   ],
+   "tariffNotifications": null,
+   "bookable": true
+  }
+ ],
+ "bookable": true,
+ "travelTime": "11:53 h"
+}

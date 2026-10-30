@@ -61,9 +61,10 @@ const oneWay = (id) =>
 
 // ─── Order ──────────────────────────────────────────────────────────────────
 
-check("European Sleeper, then Trenitalia, by the committed table", () => {
+check("European Sleeper, then Trenitalia, then RegioJet, by the committed table", () => {
   assert.strictEqual(promotionRank({ agency_id: "ES" }), 1);
   assert.strictEqual(promotionRank({ agency_id: "FS" }), 2);
+  assert.strictEqual(promotionRank({ agency_id: "RJ" }), 3);
   assert.strictEqual(promotionRank({ agency_id: "ÖBB" }), Infinity);
 });
 

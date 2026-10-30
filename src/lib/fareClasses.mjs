@@ -132,6 +132,16 @@ export const FARE_CLASS_LABELS = {
   // couchette place, and one bed in the sleeping car, whichever cabin is
   // cheapest that night. Seats are left out at the source.
   sleeperBed: "Sleeper, one bed",
+  // RegioJet (scripts/lib/rj-fares.mjs), from its booking API: one adult's
+  // price for the place. "couchette" above is its 6-berth compartment; a
+  // private compartment is what one traveller pays to have it to
+  // themselves. Its own keys rather than European Sleeper's cabin classes,
+  // whose presence switches the panel to ES's four-row grouping
+  // (panelFareRows). Women-only compartments and seats are left out at the source.
+  rjCouchette4: "Couchette, berth in 4-berth compartment",
+  rjSleeper3: "Sleeper, bed in 3-bed compartment",
+  rjPrivate3: "Private compartment, up to 3",
+  rjPrivate4: "Private compartment, up to 4",
   // Its last-minute deals (scripts/lib/es-last-minute.mjs): sold from the
   // operator's promo pages, not its fare finder — see src/lib/lastMinuteDeals.mjs.
   lastMinuteCouchette: "Last-minute couchette",
@@ -169,6 +179,7 @@ export const isDealClass = (key) => DEAL_CLASS_KEYS.has(key);
  */
 export const COUCHETTE_CLASS_KEYS = new Set([
   "couchette",
+  "rjCouchette4",
   "couchetteSecond",
   "couchetteFirst",
   "lastMinuteCouchette",

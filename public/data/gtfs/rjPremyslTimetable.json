@@ -1,103 +1,14 @@
 {
-  "routeId": "8393687006",
+  "routeId": "8534213024",
   "routeName": "Praha - Přemyšl",
   "routeShortName": "RJ",
   "routeType": "2",
+  "source": "https://ybus.sa.cz/gtfe/international/google_transit.zip",
   "trips": [
     {
-      "tripId": "8393690040",
-      "trainNumber": "RJ 1023",
-      "serviceId": "8393690040",
-      "serviceDays": {
-        "mon": true,
-        "tue": true,
-        "wed": true,
-        "thu": true,
-        "fri": true,
-        "sat": true,
-        "sun": true
-      },
-      "validFrom": "20260307",
-      "validUntil": "20260612",
-      "stops": [
-        {
-          "stopId": "8393689067",
-          "name": "Praha, hl.n.",
-          "lat": 50.08292,
-          "lon": 14.435606,
-          "arrival": "21:48",
-          "departure": "21:48",
-          "sequence": 1
-        },
-        {
-          "stopId": "8393689068",
-          "name": "Pardubice, hl.n.",
-          "lat": 50.032059,
-          "lon": 15.757227,
-          "arrival": "22:48",
-          "departure": "22:50",
-          "sequence": 2
-        },
-        {
-          "stopId": "8393689072",
-          "name": "Olomouc, hl.n.",
-          "lat": 49.589993,
-          "lon": 17.278225,
-          "arrival": "00:07 (+1)",
-          "departure": "00:09 (+1)",
-          "sequence": 3
-        },
-        {
-          "stopId": "8393689064",
-          "name": "Ostrava, Svinov",
-          "lat": 49.82169,
-          "lon": 18.209208,
-          "arrival": "01:05 (+1)",
-          "departure": "01:07 (+1)",
-          "sequence": 4
-        },
-        {
-          "stopId": "8393689070",
-          "name": "Ostrava, hl.n.",
-          "lat": 49.85215,
-          "lon": 18.268461,
-          "arrival": "01:13 (+1)",
-          "departure": "01:15 (+1)",
-          "sequence": 5
-        },
-        {
-          "stopId": "8393689066",
-          "name": "Krakov, Hlavní nádraží",
-          "lat": 50.069424,
-          "lon": 19.947851,
-          "arrival": "03:47 (+1)",
-          "departure": "03:52 (+1)",
-          "sequence": 8
-        },
-        {
-          "stopId": "8393689071",
-          "name": "Řešov, Hlavní nádraží",
-          "lat": 50.042789,
-          "lon": 22.006989,
-          "arrival": "05:31 (+1)",
-          "departure": "05:32 (+1)",
-          "sequence": 9
-        },
-        {
-          "stopId": "8393689069",
-          "name": "Přemyšl, Hlavní nádraží",
-          "lat": 49.783527,
-          "lon": 22.776388,
-          "arrival": "06:25 (+1)",
-          "departure": "06:25 (+1)",
-          "sequence": 10
-        }
-      ]
-    },
-    {
-      "tripId": "8393690041",
+      "tripId": "8534218437",
       "trainNumber": "RJ 1022",
-      "serviceId": "8393690041",
+      "serviceId": "8534218437",
       "serviceDays": {
         "mon": true,
         "tue": true,
@@ -107,101 +18,11 @@
         "sat": true,
         "sun": true
       },
-      "validFrom": "20260307",
-      "validUntil": "20260612",
+      "validFrom": "20260613",
+      "validUntil": "20261211",
       "stops": [
         {
-          "stopId": "8393689069",
-          "name": "Přemyšl, Hlavní nádraží",
-          "lat": 49.783527,
-          "lon": 22.776388,
-          "arrival": "21:33",
-          "departure": "21:33",
-          "sequence": 0
-        },
-        {
-          "stopId": "8393689071",
-          "name": "Řešov, Hlavní nádraží",
-          "lat": 50.042789,
-          "lon": 22.006989,
-          "arrival": "22:26",
-          "departure": "22:28",
-          "sequence": 1
-        },
-        {
-          "stopId": "8393689066",
-          "name": "Krakov, Hlavní nádraží",
-          "lat": 50.069424,
-          "lon": 19.947851,
-          "arrival": "00:06 (+1)",
-          "departure": "00:11 (+1)",
-          "sequence": 2
-        },
-        {
-          "stopId": "8393689070",
-          "name": "Ostrava, hl.n.",
-          "lat": 49.85215,
-          "lon": 18.268461,
-          "arrival": "03:22 (+1)",
-          "departure": "03:24 (+1)",
-          "sequence": 5
-        },
-        {
-          "stopId": "8393689064",
-          "name": "Ostrava, Svinov",
-          "lat": 49.82169,
-          "lon": 18.209208,
-          "arrival": "03:30 (+1)",
-          "departure": "03:32 (+1)",
-          "sequence": 6
-        },
-        {
-          "stopId": "8393689072",
-          "name": "Olomouc, hl.n.",
-          "lat": 49.589993,
-          "lon": 17.278225,
-          "arrival": "04:25 (+1)",
-          "departure": "04:27 (+1)",
-          "sequence": 7
-        },
-        {
-          "stopId": "8393689068",
-          "name": "Pardubice, hl.n.",
-          "lat": 50.032059,
-          "lon": 15.757227,
-          "arrival": "05:55 (+1)",
-          "departure": "05:57 (+1)",
-          "sequence": 8
-        },
-        {
-          "stopId": "8393689067",
-          "name": "Praha, hl.n.",
-          "lat": 50.08292,
-          "lon": 14.435606,
-          "arrival": "06:58 (+1)",
-          "departure": "06:58 (+1)",
-          "sequence": 9
-        }
-      ]
-    },
-    {
-      "tripId": "8393690039",
-      "trainNumber": "RJ 1022",
-      "serviceId": "8393690039",
-      "serviceDays": {
-        "mon": true,
-        "tue": true,
-        "wed": true,
-        "thu": true,
-        "fri": true,
-        "sat": true,
-        "sun": true
-      },
-      "validFrom": "20260307",
-      "validUntil": "20260612",
-      "stops": [
-        {
-          "stopId": "8393689069",
+          "stopId": "8534215235",
           "name": "Přemyšl, Hlavní nádraží",
           "lat": 49.783527,
           "lon": 22.776388,
@@ -210,25 +31,25 @@
           "sequence": 0
         },
         {
-          "stopId": "8393689071",
+          "stopId": "8534215237",
           "name": "Řešov, Hlavní nádraží",
           "lat": 50.042789,
           "lon": 22.006989,
-          "arrival": "22:26",
-          "departure": "22:28",
+          "arrival": "22:25",
+          "departure": "22:27",
           "sequence": 1
         },
         {
-          "stopId": "8393689066",
+          "stopId": "8534215240",
           "name": "Krakov, Hlavní nádraží",
           "lat": 50.069424,
           "lon": 19.947851,
-          "arrival": "00:15 (+1)",
+          "arrival": "00:12 (+1)",
           "departure": "00:18 (+1)",
           "sequence": 2
         },
         {
-          "stopId": "8393689070",
+          "stopId": "8534215236",
           "name": "Ostrava, hl.n.",
           "lat": 49.85215,
           "lon": 18.268461,
@@ -237,7 +58,7 @@
           "sequence": 5
         },
         {
-          "stopId": "8393689064",
+          "stopId": "8534215238",
           "name": "Ostrava, Svinov",
           "lat": 49.82169,
           "lon": 18.209208,
@@ -246,16 +67,16 @@
           "sequence": 6
         },
         {
-          "stopId": "8393689072",
+          "stopId": "8534215243",
           "name": "Olomouc, hl.n.",
-          "lat": 49.589993,
-          "lon": 17.278225,
+          "lat": 49.591988,
+          "lon": 17.275579,
           "arrival": "04:25 (+1)",
           "departure": "04:27 (+1)",
           "sequence": 7
         },
         {
-          "stopId": "8393689068",
+          "stopId": "8534215234",
           "name": "Pardubice, hl.n.",
           "lat": 50.032059,
           "lon": 15.757227,
@@ -264,13 +85,103 @@
           "sequence": 8
         },
         {
-          "stopId": "8393689067",
+          "stopId": "8534215241",
           "name": "Praha, hl.n.",
           "lat": 50.08292,
           "lon": 14.435606,
           "arrival": "06:58 (+1)",
           "departure": "06:58 (+1)",
           "sequence": 9
+        }
+      ]
+    },
+    {
+      "tripId": "8750784001",
+      "trainNumber": "RJ 1023",
+      "serviceId": "8750784001",
+      "serviceDays": {
+        "mon": true,
+        "tue": true,
+        "wed": true,
+        "thu": true,
+        "fri": true,
+        "sat": true,
+        "sun": true
+      },
+      "validFrom": "20260613",
+      "validUntil": "20261211",
+      "stops": [
+        {
+          "stopId": "8534215241",
+          "name": "Praha, hl.n.",
+          "lat": 50.08292,
+          "lon": 14.435606,
+          "arrival": "21:48",
+          "departure": "21:48",
+          "sequence": 1
+        },
+        {
+          "stopId": "8534215234",
+          "name": "Pardubice, hl.n.",
+          "lat": 50.032059,
+          "lon": 15.757227,
+          "arrival": "22:48",
+          "departure": "22:50",
+          "sequence": 2
+        },
+        {
+          "stopId": "8534215243",
+          "name": "Olomouc, hl.n.",
+          "lat": 49.591988,
+          "lon": 17.275579,
+          "arrival": "00:07 (+1)",
+          "departure": "00:09 (+1)",
+          "sequence": 3
+        },
+        {
+          "stopId": "8534215238",
+          "name": "Ostrava, Svinov",
+          "lat": 49.82169,
+          "lon": 18.209208,
+          "arrival": "01:05 (+1)",
+          "departure": "01:07 (+1)",
+          "sequence": 4
+        },
+        {
+          "stopId": "8534215236",
+          "name": "Ostrava, hl.n.",
+          "lat": 49.85215,
+          "lon": 18.268461,
+          "arrival": "01:13 (+1)",
+          "departure": "01:15 (+1)",
+          "sequence": 5
+        },
+        {
+          "stopId": "8534215240",
+          "name": "Krakov, Hlavní nádraží",
+          "lat": 50.069424,
+          "lon": 19.947851,
+          "arrival": "03:38 (+1)",
+          "departure": "03:43 (+1)",
+          "sequence": 8
+        },
+        {
+          "stopId": "8534215237",
+          "name": "Řešov, Hlavní nádraží",
+          "lat": 50.042789,
+          "lon": 22.006989,
+          "arrival": "05:27 (+1)",
+          "departure": "05:33 (+1)",
+          "sequence": 9
+        },
+        {
+          "stopId": "8534215235",
+          "name": "Přemyšl, Hlavní nádraží",
+          "lat": 49.783527,
+          "lon": 22.776388,
+          "arrival": "06:27 (+1)",
+          "departure": "06:27 (+1)",
+          "sequence": 10
         }
       ]
     }

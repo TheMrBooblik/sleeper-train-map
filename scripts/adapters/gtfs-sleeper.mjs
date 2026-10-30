@@ -33,6 +33,7 @@ import {
 } from "../lib/gtfs.mjs";
 import { resolveCanonicalStationName } from "../../src/pages/api/lib/primitives.mjs";
 import { runSncfOpenDataPass } from "../lib/sncf-open-data-pass.mjs";
+import { fillRjFareCalendars, readPreviousTrains } from "../lib/rj-fares.mjs";
 
 function loadAllowlist(configPath) {
   const parsed = JSON.parse(fs.readFileSync(configPath, "utf8"));
@@ -98,6 +99,31 @@ export async function run(entry, ctx) {
     await runSncfOpenDataPass(trains, { entry, ctx, gtfs, log });
   }
 
+  // A fare calendar from the operator's own booking API, built up across
+  // runs on last night's file (scripts/lib/rj-fares.mjs). Opt-in per entry,
+  // never fatal: a failure costs the fares, not the trains.
+  let warning = null;
+  if (entry.params?.fares?.provider === "regiojet") {
+    const fares = entry.params.fares;
+    const fareStats = await fillRjFareCalendars(trains, readPreviousTrains(ctx.rootDir, entry.output), {
+      today: ctx.today,
+      rootDir: ctx.rootDir,
+      ...(ctx.fetch ? { fetchImpl: ctx.fetch } : {}),
+      log,
+      ...(fares.currency ? { currency: fares.currency } : {}),
+      ...(fares.days ? { days: fares.days } : {}),
+      ...(fares.searchesPerRun ? { budget: fares.searchesPerRun } : {}),
+    });
+    log(
+      `${fareStats.requests} fare request(s) for ${fareStats.planned} planned night(s): ` +
+        `${fareStats.priced} priced, ${fareStats.noBerth} without a berth, ${fareStats.noJourney} with no train, ` +
+        `${fareStats.errors} failed${fareStats.stopped ? ", stopped early" : ""}; ` +
+        `fares for ${Object.values(trains).filter((t) => t.fare).length}/${built} trains`,
+    );
+    if (fareStats.blocked) warning = `fare searches refused: ${fareStats.blocked}`;
+  }
+
   ctx.write(entry.output, { uploadedAt: ctx.today, trains });
   log(`stored ${built} trains`);
+  return warning ? { warning } : undefined;
 }

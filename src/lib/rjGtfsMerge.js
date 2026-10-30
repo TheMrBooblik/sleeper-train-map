@@ -14,7 +14,12 @@ function normalizeRjGtfsName(name) {
     .trim();
 }
 
+// The feed's exact spelling first ("Ostrava, Svinov" → "Ostrava-Svinov", the
+// entries the `regiojet` source writes the row's via with), then the stripped
+// form for anything the table does not list.
 function toCanonical(rawName) {
+  const direct = resolveCanonicalStationName(rawName);
+  if (direct !== rawName) return direct;
   return resolveCanonicalStationName(normalizeRjGtfsName(rawName));
 }
 
@@ -43,7 +48,7 @@ function isPrzemyslRoute(route) {
   const t0 = (route.trip_short_name_0 || "").toString().trim();
   const t1 = (route.trip_short_name_1 || "").toString().trim();
   const agency = (route.agency_id || "").toUpperCase();
-  if (agency === "RJ" && (t0 === "1038" || t0 === "1039" || t1 === "1038" || t1 === "1039"))
+  if (agency === "RJ" && (t0 === "1022" || t0 === "1023" || t1 === "1022" || t1 === "1023"))
     return true;
   const fields = [route.origin_trip_0, route.destination_trip_0, route.origin_trip_1, route.destination_trip_1]
     .map((f) => (f || "").toLowerCase());

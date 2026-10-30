@@ -1,0 +1,85 @@
+{
+ "routes": [
+  {
+   "id": "8730441899",
+   "departureStationId": 372825000,
+   "departureTime": "2026-11-20T21:45:00.000+01:00",
+   "arrivalStationId": 7122901004,
+   "arrivalTime": "2026-11-21T10:38:00.000+02:00",
+   "vehicleTypes": [
+    "TRAIN"
+   ],
+   "transfersCount": 0,
+   "freeSeatsCount": 171,
+   "priceFrom": 23.9,
+   "priceTo": 176.0,
+   "creditPriceFrom": 23.7,
+   "creditPriceTo": 175.2,
+   "pricesCount": 4,
+   "actionPrice": false,
+   "surcharge": false,
+   "notices": false,
+   "support": false,
+   "nationalTrip": false,
+   "bookable": true,
+   "delay": null,
+   "travelTime": "11:53 h",
+   "vehicleStandardKey": "YELLOW"
+  },
+  {
+   "id": "8730441923",
+   "departureStationId": 372825000,
+   "departureTime": "2026-11-21T21:45:00.000+01:00",
+   "arrivalStationId": 7122901004,
+   "arrivalTime": "2026-11-22T10:38:00.000+02:00",
+   "vehicleTypes": [
+    "TRAIN"
+   ],
+   "transfersCount": 0,
+   "freeSeatsCount": 165,
+   "priceFrom": 23.9,
+   "priceTo": 176.0,
+   "creditPriceFrom": 23.7,
+   "creditPriceTo": 175.2,
+   "pricesCount": 4,
+   "actionPrice": false,
+   "surcharge": false,
+   "notices": false,
+   "support": false,
+   "nationalTrip": false,
+   "bookable": true,
+   "delay": null,
+   "travelTime": "11:53 h",
+   "vehicleStandardKey": "YELLOW"
+  },
+  {
+   "id": "8730441946",
+   "departureStationId": 372825000,
+   "departureTime": "2026-11-22T21:45:00.000+01:00",
+   "arrivalStationId": 7122901004,
+   "arrivalTime": "2026-11-23T10:38:00.000+02:00",
+   "vehicleTypes": [
+    "TRAIN"
+   ],
+   "transfersCount": 0,
+   "freeSeatsCount": 143,
+   "priceFrom": 23.9,
+   "priceTo": 176.0,
+   "creditPriceFrom": 23.7,
+   "creditPriceTo": 175.2,
+   "pricesCount": 4,
+   "actionPrice": false,
+   "surcharge": false,
+   "notices": false,
+   "support": false,
+   "nationalTrip": false,
+   "bookable": true,
+   "delay": null,
+   "travelTime": "11:53 h",
+   "vehicleStandardKey": "YELLOW"
+  }
+ ],
+ "routesMessage": null,
+ "bannerBubbles": [],
+ "textBubbles": []
+}
