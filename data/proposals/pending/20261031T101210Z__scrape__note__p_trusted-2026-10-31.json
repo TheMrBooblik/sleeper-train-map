@@ -1,0 +1,23 @@
+{
+  "v": 1,
+  "id": "p_trusted-2026-10-31",
+  "createdAt": "2026-10-31T10:12:10.985Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Auto-added from trusted sources (0 routes, 4 stations)",
+  "summary": "Auto-approved from trusted official sources (already live — FYI):\nstation Xianning(咸宁) (chinese)\nstation Quanzhounan(全州南) (chinese)\nstation Laibin(来宾) (chinese)\nstation Chengdulongquanyi(成都龙泉驿) (chinese)",
+  "target": {
+    "routeKey": "trusted-2026-10-31",
+    "agencyId": null,
+    "resource": null,
+    "stationName": null
+  },
+  "before": null,
+  "after": null,
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
