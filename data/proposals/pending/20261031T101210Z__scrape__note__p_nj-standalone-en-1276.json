@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "p_nj-standalone-en-1276",
+  "createdAt": "2026-10-31T10:12:10.984Z",
+  "source": "scrape",
+  "sourceDetail": null,
+  "kind": "note",
+  "title": "Changed: EN 1276 (Rijeka – Warszawa Wschodnia)",
+  "summary": "Material change on an approved route (already live — FYI): train numbers: \"EN 1276|EN 1277\" → \"EN 1276\"",
+  "target": {
+    "routeKey": "nj_standalone_EN_1276",
+    "agencyId": "PKP",
+    "resource": null,
+    "stationName": null
+  },
+  "before": {
+    "train numbers": "EN 1276|EN 1277"
+  },
+  "after": {
+    "train numbers": "EN 1276"
+  },
+  "apply": null,
+  "evidence": null,
+  "submitter": null,
+  "status": "pending",
+  "resolution": null
+}
